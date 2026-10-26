@@ -1,0 +1,35 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+version = '0.1.0'
+group = 'cn.yumis'
+base { archivesName = 'YumisDungeonAndFight' }
+layout.buildDirectory = file('temp/build')
+java { toolchain { languageVersion = JavaLanguageVersion.of(25) }; withSourcesJar() }
+sourceSets.main.java.srcDir 'src/client/java'
+repositories { mavenCentral() }
+neoForge {
+    version = '26.2.0.93'
+    runs {
+        client { client(); gameDirectory = file('temp/run/client') }
+        clientA { client(); systemProperty 'ydnf.verify', 'true'; systemProperty 'ydnf.verifyHidden', 'true'; gameDirectory = file('temp/run/client-a'); programArguments.addAll('--username', 'YumisVerifyA', '--quickPlayMultiplayer', '127.0.0.1:25568', '--width', '1280', '--height', '720') }
+        clientB { client(); systemProperty 'ydnf.verify', 'true'; systemProperty 'ydnf.verifyHidden', 'true'; gameDirectory = file('temp/run/client-b'); programArguments.addAll('--username', 'YumisVerifyB', '--quickPlayMultiplayer', '127.0.0.1:25568', '--width', '960', '--height', '640') }
+        server { server(); systemProperty 'ydnf.verify', 'true'; gameDirectory = file('temp/run/server'); programArgument '--nogui' }
+        gameTestServer { type = 'gameTestServer'; gameDirectory = file('temp/run/gametest'); systemProperty 'neoforge.enabledGameTestNamespaces', 'yumis_dungeon_and_fight' }
+    }
+    mods { yumis_dungeon_and_fight { sourceSet sourceSets.main } }
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+dependencies { testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'; testImplementation 'com.google.code.gson:gson:2.14.0'; testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.4' }
+test { useJUnitPlatform() }
+jar { manifest { attributes('Implementation-Title': 'YumisDungeonAndFight', 'Implementation-Version': project.version) } }
+
+// Immutable 26.2 metadata lets offline builds use the already verified dependency cache.
+if (gradle.startParameter.offline) {
+    def metadata = new groovy.json.JsonSlurper().parse(file('gradle/minecraft-26.2.json'))
+    def pinned = file('temp/bootstrap/offline-launcher.json')
+    pinned.parentFile.mkdirs()
+    pinned.text = groovy.json.JsonOutput.toJson([latest: [release: '26.2', snapshot: '26.2'], versions: [[id: '26.2', type: 'release', url: file('gradle/minecraft-26.2.json').toURI().toString(), time: metadata.time, releaseTime: metadata.releaseTime]]])
+    neoFormRuntime.launcherManifestUrl = pinned.toURI().toString()
+}

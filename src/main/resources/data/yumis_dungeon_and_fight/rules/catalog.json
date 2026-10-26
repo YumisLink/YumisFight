@@ -1,0 +1,350 @@
+{
+  "materials": {
+    "goblin_ingot": {
+      "id": "goblin_ingot",
+      "name": "哥布林锭",
+      "texture": "goblin_ingot"
+    },
+    "goblin_cloth": {
+      "id": "goblin_cloth",
+      "name": "哥布林布",
+      "texture": "goblin_cloth"
+    },
+    "spinel": {
+      "id": "spinel",
+      "name": "尖晶石",
+      "texture": "spinel"
+    },
+    "fluorite": {
+      "id": "fluorite",
+      "name": "萤石",
+      "texture": "fluorite"
+    },
+    "stigma_silk": {
+      "id": "stigma_silk",
+      "name": "圣痕丝绸",
+      "texture": "stigma_silk"
+    },
+    "behemoth_scale": {
+      "id": "behemoth_scale",
+      "name": "天帷巨兽的鳞片",
+      "texture": "behemoth_scale"
+    },
+    "behemoth_tear": {
+      "id": "behemoth_tear",
+      "name": "天帷巨兽的眼泪",
+      "texture": "behemoth_tear"
+    },
+    "dark_elf_bone": {
+      "id": "dark_elf_bone",
+      "name": "暗精灵的遗骨",
+      "texture": "dark_elf_bone"
+    },
+    "wolf_fang": {
+      "id": "wolf_fang",
+      "name": "锋利的狼牙",
+      "texture": "wolf_fang"
+    },
+    "soul_crystal": {
+      "id": "soul_crystal",
+      "name": "灵魂晶石",
+      "texture": "soul_crystal"
+    },
+    "disaster_sign": {
+      "id": "disaster_sign",
+      "name": "灾难的征兆",
+      "texture": "disaster_sign"
+    },
+    "thief_badge": {
+      "id": "thief_badge",
+      "name": "疯狂盗贼团的徽章",
+      "texture": "thief_badge"
+    },
+    "silver_meteorite": {
+      "id": "silver_meteorite",
+      "name": "银色陨石",
+      "texture": "silver_meteorite"
+    },
+    "hero_fate": {
+      "id": "hero_fate",
+      "name": "英雄的宿命",
+      "texture": "hero_fate"
+    },
+    "mirage_crystal": {
+      "id": "mirage_crystal",
+      "name": "迷幻晶石",
+      "texture": "mirage_crystal"
+    },
+    "endless_eternity": {
+      "id": "endless_eternity",
+      "name": "无尽的永恒",
+      "texture": "endless_eternity"
+    },
+    "magtonium": {
+      "id": "magtonium",
+      "name": "魔刹石",
+      "texture": "magtonium"
+    },
+    "terranium": {
+      "id": "terranium",
+      "name": "时空石",
+      "texture": "terranium"
+    }
+  },
+  "regions": [
+    {
+      "minimum": 1,
+      "maximum": 14,
+      "equipment": "goblin_ingot",
+      "armor": "goblin_cloth"
+    },
+    {
+      "minimum": 15,
+      "maximum": 19,
+      "equipment": "spinel",
+      "armor": "stigma_silk"
+    },
+    {
+      "minimum": 20,
+      "maximum": 24,
+      "equipment": "fluorite",
+      "armor": "stigma_silk"
+    },
+    {
+      "minimum": 25,
+      "maximum": 34,
+      "equipment": "behemoth_scale",
+      "armor": "behemoth_tear"
+    },
+    {
+      "minimum": 35,
+      "maximum": 39,
+      "equipment": "dark_elf_bone",
+      "armor": "soul_crystal"
+    },
+    {
+      "minimum": 40,
+      "maximum": 44,
+      "equipment": "wolf_fang",
+      "armor": "soul_crystal"
+    },
+    {
+      "minimum": 45,
+      "maximum": 54,
+      "equipment": "disaster_sign",
+      "armor": "thief_badge"
+    },
+    {
+      "minimum": 55,
+      "maximum": 64,
+      "equipment": "silver_meteorite",
+      "armor": "hero_fate"
+    },
+    {
+      "minimum": 65,
+      "maximum": 74,
+      "equipment": "mirage_crystal",
+      "armor": "endless_eternity"
+    },
+    {
+      "minimum": 75,
+      "maximum": 79,
+      "equipment": "magtonium",
+      "armor": "magtonium"
+    },
+    {
+      "minimum": 80,
+      "maximum": 80,
+      "equipment": "terranium",
+      "armor": "terranium"
+    }
+  ],
+  "dungeons": [
+    {
+      "id": "goblin_camp",
+      "name": "哥布林营地",
+      "level": 10,
+      "available": true,
+      "cell": 0,
+      "materials": [
+        "goblin_ingot",
+        "goblin_cloth"
+      ]
+    },
+    {
+      "id": "dragon_tower",
+      "name": "龙人之塔",
+      "level": 15,
+      "available": true,
+      "cell": 1,
+      "materials": [
+        "spinel",
+        "stigma_silk"
+      ]
+    },
+    {
+      "id": "castle_palace",
+      "name": "城主宫殿",
+      "level": 20,
+      "available": false,
+      "cell": 2,
+      "materials": [
+        "fluorite",
+        "stigma_silk"
+      ]
+    },
+    {
+      "id": "gbl_church",
+      "name": "GBL教会",
+      "level": 25,
+      "available": false,
+      "cell": 3,
+      "materials": [
+        "behemoth_scale",
+        "behemoth_tear"
+      ]
+    },
+    {
+      "id": "behemoth_forbidden",
+      "name": "天帷禁地",
+      "level": 30,
+      "available": false,
+      "cell": 4,
+      "materials": [
+        "behemoth_scale",
+        "behemoth_tear"
+      ]
+    },
+    {
+      "id": "dark_city",
+      "name": "暗黑城入口",
+      "level": 35,
+      "available": false,
+      "cell": 5,
+      "materials": [
+        "dark_elf_bone",
+        "soul_crystal"
+      ]
+    },
+    {
+      "id": "skasa",
+      "name": "斯卡萨的巢穴",
+      "level": 40,
+      "available": false,
+      "cell": 6,
+      "materials": [
+        "wolf_fang",
+        "soul_crystal"
+      ]
+    },
+    {
+      "id": "moonlight_tavern",
+      "name": "月光酒馆",
+      "level": 45,
+      "available": false,
+      "cell": 7,
+      "materials": [
+        "disaster_sign",
+        "thief_badge"
+      ]
+    },
+    {
+      "id": "hamelin",
+      "name": "迷乱之村哈穆林",
+      "level": 50,
+      "available": false,
+      "cell": 8,
+      "materials": [
+        "disaster_sign",
+        "thief_badge"
+      ]
+    },
+    {
+      "id": "pursuit",
+      "name": "追击歼灭战",
+      "level": 55,
+      "available": false,
+      "cell": 9,
+      "materials": [
+        "silver_meteorite",
+        "hero_fate"
+      ]
+    },
+    {
+      "id": "sea_train",
+      "name": "海上列车",
+      "level": 60,
+      "available": false,
+      "cell": 10,
+      "materials": [
+        "silver_meteorite",
+        "hero_fate"
+      ]
+    },
+    {
+      "id": "time_rift",
+      "name": "时空裂缝",
+      "level": 65,
+      "available": false,
+      "cell": 11,
+      "materials": [
+        "mirage_crystal",
+        "endless_eternity"
+      ]
+    },
+    {
+      "id": "mysterious_awareness",
+      "name": "迷之觉悟",
+      "level": 70,
+      "available": false,
+      "cell": 12,
+      "materials": [
+        "mirage_crystal",
+        "endless_eternity"
+      ]
+    },
+    {
+      "id": "grandi",
+      "name": "格兰迪发电厂",
+      "level": 75,
+      "available": false,
+      "cell": 13,
+      "materials": [
+        "magtonium"
+      ]
+    },
+    {
+      "id": "central_park",
+      "name": "中央公园（红色魔女之森）",
+      "level": 80,
+      "available": false,
+      "cell": 14,
+      "materials": [
+        "terranium"
+      ]
+    }
+  ],
+  "statNames": {
+    "HEALTH": "最大生命",
+    "MP": "最大魔力",
+    "STRENGTH": "力量",
+    "INTELLIGENCE": "智力",
+    "SPIRIT": "精神",
+    "PHYSICAL_ATTACK": "基础物理攻击",
+    "MAGICAL_ATTACK": "基础魔法攻击",
+    "PHYSICAL_DEFENSE": "物理防御",
+    "MAGICAL_DEFENSE": "魔法防御",
+    "LIGHT": "光属性强化",
+    "FIRE": "火属性强化",
+    "ICE": "冰属性强化",
+    "DARK": "暗属性强化",
+    "LIGHT_RESIST": "光属性抗性",
+    "FIRE_RESIST": "火属性抗性",
+    "ICE_RESIST": "冰属性抗性",
+    "DARK_RESIST": "暗属性抗性",
+    "DROP_RATE": "掉宝率",
+    "SHIELD": "装备护盾"
+  },
+  "templates": {},
+  "revision": 1
+}

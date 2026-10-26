@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "yumis_dungeon_and_fight:block/fabricator_top",
+    "bottom": "minecraft:block/iron_block",
+    "side": "yumis_dungeon_and_fight:block/fabricator_side"
+  }
+}

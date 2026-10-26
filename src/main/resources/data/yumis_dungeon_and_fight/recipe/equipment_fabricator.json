@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ICI",
+    "CTC",
+    "ICI"
+  ],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "C": "minecraft:copper_ingot",
+    "T": "minecraft:crafting_table"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:equipment_fabricator",
+    "count": 1
+  }
+}

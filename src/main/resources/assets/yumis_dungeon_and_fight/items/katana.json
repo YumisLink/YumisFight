@@ -1,0 +1,117 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "katana_10_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_10_base"
+        }
+      },
+      {
+        "when": "katana_20_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_20_base"
+        }
+      },
+      {
+        "when": "katana_30_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_30_base"
+        }
+      },
+      {
+        "when": "katana_40_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_40_base"
+        }
+      },
+      {
+        "when": "katana_50_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_50_base"
+        }
+      },
+      {
+        "when": "katana_10_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_10_epic"
+        }
+      },
+      {
+        "when": "katana_20_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_20_epic"
+        }
+      },
+      {
+        "when": "katana_30_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_30_epic"
+        }
+      },
+      {
+        "when": "katana_40_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_40_epic"
+        }
+      },
+      {
+        "when": "katana_50_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_50_epic"
+        }
+      },
+      {
+        "when": "katana_10_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_10_mythic"
+        }
+      },
+      {
+        "when": "katana_20_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_20_mythic"
+        }
+      },
+      {
+        "when": "katana_30_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_30_mythic"
+        }
+      },
+      {
+        "when": "katana_40_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_40_mythic"
+        }
+      },
+      {
+        "when": "katana_50_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_50_mythic"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/expansion/katana_10_base"
+    }
+  }
+}

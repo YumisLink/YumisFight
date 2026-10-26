@@ -1,0 +1,117 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "greatsword_10_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_10_base"
+        }
+      },
+      {
+        "when": "greatsword_20_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_20_base"
+        }
+      },
+      {
+        "when": "greatsword_30_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_30_base"
+        }
+      },
+      {
+        "when": "greatsword_40_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_40_base"
+        }
+      },
+      {
+        "when": "greatsword_50_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_50_base"
+        }
+      },
+      {
+        "when": "greatsword_10_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_10_epic"
+        }
+      },
+      {
+        "when": "greatsword_20_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_20_epic"
+        }
+      },
+      {
+        "when": "greatsword_30_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_30_epic"
+        }
+      },
+      {
+        "when": "greatsword_40_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_40_epic"
+        }
+      },
+      {
+        "when": "greatsword_50_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_50_epic"
+        }
+      },
+      {
+        "when": "greatsword_10_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_10_mythic"
+        }
+      },
+      {
+        "when": "greatsword_20_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_20_mythic"
+        }
+      },
+      {
+        "when": "greatsword_30_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_30_mythic"
+        }
+      },
+      {
+        "when": "greatsword_40_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_40_mythic"
+        }
+      },
+      {
+        "when": "greatsword_50_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/greatsword_50_mythic"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/expansion/greatsword_10_base"
+    }
+  }
+}

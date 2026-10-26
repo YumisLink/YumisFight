@@ -1,0 +1,117 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "blunt_10_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_10_base"
+        }
+      },
+      {
+        "when": "blunt_20_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_20_base"
+        }
+      },
+      {
+        "when": "blunt_30_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_30_base"
+        }
+      },
+      {
+        "when": "blunt_40_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_40_base"
+        }
+      },
+      {
+        "when": "blunt_50_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_50_base"
+        }
+      },
+      {
+        "when": "blunt_10_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_10_epic"
+        }
+      },
+      {
+        "when": "blunt_20_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_20_epic"
+        }
+      },
+      {
+        "when": "blunt_30_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_30_epic"
+        }
+      },
+      {
+        "when": "blunt_40_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_40_epic"
+        }
+      },
+      {
+        "when": "blunt_50_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_50_epic"
+        }
+      },
+      {
+        "when": "blunt_10_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_10_mythic"
+        }
+      },
+      {
+        "when": "blunt_20_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_20_mythic"
+        }
+      },
+      {
+        "when": "blunt_30_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_30_mythic"
+        }
+      },
+      {
+        "when": "blunt_40_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_40_mythic"
+        }
+      },
+      {
+        "when": "blunt_50_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/blunt_50_mythic"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/expansion/blunt_10_base"
+    }
+  }
+}

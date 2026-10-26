@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.yumis.fight.RulesTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-26T12:33:08.410Z" hostname="YUMIS" time="0.037">
+  <properties/>
+  <testcase name="skillParametersAreImmutableSnapshots()" classname="cn.yumis.fight.RulesTest" time="0.005"/>
+  <testcase name="regionalMaterialIsFixedForEveryLevelAndSlot()" classname="cn.yumis.fight.RulesTest" time="0.025"/>
+  <testcase name="level80KeepsEveryGrantAndStopsExperience()" classname="cn.yumis.fight.RulesTest" time="0.001"/>
+  <testcase name="professionsHaveCumulativeThresholdsAndUnboundedExperience()" classname="cn.yumis.fight.RulesTest" time="0.002"/>
+  <testcase name="capsAreLearnedOnlyButEquipmentAddsEffectiveRanks()" classname="cn.yumis.fight.RulesTest" time="0.001"/>
+  <testcase name="expansionPreservesAbsoluteLostHealthAndInvalidatesOldBasis()" classname="cn.yumis.fight.RulesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

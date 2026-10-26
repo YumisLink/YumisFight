@@ -1,0 +1,117 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "ring_10_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_10_base"
+        }
+      },
+      {
+        "when": "ring_20_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_20_base"
+        }
+      },
+      {
+        "when": "ring_30_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_30_base"
+        }
+      },
+      {
+        "when": "ring_40_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_40_base"
+        }
+      },
+      {
+        "when": "ring_50_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_50_base"
+        }
+      },
+      {
+        "when": "ring_10_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_10_epic"
+        }
+      },
+      {
+        "when": "ring_20_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_20_epic"
+        }
+      },
+      {
+        "when": "ring_30_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_30_epic"
+        }
+      },
+      {
+        "when": "ring_40_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_40_epic"
+        }
+      },
+      {
+        "when": "ring_50_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_50_epic"
+        }
+      },
+      {
+        "when": "ring_10_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_10_mythic"
+        }
+      },
+      {
+        "when": "ring_20_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_20_mythic"
+        }
+      },
+      {
+        "when": "ring_30_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_30_mythic"
+        }
+      },
+      {
+        "when": "ring_40_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_40_mythic"
+        }
+      },
+      {
+        "when": "ring_50_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/ring_50_mythic"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/expansion/ring_10_base"
+    }
+  }
+}

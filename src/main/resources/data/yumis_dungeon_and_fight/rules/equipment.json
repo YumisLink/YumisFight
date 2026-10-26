@@ -1,0 +1,1040 @@
+{
+  "affixes": {
+    "flat_health": {
+      "id": "flat_health",
+      "name": "flat_health",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "HEALTH",
+      "element": -1
+    },
+    "percent_health": {
+      "id": "percent_health",
+      "name": "percent_health",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "HEALTH",
+      "element": -1
+    },
+    "base_health": {
+      "id": "base_health",
+      "name": "base_health",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "HEALTH",
+      "element": -1
+    },
+    "flat_mp": {
+      "id": "flat_mp",
+      "name": "flat_mp",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "MP",
+      "element": -1
+    },
+    "percent_mp": {
+      "id": "percent_mp",
+      "name": "percent_mp",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "MP",
+      "element": -1
+    },
+    "base_mp": {
+      "id": "base_mp",
+      "name": "base_mp",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "MP",
+      "element": -1
+    },
+    "flat_strength": {
+      "id": "flat_strength",
+      "name": "flat_strength",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "STRENGTH",
+      "element": -1
+    },
+    "percent_strength": {
+      "id": "percent_strength",
+      "name": "percent_strength",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "STRENGTH",
+      "element": -1
+    },
+    "base_strength": {
+      "id": "base_strength",
+      "name": "base_strength",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "STRENGTH",
+      "element": -1
+    },
+    "flat_intelligence": {
+      "id": "flat_intelligence",
+      "name": "flat_intelligence",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "INTELLIGENCE",
+      "element": -1
+    },
+    "percent_intelligence": {
+      "id": "percent_intelligence",
+      "name": "percent_intelligence",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "INTELLIGENCE",
+      "element": -1
+    },
+    "base_intelligence": {
+      "id": "base_intelligence",
+      "name": "base_intelligence",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "INTELLIGENCE",
+      "element": -1
+    },
+    "flat_spirit": {
+      "id": "flat_spirit",
+      "name": "flat_spirit",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "SPIRIT",
+      "element": -1
+    },
+    "percent_spirit": {
+      "id": "percent_spirit",
+      "name": "percent_spirit",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "SPIRIT",
+      "element": -1
+    },
+    "base_spirit": {
+      "id": "base_spirit",
+      "name": "base_spirit",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "SPIRIT",
+      "element": -1
+    },
+    "flat_physical_attack": {
+      "id": "flat_physical_attack",
+      "name": "flat_physical_attack",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "PHYSICAL_ATTACK",
+      "element": -1
+    },
+    "percent_physical_attack": {
+      "id": "percent_physical_attack",
+      "name": "percent_physical_attack",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "PHYSICAL_ATTACK",
+      "element": -1
+    },
+    "base_physical_attack": {
+      "id": "base_physical_attack",
+      "name": "base_physical_attack",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "PHYSICAL_ATTACK",
+      "element": -1
+    },
+    "flat_magical_attack": {
+      "id": "flat_magical_attack",
+      "name": "flat_magical_attack",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "MAGICAL_ATTACK",
+      "element": -1
+    },
+    "percent_magical_attack": {
+      "id": "percent_magical_attack",
+      "name": "percent_magical_attack",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "MAGICAL_ATTACK",
+      "element": -1
+    },
+    "base_magical_attack": {
+      "id": "base_magical_attack",
+      "name": "base_magical_attack",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "MAGICAL_ATTACK",
+      "element": -1
+    },
+    "flat_physical_defense": {
+      "id": "flat_physical_defense",
+      "name": "flat_physical_defense",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "PHYSICAL_DEFENSE",
+      "element": -1
+    },
+    "percent_physical_defense": {
+      "id": "percent_physical_defense",
+      "name": "percent_physical_defense",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "PHYSICAL_DEFENSE",
+      "element": -1
+    },
+    "base_physical_defense": {
+      "id": "base_physical_defense",
+      "name": "base_physical_defense",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "PHYSICAL_DEFENSE",
+      "element": -1
+    },
+    "flat_magical_defense": {
+      "id": "flat_magical_defense",
+      "name": "flat_magical_defense",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "MAGICAL_DEFENSE",
+      "element": -1
+    },
+    "percent_magical_defense": {
+      "id": "percent_magical_defense",
+      "name": "percent_magical_defense",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "MAGICAL_DEFENSE",
+      "element": -1
+    },
+    "base_magical_defense": {
+      "id": "base_magical_defense",
+      "name": "base_magical_defense",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "MAGICAL_DEFENSE",
+      "element": -1
+    },
+    "flat_light": {
+      "id": "flat_light",
+      "name": "flat_light",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "LIGHT",
+      "element": -1
+    },
+    "percent_light": {
+      "id": "percent_light",
+      "name": "percent_light",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "LIGHT",
+      "element": -1
+    },
+    "base_light": {
+      "id": "base_light",
+      "name": "base_light",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "LIGHT",
+      "element": -1
+    },
+    "flat_fire": {
+      "id": "flat_fire",
+      "name": "flat_fire",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "FIRE",
+      "element": -1
+    },
+    "percent_fire": {
+      "id": "percent_fire",
+      "name": "percent_fire",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "FIRE",
+      "element": -1
+    },
+    "base_fire": {
+      "id": "base_fire",
+      "name": "base_fire",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "FIRE",
+      "element": -1
+    },
+    "flat_ice": {
+      "id": "flat_ice",
+      "name": "flat_ice",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "ICE",
+      "element": -1
+    },
+    "percent_ice": {
+      "id": "percent_ice",
+      "name": "percent_ice",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "ICE",
+      "element": -1
+    },
+    "base_ice": {
+      "id": "base_ice",
+      "name": "base_ice",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "ICE",
+      "element": -1
+    },
+    "flat_dark": {
+      "id": "flat_dark",
+      "name": "flat_dark",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "DARK",
+      "element": -1
+    },
+    "percent_dark": {
+      "id": "percent_dark",
+      "name": "percent_dark",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "DARK",
+      "element": -1
+    },
+    "base_dark": {
+      "id": "base_dark",
+      "name": "base_dark",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "DARK",
+      "element": -1
+    },
+    "flat_light_resist": {
+      "id": "flat_light_resist",
+      "name": "flat_light_resist",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "LIGHT_RESIST",
+      "element": -1
+    },
+    "percent_light_resist": {
+      "id": "percent_light_resist",
+      "name": "percent_light_resist",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "LIGHT_RESIST",
+      "element": -1
+    },
+    "base_light_resist": {
+      "id": "base_light_resist",
+      "name": "base_light_resist",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "LIGHT_RESIST",
+      "element": -1
+    },
+    "flat_fire_resist": {
+      "id": "flat_fire_resist",
+      "name": "flat_fire_resist",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "FIRE_RESIST",
+      "element": -1
+    },
+    "percent_fire_resist": {
+      "id": "percent_fire_resist",
+      "name": "percent_fire_resist",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "FIRE_RESIST",
+      "element": -1
+    },
+    "base_fire_resist": {
+      "id": "base_fire_resist",
+      "name": "base_fire_resist",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "FIRE_RESIST",
+      "element": -1
+    },
+    "flat_ice_resist": {
+      "id": "flat_ice_resist",
+      "name": "flat_ice_resist",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "ICE_RESIST",
+      "element": -1
+    },
+    "percent_ice_resist": {
+      "id": "percent_ice_resist",
+      "name": "percent_ice_resist",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "ICE_RESIST",
+      "element": -1
+    },
+    "base_ice_resist": {
+      "id": "base_ice_resist",
+      "name": "base_ice_resist",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "ICE_RESIST",
+      "element": -1
+    },
+    "flat_dark_resist": {
+      "id": "flat_dark_resist",
+      "name": "flat_dark_resist",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "DARK_RESIST",
+      "element": -1
+    },
+    "percent_dark_resist": {
+      "id": "percent_dark_resist",
+      "name": "percent_dark_resist",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "DARK_RESIST",
+      "element": -1
+    },
+    "base_dark_resist": {
+      "id": "base_dark_resist",
+      "name": "base_dark_resist",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "DARK_RESIST",
+      "element": -1
+    },
+    "flat_drop_rate": {
+      "id": "flat_drop_rate",
+      "name": "flat_drop_rate",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "DROP_RATE",
+      "element": -1
+    },
+    "percent_drop_rate": {
+      "id": "percent_drop_rate",
+      "name": "percent_drop_rate",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "DROP_RATE",
+      "element": -1
+    },
+    "base_drop_rate": {
+      "id": "base_drop_rate",
+      "name": "base_drop_rate",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "DROP_RATE",
+      "element": -1
+    },
+    "flat_shield": {
+      "id": "flat_shield",
+      "name": "flat_shield",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "SHIELD",
+      "element": -1
+    },
+    "percent_shield": {
+      "id": "percent_shield",
+      "name": "percent_shield",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "SHIELD",
+      "element": -1
+    },
+    "base_shield": {
+      "id": "base_shield",
+      "name": "base_shield",
+      "operation": "FLAT",
+      "group": "base",
+      "stat": "SHIELD",
+      "element": -1
+    },
+    "extra_0": {
+      "id": "extra_0",
+      "name": "light",
+      "operation": "EXTRA",
+      "group": "random",
+      "stat": null,
+      "element": 0
+    },
+    "extra_1": {
+      "id": "extra_1",
+      "name": "fire",
+      "operation": "EXTRA",
+      "group": "random",
+      "stat": null,
+      "element": 1
+    },
+    "extra_2": {
+      "id": "extra_2",
+      "name": "ice",
+      "operation": "EXTRA",
+      "group": "random",
+      "stat": null,
+      "element": 2
+    },
+    "extra_3": {
+      "id": "extra_3",
+      "name": "dark",
+      "operation": "EXTRA",
+      "group": "random",
+      "stat": null,
+      "element": 3
+    },
+    "family_sword": {
+      "id": "family_sword",
+      "name": "sword",
+      "operation": "SKILL_FAMILY",
+      "group": "fixed_rank",
+      "stat": null,
+      "element": -1
+    },
+    "family_ghost": {
+      "id": "family_ghost",
+      "name": "ghost",
+      "operation": "SKILL_FAMILY",
+      "group": "fixed_rank",
+      "stat": null,
+      "element": -1
+    },
+    "family_wave": {
+      "id": "family_wave",
+      "name": "wave",
+      "operation": "SKILL_FAMILY",
+      "group": "fixed_rank",
+      "stat": null,
+      "element": -1
+    },
+    "family_blood": {
+      "id": "family_blood",
+      "name": "blood",
+      "operation": "SKILL_FAMILY",
+      "group": "fixed_rank",
+      "stat": null,
+      "element": -1
+    },
+    "epic_dark": {
+      "id": "epic_dark",
+      "name": "epic_dark",
+      "operation": "EXTRA",
+      "group": "special",
+      "stat": null,
+      "element": 3
+    },
+    "mythic_four_0": {
+      "id": "mythic_four_0",
+      "name": "mythic_four_0",
+      "operation": "EXTRA",
+      "group": "special",
+      "stat": null,
+      "element": 0
+    },
+    "mythic_four_1": {
+      "id": "mythic_four_1",
+      "name": "mythic_four_1",
+      "operation": "EXTRA",
+      "group": "special",
+      "stat": null,
+      "element": 1
+    },
+    "mythic_four_2": {
+      "id": "mythic_four_2",
+      "name": "mythic_four_2",
+      "operation": "EXTRA",
+      "group": "special",
+      "stat": null,
+      "element": 2
+    },
+    "mythic_four_3": {
+      "id": "mythic_four_3",
+      "name": "mythic_four_3",
+      "operation": "EXTRA",
+      "group": "special",
+      "stat": null,
+      "element": 3
+    },
+    "epic_shield": {
+      "id": "epic_shield",
+      "name": "epic_shield",
+      "operation": "FLAT",
+      "group": "special",
+      "stat": "SHIELD",
+      "element": -1
+    }
+  },
+  "equipment": {
+    "WEAPON": {
+      "id": "base_weapon",
+      "slot": "WEAPON",
+      "base": [
+        {
+          "stat": "PHYSICAL_ATTACK",
+          "base": 15,
+          "growth": 4,
+          "reference": "",
+          "factor": 1
+        },
+        {
+          "stat": "MAGICAL_ATTACK",
+          "base": 15,
+          "growth": 4,
+          "reference": "",
+          "factor": 1
+        }
+      ]
+    },
+    "CHEST": {
+      "id": "base_chest",
+      "slot": "CHEST",
+      "base": [
+        {
+          "stat": "PHYSICAL_DEFENSE",
+          "base": 0,
+          "growth": 0,
+          "reference": "armor_physical",
+          "factor": 1
+        },
+        {
+          "stat": "MAGICAL_DEFENSE",
+          "base": 0,
+          "growth": 0,
+          "reference": "armor_magical",
+          "factor": 1
+        }
+      ]
+    },
+    "HEAD": {
+      "id": "base_head",
+      "slot": "HEAD",
+      "base": [
+        {
+          "stat": "PHYSICAL_DEFENSE",
+          "base": 0,
+          "growth": 0,
+          "reference": "armor_physical",
+          "factor": 1
+        },
+        {
+          "stat": "MAGICAL_DEFENSE",
+          "base": 0,
+          "growth": 0,
+          "reference": "armor_magical",
+          "factor": 1
+        }
+      ]
+    },
+    "LEGS": {
+      "id": "base_legs",
+      "slot": "LEGS",
+      "base": [
+        {
+          "stat": "PHYSICAL_DEFENSE",
+          "base": 0,
+          "growth": 0,
+          "reference": "armor_physical",
+          "factor": 1
+        },
+        {
+          "stat": "MAGICAL_DEFENSE",
+          "base": 0,
+          "growth": 0,
+          "reference": "armor_magical",
+          "factor": 1
+        }
+      ]
+    },
+    "FEET": {
+      "id": "base_feet",
+      "slot": "FEET",
+      "base": [
+        {
+          "stat": "PHYSICAL_DEFENSE",
+          "base": 0,
+          "growth": 0,
+          "reference": "armor_physical",
+          "factor": 1
+        },
+        {
+          "stat": "MAGICAL_DEFENSE",
+          "base": 0,
+          "growth": 0,
+          "reference": "armor_magical",
+          "factor": 1
+        }
+      ]
+    },
+    "BRACELET": {
+      "id": "base_bracelet",
+      "slot": "BRACELET",
+      "base": [
+        {
+          "stat": "HEALTH",
+          "base": 100,
+          "growth": 20,
+          "reference": "",
+          "factor": 0.1
+        },
+        {
+          "stat": "PHYSICAL_DEFENSE",
+          "base": 80,
+          "growth": 15,
+          "reference": "",
+          "factor": 0.05
+        },
+        {
+          "stat": "MAGICAL_DEFENSE",
+          "base": 40,
+          "growth": 10,
+          "reference": "",
+          "factor": 0.05
+        }
+      ]
+    },
+    "NECKLACE": {
+      "id": "base_necklace",
+      "slot": "NECKLACE",
+      "base": [
+        {
+          "stat": "MP",
+          "base": 100,
+          "growth": 14,
+          "reference": "",
+          "factor": 0.1
+        },
+        {
+          "stat": "SPIRIT",
+          "base": 10,
+          "growth": 2,
+          "reference": "",
+          "factor": 0.05
+        }
+      ]
+    },
+    "RING": {
+      "id": "base_ring",
+      "slot": "RING",
+      "base": [
+        {
+          "stat": "STRENGTH",
+          "base": 20,
+          "growth": 3,
+          "reference": "",
+          "factor": 0.1
+        },
+        {
+          "stat": "INTELLIGENCE",
+          "base": 15,
+          "growth": 2,
+          "reference": "",
+          "factor": 0.1
+        }
+      ]
+    },
+    "SUB_EQUIPMENT": {
+      "id": "base_sub_equipment",
+      "slot": "SUB_EQUIPMENT",
+      "base": [
+        {
+          "stat": "PHYSICAL_ATTACK",
+          "base": 15,
+          "growth": 4,
+          "reference": "",
+          "factor": 0.1
+        },
+        {
+          "stat": "MAGICAL_ATTACK",
+          "base": 15,
+          "growth": 4,
+          "reference": "",
+          "factor": 0.1
+        }
+      ]
+    },
+    "MAGIC_STONE": {
+      "id": "base_magic_stone",
+      "slot": "MAGIC_STONE",
+      "base": [
+        {
+          "stat": "LIGHT",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 1
+        },
+        {
+          "stat": "FIRE",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 1
+        },
+        {
+          "stat": "ICE",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 1
+        },
+        {
+          "stat": "DARK",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 1
+        }
+      ]
+    },
+    "EARRING": {
+      "id": "base_earring",
+      "slot": "EARRING",
+      "base": [
+        {
+          "stat": "STRENGTH",
+          "base": 20,
+          "growth": 3,
+          "reference": "",
+          "factor": 0.05
+        },
+        {
+          "stat": "INTELLIGENCE",
+          "base": 15,
+          "growth": 2,
+          "reference": "",
+          "factor": 0.05
+        },
+        {
+          "stat": "SPIRIT",
+          "base": 10,
+          "growth": 2,
+          "reference": "",
+          "factor": 0.05
+        },
+        {
+          "stat": "PHYSICAL_ATTACK",
+          "base": 15,
+          "growth": 4,
+          "reference": "",
+          "factor": 0.05
+        },
+        {
+          "stat": "MAGICAL_ATTACK",
+          "base": 15,
+          "growth": 4,
+          "reference": "",
+          "factor": 0.05
+        }
+      ]
+    }
+  },
+  "sets": {
+    "first_sword": {
+      "id": "first_sword",
+      "name": "初式剑术套装",
+      "group": "armor",
+      "effects": [
+        {
+          "pieces": 2,
+          "value": 0.1,
+          "modifier": "basicSkillMain"
+        },
+        {
+          "pieces": 4,
+          "value": 0.1,
+          "modifier": "basicSkillCooldown"
+        }
+      ]
+    },
+    "four_elements": {
+      "id": "four_elements",
+      "name": "四象共鸣套装",
+      "group": "jewelry",
+      "effects": [
+        {
+          "pieces": 3,
+          "stat": "LIGHT",
+          "value": 10,
+          "modifier": ""
+        },
+        {
+          "pieces": 3,
+          "stat": "FIRE",
+          "value": 10,
+          "modifier": ""
+        },
+        {
+          "pieces": 3,
+          "stat": "ICE",
+          "value": 10,
+          "modifier": ""
+        },
+        {
+          "pieces": 3,
+          "stat": "DARK",
+          "value": 10,
+          "modifier": ""
+        }
+      ]
+    }
+  },
+  "recipes": {
+    "WEAPON": {
+      "id": "white_weapon",
+      "slot": "WEAPON",
+      "regionalCount": 24,
+      "vanilla": [
+        {
+          "id": "minecraft:iron_ingot",
+          "count": 2,
+          "scaled": true
+        },
+        {
+          "id": "minecraft:stick",
+          "count": 1,
+          "scaled": false
+        }
+      ]
+    },
+    "CHEST": {
+      "id": "white_chest",
+      "slot": "CHEST",
+      "regionalCount": 12,
+      "vanilla": [
+        {
+          "id": "minecraft:iron_ingot",
+          "count": 8,
+          "scaled": true
+        }
+      ]
+    },
+    "HEAD": {
+      "id": "white_head",
+      "slot": "HEAD",
+      "regionalCount": 4,
+      "vanilla": [
+        {
+          "id": "minecraft:iron_ingot",
+          "count": 5,
+          "scaled": true
+        }
+      ]
+    },
+    "LEGS": {
+      "id": "white_legs",
+      "slot": "LEGS",
+      "regionalCount": 8,
+      "vanilla": [
+        {
+          "id": "minecraft:iron_ingot",
+          "count": 7,
+          "scaled": true
+        }
+      ]
+    },
+    "FEET": {
+      "id": "white_feet",
+      "slot": "FEET",
+      "regionalCount": 4,
+      "vanilla": [
+        {
+          "id": "minecraft:iron_ingot",
+          "count": 4,
+          "scaled": true
+        }
+      ]
+    },
+    "BRACELET": {
+      "id": "white_bracelet",
+      "slot": "BRACELET",
+      "regionalCount": 3,
+      "vanilla": [
+        {
+          "id": "minecraft:gold_ingot",
+          "count": 2,
+          "scaled": true
+        }
+      ]
+    },
+    "NECKLACE": {
+      "id": "white_necklace",
+      "slot": "NECKLACE",
+      "regionalCount": 3,
+      "vanilla": [
+        {
+          "id": "minecraft:gold_ingot",
+          "count": 3,
+          "scaled": true
+        }
+      ]
+    },
+    "RING": {
+      "id": "white_ring",
+      "slot": "RING",
+      "regionalCount": 3,
+      "vanilla": [
+        {
+          "id": "minecraft:gold_ingot",
+          "count": 1,
+          "scaled": true
+        }
+      ]
+    },
+    "SUB_EQUIPMENT": {
+      "id": "white_sub_equipment",
+      "slot": "SUB_EQUIPMENT",
+      "regionalCount": 5,
+      "vanilla": [
+        {
+          "id": "minecraft:iron_ingot",
+          "count": 2,
+          "scaled": true
+        },
+        {
+          "id": "minecraft:lapis_lazuli",
+          "count": 2,
+          "scaled": true
+        }
+      ]
+    },
+    "MAGIC_STONE": {
+      "id": "white_magic_stone",
+      "slot": "MAGIC_STONE",
+      "regionalCount": 5,
+      "vanilla": [
+        {
+          "id": "minecraft:amethyst_shard",
+          "count": 2,
+          "scaled": true
+        },
+        {
+          "id": "minecraft:lapis_lazuli",
+          "count": 4,
+          "scaled": true
+        }
+      ]
+    },
+    "EARRING": {
+      "id": "white_earring",
+      "slot": "EARRING",
+      "regionalCount": 5,
+      "vanilla": [
+        {
+          "id": "minecraft:gold_ingot",
+          "count": 2,
+          "scaled": true
+        },
+        {
+          "id": "minecraft:lapis_lazuli",
+          "count": 2,
+          "scaled": true
+        }
+      ]
+    }
+  }
+}

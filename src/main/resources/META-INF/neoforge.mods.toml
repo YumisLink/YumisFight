@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[11,)"
+license="All Rights Reserved"
+[[mods]]
+modId="yumis_dungeon_and_fight"
+version="0.1.0"
+displayName="YumisDungeonAndFight"
+authors="Yumis"
+description='''独立地下城战斗、词条装备与副职业模组。'''
+[[mixins]]
+config="yumis_fight.mixins.json"
+[[dependencies.yumis_dungeon_and_fight]]
+modId="neoforge"
+type="required"
+versionRange="[26.2.0.93,26.3)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.yumis_dungeon_and_fight]]
+modId="minecraft"
+type="required"
+versionRange="[26.2,26.3)"
+ordering="NONE"
+side="BOTH"

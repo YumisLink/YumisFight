@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "passed": [
+    "ghost_native_cast_commits_damage",
+    "triple_native_cast_commits_damage",
+    "wave_native_cast_commits_damage",
+    "overdrive_actual_buff_applied",
+    "rising_native_cast_commits_damage",
+    "draw_native_cast_commits_damage",
+    "dragon_native_cast_commits_damage",
+    "dance_native_cast_commits_damage",
+    "neoforge_thick_mesh_quads_submitted",
+    "normal_mode_skill_spends_mp",
+    "all_tested_skill_receipts_drained",
+    "real_mature_wheat_harvest_awards_ten_xp_and_coins",
+    "real_ripe_berry_pick_awards_ten_xp_and_coins",
+    "immature_berry_repeat_does_not_reward"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "passed": [
+    "ten_skill_definitions_learned_in_native_client",
+    "storm_real_cast_enables_server_gravity_guard",
+    "storm_real_cast_restores_server_gravity",
+    "goblin_camp_all_seven_waves_complete",
+    "goblin_camp_elite_and_boss_materials_awarded",
+    "goblin_camp_gate_24_opened",
+    "goblin_camp_gate_60_opened",
+    "goblin_camp_gate_96_opened",
+    "lucas_real_collision_cage_entities_spawn",
+    "lucas_low_health_summons_no_reward_clone",
+    "dragon_tower_all_seven_waves_complete",
+    "dragon_tower_elite_and_boss_materials_awarded",
+    "skill_damage_receipts_drained"
+  ]
+}

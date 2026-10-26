@@ -1,0 +1,46 @@
+{
+  "success": true,
+  "jar": "YumisDungeonAndFight-0.1.0.jar",
+  "sha256": "acb9c581941e54425d6803b74a188980b24fcadcac58102ac2eaf0fe3542ec82",
+  "bytes": 682153,
+  "modIds": [
+    "yumis_dungeon_and_fight"
+  ],
+  "javaClassMajor": [
+    69
+  ],
+  "classes": 167,
+  "jsonResources": 223,
+  "pngResources": 199,
+  "newEditableAsepriteFiles": 32,
+  "unitTests": [
+    {
+      "name": "cn.yumis.fight.AttributeSourcesTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.yumis.fight.EquipmentTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.yumis.fight.JournalTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.yumis.fight.RulesTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ]
+}

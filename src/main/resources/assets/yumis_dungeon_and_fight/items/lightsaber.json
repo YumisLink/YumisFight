@@ -1,0 +1,117 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "lightsaber_10_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_10_base"
+        }
+      },
+      {
+        "when": "lightsaber_20_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_20_base"
+        }
+      },
+      {
+        "when": "lightsaber_30_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_30_base"
+        }
+      },
+      {
+        "when": "lightsaber_40_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_40_base"
+        }
+      },
+      {
+        "when": "lightsaber_50_base",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_50_base"
+        }
+      },
+      {
+        "when": "lightsaber_10_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_10_epic"
+        }
+      },
+      {
+        "when": "lightsaber_20_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_20_epic"
+        }
+      },
+      {
+        "when": "lightsaber_30_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_30_epic"
+        }
+      },
+      {
+        "when": "lightsaber_40_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_40_epic"
+        }
+      },
+      {
+        "when": "lightsaber_50_epic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_50_epic"
+        }
+      },
+      {
+        "when": "lightsaber_10_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_10_mythic"
+        }
+      },
+      {
+        "when": "lightsaber_20_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_20_mythic"
+        }
+      },
+      {
+        "when": "lightsaber_30_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_30_mythic"
+        }
+      },
+      {
+        "when": "lightsaber_40_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_40_mythic"
+        }
+      },
+      {
+        "when": "lightsaber_50_mythic",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_50_mythic"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_10_base"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "passed": [
+    "two_clients_party_and_manual_accept",
+    "first_client_damage_committed_to_shared_q",
+    "join_expansion_same_q_and_absolute_lost_health",
+    "public_round_keeps_existing_settings",
+    "old_expansion_basis_rejected",
+    "duplicate_hit_does_not_subtract_twice",
+    "pvp_report_rejected",
+    "single_durable_death_record",
+    "concurrent_lethal_reports_clamp_actual_share",
+    "elite_material_draws_are_private_and_per_player",
+    "material_region_not_scaled_to_character_level",
+    "private_loot_move_preserves_original_expiry",
+    "private_loot_moves_to_return_point",
+    "second_dungeon_map_registration_and_entry"
+  ]
+}

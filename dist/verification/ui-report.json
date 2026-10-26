@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "passed": [
+    "screen_menu",
+    "screen_character",
+    "screen_skills",
+    "screen_job",
+    "screen_professions",
+    "screen_party",
+    "screen_dungeons",
+    "screen_settings",
+    "screen_shop",
+    "esc_one_press_closes_page",
+    "i_returns_to_menu",
+    "i_closes_menu",
+    "dimensional_bag_native_54_screen",
+    "fabricator_opened_via_real_block_interaction",
+    "menu_scaling_3",
+    "menu_scaling_4",
+    "menu_scaling_2"
+  ]
+}

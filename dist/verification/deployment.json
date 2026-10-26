@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "jar": "C:\\GameApp\\YumisFight\\dist\\YumisDungeonAndFight-0.1.0.jar",
+  "installed": "C:\\Users\\63569\\Desktop\\pcl\\.minecraft\\versions\\26.2-NeoForge_26.2.0.93\\mods\\YumisDungeonAndFight-0.1.0.jar",
+  "sha256": "acb9c581941e54425d6803b74a188980b24fcadcac58102ac2eaf0fe3542ec82",
+  "sourceProject": "C:\\GameApp\\YumisFight\\dist\\YumisDungeonAndFight-0.1.0-project.zip",
+  "runtimeChecks": 103,
+  "unitTests": 22
+}

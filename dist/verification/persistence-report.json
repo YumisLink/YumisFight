@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "passed": [
+    "native_shift_transfer_into_54_slot_bag",
+    "survival_e_actual_equipment_shift_transfer",
+    "creative_e_inventory_tab_uses_same_equipment",
+    "death_respawn_preserves_inventory_equipment_and_dimensional_bag",
+    "respawn_projects_full_shared_health_to_vanilla",
+    "old_source_lifecycle_report_cannot_kill_respawned_player",
+    "disconnect_reconnect_restores_native_items_bag_and_health",
+    "dedicated_jar_restart_reloads_wal_and_native_player_data",
+    "disbanded_party_deletion_survives_actual_server_restart",
+    "player_death_receipt_survives_server_restart"
+  ]
+}

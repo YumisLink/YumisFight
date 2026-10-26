@@ -1,0 +1,138 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:material",
+    "cases": [
+      {
+        "when": "goblin_ingot",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/goblin_ingot"
+        }
+      },
+      {
+        "when": "goblin_cloth",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/goblin_cloth"
+        }
+      },
+      {
+        "when": "spinel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/spinel"
+        }
+      },
+      {
+        "when": "fluorite",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/fluorite"
+        }
+      },
+      {
+        "when": "stigma_silk",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/stigma_silk"
+        }
+      },
+      {
+        "when": "behemoth_scale",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/behemoth_scale"
+        }
+      },
+      {
+        "when": "behemoth_tear",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/behemoth_tear"
+        }
+      },
+      {
+        "when": "dark_elf_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/dark_elf_bone"
+        }
+      },
+      {
+        "when": "wolf_fang",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/wolf_fang"
+        }
+      },
+      {
+        "when": "soul_crystal",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/soul_crystal"
+        }
+      },
+      {
+        "when": "disaster_sign",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/disaster_sign"
+        }
+      },
+      {
+        "when": "thief_badge",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/thief_badge"
+        }
+      },
+      {
+        "when": "silver_meteorite",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/silver_meteorite"
+        }
+      },
+      {
+        "when": "hero_fate",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/hero_fate"
+        }
+      },
+      {
+        "when": "mirage_crystal",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/mirage_crystal"
+        }
+      },
+      {
+        "when": "endless_eternity",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/endless_eternity"
+        }
+      },
+      {
+        "when": "magtonium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/magtonium"
+        }
+      },
+      {
+        "when": "terranium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/materials/terranium"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/crafting_material"
+    }
+  }
+}

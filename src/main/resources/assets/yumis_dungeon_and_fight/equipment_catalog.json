@@ -1,0 +1,863 @@
+[
+  {
+    "id": "katana_10_base",
+    "kind": "katana",
+    "band": 10,
+    "style": "base",
+    "name": "裂创心灵之刃"
+  },
+  {
+    "id": "katana_20_base",
+    "kind": "katana",
+    "band": 20,
+    "style": "base",
+    "name": "红丸"
+  },
+  {
+    "id": "katana_30_base",
+    "kind": "katana",
+    "band": 30,
+    "style": "base",
+    "name": "西岚的妖刀"
+  },
+  {
+    "id": "katana_40_base",
+    "kind": "katana",
+    "band": 40,
+    "style": "base",
+    "name": "流光星陨刀"
+  },
+  {
+    "id": "katana_50_base",
+    "kind": "katana",
+    "band": 50,
+    "style": "base",
+    "name": "戮蛊的骨刃"
+  },
+  {
+    "id": "katana_10_epic",
+    "kind": "katana",
+    "band": 10,
+    "style": "epic",
+    "name": "鬼印杀"
+  },
+  {
+    "id": "katana_20_epic",
+    "kind": "katana",
+    "band": 20,
+    "style": "epic",
+    "name": "月之光芒"
+  },
+  {
+    "id": "katana_30_epic",
+    "kind": "katana",
+    "band": 30,
+    "style": "epic",
+    "name": "阿罗内的拥抱"
+  },
+  {
+    "id": "katana_40_epic",
+    "kind": "katana",
+    "band": 40,
+    "style": "epic",
+    "name": "屠戮之刃"
+  },
+  {
+    "id": "katana_50_epic",
+    "kind": "katana",
+    "band": 50,
+    "style": "epic",
+    "name": "十字斩刀－闪"
+  },
+  {
+    "id": "katana_10_mythic",
+    "kind": "katana",
+    "band": 10,
+    "style": "mythic",
+    "name": "荒古遗尘太刀"
+  },
+  {
+    "id": "katana_20_mythic",
+    "kind": "katana",
+    "band": 20,
+    "style": "mythic",
+    "name": "圣耀救赎太刀"
+  },
+  {
+    "id": "katana_30_mythic",
+    "kind": "katana",
+    "band": 30,
+    "style": "mythic",
+    "name": "苍穹幕落太刀"
+  },
+  {
+    "id": "katana_40_mythic",
+    "kind": "katana",
+    "band": 40,
+    "style": "mythic",
+    "name": "夜语黑瞳太刀"
+  },
+  {
+    "id": "katana_50_mythic",
+    "kind": "katana",
+    "band": 50,
+    "style": "mythic",
+    "name": "太极天帝剑"
+  },
+  {
+    "id": "lightsaber_10_base",
+    "kind": "lightsaber",
+    "band": 10,
+    "style": "base",
+    "name": "光之翼刃"
+  },
+  {
+    "id": "lightsaber_20_base",
+    "kind": "lightsaber",
+    "band": 20,
+    "style": "base",
+    "name": "双龙魔影剑"
+  },
+  {
+    "id": "lightsaber_30_base",
+    "kind": "lightsaber",
+    "band": 30,
+    "style": "base",
+    "name": "泰拉石光剑"
+  },
+  {
+    "id": "lightsaber_40_base",
+    "kind": "lightsaber",
+    "band": 40,
+    "style": "base",
+    "name": "复仇之剑－夺魂者"
+  },
+  {
+    "id": "lightsaber_50_base",
+    "kind": "lightsaber",
+    "band": 50,
+    "style": "base",
+    "name": "远古遗愿"
+  },
+  {
+    "id": "lightsaber_10_epic",
+    "kind": "lightsaber",
+    "band": 10,
+    "style": "epic",
+    "name": "天行者"
+  },
+  {
+    "id": "lightsaber_20_epic",
+    "kind": "lightsaber",
+    "band": 20,
+    "style": "epic",
+    "name": "聚光剑－破幻者"
+  },
+  {
+    "id": "lightsaber_30_epic",
+    "kind": "lightsaber",
+    "band": 30,
+    "style": "epic",
+    "name": "天脊骨狱息"
+  },
+  {
+    "id": "lightsaber_40_epic",
+    "kind": "lightsaber",
+    "band": 40,
+    "style": "epic",
+    "name": "千年之光"
+  },
+  {
+    "id": "lightsaber_50_epic",
+    "kind": "lightsaber",
+    "band": 50,
+    "style": "epic",
+    "name": "无轩之散魄"
+  },
+  {
+    "id": "lightsaber_10_mythic",
+    "kind": "lightsaber",
+    "band": 10,
+    "style": "mythic",
+    "name": "荒古遗尘光剑"
+  },
+  {
+    "id": "lightsaber_20_mythic",
+    "kind": "lightsaber",
+    "band": 20,
+    "style": "mythic",
+    "name": "圣耀救赎光剑"
+  },
+  {
+    "id": "lightsaber_30_mythic",
+    "kind": "lightsaber",
+    "band": 30,
+    "style": "mythic",
+    "name": "苍穹幕落光剑"
+  },
+  {
+    "id": "lightsaber_40_mythic",
+    "kind": "lightsaber",
+    "band": 40,
+    "style": "mythic",
+    "name": "夜语黑瞳光剑"
+  },
+  {
+    "id": "lightsaber_50_mythic",
+    "kind": "lightsaber",
+    "band": 50,
+    "style": "mythic",
+    "name": "星之海：巴德纳尔"
+  },
+  {
+    "id": "greatsword_10_base",
+    "kind": "greatsword",
+    "band": 10,
+    "style": "base",
+    "name": "卡赞的诅咒"
+  },
+  {
+    "id": "greatsword_20_base",
+    "kind": "greatsword",
+    "band": 20,
+    "style": "base",
+    "name": "阿甘左的浪人长剑"
+  },
+  {
+    "id": "greatsword_30_base",
+    "kind": "greatsword",
+    "band": 30,
+    "style": "base",
+    "name": "裁决刃－国殇"
+  },
+  {
+    "id": "greatsword_40_base",
+    "kind": "greatsword",
+    "band": 40,
+    "style": "base",
+    "name": "天选之剑－格朗"
+  },
+  {
+    "id": "greatsword_50_base",
+    "kind": "greatsword",
+    "band": 50,
+    "style": "base",
+    "name": "净化之恶魔的奴隶"
+  },
+  {
+    "id": "greatsword_10_epic",
+    "kind": "greatsword",
+    "band": 10,
+    "style": "epic",
+    "name": "炙炎梵天剑"
+  },
+  {
+    "id": "greatsword_20_epic",
+    "kind": "greatsword",
+    "band": 20,
+    "style": "epic",
+    "name": "征服者之翼"
+  },
+  {
+    "id": "greatsword_30_epic",
+    "kind": "greatsword",
+    "band": 30,
+    "style": "epic",
+    "name": "逸龙剑－抉择"
+  },
+  {
+    "id": "greatsword_40_epic",
+    "kind": "greatsword",
+    "band": 40,
+    "style": "epic",
+    "name": "子午七星剑"
+  },
+  {
+    "id": "greatsword_50_epic",
+    "kind": "greatsword",
+    "band": 50,
+    "style": "epic",
+    "name": "地灵绝魂剑"
+  },
+  {
+    "id": "greatsword_10_mythic",
+    "kind": "greatsword",
+    "band": 10,
+    "style": "mythic",
+    "name": "荒古遗尘巨剑"
+  },
+  {
+    "id": "greatsword_20_mythic",
+    "kind": "greatsword",
+    "band": 20,
+    "style": "mythic",
+    "name": "圣耀救赎巨剑"
+  },
+  {
+    "id": "greatsword_30_mythic",
+    "kind": "greatsword",
+    "band": 30,
+    "style": "mythic",
+    "name": "苍穹幕落巨剑"
+  },
+  {
+    "id": "greatsword_40_mythic",
+    "kind": "greatsword",
+    "band": 40,
+    "style": "mythic",
+    "name": "夜语黑瞳巨剑"
+  },
+  {
+    "id": "greatsword_50_mythic",
+    "kind": "greatsword",
+    "band": 50,
+    "style": "mythic",
+    "name": "神之意象"
+  },
+  {
+    "id": "shortsword_10_base",
+    "kind": "shortsword",
+    "band": 10,
+    "style": "base",
+    "name": "卢克西的紫炎波刃剑"
+  },
+  {
+    "id": "shortsword_20_base",
+    "kind": "shortsword",
+    "band": 20,
+    "style": "base",
+    "name": "卡露亚的教导－裂风"
+  },
+  {
+    "id": "shortsword_30_base",
+    "kind": "shortsword",
+    "band": 30,
+    "style": "base",
+    "name": "邪灵饮血剑"
+  },
+  {
+    "id": "shortsword_40_base",
+    "kind": "shortsword",
+    "band": 40,
+    "style": "base",
+    "name": "四辰斩邪剑"
+  },
+  {
+    "id": "shortsword_50_base",
+    "kind": "shortsword",
+    "band": 50,
+    "style": "base",
+    "name": "安弗拉斯的暴怒"
+  },
+  {
+    "id": "shortsword_10_epic",
+    "kind": "shortsword",
+    "band": 10,
+    "style": "epic",
+    "name": "随风乱波剑"
+  },
+  {
+    "id": "shortsword_20_epic",
+    "kind": "shortsword",
+    "band": 20,
+    "style": "epic",
+    "name": "雷鸣剑－坎亚"
+  },
+  {
+    "id": "shortsword_30_epic",
+    "kind": "shortsword",
+    "band": 30,
+    "style": "epic",
+    "name": "沙凡特的冰齿剑"
+  },
+  {
+    "id": "shortsword_40_epic",
+    "kind": "shortsword",
+    "band": 40,
+    "style": "epic",
+    "name": "万剑之王－西方之焰"
+  },
+  {
+    "id": "shortsword_50_epic",
+    "kind": "shortsword",
+    "band": 50,
+    "style": "epic",
+    "name": "无影剑－艾雷诺"
+  },
+  {
+    "id": "shortsword_10_mythic",
+    "kind": "shortsword",
+    "band": 10,
+    "style": "mythic",
+    "name": "荒古遗尘短剑"
+  },
+  {
+    "id": "shortsword_20_mythic",
+    "kind": "shortsword",
+    "band": 20,
+    "style": "mythic",
+    "name": "圣耀救赎短剑"
+  },
+  {
+    "id": "shortsword_30_mythic",
+    "kind": "shortsword",
+    "band": 30,
+    "style": "mythic",
+    "name": "苍穹幕落短剑"
+  },
+  {
+    "id": "shortsword_40_mythic",
+    "kind": "shortsword",
+    "band": 40,
+    "style": "mythic",
+    "name": "夜语黑瞳短剑"
+  },
+  {
+    "id": "shortsword_50_mythic",
+    "kind": "shortsword",
+    "band": 50,
+    "style": "mythic",
+    "name": "信念徽章：自由"
+  },
+  {
+    "id": "blunt_10_base",
+    "kind": "blunt",
+    "band": 10,
+    "style": "base",
+    "name": "恶魔破天棒"
+  },
+  {
+    "id": "blunt_20_base",
+    "kind": "blunt",
+    "band": 20,
+    "style": "base",
+    "name": "卡露亚的教导－裁决"
+  },
+  {
+    "id": "blunt_30_base",
+    "kind": "blunt",
+    "band": 30,
+    "style": "base",
+    "name": "戾眼灭魂槌"
+  },
+  {
+    "id": "blunt_40_base",
+    "kind": "blunt",
+    "band": 40,
+    "style": "base",
+    "name": "雷神之怒"
+  },
+  {
+    "id": "blunt_50_base",
+    "kind": "blunt",
+    "band": 50,
+    "style": "base",
+    "name": "拉兹玛尔的咆哮巨锤"
+  },
+  {
+    "id": "blunt_10_epic",
+    "kind": "blunt",
+    "band": 10,
+    "style": "epic",
+    "name": "幽灵幻影槌"
+  },
+  {
+    "id": "blunt_20_epic",
+    "kind": "blunt",
+    "band": 20,
+    "style": "epic",
+    "name": "修罗吞灵槌"
+  },
+  {
+    "id": "blunt_30_epic",
+    "kind": "blunt",
+    "band": 30,
+    "style": "epic",
+    "name": "地狱邪目"
+  },
+  {
+    "id": "blunt_40_epic",
+    "kind": "blunt",
+    "band": 40,
+    "style": "epic",
+    "name": "怒雷麒麟"
+  },
+  {
+    "id": "blunt_50_epic",
+    "kind": "blunt",
+    "band": 50,
+    "style": "epic",
+    "name": "矮人的巨力黄金锤"
+  },
+  {
+    "id": "blunt_10_mythic",
+    "kind": "blunt",
+    "band": 10,
+    "style": "mythic",
+    "name": "荒古遗尘骨棒"
+  },
+  {
+    "id": "blunt_20_mythic",
+    "kind": "blunt",
+    "band": 20,
+    "style": "mythic",
+    "name": "圣耀救赎钝器"
+  },
+  {
+    "id": "blunt_30_mythic",
+    "kind": "blunt",
+    "band": 30,
+    "style": "mythic",
+    "name": "苍穹幕落钝器"
+  },
+  {
+    "id": "blunt_40_mythic",
+    "kind": "blunt",
+    "band": 40,
+    "style": "mythic",
+    "name": "夜语黑瞳钝器"
+  },
+  {
+    "id": "blunt_50_mythic",
+    "kind": "blunt",
+    "band": 50,
+    "style": "mythic",
+    "name": "哈蒂－赎月者"
+  },
+  {
+    "id": "bracelet_10_base",
+    "kind": "bracelet",
+    "band": 10,
+    "style": "base",
+    "name": "学者腕套"
+  },
+  {
+    "id": "bracelet_20_base",
+    "kind": "bracelet",
+    "band": 20,
+    "style": "base",
+    "name": "墨竹手镯"
+  },
+  {
+    "id": "bracelet_30_base",
+    "kind": "bracelet",
+    "band": 30,
+    "style": "base",
+    "name": "食人魔之镯"
+  },
+  {
+    "id": "bracelet_40_base",
+    "kind": "bracelet",
+    "band": 40,
+    "style": "base",
+    "name": "玫瑰藤手镯"
+  },
+  {
+    "id": "bracelet_50_base",
+    "kind": "bracelet",
+    "band": 50,
+    "style": "base",
+    "name": "罗杰的金表"
+  },
+  {
+    "id": "bracelet_10_epic",
+    "kind": "bracelet",
+    "band": 10,
+    "style": "epic",
+    "name": "战神的天袭手镯"
+  },
+  {
+    "id": "bracelet_20_epic",
+    "kind": "bracelet",
+    "band": 20,
+    "style": "epic",
+    "name": "时空主宰者手镯"
+  },
+  {
+    "id": "bracelet_30_epic",
+    "kind": "bracelet",
+    "band": 30,
+    "style": "epic",
+    "name": "冰雪公主的霜语手镯"
+  },
+  {
+    "id": "bracelet_40_epic",
+    "kind": "bracelet",
+    "band": 40,
+    "style": "epic",
+    "name": "精炼的毁伤魔石手环"
+  },
+  {
+    "id": "bracelet_50_epic",
+    "kind": "bracelet",
+    "band": 50,
+    "style": "epic",
+    "name": "启明星的指引"
+  },
+  {
+    "id": "bracelet_10_mythic",
+    "kind": "bracelet",
+    "band": 10,
+    "style": "mythic",
+    "name": "无尽贪食之力"
+  },
+  {
+    "id": "bracelet_20_mythic",
+    "kind": "bracelet",
+    "band": 20,
+    "style": "mythic",
+    "name": "光：无垠之昼"
+  },
+  {
+    "id": "bracelet_30_mythic",
+    "kind": "bracelet",
+    "band": 30,
+    "style": "mythic",
+    "name": "雪浪风尘"
+  },
+  {
+    "id": "bracelet_40_mythic",
+    "kind": "bracelet",
+    "band": 40,
+    "style": "mythic",
+    "name": "伽内什的永恒庇护"
+  },
+  {
+    "id": "bracelet_50_mythic",
+    "kind": "bracelet",
+    "band": 50,
+    "style": "mythic",
+    "name": "融化黑暗之温暖"
+  },
+  {
+    "id": "necklace_10_base",
+    "kind": "necklace",
+    "band": 10,
+    "style": "base",
+    "name": "暗影之触"
+  },
+  {
+    "id": "necklace_20_base",
+    "kind": "necklace",
+    "band": 20,
+    "style": "base",
+    "name": "幽冥黑莲项坠"
+  },
+  {
+    "id": "necklace_30_base",
+    "kind": "necklace",
+    "band": 30,
+    "style": "base",
+    "name": "班图的冰晶项坠"
+  },
+  {
+    "id": "necklace_40_base",
+    "kind": "necklace",
+    "band": 40,
+    "style": "base",
+    "name": "贝尔玛尔之星"
+  },
+  {
+    "id": "necklace_50_base",
+    "kind": "necklace",
+    "band": 50,
+    "style": "base",
+    "name": "佩鲁斯的荣誉"
+  },
+  {
+    "id": "necklace_10_epic",
+    "kind": "necklace",
+    "band": 10,
+    "style": "epic",
+    "name": "战神的天袭项链"
+  },
+  {
+    "id": "necklace_20_epic",
+    "kind": "necklace",
+    "band": 20,
+    "style": "epic",
+    "name": "时空主宰者项链"
+  },
+  {
+    "id": "necklace_30_epic",
+    "kind": "necklace",
+    "band": 30,
+    "style": "epic",
+    "name": "冰雪公主的霜语项链"
+  },
+  {
+    "id": "necklace_40_epic",
+    "kind": "necklace",
+    "band": 40,
+    "style": "epic",
+    "name": "精炼的混沌魔石项链"
+  },
+  {
+    "id": "necklace_50_epic",
+    "kind": "necklace",
+    "band": 50,
+    "style": "epic",
+    "name": "氤氲之息"
+  },
+  {
+    "id": "necklace_10_mythic",
+    "kind": "necklace",
+    "band": 10,
+    "style": "mythic",
+    "name": "无尽贪食之影"
+  },
+  {
+    "id": "necklace_20_mythic",
+    "kind": "necklace",
+    "band": 20,
+    "style": "mythic",
+    "name": "引力：万物之拥"
+  },
+  {
+    "id": "necklace_30_mythic",
+    "kind": "necklace",
+    "band": 30,
+    "style": "mythic",
+    "name": "千寻一醉"
+  },
+  {
+    "id": "necklace_40_mythic",
+    "kind": "necklace",
+    "band": 40,
+    "style": "mythic",
+    "name": "四叶草之初心"
+  },
+  {
+    "id": "necklace_50_mythic",
+    "kind": "necklace",
+    "band": 50,
+    "style": "mythic",
+    "name": "驱散月光之黎明"
+  },
+  {
+    "id": "ring_10_base",
+    "kind": "ring",
+    "band": 10,
+    "style": "base",
+    "name": "剜心指环"
+  },
+  {
+    "id": "ring_20_base",
+    "kind": "ring",
+    "band": 20,
+    "style": "base",
+    "name": "幽冥黑莲戒指"
+  },
+  {
+    "id": "ring_30_base",
+    "kind": "ring",
+    "band": 30,
+    "style": "base",
+    "name": "御魂之戒"
+  },
+  {
+    "id": "ring_40_base",
+    "kind": "ring",
+    "band": 40,
+    "style": "base",
+    "name": "贤者之戒"
+  },
+  {
+    "id": "ring_50_base",
+    "kind": "ring",
+    "band": 50,
+    "style": "base",
+    "name": "黑珍珠－米斯特"
+  },
+  {
+    "id": "ring_10_epic",
+    "kind": "ring",
+    "band": 10,
+    "style": "epic",
+    "name": "战神的天袭指环"
+  },
+  {
+    "id": "ring_20_epic",
+    "kind": "ring",
+    "band": 20,
+    "style": "epic",
+    "name": "时空主宰者戒指"
+  },
+  {
+    "id": "ring_30_epic",
+    "kind": "ring",
+    "band": 30,
+    "style": "epic",
+    "name": "冰雪公主的霜语戒指"
+  },
+  {
+    "id": "ring_40_epic",
+    "kind": "ring",
+    "band": 40,
+    "style": "epic",
+    "name": "精炼的遗忘魔石戒指"
+  },
+  {
+    "id": "ring_50_epic",
+    "kind": "ring",
+    "band": 50,
+    "style": "epic",
+    "name": "清泉流响"
+  },
+  {
+    "id": "ring_10_mythic",
+    "kind": "ring",
+    "band": 10,
+    "style": "mythic",
+    "name": "无尽贪食之殇"
+  },
+  {
+    "id": "ring_20_mythic",
+    "kind": "ring",
+    "band": 20,
+    "style": "mythic",
+    "name": "暗：无限之夜"
+  },
+  {
+    "id": "ring_30_mythic",
+    "kind": "ring",
+    "band": 30,
+    "style": "mythic",
+    "name": "碧水红潮"
+  },
+  {
+    "id": "ring_40_mythic",
+    "kind": "ring",
+    "band": 40,
+    "style": "mythic",
+    "name": "红兔之祝福"
+  },
+  {
+    "id": "ring_50_mythic",
+    "kind": "ring",
+    "band": 50,
+    "style": "mythic",
+    "name": "寂静无言之露珠"
+  },
+  {
+    "id": "sub_equipment_50_base",
+    "kind": "sub_equipment",
+    "band": 50,
+    "style": "base",
+    "name": "阿尔伯特的臂章"
+  },
+  {
+    "id": "sub_equipment_50_epic",
+    "kind": "sub_equipment",
+    "band": 50,
+    "style": "epic",
+    "name": "时间旅行者的随身怀表"
+  },
+  {
+    "id": "sub_equipment_50_mythic",
+    "kind": "sub_equipment",
+    "band": 50,
+    "style": "mythic",
+    "name": "军神的遗书"
+  }
+]
