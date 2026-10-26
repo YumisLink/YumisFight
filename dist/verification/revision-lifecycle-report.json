@@ -1,0 +1,8 @@
+{
+  "success": true,
+  "passed": [
+    "death_respawn_refills_stamina",
+    "cloud_step_prevents_real_fall_damage",
+    "expired_cloud_step_restores_real_fall_damage"
+  ]
+}

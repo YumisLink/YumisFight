@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-27",
+  "minecraft": "26.2",
+  "neoforge": "26.2.0.93",
+  "protocol": 3,
+  "junit": {
+    "tests": 38,
+    "failures": 0
+  },
+  "runtimeAssertions": 58,
+  "fontChecks": 7,
+  "artifacts": {
+    "YumisDungeonAndFight-0.1.0-sources.jar": "7070cec627a534a56ab62329b0f5c1d9b49e27349922b4dcc11634a279302174",
+    "YumisDungeonAndFight-0.1.0.jar": "6a026b487b112eee74754b71ca8e375a3cb36b46cf2fd8195609332d4c715fda"
+  },
+  "screenshots": "D:\\init\\YumisFight\\dist\\verification\\combat-font-screenshots"
+}

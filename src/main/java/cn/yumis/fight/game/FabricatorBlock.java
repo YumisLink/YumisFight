@@ -17,7 +17,7 @@ public final class FabricatorBlock extends Block {
         return CODEC;
     }
     @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){
-        if(!level.isClientSide())player.openMenu(new SimpleMenuProvider((id,inv,p)->new FabricatorMenu(id,inv,pos),Component.literal("装备制作器")));
+        if(!level.isClientSide())player.openMenu(new SimpleMenuProvider((id,inv,p)->new FabricatorMenu(id,inv,pos),ModText.of("装备制作器")));
         return InteractionResult.SUCCESS;
     }
 }

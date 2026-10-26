@@ -26,7 +26,7 @@ public final class EquipmentService {
         Map<String,JsonElement> changes=new HashMap<>();
         changes.put("slotBonus/"+player.getUUID(),JSON.toJsonTree(bonus));
         runtime.inventory.transact(player,"layout/"+UUID.randomUUID(),intent,()->{
-            extra.layout(desired);for(int i=0;i<desired.size();i++){
+            extra.clearContent();extra.layout(desired);for(int i=0;i<desired.size();i++){
                 ArrayDeque<ItemStack> group=saved.get(desired.get(i));if(group!=null&&!group.isEmpty())extra.setItem(i,group.removeFirst());
             }
             JsonElement old=runtime.journal.get("equipmentWaiting/"+player.getUUID());JsonArray waiting=old.isJsonArray()?old.getAsJsonArray():new JsonArray();for(var group:saved.values())for(ItemStack stack:group)if(!stack.isEmpty())waiting.add(runtime.inventory.encode(player,stack));changes.put("equipmentWaiting/"+player.getUUID(),waiting);

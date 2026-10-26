@@ -6,12 +6,12 @@ function Test-Java25([string]$Path) {
     return [bool](Select-String -LiteralPath (Join-Path $Path 'release') -Pattern '^JAVA_VERSION="25[."]')
 }
 if (-not (Test-Java25 $env:JAVA_HOME)) {
-    $taskJdk='C:\GameApp\YumisSkyIsland\.tools\jdk-25.0.4.1+1'
+    $taskJdk=Join-Path (Split-Path -Parent $PSScriptRoot) 'YumisSkyIsland\.tools\jdk-25.0.4.1+1'
     if (Test-Java25 $taskJdk) { $env:JAVA_HOME=$taskJdk }
     else { throw '需要 Java 25 JDK；请把 JAVA_HOME 指向其安装目录。' }
 }
 $gradleCommand=Get-Command gradle -ErrorAction SilentlyContinue
-$taskGradle='C:\GameApp\YumisSkyIsland\.tools\gradle-9.5.1\bin\gradle.bat'
+$taskGradle=Join-Path (Split-Path -Parent $PSScriptRoot) 'YumisSkyIsland\.tools\gradle-9.5.1\bin\gradle.bat'
 if ($gradleCommand) { $runner=$gradleCommand.Source }
 elseif (Test-Path -LiteralPath $taskGradle) { $runner=$taskGradle }
 else { $runner=Join-Path $PSScriptRoot 'gradlew.bat' }

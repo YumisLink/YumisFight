@@ -39,6 +39,9 @@ public final class NativeRules {
         return .8*Math.max(1,player.getAttributeValue(Attributes.ATTACK_DAMAGE))/reference;
     }
     public static void addEquipment(Player player,Stats stats,Progress progress){
+        addEquipment(player,stats,progress,player.getMainHandItem());
+    }
+    public static void addEquipment(Player player,Stats stats,Progress progress,ItemStack weapon){
         for(EquipmentSlot part:List.of(EquipmentSlot.HEAD,EquipmentSlot.CHEST,EquipmentSlot.LEGS,EquipmentSlot.FEET)){
             ItemStack stack=player.getItemBySlot(part);
             if(stack.isEmpty()||GameItems.gear(stack)!=null||level(stack)>progress.level)continue;
@@ -50,7 +53,7 @@ public final class NativeRules {
             double ratio=id.contains("leather")?.5:id.contains("copper")?.75:id.contains("chainmail")?.9:1;
             EquipmentRules.contribution(white).forEach((stat,value)->stats.add(stat,value*ratio));
         }
-        ItemStack hand=player.getMainHandItem();
+        ItemStack hand=weapon;
         if(weapon(hand)&&GameItems.gear(hand)==null&&level(hand)<=progress.level){
             double value=(15+4*(level(hand)-1))*scale(player,hand);
             stats.add(Stat.PHYSICAL_ATTACK,value);

@@ -24,6 +24,7 @@ import org.lwjgl.glfw.GLFW;
 public final class ClientBootstrap {
     public static final KeyMapping.Category CATEGORY=new KeyMapping.Category(id("combat"));
     public static final KeyMapping MENU=new KeyMapping("key.ydnf.menu",GLFW.GLFW_KEY_I,CATEGORY);
+    public static final KeyMapping LEAP=new KeyMapping("key.ydnf.cloud_leap",GLFW.GLFW_KEY_C,CATEGORY);
     public static final KeyMapping[] SKILLS=new KeyMapping[8];
     static {
         int[] keys={
@@ -36,9 +37,11 @@ public final class ClientBootstrap {
         Network.CLIENT=ClientState.INSTANCE::accept;
         Effects.VFX.register();
         ClientSettings.load();
+        UiFonts.register(bus);
+        CurrencyUi.register();
         ExtraInventory.CLIENT_PROGRESS=p->ClientState.INSTANCE.progress;
         bus.addListener((RegisterKeyMappingsEvent e)->{
-            e.registerCategory(CATEGORY);e.register(MENU);for(var key:SKILLS)e.register(key);
+            e.registerCategory(CATEGORY);e.register(MENU);e.register(LEAP);for(var key:SKILLS)e.register(key);
         }
         );
         bus.addListener((RegisterSelectItemModelPropertyEvent e)->{
@@ -59,9 +62,9 @@ public final class ClientBootstrap {
             for(String kind:java.util.List.of("goblin","dragonman","wyvern"))e.registerLayerDefinition(EnemyRenderer.layer(kind),()->EnemyModel.layer(kind));
         }
         );
-        bus.addListener((RegisterGuiLayersEvent e)->e.registerAboveAll(id("hud"),Hud::render));
+        bus.addListener((RegisterGuiLayersEvent e)->{e.registerAboveAll(id("hud"),Hud::render);e.registerAboveAll(id("stamina"),CloudMovement::render);});
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
-            ClientState.INSTANCE.tick();ClientCombat.INSTANCE.tick();VerificationDriver.tick();migrateKeys();while(MENU.consumeClick()){
+            ClientState.INSTANCE.tick();ClientCombat.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();migrateKeys();while(MENU.consumeClick()){
                 var mc=Minecraft.getInstance();if(mc.player!=null&&mc.gui.screen()==null){
                     ClientState.INSTANCE.upload();mc.gui.setScreen(new FightScreen());
                 }
@@ -82,6 +85,7 @@ public final class ClientBootstrap {
         );
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Opening e)->{
             if(e.getNewScreen()!=null&&Minecraft.getInstance().player!=null)ClientCombat.INSTANCE.cancel(false);
+            CloudMovement.screen(e.getNewScreen()!=null);
         }
         );
         NeoForge.EVENT_BUS.addListener((MovementInputUpdateEvent e)->{
@@ -90,7 +94,10 @@ public final class ClientBootstrap {
             }
         }
         );
-        NeoForge.EVENT_BUS.addListener((ItemTooltipEvent e)->Tooltips.item(e));
+        NeoForge.EVENT_BUS.addListener((ItemTooltipEvent e)->{
+            Tooltips.item(e);
+            if(GameItems.own(e.getItemStack()))e.getToolTip().replaceAll(UiFonts::decorate);
+        });
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Background e)->Hud.equipment(e));
         NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre e)->{
             if(MENU.matches(e.getKeyEvent())&&e.getScreen() instanceof net.minecraft.client.gui.screens.inventory.ContainerScreen screen&&screen.getTitle().getString().equals("次元背包")){
@@ -99,12 +106,12 @@ public final class ClientBootstrap {
         }
         );
         NeoForge.EVENT_BUS.addListener((ScreenEvent.MouseButtonPressed.Pre e)->currency(e));
-        NeoForge.EVENT_BUS.addListener((ScreenEvent.MouseScrolled.Pre e)->{
-            if(!(e.getScreen() instanceof AbstractContainerScreen<?> screen)||Minecraft.getInstance().player==null)return;var slots=screen.getMenu().slots.stream().filter(slot->slot.container instanceof ExtraInventory&&slot.isActive()).toList();if(slots.isEmpty())return;double x=e.getMouseX()-screen.getLeftPos(),y=e.getMouseY()-screen.getTopPos();int min=slots.stream().mapToInt(slot->slot.x).min().orElse(184);if(x>=min-5&&x<=min+45&&y>=5&&y<=112){
-                var extra=MenuHooks.extra(Minecraft.getInstance().player);extra.page=Math.floorMod(extra.page+(e.getScrollDeltaY()>0?-1:1),Math.max(1,(extra.getContainerSize()+5)/6));e.setCanceled(true);
-            }
-        }
-        );
+        NeoForge.EVENT_BUS.addListener((ScreenEvent.MouseButtonReleased.Pre e)->{
+            if(e.getButton()==1&&currencyGesture){currencyGesture=false;e.setCanceled(true);}
+        });
+        NeoForge.EVENT_BUS.addListener((ScreenEvent.MouseDragged.Pre e)->{
+            if(e.getMouseButton()==1&&currencyGesture)e.setCanceled(true);
+        });
         NeoForge.EVENT_BUS.addListener((RenderGuiLayerEvent.Pre e)->{
             if(ClientState.INSTANCE.ready&&(e.getName().equals(net.neoforged.neoforge.client.gui.VanillaGuiLayers.PLAYER_HEALTH)||e.getName().equals(net.neoforged.neoforge.client.gui.VanillaGuiLayers.ARMOR_LEVEL)))e.setCanceled(true);
         }
@@ -115,11 +122,12 @@ public final class ClientBootstrap {
     }
     public static int layer(){
         var window=Minecraft.getInstance().getWindow();
-        boolean ctrl=InputConstants.isKeyDown(window,GLFW.GLFW_KEY_LEFT_CONTROL)||InputConstants.isKeyDown(window,GLFW.GLFW_KEY_RIGHT_CONTROL),shift=InputConstants.isKeyDown(window,GLFW.GLFW_KEY_LEFT_SHIFT)||InputConstants.isKeyDown(window,GLFW.GLFW_KEY_RIGHT_SHIFT),alt=InputConstants.isKeyDown(window,GLFW.GLFW_KEY_LEFT_ALT)||InputConstants.isKeyDown(window,GLFW.GLFW_KEY_RIGHT_ALT);
-        if((ctrl?1:0)+(shift?1:0)+(alt?1:0)>1)return -1;
-        return ctrl?1:shift?2:alt?3:0;
+        boolean ctrl=InputConstants.isKeyDown(window,GLFW.GLFW_KEY_LEFT_CONTROL)||InputConstants.isKeyDown(window,GLFW.GLFW_KEY_RIGHT_CONTROL),alt=InputConstants.isKeyDown(window,GLFW.GLFW_KEY_LEFT_ALT)||InputConstants.isKeyDown(window,GLFW.GLFW_KEY_RIGHT_ALT);
+        if(ctrl&&alt)return -1;
+        return ctrl?1:alt?2:0;
     }
     public static boolean key(KeyEvent event,int action){
+        if(CloudMovement.key(event,action))return true;
         var mc=Minecraft.getInstance();
         if(mc.player==null||mc.gui.screen()!=null||!ClientCombat.INSTANCE.validWeapon()||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_F3))return false;
         for(int i=0;i<8;i++)if(SKILLS[i].matches(event)){
@@ -130,34 +138,29 @@ public final class ClientBootstrap {
         }
         return false;
     }
+    private static boolean currencyGesture;
     private static void currency(ScreenEvent.MouseButtonPressed.Pre e){
         var mc=Minecraft.getInstance();
         if(e.getButton()!=1||!(e.getScreen() instanceof AbstractContainerScreen<?> screen)||mc.player==null)return;
-        if(!(screen instanceof InventoryScreen)&&!(screen instanceof CreativeModeInventoryScreen))return;
-        var menu=mc.player.inventoryMenu;
+        var target=CurrencyUi.target(screen,e.getMouseX(),e.getMouseY());
+        if(target==null)return;
+        var menu=target.menu();
         String cursor=GameItems.id(menu.getCarried());
-        if(!GameItems.ALL.containsKey(cursor)||!cursor.endsWith("stone")&&!cursor.equals("affix_gem"))return;
-        var slot=screen.getHoveredSlot();
-        if(slot==null){
-            double x=e.getMouseX()-screen.getLeftPos(),y=e.getMouseY()-screen.getTopPos();
-            for(var s:screen.getMenu().slots)if(x>=s.x&&x<s.x+16&&y>=s.y&&y<s.y+16){
-                slot=s;
-                break;
-            }
-        }
-        if(slot==null)return;
-        Gear gear=GameItems.gear(slot.getItem());
+        if(!CurrencyUi.isCurrency(menu.getCarried()))return;
+        Gear gear=GameItems.gear(target.slot().getItem());
         if(gear==null)return;
         e.setCanceled(true);
+        currencyGesture=true;
         var s=ClientState.INSTANCE;
         var j=s.operation("currency");
         j.addProperty("session",s.session);
         j.addProperty("menu",menu.containerId);
-        j.addProperty("slot",slot.index);
+        j.addProperty("slot",target.index());
         j.addProperty("equipment",gear.instance.toString());
         j.addProperty("revision",gear.revision);
         j.addProperty("count",menu.getCarried().getCount());
-        if(cursor.equals("affix_gem")&&gear.sockets>1)mc.gui.setScreen(new GemScreen(e.getScreen(),j,gear));
+        j.add("cursor",net.minecraft.world.item.ItemStack.OPTIONAL_CODEC.encodeStart(mc.player.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),menu.getCarried()).getOrThrow());
+        if(cursor.equals("affix_gem")&&gear.sockets>1)mc.gui.pushScreenLayer(new GemScreen(e.getScreen(),j,gear));
         else s.send("currency",j);
     }
     public static void inventoryClick(int slot,int button,ContainerInput input){

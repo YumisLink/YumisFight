@@ -15,7 +15,7 @@ public final class Models {
         public long experience;
         public boolean swordmaster,sync=true,questAccepted,starterGranted;
         public Map<String,Integer> skills=new LinkedHashMap<>();
-        public String[] slots=new String[32];
+        public String[] slots=new String[SLOT_COUNT];
         public Progress(){
             Arrays.fill(slots,"");
         }
@@ -24,6 +24,16 @@ public final class Models {
         }
         public int learned(Skill s){
             return skills.getOrDefault(s.name(),0);
+        }
+        public void normalizeSlots(){
+            String[] old=slots,next=new String[SLOT_COUNT];
+            Arrays.fill(next,"");
+            if(old!=null){
+                for(int i=0;i<Math.min(16,old.length);i++)next[i]=old[i]==null?"":old[i];
+                int alt=old.length==32?24:16;
+                for(int i=0;i<8&&alt+i<old.length;i++)next[16+i]=old[alt+i]==null?"":old[alt+i];
+            }
+            slots=next;
         }
         public void grant(long amount){
             if(amount<0)throw new IllegalArgumentException("经验不可为负");
@@ -40,6 +50,29 @@ public final class Models {
             if(r>=skill.limit(level,swordmaster)||sp<skill.sp)throw new IllegalArgumentException("等级、职业或SP不足");
             skills.put(skill.name(),r+1);
             sp-=skill.sp;
+        }
+        public int learn(Skill skill,int count){
+            batchCount(count);
+            int amount=Math.min(count,Math.min(skill.limit(level,swordmaster)-learned(skill),sp/skill.sp));
+            if(amount<=0)throw new IllegalArgumentException("等级、职业或SP不足");
+            skills.put(skill.name(),learned(skill)+amount);
+            sp-=skill.sp*amount;
+            return amount;
+        }
+        public int allocate(String stat,int count){
+            batchCount(count);
+            int amount=Math.min(count,free());
+            if(amount<=0)throw new IllegalArgumentException("自由属性点不足");
+            switch(stat){
+                case "strength"->strength+=amount;
+                case "intelligence"->intelligence+=amount;
+                case "spirit"->spirit+=amount;
+                default->throw new IllegalArgumentException("未知属性");
+            }
+            return amount;
+        }
+        private static void batchCount(int count){
+            if(count!=1&&count!=5)throw new IllegalArgumentException("加点数量必须为1或5");
         }
         public void resetSkills(){
             for(Skill s:Skill.values())sp+=learned(s)*s.sp;

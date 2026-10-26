@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "passed": [
+    "shared_chest_native_insert_syncs_to_second_viewer",
+    "chest_currency_processing_syncs_same_identity_to_second_viewer",
+    "fabricator_lists_15_templates_and_disables_three_locked_types",
+    "fabricator_selection_cancel_keeps_original_container"
+  ]
+}

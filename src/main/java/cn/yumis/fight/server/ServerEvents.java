@@ -71,13 +71,6 @@ public final class ServerEvents {
         }
         );
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e)->commands(e));
-        NeoForge.EVENT_BUS.addListener((ProjectileImpactEvent e)->{
-            if(!ServerRuntime.ready()||!(e.getProjectile().getOwner() instanceof DungeonEnemy owner)||!owner.getType().toString().contains("goblin_thrower"))return;if(e.getRayTraceResult() instanceof net.minecraft.world.phys.EntityHitResult hit&&hit.getEntity() instanceof ServerPlayer p){
-                JsonObject j=new JsonObject();j.addProperty("root",e.getProjectile().getStringUUID());j.addProperty("session",ServerRuntime.get().session(p).id.toString());j.addProperty("generation",ServerRuntime.get().session(p).life.generation);j.addProperty("source","goblin_stone");j.addProperty("points",1);j.add("attacker",JSON.toJsonTree(ServerRuntime.get().target(owner)));cn.yumis.fight.network.Network.send(p,"incoming",j);
-            }
-            e.setCanceled(true);e.getProjectile().discard();
-        }
-        );
         NeoForge.EVENT_BUS.addListener((ItemEntityPickupEvent.Pre e)->{
             if(!ServerRuntime.ready()||!(e.getPlayer() instanceof ServerPlayer p))return;String id=e.getItemEntity().getPersistentData().getStringOr("ydnf_drop","");if(id.isEmpty())return;e.setCanPickup(TriState.FALSE);var r=ServerRuntime.get();LootService.Drop drop=r.journal.get("loot/"+id,LootService.Drop.class,null);if(drop==null||!r.journal.get("lootEnd/"+id).isJsonNull())return;ItemStack actual=e.getItemEntity().getItem();int room=0;for(int i=0;i<36;i++){
                 ItemStack s=p.getInventory().getItem(i);room+=s.isEmpty()?actual.getMaxStackSize():ItemStack.isSameItemSameComponents(s,actual)?Math.max(0,s.getMaxStackSize()-s.getCount()):0;
@@ -93,7 +86,7 @@ public final class ServerEvents {
     }
     private static void commands(RegisterCommandsEvent e){
         var root=Commands.literal("ydnf").executes(c->{
-            ServerPlayer p=c.getSource().getPlayerOrException();ServerRuntime.get().profile(p);c.getSource().sendSuccess(()->Component.literal("按 I 打开地下城与战斗菜单"),false);return 1;
+            ServerPlayer p=c.getSource().getPlayerOrException();ServerRuntime.get().profile(p);c.getSource().sendSuccess(()->cn.yumis.fight.game.ModText.of("按 I 打开地下城与战斗菜单"),false);return 1;
         }
         );
         var equipment=Commands.literal("equipment").then(Commands.literal("claim").executes(c->{
@@ -104,11 +97,11 @@ public final class ServerEvents {
         for(String action:List.of("query","add","remove")){
             var group=Commands.argument("group",net.minecraft.commands.arguments.IdentifierArgument.id());
             if(action.equals("query"))group.executes(c->{
-                ServerPlayer player=EntityArgument.getPlayer(c,"player");String id=net.minecraft.commands.arguments.IdentifierArgument.getId(c,"group").toString();EquipmentLayout.CURRENT.group(id);int count=EquipmentService.bonus(ServerRuntime.get(),player).getOrDefault(id,0);c.getSource().sendSuccess(()->Component.literal(id+" 额外槽数："+count),false);return count;
+                ServerPlayer player=EntityArgument.getPlayer(c,"player");String id=net.minecraft.commands.arguments.IdentifierArgument.getId(c,"group").toString();EquipmentLayout.CURRENT.group(id);int count=EquipmentService.bonus(ServerRuntime.get(),player).getOrDefault(id,0);c.getSource().sendSuccess(()->cn.yumis.fight.game.ModText.of(id+" 额外槽数："+count),false);return count;
             }
             );
             else group.then(Commands.argument("count",IntegerArgumentType.integer(1,64)).executes(c->{
-                ServerPlayer player=EntityArgument.getPlayer(c,"player");String id=net.minecraft.commands.arguments.IdentifierArgument.getId(c,"group").toString();int delta=IntegerArgumentType.getInteger(c,"count")*(action.equals("remove")?-1:1);int count=EquipmentService.change(ServerRuntime.get(),player,id,delta);c.getSource().sendSuccess(()->Component.literal(id+" 额外槽数："+count),false);return count;
+                ServerPlayer player=EntityArgument.getPlayer(c,"player");String id=net.minecraft.commands.arguments.IdentifierArgument.getId(c,"group").toString();int delta=IntegerArgumentType.getInteger(c,"count")*(action.equals("remove")?-1:1);int count=EquipmentService.change(ServerRuntime.get(),player,id,delta);c.getSource().sendSuccess(()->cn.yumis.fight.game.ModText.of(id+" 额外槽数："+count),false);return count;
             }
             ));
             slots.then(Commands.literal(action).then(Commands.argument("player",EntityArgument.player()).then(group)));
@@ -145,7 +138,8 @@ public final class ServerEvents {
             var r=ServerRuntime.get();ServerPlayer p=c.getSource().getPlayerOrException();var s=r.session(p);s.resources.controlEpoch++;boolean enabled=mode.equals("on");if(enabled&&!s.resources.training)s.resources.trainingBoundary=s.resources.mp;if(!enabled&&s.resources.training&&s.resources.trainingBoundary>=0)s.resources.mp=Math.min(s.resources.mp,s.resources.trainingBoundary);s.resources.training=enabled;s.resources.mp=Math.min(s.resources.mp,r.stats(p).get(Stat.MP));r.savePlayer(p);r.profile(p);r.message(p,"开发训练模式："+mode);return 1;
         }
         )));
-        root.then(Commands.literal("verify").requires(source->Boolean.getBoolean("ydnf.verify")&&source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)).executes(c->VerificationChecks.run(ServerRuntime.get(),c.getSource().getPlayerOrException())));
+        root.then(Commands.literal("verify").requires(source->Boolean.getBoolean("ydnf.verify")&&source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)).executes(c->VerificationChecks.run(ServerRuntime.get(),c.getSource().getPlayerOrException()))
+            .then(Commands.literal("combat").then(Commands.argument("case",StringArgumentType.word()).executes(c->{try{return CombatVerification.run(ServerRuntime.get(),c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"case"));}catch(Exception failure){throw new IllegalStateException(failure);}}))));
         root.then(dev);
         e.getDispatcher().register(root);
     }

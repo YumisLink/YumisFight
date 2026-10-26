@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "sha256": "d48e1c50817094d3ae9f40bd44041612c357495171ab5333f522f7dd1cab17b2",
+  "jarBytes": 12077729,
+  "checks": [
+    "all_registered_mixins_present",
+    "noto_font_and_ofl_packaged",
+    "cloud_step_icon_packaged",
+    "no_user_imported_fonts_or_validation_tools_packaged",
+    "all_json_resources_parse",
+    "font_resource_paths_lowercase"
+  ]
+}

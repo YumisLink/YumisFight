@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "passed": [
+    "actual_restart_preserves_external_equipment_identity_revision_affixes",
+    "login_stamina_full_after_server_restart"
+  ]
+}

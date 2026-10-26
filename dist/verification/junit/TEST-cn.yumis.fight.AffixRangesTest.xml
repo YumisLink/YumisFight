@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.yumis.fight.AffixRangesTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-26T17:06:45.279Z" hostname="DESKTOP-UE1SFN7" time="0.028">
+  <properties/>
+  <testcase name="percentageAndBothDamageEndpointsAreDistinct()" classname="cn.yumis.fight.AffixRangesTest" time="0.014"/>
+  <testcase name="usesSavedBaselineInsteadOfCurrentValue()" classname="cn.yumis.fight.AffixRangesTest" time="0.001"/>
+  <testcase name="fixedBaseGemsAndFixedRaritiesAreNeverOfferedAsRerollable()" classname="cn.yumis.fight.AffixRangesTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

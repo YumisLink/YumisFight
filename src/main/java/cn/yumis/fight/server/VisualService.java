@@ -58,6 +58,14 @@ public final class VisualService {
     public void track(ServerPlayer observer,ServerPlayer caster){
         for(Active cast:active.values())if(cast.owner.equals(caster.getUUID())&&cast.expires>System.currentTimeMillis())Network.send(observer,"visual",cast.data);
     }
+    public boolean movementLocked(ServerPlayer player){
+        var session=runtime.session(player);long now=System.currentTimeMillis();
+        return active.values().stream().anyMatch(a->a.owner.equals(player.getUUID())&&a.session.equals(session.id.toString())&&a.generation==session.life.generation&&a.expires>now);
+    }
+    public boolean invulnerable(ServerPlayer player){
+        var session=runtime.session(player);long now=System.currentTimeMillis();
+        return active.values().stream().anyMatch(a->a.owner.equals(player.getUUID())&&a.session.equals(session.id.toString())&&a.generation==session.life.generation&&a.expires>now&&a.data.get("kind").getAsString().equals("STORM"));
+    }
     public void tick(){
         long now=System.currentTimeMillis();
         ended.entrySet().removeIf(e->e.getValue()<now);

@@ -3,7 +3,8 @@ import java.math.BigInteger;
 import java.util.*;
 /** Platform-independent, versioned rules. Values are never inferred from displayed lore. */
 public final class Rules {
-    public static final int VERSION=6, PROTOCOL=1, MAX_LEVEL=80;
+    public static final int VERSION=6, PROTOCOL=3, MAX_LEVEL=80;
+    public static final int SLOTS_PER_LAYER=8, SLOT_COUNT=24;
     private Rules() {
     }
     public enum Stat {

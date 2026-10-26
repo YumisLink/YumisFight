@@ -4,9 +4,15 @@
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "MenuAccessor",
-    "InventoryMixin",
+    "CompoundContainerAccessor",
+    "ConnectionAccessor",
     "ContainerMixin",
+    "ContainerCloseMixin",
+    "ContainerPacketMixin",
     "PlayerMixin",
+    "NativeDamageMixin",
+    "GoblinStoneMixin",
+    "ModItemNameMixin",
     "RespawnMixin",
     "PlayerDropMixin",
     "FoodMixin",
@@ -19,16 +25,18 @@
     "defaultRequire": 1
   },
   "client": [
+    "FeedbackProbeMixin",
+    "FontProviderAccessor",
+    "UiOpenTypeMixin",
     "DisplayAccessor",
     "KeyboardMixin",
     "CreativeScreenMixin",
-    "SlotPositionAccessor",
+    "CreativeSlotAccessor",
     "VerificationWindowMixin",
     "CreativeTabAccessor",
     "CameraMixin",
     "StormInputMixin",
     "InputAccessor",
-    "AvatarRendererMixin",
-    "EquipmentScreenBoundsMixin"
+    "AvatarRendererMixin"
   ]
 }

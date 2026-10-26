@@ -31,10 +31,7 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
         clearWidgets();
         addRenderableWidget(Button.builder(Component.literal("制作"),b->craft()).bounds(leftPos+126,topPos+7,43,20).build(ThemedButton::new));
         addRenderableWidget(Button.builder(Component.literal(slot==Slot.WEAPON?weapon.title():slot.title()),b->{
-            if(slot==Slot.WEAPON&&weapon.ordinal()<4)weapon=Weapon.values()[weapon.ordinal()+1];else{
-                slot=Slot.values()[(slot.ordinal()+1)%Slot.values().length];weapon=Weapon.KATANA;
-            }
-            level=Math.max(slot.minimum(),level);controls();
+            minecraft.gui.pushScreenLayer(new EquipmentSelectionScreen(this,slot,weapon,level));
         }
         ).bounds(leftPos+33,topPos+7,88,20).build(ThemedButton::new));
         addRenderableWidget(Button.builder(Component.literal("−"),b->{
@@ -55,6 +52,12 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
         catch(IllegalArgumentException e){
             needs=List.of();
         }
+    }
+    void selectTemplate(Slot selected,Weapon selectedWeapon){
+        if(ClientState.INSTANCE.progress.level<selected.minimum())return;
+        slot=selected;weapon=selectedWeapon;
+        level=Math.clamp(level,slot.minimum(),Math.min(80,ClientState.INSTANCE.progress.level));
+        controls();
     }
     private void craft(){
         var s=ClientState.INSTANCE;
@@ -88,16 +91,16 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
             if(i<needs.size()){
                 var n=needs.get(i);
                 g.item(preview(n),x+1,y+1);
-                g.text(font,Integer.toString(n.count()),x+1,y+12,held(n)>=n.count()?0xffb7f8bc:0xffff8b8b);
+                g.text(UiFonts.font(),Integer.toString(n.count()),x+1,y+12,held(n)>=n.count()?0xffb7f8bc:0xffff8b8b,false);
                 if(mx>=x&&mx<x+18&&my>=y&&my<y+21){
                     ItemStack item=preview(n);
-                    g.setComponentTooltipForNextFrame(font,List.of(item.getHoverName(),Component.literal("需要 "+n.count()+" · 持有 "+held(n)+" · 缺少 "+Math.max(0,n.count()-held(n)))),mx,my,item);
+                    g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(UiFonts.decorate(item.getHoverName()),UiFonts.decorate(Component.literal("需要 "+n.count()+" · 持有 "+held(n)+" · 缺少 "+Math.max(0,n.count()-held(n))))),mx,my,item);
                 }
             }
         }
         var gear=EquipmentRules.create(slot,weapon,Rarity.COMMON,level,new Random(0));
         g.item(GameItems.gear(gear),leftPos+10,topPos+14);
-        g.text(font,"Lv."+level,leftPos+59,topPos+36,0xfff4dba7);
+        g.text(UiFonts.font(),"Lv."+level,leftPos+59,topPos+36,0xfff4dba7,false);
         for(var s:menu.slots){
             int x=leftPos+s.x,y=topPos+s.y;
             g.fill(x-1,y-1,x+17,y+17,UiTheme.CARD);
@@ -105,8 +108,8 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
         }
     }
     @Override protected void extractLabels(GuiGraphicsExtractor g,int x,int y){
-        g.text(font,"悬停查看持有/缺少",64,101,0xff9aa9be);
-        g.text(font,playerInventoryTitle,8,101,0xffd9dce5);
+        g.text(UiFonts.font(),"悬停查看持有/缺少",64,101,0xff9aa9be,false);
+        g.text(UiFonts.font(),UiFonts.decorate(playerInventoryTitle),8,101,0xffd9dce5,false);
     }
     @Override public boolean keyPressed(KeyEvent e){
         if(ClientBootstrap.MENU.matches(e)){

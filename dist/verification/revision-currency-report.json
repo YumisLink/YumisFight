@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "passed": [
+    "native_survival_press_release_consumes_once",
+    "failed_currency_keeps_slot_and_cursor",
+    "held_currency_shows_equipment_and_effect",
+    "creative_inventory_extra_slots_do_not_crash",
+    "creative_wrapped_slot_processes_actual_equipment",
+    "creative_press_release_consumes_once"
+  ]
+}

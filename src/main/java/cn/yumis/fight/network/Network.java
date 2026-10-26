@@ -48,7 +48,7 @@ public final class Network {
         }
     }
     public static void register(RegisterPayloadHandlersEvent event){
-        var r=event.registrar("1");
+        var r=event.registrar(Integer.toString(cn.yumis.fight.rules.Rules.PROTOCOL));
         r.playToServer(Request.TYPE,Request.CODEC,(p,c)->c.enqueueWork(()->ServerRuntime.get().handle((ServerPlayer)c.player(),p.action,parse(p.json))));
         r.playToClient(Snapshot.TYPE,Snapshot.CODEC,(p,c)->c.enqueueWork(()->CLIENT.accept(p.action,parse(p.json))));
         r.playBidirectional(State.TYPE,State.CODEC,(p,c)->c.enqueueWork(()->ServerRuntime.get().handle((ServerPlayer)c.player(),p.action,parse(p.json))),(p,c)->c.enqueueWork(()->CLIENT.accept(p.action,parse(p.json))));

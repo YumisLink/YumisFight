@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "passed": [
+    "default_font_rendered_at_gui_scales_1_2_3",
+    "valid_ttf_import_works_after_legacy_orphan_migration",
+    "cff_otf_with_unicode_space_path_loads",
+    "invalid_font_keeps_previous_selection",
+    "restore_default_returns_to_modern_ui_pair",
+    "second_client_selects_personal_font",
+    "personal_font_survives_fresh_client_start"
+  ],
+  "screenshots": [
+    "D:\\init\\YumisFight\\dist\\verification\\combat-font-screenshots\\modern-font-scale-1.png",
+    "D:\\init\\YumisFight\\dist\\verification\\combat-font-screenshots\\modern-font-scale-2.png",
+    "D:\\init\\YumisFight\\dist\\verification\\combat-font-screenshots\\modern-font-scale-3.png",
+    "D:\\init\\YumisFight\\dist\\verification\\combat-font-screenshots\\modern-font-arial-chinese-fallback.png",
+    "D:\\init\\YumisFight\\dist\\verification\\combat-font-screenshots\\modern-font-cff-chinese-fallback.png"
+  ]
+}

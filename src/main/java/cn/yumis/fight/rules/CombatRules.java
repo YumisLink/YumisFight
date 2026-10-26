@@ -9,6 +9,13 @@ public final class CombatRules {
         }
     }
     public static Damage calculate(Stats attacker,double defense,double[] resist,boolean magic,int[] elements,double coefficient,boolean includeExtras,Random random){
+        return calculateResolved(attacker,defense,resist,magic,elements,coefficient,includeExtras,random::nextDouble,true);
+    }
+    /** Exact endpoints of the noncritical, zero-defense panel range; does not access combat RNG. */
+    public static Damage panel(Stats attacker,boolean magic,int[] elements,double coefficient,boolean includeExtras,boolean maximum){
+        return calculateResolved(attacker,0,new double[4],magic,elements,coefficient,includeExtras,()->maximum?1:0,false);
+    }
+    private static Damage calculateResolved(Stats attacker,double defense,double[] resist,boolean magic,int[] elements,double coefficient,boolean includeExtras,java.util.function.DoubleSupplier roll,boolean criticalEnabled){
         int element=-1;
         double delta=-Arrays.stream(resist).max().orElse(0);
         if(elements.length>0){
@@ -24,13 +31,27 @@ public final class CombatRules {
         double mitigation=1000/(1000+Math.max(0,defense));
         double main=attacker.panel(magic)*coefficient*mitigation*Math.max(0,1+delta/120),extra=0;
         if(includeExtras)for(Affix a:attacker.extras){
-            double base=a.value+random.nextDouble()*Math.max(0,a.maximum-a.value);
+            double base=a.value+roll.getAsDouble()*Math.max(0,a.maximum-a.value);
             double difference=attacker.get(Stat.values()[Stat.LIGHT.ordinal()+a.element])-resist[a.element];
             extra+=base*mitigation*Math.max(0,1+difference/120);
         }
         double multiplier=(1+attacker.modifiers.getOrDefault("final",0d))*attacker.modifiers.getOrDefault("skillProduct",1d);
-        if(random.nextDouble()<attacker.modifiers.getOrDefault("crit",0d))multiplier*=1.5+attacker.modifiers.getOrDefault("critDamage",0d);
+        if(criticalEnabled&&roll.getAsDouble()<attacker.modifiers.getOrDefault("crit",0d))multiplier*=1.5+attacker.modifiers.getOrDefault("critDamage",0d);
         return new Damage(main*multiplier,extra*multiplier,element);
+    }
+    public record SkillDamage(double total,double main){}
+    /** Shared post-hit bonuses, preserving combat's calculation order and main/extra distinction. */
+    public static SkillDamage skillDamage(Damage parts,Stats stats,Skill skill,double mastery,boolean basic,boolean passive,double levelMultiplier){
+        double damage=parts.total()*levelMultiplier,main=parts.main()*levelMultiplier;
+        if(skill!=null&&skill.ordinal()<3){
+            double bonus=main*stats.modifiers.getOrDefault("basicSkillMain",0d);
+            damage+=bonus;main+=bonus;
+        }
+        if(!basic&&!passive&&stats.weaponType.equals("GREATSWORD")){
+            double multiplier=1+.2*mastery;
+            damage*=multiplier;main*=multiplier;
+        }
+        return new SkillDamage(damage,main);
     }
     private CombatRules(){
     }

@@ -44,7 +44,14 @@ public final class VerificationDriver {
             status.add("progress",JSON.toJsonTree(ClientState.INSTANCE.progress));
             status.add("life",JSON.toJsonTree(ClientState.INSTANCE.own));
             status.add("stats",JSON.toJsonTree(ClientState.INSTANCE.stats));
+            status.addProperty("font",UiFonts.currentName());
+            status.addProperty("fontBusy",UiFonts.busy());
+            status.addProperty("fontStatus",UiFonts.status());
+            status.addProperty("mouseX",mc.mouseHandler.getScaledXPos(mc.getWindow()));
+            status.addProperty("mouseY",mc.mouseHandler.getScaledYPos(mc.getWindow()));
+            status.addProperty("overlay",mc.gui.overlay()==null?"":mc.gui.overlay().getClass().getSimpleName());
             status.addProperty("pending",ClientState.INSTANCE.pending.size());
+            status.add("feedback",FeedbackProbe.snapshot());
             status.add("vfxMetrics",JSON.toJsonTree(Effects.VFX.metrics()));
             status.addProperty("vfxActive",Effects.VFX.activeCount());
             if(mc.player!=null){
@@ -70,6 +77,17 @@ public final class VerificationDriver {
                 }
                 status.add("inventory",items);
                 status.add("resources",JSON.toJsonTree(ClientState.INSTANCE.resources));
+                status.addProperty("stamina",CloudMovement.stamina());
+                status.addProperty("onGround",mc.player.onGround());
+                status.addProperty("velocityY",mc.player.getDeltaMovement().y);
+                status.addProperty("cloudStep",mc.player.hasEffect(cn.yumis.fight.FightMod.CLOUD_STEP));
+                var menu=mc.player.containerMenu;
+                status.addProperty("menu",menu.containerId);
+                status.add("menuSlots",JSON.toJsonTree(menu.slots.stream().map(slot->Map.of("index",slot.index,"x",slot.x,"y",slot.y,"id",GameItems.id(slot.getItem()),"count",slot.getItem().getCount(),"gear",GameItems.string(slot.getItem(),GameItems.NS))).toList()));
+                if(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> container){
+                    status.addProperty("left",container.getLeftPos());status.addProperty("top",container.getTopPos());
+                    status.add("visibleSlots",JSON.toJsonTree(container.getMenu().slots.stream().filter(net.minecraft.world.inventory.Slot::isActive).map(slot->Map.of("index",slot.index,"x",slot.x,"y",slot.y,"id",GameItems.id(slot.getItem()),"count",slot.getItem().getCount())).toList()));
+                }
             }
             JsonArray widgets=new JsonArray();
             if(mc.gui.screen()!=null)for(var child:mc.gui.screen().children())if(child instanceof AbstractWidget w){
@@ -119,9 +137,36 @@ public final class VerificationDriver {
                     MouseButtonEvent e=new MouseButtonEvent(j.get("x").getAsDouble(),j.get("y").getAsDouble(),new MouseButtonInfo(j.has("button")?j.get("button").getAsInt():0,j.has("modifiers")?j.get("modifiers").getAsInt():0));
                     var event=new net.neoforged.neoforge.client.event.ScreenEvent.MouseButtonPressed.Pre(mc.gui.screen(),e,false);
                     if(!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled())mc.gui.screen().mouseClicked(e,false);
-                    mc.gui.screen().mouseReleased(e);
+                    var release=new net.neoforged.neoforge.client.event.ScreenEvent.MouseButtonReleased.Pre(mc.gui.screen(),e);
+                    if(!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(release).isCanceled())mc.gui.screen().mouseReleased(e);
                 }
             }
+            case "hover","mouse"->{
+                double px=j.get("x").getAsDouble()*mc.getWindow().getScreenWidth()/mc.getWindow().getGuiScaledWidth();
+                double py=j.get("y").getAsDouble()*mc.getWindow().getScreenHeight()/mc.getWindow().getGuiScaledHeight();
+                org.lwjgl.glfw.GLFW.glfwSetCursorPos(mc.getWindow().handle(),px,py);
+                var move=net.minecraft.client.MouseHandler.class.getDeclaredMethod("onMove",long.class,double.class,double.class);
+                move.setAccessible(true);move.invoke(mc.mouseHandler,mc.getWindow().handle(),px,py);
+                if(action.equals("mouse")){
+                    var press=net.minecraft.client.MouseHandler.class.getDeclaredMethod("onButton",long.class,MouseButtonInfo.class,int.class);
+                    press.setAccessible(true);
+                    var info=new MouseButtonInfo(j.has("button")?j.get("button").getAsInt():0,j.has("modifiers")?j.get("modifiers").getAsInt():0);
+                    press.invoke(mc.mouseHandler,mc.getWindow().handle(),info,1);press.invoke(mc.mouseHandler,mc.getWindow().handle(),info,0);
+                }
+            }
+            case "fontImport"->UiFonts.importFile(Path.of(j.get("path").getAsString()),()->{});
+            case "fontDefault"->UiFonts.restoreDefault(()->{});
+            case "feedbackReset"->FeedbackProbe.reset();
+            case "holdUse"->{mc.options.keyUse.setDown(true);mc.gameMode.useItem(mc.player,net.minecraft.world.InteractionHand.OFF_HAND);}
+            case "releaseUse"->{mc.options.keyUse.setDown(false);mc.gameMode.releaseUsingItem(mc.player);}
+            case "replayNative","duplicateNative"->{
+                if(FeedbackProbe.lastReport!=null){
+                    var report=FeedbackProbe.lastReport.deepCopy();
+                    if(action.equals("duplicateNative"))report.addProperty("operation",report.get("operation").getAsLong()+1000000);
+                    state.send("damage",report);
+                }
+            }
+            case "quit"->mc.stop();
             case "button"->{
                 String text=j.get("text").getAsString();
                 if(mc.gui.screen()!=null)for(var child:mc.gui.screen().children())if(child instanceof Button b&&b.visible&&b.active&&b.getMessage().getString().equals(text)){

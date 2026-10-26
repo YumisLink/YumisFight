@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "passed": [
+    "login_full_stamina",
+    "c_forward_leap_cost_and_protection",
+    "air_vertical_leap_remaining_60",
+    "air_vertical_leap_remaining_40",
+    "air_vertical_leap_remaining_20",
+    "air_vertical_leap_remaining_0",
+    "exhaustion_rejects_sixth_leap",
+    "duplicate_leap_operation_does_not_repeat_charge",
+    "grounded_recovery_refills_pool",
+    "stamina_charged_before_training",
+    "training_freezes_and_exempts_stamina",
+    "leaving_training_does_not_refill",
+    "reconnect_refills_stamina",
+    "native_mouse_opens_skill_binding",
+    "three_layers_24_slots_allow_duplicate_binding"
+  ]
+}

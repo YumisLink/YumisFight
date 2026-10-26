@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.yumis.fight.SkillPreviewTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-26T17:06:46.330Z" hostname="DESKTOP-UE1SFN7" time="0.021">
+  <properties/>
+  <testcase name="ghostUsesMagicBeforePromotionAndPhysicalAfterward()" classname="cn.yumis.fight.SkillPreviewTest" time="0.008"/>
+  <testcase name="sharedCalculationKeepsExtraRollsBeforeTheSingleCriticalRoll()" classname="cn.yumis.fight.SkillPreviewTest" time="0.002"/>
+  <testcase name="currentBuffExpiresWithoutMutatingEquipmentSnapshot()" classname="cn.yumis.fight.SkillPreviewTest" time="0.005"/>
+  <testcase name="zeroDurationStillHasFiniteCompleteSchedule()" classname="cn.yumis.fight.SkillPreviewTest" time="0.001"/>
+  <testcase name="liveParameterChangesAndFinisherAreReflectedInTotals()" classname="cn.yumis.fight.SkillPreviewTest" time="0.001"/>
+  <testcase name="addedDanceSlashesFinishWithinDurationWithoutChangingDefaultRhythm()" classname="cn.yumis.fight.SkillPreviewTest" time="0.0"/>
+  <testcase name="panelIncludesDeterministicEquipmentAndMasteryButNotCriticals()" classname="cn.yumis.fight.SkillPreviewTest" time="0.0"/>
+  <testcase name="panelRangeBracketsTheActualNoncriticalZeroDefenseFormula()" classname="cn.yumis.fight.SkillPreviewTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

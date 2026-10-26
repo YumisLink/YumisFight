@@ -34,18 +34,18 @@ public final class FightScreen extends Screen {
     private final List<Card> cards=new ArrayList<>();
     private final List<Icon> icons=new ArrayList<>();
     private final List<AbstractWidget> body=new ArrayList<>();
-    private int sidebar,left,top,panelWidth,panelHeight,scroll,contentHeight,bindSlot,selectedDungeon;
+    private int sidebar,left,top,panelWidth,panelHeight,scroll,contentHeight,selectedDungeon;
     private Difficulty difficulty=Difficulty.NORMAL;
     private boolean sync=true;
     private EditBox input;
     private String inputValue="";
-    private Skill selected=Skill.GHOST;
+    private final Map<AbstractWidget,Skill> skillRows=new LinkedHashMap<>();
     private int nextY;
     public FightScreen(){
         this(-1);
     }
     public FightScreen(int page){
-        super(Component.literal(page<0?"地下城与战斗":NAMES[page]));
+        super(net.minecraft.client.Minecraft.getInstance(),UiFonts.font(),Component.literal(page<0?"地下城与战斗":NAMES[page]));
         this.page=page;
     }
     @Override protected void init(){
@@ -65,6 +65,7 @@ public final class FightScreen extends Screen {
         if(input!=null)inputValue=input.getValue();
         clearWidgets();
         body.clear();
+        skillRows.clear();
         lines.clear();
         cards.clear();
         icons.clear();
@@ -139,7 +140,7 @@ public final class FightScreen extends Screen {
                 }
             }
             ).bounds(left+10+col*cell,bodyTop()+row*68-scroll,cell-5,60).build(ThemedButton::new);
-            b.setTooltip(Tooltip.create(Component.literal(NAMES[i])));
+            b.setTooltip(Tooltip.create(UiFonts.decorate(Component.literal(NAMES[i]))));
             body.add(addRenderableWidget(b));
         }
         nextY=3*68;
@@ -183,6 +184,7 @@ public final class FightScreen extends Screen {
         Stats s=state.stats;
         line((p.swordmaster?"剑魂":"鬼剑士")+"  Lv."+p.level+" / 80",0xffd47d);
         line("战斗经验 "+p.experience+" / "+(p.level==80?"MAX":nextExperience(p.level))+"    自由点 "+p.free());
+        line("按住 Shift 点击 +1：最多加5点。",UiTheme.MUTED);
         line("怪物攻击职业防护 "+(p.swordmaster?"65%":"35%")+"    "+(ClientState.now()<state.resources.combatUntil?"战斗中":"已脱战"));
         gap();
         String[] ids={
@@ -196,7 +198,7 @@ public final class FightScreen extends Screen {
         for(int i=0;i<3;i++){
             String id=ids[i];
             line(statName(values[i])+"  "+number(s.get(values[i])));
-            button("+1",contentWidth()-80,nextY-14,52,()->state.progress("allocate","stat",id));
+            button("+1",contentWidth()-80,nextY-14,52,()->addPoints("allocate","stat",id));
             nextY+=10;
         }
         rowButton("重置自由点",()->simpleProgress("resetAttributes"));
@@ -209,7 +211,7 @@ public final class FightScreen extends Screen {
         nextY=base+((index+columns-1)/columns)*38;
         gap();
         rowButton("个人等级同步："+(p.sync?"开启":"关闭"),()->state.progress("sync","enabled",!p.sync));
-        line("装备通过 E 背包右侧扩展栏管理。无效等级或职业的装备不提供属性。",0xa5adbb);
+        line("饰品按 G 打开 Curios 界面管理；无效等级或职业的装备不提供属性。",0xa5adbb);
     }
     private void statCard(String name,String value,int index,int columns,int cell,int base){
         int x=(index%columns)*cell,y=base+(index/columns)*38;
@@ -217,61 +219,31 @@ public final class FightScreen extends Screen {
         lines.add(new Line(name,x+6,y+5,UiTheme.MUTED));
         lines.add(new Line(value,x+6,y+18,UiTheme.TEXT));
     }
+    private void addPoints(String kind,String key,String value){
+        state.upload();
+        var request=state.operation(kind);
+        request.addProperty(key,value);
+        request.addProperty("count",minecraft.hasShiftDown()?5:1);
+        state.send("progress",request);
+    }
     private void skills(){
-        line("剩余SP："+state.progress.sp+"    硬上限保留，装备可提高有效等级",0xffd47d);
-        for(Skill s:Skill.values()){
-            int rank=state.progress.learned(s),effective=state.stats.effective(state.progress,s),limit=s.limit(state.progress.level,state.progress.swordmaster);
-            button("   "+s.title+" "+rank+"/"+limit+(effective!=rank?" ["+effective+"]":""),0,nextY,contentWidth()-142,()->{
-                selected=s;build();
-            }
-            );
-            button("学习 "+s.sp,contentWidth()-128,nextY,104,()->state.progress("learn","skill",s.name()));
-            icons.add(new Icon("textures/gui/skills/"+s.icon()+".png",4,nextY+3,14));
+        line("剩余SP："+state.progress.sp+"    装备可提高有效等级",0xffd47d);
+        line("悬浮查看实时技能介绍；点击已学主动技能选择快捷槽。",UiTheme.MUTED);
+        line("按住 Shift 点击学习：最多升5级；点数不足时尽量加满。",UiTheme.MUTED);
+        for(Skill skill:Skill.values()){
+            int rank=state.progress.learned(skill),effective=state.stats.effective(state.progress,skill),limit=skill.limit(state.progress.level,state.progress.swordmaster);
+            button(skill.title+" "+rank+"/"+limit+(effective!=rank?" ["+effective+"]":""),0,nextY,contentWidth()-142,()->{
+                if(!skill.passive()&&state.progress.learned(skill)>0)minecraft.gui.pushScreenLayer(new SkillBindingScreen(skill));
+            });
+            ((ThemedButton)body.getLast()).textInset=24;
+            skillRows.put(body.getLast(),skill);
+            button("学习 "+skill.sp,contentWidth()-128,nextY,104,()->addPoints("learn","skill",skill.name()));
+            skillRows.put(body.getLast(),skill);
+            icons.add(new Icon("textures/gui/skills/"+skill.icon()+".png",4,nextY+3,14));
             nextY+=24;
         }
         gap();
-        line(selected.title+" · Lv."+selected.unlock+"解锁"+(selected.advanced()?" · 剑魂":""));
-        line("MP "+selected.mp(Math.max(1,state.stats.effective(state.progress,selected)))+"    冷却 "+selected.cooldown+"秒    系数 "+number(selected.coefficient(Math.max(1,state.stats.effective(state.progress,selected)))*100)+"%");
-        line(description(selected),0xaec6df);
-        gap();
-        String[] layers={
-            "普通","Ctrl","Shift","Alt"
-        }
-        ;
-        line("快捷槽："+layers[bindSlot/8]+" "+ClientBootstrap.SKILLS[bindSlot%8].getTranslatedKeyMessage().getString()+"  ["+(state.progress.slots[bindSlot].isEmpty()?"空":Skill.valueOf(state.progress.slots[bindSlot]).title)+"]");
-        button("上一槽",0,nextY,70,()->{
-            bindSlot=(bindSlot+31)%32;build();
-        }
-        );
-        button("下一槽",76,nextY,70,()->{
-            bindSlot=(bindSlot+1)%32;build();
-        }
-        );
-        nextY+=24;
-        rowButton("绑定选中技能："+selected.title,()->bind(selected.name()));
-        rowButton("清空此槽",()->bind(""));
         rowButton("洗点并返还技能SP",()->simpleProgress("resetSkills"));
-    }
-    private void bind(String skill){
-        var j=state.operation("bind");
-        j.addProperty("slot",bindSlot);
-        j.addProperty("skill",skill);
-        state.send("progress",j);
-    }
-    private static String description(Skill s){
-        return switch(s){
-            case GHOST->"按住蓄力1秒达到双倍伤害，松开释放；满蓄后最多持有2秒。";
-            case TRIPLE->"每段冲刺2.5格；1秒内再次按原槽续段，最多三段。";
-            case WAVE->"地面波前进10格，逐目标命中一次，遇实墙停止。";
-            case MASTERY->"主手切换太刀出血、光剑感电、巨剑技能增伤、短剑波与钝器眩晕。";
-            case OVERDRIVE->"30秒内提高基础物理攻击。";
-            case RISING->"冲撞4格后上挑；动作与结束后0.5秒提供位移防护。";
-            case DRAW->"蓄势0.4秒，对前方180°、半径5格攻击，实墙遮挡。";
-            case DRAGON->"最多四次4格冲刺；0.8秒内按原槽续段。";
-            case DANCE->"10刀斩击及一次穿透终结剑气，终结时解除动作锁。";
-            case STORM->"8秒剑阵：24柄不同外观剑、24次斩击及终结，全程免伤。";
-        }
-        ;
     }
     private void job(){
         Progress p=state.progress;
@@ -402,7 +374,14 @@ public final class FightScreen extends Screen {
             ClientSettings.targetScale=value;ClientSettings.save();build();
         }
         );
-        line("按键可在原版设置中修改。普通、Ctrl、Shift、Alt四层共32槽。");
+        line("按键可在原版设置中修改。普通、Ctrl、Alt三层共24槽。");
+        gap();
+        line("界面字体："+UiFonts.currentName());
+        rowButton("导入 TTF / OTF 字体",()->UiFonts.chooseFile(this::refresh));
+        rowButton("切换已导入字体",()->UiFonts.cycle(this::refresh));
+        rowButton("恢复默认字体",()->UiFonts.restoreDefault(this::refresh));
+        line(UiFonts.PREVIEW);
+        if(!UiFonts.status().isEmpty())line(UiFonts.status(),UiTheme.MUTED);
         line("I 返回菜单；Esc 一次关闭。聚焦输入框时保留文字输入。",0xa5adbb);
     }
     private void updateVisibility(){
@@ -418,7 +397,7 @@ public final class FightScreen extends Screen {
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float a){
         g.fill(left+6,top+6,left+panelWidth-6,top+30,UiTheme.CARD);
-        g.text(font,title,left+14,top+13,UiTheme.TEXT);
+        g.text(font,title,left+14,top+13,UiTheme.TEXT,false);
         g.fill(contentLeft(),bodyTop(),contentLeft()+contentWidth(),bodyTop()+bodyHeight(),UiTheme.CARD);
         g.fill(left+6,top+panelHeight-28,left+panelWidth-6,top+panelHeight-6,UiTheme.CARD);
         g.text(font,page<0?"I / Esc 关闭":"I 返回菜单 · Esc 关闭 · 滚轮浏览",left+14,top+panelHeight-20,UiTheme.MUTED,false);
@@ -443,19 +422,26 @@ public final class FightScreen extends Screen {
         }
         for(Line l:lines){
             int y=bodyTop()+l.y-scroll;
-            if(y>=bodyTop()&&y+9<=bodyTop()+bodyHeight())g.text(font,l.text,contentLeft()+12+l.x,y,0xff000000|l.color);
+            if(y>=bodyTop()&&y+9<=bodyTop()+bodyHeight())g.text(font,l.text,contentLeft()+12+l.x,y,0xff000000|l.color,false);
         }
         if(page<0&&state.ready){
             int cell=(panelWidth-20)/4;
             for(int i=0;i<NAMES.length;i++){
                 int x=left+10+(i%4)*cell,y=bodyTop()+(i/4)*68-scroll;
                 if(y<bodyTop()||y+60>bodyTop()+bodyHeight())continue;
-                g.text(font,NAMES[i],x+(cell-5-font.width(NAMES[i]))/2,y+6,0xfff0e5cf);
+                g.text(font,NAMES[i],x+(cell-5-font.width(NAMES[i]))/2,y+6,0xfff0e5cf,false);
                 g.blit(Identifier.fromNamespaceAndPath(GameItems.NS,"textures/gui/menu/"+ICONS[i]+".png"),x+(cell-37)/2,y+21,x+(cell+27)/2,y+53,0,1,0,1);
             }
         }
         g.disableScissor();
         for(var child:children())if(child instanceof AbstractWidget w&&!body.contains(w))w.extractRenderState(g,mx,my,a);
+        if(minecraft.gui.screen()==this)for(var row:skillRows.entrySet()){
+            var widget=row.getKey();
+            if(widget.visible&&mx>=widget.getX()&&mx<widget.getX()+widget.getWidth()&&my>=widget.getY()&&my<widget.getY()+widget.getHeight()){
+                SkillTooltip.render(g,row.getValue(),mx,my);
+                break;
+            }
+        }
         if(contentHeight>bodyHeight()){
             int bar=Math.max(12,bodyHeight()*bodyHeight()/contentHeight),y=bodyTop()+(bodyHeight()-bar)*scroll/Math.max(1,contentHeight-bodyHeight());
             g.fill(left+panelWidth-6,y,left+panelWidth-3,y+bar,0xffa6b4c8);

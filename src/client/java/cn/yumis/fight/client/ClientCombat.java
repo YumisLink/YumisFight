@@ -71,13 +71,8 @@ public final class ClientCombat {
     public void combat(){
         state.resources.combatUntil=ClientState.now()+10000;
     }
-    private Stats snapshot(){
-        Stats s=copy(state.stats,Stats.class);
-        if(state.resources.buffs.getOrDefault("OVERDRIVE",0L)>ClientState.now()){
-            double multiplier=state.resources.absorption.getOrDefault("overdrivePower",0d);
-            s.values.put(Stat.PHYSICAL_ATTACK,s.get(Stat.PHYSICAL_ATTACK)*(1+multiplier));
-        }
-        return s;
+    public Stats snapshot(){
+        return SkillPreview.currentStats(state.stats,state.resources,ClientState.now());
     }
     public boolean press(int slot){
         if(!validWeapon())return false;
@@ -110,8 +105,7 @@ public final class ClientCombat {
             return true;
         }
         Stats stats=snapshot();
-        double cooldown=skill.cooldown/(1+stats.modifiers.getOrDefault("cooldownRecovery",0d));
-        if(skill.ordinal()<3)cooldown*=1-stats.modifiers.getOrDefault("basicSkillCooldown",0d);
+        double cooldown=SkillPreview.cooldown(skill,stats);
         if(!state.resources.training){
             state.resources.mp-=mp;
             state.resources.cooldowns.put(skill.name(),now+(long)(cooldown*1000));
@@ -309,16 +303,15 @@ public final class ClientCombat {
                 if(elapsed>=800)cancel(true);
             }
             case DANCE->{
-                int total=(int)c.parameters.get("slashes",10);
-                long interval=(long)(c.parameters.get("interval",.125)*1000);
-                while(c.slashes<total&&elapsed>=c.slashes*interval){
+                SkillSchedule schedule=SkillSchedule.dance(c.parameters);
+                while(c.slashes<schedule.due(elapsed)){
                     visual(c,"HIT");
                     c.hit.clear();
                     slash(c,c.parameters.get("range",4),3,2,c.parameters.get("damage",.7),.04,false);
                     if(c.stats.weaponType.equals("SHORTSWORD"))passive(c);
                     c.slashes++;
                 }
-                if(elapsed>=c.parameters.get("duration",1.25)*1000){
+                if(elapsed>=schedule.durationMillis()){
                     wave(p.position().add(0,.8,0),c.direction,8,3,2,c.stats,c.skill,c.parameters.get("finisher",5),false,false);
                     cancel(true);
                 }
@@ -424,6 +417,9 @@ public final class ClientCombat {
         }
     }
     private boolean hit(LivingEntity entity,Stats stats,Skill skill,double coefficient,boolean basic,boolean passive,double knockback,Vec3 center){
+        return hit(entity,stats,skill,coefficient,basic,passive,knockback,center,null);
+    }
+    private boolean hit(LivingEntity entity,Stats stats,Skill skill,double coefficient,boolean basic,boolean passive,double knockback,Vec3 center,JsonObject nativeContext){
         Target target=state.context(entity);
         if(target==null||target.life.dead||state.predicted(target.life)<=0)return false;
         if(entity instanceof net.minecraft.world.entity.boss.wither.WitherBoss wither&&wither.getInvulnerableTicks()>0)return false;
@@ -440,21 +436,9 @@ public final class ClientCombat {
         }
         ;
         CombatRules.Damage parts=CombatRules.calculate(stats,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,coefficient,!passive,random);
-        double damage=parts.total();
-        double main=parts.main();
-        double levelMultiplier=advantage(state.progress.level,level);
-        damage*=levelMultiplier;
-        main*=levelMultiplier;
-        if(skill!=null&&skill.ordinal()<3){
-            double bonus=main*stats.modifiers.getOrDefault("basicSkillMain",0d);
-            damage+=bonus;
-            main+=bonus;
-        }
-        if(!basic&&!passive&&stats.weaponType.equals("GREATSWORD")){
-            double multiplier=1+.2*mastery(stats);
-            damage*=multiplier;
-            main*=multiplier;
-        }
+        var resolved=CombatRules.skillDamage(parts,stats,skill,mastery(stats),basic,passive,advantage(state.progress.level,level));
+        double damage=resolved.total();
+        double main=resolved.main();
         double maximum=target.health(level);
         JsonObject extra=new JsonObject();
         JsonObject kb=new JsonObject();
@@ -464,7 +448,8 @@ public final class ClientCombat {
             kb.addProperty("centerX",center.x);
             kb.addProperty("centerZ",center.z);
         }
-        extra.add("knockback",kb);
+        if(nativeContext==null)extra.add("knockback",kb);
+        else extra.add("nativeRoot",nativeContext.get("nativeRoot"));
         int rank=stats.effective(state.progress,Skill.MASTERY);
         long now=ClientState.now();
         if(!passive&&rank>0){
@@ -506,12 +491,19 @@ public final class ClientCombat {
             0xffed8d,0xff8a58,0x83dfff,0xc783ff
         }
         [parts.element()];
+        if(nativeContext!=null){
+            double scale=nativeContext.get("nativeScale").getAsDouble();
+            damage*=scale;
+            if(extra.has("ailment")&&extra.getAsJsonObject("ailment").has("fraction")){
+                var ailment=extra.getAsJsonObject("ailment");
+                ailment.addProperty("fraction",ailment.get("fraction").getAsDouble()*scale);
+            }
+        }
         state.report(target.life,damage/maximum,false,maximum,color,extra);
         return true;
     }
     private double mastery(Stats stats){
-        int rank=stats.effective(state.progress,Skill.MASTERY);
-        return rank<=0?0:Math.pow(1.12,rank-1);
+        return SkillPreview.mastery(state.progress,stats);
     }
     private List<LivingEntity> enemies(AABB bounds){
         var mc=Minecraft.getInstance();
@@ -614,7 +606,7 @@ public final class ClientCombat {
                 case "explosion","badRespawnPoint","fireworks"->explosion(j);
                 case "arrow","mobProjectile"->Math.ceil(Math.max(0,j.has("speed")?j.get("speed").getAsDouble()*2:2))*.05;
                 case "trident"->.4;
-                case "thorns"->(1+random.nextInt(4))*.05;
+                case "thorns"->Math.max(0,j.get("points").getAsDouble())*.05;
                 default->{
                     state.message("未适配的伤害来源："+source);
                     yield 0;
@@ -628,7 +620,9 @@ public final class ClientCombat {
             if(source.equals("drown")&&Minecraft.getInstance().player.hasEffect(net.minecraft.world.effect.MobEffects.WATER_BREATHING))fraction=0;
         }
         fraction*=NativeRules.receivedMultiplier(Minecraft.getInstance().player,j.get("source").getAsString(),j.has("projectile")&&j.get("projectile").getAsBoolean(),j.has("bypassEnchantments")&&j.get("bypassEnchantments").getAsBoolean(),j.has("bypassResistance")&&j.get("bypassResistance").getAsBoolean());
-        ownDamage(fraction);
+        JsonObject feedback=new JsonObject();
+        if(j.has("nativeRoot"))feedback.add("nativeRoot",j.get("nativeRoot"));
+        ownDamage(fraction*(j.has("nativeScale")?j.get("nativeScale").getAsDouble():1),feedback);
     }
     private double explosion(JsonObject j){
         if(!j.has("x")){
@@ -647,6 +641,9 @@ public final class ClientCombat {
         return damage;
     }
     private void ownDamage(double fraction){
+        ownDamage(fraction,null);
+    }
+    private void ownDamage(double fraction,JsonObject feedback){
         if(fraction<=0||!Double.isFinite(fraction))return;
         double damage=fraction*state.stats.get(Stat.HEALTH);
         for(String key:new ArrayList<>(state.resources.absorption.keySet()))if(!key.equals("overdrivePower")){
@@ -657,7 +654,7 @@ public final class ClientCombat {
         double absorb=Math.min(state.resources.shield,damage);
         state.resources.shield-=absorb;
         damage-=absorb;
-        if(damage>0)state.report(state.own,damage/state.stats.get(Stat.HEALTH),false,state.stats.get(Stat.HEALTH),0xff5555,null);
+        if(damage>0)state.report(state.own,damage/state.stats.get(Stat.HEALTH),false,state.stats.get(Stat.HEALTH),0xff5555,feedback);
         else state.upload();
     }
     public boolean nativeAttack(Entity raw){
@@ -677,22 +674,25 @@ public final class ClientCombat {
         return true;
     }
     public void projectile(JsonObject j){
+        if(!state.ready||state.own.dead||!j.get("session").getAsString().equals(state.session)||j.get("generation").getAsLong()!=state.own.generation||!incomingRoots.add(j.get("root").getAsString()))return;
+        if(incomingRoots.size()>2048)incomingRoots.clear();
         if(j.has("source")&&j.get("source").getAsString().equals("thrown"))return;
         Target t=JSON.fromJson(j.get("target"),Target.class);
         state.targets.put(t.id,t);
         var mc=Minecraft.getInstance();
-        var hand=mc.player.getMainHandItem();
+        var hand=j.has("weapon")?net.minecraft.world.item.ItemStack.OPTIONAL_CODEC.parse(mc.player.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),j.get("weapon")).getOrThrow():net.minecraft.world.item.ItemStack.EMPTY;
         Gear custom=GameItems.gear(hand);
         if(custom!=null&&!custom.valid(state.progress)||custom==null&&NativeRules.weapon(hand)&&NativeRules.level(hand)>state.progress.level)return;
         var raw=mc.level.getEntity(t.entityId);
         if(raw instanceof LivingEntity living){
-            Stats stats=snapshot();
+            Stats stats=SkillPreview.currentStats(state.projectileStats(hand),state.resources,ClientState.now());
+            if(Boolean.getBoolean("ydnf.verify")){FeedbackProbe.weapon=GameItems.id(hand);FeedbackProbe.attack=stats.get(Stat.PHYSICAL_ATTACK);}
             String id=GameItems.id(hand);
             double coefficient=1;
             if(id.endsWith("_spear"))coefficient=Math.max(.5,mc.player.getDeltaMovement().subtract(living.getDeltaMovement()).length()*3);
             else if(Set.of("bow","crossbow").contains(id))coefficient=Math.clamp((j.has("speed")?j.get("speed").getAsDouble():3)/3,0,1);
             if(living instanceof net.minecraft.world.entity.boss.wither.WitherBoss wither&&(wither.getInvulnerableTicks()>0||state.predicted(t.life)<=.5&&Set.of("bow","crossbow").contains(id)))return;
-            hit(living,stats,null,coefficient,false,true,.4,null);
+            hit(living,stats,null,coefficient,false,true,.4,null,j);
         }
     }
     public void boss(JsonObject j){
@@ -737,7 +737,8 @@ public final class ClientCombat {
                     if(!invulnerable()&&!p.getAbilities().invulnerable&&!p.isSpectator()){
                         Target boss=JSON.fromJson(j.get("boss"),Target.class);
                         int level=boss.level(state.progress.level,state.dungeon==null?state.progress.sync:state.dungeon.sync);
-                        ownDamage(monsterDamage(boss.attack(level)*j.get("coefficient").getAsDouble(),j.get("magic").getAsBoolean(),j.get("light").getAsBoolean(),level)*NativeRules.receivedMultiplier(p,"bossAction",false,false,false)/state.stats.get(Stat.HEALTH));
+                        JsonObject feedback=new JsonObject();feedback.addProperty("feedbackEntity",boss.id.toString());
+                        ownDamage(monsterDamage(boss.attack(level)*j.get("coefficient").getAsDouble(),j.get("magic").getAsBoolean(),j.get("light").getAsBoolean(),level)*NativeRules.receivedMultiplier(p,"bossAction",false,false,false)/state.stats.get(Stat.HEALTH),feedback);
                     }
                 }
             }

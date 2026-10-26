@@ -24,7 +24,7 @@ public final class Hud {
         var mc=Minecraft.getInstance();
         var s=ClientState.INSTANCE;
         if(!s.ready||mc.player==null||mc.gui.hud.isHidden()||mc.gui.screen() instanceof FightScreen)return;
-        var font=mc.font;
+        var font=UiFonts.font();
         int width=g.guiWidth(),height=g.guiHeight(),center=width/2;
         long now=ClientState.now();
         double health=s.predicted(s.own);
@@ -57,7 +57,7 @@ public final class Hud {
                 if(modifier<0)g.fill(x,y,x+cell-1,y+32,0x99101010);
             }
             g.text(font,modifier<0?"多修饰键 · 已禁用":new String[]{
-                "普通","Ctrl","Shift","Alt"
+                "普通","Ctrl","Alt"
             }
             [group],start,y-11,UiTheme.MUTED,false);
             int available=center-98;
@@ -81,7 +81,7 @@ public final class Hud {
             if(!Double.isFinite(screen.x)||!Double.isFinite(screen.y)||Math.abs(screen.x)>1||Math.abs(screen.y)>1)continue;
             double age=Math.clamp(1-(number.expires()-now)/1100d,0,1);
             int x=(int)Math.round((screen.x+1)*.5*width+number.lane()*(6+age*10)),y=(int)Math.round((1-screen.y)*.5*height-age*24),alpha=(int)(255*Math.min(1,(1-age)*4));
-            var text=net.minecraft.network.chat.Component.literal(FightScreen.number(number.amount())).withStyle(net.minecraft.ChatFormatting.BOLD);
+            var text=net.minecraft.network.chat.Component.literal(FightScreen.number(number.amount()));
             g.pose().pushMatrix();
             g.pose().translate(x,y);
             g.pose().scale(ClientSettings.damageScale,ClientSettings.damageScale);
@@ -125,10 +125,10 @@ public final class Hud {
         g.pose().translate(x,6);
         g.pose().scale((float)scale,(float)scale);
         g.fill(0,0,184,42,0xff101010);
-        g.text(Minecraft.getInstance().font,e.getName().getString()+" Lv."+level,5,4,t.elite?0xffffce7d:0xffecf1f5);
-        g.text(Minecraft.getInstance().font,t.difficulty.title()+" · "+(t.kind.equals("BOSS")?"Boss":t.elite?"精英":"普通"),5,16,0xffaab8ce);
+        g.text(UiFonts.font(),e.getName().getString()+" Lv."+level,5,4,t.elite?0xffffce7d:0xffecf1f5);
+        g.text(UiFonts.font(),t.difficulty.title()+" · "+(t.kind.equals("BOSS")?"Boss":t.elite?"精英":"普通"),5,16,0xffaab8ce);
         bar(g,5,29,174,9,q,t.kind.equals("BOSS")?0xffdfb545:0xffbe485a);
-        g.text(Minecraft.getInstance().font,FightScreen.number(q*maximum)+" / "+FightScreen.number(maximum),8,29,0xffffffff);
+        g.text(UiFonts.font(),FightScreen.number(q*maximum)+" / "+FightScreen.number(maximum),8,29,0xffffffff);
         g.pose().popMatrix();
     }
     public static void equipment(ScreenEvent.Render.Background event){
@@ -143,24 +143,6 @@ public final class Hud {
                 g.fill(x-1,y,x,y+16,color);
                 g.fill(x+16,y,x+17,y+16,color);
             }
-        }
-        if(!(screen instanceof InventoryScreen||screen instanceof CreativeModeInventoryScreen))return;
-        var slots=screen.getMenu().slots.stream().filter(s->s.container instanceof ExtraInventory&&s.isActive()).toList();
-        if(slots.isEmpty())return;
-        var g=event.getGuiGraphics();
-        int left=screen.getLeftPos(),top=screen.getTopPos();
-        int min=slots.stream().mapToInt(s->s.x).min().orElse(184),max=slots.stream().mapToInt(s->s.x).max().orElse(207);
-        g.fill(left+min-5,top+8,left+max+22,top+105,UiTheme.PANEL);
-        for(int i=0;i<slots.size();i++){
-            var slot=slots.get(i);
-            int x=left+slot.x,y=top+slot.y;
-            g.fill(x-1,y-1,x+17,y+17,UiTheme.CARD);
-            if(!slot.hasItem()){
-                ExtraInventory extra=(ExtraInventory)slot.container;
-                String text=EquipmentLayout.CURRENT.group(extra.groups.get(slot.index-46)).name();
-                g.text(Minecraft.getInstance().font,text.substring(0,1),x+4,y+4,0xff6e7f99);
-            }
-            if(event.getMouseX()>=x&&event.getMouseX()<x+16&&event.getMouseY()>=y&&event.getMouseY()<y+16&&!slot.hasItem())g.setComponentTooltipForNextFrame(Minecraft.getInstance().font,java.util.List.of(net.minecraft.network.chat.Component.literal(EquipmentLayout.CURRENT.group(((ExtraInventory)slot.container).groups.get(slot.index-46)).name()+" · 滚轮切页")),event.getMouseX(),event.getMouseY(),net.minecraft.world.item.ItemStack.EMPTY);
         }
     }
 }

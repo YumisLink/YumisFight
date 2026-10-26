@@ -1,5 +1,4 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.game.MenuHooks;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,6 +13,9 @@ public abstract class ContainerMixin {
         }
     }
     @Inject(method="clicked",at=@At("HEAD"),cancellable=true) private void ydnf$transaction(int index,int button,ContainerInput input,Player player,CallbackInfo ci){
-        if(MenuHooks.click((AbstractContainerMenu)(Object)this,index,button,input,player))ci.cancel();
+        if(player instanceof net.minecraft.server.level.ServerPlayer p&&cn.yumis.fight.server.ServerRuntime.ready()){
+            var runtime=cn.yumis.fight.server.ServerRuntime.get();
+            if(!runtime.inventory.inside()&&(Object)this==p.containerMenu){runtime.inventory.click(p,(AbstractContainerMenu)(Object)this,index,button,input);ci.cancel();return;}
+        }
     }
 }

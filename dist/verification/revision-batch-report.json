@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "passed": [
+    "server_batch_attribute_count5",
+    "server_batch_skill_count5_sp_matches_levels"
+  ]
+}

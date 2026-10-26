@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="cn.yumis.fight.EquipmentTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-26T12:33:07.388Z" hostname="YUMIS" time="0.891">
+<testsuite name="cn.yumis.fight.EquipmentTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-26T17:06:45.391Z" hostname="DESKTOP-UE1SFN7" time="0.695">
   <properties/>
-  <testcase name="basicAttributesAndSpiritAreCountedExactlyOnce()" classname="cn.yumis.fight.EquipmentTest" time="0.002"/>
-  <testcase name="skillFamilyDistributionAndDivineNeverChangesFixedRank()" classname="cn.yumis.fight.EquipmentTest" time="0.876"/>
-  <testcase name="localPercentageDoesNotMultiplyAnotherItem()" classname="cn.yumis.fight.EquipmentTest" time="0.001"/>
-  <testcase name="socketsRespectPartSourceLevelDuplicatesAndOverwrite()" classname="cn.yumis.fight.EquipmentTest" time="0.004"/>
-  <testcase name="fixedRaritiesHaveNoNaturalRandomAndAuxiliaryBasesMatch()" classname="cn.yumis.fight.EquipmentTest" time="0.001"/>
+  <testcase name="basicAttributesAndSpiritAreCountedExactlyOnce()" classname="cn.yumis.fight.EquipmentTest" time="0.0"/>
+  <testcase name="skillFamilyDistributionAndDivineNeverChangesFixedRank()" classname="cn.yumis.fight.EquipmentTest" time="0.683"/>
+  <testcase name="localPercentageDoesNotMultiplyAnotherItem()" classname="cn.yumis.fight.EquipmentTest" time="0.002"/>
+  <testcase name="socketsRespectPartSourceLevelDuplicatesAndOverwrite()" classname="cn.yumis.fight.EquipmentTest" time="0.003"/>
+  <testcase name="fixedRaritiesHaveNoNaturalRandomAndAuxiliaryBasesMatch()" classname="cn.yumis.fight.EquipmentTest" time="0.0"/>
   <testcase name="upgradeOnlyChangesBasesAndClampsAt80()" classname="cn.yumis.fight.EquipmentTest" time="0.004"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

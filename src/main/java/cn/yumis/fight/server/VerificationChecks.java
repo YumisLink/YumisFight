@@ -78,6 +78,7 @@ public final class VerificationChecks {
         j.addProperty("equipment",g.instance.toString());
         j.addProperty("revision",g.revision);
         j.addProperty("count",player.inventoryMenu.getCarried().getCount());
+        j.add("cursor",runtime.inventory.encode(player,player.inventoryMenu.getCarried()));
         if(socket!=null)j.addProperty("socket",socket);
         return j;
     }
@@ -106,6 +107,15 @@ public final class VerificationChecks {
         var block=player.level().getBlockState(pos);
         Throwable failure=null;
         try{
+            Models.Runtime forged=copy(session.resources,Models.Runtime.class);
+            forged.training=!session.resources.training;
+            forged.trainingBoundary=999999;
+            JsonObject forgedUpload=new JsonObject();
+            forgedUpload.addProperty("session",session.id.toString());forgedUpload.addProperty("generation",session.life.generation);
+            forgedUpload.addProperty("serverIssuedAt",Math.max(System.currentTimeMillis(),session.resources.recordedAt));
+            forgedUpload.add("state",JSON.toJsonTree(forged));runtime.runtime(player,forgedUpload);
+            check(session.resources.training==originalResources.training,"client_runtime_cannot_enable_training_or_bypass_stamina_cost");
+            check(session.resources.trainingBoundary==originalResources.trainingBoundary,"client_runtime_cannot_replace_administrator_training_boundary");
             var adminBefore=runtime.profession(player,"craftsman");
             String adminOperation=prefix+"administrator";
             runtime.awardProfession(player,"craftsman",35,adminOperation,true);
@@ -115,18 +125,19 @@ public final class VerificationChecks {
             rejects(()->runtime.awardProfession(player,"craftsman",36,adminOperation,true),"conflicting_profession_award_rejected");
             runtime.journal.put("profession/"+player.getUUID()+"/craftsman",adminBefore);
             var boundInventory=MenuHooks.extra(player);
-            check(player.inventoryMenu.getSlot(46).container==boundInventory,"inventory_slots_rebind_to_loaded_player_attachment");
+            var curios=top.theillusivec4.curios.api.CuriosApi.getCuriosInventoryOrNull(player);
+            check(curios!=null&&java.util.Arrays.stream(ExtraInventory.SLOTS).allMatch(slot->curios.getStacksHandler("ydnf_"+slot.name().toLowerCase(java.util.Locale.ROOT)).map(handler->handler.getStacks().getSlots()>=1).orElse(false)),"curios_registers_six_real_accessory_slots");
+            check(player.inventoryMenu.slots.stream().noneMatch(slot->slot.container instanceof ExtraInventory),"legacy_inventory_slots_removed");
             session.progress=new Progress();
             session.progress.level=80;
             session.progress.sp=spAt(80);
             runtime.savePlayer(player);
             clear();
             Gear shiftBracelet=EquipmentRules.create(Slot.BRACELET,Weapon.KATANA,Rarity.COMMON,10,new Random(11));
-            mutate(()->player.getInventory().setItem(0,GameItems.gear(shiftBracelet)));
-            runtime.inventory.click(player,player.inventoryMenu,36,0,ContainerInput.QUICK_MOVE);
-            boolean equipped=GameItems.gear(MenuHooks.extra(player).getItem(0))!=null&&GameItems.gear(MenuHooks.extra(player).getItem(0)).instance.equals(shiftBracelet.instance)&&player.getInventory().getItem(0).isEmpty();
-            if(!equipped)throw new IllegalStateException("Shift诊断：等级="+session.progress.level+" 可放="+MenuHooks.extra(player).canPlaceItem(0,GameItems.gear(shiftBracelet))+" 组="+MenuHooks.extra(player).groups+" 源槽="+player.inventoryMenu.getSlot(36).getItem()+" 实物="+MenuHooks.extra(player).getItem(0)+" 规则="+JSON.toJson(EquipmentLayout.CURRENT));
-            check(true,"native_inventory_shift_equips_real_extra_slot");
+            ItemStack bracelet=GameItems.gear(shiftBracelet);
+            check(boundInventory.canPlaceItem(0,bracelet),"curios_accepts_level_valid_bracelet");
+            mutate(()->boundInventory.setItem(0,bracelet));
+            check(GameItems.gear(curios.getStacksHandler("ydnf_bracelet").orElseThrow().getStacks().getStackInSlot(0)).instance.equals(shiftBracelet.instance),"curios_is_accessory_source_of_truth");
             player.level().setBlock(pos,FightMod.FABRICATOR.get().defaultBlockState(),3);
             openFabricator(pos);
             check(player.containerMenu.stillValid(player),"fabricator_real_block_and_menu");
@@ -228,7 +239,7 @@ public final class VerificationChecks {
             );
             runtime.currencyRequest(player,currency(0,null));
             check(count("chest_armor")==0&&count("set_stone")==1&&player.inventoryMenu.getCarried().isEmpty(),"set_extraction_consumes_entire_source_and_stone");
-            ItemStack stone=player.getInventory().getItem(0).copy();
+            ItemStack stone=java.util.stream.IntStream.range(0,36).mapToObj(player.getInventory()::getItem).filter(stack->GameItems.id(stack).equals("set_stone")).findFirst().orElseThrow().copy();
             mutate(()->{
                 player.getInventory().setItem(0,GameItems.gear(EquipmentRules.create(Slot.RING,Weapon.KATANA,Rarity.COMMON,20,new Random(2))));player.inventoryMenu.setCarried(stone.copy());
             }
@@ -274,6 +285,7 @@ public final class VerificationChecks {
             runtime.journal.put("inventoryApplied/"+player.getUUID(),"simulated-interruption");
             runtime.inventory.restore(player);
             check(saved.equals(inventory()),"pending_inventory_redo_from_wal_and_native_readback");
+            containerChecks(pos);
         }
         catch(Throwable e){
             failure=e;
@@ -312,5 +324,71 @@ public final class VerificationChecks {
     }
     private void openFabricator(net.minecraft.core.BlockPos pos){
         player.openMenu(new SimpleMenuProvider((id,inventory,owner)->new FabricatorMenu(id,inventory,pos),Component.literal("验证 · 装备制作器")));
+    }
+    private JsonObject menuCurrency(int index){
+        var menu=player.containerMenu;var gear=GameItems.gear(menu.getSlot(index).getItem());
+        JsonObject j=new JsonObject();j.addProperty("operation",prefix+sequence++);j.addProperty("session",runtime.session(player).id.toString());
+        j.addProperty("menu",menu.containerId);j.addProperty("slot",index);j.addProperty("equipment",gear.instance.toString());j.addProperty("revision",gear.revision);
+        j.addProperty("count",menu.getCarried().getCount());j.add("cursor",runtime.inventory.encode(player,menu.getCarried()));return j;
+    }
+    private void containerChecks(net.minecraft.core.BlockPos pos)throws Exception{
+        player.closeContainer();clear();
+        player.level().setBlock(pos,net.minecraft.world.level.block.Blocks.CHEST.defaultBlockState(),3);
+        var chest=(net.minecraft.world.Container)player.level().getBlockEntity(pos);
+        player.openMenu(new SimpleMenuProvider((id,inv,owner)->net.minecraft.world.inventory.ChestMenu.threeRows(id,inv,chest),Component.literal("验证 · 箱子加工")));
+        mutate(()->{chest.setItem(0,GameItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,10,new Random(90))));player.containerMenu.setCarried(GameItems.item("transmutation_stone",3));});
+        JsonObject request=menuCurrency(0);runtime.currencyRequest(player,request);
+        check(GameItems.gear(chest.getItem(0)).rarity==Rarity.RARE&&player.containerMenu.getCarried().getCount()==2,"chest_currency_uses_current_menu_and_consumes_once");
+        runtime.currencyRequest(player,request);
+        check(player.containerMenu.getCarried().getCount()==2,"chest_currency_duplicate_does_not_consume_twice");
+        JsonElement before=runtime.inventory.encode(player,chest.getItem(0));
+        rejects(()->runtime.currencyRequest(player,menuCurrency(0)),"chest_wrong_quality_rejected");
+        check(before.equals(runtime.inventory.encode(player,chest.getItem(0)))&&player.containerMenu.getCarried().getCount()==2,"chest_failed_currency_keeps_target_and_cursor");
+        rejects(()->mutate(()->{chest.setItem(0,ItemStack.EMPTY);throw new IllegalArgumentException("测试回滚");}),"external_container_transaction_failure");
+        check(before.equals(runtime.inventory.encode(player,chest.getItem(0))),"external_container_failure_restores_real_slot");
+        var participants=new ContainerParticipants(runtime,runtime.inventory);
+        var capture=participants.capture(player);
+        var ref=capture.refs().stream().filter(r->r.container()==chest&&r.slot()==0).findFirst().orElseThrow();
+        Gear recovered=EquipmentRules.process(GameItems.gear(chest.getItem(0)),"augmentation_stone",new Random(91));
+        JsonElement after=runtime.inventory.encode(player,GameItems.gear(recovered));
+        String pending="containerPending/"+player.getUUID()+"/"+prefix+"external-recovery";
+        runtime.journal.put(pending,new ContainerParticipants.Pending(player.getStringUUID(),prefix+"external-recovery",List.of(new ContainerParticipants.Change(ref.address(),before,after))));
+        runtime.inventory.recoverContainers(player);
+        check(GameItems.gear(chest.getItem(0)).rarity==Rarity.ARTIFACT&&runtime.journal.get(pending).isJsonNull(),"external_container_wal_recovers_and_retires_once");
+        player.closeContainer();clear();
+        player.level().setBlock(pos,net.minecraft.world.level.block.Blocks.CRAFTING_TABLE.defaultBlockState(),3);
+        player.openMenu(new SimpleMenuProvider((id,inv,owner)->new net.minecraft.world.inventory.CraftingMenu(id,inv,net.minecraft.world.inventory.ContainerLevelAccess.create(player.level(),pos)),Component.literal("验证 · 临时输入加工")));
+        var crafting=player.containerMenu;
+        mutate(()->{crafting.getSlot(1).set(GameItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,10,new Random(92))));crafting.setCarried(GameItems.item("transmutation_stone",1));});
+        runtime.currencyRequest(player,menuCurrency(1));
+        check(GameItems.gear(crafting.getSlot(1).getItem()).rarity==Rarity.RARE,"crafting_input_currency_modifies_real_input");
+        check(!runtime.journal.get("containerTransient/"+player.getUUID()).isJsonNull(),"temporary_input_after_state_is_escrowed");
+        player.closeContainer();
+        check(count("katana")==1&&runtime.journal.get("containerTransient/"+player.getUUID()).isJsonNull(),"normal_close_returns_inputs_and_clears_escrow");
+        runtime.inventory.restore(player);
+        check(count("katana")==1,"closed_temporary_menu_restore_does_not_duplicate");
+        clear();
+        for(boolean fillBag:new boolean[]{false,true}){
+            player.openMenu(new SimpleMenuProvider((id,inv,owner)->new net.minecraft.world.inventory.CraftingMenu(id,inv,net.minecraft.world.inventory.ContainerLevelAccess.create(player.level(),pos)),Component.literal("验证 · 满包关闭输入")));
+            var fullMenu=player.containerMenu;
+            mutate(()->{
+                for(int i=0;i<36;i++)player.getInventory().setItem(i,new ItemStack(Items.DIRT,64));
+                if(fillBag)for(int i=0;i<54;i++)MenuHooks.extra(player).bag.setItem(i,new ItemStack(Items.DIRT,64));
+                fullMenu.getSlot(1).set(GameItems.gear(EquipmentRules.create(Slot.RING,Weapon.KATANA,Rarity.COMMON,10,new Random(94))));
+                if(fillBag)fullMenu.setCarried(GameItems.item("divine_stone",1));
+            });
+            JsonElement waiting=runtime.journal.get("equipmentWaiting/"+player.getUUID());int beforeWaiting=waiting.isJsonArray()?waiting.getAsJsonArray().size():0;
+            player.closeContainer();
+            if(fillBag)check(runtime.journal.get("equipmentWaiting/"+player.getUUID()).getAsJsonArray().size()==beforeWaiting+2,"temporary_close_full_inventory_and_bag_preserves_both_input_and_cursor_in_waiting");
+            else check(GameItems.gear(MenuHooks.extra(player).bag.getItem(0))!=null,"temporary_close_full_inventory_stashes_in_dimensional_bag");
+            check(runtime.journal.get("containerTransient/"+player.getUUID()).isJsonNull(),"temporary_close_full_storage_retires_escrow_"+fillBag);
+            clear();
+        }
+        ItemStack lost=GameItems.gear(EquipmentRules.create(Slot.RING,Weapon.KATANA,Rarity.COMMON,10,new Random(93)));
+        String escrow="containerTransient/"+player.getUUID();
+        runtime.journal.put(escrow,new ContainerParticipants.Escrow(999,List.of(runtime.inventory.encode(player,lost))));
+        JsonElement waitingBefore=runtime.journal.get("equipmentWaiting/"+player.getUUID());int oldCount=waitingBefore.isJsonArray()?waitingBefore.getAsJsonArray().size():0;
+        runtime.inventory.restore(player);runtime.inventory.restore(player);
+        check(runtime.journal.get(escrow).isJsonNull()&&runtime.journal.get("equipmentWaiting/"+player.getUUID()).getAsJsonArray().size()==oldCount+1,"crashed_temporary_menu_escrow_recovers_exactly_once");
     }
 }

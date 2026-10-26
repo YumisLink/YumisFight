@@ -94,6 +94,7 @@ public final class ClientState {
         professions=new JsonObject();
         ClientCombat.INSTANCE.cancel(false);
         Effects.clear();
+        CloudMovement.clear();
     }
     public void accept(String action,JsonObject j){
         switch(action){
@@ -141,6 +142,8 @@ public final class ClientState {
                     syncedSources.replace(j.get("attributeRevision").getAsLong(),sources);
                 }
                 ready=true;
+                if(j.has("movement"))CloudMovement.receive(j.getAsJsonObject("movement"));
+                CloudMovement.screen(Minecraft.getInstance().gui.screen()!=null);
                 applyEquipment(j.get("equipmentState").getAsString());
                 if(Minecraft.getInstance().gui.screen() instanceof FightScreen screen)screen.refresh();
             }
@@ -169,6 +172,7 @@ public final class ClientState {
                 if(Minecraft.getInstance().gui.screen() instanceof FightScreen screen)screen.refresh();
             }
             case "incoming"->ClientCombat.INSTANCE.incoming(j);
+            case "movement"->CloudMovement.receive(j);
             case "healing"->{
                 if(ready&&!own.dead&&(!j.has("generation")||j.get("generation").getAsLong()==own.generation)&&(!j.has("session")||j.get("session").getAsString().equals(session)))report(own,j.get("points").getAsDouble()*.05,true,stats.get(Stat.HEALTH),0x8ef5ad,null);
             }
@@ -196,8 +200,7 @@ public final class ClientState {
             var p=Minecraft.getInstance().player;
             var context=p.registryAccess().createSerializationContext(JsonOps.INSTANCE);
             var extra=MenuHooks.extra(p);
-            JsonArray eq=j.getAsJsonArray("equipment"),bag=j.getAsJsonArray("bag");
-            for(int i=0;i<Math.min(eq.size(),extra.getContainerSize());i++)extra.setItem(i,ItemStack.OPTIONAL_CODEC.parse(context,eq.get(i)).getOrThrow());
+            JsonArray bag=j.getAsJsonArray("bag");
             for(int i=0;i<Math.min(54,bag.size());i++)extra.bag.setItem(i,ItemStack.OPTIONAL_CODEC.parse(context,bag.get(i)).getOrThrow());
         }
         catch(RuntimeException e){
@@ -273,6 +276,9 @@ public final class ClientState {
         for(Pending p:pending.values())if(p.report.get("target").getAsString().equals(life.target.toString())&&p.report.get("generation").getAsLong()==life.generation&&p.report.get("basis").getAsLong()==life.basis)q=Math.clamp(q+(p.action.equals("heal")?1:-1)*p.report.get("fraction").getAsDouble(),0,1);
         return q;
     }
+    public Stats projectileStats(ItemStack weapon){
+        return EquipmentStats.build(Minecraft.getInstance().player,progress,syncedSources,weapon);
+    }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,JsonObject extras){
         if(!ready||life.dead||fraction<=0||!Double.isFinite(fraction))return;
         JsonObject j=new JsonObject();
@@ -294,6 +300,7 @@ public final class ClientState {
         runtime.add("state",JSON.toJsonTree(resources));
         j.add("runtime",runtime);
         if(extras!=null)extras.entrySet().forEach(e->j.add(e.getKey(),e.getValue()));
+        if(Boolean.getBoolean("ydnf.verify")&&j.has("nativeRoot"))FeedbackProbe.lastReport=j.deepCopy();
         String action=heal?"heal":"damage";
         pending.put(j.get("operation").getAsLong(),new Pending(j,action,maximum,color));
         send(action,j);
@@ -324,6 +331,7 @@ public final class ClientState {
     }
     public void message(String s){
         var mc=Minecraft.getInstance();
-        if(mc.player!=null)mc.player.sendSystemMessage(Component.literal(s));
+        CurrencyUi.notice(s);
+        if(mc.player!=null)mc.player.sendSystemMessage(UiFonts.decorate(Component.literal(s)));
     }
 }

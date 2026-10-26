@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.yumis.fight.ProgressMovementTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-26T17:06:46.291Z" hostname="DESKTOP-UE1SFN7" time="0.011">
+  <properties/>
+  <testcase name="batchAttributesUseAvailablePointsAndRejectUnknownStat()" classname="cn.yumis.fight.ProgressMovementTest" time="0.003"/>
+  <testcase name="migratesOnlyOldAltAndMigrationIsIdempotent()" classname="cn.yumis.fight.ProgressMovementTest" time="0.002"/>
+  <testcase name="batchLearningSpendsOnlyAffordableLevelsAndCaps()" classname="cn.yumis.fight.ProgressMovementTest" time="0.001"/>
+  <testcase name="airborneAndExemptModesFreezeResource()" classname="cn.yumis.fight.ProgressMovementTest" time="0.002"/>
+  <testcase name="fiveLeapsExhaustPoolAndCooldownCannotBeSkipped()" classname="cn.yumis.fight.ProgressMovementTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

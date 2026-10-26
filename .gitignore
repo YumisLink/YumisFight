@@ -12,6 +12,7 @@
 
 # Package Files #
 *.jar
+!gradle/local-mods/curios-neoforge-16.0.0+26.2.jar
 *.war
 *.nar
 *.ear

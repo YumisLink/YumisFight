@@ -1,0 +1,4 @@
+Modern UI font assets, unchanged binaries
+Source: https://github.com/BloCamLimb/ModernUI-MC/blob/4724428a0be612accbc596025e2620ab3e6522fb/libs/ModernUI-Fonts-5.0.jar
+Inter Frozen Medium: Copyright 2016 The Inter Project Authors, modified by BloCamLimb 2025. SIL OFL 1.1; see OFL-Inter.txt and embedded notices.
+Source Han Sans CN Medium: Copyright 2014-2021 Adobe, Reserved Font Name Source. SIL OFL 1.1; see OFL-SourceHanSans.txt and embedded notices.

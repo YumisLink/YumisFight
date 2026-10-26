@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "passed": [
+    "ttf_import_and_reload",
+    "cff_otf_unicode_space_path_import",
+    "missing_chinese_glyphs_fallback_to_noto",
+    "invalid_font_keeps_previous_selection",
+    "restore_noto_default"
+  ]
+}

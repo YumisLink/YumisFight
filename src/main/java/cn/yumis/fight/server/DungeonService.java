@@ -249,7 +249,7 @@ public final class DungeonService {
         e.getPersistentData().putBoolean("ydnf_elite",elite);
         e.getPersistentData().putBoolean("ydnf_boss",boss);
         e.setPos(x,y,z);
-        e.setCustomName(net.minecraft.network.chat.Component.literal(switch(type){
+        e.setCustomName(cn.yumis.fight.game.ModText.of(switch(type){
             case "goblin_shaman"->"落雷凯诺";case "lucas"->"鲁卡斯";case "goblin_captain"->"哥布林队长";case "goblin_thrower"->"投石哥布林";case "blue_wyvern"->"蓝翼龙";case "blue_dragonman"->"蓝龙人";case "dragonman"->"龙人";case "wyvern"->"翼龙";default->"哥布林";
         }
         ));
@@ -375,7 +375,7 @@ public final class DungeonService {
             for(Cage cage:new ArrayList<>(cages.values()))if(now>=cage.expires)discharge(cage);
         }
         catch(Exception failure){
-            r.server.sendSystemMessage(net.minecraft.network.chat.Component.literal("副本处理失败："+failure.getMessage()));
+            r.server.sendSystemMessage(cn.yumis.fight.game.ModText.of("副本处理失败："+failure.getMessage()));
         }
     }
     private void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> players,long now)throws Exception{

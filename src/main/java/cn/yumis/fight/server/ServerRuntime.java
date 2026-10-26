@@ -30,6 +30,7 @@ import net.minecraft.core.BlockPos;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import java.nio.file.*;
 import java.util.*;
@@ -41,6 +42,8 @@ public final class ServerRuntime {
     public final DungeonService dungeons;
     public final LootService loot;
     public final VisualService visuals;
+    public final CloudLeapService movement;
+    public final NativeHits nativeHits;
     public final Map<UUID,Session> sessions=new LinkedHashMap<>();
     private final ArrayDeque<Runnable> combatQueue=new ArrayDeque<>();
     public final Random random=new Random();
@@ -66,6 +69,8 @@ public final class ServerRuntime {
         inventory=new InventoryTransactions(this);
         loot=new LootService(this);
         visuals=new VisualService(this);
+        nativeHits=new NativeHits(this);
+        movement=new CloudLeapService(this);
         dungeons=new DungeonService(this);
         loadDefinitions();
         dungeons.recover();
@@ -128,6 +133,9 @@ public final class ServerRuntime {
             if(ready())get().incoming(e);
         }
         );
+        NeoForge.EVENT_BUS.addListener((LivingDamageEvent.Pre e)->{
+            if(ready())get().nativeHits.pre(e);
+        });
         NeoForge.EVENT_BUS.addListener(WorldRules::nativeHeal);
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e)->{
             if(ready()&&e.getEntity() instanceof ServerPlayer p){
@@ -168,12 +176,12 @@ public final class ServerRuntime {
             for(ServerPlayer player:server.getPlayerList().getPlayers())EquipmentService.reconcile(this,player,EquipmentService.bonus(this,player));
         }
         catch(Exception e){
-            server.sendSystemMessage(Component.literal("地下城定义重载失败，保留有效定义："+e.getMessage()));
+            server.sendSystemMessage(cn.yumis.fight.game.ModText.of("地下城定义重载失败，保留有效定义："+e.getMessage()));
         }
     }
     public Session session(ServerPlayer p){
         return sessions.computeIfAbsent(p.getUUID(),id->{
-            Progress progress=journal.get("player/"+id,Progress.class,new Progress());Models.Runtime r=journal.get("resources/"+id,Models.Runtime.class,new Models.Runtime());Life l=journal.get("life/"+id,Life.class,new Life());l.target=id;l.dimension=p.level().dimension().identifier().toString();return new Session(progress,r,l);
+            Progress progress=journal.get("player/"+id,Progress.class,new Progress());progress.normalizeSlots();Models.Runtime r=journal.get("resources/"+id,Models.Runtime.class,new Models.Runtime());Life l=journal.get("life/"+id,Life.class,new Life());l.target=id;l.dimension=p.level().dimension().identifier().toString();return new Session(progress,r,l);
         }
         );
     }
@@ -182,6 +190,7 @@ public final class ServerRuntime {
             inventory.restore(p);
             EquipmentService.reconcile(this,p,EquipmentService.bonus(this,p));
             Session s=session(p);
+            movement.reset(p);
             dungeons.reconnect(p);
             VisualService.resetGravity(p);
             var stats=stats(p);
@@ -218,7 +227,7 @@ public final class ServerRuntime {
             profile(p);
         }
         catch(Exception e){
-            p.connection.disconnect(Component.literal("状态恢复失败："+e.getMessage()));
+            p.connection.disconnect(cn.yumis.fight.game.ModText.of("状态恢复失败："+e.getMessage()));
         }
     }
     public void logout(ServerPlayer p){
@@ -228,15 +237,17 @@ public final class ServerRuntime {
             loot.endSession(p);
             dungeons.disconnected(p);
             sessions.remove(p.getUUID());
+            movement.logout(p);
         }
         catch(Exception e){
-            server.sendSystemMessage(Component.literal("保存玩家失败："+e.getMessage()));
+            server.sendSystemMessage(cn.yumis.fight.game.ModText.of("保存玩家失败："+e.getMessage()));
         }
     }
     public void respawn(ServerPlayer p){
         Session s=session(p);
         inventory.restore(p);
         s.life.generation++;
+        movement.reset(p);
         s.life.revision=0;
         s.life.q=1;
         s.life.dead=false;
@@ -293,6 +304,7 @@ public final class ServerRuntime {
         j.add("resources",JSON.toJsonTree(s.resources));
         j.add("life",JSON.toJsonTree(s.life));
         j.add("stats",JSON.toJsonTree(stats));
+        j.add("movement",movement.snapshot(p));
         var sources=cn.yumis.fight.api.CommonServices.attributes(p.getUUID());
         j.addProperty("attributeRevision",sources.revision());
         j.add("attributeSources",JSON.toJsonTree(sources.snapshot()));
@@ -378,7 +390,7 @@ public final class ServerRuntime {
                 }
                 case "hello"->{
                     if(j.get("protocol").getAsInt()!=PROTOCOL||j.has("rules")&&j.get("rules").getAsInt()!=VERSION){
-                        p.connection.disconnect(Component.literal("模组协议或规则版本不一致"));
+                        p.connection.disconnect(cn.yumis.fight.game.ModText.of("模组协议或规则版本不一致"));
                         return;
                     }
                     profile(p);
@@ -404,6 +416,8 @@ public final class ServerRuntime {
                 case "claim"->claimWaiting(p);
                 case "visual"->visual(p,j);
                 case "cageHit"->dungeons.cageHit(p,j);
+                case "cloudLeap"->movement.request(p,j);
+                case "movementUi"->movement.ui(p,j);
                 default->message(p,"未知操作："+action);
             }
         }
@@ -421,6 +435,9 @@ public final class ServerRuntime {
         long issued=j.has("serverIssuedAt")?j.get("serverIssuedAt").getAsLong():r.recordedAt;
         if(r.controlEpoch!=s.resources.controlEpoch||issued<s.resources.recordedAt)return;
         long local=r.recordedAt;
+        // These fields belong to the administrator command, never to combat prediction uploads.
+        r.training=s.resources.training;
+        r.trainingBoundary=s.resources.trainingBoundary;
         r.combatUntil=issued+Math.max(0,r.combatUntil-local);
         r.cooldowns.replaceAll((k,v)->issued+Math.max(0,v-local));
         r.buffs.replaceAll((k,v)->issued+Math.max(0,v-local));
@@ -462,6 +479,8 @@ public final class ServerRuntime {
             if(j.get("generation").getAsLong()!=life.generation||j.get("basis").getAsLong()!=life.basis)throw new IllegalArgumentException("生命或扩血基准已失效");
             String instance=j.has("instance")?j.get("instance").getAsString():"";
             if(!instance.equals(life.instance)||!instance.isEmpty()&&!dungeons.participant(p,instance))throw new IllegalArgumentException("副本轮次已失效");
+            boolean nativeHit=nativeHits.validate(p,entity,j);
+            if(heal&&nativeHit)throw new IllegalArgumentException("原生命中不能用于治疗");
             JsonObject dot=null;
             if(j.has("effect")){
                 dot=validateDot(p,j,target);
@@ -485,6 +504,7 @@ public final class ServerRuntime {
                 journal.put("ailments/"+id+"/"+p.getUUID()+"/BLEED",dot);
             }
             journal.put(key,stored);
+            if(nativeHit)nativeHits.commit(p,j);
             journal.put("life/"+id,life);
             if(target!=null){
                 target.life=life;
@@ -509,20 +529,30 @@ public final class ServerRuntime {
             if(life.dead&&entity instanceof DungeonEnemy)dungeons.died(entity.getUUID());
             if(entity==p)s.life=life;
             else entity.setData(FightMod.TARGET,JSON.toJson(target));
+            nativeHits.suppressProjectionFeedback=nativeHit&&life.dead;
             bridge=true;
             try{
-                if(life.dead&&!entity.isDeadOrDying())entity.hurtServer(p.level(),entity==p?entity.damageSources().genericKill():entity.damageSources().playerAttack(p),Float.MAX_VALUE);
+                if(life.dead&&!entity.isDeadOrDying())entity.hurtServer(p.level(),entity==p?entity.damageSources().genericKill():nativeHit?nativeHits.source(j):entity.damageSources().playerAttack(p),Float.MAX_VALUE);
                 else if(!life.dead)entity.setHealth((float)Math.max(.001,entity.getMaxHealth()*life.q));
             }
             finally{
                 bridge=false;
+                nativeHits.suppressProjectionFeedback=false;
             }
             Network.send(p,"ack",ack);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("health",JSON.toJson(life)));
-            if(receipt.actual()>0&&!heal){
+            if(receipt.actual()>0&&!heal&&!nativeHit){
                 entity.hurtTime=10;
                 entity.hurtDuration=10;
-                p.level().broadcastEntityEvent(entity,(byte)2);
+                LivingEntity feedbackAttacker=p;
+                if(entity==p&&j.has("feedbackEntity")&&p.level().getEntity(UUID.fromString(j.get("feedbackEntity").getAsString())) instanceof LivingEntity origin&&managed(origin))feedbackAttacker=origin;
+                var feedbackSource=entity==p?(feedbackAttacker==p?entity.damageSources().generic():entity.damageSources().mobAttack(feedbackAttacker)):entity.damageSources().playerAttack(p);
+                p.level().broadcastDamageEvent(entity,feedbackSource);
+                if(!j.has("effect")){
+                    double dx=feedbackAttacker.getX()-entity.getX(),dz=feedbackAttacker.getZ()-entity.getZ();
+                    entity.indicateDamage(dx,dz);
+                    if(entity==p&&feedbackAttacker!=p){entity.hurtMarked=true;entity.knockback(.4,dx,dz,feedbackSource,0f);}
+                }
                 if(entity!=p&&j.has("knockback")){
                     JsonObject kb=j.getAsJsonObject("knockback");
                     double strength=kb.get("strength").getAsDouble();
@@ -546,7 +576,7 @@ public final class ServerRuntime {
                 loot.abort();
             }
             else{
-                p.connection.disconnect(Component.literal("战斗结果已保存，投影应用失败，请重连："+error.getMessage()));
+                p.connection.disconnect(cn.yumis.fight.game.ModText.of("战斗结果已保存，投影应用失败，请重连："+error.getMessage()));
                 return;
             }
             message(p,error.getMessage());
@@ -618,45 +648,7 @@ public final class ServerRuntime {
         }
     }
     private void incoming(LivingIncomingDamageEvent e){
-        if(bridge||!managed(e.getEntity()))return;
-        e.setCanceled(true);
-        LivingEntity victim=e.getEntity();
-        Entity attacker=e.getSource().getEntity();
-        if(victim instanceof ServerPlayer p){
-            if(attacker instanceof Player&&attacker!=p)return;
-            JsonObject j=new JsonObject();
-            j.addProperty("session",session(p).id.toString());
-            j.addProperty("generation",session(p).life.generation);
-            j.addProperty("bypassInvulnerability",e.getSource().is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY));
-            j.addProperty("root",UUID.randomUUID().toString());
-            j.addProperty("source",p.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&e.getSource().getMsgId().equals("magic")?"poison":e.getSource().getMsgId());
-            j.addProperty("points",e.getOriginalAmount());
-            j.addProperty("projectile",e.getSource().getDirectEntity() instanceof net.minecraft.world.entity.projectile.Projectile);
-            j.addProperty("bypassEnchantments",e.getSource().is(net.minecraft.tags.DamageTypeTags.BYPASSES_ENCHANTMENTS));
-            j.addProperty("bypassResistance",e.getSource().is(net.minecraft.tags.DamageTypeTags.BYPASSES_RESISTANCE));
-            if(e.getSource().getDirectEntity()!=null)j.addProperty("speed",e.getSource().getDirectEntity().getDeltaMovement().length());
-            j.addProperty("fall",p.fallDistance);
-            var pos=e.getSource().getSourcePosition();
-            if(pos!=null){
-                j.addProperty("x",pos.x);
-                j.addProperty("y",pos.y);
-                j.addProperty("z",pos.z);
-            }
-            if(attacker instanceof LivingEntity l&&l!=p&&managed(l))j.add("attacker",JSON.toJsonTree(target(l)));
-            Network.send(p,"incoming",j);
-        }
-        else if(attacker instanceof ServerPlayer owner){
-            JsonObject j=new JsonObject();
-            j.add("target",JSON.toJsonTree(target(victim)));
-            j.addProperty("points",e.getOriginalAmount());
-            j.addProperty("projectile",e.getSource().getDirectEntity() instanceof net.minecraft.world.entity.projectile.Projectile);
-            j.addProperty("bypassEnchantments",e.getSource().is(net.minecraft.tags.DamageTypeTags.BYPASSES_ENCHANTMENTS));
-            j.addProperty("bypassResistance",e.getSource().is(net.minecraft.tags.DamageTypeTags.BYPASSES_RESISTANCE));
-            if(e.getSource().getDirectEntity()!=null)j.addProperty("speed",e.getSource().getDirectEntity().getDeltaMovement().length());
-            j.addProperty("root",UUID.randomUUID().toString());
-            j.addProperty("source",e.getSource().getMsgId());
-            Network.send(owner,"projectile",j);
-        }
+        nativeHits.incoming(e);
     }
     public void craft(ServerPlayer p,JsonObject j){
         Session s=session(p);
@@ -746,16 +738,8 @@ public final class ServerRuntime {
             return;
         }
         switch(kind){
-            case "learn"->next.learn(Skill.valueOf(j.get("skill").getAsString()));
-            case "allocate"->{
-                if(next.free()<=0)throw new IllegalArgumentException("自由属性点不足");
-                switch(j.get("stat").getAsString()){
-                    case "strength"->next.strength++;
-                    case "intelligence"->next.intelligence++;
-                    case "spirit"->next.spirit++;
-                    default->throw new IllegalArgumentException("未知属性");
-                }
-            }
+            case "learn"->next.learn(Skill.valueOf(j.get("skill").getAsString()),j.has("count")?j.get("count").getAsInt():1);
+            case "allocate"->next.allocate(j.get("stat").getAsString(),j.has("count")?j.get("count").getAsInt():1);
             case "resetAttributes"->{
                 next.strength=next.intelligence=next.spirit=0;
             }
@@ -763,7 +747,7 @@ public final class ServerRuntime {
             case "sync"->next.sync=j.get("enabled").getAsBoolean();
             case "bind"->{
                 int slot=j.get("slot").getAsInt();
-                if(slot<0||slot>=32)throw new IllegalArgumentException("快捷槽无效");
+                if(slot<0||slot>=SLOT_COUNT)throw new IllegalArgumentException("快捷槽无效");
                 String skill=j.get("skill").getAsString();
                 if(!skill.isEmpty()&&(Skill.valueOf(skill).passive()||next.learned(Skill.valueOf(skill))<=0))throw new IllegalArgumentException("该技能尚未学习或为被动");
                 next.slots[slot]=skill;
@@ -820,8 +804,8 @@ public final class ServerRuntime {
         Gear gear=GameItems.gear(stack);
         if(gear==null||cursor.isEmpty())return false;
         String id=GameItems.id(cursor);
-        if(!GameItems.own(cursor)||!GameItems.ALL.containsKey(id))return false;
-        if(menu!=p.inventoryMenu)return false;
+        if(!CurrencySlots.isCurrency(cursor))return false;
+        CurrencySlots.requireWritable(p,menu,slot);
         if(id.equals("set_extraction_stone")){
             if(gear.set.isEmpty())throw new IllegalArgumentException("该装备没有套装");
             ItemStack stone=GameItems.payload("set_stone",Map.of("set",gear.set,"level",gear.level,"group",gear.slot.armor()?"armor":"jewelry"),"套装石 · "+Definitions.CURRENT.sets.get(gear.set).name());
@@ -847,7 +831,9 @@ public final class ServerRuntime {
         else if(id.equals("affix_extraction_stone"))throw new IllegalArgumentException("特殊装备词条拆卸暂未开放");
         else if(id.endsWith("_stone"))gear=EquipmentRules.process(gear,id,random);
         else return false;
-        GameItems.write(stack,gear);
+        ItemStack updated=stack.copy();
+        GameItems.write(updated,gear);
+        menu.slots.get(slot).set(updated);
         cursor.shrink(1);
         return true;
     }
@@ -859,11 +845,11 @@ public final class ServerRuntime {
             profile(p);
             return;
         }
-        if(!j.get("session").getAsString().equals(session(p).id.toString())||p.containerMenu!=p.inventoryMenu||j.get("menu").getAsInt()!=p.containerMenu.containerId)throw new IllegalArgumentException("加工界面或会话已失效");
+        if(!j.get("session").getAsString().equals(session(p).id.toString())||j.get("menu").getAsInt()!=p.containerMenu.containerId)throw new IllegalArgumentException("加工界面或会话已失效");
         int index=j.get("slot").getAsInt();
-        if(index<0||index>=p.containerMenu.slots.size())throw new IllegalArgumentException("槽位无效");
-        Gear g=GameItems.gear(p.containerMenu.slots.get(index).getItem());
-        if(g==null||!g.instance.toString().equals(j.get("equipment").getAsString())||g.revision!=j.get("revision").getAsInt()||p.containerMenu.getCarried().getCount()!=j.get("count").getAsInt())throw new IllegalArgumentException("装备或通货已发生变化");
+        var targetSlot=CurrencySlots.requireWritable(p,p.containerMenu,index);
+        Gear g=GameItems.gear(targetSlot.getItem());
+        if(g==null||!g.instance.toString().equals(j.get("equipment").getAsString())||g.revision!=j.get("revision").getAsInt()||!j.has("cursor")||!inventory.encode(p,p.containerMenu.getCarried()).equals(j.get("cursor")))throw new IllegalArgumentException("装备或通货已发生变化");
         inventory.transact(p,j.get("operation").getAsString(),j,()->{
             if(!currencyClick(p,p.containerMenu,index,1,ContainerInput.PICKUP,j.has("socket")?j.get("socket").getAsInt():-1))throw new IllegalArgumentException("无法加工");
         }
@@ -885,7 +871,7 @@ public final class ServerRuntime {
     }
     private void openBag(ServerPlayer p){
         inventory.closeCursor(p);
-        p.openMenu(new SimpleMenuProvider((id,inv,owner)->ChestMenu.sixRows(id,inv,MenuHooks.extra(p).bag),Component.literal("次元背包")));
+        p.openMenu(new SimpleMenuProvider((id,inv,owner)->ChestMenu.sixRows(id,inv,MenuHooks.extra(p).bag),cn.yumis.fight.game.ModText.of("次元背包")));
         inventory.bag(p,true);
     }
     private void claimWaiting(ServerPlayer p){
@@ -982,6 +968,7 @@ public final class ServerRuntime {
     }
     private void tick(){
         ticks++;
+        movement.tick();
         int size=combatQueue.size();
         for(int i=0;i<size;i++)combatQueue.removeFirst().run();
         if(ticks%5==0){

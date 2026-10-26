@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="cn.yumis.fight.JournalTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-26T12:33:08.282Z" hostname="YUMIS" time="0.128">
+<testsuite name="cn.yumis.fight.JournalTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-26T17:06:46.088Z" hostname="DESKTOP-UE1SFN7" time="0.202">
   <properties/>
-  <testcase name="deletionMarkersSurviveRestartAndCheckpoint()" classname="cn.yumis.fight.JournalTest" time="0.027"/>
-  <testcase name="concurrentLethalRequestsHaveOneDeathAndBoundedActualShare()" classname="cn.yumis.fight.JournalTest" time="0.049"/>
-  <testcase name="invalidFractionsCannotModifyLife()" classname="cn.yumis.fight.JournalTest" time="0.007"/>
-  <testcase name="wholeInventoryAndRewardsCommitTogetherAndReplay()" classname="cn.yumis.fight.JournalTest" time="0.014"/>
-  <testcase name="interruptedTailIsTruncatedButFullCorruptionFails()" classname="cn.yumis.fight.JournalTest" time="0.013"/>
-  <testcase name="checkpointKeepsCommittedReceipts()" classname="cn.yumis.fight.JournalTest" time="0.013"/>
+  <testcase name="deletionMarkersSurviveRestartAndCheckpoint()" classname="cn.yumis.fight.JournalTest" time="0.059"/>
+  <testcase name="concurrentLethalRequestsHaveOneDeathAndBoundedActualShare()" classname="cn.yumis.fight.JournalTest" time="0.065"/>
+  <testcase name="invalidFractionsCannotModifyLife()" classname="cn.yumis.fight.JournalTest" time="0.006"/>
+  <testcase name="wholeInventoryAndRewardsCommitTogetherAndReplay()" classname="cn.yumis.fight.JournalTest" time="0.016"/>
+  <testcase name="interruptedTailIsTruncatedButFullCorruptionFails()" classname="cn.yumis.fight.JournalTest" time="0.021"/>
+  <testcase name="checkpointKeepsCommittedReceipts()" classname="cn.yumis.fight.JournalTest" time="0.03"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

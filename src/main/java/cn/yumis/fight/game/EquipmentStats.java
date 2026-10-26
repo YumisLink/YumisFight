@@ -14,8 +14,11 @@ public final class EquipmentStats {
         return build(player,progress,CommonServices.attributes(player.getUUID()));
     }
     public static Stats build(Player player,Progress progress,cn.yumis.fight.api.AttributeSources sources){
+        return build(player,progress,sources,player.getMainHandItem());
+    }
+    public static Stats build(Player player,Progress progress,cn.yumis.fight.api.AttributeSources sources,net.minecraft.world.item.ItemStack weapon){
         List<Gear> gear=new ArrayList<>();
-        Gear hand=GameItems.gear(player.getMainHandItem());
+        Gear hand=GameItems.gear(weapon);
         if(hand!=null&&hand.slot==Slot.WEAPON)gear.add(hand);
         for(EquipmentSlot part:List.of(EquipmentSlot.HEAD,EquipmentSlot.CHEST,EquipmentSlot.LEGS,EquipmentSlot.FEET)){
             Gear g=GameItems.gear(player.getItemBySlot(part));
@@ -28,7 +31,7 @@ public final class EquipmentStats {
             if(g!=null&&extra.canPlaceItem(i,extra.getItem(i)))gear.add(g);
         }
         return EquipmentRules.stats(progress,gear,sources,stats->{
-            NativeRules.addEquipment(player,stats,progress);EquipmentLayout.CURRENT.attributes(extra,stats);
+            NativeRules.addEquipment(player,stats,progress,weapon);EquipmentLayout.CURRENT.attributes(extra,stats);
         }
         );
     }

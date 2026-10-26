@@ -21,7 +21,13 @@ neoForge {
     mods { yumis_dungeon_and_fight { sourceSet sourceSets.main } }
 }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
-dependencies { testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'; testImplementation 'com.google.code.gson:gson:2.14.0'; testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.4' }
+dependencies {
+    compileOnly files('gradle/local-mods/curios-neoforge-16.0.0+26.2.jar')
+    runtimeOnly files('gradle/local-mods/curios-neoforge-16.0.0+26.2.jar')
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
+    testImplementation 'com.google.code.gson:gson:2.14.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.4'
+}
 test { useJUnitPlatform() }
 jar { manifest { attributes('Implementation-Title': 'YumisDungeonAndFight', 'Implementation-Version': project.version) } }
 

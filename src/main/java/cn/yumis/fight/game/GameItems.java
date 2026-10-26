@@ -27,7 +27,7 @@ public final class GameItems {
         }
         for(Slot s:Slot.values())if(s!=Slot.WEAPON){
             String id=s.item();
-            ALL.put(id,ITEMS.registerItem(id,Item::new,p->{
+            ALL.put(id,ITEMS.registerItem(id,s.armor()?Item::new:CurioGearItem::new,p->{
                 p.stacksTo(1);if(s.armor())p.equippable(s==Slot.CHEST?EquipmentSlot.CHEST:s==Slot.HEAD?EquipmentSlot.HEAD:s==Slot.LEGS?EquipmentSlot.LEGS:EquipmentSlot.FEET);return p;
             }
             ));
@@ -80,7 +80,7 @@ public final class GameItems {
     }
     public static void write(ItemStack stack,Gear g){
         string(stack,NS,JSON.toJson(g));
-        stack.set(DataComponents.ITEM_NAME,Component.literal(name(g)).withStyle(s->s.withColor(g.rarity.color()).withItalic(false)));
+        stack.set(DataComponents.ITEM_NAME,ModText.of(name(g)).withStyle(s->s.withColor(g.rarity.color()).withItalic(false)));
     }
     public static ItemStack gear(Gear g){
         ItemStack stack=item(g.slot==Slot.WEAPON?g.weapon.name().toLowerCase(Locale.ROOT):g.slot.item(),1);
@@ -92,7 +92,7 @@ public final class GameItems {
         if(m==null)throw new IllegalArgumentException("未知材料");
         ItemStack s=item("crafting_material",count);
         string(s,NS+"_material",id);
-        s.set(DataComponents.ITEM_NAME,Component.literal(m.name()));
+        s.set(DataComponents.ITEM_NAME,ModText.of(m.name()));
         return s;
     }
     public static String material(ItemStack stack){
@@ -101,7 +101,7 @@ public final class GameItems {
     public static ItemStack payload(String item,Object value,String title){
         ItemStack s=item(item,1);
         string(s,NS+"_payload",JSON.toJson(value));
-        s.set(DataComponents.ITEM_NAME,Component.literal(title));
+        s.set(DataComponents.ITEM_NAME,ModText.of(title));
         return s;
     }
     public static String payload(ItemStack stack){

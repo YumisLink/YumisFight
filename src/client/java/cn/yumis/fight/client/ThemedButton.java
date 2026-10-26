@@ -5,6 +5,7 @@ import net.minecraft.client.gui.components.Button;
 /** Native focus, narration and click rectangles with YDNF's flat immediate drawing. */
 public final class ThemedButton extends Button {
     public boolean selected;
+    public int textInset=6;
     public ThemedButton(Builder builder){
         super(builder);
     }
@@ -14,9 +15,10 @@ public final class ThemedButton extends Button {
         g.fill(x,y,x+w,y+h,!active?UiTheme.DISABLED:selected?UiTheme.SELECTED:hover?UiTheme.HOVER:UiTheme.BUTTON);
         if(active&&hover)g.fill(x,y,x+w,y+h,0x557F8F9F);
         if(selected)g.fill(x,y+h-1,x+w,y+h,UiTheme.ACCENT);
-        var font=Minecraft.getInstance().font;
+        var font=UiFonts.font();
         String text=getMessage().getString();
-        if(font.width(text)>w-12)text=font.plainSubstrByWidth(text,Math.max(0,w-20))+"…";
-        g.text(font,text,x+6,y+(h-font.lineHeight)/2,active?UiTheme.TEXT:UiTheme.MUTED,false);
+        int available=Math.max(0,w-textInset-6);
+        if(font.width(text)>available)text=font.width("…")<=available?font.plainSubstrByWidth(text,available-font.width("…"))+"…":"";
+        g.text(font,text,x+textInset,y+(h-font.lineHeight)/2,active?UiTheme.TEXT:UiTheme.MUTED,false);
     }
 }
