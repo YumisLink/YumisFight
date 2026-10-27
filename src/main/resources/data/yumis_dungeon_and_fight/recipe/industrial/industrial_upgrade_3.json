@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CMC",
+    "M M",
+    "CMC"
+  ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_3",
+    "M": "#c:ingots/titanium"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:industrial_upgrade_3",
+    "count": 1
+  }
+}

@@ -84,6 +84,14 @@ public final class CombatVerification {
             player.setItemInHand(InteractionHand.MAIN_HAND,GameItems.gear(EquipmentRules.create(Rules.Slot.WEAPON,Rules.Weapon.KATANA,Rules.Rarity.COMMON,1,new Random(0))));
             runtime.savePlayer(player);runtime.profile(player);
         }
+        else if(action.startsWith("basic_")){
+            scenario=action;session.progress.level=80;session.progress.swordmaster=true;session.progress.skills.put("MASTERY",1);session.progress.skills.put("DANCE",1);session.progress.skills.put("STORM",1);session.progress.skills.put("TRIPLE",1);session.progress.skills.put("DRAGON",1);session.progress.slots[0]="DANCE";session.progress.slots[1]="STORM";session.progress.slots[2]="TRIPLE";session.progress.slots[3]="DRAGON";
+            session.resources.controlEpoch++;session.resources.cooldowns.clear();session.resources.mp=10000;
+            Rules.Weapon weapon=Rules.Weapon.valueOf(action.substring(6).toUpperCase(java.util.Locale.ROOT));player.setItemInHand(InteractionHand.MAIN_HAND,GameItems.gear(EquipmentRules.create(Rules.Slot.WEAPON,weapon,Rules.Rarity.COMMON,80,new Random(1))));
+            target=mob(runtime,player,80.5,100,84.5);second=mob(runtime,player,82.5,100,84.5);
+            for(var mob:List.of(target,second)){var context=runtime.target(mob);context.speciesHealth=1000;runtime.journal.put("target/"+mob.getUUID(),context);mob.setData(FightMod.TARGET,JSON.toJson(context));runtime.context(player,mob);}
+            runtime.savePlayer(player);runtime.profile(player);
+        }
         else if(action.equals("inspect")){}
         else{
             scenario=action;accepted=false;forwarded=runtime.nativeHits.forwarded;committed=runtime.nativeHits.committed;

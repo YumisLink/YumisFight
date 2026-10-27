@@ -131,7 +131,7 @@ public final class Models {
     }
     public static class Gear {
         public UUID instance=UUID.randomUUID();
-        public int version=VERSION,level=1,revision,sockets;
+        public int version=VERSION,level=1,revision,sockets,weaponCurve;
         public Slot slot=Slot.WEAPON;
         public Weapon weapon=Weapon.KATANA;
         public ArmorType armorType=ArmorType.LEGACY;

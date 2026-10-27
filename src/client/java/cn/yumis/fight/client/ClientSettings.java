@@ -6,6 +6,7 @@ public final class ClientSettings {
     public static String uiFont="modern";
     public static int damageScale=2,migration;
     public static double targetScale=1;
+    public static boolean characterDark;
     private static Path path(){
         return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("yumis_dungeon_and_fight-client.toml");
     }
@@ -22,6 +23,7 @@ public final class ClientSettings {
             targetScale=Double.parseDouble(value(s,"targetScale","1"));
             migration=Integer.parseInt(value(s,"keyMigrationVersion","0"));
             uiFont=value(s,"uiFont","modern");
+            characterDark=Boolean.parseBoolean(value(s,"characterDarkMode","false"));
             boolean migrateFont=uiFont.equals("noto");
             if(migrateFont)uiFont="modern";
             if(!uiFont.equals("modern")&&!uiFont.matches("[a-f0-9]{64}"))uiFont="modern";
@@ -41,7 +43,7 @@ public final class ClientSettings {
     public static void save(){
         try{
             Files.createDirectories(path().getParent());
-            Files.writeString(path(),"panelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nkeyMigrationVersion="+migration+"\nuiFont=\""+uiFont+"\"\n");
+            Files.writeString(path(),"panelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nkeyMigrationVersion="+migration+"\nuiFont=\""+uiFont+"\"\ncharacterDarkMode="+characterDark+"\n");
         }
         catch(Exception e){
             ClientState.INSTANCE.message("设置保存失败："+e.getMessage());

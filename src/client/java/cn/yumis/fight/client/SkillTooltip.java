@@ -20,14 +20,17 @@ public final class SkillTooltip {
         var state=ClientState.INSTANCE;
         var stats=ClientCombat.INSTANCE.snapshot();
         int rank=stats.effective(state.progress,skill);
-        var parameters=SkillParameters.forCast(Minecraft.getInstance().player.getUUID(),skill,Math.max(1,rank),stats.parameters);
+        var parameters=cn.yumis.fight.rules.WeaponRules.skill(SkillParameters.forCast(Minecraft.getInstance().player.getUUID(),skill,Math.max(1,rank),stats.parameters),state.progress,stats);
         var preview=SkillPreview.resolve(state.progress,stats,skill,parameters);
         List<Component> result=new ArrayList<>();
         add(result,skill.title+" · "+(rank>0?"有效等级 "+rank:"未学习 · 1级预览"),UiTheme.GOLD);
         add(result,"学习等级 "+skill.unlock+(skill.advanced()?" · 剑魂":"")+" · 每级 "+skill.sp+" SP",UiTheme.MUTED);
         if(skill==Skill.MASTERY){
             double power=Math.pow(1.12,Math.max(1,rank)-1);
-            add(result,"随当前武器生效：",UiTheme.TEXT);
+            add(result,"随当前武器生效（新增效果不随等级成长）：",UiTheme.TEXT);
+            add(result,"光剑普攻2×75%；巨剑90°横扫6格、150%伤害，最终攻速减半。",UiTheme.TEXT);
+            add(result,"三段斩：太刀/光剑7段，其余5段；光剑猛龙+1段。",UiTheme.TEXT);
+            add(result,"太刀/光剑幻影20刀，持续1.25秒。",UiTheme.TEXT);
             add(result,"太刀：10%造成流血；流血目标5%触发 "+number(2*power)+"倍伤害。",UiTheme.TEXT);
             add(result,"光剑：20%造成感电；命中感电目标附加 "+number((10+2*state.progress.level)*power)+" 点基础光伤害。",UiTheme.TEXT);
             add(result,"巨剑：技能伤害 +"+number(20*power)+"%。",UiTheme.TEXT);
@@ -51,7 +54,7 @@ public final class SkillTooltip {
                 case WAVE->"地面波前进"+number(parameters.get("range",10))+"格，逐目标命中一次，遇实墙停止。";
                 case OVERDRIVE->"立即获得攻击增益，不造成直接伤害。";
                 case RISING->"冲撞4格后上挑；动作与结束后0.5秒提供位移防护。";
-                case DRAW->"蓄势0.4秒，前方180°、半径"+number(parameters.get("range",5))+"格，实墙遮挡。";
+                case DRAW->"蓄势0.4秒，前方180°、半径"+number(parameters.get("range",5)*parameters.get("meleeScale",1))+"格，实墙遮挡。";
                 case DRAGON->"每段冲刺4格，窗口内按原槽续段，最多"+preview.slashes()+"段。";
                 case DANCE->number(parameters.get("duration",1.25))+"秒内完成全部斩击，再发出穿透终结剑气。";
                 case STORM->number(parameters.get("duration",8))+"秒剑阵，包含斩击及终结，全程免伤。";
@@ -62,7 +65,7 @@ public final class SkillTooltip {
         return result;
     }
     private static void add(List<Component> lines,String text,int color){
-        lines.add(UiFonts.decorate(Component.literal(text).withColor(color)));
+        lines.add(UiFonts.decorate(Component.literal(text).withColor(UiTheme.tooltipColor(color))));
     }
     public static void render(GuiGraphicsExtractor graphics,Skill skill,int mouseX,int mouseY){
         graphics.setComponentTooltipForNextFrame(UiFonts.font(),lines(skill),mouseX,mouseY,ItemStack.EMPTY);

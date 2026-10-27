@@ -339,6 +339,7 @@ public final class VerificationChecks {
             check(saved.equals(inventory()),"pending_inventory_redo_from_wal_and_native_readback");
             equipmentExpansion(pos);
             containerChecks(pos);
+            basicCycleChecks();
         }
         catch(Throwable e){
             failure=e;
@@ -374,6 +375,14 @@ public final class VerificationChecks {
         if(failure!=null)throw new IllegalStateException("验证完成 "+passed.size()+" 项后失败："+failure,failure);
         runtime.message(player,"服务端实机验证通过 "+passed.size()+" 项");
         return passed.size();
+    }
+    private void basicCycleChecks(){
+        player.closeContainer();clear();mutate(()->player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,GameItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.LIGHTSABER,Rarity.COMMON,1,new Random(1)))));runtime.session(player).progress.swordmaster=true;
+        BasicAttackService cycles=new BasicAttackService(runtime);JsonObject start=new JsonObject();start.addProperty("id",UUID.randomUUID().toString());cycles.start(player,start);
+        rejects(()->cycles.start(player,start),"server_rejects_replayed_basic_start");
+        mutate(()->player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,GameItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.GREATSWORD,Rarity.COMMON,1,new Random(1)))));JsonObject switched=new JsonObject();switched.addProperty("id",UUID.randomUUID().toString());rejects(()->cycles.start(player,switched),"server_weapon_switch_does_not_reset_basic_cooldown");
+        JsonObject hit=new JsonObject();hit.addProperty("basicCycle",start.get("id").getAsString());hit.addProperty("basicSlash",0);hit.addProperty("target",UUID.randomUUID().toString());cycles.validate(player,hit);cycles.committed(hit);rejects(()->cycles.validate(player,hit),"server_rejects_duplicate_basic_target_with_new_operation");
+        var movement=player.getDeltaMovement();player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);player.knockback(.4,1,0,player.damageSources().generic(),0);check(Math.abs(Math.abs(player.getDeltaMovement().x)-.04)<.0001,"melee_knockback_retains_ten_percent_once");player.setDeltaMovement(movement);
     }
     private void openFabricator(net.minecraft.core.BlockPos pos){
         player.openMenu(new SimpleMenuProvider((id,inventory,owner)->new FabricatorMenu(id,inventory,pos),Component.literal("验证 · 装备制作器")));

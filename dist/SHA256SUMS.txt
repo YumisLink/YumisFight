@@ -1,2 +1,3 @@
-6133d5ec517105e2a4895a649cd1d4f6153e24eec7f78cc6845092306edf40fb  YumisDungeonAndFight-0.1.0-sources.jar
-0c98ee367ca305adf58a2afeb97bbd5256a3877b0f10491cf774de31d72dc825  YumisDungeonAndFight-0.1.0.jar
+e515716b6a7b32771272254d070013f2a33d7a54344493f23a14d8684696e3e6  YumisDungeonAndFight-0.1.0-sources.jar
+ec9be31eedbf1a79a2b7404f80acaba97e399ed1ef6d1f55a4a1a34a7c63e357  YumisDungeonAndFight-0.1.0.jar
+8859dab3175ed2f165b26c5f94336c7fe8ae5d159b682c6a858279bf039b77d3  YumisDungeonAndFight-arcane-v2.jar

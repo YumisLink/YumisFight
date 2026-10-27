@@ -14,7 +14,7 @@ class AttributeSourcesTest {
         var stats=cn.yumis.fight.rules.EquipmentRules.stats(progress,List.of(gear),sources,ignored->{
         }
         );
-        assertEquals(35,stats.get(Stat.PHYSICAL_ATTACK),1e-9);
+        assertEquals(29,stats.get(Stat.PHYSICAL_ATTACK),1e-9);
         assertEquals(5,sources.applyNamed(Map.of("other:luck",2d),Stage.CHARACTER).get("other:luck"));
         assertThrows(IllegalArgumentException.class,()->new Value("not_namespaced",1,Operation.ADD,Stage.ITEM));
     }

@@ -1,10 +1,16 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "ingredients": [
-    "yumis_dungeon_and_fight:machine_frame_2",
-    "minecraft:cauldron"
+  "pattern": [
+    "CMC",
+    "MXM",
+    "CMC"
   ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_2",
+    "M": "#c:gems/diamond",
+    "X": "minecraft:cauldron"
+  },
   "result": {
     "id": "yumis_dungeon_and_fight:coolant_mixer",
     "count": 1

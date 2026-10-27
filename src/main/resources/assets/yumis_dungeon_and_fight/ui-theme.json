@@ -1,0 +1,26 @@
+{
+  "style": "beveled", "border": 2, "textInset": 6,
+  "colors": {
+    "OVERLAY": "#90000000", "PANEL": "#C6C6C6", "CARD": "#B9B9B9",
+    "BUTTON": "#AAAAAA", "HOVER": "#BFC5CF", "SELECTED": "#929292", "DISABLED": "#B4B4B4",
+    "TEXT": "#343434", "MUTED": "#595959", "ACCENT": "#365F91", "GOLD": "#735019",
+    "ERROR": "#A42727", "SUCCESS": "#315D32", "NUMERIC": "#1659BE",
+    "BORDER": "#373737", "LIGHT": "#FFFFFF", "SHADOW": "#555555",
+    "SLOT": "#8B8B8B", "SLOT_SHADOW": "#4F4F4F", "SLOT_LIGHT": "#EEEEEE",
+    "SCROLL_TRACK": "#555555", "SCROLL_THUMB": "#C6C6C6",
+    "TIP_TEXT": "#E9EBEE", "TIP_MUTED": "#B9C0C7", "TIP_TITLE": "#FFDC78", "TIP_NUMBER": "#649EFF",
+    "HUD_PANEL": "#CC202020", "HUD_TEXT": "#FFE9EBEE", "HUD_MUTED": "#FFBAC2CB", "HUD_GOLD": "#FFFFDC78",
+    "DAMAGE_BAR": "#BBD95328"
+  },
+  "characterDark": {
+    "style": "flat",
+    "colors": {
+      "OVERLAY": "#A4000000", "PANEL": "#18212D", "CARD": "#222F3E",
+      "BUTTON": "#2E4054", "HOVER": "#3C5872", "SELECTED": "#355873", "DISABLED": "#293744",
+      "TEXT": "#E9EBEE", "MUTED": "#B9C0C7", "ACCENT": "#80C6EF", "GOLD": "#EBC36D",
+      "ERROR": "#FF8181", "SUCCESS": "#92C88B", "NUMERIC": "#71ACFF",
+      "BORDER": "#0D141D", "LIGHT": "#536779", "SHADOW": "#0D141D",
+      "SCROLL_TRACK": "#101923", "SCROLL_THUMB": "#596F83"
+    }
+  }
+}

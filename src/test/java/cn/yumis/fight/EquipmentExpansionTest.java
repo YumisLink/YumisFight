@@ -36,7 +36,7 @@ class EquipmentExpansionTest {
         assertEquals(61,EquipmentTemplates.creative().size());
     }
     @Test void fortyOneDefinitionsAndBaseOnlyQualificationAcrossEveryLevel(){
-        assertEquals(41,Definitions.CURRENT.affixes.values().stream().filter(d->d.group().equals("random")).count());
+        assertEquals(42,Definitions.CURRENT.affixes.values().stream().filter(d->d.group().equals("random")).count());
         Gear gear=armor(ArmorType.LIGHT,Slot.CHEST,50);
         gear.affixes.add(new Affix("flat_health",Stat.HEALTH,999,false));
         Affix special=new Affix("special_mp",Stat.MP,999,false);special.fixed=true;gear.affixes.add(special);

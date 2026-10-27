@@ -117,10 +117,11 @@ public final class DungeonService {
         }
         int oldSize=Math.max(1,d.roster.size());
         boolean newcomer=d.roster.add(p.getUUID());
-        d.withdrawn.remove(p.getUUID());
+        boolean returning=d.withdrawn.remove(p.getUUID());
         if(!d.returns.containsKey(p.getStringUUID()))d.returns.put(p.getStringUUID(),point(p));
         r.journal.begin();
         r.journal.put(key,j);
+        if(newcomer||returning)r.damageMeter.join(d,p);
         r.journal.put("instance/"+d.id,d);
         r.journal.put("return/"+p.getUUID(),d.returns.get(p.getStringUUID()));
         if(newcomer&&d.roster.size()>1){
@@ -154,6 +155,7 @@ public final class DungeonService {
         ReturnPoint point=d.returns.get(p.getStringUUID());
         d.withdrawn.add(p.getUUID());
         r.journal.put("instance/"+d.id,d);
+        r.damageMeter.leave(d,p);
         if(point!=null){
             r.loot.move(p,d.id.toString(),point);
             if(teleport)back(p,point);
@@ -328,6 +330,7 @@ public final class DungeonService {
                 if(d.enemies.isEmpty()){
                     if(d.wave==6){
                         d.status="COMPLETED";
+                        r.damageMeter.freeze(d);
                         r.journal.put(key,d);
                         for(ServerPlayer p:players)r.message(p,"地下城通关！可拾取战利品或返回。");
                         r.refreshAll();

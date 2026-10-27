@@ -34,9 +34,11 @@ public final class ClientBootstrap {
         for(int i=0;i<8;i++)SKILLS[i]=new KeyMapping("key.ydnf.skill_"+(i+1),keys[i],CATEGORY);
     }
     public ClientBootstrap(IEventBus bus){
+        IndustrialRecipeCache.register();
         Network.CLIENT=ClientState.INSTANCE::accept;
         Effects.VFX.register();
         ClientSettings.load();
+        UiTheme.load();
         UiFonts.register(bus);
         CurrencyUi.register();
         ExtraInventory.CLIENT_PROGRESS=p->ClientState.INSTANCE.progress;
@@ -79,10 +81,10 @@ public final class ClientBootstrap {
         );
         NeoForge.EVENT_BUS.addListener((InputEvent.InteractionKeyMappingTriggered e)->{
             if(e.isAttack()&&ClientCombat.INSTANCE.validWeapon()&&(Minecraft.getInstance().hitResult==null||Minecraft.getInstance().hitResult.getType()!=HitResult.Type.BLOCK)){
-                e.setCanceled(true);e.setSwingHand(true);ClientCombat.INSTANCE.attack();
+                e.setCanceled(true);e.setSwingHand(false);ClientCombat.INSTANCE.attack();
             }
             else if(e.isAttack()&&Minecraft.getInstance().hitResult instanceof net.minecraft.world.phys.EntityHitResult hit&&ClientCombat.INSTANCE.nativeAttack(hit.getEntity())){
-                e.setCanceled(true);e.setSwingHand(true);
+                e.setCanceled(true);e.setSwingHand(false);
             }
         }
         );

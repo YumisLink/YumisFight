@@ -1,0 +1,36 @@
+{
+  "variants": {
+    "part=1,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/wind_middle",
+      "y": 0
+    },
+    "part=1,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/wind_middle",
+      "y": 90
+    },
+    "part=1,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/wind_middle",
+      "y": 180
+    },
+    "part=1,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/wind_middle",
+      "y": 270
+    },
+    "part=2,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/wind_upper",
+      "y": 0
+    },
+    "part=2,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/wind_upper",
+      "y": 90
+    },
+    "part=2,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/wind_upper",
+      "y": 180
+    },
+    "part=2,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/wind_upper",
+      "y": 270
+    }
+  }
+}

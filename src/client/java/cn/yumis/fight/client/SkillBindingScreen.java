@@ -66,7 +66,7 @@ public final class SkillBindingScreen extends Screen {
     }
     @Override public void extractBackground(GuiGraphicsExtractor g,int mx,int my,float delta){
         g.fill(0,0,width,height,UiTheme.OVERLAY);
-        g.fill(left,top,left+panelWidth,top+panelHeight,UiTheme.PANEL);
+        UiTheme.panel(g,left,top,(left+panelWidth)-(left),(top+panelHeight)-(top));
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
         if(layer!=currentLayer())rebuild();

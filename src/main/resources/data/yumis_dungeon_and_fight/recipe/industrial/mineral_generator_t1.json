@@ -1,10 +1,16 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "ingredients": [
-    "yumis_dungeon_and_fight:machine_frame_1",
-    "minecraft:iron_pickaxe"
+  "pattern": [
+    "CMC",
+    "MXM",
+    "CMC"
   ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_1",
+    "M": "#c:ingots/copper",
+    "X": "minecraft:iron_pickaxe"
+  },
   "result": {
     "id": "yumis_dungeon_and_fight:mineral_generator_t1",
     "count": 1

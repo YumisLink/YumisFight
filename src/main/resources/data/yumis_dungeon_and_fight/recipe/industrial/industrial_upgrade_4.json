@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CMC",
+    "M M",
+    "CMC"
+  ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_4",
+    "M": "#c:ingots/terra"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:industrial_upgrade_4",
+    "count": 1
+  }
+}

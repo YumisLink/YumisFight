@@ -36,29 +36,18 @@ devices={}
 for family,title in families.items():
     for tier in range(1,6):
         key=f'{family}_t{tier}';devices[key]=(family,tier);names[f'block.{NS}.{key}']=prefixes[tier-1]+title
-        craft(key,[own(f'machine_frame_{tier}'),'minecraft:'+components[family]],key)
-        if tier>1:process(f'upgrade_{key}',f'upgrade_{family}_t{tier}',[own(f'machine_frame_{tier}')],ticks=1,energy=0)
-extras={
-    'coal_generator':('燃煤魔能机',1,['minecraft:furnace']),
-    'solar_collector':('日曜集能器',1,['minecraft:daylight_detector']),
-    'turbine_generator':('涡轮发电机',2,['minecraft:piston']),
-    'wind_generator':('风能发电机',2,['minecraft:lightning_rod']),
-    'thermal_generator':('温差发电机',3,['minecraft:blast_furnace']),
-    'nuclear_reactor':('核能反应堆',4,['minecraft:cauldron','#c:storage_blocks/lead','#c:storage_blocks/lead']),
-    'rtg_generator':('RTG发电机',5,['minecraft:redstone_block','#c:storage_blocks/lead']),
-    'coolant_mixer':('冷却液混合器',2,['minecraft:cauldron'])}
-for key,(title,tier,parts) in extras.items():devices[key]=(key,tier);names[f'block.{NS}.{key}']=title;craft(key,[own(f'machine_frame_{tier}')]+parts,key)
+from industrial_crafting import EXTRAS as CRAFT_EXTRAS
+extras={key:((title+'魔能产生器') if title else '冷却液混合器',stage,[center]) for key,(stage,center,title) in CRAFT_EXTRAS.items()}
+for key,(title,tier,parts) in extras.items():devices[key]=(key,tier);names[f'block.{NS}.{key}']=title
 for family,title,component,third in [('transfer_crystal','物品传送水晶','ender_pearl','spacetime_ingot'),('harvest_crystal','作物收种水晶','wheat_seeds','terra_ingot')]:
     for tier in range(1,4):
         key=f'{family}_t{tier}';devices[key]=(family,tier);names[f'block.{NS}.{key}']=f'{title} · {tier}档'
-        if tier==1:craft(key,[own('machine_frame_1'),'minecraft:'+component],key)
-        else:process(f'upgrade_{key}',f'upgrade_{family}_t{tier}',[('#c:gems/diamond' if tier==2 else own(third),4)],ticks=1,energy=0)
 
+items += ['nuclear_core','rtg_core']
 for tier in range(1,11):
     key=f'energy_crystal_{tier}';items.append(key);names[f'item.{NS}.{key}']=f'{tier}阶魔能水晶'
 for tier in range(1,6):
-    key=f'machine_frame_{tier}';items.append(key);names[f'item.{NS}.{key}']=f'{tier}级工业机壳'
-    craft(key,['#c:ingots/iron']*4+['#c:ingots/copper']*4+[own('energy_crystal_1')] if tier==1 else [own(f'machine_frame_{tier-1}')]+[('#c:gems/diamond' if tier==2 else '#c:ingots/'+['','','','titanium','terra','spacetime'][tier])]*8,key)
+    key=f'industrial_upgrade_{tier}';items.append(key);names[f'item.{NS}.{key}']=f'{tier}级工业升级组件'
 
 metal_names={'iron':'铁','copper':'铜','gold':'金','lead':'铅','uranium':'铀','titanium':'钛'}
 for metal in ['lead','uranium','titanium']:
@@ -78,7 +67,9 @@ for metal,title in [('terra','泰拉石'),('spacetime','时空石')]:
     craft(metal+'_block',[own(metal+'_ingot')]*9,metal+'_block');craft(metal+'_unpack',[own(metal+'_block')],metal+'_ingot',9)
 for key,title in [('industrial_magic_stone','魔刹石'),('sulfide','硫化物'),('mana_wand','魔力传输权杖'),('coolant_bucket','冷却液桶')]:items.append(key);names[f'item.{NS}.{key}']=title
 tag('magic_stones',[own('industrial_magic_stone')],namespace=NS)
-blocks += ['energy_crystal_block_2','magic_ore','magic_grass'];names[f'block.{NS}.energy_crystal_block_2']='2阶魔能水晶块';names[f'block.{NS}.magic_ore']='魔力矿';names[f'block.{NS}.magic_grass']='魔力草';names[f'fluid_type.{NS}.coolant']='冷却液'
+blocks += ['energy_crystal_block_2','industrial_magic_stone_block','magic_ore','magic_grass'];names[f'block.{NS}.energy_crystal_block_2']='2阶魔能水晶块';names[f'block.{NS}.industrial_magic_stone_block']='魔刹石块';names[f'block.{NS}.magic_ore']='魔力矿';names[f'block.{NS}.magic_grass']='魔力草';names[f'fluid_type.{NS}.coolant']='冷却液'
+craft('industrial_magic_stone_block',[own('industrial_magic_stone')]*9,'industrial_magic_stone_block');craft('industrial_magic_stone_unpack',[own('industrial_magic_stone_block')],'industrial_magic_stone',9)
+tag('storage_blocks/industrial_magic_stone',[own('industrial_magic_stone_block')]);tag('storage_blocks/industrial_magic_stone',[own('industrial_magic_stone_block')],'block');tag('storage_blocks',['#c:storage_blocks/industrial_magic_stone'])
 craft('energy_crystal_block_2',[own('energy_crystal_2')]*9,'energy_crystal_block_2');craft('energy_crystal_unpack_2',[own('energy_crystal_block_2')],'energy_crystal_2',9)
 craft('mana_wand',['minecraft:stick']*2+[own('energy_crystal_2')],'mana_wand')
 craft('sulfide',['#c:ingots/lead','#c:sands','minecraft:coal'],'sulfide')
@@ -155,3 +146,13 @@ for locale in ['zh_cn','en_us']:
 manifest={'devices':devices,'blocks':blocks,'items':items,'families':list(families)+list(extras)+['transfer_crystal','harvest_crystal']}
 write(ROOT/'temp/industrial-art-manifest.json',manifest)
 print(f'Industrial resources: {len(devices)} devices, {len(items)} items, {len(blocks)} material blocks; recipes and tags generated.')
+
+# Preserve the V1 visual authoring layer when regenerating the industrial data catalog.
+from industrial_visual_models import generate as refresh_visual_models
+refresh_visual_models()
+from industrial_arcane_models import generate as refresh_arcane_models
+refresh_arcane_models()
+
+# Apply the single authoritative shaped catalog after legacy data generation.
+from industrial_crafting import generate as refresh_crafting
+refresh_crafting()

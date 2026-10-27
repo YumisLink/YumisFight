@@ -17,8 +17,14 @@ public final class IndustrialMenu extends AbstractContainerMenu {
     public JsonObject info=new JsonObject();
     private int broadcasts;
     public boolean showLines;
-    public IndustrialMenu(int id,Inventory inv,RegistryFriendlyByteBuf buf){this(id,inv,find(inv,buf.readBlockPos()));}
-    private static MachineBlockEntity find(Inventory inv,BlockPos pos){return inv.player.level().getBlockEntity(pos) instanceof MachineBlockEntity be?be:new MachineBlockEntity(pos,IndustrialContent.ALL_BLOCKS.get("mana_crusher_t1").get().defaultBlockState());}
+    public IndustrialMenu(int id,Inventory inv,RegistryFriendlyByteBuf buf){this(id,inv,find(inv,buf));}
+    public static void writeOpen(RegistryFriendlyByteBuf buf,MachineBlockEntity be){buf.writeBlockPos(be.getBlockPos());buf.writeUtf(be.spec().id());buf.writeEnum(be.getBlockState().getValue(MachineBlock.FACING));}
+    private static MachineBlockEntity find(Inventory inv,RegistryFriendlyByteBuf buf){
+        BlockPos pos=buf.readBlockPos();String spec=buf.readUtf();var facing=buf.readEnum(net.minecraft.core.Direction.class);
+        if(inv.player.level().getBlockEntity(pos) instanceof MachineBlockEntity be&&be.spec().id().equals(spec)&&be.getBlockState().getValue(MachineBlock.FACING)==facing)return be;
+        // A server can open a machine immediately after teleport, before its chunk reaches this client.
+        return new MachineBlockEntity(pos,IndustrialContent.ALL_BLOCKS.get(spec).get().defaultBlockState().setValue(MachineBlock.FACING,facing));
+    }
     public IndustrialMenu(int id,Inventory inventory,MachineBlockEntity be){
         super(IndustrialContent.MACHINE_MENU.get(),id);machine=be;
         for(int i=0;i<MachineBlockEntity.SIZE;i++){
@@ -42,20 +48,12 @@ public final class IndustrialMenu extends AbstractContainerMenu {
     @Override public boolean clickMenuButton(Player p,int button){
         if(!(p instanceof ServerPlayer server)||!stillValid(p))return false;
         if(button==0)machine.running=!machine.running;
-        else if(button==1&&machine.kind().processing())machine.backup=!machine.backup;
-        else if(button==2)upgrade(server);
-        else if(button==3)showLines=!showLines;
-        else if(button==4){if(machine.batchRecipe.isEmpty())machine.selected="";else machine.queued="@auto";}
-        else if(button>=100){var recipes=IndustrialWorld.get(server.level()).recipes(server.level(),machine.kind());int at=button-100;if(at<0||at>=recipes.size())return false;var selected=recipes.get(at);if(selected.value().minimumTier()>machine.tier())throw new IllegalArgumentException("需要"+selected.value().minimumTier()+"级机器");String id=selected.id().identifier().toString();if(machine.batchRecipe.isEmpty())machine.selected=id;else machine.queued=id;}
+        else if(button==1)return false;
+        else if(button==2)return false;
+        else if(button==3){showLines=false;Network.send(server,"industrial_lines",IndustrialWorld.get(server.level()).connectionPreview(machine));}
+        else if(button==4){if(machine.kind()!=DeviceKind.MINER)return false;if(machine.batchRecipe.isEmpty())machine.selected="";else machine.queued="@auto";}
+        else if(button>=100){if(machine.kind()!=DeviceKind.MINER)return false;var recipes=IndustrialWorld.get(server.level()).recipes(server.level(),machine.kind());int at=button-100;if(at<0||at>=recipes.size())return false;var selected=recipes.get(at);if(selected.value().minimumTier()>machine.tier())throw new IllegalArgumentException("需要"+selected.value().minimumTier()+"级机器");String id=selected.id().identifier().toString();if(machine.batchRecipe.isEmpty())machine.selected=id;else machine.queued=id;}
         else return false;machine.setChanged();return true;
-    }
-    private void upgrade(ServerPlayer p){
-        int max=machine.kind().graded?5:machine.kind().functional()?3:machine.tier();if(machine.tier()>=max)throw new IllegalArgumentException("此设备没有下一档升级");
-        String id="upgrade_"+machine.kind().id+"_t"+(machine.tier()+1);IndustrialRecipe recipe=p.level().recipeAccess().recipeMap().byType(IndustrialContent.RECIPE_TYPE.get()).stream().map(h->h.value()).filter(r->r.machine().equals(id)).findFirst().orElseThrow(()->new IllegalArgumentException("当前数据包没有升级配方"));
-        List<ItemStack> inputs=new ArrayList<>();for(int i=0;i<36;i++)inputs.add(p.getInventory().getItem(i));int[] plan=recipe.takePlan(inputs);if(plan==null)throw new IllegalArgumentException("升级材料不足，请放入玩家背包");
-        for(int i=0;i<36;i++)if(plan[i]>0)p.getInventory().removeItem(i,plan[i]);
-        ItemStack old=machine.getItem(MachineBlockEntity.CRYSTAL);if(!old.isEmpty()&&!EnergyMath.accepts(machine.tier()+1,IndustrialContent.crystalTier(old))){ServerRuntime.get().inventory.requireSpace(p,old.copy());machine.setItem(MachineBlockEntity.CRYSTAL,ItemStack.EMPTY);}
-        p.level().setBlock(machine.getBlockPos(),machine.getBlockState().setValue(MachineBlock.TIER,machine.tier()+1),3);IndustrialWorld.get(p.level()).changed(p.level(),machine.getBlockPos(),true);
     }
     @Override public void broadcastChanges(){super.broadcastChanges();if(machine.getLevel() instanceof net.minecraft.server.level.ServerLevel server&&++broadcasts%5==1){info=IndustrialWorld.get(server).info(machine,showLines);info.addProperty("menu",containerId);for(var player:server.getServer().getPlayerList().getPlayers())if(player.containerMenu==this)Network.send(player,"industrial_ui",info);}}
 }

@@ -1,0 +1,18 @@
+{
+  "type": "yumis_dungeon_and_fight:machine_upgrade",
+  "category": "misc",
+  "pattern": [
+    "CMC",
+    "MXM",
+    "CMC"
+  ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_2",
+    "M": "#c:gems/diamond",
+    "X": "yumis_dungeon_and_fight:transfer_crystal_t1"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:transfer_crystal_t2",
+    "count": 1
+  }
+}

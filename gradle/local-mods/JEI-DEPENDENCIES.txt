@@ -1,0 +1,17 @@
+JEI for Minecraft 26.2 / NeoForge
+Pinned version: 30.48.0.242
+Official source: https://github.com/mezz/JustEnoughItems/tree/v30.48.0
+License: MIT (see JEI-LICENSE.txt)
+The two API JARs are compileOnly. The full NeoForge JAR is a development runtime dependency; it is not embedded in this mod.
+
+jei-26.2-common-api-30.48.0.242.jar
+https://maven.blamejared.com/mezz/jei/jei-26.2-common-api/30.48.0.242/jei-26.2-common-api-30.48.0.242.jar
+SHA256 5c905cdd09e0eddb449f77dd8550dd0dbe95d84888b6f4ee2c7157b265b5f526
+
+jei-26.2-neoforge-30.48.0.242.jar
+https://maven.blamejared.com/mezz/jei/jei-26.2-neoforge/30.48.0.242/jei-26.2-neoforge-30.48.0.242.jar
+SHA256 b850ce9ddd5363fd7c84689f84be669f0e650f111a2c88091863efbef67d9002
+
+jei-26.2-neoforge-api-30.48.0.242.jar
+https://maven.blamejared.com/mezz/jei/jei-26.2-neoforge-api/30.48.0.242/jei-26.2-neoforge-api-30.48.0.242.jar
+SHA256 5cb413711bee2a1e156effc92a72118253bd1d33e28df66a2eb216535d50693a

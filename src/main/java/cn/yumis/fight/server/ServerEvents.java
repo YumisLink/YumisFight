@@ -29,6 +29,7 @@ public final class ServerEvents {
         return s.getBlock() instanceof CropBlock crop&&crop.isMaxAge(s)||s.is(Blocks.NETHER_WART)&&s.getValue(NetherWartBlock.AGE)==3||s.is(Blocks.COCOA)&&s.getValue(CocoaBlock.AGE)==2||s.is(Blocks.SWEET_BERRY_BUSH)&&s.getValue(SweetBerryBushBlock.AGE)==3;
     }
     public static void register(){
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent e)->{if(e.getEntity() instanceof net.minecraft.world.entity.player.Player)e.setStrength(e.getStrength()*.1f);});
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent e)->{
             if(ServerRuntime.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof net.minecraft.world.entity.item.ItemEntity item)ServerRuntime.get().loot.nativeLeft(item);
         }

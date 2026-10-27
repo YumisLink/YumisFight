@@ -30,7 +30,7 @@ public abstract class ContainerPacketMixin {
     }
     @Redirect(method="handleContainerButtonClick",at=@At(value="INVOKE",target="Lnet/minecraft/world/inventory/AbstractContainerMenu;clickMenuButton(Lnet/minecraft/world/entity/player/Player;I)Z"))
     private boolean ydnf$button(AbstractContainerMenu menu,Player owner,int button){
-        if(!ServerRuntime.ready()||ServerRuntime.get().inventory.inside())return menu.clickMenuButton(owner,button);
+        if(!ServerRuntime.ready()||ServerRuntime.get().inventory.inside()||menu instanceof cn.yumis.fight.industry.DimensionalMenu&&(button>=100&&button<200||button>=1000&&button<=1008))return menu.clickMenuButton(owner,button);
         boolean[] result={false};JsonObject intent=new JsonObject();intent.addProperty("button",button);intent.addProperty("menu",menu.containerId);
         try{ServerRuntime.get().inventory.transact(player,"menu-button/"+UUID.randomUUID(),intent,()->result[0]=menu.clickMenuButton(owner,button),Map.of());}
         catch(RuntimeException e){ServerRuntime.get().message(player,e.getMessage());menu.broadcastFullState();}

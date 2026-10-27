@@ -3,13 +3,13 @@ import java.math.BigInteger;
 import java.util.*;
 /** Platform-independent, versioned rules. Values are never inferred from displayed lore. */
 public final class Rules {
-    public static final int VERSION=6, PROTOCOL=5, MAX_LEVEL=80;
+    public static final int VERSION=7, PROTOCOL=8, MAX_LEVEL=80;
     public static final int SLOTS_PER_LAYER=8, SLOT_COUNT=24;
     public static final double DROP_RATE_BASE=1000;
     private Rules() {
     }
     public enum Stat {
-        HEALTH,MP,STRENGTH,INTELLIGENCE,SPIRIT,PHYSICAL_ATTACK,MAGICAL_ATTACK,PHYSICAL_DEFENSE,MAGICAL_DEFENSE,LIGHT,FIRE,ICE,DARK,LIGHT_RESIST,FIRE_RESIST,ICE_RESIST,DARK_RESIST,DROP_RATE,SHIELD,EVASION
+        HEALTH,MP,STRENGTH,INTELLIGENCE,SPIRIT,PHYSICAL_ATTACK,MAGICAL_ATTACK,PHYSICAL_DEFENSE,MAGICAL_DEFENSE,LIGHT,FIRE,ICE,DARK,LIGHT_RESIST,FIRE_RESIST,ICE_RESIST,DARK_RESIST,DROP_RATE,SHIELD,EVASION,ATTACK_SPEED
     }
     public enum ArmorType {
         LEGACY("旧版"),CLOTH("布甲"),LEATHER("皮甲"),LIGHT("轻甲"),HEAVY("重甲"),PLATE("板甲");

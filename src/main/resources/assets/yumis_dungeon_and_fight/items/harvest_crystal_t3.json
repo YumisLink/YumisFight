@@ -1,6 +1,19 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "yumis_dungeon_and_fight:item/harvest_crystal_t3"
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
+      {
+        "when": "fixed",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/harvest_crystal_icon"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/harvest_crystal_t3"
+    }
   }
 }

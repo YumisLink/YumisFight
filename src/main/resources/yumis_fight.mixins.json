@@ -28,7 +28,8 @@
     "NativeSonicBoomMixin",
     "NativeDragonAttackMixin",
     "NativeExplosionScopeMixin",
-    "NativeCubeAttackMixin"
+    "NativeCubeAttackMixin",
+    "SlotPositionAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
@@ -46,6 +47,7 @@
     "CameraMixin",
     "StormInputMixin",
     "InputAccessor",
-    "AvatarRendererMixin"
+    "AvatarRendererMixin",
+    "ContainerScreenSizeAccessor"
   ]
 }

@@ -30,7 +30,8 @@ public final class GemScreen extends Screen {
     }
     @Override public void extractBackground(GuiGraphicsExtractor g,int x,int y,float a){
         g.fill(0,0,width,height,UiTheme.OVERLAY);
-        g.text(font,UiFonts.decorate(title),width/2-font.width(title)/2,height/2-42,0xffffd28a,false);
+        UiTheme.panel(g,width/2-135,height/2-54,270,135);
+        g.text(font,UiFonts.decorate(title),width/2-font.width(title)/2,height/2-42,UiTheme.GOLD,false);
     }
     @Override public void onClose(){
         minecraft.gui.popScreenLayer();

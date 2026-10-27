@@ -87,17 +87,16 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
     }
     @Override public void extractBackground(GuiGraphicsExtractor g,int mx,int my,float a){
         g.fill(0,0,width,height,UiTheme.OVERLAY);
-        g.fill(leftPos-5,topPos-5,leftPos+181,topPos+208,UiTheme.PANEL);
-        g.fill(0,0,width,height,UiTheme.OVERLAY);
-        g.fill(leftPos-5,topPos-5,leftPos+181,topPos-3,UiTheme.ACCENT);
+        UiTheme.panel(g,leftPos-5,topPos-5,(leftPos+181)-(leftPos-5),(topPos+208)-(topPos-5));
+
+
         for(int i=0;i<18;i++){
             int x=leftPos+7+(i%9)*18,y=topPos+55+(i/9)*21;
-            g.fill(x,y,x+18,y+19,UiTheme.CARD);
-            g.fill(x+1,y+1,x+17,y+17,UiTheme.BUTTON);
+            UiTheme.slot(g,x+1,y+1);
             if(i<needs.size()){
                 var n=needs.get(i);
                 g.item(preview(n),x+1,y+1);
-                g.text(UiFonts.font(),Integer.toString(n.count()),x+1,y+12,held(n)>=n.count()?0xffb7f8bc:0xffff8b8b,false);
+                g.text(UiFonts.font(),Integer.toString(n.count()),x+1,y+12,held(n)>=n.count()?UiTheme.SUCCESS:UiTheme.ERROR,false);
                 if(mx>=x&&mx<x+18&&my>=y&&my<y+21){
                     ItemStack item=preview(n);
                     g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(UiFonts.decorate(item.getHoverName()),UiFonts.decorate(Component.literal("需要 "+n.count()+" · 持有 "+held(n)+" · 缺少 "+Math.max(0,n.count()-held(n))))),mx,my,item);
@@ -107,16 +106,15 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
         var gear=EquipmentRules.create(slot,weapon,Rarity.COMMON,level,armorType,jewelryType,new Random(0));
         g.item(GameItems.gear(gear),leftPos+10,topPos+14);
         if(mx>=leftPos+8&&mx<leftPos+28&&my>=topPos+12&&my<topPos+32){var preview=GameItems.gear(gear);g.setComponentTooltipForNextFrame(UiFonts.font(),Screen.getTooltipFromItem(minecraft,preview),mx,my,preview);}
-        g.text(UiFonts.font(),"Lv."+level,leftPos+59,topPos+36,0xfff4dba7,false);
+        g.text(UiFonts.font(),"Lv."+level,leftPos+59,topPos+36,UiTheme.GOLD,false);
         for(var s:menu.slots){
             int x=leftPos+s.x,y=topPos+s.y;
-            g.fill(x-1,y-1,x+17,y+17,UiTheme.CARD);
-            g.fill(x,y,x+16,y+16,UiTheme.BUTTON);
+            UiTheme.slot(g,x,y);
         }
     }
     @Override protected void extractLabels(GuiGraphicsExtractor g,int x,int y){
-        g.text(UiFonts.font(),"悬停查看持有/缺少",64,101,0xff9aa9be,false);
-        g.text(UiFonts.font(),UiFonts.decorate(playerInventoryTitle),8,101,0xffd9dce5,false);
+        g.text(UiFonts.font(),"悬停查看持有/缺少",64,101,UiTheme.MUTED,false);
+        g.text(UiFonts.font(),UiFonts.decorate(playerInventoryTitle),8,101,UiTheme.TEXT,false);
     }
     @Override public boolean keyPressed(KeyEvent e){
         if(ClientBootstrap.MENU.matches(e)){

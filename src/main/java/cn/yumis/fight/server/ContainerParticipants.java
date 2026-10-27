@@ -34,7 +34,8 @@ final class ContainerParticipants {
     private static boolean temporary(AbstractContainerMenu menu){
         return menu instanceof AbstractCraftingMenu||menu instanceof ItemCombinerMenu||menu instanceof EnchantmentMenu||menu instanceof GrindstoneMenu||menu instanceof CartographyTableMenu||menu instanceof LoomMenu||menu instanceof StonecutterMenu||menu instanceof MerchantMenu||menu instanceof BeaconMenu;
     }
-    Capture capture(ServerPlayer player){
+    Capture capture(ServerPlayer player){return capture(player,null);}
+    Capture capture(ServerPlayer player,cn.yumis.fight.industry.MachineBlockEntity explicit){
         List<Ref> refs=new ArrayList<>();
         IdentityHashMap<Container,Set<Integer>> seen=new IdentityHashMap<>();
         var extra=MenuHooks.extra(player);
@@ -53,6 +54,7 @@ final class ContainerParticipants {
         }
         List<MachineRef> machines=new ArrayList<>();
         for(Container container:seen.keySet())if(container instanceof cn.yumis.fight.industry.MachineBlockEntity be){var pos=be.getBlockPos();machines.add(new MachineRef(be,new Address("industrial",player.level().dimension().identifier().toString(),be.identity.toString(),be.getClass().getName(),pos.getX(),pos.getY(),pos.getZ(),-1),be.transactionState()));}
+        if(explicit!=null&&machines.stream().noneMatch(ref->ref.machine==explicit)){var pos=explicit.getBlockPos();machines.add(new MachineRef(explicit,new Address("industrial",player.level().dimension().identifier().toString(),explicit.identity.toString(),explicit.getClass().getName(),pos.getX(),pos.getY(),pos.getZ(),-1),explicit.transactionState()));}
         return new Capture(refs,machines);
     }
     private Address address(ServerPlayer player,Container container,int slot){

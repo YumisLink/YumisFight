@@ -16,11 +16,12 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 public final class ManaWand extends Item {
     private static final String[] MODES={"设备供能：先选信标，再选设备","信标连网：依次选择两座信标，重复连接可断开","物品传送：先选容器接收面，再选传送水晶"};
     public ManaWand(Properties p){super(p);}
+    @Override public InteractionResult onItemUseFirst(ItemStack stack,UseOnContext context){return useOn(context);}
     private CompoundTag data(ItemStack stack){return stack.getOrDefault(DataComponents.CUSTOM_DATA,CustomData.EMPTY).copyTag();}
     @Override public InteractionResult use(Level level,Player p,InteractionHand hand){if(!level.isClientSide()&&p.isShiftKeyDown()){ItemStack stack=p.getItemInHand(hand);CompoundTag data=data(stack);int mode=(data.getIntOr("mode",0)+1)%3;data.putInt("mode",mode);data.remove("selected");stack.set(DataComponents.CUSTOM_DATA,CustomData.of(data));p.sendOverlayMessage(Component.literal(MODES[mode]));return InteractionResult.SUCCESS;}return InteractionResult.PASS;}
     @Override public InteractionResult useOn(UseOnContext c){
         Player player=c.getPlayer();if(player==null||!(c.getLevel() instanceof ServerLevel level))return InteractionResult.SUCCESS;if(!level.mayInteract(player,c.getClickedPos()))return InteractionResult.FAIL;
-        ItemStack stack=c.getItemInHand();CompoundTag data=data(stack);int mode=data.getIntOr("mode",0);var world=IndustrialWorld.get(level);var raw=level.getBlockEntity(c.getClickedPos());
+        ItemStack stack=c.getItemInHand();CompoundTag data=data(stack);int mode=data.getIntOr("mode",0);var world=IndustrialWorld.get(level);var raw=level.getBlockEntity(WindGeneratorPartBlock.base(level,c.getClickedPos()));
         try{
             if(raw instanceof MachineBlockEntity be){
                 if(player.isShiftKeyDown()){if(mode==2&&be.kind()==DeviceKind.TRANSFER)be.targetDimension="";else if(mode==0)be.beacon="";data.remove("selected");be.setChanged();player.sendOverlayMessage(Component.literal("已清除当前绑定"));}

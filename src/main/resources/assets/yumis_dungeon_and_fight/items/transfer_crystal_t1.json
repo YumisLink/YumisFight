@@ -1,6 +1,19 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "yumis_dungeon_and_fight:item/transfer_crystal_t1"
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
+      {
+        "when": "fixed",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/transfer_crystal_icon"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/transfer_crystal_t1"
+    }
   }
 }

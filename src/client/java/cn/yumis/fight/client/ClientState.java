@@ -23,7 +23,7 @@ public final class ClientState {
     public String session="",dimension="";
     public Team party;
     public Dungeon dungeon;
-    public JsonObject profile=new JsonObject(),professions=new JsonObject();
+    public JsonObject profile=new JsonObject(),professions=new JsonObject(),damageMeter=new JsonObject();
     public boolean ready;
     private cn.yumis.fight.api.AttributeSources syncedSources=new cn.yumis.fight.api.AttributeSources();
     private long nextOperation=1,lastUpload,lastHello;
@@ -85,6 +85,8 @@ public final class ClientState {
     }
     public void clear(){
         ready=false;
+        damageMeter=new JsonObject();
+        IndustrialVisuals.clear();
         session="";
         targets.clear();
         pending.clear();
@@ -102,8 +104,10 @@ public final class ClientState {
     }
     public void accept(String action,JsonObject j){
         switch(action){
+            case "industrial_lines"->IndustrialVisuals.receive(j);
             case "industrial_ui"->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof cn.yumis.fight.industry.IndustrialMenu menu&&menu.containerId==j.get("menu").getAsInt())menu.info=j;}
             case "storage_ui"->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof cn.yumis.fight.industry.DimensionalMenu menu)menu.preview=j;}
+            case "damageMeter"->damageMeter=j;
             case "profile"->{
                 if(j.get("protocol").getAsInt()!=PROTOCOL||j.get("rules").getAsInt()!=VERSION){
                     message("模组协议或规则版本不一致");

@@ -110,7 +110,8 @@ public final class ClientCombat {
         }
         Cast c=new Cast();
         c.skill=skill;
-        c.parameters=SkillParameters.forCast(p.getUUID(),skill,rank,stats.parameters);
+        secondSlash=null;
+        c.parameters=WeaponRules.skill(SkillParameters.forCast(p.getUUID(),skill,rank,stats.parameters),state.progress,stats);
         c.stats=stats;
         c.weapon=stats.weaponInstance;
         c.slot=slot;
@@ -135,55 +136,38 @@ public final class ClientCombat {
     public void release(int baseSlot){
         if(cast!=null&&cast.charging&&cast.slot%8==baseSlot)cast.release=true;
     }
+    private String basicCycle="";
+    private int basicSlash;
+    private record SecondSlash(long at,String cycle,String weapon,long generation,String dimension,Stats stats){}
+    private SecondSlash secondSlash;
     public void attack(){
         var mc=Minecraft.getInstance();
-        if(!validWeapon()||cast!=null||ClientState.now()-lastAttack<650)return;
-        lastAttack=ClientState.now();
-        var p=mc.player;
+        if(!validWeapon()||cast!=null||mc.player.isDeadOrDying()||mc.player.hasEffect(FightMod.STUN)||ClientState.now()<lastAttack)return;
+        Stats stats=snapshot();double interval=WeaponRules.interval(state.progress,stats);
+        lastAttack=ClientState.now()+(long)Math.ceil(interval);
+        String cycle=UUID.randomUUID().toString();JsonObject request=new JsonObject();request.addProperty("id",cycle);state.send("basicStart",request);
         if(mc.hitResult instanceof EntityHitResult hit&&hit.getEntity() instanceof CageEntity cage){
-            JsonObject j=new JsonObject();
-            j.addProperty("cage",cage.root());
-            j.addProperty("operation",UUID.randomUUID().toString());
-            state.send("cageHit",j);
-            return;
+            JsonObject j=new JsonObject();j.addProperty("cage",cage.root());j.addProperty("operation",UUID.randomUUID().toString());state.send("cageHit",j);mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);return;
         }
-        Stats stats=snapshot();
-        Vec3 from=p.getEyePosition(),end=from.add(p.getLookAngle().scale(3));
-        LivingEntity closest=null;
-        double distance=Double.MAX_VALUE;
-        for(LivingEntity e:enemies(new AABB(from,end).inflate(1))){
-            Optional<Vec3> intersect=e.getBoundingBox().inflate(.2).clip(from,end);
-            if(intersect.isPresent()&&visible(from,intersect.get())&&from.distanceToSqr(intersect.get())<distance){
-                closest=e;
-                distance=from.distanceToSqr(intersect.get());
-            }
+        basicStrike(stats,cycle,0,interval);
+        if(WeaponRules.mastery(state.progress,stats)&&stats.weaponType.equals("LIGHTSABER"))secondSlash=new SecondSlash(ClientState.now()+(long)(interval/2),cycle,stats.weaponInstance,state.own.generation,mc.level.dimension().identifier().toString(),stats);
+    }
+    private void basicStrike(Stats stats,String cycle,int index,double interval){
+        var mc=Minecraft.getInstance();var p=mc.player;
+        basicCycle=cycle;basicSlash=index;
+        boolean mastery=WeaponRules.mastery(state.progress,stats),great=mastery&&stats.weaponType.equals("GREATSWORD");
+        Vec3 from=p.getEyePosition(),direction=horizontal(p.getLookAngle());double reach=great?6:WeaponRules.sword(stats.weaponType)?4.5:3;
+        double coefficient=great?1.5:mastery&&stats.weaponType.equals("LIGHTSABER")?.75:1;
+        if(great){
+            for(LivingEntity e:enemies(p.getBoundingBox().inflate(reach,1,reach))){Vec3 delta=e.getBoundingBox().getCenter().subtract(from);if(delta.horizontalDistanceSqr()<=reach*reach&&Math.abs(delta.y)<=2&&horizontal(delta).dot(direction)>=Math.cos(Math.PI/4)&&visible(from,e.getBoundingBox().getCenter()))hit(e,stats,null,coefficient,true,false,.4,null);}
+        }else{
+            Vec3 end=from.add(p.getLookAngle().scale(reach));LivingEntity closest=null;double distance=Double.MAX_VALUE;
+            for(LivingEntity e:enemies(new AABB(from,end).inflate(1))){var intersection=e.getBoundingBox().inflate(.2).clip(from,end);if(intersection.isPresent()&&visible(from,intersection.get())&&from.distanceToSqr(intersection.get())<distance){closest=e;distance=from.distanceToSqr(intersection.get());}}
+            if(closest!=null){hit(closest,stats,null,coefficient,true,false,.4,null);if(mastery&&stats.weaponType.equals("BLUNT")){Vec3 center=closest.position().add(0,1,0);for(LivingEntity e:enemies(closest.getBoundingBox().inflate(2)))if(e!=closest&&e.position().distanceToSqr(closest.position())<=4&&visible(center,e.getBoundingBox().getCenter()))hit(e,stats,null,1,true,false,.4,null);}}
         }
-        if(closest!=null){
-            hit(closest,stats,null,1,true,false,.4,null);
-            if(stats.weaponType.equals("BLUNT")&&stats.effective(state.progress,Skill.MASTERY)>0){
-                Vec3 center=closest.position().add(0,1,0);
-                for(LivingEntity e:enemies(closest.getBoundingBox().inflate(2)))if(e!=closest&&e.position().distanceToSqr(closest.position())<=4&&visible(center,e.getBoundingBox().getCenter()))hit(e,stats,null,1,true,false,.4,null);
-            }
-        }
-        JsonObject visual=new JsonObject();
-        visual.addProperty("caster",p.getStringUUID());
-        visual.addProperty("duration",650);
-        visual.addProperty("session",state.session);
-        visual.addProperty("generation",state.own.generation);
-        visual.addProperty("id",UUID.randomUUID().toString());
-        visual.addProperty("kind","BASIC");
-        visual.addProperty("phase","START");
-        visual.addProperty("seed",random.nextLong());
-        visual.addProperty("startedAt",state.serverNow());
-        visual.addProperty("x",p.getX());
-        visual.addProperty("y",p.getY());
-        visual.addProperty("z",p.getZ());
-        visual.addProperty("dx",p.getLookAngle().x);
-        visual.addProperty("dy",p.getLookAngle().y);
-        visual.addProperty("dz",p.getLookAngle().z);
-        Effects.receive(visual);
-        state.send("visual",visual);
-        if(stats.weaponType.equals("SHORTSWORD")&&stats.effective(state.progress,Skill.MASTERY)>0)wave(p.position().add(0,.8,0),horizontal(p.getLookAngle()),8,3,2,stats,null,.2*mastery(stats),true,false);
+        basicCycle="";p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+        JsonObject visual=visualEnvelope(UUID.nameUUIDFromBytes((cycle+"/"+index).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString(),"BASIC","START",ClientState.now(),p.position(),p.position(),p.getLookAngle(),0);visual.addProperty("duration",(long)(interval/(mastery&&stats.weaponType.equals("LIGHTSABER")?2:1)));visual.addProperty("reach",reach);visual.addProperty("sweep",great);visual.addProperty("horizontalScale",great?1:WeaponRules.sword(stats.weaponType)?1.5:1);Effects.receive(visual);state.send("visual",visual);
+        if(stats.weaponType.equals("SHORTSWORD")&&mastery)wave(p.position().add(0,.8,0),direction,8,3,2,stats,null,.2*mastery(stats),true,false);
     }
     public void tick(){
         var mc=Minecraft.getInstance();
@@ -202,6 +186,8 @@ public final class ClientCombat {
             if(!weapon.isEmpty())Effects.spark(mc.player.position().add(0,1,0),0xffedab);
         }
         if(cast!=null&&(!validWeapon()||!cast.weapon.equals(weapon)||mc.player.isDeadOrDying()||mc.player.hasEffect(FightMod.STUN)||!cast.dimension.equals(mc.level.dimension().identifier().toString())))cancel(false);
+        if(secondSlash!=null){var next=secondSlash;if(cast!=null||!validWeapon()||!next.weapon.equals(weapon)||next.generation!=state.own.generation||mc.player.isDeadOrDying()||mc.player.hasEffect(FightMod.STUN)||!next.dimension.equals(mc.level.dimension().identifier().toString()))secondSlash=null;else if(now>=next.at){secondSlash=null;basicStrike(next.stats,next.cycle,1,WeaponRules.interval(state.progress,next.stats));}}
+        if(mc.gui.screen()==null&&mc.options.keyAttack.isDown()&&(mc.hitResult==null||mc.hitResult.getType()!=HitResult.Type.BLOCK))attack();
         if(cast!=null)advance(now,dt);
         for(Wave w:new ArrayList<>(waves))advance(w);
         boolean out=now>=state.resources.combatUntil;
@@ -338,6 +324,7 @@ public final class ClientCombat {
         if(c.stats.effective(state.progress,Skill.MASTERY)>0)wave(Minecraft.getInstance().player.position().add(0,.8,0),c.direction,8,3,2,c.stats,c.skill,c.parameters.get("damage",1)*.2*mastery(c.stats),true,false);
     }
     private void slash(Cast c,double length,double width,double height,double coefficient,double knockback,boolean fan){
+        double scale=c.parameters.get("meleeScale",1);length*=scale;width*=scale;
         var p=Minecraft.getInstance().player;
         Vec3 start=p.position().add(0,.8,0);
         strikeCages(new AABB(start,start.add(c.direction.scale(length))).inflate(width/2,height/2,width/2),start,c.id);
@@ -431,12 +418,14 @@ public final class ClientCombat {
             0,0,0,0
         }
         ;
-        CombatRules.Damage parts=CombatRules.calculate(stats,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,coefficient,!passive,random);
+        CombatRules.Damage parts=CombatRules.calculate(stats,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,basic&&!passive?1:coefficient,!passive,random);
+        if(basic&&!passive)parts=new CombatRules.Damage(parts.main()*coefficient,parts.extra()*coefficient,parts.element());
         var resolved=CombatRules.skillDamage(parts,stats,skill,mastery(stats),basic,passive,advantage(state.progress.level,level));
         double damage=resolved.total();
         double main=resolved.main();
         double maximum=target.health(level);
         JsonObject extra=new JsonObject();
+        if(basic&&!passive&&!basicCycle.isEmpty()){extra.addProperty("basicCycle",basicCycle);extra.addProperty("basicSlash",basicSlash);}
         JsonObject kb=new JsonObject();
         kb.addProperty("strength",knockback);
         if(center!=null){
@@ -513,6 +502,7 @@ public final class ClientCombat {
         return h.lengthSqr()<.001?new Vec3(0,0,1):h.normalize();
     }
     public void cancel(boolean normal){
+        if(!normal)secondSlash=null;
         if(cast==null)return;
         visual(cast,normal?"END":"CANCEL");
         cast=null;
@@ -525,6 +515,7 @@ public final class ClientCombat {
         long duration=c.skill==Skill.STORM?(long)(c.parameters.get("duration",8)*1000):c.skill==Skill.GHOST?3800:c.skill==Skill.OVERDRIVE?30000:c.skill==Skill.DRAGON?6000:c.skill==Skill.TRIPLE?4500:c.skill==Skill.DANCE?(long)(c.parameters.get("duration",1.25)*1000+600):1800;
         j.addProperty("duration",duration);
         j.addProperty("rank",c.parameters.rank());
+        j.addProperty("horizontalScale",c.parameters.get("meleeScale",1));
         j.addProperty("charge",Math.clamp((ClientState.now()-c.start)/1000d,0,1));
         boolean gold=state.resources.buffs.getOrDefault("OVERDRIVE",0L)>ClientState.now()&&(c.skill==Skill.TRIPLE||c.skill.ordinal()>=Skill.RISING.ordinal());
         j.addProperty("color",c.skill==Skill.GHOST?0x8E56D9:gold?0xFFD368:0xB4F2FF);
@@ -768,7 +759,7 @@ public final class ClientCombat {
                 JsonObject change=j.getAsJsonObject("change");
                 extra.add("effect",change.get("effect"));
                 extra.addProperty("index",b.index);
-                state.report(target.life,change.get("fraction").getAsDouble(),false,target.health(target.level(state.progress.level,state.progress.sync)),0xe05360,extra);
+                state.report(target.life,change.get("fraction").getAsDouble(),false,target.health(target.level(state.progress.level,state.dungeon==null?state.progress.sync:state.dungeon.sync)),0xe05360,extra);
                 bleeds.put(entry.getKey(),new Bleed(j,now+1000,b.index+1));
             }
         }

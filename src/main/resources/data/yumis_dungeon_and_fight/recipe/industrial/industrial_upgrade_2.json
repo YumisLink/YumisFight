@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CMC",
+    "M M",
+    "CMC"
+  ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_2",
+    "M": "#c:gems/diamond"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:industrial_upgrade_2",
+    "count": 1
+  }
+}

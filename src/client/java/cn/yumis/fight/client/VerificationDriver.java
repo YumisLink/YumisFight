@@ -10,6 +10,7 @@ import java.nio.file.*;
 import java.util.*;
 /** Explicit opt-in developer harness, inactive in ordinary launches. Uses real menus and payloads. */
 public final class VerificationDriver {
+    private static JsonObject jeiInspection=new JsonObject();
     private static long seen=-1,last;
     static boolean tooltipShift;
     private VerificationDriver(){
@@ -45,8 +46,12 @@ public final class VerificationDriver {
             status.add("progress",JSON.toJsonTree(ClientState.INSTANCE.progress));
             status.add("life",JSON.toJsonTree(ClientState.INSTANCE.own));
             status.add("stats",JSON.toJsonTree(ClientState.INSTANCE.stats));
+            status.add("damageMeter",ClientState.INSTANCE.damageMeter.deepCopy());
+            status.add("jei",jeiInspection.deepCopy());status.addProperty("industrialBeams",IndustrialVisuals.beams().size());status.addProperty("industrialBeamRemaining",IndustrialVisuals.remaining());
             if(ClientState.INSTANCE.profile.has("stats"))status.add("serverStats",ClientState.INSTANCE.profile.get("stats"));
             status.addProperty("font",UiFonts.currentName());
+            status.addProperty("characterDark",ClientSettings.characterDark);
+            status.addProperty("themeRevision",UiTheme.revision);status.addProperty("themeStatus",UiTheme.status);status.addProperty("themePanel",Integer.toHexString(UiTheme.PANEL));
             status.addProperty("fontBusy",UiFonts.busy());
             status.addProperty("fontStatus",UiFonts.status());
             status.addProperty("mouseX",mc.mouseHandler.getScaledXPos(mc.getWindow()));
@@ -56,6 +61,9 @@ public final class VerificationDriver {
             status.add("feedback",FeedbackProbe.snapshot());
             status.add("vfxMetrics",JSON.toJsonTree(Effects.VFX.metrics()));
             status.addProperty("vfxActive",Effects.VFX.activeCount());
+            status.add("visualEvents",JSON.toJsonTree(Effects.VFX.activeEvents()));
+            var cast=ClientCombat.INSTANCE.cast;
+            if(cast!=null){JsonObject detail=new JsonObject();detail.addProperty("id",cast.id);detail.addProperty("skill",cast.skill.name());detail.addProperty("slashes",cast.slashes);detail.addProperty("segment",cast.segment);detail.addProperty("start",cast.start);detail.add("parameters",JSON.toJsonTree(cast.parameters.values()));status.add("cast",detail);}
             if(mc.player!=null){
                 if(mc.player.containerMenu instanceof cn.yumis.fight.industry.IndustrialMenu industry)status.add("industry",industry.info.deepCopy());
                 var bag=MenuHooks.extra(mc.player);status.addProperty("bagTier",bag.bagTier);status.addProperty("bagPage",bag.bagPage);status.addProperty("bagSchema",bag.bagSchema);
@@ -123,8 +131,10 @@ public final class VerificationDriver {
         String action=j.get("action").getAsString();
         var state=ClientState.INSTANCE;
         switch(action){
+            case "jei"->jeiInspection=(JsonObject)Class.forName("cn.yumis.fight.client.jei.IndustrialJeiPlugin").getMethod("inspect",String.class,String.class).invoke(null,j.has("operation")?j.get("operation").getAsString():"summary",j.has("key")?j.get("key").getAsString():"");
+
             case "connect"->{
-                String address="127.0.0.1:25568";
+                String address=j.has("address")?j.get("address").getAsString():"127.0.0.1:25568";
                 net.minecraft.client.gui.screens.ConnectScreen.startConnecting(new net.minecraft.client.gui.screens.TitleScreen(),mc,net.minecraft.client.multiplayer.resolver.ServerAddress.parseString(address),new net.minecraft.client.multiplayer.ServerData("Local verification",address,net.minecraft.client.multiplayer.ServerData.Type.OTHER),false,null);
             }
             case "menu"->mc.gui.setScreen(j.has("page")?new FightScreen(j.get("page").getAsInt()):new FightScreen());
@@ -183,7 +193,7 @@ public final class VerificationDriver {
                 }
             }
             case "scroll"->{
-                if(mc.gui.screen()!=null)mc.gui.screen().mouseScrolled(100,100,0,j.get("amount").getAsDouble());
+                if(mc.gui.screen()!=null)mc.gui.screen().mouseScrolled(j.has("x")?j.get("x").getAsDouble():100,j.has("y")?j.get("y").getAsDouble():100,0,j.get("amount").getAsDouble());
             }
             case "screenshot"->Screenshot.grab(mc.gameDirectory,j.get("name").getAsString()+".png",mc.gameRenderer.mainRenderTarget(),1,c->{
             }
@@ -205,6 +215,9 @@ public final class VerificationDriver {
             case "creativeInventory"->{
                 if(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen screen)((cn.yumis.fight.mixin.CreativeTabAccessor)screen).ydnf$tab(net.minecraft.core.registries.BuiltInRegistries.CREATIVE_MODE_TAB.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("inventory")));
             }
+            case "creativeTab"->{
+                if(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen screen)((cn.yumis.fight.mixin.CreativeTabAccessor)screen).ydnf$tab(net.minecraft.core.registries.BuiltInRegistries.CREATIVE_MODE_TAB.getValue(net.minecraft.resources.Identifier.parse(j.get("tab").getAsString())));
+            }
             case "useBlock"->{
                 var pos=new net.minecraft.core.BlockPos(j.get("x").getAsInt(),j.get("y").getAsInt(),j.get("z").getAsInt());
                 mc.gameMode.useItemOn(mc.player,net.minecraft.world.InteractionHand.MAIN_HAND,new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(pos),net.minecraft.core.Direction.UP,pos,false));
@@ -217,6 +230,12 @@ public final class VerificationDriver {
                 mc.player.setYRot(j.get("yaw").getAsFloat());
                 mc.player.setXRot(j.get("pitch").getAsFloat());
             }
+            case "holdAttack"->mc.options.keyAttack.setDown(true);
+            case "stopAttack"->mc.options.keyAttack.setDown(false);
+            case "storageSearch"->{if(mc.gui.screen()!=null)for(var child:mc.gui.screen().children())if(child instanceof net.minecraft.client.gui.components.EditBox box){box.setValue(j.get("text").getAsString());break;}}
+            case "useItem"->mc.gameMode.useItem(mc.player,net.minecraft.world.InteractionHand.MAIN_HAND);
+            case "storageScroll"->{if(mc.player.containerMenu instanceof cn.yumis.fight.industry.DimensionalMenu bag)mc.gameMode.handleInventoryButtonClick(bag.containerId,100+j.get("row").getAsInt());}
+            case "drag"->{if(mc.gui.screen()!=null){var first=new MouseButtonEvent(j.get("x").getAsDouble(),j.get("y").getAsDouble(),new MouseButtonInfo(0,0));var last=new MouseButtonEvent(j.get("toX").getAsDouble(),j.get("toY").getAsDouble(),new MouseButtonInfo(0,0));mc.gui.screen().mouseClicked(first,false);mc.gui.screen().mouseDragged(last,last.x()-first.x(),last.y()-first.y());mc.gui.screen().mouseReleased(last);}}
             case "attack"->ClientCombat.INSTANCE.attack();
             case "skill"->ClientCombat.INSTANCE.press(j.get("slot").getAsInt());
             case "release"->ClientCombat.INSTANCE.release(j.get("slot").getAsInt());

@@ -6,7 +6,9 @@ import net.neoforged.neoforge.event.level.*;
 
 final class IndustrialEvents {
     static void register(){
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.OnDatapackSyncEvent e)->e.sendRecipes(IndustrialContent.RECIPE_TYPE.get(),net.minecraft.world.item.crafting.RecipeType.CRAFTING));
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.RegisterCommandsEvent e)->cn.yumis.fight.server.IndustrialVerification.register(e));
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.RegisterCommandsEvent e)->cn.yumis.fight.server.IndustrialVisualVerification.register(e));
         NeoForge.EVENT_BUS.addListener((BlockEvent.NeighborNotifyEvent e)->{if(e.getLevel() instanceof ServerLevel l)IndustrialWorld.get(l).changed(l,e.getPos(),true);});
         NeoForge.EVENT_BUS.addListener((BlockEvent.EntityPlaceEvent e)->{if(e.getLevel() instanceof ServerLevel l&&!e.isCanceled())IndustrialWorld.get(l).changed(l,e.getPos(),true);});
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.level.block.BreakBlockEvent e)->{if(e.getLevel() instanceof ServerLevel l&&!e.isCanceled())IndustrialWorld.get(l).changed(l,e.getPos(),true);});

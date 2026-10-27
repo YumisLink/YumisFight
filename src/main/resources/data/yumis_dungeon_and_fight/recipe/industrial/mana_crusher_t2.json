@@ -1,10 +1,16 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "yumis_dungeon_and_fight:machine_upgrade",
   "category": "misc",
-  "ingredients": [
-    "yumis_dungeon_and_fight:machine_frame_2",
-    "minecraft:stonecutter"
+  "pattern": [
+    "CMC",
+    "MXM",
+    "CMC"
   ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_2",
+    "M": "#c:gems/diamond",
+    "X": "yumis_dungeon_and_fight:mana_crusher_t1"
+  },
   "result": {
     "id": "yumis_dungeon_and_fight:mana_crusher_t2",
     "count": 1

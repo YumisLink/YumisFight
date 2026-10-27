@@ -1,12 +1,16 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "ingredients": [
-    "yumis_dungeon_and_fight:machine_frame_4",
-    "minecraft:cauldron",
-    "#c:storage_blocks/lead",
-    "#c:storage_blocks/lead"
+  "pattern": [
+    "CMC",
+    "MXM",
+    "CMC"
   ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_4",
+    "M": "#c:ingots/terra",
+    "X": "yumis_dungeon_and_fight:nuclear_core"
+  },
   "result": {
     "id": "yumis_dungeon_and_fight:nuclear_reactor",
     "count": 1

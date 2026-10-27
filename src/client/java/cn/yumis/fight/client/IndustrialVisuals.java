@@ -8,6 +8,18 @@ import net.minecraft.world.phys.*;
 /** Local, opt-in traces and placement previews. Never asks the server to load terrain. */
 public final class IndustrialVisuals {
     private static int ticks;
+    private static long expires;
+    private static String beamDimension="";
+    public record Beam(Vec3 from,Vec3 to){}
+    private static java.util.List<Beam> beams=java.util.List.of();
+    public static void receive(com.google.gson.JsonObject packet){
+        var mc=Minecraft.getInstance();if(mc.level==null||!packet.get("dimension").getAsString().equals(mc.level.dimension().identifier().toString()))return;
+        java.util.List<Beam> next=new java.util.ArrayList<>();for(var value:packet.getAsJsonArray("beams")){var line=value.getAsJsonObject();next.add(new Beam(Vec3.atCenterOf(BlockPos.of(line.get("from").getAsLong())),Vec3.atCenterOf(BlockPos.of(line.get("to").getAsLong()))));}
+        beams=java.util.List.copyOf(next);beamDimension=packet.get("dimension").getAsString();expires=Math.min(packet.get("expires").getAsLong(),ClientState.INSTANCE.serverNow()+10000);
+    }
+    public static java.util.List<Beam> beams(){var mc=Minecraft.getInstance();if(mc.level==null||ClientState.INSTANCE.serverNow()>=expires||!mc.level.dimension().identifier().toString().equals(beamDimension)){beams=java.util.List.of();return beams;}return beams;}
+    public static void clear(){beams=java.util.List.of();expires=0;}
+    public static long remaining(){return beams().isEmpty()?0:Math.max(0,expires-ClientState.INSTANCE.serverNow());}
     private IndustrialVisuals(){}
     public static void tick(){
         var mc=Minecraft.getInstance();if(mc.level==null||mc.player==null||++ticks%10!=0)return;

@@ -48,7 +48,7 @@ public final class EquipmentSelectionScreen extends Screen {
         for(Entry e:entries){e.button.setY(bodyTop+e.row*54-scroll);e.button.visible=e.button.getY()>=bodyTop&&e.button.getY()+48<=bodyTop+bodyHeight;}
     }
     @Override public void extractBackground(GuiGraphicsExtractor g,int x,int y,float delta){
-        g.fill(0,0,width,height,UiTheme.OVERLAY);g.fill(left,top,left+panelWidth,top+panelHeight,UiTheme.PANEL);
+        g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,left,top,(left+panelWidth)-(left),(top+panelHeight)-(top));
         g.text(font,title,left+12,top+13,UiTheme.TEXT,false);
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int x,int y,float delta){
@@ -58,7 +58,7 @@ public final class EquipmentSelectionScreen extends Screen {
             g.text(font,e.button.active?"普通 · Lv."+GameItems.gear(e.preview).level:"Lv."+e.slot.minimum()+" 解锁",bx+7,by+34,e.button.active?UiTheme.MUTED:UiTheme.ERROR,false);
             if(x>=bx&&x<bx+e.button.getWidth()&&y>=by&&y<by+48){
                 var lines=new ArrayList<>(Screen.getTooltipFromItem(minecraft,e.preview));
-                if(!e.button.active)lines.add(Component.literal("角色达到 Lv."+e.slot.minimum()+" 后可制作").withColor(0xff9696));
+                if(!e.button.active)lines.add(Component.literal("角色达到 Lv."+e.slot.minimum()+" 后可制作").withColor(UiTheme.ERROR));
                 g.setComponentTooltipForNextFrame(font,lines.stream().map(UiFonts::decorate).toList(),x,y,e.preview);
             }
         }

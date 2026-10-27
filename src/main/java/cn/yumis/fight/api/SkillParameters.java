@@ -39,8 +39,8 @@ public final class SkillParameters {
         p.put("slashes",skill==Skill.DANCE?10d:skill==Skill.STORM?24d:skill==Skill.TRIPLE?3d:skill==Skill.DRAGON?4d:1d);
         p.put("damage",skill.coefficient(rank));
         p.put("finisher",(skill==Skill.DANCE?5:skill==Skill.STORM?8:skill==Skill.RISING?2.4:0)*Math.pow(1.12,Math.max(0,rank-1)));
-        p.put("interval",skill==Skill.DANCE?.125:skill==Skill.STORM?.25:.2);
-        p.put("duration",skill==Skill.STORM?8d:skill==Skill.DANCE?1.25:.8);
+        p.put("interval",skill==Skill.DANCE?.125:skill==Skill.STORM? .25/cn.yumis.fight.rules.StormChoreography.SPEED:.2);
+        p.put("duration",skill==Skill.STORM?cn.yumis.fight.rules.StormChoreography.END/cn.yumis.fight.rules.StormChoreography.SPEED/1000:skill==Skill.DANCE?1.25:.8);
         Map<String,Double> additions=new HashMap<>(),products=new HashMap<>();
         Set<String> seen=new HashSet<>();
         for(Change c:changes)if(c.skill==skill){

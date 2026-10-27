@@ -15,6 +15,7 @@ public final class EquipmentRules {
         g.weapon=weapon;
         g.rarity=rarity;
         g.level=level;
+        if(slot==Slot.WEAPON)g.weaponCurve=1;
         g.armorType=armorType==null?ArmorType.LEGACY:armorType;
         g.jewelryType=jewelryType==null?JewelryType.LEGACY:jewelryType;
         EquipmentTemplates.validate(g);
@@ -39,7 +40,7 @@ public final class EquipmentRules {
     }
     private static void addBases(Gear g){
         double scale=g.rarity==Rarity.MYTHIC?1.9:g.rarity==Rarity.EPIC?(g.slot==Slot.WEAPON?1.6:1.5):1;
-        for(Definitions.Curve curve:EquipmentTemplates.bases(g))g.affixes.add(new Affix("base_"+curve.stat().name().toLowerCase(Locale.ROOT),curve.stat(),curve.at(g.slot,g.level)*scale,true));
+        for(Definitions.Curve curve:EquipmentTemplates.bases(g))g.affixes.add(new Affix("base_"+curve.stat().name().toLowerCase(Locale.ROOT),curve.stat(),curve.at(g.slot,g.level)*scale*(g.slot==Slot.WEAPON&&g.weaponCurve>0&&(curve.stat()==Stat.PHYSICAL_ATTACK||curve.stat()==Stat.MAGICAL_ATTACK)?WeaponRules.attackScale(g.weapon,curve.stat()):1),true));
     }
     public static double budget(int level){
         double a=20+5*(level-1);
@@ -132,10 +133,11 @@ public final class EquipmentRules {
         a.baseline=base;
         a.roll=roll;
         a.value=base*roll;
+        if(a.stat.equals("ATTACK_SPEED")){a.value=WeaponRules.speedAffix(g.level,roll);a.baseline=WeaponRules.speedAffix(g.level,.8);a.baselineMaximum=WeaponRules.speedAffix(g.level,1.2);}
         g.affixes.add(a);
     }
     public static boolean replaceable(Affix a){
-        return !a.base&&!a.fixed&&!a.locked;
+        return !a.base&&(!a.fixed||a.operation.equals("SKILL_FAMILY"))&&!a.locked;
     }
     public static Gear process(Gear original,String currency,Random random){
         Gear g=copy(original,Gear.class);
@@ -166,7 +168,7 @@ public final class EquipmentRules {
                 Affix removed=eligible.get(random.nextInt(eligible.size()));
                 int index=g.affixes.indexOf(removed);
                 g.affixes.remove(index);
-                appendRandom(g,random,true);
+                appendRandom(g,random,false);
                 Affix replacement=g.affixes.removeLast();
                 g.affixes.add(index,replacement);
             }
@@ -182,6 +184,7 @@ public final class EquipmentRules {
                 for(Affix a:g.affixes)if(!a.fixed&&!a.base){
                     a.roll=.8+random.nextDouble()*.4;
                     a.value=a.baseline*a.roll;
+                    if(a.stat.equals("ATTACK_SPEED"))a.value=WeaponRules.speedAffix(g.level,a.roll);
                     a.maximum=a.baselineMaximum*a.roll;
                     changed=true;
                 }
@@ -253,6 +256,7 @@ public final class EquipmentRules {
                 s.weaponValid=true;
                 s.weaponInstance=g.instance.toString();
                 s.weaponType=g.weapon.name();
+                s.add(Stat.ATTACK_SPEED,WeaponRules.speed(s.weaponType));
             }
             Definitions.SetDefinition set=Definitions.CURRENT.sets.get(g.set);
             if(set!=null&&(set.group().equals("armor")&&g.slot.armor()||set.group().equals("jewelry")&&g.slot.jewelry()))sets.merge(g.set,1,Integer::sum);

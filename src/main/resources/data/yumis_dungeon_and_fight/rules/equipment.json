@@ -591,6 +591,14 @@
       "group": "random",
       "stat": null,
       "element": -1
+    },
+    "attack_speed": {
+      "id": "attack_speed",
+      "name": "迅捷",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "ATTACK_SPEED",
+      "element": -1
     }
   },
   "equipment": {

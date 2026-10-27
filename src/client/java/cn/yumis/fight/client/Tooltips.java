@@ -30,7 +30,7 @@ public final class Tooltips {
             case "regal_stone"->"神器装备变为传说，并新增1条随机词条";
             case "exalted_stone"->"传说装备新增1条随机词条，最多6条";
             case "divine_stone"->"重掷装备随机词条数值；保留类型、数量与元素";
-            case "chaos_stone"->"随机删除1条可删除词条并替换为新词条；允许重复，总条数不变";
+            case "chaos_stone"->"随机删除1条可删除词条并替换为新词条；同种效果不重复，总条数不变";
             case "fracturing_orb"->"锁定传说装备的1条未锁定随机词条；可反复使用，逐条锁定";
             case "socket_stone"->"新增1个宝石孔；武器/防具最多2孔，其他部位1孔";
             case "upgrade_stone"->"普通至传说装备等级+5，最高80；基础及随机数值随等级成长";
@@ -48,7 +48,7 @@ public final class Tooltips {
         if(currency!=null)lines.add(text(currency.rarity().title()+" · 通货",currency.rarity().color()));
         lines.add(text(effect,0xa6c3db));
         if(id.equals("divine_stone"))lines.add(text("基础、固定、宝石词条不可重掷；史诗/神话不可用",0xffbc78));
-        if(id.equals("chaos_stone"))lines.add(text("基础、固定、宝石及锁定词条不可删除替换",0xffbc78));
+        if(id.equals("chaos_stone"))lines.add(text("技能等级词条不可重掷、未锁定可替换；基础、固有效果、宝石及锁定词条受保护",0xffbc78));
         if(id.equals("fracturing_orb"))lines.add(text("锁定后不可删除替换；神圣石仍可重掷数值",0xffbc78));
         try{
             if(id.equals("set_stone")){
@@ -125,6 +125,8 @@ public final class Tooltips {
         if(range)out.add(text("  套装效果不可重掷",0x78869c));
     }
     public static void item(ItemTooltipEvent e){
+        if(e.getItemStack().getItem() instanceof net.minecraft.world.item.BlockItem block&&block.getBlock() instanceof cn.yumis.fight.industry.MachineBlock&&e.getItemStack().has(net.minecraft.core.component.DataComponents.BLOCK_ENTITY_DATA))e.getToolTip().add(Component.literal("旧机器携带内容：请先放置再拆除，取出内容后才能工作台升级").withStyle(net.minecraft.ChatFormatting.YELLOW));
+
         var stack=e.getItemStack();
         Gear g=GameItems.gear(stack);
         List<Component> out=e.getToolTip();

@@ -16,6 +16,12 @@ versionRange="[26.2.0.93,26.3)"
 ordering="NONE"
 side="BOTH"
 [[dependencies.yumis_dungeon_and_fight]]
+modId="jei"
+type="optional"
+versionRange="[30.32,31)"
+ordering="AFTER"
+side="CLIENT"
+[[dependencies.yumis_dungeon_and_fight]]
 modId="minecraft"
 type="required"
 versionRange="[26.2,26.3)"

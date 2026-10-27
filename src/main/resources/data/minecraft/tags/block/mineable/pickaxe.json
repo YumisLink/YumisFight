@@ -54,6 +54,8 @@
     "yumis_dungeon_and_fight:terra_block",
     "yumis_dungeon_and_fight:spacetime_block",
     "yumis_dungeon_and_fight:energy_crystal_block_2",
-    "yumis_dungeon_and_fight:magic_ore"
+    "yumis_dungeon_and_fight:magic_ore",
+    "yumis_dungeon_and_fight:industrial_magic_stone_block",
+    "yumis_dungeon_and_fight:wind_generator_part"
   ]
 }

@@ -12,8 +12,8 @@ class EquipmentTest {
         assertEquals(100,stats.get(Stat.HEALTH));
         assertEquals(100,stats.get(Stat.MP));
         assertEquals(40,stats.get(Stat.MAGICAL_DEFENSE));
-        assertEquals(20,stats.get(Stat.PHYSICAL_ATTACK));
-        assertEquals(24,stats.panel(false));
+        assertEquals(17,stats.get(Stat.PHYSICAL_ATTACK));
+        assertEquals(20.4,stats.panel(false),1e-9);
     }
     @Test void localPercentageDoesNotMultiplyAnotherItem(){
         Gear a=EquipmentRules.create(Slot.BRACELET,Weapon.KATANA,Rarity.COMMON,1,new Random(1));
@@ -38,7 +38,7 @@ class EquipmentTest {
         assertEquals(2,next.sockets);
         assertEquals("sample",next.gems.getFirst().name);
         assertEquals(fixed,Models.JSON.toJson(next.affixes.stream().filter(a->!a.base).toList()));
-        assertEquals((15+4*79)*1.6,EquipmentRules.contribution(next).get(Stat.PHYSICAL_ATTACK),1e-9);
+        assertEquals((15+4*79)*1.6*.8,EquipmentRules.contribution(next).get(Stat.PHYSICAL_ATTACK),1e-9);
         assertThrows(IllegalArgumentException.class,()->EquipmentRules.process(next,"epic_upgrade_stone",r));
     }
     @Test void socketsRespectPartSourceLevelDuplicatesAndOverwrite(){

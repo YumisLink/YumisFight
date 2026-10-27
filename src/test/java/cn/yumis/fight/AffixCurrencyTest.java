@@ -30,23 +30,9 @@ class AffixCurrencyTest {
         }
         assertEquals(before,JSON.toJson(original));
     }
-    @Test void chaosCanRollTheRemovedTypeOrDuplicateASurvivingLockedType(){
-        Gear original=gear();original.rarity=Rarity.LEGENDARY;
-        Affix keep=affix("flat_health",Stat.HEALTH);keep.locked=true;original.affixes.add(keep);
-        original.affixes.add(affix("flat_strength",Stat.STRENGTH));
-        Set<String> generated=new HashSet<>();
-        Random random=new Random(22747);
-        for(int i=0;i<1000;i++){
-            Gear changed=EquipmentRules.process(original,"chaos_stone",random);
-            generated.add(changed.affixes.getLast().id);
-            if(changed.affixes.getLast().id.equals(keep.id)){
-                assertEquals(2,changed.affixes.stream().filter(a->a.id.equals(keep.id)).count());
-                assertTrue(changed.affixes.get(changed.affixes.size()-2).locked);
-                assertFalse(changed.affixes.getLast().locked);
-            }
-        }
-        assertTrue(generated.contains("flat_health"),"must allow duplicates of retained affixes");
-        assertTrue(generated.contains("flat_strength"),"must allow rolling back the removed type");
+    @Test void chaosMayRerollRemovedTypeButNeverDuplicatesRetainedType(){
+        Gear original=gear();original.rarity=Rarity.LEGENDARY;Affix keep=affix("flat_health",Stat.HEALTH);keep.locked=true;original.affixes.add(keep);original.affixes.add(affix("flat_strength",Stat.STRENGTH));
+        Set<String> generated=new HashSet<>();Random random=new Random(22747);for(int i=0;i<1000;i++){Gear changed=EquipmentRules.process(original,"chaos_stone",random);generated.add(changed.affixes.getLast().id);assertEquals(1,changed.affixes.stream().filter(a->!a.base&&a.operation.equals("FLAT")&&a.stat.equals("HEALTH")).count());}assertFalse(generated.contains("flat_health"));assertTrue(generated.contains("flat_strength"));
     }
     @Test void repeatedFracturingLocksOneNewAffixUntilEveryEligibleAffixIsLocked(){
         Gear original=gear();original.rarity=Rarity.LEGENDARY;

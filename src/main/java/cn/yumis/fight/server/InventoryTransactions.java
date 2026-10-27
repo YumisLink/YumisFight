@@ -127,11 +127,11 @@ public final class InventoryTransactions {
     }
     private void restoreBag(ServerPlayer p,Snapshot snapshot){
         var extra=MenuHooks.extra(p);
-        if(snapshot.bagSchema!=0&&(snapshot.bagSchema!=1||snapshot.bagTier<1||snapshot.bagTier>16))throw new IllegalStateException("次元储物档案无效，原数据已保留");
+        if(snapshot.bagSchema!=0&&(snapshot.bagSchema<1||snapshot.bagSchema>3||snapshot.bagTier<1||snapshot.bagTier>16))throw new IllegalStateException("次元储物档案无效，原数据已保留");
         int limit=snapshot.bagSchema==0?54:cn.yumis.fight.industry.StorageRules.capacity(snapshot.bagTier);
         if(snapshot.bag==null||snapshot.bag.size()>limit||snapshot.bagOverflow!=null&&snapshot.bagOverflow.size()>extra.bagOverflow.getContainerSize())throw new IllegalStateException("次元储物记录超出容量，原数据已保留");
-        extra.bag.clearContent();extra.bagOverflow.clearContent();extra.bagSchema=snapshot.bagSchema;extra.bagTier=snapshot.bagSchema==0?1:snapshot.bagTier;
-        extra.bagPage=Math.clamp(snapshot.bagPage,0,cn.yumis.fight.industry.StorageRules.pages(extra.bagTier)-1);
+        extra.bag.clearContent();extra.bagOverflow.clearContent();extra.bagSchema=snapshot.bagSchema==0?0:3;extra.bagTier=snapshot.bagSchema==0?1:snapshot.bagTier;
+        extra.bagPage=Math.clamp(cn.yumis.fight.industry.StorageRules.migrateRow(snapshot.bagSchema,snapshot.bagPage),0,Math.max(0,(extra.bagLimit()+8)/9-1));
         for(int i=0;i<snapshot.bag.size();i++)extra.bag.setItem(i,decode(p,snapshot.bag.get(i)));
         if(snapshot.bagOverflow!=null)for(int i=0;i<snapshot.bagOverflow.size();i++)extra.bagOverflow.setItem(i,decode(p,snapshot.bagOverflow.get(i)));
     }
@@ -159,11 +159,12 @@ public final class InventoryTransactions {
             return "initial";
         }
     }
-    public boolean transact(ServerPlayer p,String operation,JsonObject intent,Runnable mutation,Map<String,JsonElement> changes){
+    public boolean transact(ServerPlayer p,String operation,JsonObject intent,Runnable mutation,Map<String,JsonElement> changes){return transactMachine(p,operation,intent,null,mutation,changes);}
+    public boolean transactMachine(ServerPlayer p,String operation,JsonObject intent,cn.yumis.fight.industry.MachineBlockEntity target,Runnable mutation,Map<String,JsonElement> changes){
         if(!inside)containers.recoverPersistent(p);
         if(!locks.add(p.getUUID()))throw new IllegalArgumentException("背包事务处理中");
         Snapshot before=capture(p,nativeOperation(p));
-        var external=containers.capture(p);
+        var external=containers.capture(p,target);
         boolean committed=false;
         try{
             String key="inventoryReceipt/"+p.getUUID()+"/"+operation;
@@ -219,7 +220,7 @@ public final class InventoryTransactions {
     /** Called only after the native menu has returned its temporary inputs to the player. */
     public void finishMenu(ServerPlayer player,AbstractContainerMenu oldMenu){
         var changes=containers.close(player,oldMenu);
-        if(changes.isEmpty()||inside)return;
+        if(inside||changes.isEmpty()&&!(oldMenu instanceof cn.yumis.fight.industry.DimensionalMenu))return;
         JsonObject intent=new JsonObject();intent.addProperty("closedMenu",oldMenu.containerId);
         transact(player,"menu-close/"+UUID.randomUUID(),intent,()->{},changes);
     }

@@ -15,6 +15,7 @@ public final class AffixRules {
     public static boolean flatAllowed(Gear g,Stat s){
         Slot slot=g.slot;
         return switch(s){
+            case ATTACK_SPEED->slot==Slot.WEAPON||sixJewelry(slot);
             case HEALTH->slot.armor();
             case MP,STRENGTH,INTELLIGENCE,SPIRIT->slot.armor()||slot.jewelry();
             case PHYSICAL_ATTACK,MAGICAL_ATTACK->slot==Slot.WEAPON;
@@ -29,6 +30,7 @@ public final class AffixRules {
         if(base(g,s)<=0)return false;
         Slot slot=g.slot;
         return switch(s){
+            case ATTACK_SPEED->false;
             case HEALTH,MP->slot.armor()||slot.jewelry();
             case STRENGTH,INTELLIGENCE,SPIRIT->true;
             case PHYSICAL_ATTACK,MAGICAL_ATTACK->!slot.armor();
@@ -57,6 +59,7 @@ public final class AffixRules {
     public static double reference(Gear g,Stat s){
         int n=g.level-1;
         return switch(s){
+            case ATTACK_SPEED->4;
             case HEALTH,SHIELD->100+20*n;
             case MP->100+14*n;
             case STRENGTH->20+3*n;
@@ -81,6 +84,7 @@ public final class AffixRules {
     public static void grow(Gear g){
         for(Affix a:g.affixes){
             if(a.base||a.fixed||!Definitions.CURRENT.affixes.containsKey(a.id))continue;
+            if(a.stat.equals("ATTACK_SPEED")){a.value=WeaponRules.speedAffix(g.level,a.roll);a.baseline=WeaponRules.speedAffix(g.level,.8);a.baselineMaximum=WeaponRules.speedAffix(g.level,1.2);continue;}
             if(a.operation.equals("EXTRA")){
                 a.baseline=.1*EquipmentRules.budget(g.level);a.baselineMaximum=.2*EquipmentRules.budget(g.level);
             }else if(a.operation.equals("FLAT")||a.operation.equals("PERCENT")||a.operation.equals(ALL_RESIST_FLAT))a.baseline=baseline(g,a);

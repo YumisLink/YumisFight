@@ -1,11 +1,16 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "ingredients": [
-    "yumis_dungeon_and_fight:machine_frame_5",
-    "minecraft:redstone_block",
-    "#c:storage_blocks/lead"
+  "pattern": [
+    "CMC",
+    "MXM",
+    "CMC"
   ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_5",
+    "M": "#c:ingots/spacetime",
+    "X": "yumis_dungeon_and_fight:rtg_core"
+  },
   "result": {
     "id": "yumis_dungeon_and_fight:rtg_generator",
     "count": 1

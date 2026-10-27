@@ -28,15 +28,17 @@ public final class MachineBlock extends BaseEntityBlock {
     @Override protected MapCodec<? extends BaseEntityBlock> codec(){return simpleCodec(p->new MachineBlock(initial,p));}
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block,BlockState> b){b.add(TIER,FACING,CONNECTED,ACTIVE);}
     @Override public BlockEntity newBlockEntity(BlockPos pos,BlockState state){return new MachineBlockEntity(pos,state);}
-    @Override public BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext c){return defaultBlockState().setValue(FACING,c.getHorizontalDirection().getOpposite());}
-    @Override public void setPlacedBy(Level level,BlockPos pos,BlockState state,LivingEntity owner,ItemStack stack){super.setPlacedBy(level,pos,state,owner,stack);if(level instanceof ServerLevel server&&level.getBlockEntity(pos) instanceof MachineBlockEntity be)IndustrialWorld.get(server).placed(be);}
-    @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){if(!level.isClientSide()&&level.getBlockEntity(pos) instanceof MachineBlockEntity be)player.openMenu(be,buf->buf.writeBlockPos(pos));return InteractionResult.SUCCESS;}
-    @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit){if(stack.getItem() instanceof ManaWand)return InteractionResult.PASS;if(!level.isClientSide())try(var tx=net.neoforged.neoforge.transfer.transaction.Transaction.openRoot()){if(net.neoforged.neoforge.transfer.fluid.FluidUtil.interactWithFluidHandler(player,hand,level,pos,hit.getDirection(),tx)){tx.commit();return InteractionResult.SUCCESS;}}return InteractionResult.TRY_WITH_EMPTY_HAND;}
+    @Override public BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext c){
+        if(initial.kind()==DeviceKind.WIND){if(c.getClickedPos().getY()+2>c.getLevel().getMaxY())return null;for(int i=1;i<=2;i++)if(!c.getLevel().getBlockState(c.getClickedPos().above(i)).canBeReplaced(c))return null;}
+        return defaultBlockState().setValue(FACING,c.getHorizontalDirection().getOpposite());
+    }
+    @Override public void setPlacedBy(Level level,BlockPos pos,BlockState state,LivingEntity owner,ItemStack stack){super.setPlacedBy(level,pos,state,owner,stack);if(level instanceof ServerLevel server&&level.getBlockEntity(pos) instanceof MachineBlockEntity be){if(initial.kind()==DeviceKind.WIND)WindGeneratorPartBlock.ensure(server,pos);IndustrialWorld.get(server).placed(be);}}
+    @Override protected void affectNeighborsAfterRemoval(BlockState state,ServerLevel level,BlockPos pos,boolean moved){super.affectNeighborsAfterRemoval(state,level,pos,moved);if(initial.kind()==DeviceKind.WIND&&level.getBlockState(pos).getBlock()!=this)WindGeneratorPartBlock.removeUpper(level,pos);}
+    @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){if(!level.isClientSide()&&level.getBlockEntity(pos) instanceof MachineBlockEntity be)player.openMenu(be,buf->IndustrialMenu.writeOpen(buf,be));return InteractionResult.SUCCESS;}
+    @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit){if(stack.getItem() instanceof ManaWand)return InteractionResult.PASS;if(IndustrialUpgrades.recognized(stack)){if(player instanceof net.minecraft.server.level.ServerPlayer server)try{IndustrialUpgrades.use(server,hand,(MachineBlockEntity)level.getBlockEntity(pos));}catch(RuntimeException failure){cn.yumis.fight.server.ServerRuntime.get().message(server,failure.getMessage());}return InteractionResult.SUCCESS;}if(!level.isClientSide())try(var tx=net.neoforged.neoforge.transfer.transaction.Transaction.openRoot()){if(net.neoforged.neoforge.transfer.fluid.FluidUtil.interactWithFluidHandler(player,hand,level,pos,hit.getDirection(),tx)){tx.commit();return InteractionResult.SUCCESS;}}return InteractionResult.TRY_WITH_EMPTY_HAND;}
     @Override protected List<ItemStack> getDrops(BlockState state,LootParams.Builder params){
         BlockEntity raw=params.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
         if(!(raw instanceof MachineBlockEntity be))return List.of(new ItemStack(asItem()));
-        ItemStack result=IndustrialContent.stack(be.spec().id(),1);
-        if(be.kind()!=DeviceKind.BEACON)result.set(DataComponents.BLOCK_ENTITY_DATA,TypedEntityData.of(be.getType(),be.saveCustomOnly(params.getLevel().registryAccess())));
-        return List.of(result);
+        return List.of(IndustrialContent.stack(be.spec().id(),1));
     }
 }

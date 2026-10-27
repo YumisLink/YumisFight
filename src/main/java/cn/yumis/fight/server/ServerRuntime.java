@@ -42,6 +42,8 @@ public final class ServerRuntime {
     public final DungeonService dungeons;
     public final LootService loot;
     public final VisualService visuals;
+    public final BasicAttackService basicAttacks=new BasicAttackService(this);
+    public final DamageMeterService damageMeter=new DamageMeterService(this);
     public final CloudLeapService movement;
     public final NativeHits nativeHits;
     public final Map<UUID,Session> sessions=new LinkedHashMap<>();
@@ -234,6 +236,7 @@ public final class ServerRuntime {
     public void logout(ServerPlayer p){
         try{
             inventory.closeCursor(p);
+            if(p.containerMenu instanceof cn.yumis.fight.industry.DimensionalMenu)inventory.finishMenu(p,p.containerMenu);
             savePlayer(p);
             loot.endSession(p);
             dungeons.disconnected(p);
@@ -323,6 +326,7 @@ public final class ServerRuntime {
         j.add("equipmentLayout",JSON.toJsonTree(EquipmentLayout.CURRENT));
         j.add("equipmentGroups",JSON.toJsonTree(MenuHooks.extra(p).groups));
         Network.send(p,"profile",j);
+        damageMeter.send(p,dungeons.current(p.getUUID()));
     }
     public void message(ServerPlayer p,String message){
         Network.send(p,"message",Map.of("text",message==null?"操作失败":message));
@@ -416,8 +420,10 @@ public final class ServerRuntime {
                 case "craft"->craft(p,j);
                 case "salvage"->salvage(p,j);
                 case "bag"->openBag(p);
+                case "bagView"->{if(p.containerMenu instanceof cn.yumis.fight.industry.DimensionalMenu menu&&menu.containerId==j.get("menu").getAsInt()&&menu.stillValid(p)){List<Integer> indices=new ArrayList<>();for(var index:j.getAsJsonArray("indices"))indices.add(index.getAsInt());menu.filter(j.get("query").getAsString(),indices);menu.broadcastChanges();}}
                 case "currency"->currencyRequest(p,j);
                 case "claim"->claimWaiting(p);
+                case "basicStart"->basicAttacks.start(p,j);
                 case "visual"->visual(p,j);
                 case "cageHit"->dungeons.cageHit(p,j);
                 case "cloudLeap"->movement.request(p,j);
@@ -501,6 +507,7 @@ public final class ServerRuntime {
                 boolean bossHit=entity==p&&outcome.equals("HIT")&&taken>0&&j.has("feedbackEntity")&&p.level().getEntity(UUID.fromString(j.get("feedbackEntity").getAsString())) instanceof LivingEntity origin&&managed(origin);
                 if(heal||entity!=p||fraction!=0||!nativeHit&&!bossHit)throw new IllegalArgumentException("零伤害命中来源无效");
             }
+            basicAttacks.validate(p,j);
             Receipt receipt=outcomeOnly?Models.noDamageReceipt(life):Models.apply(life,fraction,heal);
             JsonObject ack=new JsonObject();
             ack.addProperty("session",s.id.toString());
@@ -517,6 +524,7 @@ public final class ServerRuntime {
                 long eventTime=nativeHit?nativeHits.occurredAt(j):j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
                 if(entity==p)CombatTiming.taken(s.resources,eventTime);else CombatTiming.dealt(s.resources,eventTime);
                 journal.put("resources/"+p.getUUID(),s.resources);
+                damageMeter.record(p,target,receipt.actual(),eventTime);
             }
             ack.addProperty("combatUntil",s.resources.combatUntil);
             ack.addProperty("shieldRecoveryAt",s.resources.shieldRecoveryAt);
@@ -541,6 +549,7 @@ public final class ServerRuntime {
             if(j.has("ailment")&&receipt.actual()>0)ailment=applyAilment(p,entity,j.getAsJsonObject("ailment"),target);
             journal.finish();
             durable=true;
+            basicAttacks.committed(j);
             if(ailment!=null){
                 net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("ailments",JSON.toJson(ailment)));
                 if(ailment.get("kind").getAsString().equals("STUN")){
@@ -1006,6 +1015,7 @@ public final class ServerRuntime {
         }
         if(ticks%20==0)for(ServerPlayer p:server.getPlayerList().getPlayers()){
             Session s=session(p);
+            damageMeter.send(p,dungeons.current(p.getUUID()));
             for(int i=0;i<p.getInventory().getContainerSize();i++){
                 ItemStack stack=p.getInventory().getItem(i);
                 if(!stack.isEmpty()&&GameItems.own(stack)&&GameItems.GEAR_IDS.contains(GameItems.id(stack))&&GameItems.gear(stack)==null){

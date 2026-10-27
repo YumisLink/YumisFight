@@ -48,7 +48,7 @@ public final class UiFonts {
                 JsonObject saved=JsonParser.parseString(Files.readString(index)).getAsJsonObject();
                 for(var entry:saved.entrySet())if(entry.getKey().matches("[a-f0-9]{64}")&&entry.getValue().isJsonPrimitive()&&Files.isRegularFile(file(entry.getKey())))library.put(entry.getKey(),entry.getValue().getAsString());
             }
-            active=library.containsKey(ClientSettings.uiFont)?ClientSettings.uiFont:"modern";
+            active="modern";
             if(!active.equals("modern"))UiOpenType.validate(file(active));
             writeSelection(active);
         }

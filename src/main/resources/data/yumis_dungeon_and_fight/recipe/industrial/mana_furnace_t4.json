@@ -1,10 +1,16 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "yumis_dungeon_and_fight:machine_upgrade",
   "category": "misc",
-  "ingredients": [
-    "yumis_dungeon_and_fight:machine_frame_4",
-    "minecraft:furnace"
+  "pattern": [
+    "CMC",
+    "MXM",
+    "CMC"
   ],
+  "key": {
+    "C": "yumis_dungeon_and_fight:energy_crystal_4",
+    "M": "#c:ingots/terra",
+    "X": "yumis_dungeon_and_fight:mana_furnace_t3"
+  },
   "result": {
     "id": "yumis_dungeon_and_fight:mana_furnace_t4",
     "count": 1

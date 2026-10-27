@@ -116,7 +116,7 @@ public final class SkillVfx {
                 continue;
             }
             if(t.start.skill().equals("STORM")){
-                long age=time-t.start.startedAt();
+                long age=StormChoreography.presentationTime(time-t.start.startedAt());
                 int phase=(int)Math.clamp((age-1000)/250,0,23);
                 if(age>=1000&&age<7000&&phase>t.soundPhase){
                     t.soundPhase=phase;
@@ -127,7 +127,7 @@ public final class SkillVfx {
         if(cameraCast!=null){
             var t=tracks.get(cameraCast);
             if(t==null)endCamera(false);
-            else mc.options.setCameraType(time-t.start.startedAt()<7200?CameraType.THIRD_PERSON_BACK:CameraType.FIRST_PERSON);
+            else mc.options.setCameraType(StormChoreography.presentationTime(time-t.start.startedAt())<StormChoreography.FINISH?CameraType.THIRD_PERSON_BACK:CameraType.FIRST_PERSON);
         }
     }
     public void beginCamera(UUID cast){
@@ -152,7 +152,7 @@ public final class SkillVfx {
     public CameraPose camera(){
         Track t=tracks.get(cameraCast);
         var mc=Minecraft.getInstance();
-        if(t==null||now()-t.start.startedAt()>=7200||mc.level==null)return null;
+        if(t==null||StormChoreography.presentationTime(now()-t.start.startedAt())>=StormChoreography.FINISH||mc.level==null)return null;
         Vec3 origin=vector(t.start.origin()),direction=vector(t.start.direction()),side=side(direction),target=origin.add(direction.scale(3)).add(0,2,0);
         Vec3 position=origin.subtract(direction.scale(10)).add(side.scale(5)).add(0,7,0);
         var wall=mc.level.clip(new ClipContext(target,position,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,mc.player));
@@ -163,7 +163,7 @@ public final class SkillVfx {
     public void animate(Player player,EntityRenderState raw){
         if(!(raw instanceof AvatarRenderState state))return;
         for(Track t:tracks.values())if(t.start.skill().equals("STORM")&&t.start.caster().equals(player.getUUID())){
-            long age=now()-t.start.startedAt();
+            long age=StormChoreography.presentationTime(now()-t.start.startedAt());
             if(age<0||age>=7200)return;
             Vec3 p=local(t.start,StormChoreography.actor(t.start.seed(),age));
             state.x=p.x;
@@ -201,7 +201,8 @@ public final class SkillVfx {
     }
     private void extract(net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent levelEvent){
         LevelRenderContext context=new LevelRenderContext(levelEvent.getRenderState(),new ArrayList<>());
-        if(tracks.isEmpty()||context.levelState().cameraRenderState==null)return;
+        if(context.levelState().cameraRenderState==null)return;
+        if(tracks.isEmpty()&&IndustrialVisuals.beams().isEmpty()){context.levelState().setRenderData(FRAME,new Frame(List.of(),List.of()));return;}
         long before=System.nanoTime(),time=now();
         Vec3 camera=context.levelState().cameraRenderState.pos;
         List<Quad> quads=new ArrayList<>();
@@ -243,6 +244,7 @@ public final class SkillVfx {
             }
             if(t.last.phase()==SkillVisualEvent.Phase.TRAIL&&time-t.last.at()<150)slash(quads,t.last,time-t.last.at());
         }
+        for(var beam:IndustrialVisuals.beams())beam(quads,beam.from(),beam.to());
         context.levelState().setRenderData(FRAME,new Frame(List.copyOf(quads),List.copyOf(context.swords())));
         geometryFrames++;
         geometryNanos+=System.nanoTime()-before;
@@ -278,9 +280,10 @@ public final class SkillVfx {
         Vec3 direction=vector(e.direction()),right=side(direction),p=vector(e.position()).add(direction.scale(e.forwardOffset()));
         double fade=Math.max(0,1-age/(e.skill().equals("DANCE")?225.0:450.0));
         int alpha=(int)(210*fade),color=e.color();
+        int first=out.size();
         switch(e.skill()){
             case "ATTACK"->{
-                if(e.phase()==SkillVisualEvent.Phase.START)crescent(out,p.add(direction.scale(.35)).add(0,1.1,0),direction,attackSpan(e,right),.8,.20,color,color,alpha);
+                if(e.phase()==SkillVisualEvent.Phase.START){if(e.sweep())crescent(out,p.add(direction.scale(3)).add(0,1.1,0),direction,right,3,.25,color,color,alpha);else crescent(out,p.add(direction.scale(.35)).add(0,1.1,0),direction,attackSpan(e,right),.8,.20,color,color,alpha);}
             }
             case "MASTERY"->{
                 orb(out,p.add(direction.scale(.6)).add(0,1,0),.18,color,alpha);
@@ -305,7 +308,9 @@ public final class SkillVfx {
             default->{
             }
         }
+        if(e.horizontalScale()!=1)for(int i=first;i<out.size();i++){Quad q=out.get(i);out.set(i,new Quad(horizontalScale(q.a,p,e.horizontalScale()),horizontalScale(q.b,p,e.horizontalScale()),horizontalScale(q.c,p,e.horizontalScale()),horizontalScale(q.d,p,e.horizontalScale()),q.rgb,q.alpha));}
     }
+    private static Vec3 horizontalScale(Vec3 point,Vec3 origin,double scale){Vec3 delta=point.subtract(origin);return origin.add(delta.x*scale,delta.y,delta.z*scale);}
     private static Vec3 attackSpan(SkillVisualEvent e,Vec3 right){
         double tilt=new SplittableRandom(e.seed()).nextDouble(Math.PI*2);
         return UP.scale(Math.cos(tilt)*.8).add(right.scale(Math.sin(tilt)*.8));
@@ -315,6 +320,7 @@ public final class SkillVfx {
         return UP.scale(Math.cos(angle)*.75).add(right.scale(Math.sin(angle)*.75));
     }
     private void storm(LevelRenderContext context,Track t,long age,List<Quad> out,Vec3 camera){
+        age=StormChoreography.presentationTime(age);
         SkillVisualEvent e=t.start;
         Vec3 center=vector(e.origin()).add(vector(e.direction()).scale(3));
         int color=e.color();
@@ -397,6 +403,11 @@ public final class SkillVfx {
             Vec3 u=i==0?UP:new Vec3(1,0,0),v=i==2?UP:new Vec3(0,0,1);
             out.add(new Quad(p.add(u.scale(radius)),p.add(v.scale(radius)),p.subtract(u.scale(radius)),p.subtract(v.scale(radius)),color,Math.clamp(alpha,0,255)));
         }
+    }
+    private static void beam(List<Quad> out,Vec3 from,Vec3 to){
+        Vec3 direction=to.subtract(from).normalize();if(direction.lengthSqr()<.001)return;
+        Vec3 u=direction.cross(Math.abs(direction.y)>.95?new Vec3(1,0,0):UP).normalize(),v=direction.cross(u).normalize();
+        for(int layer=0;layer<2;layer++){double radius=layer==0?.035:.11;int color=layer==0?0xd7ffff:0x54d4e6,alpha=layer==0?230:75;for(int i=0;i<8;i++){double a=i*Math.PI/4,b=(i+1)*Math.PI/4;Vec3 left=u.scale(Math.cos(a)*radius).add(v.scale(Math.sin(a)*radius)),right=u.scale(Math.cos(b)*radius).add(v.scale(Math.sin(b)*radius));out.add(new Quad(from.add(left),to.add(left),to.add(right),from.add(right),color,alpha));}}
     }
     private static void ribbon(List<Quad> out,Vec3 a,Vec3 b,double width,int color,int alpha){
         Vec3 offset=UP.scale(width);

@@ -1,0 +1,6 @@
+newmtl atlas
+Kd 1 1 1
+map_Kd #atlas
+newmtl crystal
+Kd 1 1 1
+map_Kd #crystal
