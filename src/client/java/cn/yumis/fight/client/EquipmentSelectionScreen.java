@@ -15,11 +15,13 @@ public final class EquipmentSelectionScreen extends Screen {
     private final FabricatorScreen parent;
     private final Slot selectedSlot;
     private final Weapon selectedWeapon;
+    private final ArmorType selectedArmor;
+    private final JewelryType selectedJewelry;
     private final int level;
     private final List<Entry> entries=new ArrayList<>();
     private int left,top,panelWidth,panelHeight,bodyTop,bodyHeight,columns,scroll,contentHeight;
-    EquipmentSelectionScreen(FabricatorScreen parent,Slot slot,Weapon weapon,int level){
-        super(Component.literal("选择制作装备"));this.parent=parent;this.selectedSlot=slot;this.selectedWeapon=weapon;this.level=level;
+    EquipmentSelectionScreen(FabricatorScreen parent,Slot slot,Weapon weapon,ArmorType armor,JewelryType jewelry,int level){
+        super(Component.literal("选择制作装备"));this.parent=parent;this.selectedSlot=slot;this.selectedWeapon=weapon;this.selectedArmor=armor;this.selectedJewelry=jewelry;this.level=level;
     }
     @Override protected void init(){
         entries.clear();
@@ -27,20 +29,19 @@ public final class EquipmentSelectionScreen extends Screen {
         left=(width-panelWidth)/2;top=(height-panelHeight)/2;bodyTop=top+34;bodyHeight=panelHeight-44;
         columns=panelWidth>=360?3:panelWidth>=235?2:1;
         addRenderableWidget(Button.builder(UiFonts.decorate(Component.literal("返回")),b->onClose()).bounds(left+panelWidth-52,top+7,44,20).build(ThemedButton::new));
-        for(Weapon weapon:Weapon.values())add(Slot.WEAPON,weapon);
-        for(Slot slot:Slot.values())if(slot!=Slot.WEAPON)add(slot,Weapon.KATANA);
+        for(var template:EquipmentTemplates.creative())add(template.slot,template.weapon,template.armorType,template.jewelryType);
         contentHeight=((entries.size()+columns-1)/columns)*54;
         scroll=Math.clamp(scroll,0,Math.max(0,contentHeight-bodyHeight));position();
     }
-    private void add(Slot slot,Weapon weapon){
+    private void add(Slot slot,Weapon weapon,ArmorType armor,JewelryType jewelry){
         int index=entries.size(),row=index/columns,cell=(panelWidth-20)/columns;
-        String name=slot==Slot.WEAPON?weapon.title():slot.title();
-        var button=Button.builder(UiFonts.decorate(Component.literal(name)),b->{parent.selectTemplate(slot,weapon);onClose();}).bounds(left+8+(index%columns)*cell,bodyTop+row*54-scroll,cell-5,48).build(ThemedButton::new);
+        String name=slot==Slot.WEAPON?weapon.title():slot.armor()?armor.title()+slot.title():slot.jewelry()?jewelry.title()+slot.title():slot.title();
+        var button=Button.builder(UiFonts.decorate(Component.literal(name)),b->{parent.selectTemplate(slot,weapon,armor,jewelry);onClose();}).bounds(left+8+(index%columns)*cell,bodyTop+row*54-scroll,cell-5,48).build(ThemedButton::new);
         ((ThemedButton)button).textInset=30;
         button.active=ClientState.INSTANCE.progress.level>=slot.minimum();
-        ((ThemedButton)button).selected=slot==selectedSlot&&(slot!=Slot.WEAPON||weapon==selectedWeapon);
+        ((ThemedButton)button).selected=slot==selectedSlot&&(slot!=Slot.WEAPON||weapon==selectedWeapon)&&armor==selectedArmor&&jewelry==selectedJewelry;
         int previewLevel=Math.max(slot.minimum(),Math.min(level,ClientState.INSTANCE.progress.level));
-        ItemStack preview=GameItems.gear(EquipmentRules.create(slot,weapon,Rarity.COMMON,previewLevel,new Random(0)));
+        ItemStack preview=GameItems.gear(EquipmentRules.create(slot,weapon,Rarity.COMMON,previewLevel,armor,jewelry,new Random(0)));
         entries.add(new Entry(slot,weapon,preview,addRenderableWidget(button),row));
     }
     private void position(){

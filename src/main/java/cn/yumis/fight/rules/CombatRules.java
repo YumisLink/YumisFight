@@ -3,6 +3,12 @@ import static cn.yumis.fight.rules.Rules.*;
 import static cn.yumis.fight.rules.Models.*;
 import java.util.*;
 public final class CombatRules {
+    public static double evasionChance(double rating){
+        Rules.finite(rating);
+        double value=Math.max(0,rating);
+        return value/(4000+value);
+    }
+    public static boolean evades(double rating,java.util.function.DoubleSupplier roll){return rating>0&&roll.getAsDouble()<evasionChance(rating);}
     public record Damage(double main,double extra,int element){
         public double total(){
             return main+extra;
@@ -89,7 +95,7 @@ public final class CombatRules {
         double[] w=new double[6];
         double sum=0;
         for(int i=0;i<6;i++){
-            w[i]=(low[i]+(high[i]-low[i])*difficulty.ordinal()/4d)*Math.pow(1+Math.max(0,luck)/100,i);
+            w[i]=(low[i]+(high[i]-low[i])*difficulty.ordinal()/4d)*Math.pow(1+Math.max(0,luck)/DROP_RATE_BASE,i);
             if(nativeBoss&&i>=4)w[i]=0;
             sum+=w[i];
         }

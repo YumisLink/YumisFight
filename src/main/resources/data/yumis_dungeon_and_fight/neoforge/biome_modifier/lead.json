@@ -1,0 +1,8 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": "#minecraft:is_overworld",
+  "features": [
+    "yumis_dungeon_and_fight:lead"
+  ],
+  "step": "underground_ores"
+}

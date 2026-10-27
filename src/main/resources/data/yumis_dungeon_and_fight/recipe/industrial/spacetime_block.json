@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_ingot"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:spacetime_block",
+    "count": 1
+  }
+}

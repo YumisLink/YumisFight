@@ -20,7 +20,10 @@ public final class ExtraInventory extends SimpleContainer {
     }
     ;
     public final Player player;
-    public final SimpleContainer bag=new SimpleContainer(54);
+    public final SimpleContainer bag=new SimpleContainer(416);
+    public final SimpleContainer bagOverflow=new SimpleContainer(46);
+    public int bagSchema=1,bagTier=1,bagPage;
+    public int bagLimit(){return bagSchema==0?54:cn.yumis.fight.industry.StorageRules.capacity(bagTier);}
     public List<String> groups=new ArrayList<>();
     public int page;
     public ExtraInventory(Player p){

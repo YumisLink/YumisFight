@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:machine_frame_1",
+    "minecraft:stonecutter"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:mana_crusher_t1",
+    "count": 1
+  }
+}

@@ -20,13 +20,7 @@ public final class Tooltips {
         lines.add(text("──────── "+title+" ────────",0x78869c));
     }
     public static String affix(Affix a){
-        if(a.operation.equals("SKILL_FAMILY"))return "所有"+Family.valueOf(a.family).title()+"系技能 +"+a.rank+"级（固定）";
-        if(a.operation.equals("EXTRA"))return new String[]{
-            "光","火","冰","暗"
-        }
-        [a.element]+"属性附伤 "+FightScreen.number(a.value)+"～"+FightScreen.number(a.maximum);
-        if(a.stat.isEmpty())return a.id;
-        return (a.operation.equals("PERCENT")?"本装备 ":"")+FightScreen.statName(Stat.valueOf(a.stat))+" +"+FightScreen.number(a.value*(a.operation.equals("PERCENT")?100:1))+(a.operation.equals("PERCENT")?"%":"");
+        return AffixText.affix(a);
     }
     public static List<Component> currencyLines(ItemStack stack){
         String id=GameItems.id(stack);
@@ -36,7 +30,10 @@ public final class Tooltips {
             case "regal_stone"->"神器装备变为传说，并新增1条随机词条";
             case "exalted_stone"->"传说装备新增1条随机词条，最多6条";
             case "divine_stone"->"重掷装备随机词条数值；保留类型、数量与元素";
+            case "chaos_stone"->"随机删除1条可删除词条并替换为新词条；允许重复，总条数不变";
+            case "fracturing_orb"->"锁定传说装备的1条未锁定随机词条；可反复使用，逐条锁定";
             case "socket_stone"->"新增1个宝石孔；武器/防具最多2孔，其他部位1孔";
+            case "upgrade_stone"->"普通至传说装备等级+5，最高80；基础及随机数值随等级成长";
             case "epic_upgrade_stone"->"史诗装备等级+5，最高80；只重算基础属性";
             case "mythic_upgrade_stone"->"神话装备等级+5，最高80；只重算基础属性";
             case "set_extraction_stone"->"提取套装：消耗整件装备及1枚石头，获得套装石";
@@ -47,8 +44,12 @@ public final class Tooltips {
         };
         if(effect.isEmpty())return List.of();
         List<Component> lines=new ArrayList<>();
+        var currency=CurrencyRules.find(id);
+        if(currency!=null)lines.add(text(currency.rarity().title()+" · 通货",currency.rarity().color()));
         lines.add(text(effect,0xa6c3db));
         if(id.equals("divine_stone"))lines.add(text("基础、固定、宝石词条不可重掷；史诗/神话不可用",0xffbc78));
+        if(id.equals("chaos_stone"))lines.add(text("基础、固定、宝石及锁定词条不可删除替换",0xffbc78));
+        if(id.equals("fracturing_orb"))lines.add(text("锁定后不可删除替换；神圣石仍可重掷数值",0xffbc78));
         try{
             if(id.equals("set_stone")){
                 var payload=com.google.gson.JsonParser.parseString(GameItems.payload(stack)).getAsJsonObject();
@@ -97,25 +98,27 @@ public final class Tooltips {
         }catch(RuntimeException e){return e instanceof IllegalArgumentException&&e.getMessage()!=null?e.getMessage():"道具数据无效，无法加工";}
     }
     private static boolean shift(){
+        if(Boolean.getBoolean("ydnf.verify")&&VerificationDriver.tooltipShift)return true;
         var window=Minecraft.getInstance().getWindow();
         return InputConstants.isKeyDown(window,GLFW.GLFW_KEY_LEFT_SHIFT)||InputConstants.isKeyDown(window,GLFW.GLFW_KEY_RIGHT_SHIFT);
     }
     private static void addAffix(List<Component> out,Affix a,Gear gear,boolean gem,int color){
-        String label=(gem?"  ":"")+affix(a);
+        String label=(gem?"  ":"")+affix(a)+(a.locked?" 〔已锁定·不可删除替换〕":"");
         if(!shift()){out.add(text(label,color));return;}
         var range=AffixRanges.reroll(a,gear.rarity,gem);
         if(range==null){out.add(text(label+" 〔不可重掷〕",color));return;}
         String unit=a.operation.equals("PERCENT")?"%":"";
-        if(range.interval())label+=" 〔可洗下限 "+FightScreen.number(range.minimum())+"～"+FightScreen.number(range.maximum())+"；上限 "+FightScreen.number(range.upperMinimum())+"～"+FightScreen.number(range.upperMaximum())+"〕";
-        else label+=" 〔可洗 "+FightScreen.number(range.minimum())+unit+"～"+FightScreen.number(range.maximum())+unit+"〕";
         out.add(text(label,color));
+        if(range.interval())out.add(text("  可洗区间："+AffixText.integer(range.minimum())+"～"+AffixText.integer(range.upperMinimum())+" 至 "+AffixText.integer(range.maximum())+"～"+AffixText.integer(range.upperMaximum())+"（上下限同步变化）",0x9aa9be));
+        else out.add(text("  可洗："+AffixText.integer(range.minimum())+unit+"～"+AffixText.integer(range.maximum())+unit,0x9aa9be));
     }
+
     private static void addSet(List<Component> out,Definitions.SetDefinition set,boolean range){
         for(var effect:set.effects()){
-            String value=effect.stat()!=null?FightScreen.statName(effect.stat())+" +"+FightScreen.number(effect.value()):switch(effect.modifier()){
-                case "basicSkillMain"->"基础三技能主伤 +"+FightScreen.number(effect.value()*100)+"%";
-                case "basicSkillCooldown"->"基础三技能冷却 −"+FightScreen.number(effect.value()*100)+"%";
-                default->effect.modifier()+" +"+FightScreen.number(effect.value());
+            String value=effect.stat()!=null?FightScreen.statName(effect.stat())+" +"+AffixText.integer(effect.value()):switch(effect.modifier()){
+                case "basicSkillMain"->"基础三技能主伤 +"+AffixText.integer(effect.value()*100)+"%";
+                case "basicSkillCooldown"->"基础三技能冷却 −"+AffixText.integer(effect.value()*100)+"%";
+                default->effect.modifier()+" +"+AffixText.integer(effect.value());
             };
             out.add(text(effect.pieces()+"件："+value,0xb1ef89));
         }
@@ -140,14 +143,19 @@ public final class Tooltips {
             return;
         }
         // Keep vanilla enchantments, lore and component descriptions supplied by other mods.
-        out.add(text(g.rarity.title()+" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.title())+" · 需求 Lv."+g.level,g.rarity.color()));
+        out.add(text(g.rarity.title()+" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.armor()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.jewelry()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.title())+" · 需求 Lv."+g.level,g.rarity.color()));
         if(e.getEntity()!=null&&!g.valid(ClientState.INSTANCE.progress))out.add(text("等级或职业条件不足，装备属性不生效",0xff7272));
         separator(out,"基础属性");
-        for(Affix a:g.affixes)if(a.base)addAffix(out,a,g,false,0xd9e4ed);
+        boolean allResist=EquipmentTemplates.jewelry(g)==JewelryType.ALL_RESIST;
+        for(Affix a:g.affixes)if(a.base){
+            if(allResist&&a.stat.endsWith("_RESIST")){
+                if(a.stat.equals("LIGHT_RESIST")){Affix combined=Models.copy(a,Affix.class);combined.operation=AffixRules.ALL_RESIST_FLAT;combined.stat="";addAffix(out,combined,g,false,0xd9e4ed);}
+            }else addAffix(out,a,g,false,0xd9e4ed);
+        }
         List<Affix> extra=g.affixes.stream().filter(a->!a.base).toList();
         if(!extra.isEmpty()){
             separator(out,"装备词条");
-            for(Affix a:extra)addAffix(out,a,g,false,a.operation.equals("SKILL_FAMILY")?0x95d8ff:a.fixed?0xffd080:0xc8a8f0);
+            for(Affix a:extra)addAffix(out,a,g,false,a.locked?0xffce7d:a.operation.equals("SKILL_FAMILY")?0x95d8ff:a.fixed?0xffd080:0xc8a8f0);
         }
         if(!g.set.isEmpty()){
             separator(out,"套装");

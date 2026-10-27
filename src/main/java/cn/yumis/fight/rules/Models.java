@@ -93,7 +93,7 @@ public final class Models {
     }
     public static class Runtime {
         public double mp=-1,shield=-1,trainingBoundary=-1;
-        public long combatUntil,recordedAt,controlEpoch;
+        public long combatUntil,shieldRecoveryAt,recordedAt,controlEpoch;
         public boolean training;
         public Map<String,Long> cooldowns=new HashMap<>(),buffs=new HashMap<>(),absorptionUntil=new HashMap<>();
         public Map<String,Double> absorption=new HashMap<>();
@@ -110,7 +110,7 @@ public final class Models {
     public static class Affix {
         public String id,stat="",operation="FLAT",family="",skill="",parameter="";
         public double value,maximum,baseline,baselineMaximum,roll=1;
-        public boolean base,fixed;
+        public boolean base,fixed,locked;
         public int element=-1,rank;
         public Affix(){
         }
@@ -134,6 +134,8 @@ public final class Models {
         public int version=VERSION,level=1,revision,sockets;
         public Slot slot=Slot.WEAPON;
         public Weapon weapon=Weapon.KATANA;
+        public ArmorType armorType=ArmorType.LEGACY;
+        public JewelryType jewelryType=JewelryType.LEGACY;
         public Rarity rarity=Rarity.COMMON;
         public String set="",source="";
         public List<Affix> affixes=new ArrayList<>();
@@ -220,6 +222,8 @@ public final class Models {
     }
     public record Receipt(boolean accepted,String reason,double actual,double q,long revision,String deathId) {
     }
+    /** A miss or fully absorbed hit acknowledges the root without applying a zero-damage health edit. */
+    public static Receipt noDamageReceipt(Life life){return new Receipt(!life.dead,life.dead?"目标已死亡":"",0,life.q,life.revision,"");}
     public static Receipt apply(Life life,double fraction,boolean heal){
         finite(fraction);
         if(fraction<0)throw new IllegalArgumentException("份额不可为负");

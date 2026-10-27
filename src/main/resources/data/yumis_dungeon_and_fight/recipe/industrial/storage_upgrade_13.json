@@ -1,0 +1,13 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "storage_upgrade_13",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "#yumis_dungeon_and_fight:magic_stones",
+      "count": 40
+    }
+  ],
+  "ticks": 1,
+  "energy": 0
+}

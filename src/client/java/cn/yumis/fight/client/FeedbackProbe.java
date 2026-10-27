@@ -13,7 +13,7 @@ public final class FeedbackProbe {
     public static void damage(LivingEntity entity){if(Boolean.getBoolean("ydnf.verify")&&entity.level().isClientSide())damage.merge(entity.getStringUUID(),1,Integer::sum);}
     public static void direction(LivingEntity entity){if(Boolean.getBoolean("ydnf.verify")&&entity.level().isClientSide())direction.merge(entity.getStringUUID(),1,Integer::sum);}
     public static JsonObject snapshot(){
-        JsonObject data=new JsonObject();data.add("damage",cn.yumis.fight.rules.Models.JSON.toJsonTree(damage));data.add("direction",cn.yumis.fight.rules.Models.JSON.toJsonTree(direction));data.addProperty("weapon",weapon);data.addProperty("attack",attack);return data;
+        JsonObject data=new JsonObject();data.add("damage",cn.yumis.fight.rules.Models.JSON.toJsonTree(damage));data.add("direction",cn.yumis.fight.rules.Models.JSON.toJsonTree(direction));data.addProperty("weapon",weapon);data.addProperty("attack",attack);if(lastReport!=null)data.add("lastReport",lastReport.deepCopy());return data;
     }
-    public static void reset(){damage.clear();direction.clear();weapon="";attack=0;}
+    public static void reset(){damage.clear();direction.clear();weapon="";attack=0;lastReport=null;}
 }

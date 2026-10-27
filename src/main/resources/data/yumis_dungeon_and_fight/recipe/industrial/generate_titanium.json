@@ -1,0 +1,12 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 3,
+  "ingredients": [],
+  "ticks": 1200,
+  "energy": 128000,
+  "result": {
+    "id": "yumis_dungeon_and_fight:raw_titanium",
+    "count": 1
+  }
+}

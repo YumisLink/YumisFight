@@ -23,8 +23,9 @@ final class ContainerParticipants {
     record Pending(String player,String operation,List<Change> changes){}
     record Escrow(int menu,List<JsonElement> items){}
     record Ref(Container container,int slot,Address address,JsonElement before,boolean temporary){}
-    record Capture(List<Ref> refs){}
-    record After(List<JsonElement> values,List<Change> persistent,Escrow escrow,boolean hasTemporary){}
+    record MachineRef(cn.yumis.fight.industry.MachineBlockEntity machine,Address address,JsonElement before){}
+    record Capture(List<Ref> refs,List<MachineRef> machines){}
+    record After(List<JsonElement> values,List<Change> persistent,Escrow escrow,boolean hasTemporary,List<JsonElement> metadata){}
     private final ServerRuntime runtime;
     private final InventoryTransactions inventory;
     ContainerParticipants(ServerRuntime runtime,InventoryTransactions inventory){this.runtime=runtime;this.inventory=inventory;}
@@ -43,14 +44,16 @@ final class ContainerParticipants {
                 var parts=(CompoundContainerAccessor)compound;int first=parts.ydnf$first().getContainerSize();
                 if(index<first)container=parts.ydnf$first();else{index-=first;container=parts.ydnf$second();}
             }
-            if(index<0||index>=container.getContainerSize()||container==player.getInventory()||container==extra||container==extra.bag)continue;
+            if(index<0||index>=container.getContainerSize()||container==player.getInventory()||container==extra||container==extra.bag||container==extra.bagOverflow)continue;
             if(player.inventoryMenu.slots.stream().anyMatch(s->s.container==slot.container))continue;
             if(!seen.computeIfAbsent(container,ignored->new HashSet<>()).add(index))continue;
             Address address=address(player,container,index);
             if(address==null&&generated(slot))continue;
             refs.add(new Ref(container,index,address,inventory.encode(player,container.getItem(index)),address==null&&temporary(player.containerMenu)));
         }
-        return new Capture(refs);
+        List<MachineRef> machines=new ArrayList<>();
+        for(Container container:seen.keySet())if(container instanceof cn.yumis.fight.industry.MachineBlockEntity be){var pos=be.getBlockPos();machines.add(new MachineRef(be,new Address("industrial",player.level().dimension().identifier().toString(),be.identity.toString(),be.getClass().getName(),pos.getX(),pos.getY(),pos.getZ(),-1),be.transactionState()));}
+        return new Capture(refs,machines);
     }
     private Address address(ServerPlayer player,Container container,int slot){
         if(container==player.getEnderChestInventory())return new Address("ender","",player.getStringUUID(),"",0,0,0,slot);
@@ -70,12 +73,14 @@ final class ContainerParticipants {
         for(Ref ref:capture.refs){
             JsonElement value=inventory.encode(player,ref.container.getItem(ref.slot));values.add(value);
             if(ref.temporary){hasTemporary=true;if(!ref.container.getItem(ref.slot).isEmpty())temporary.add(value);}
-            else if(ref.address==null)continue;
+            else if(ref.address==null||ref.container instanceof cn.yumis.fight.industry.MachineBlockEntity)continue;
             else if(!ref.before.equals(value))persistent.add(new Change(ref.address,ref.before,value));
         }
-        return new After(values,persistent,new Escrow(player.containerMenu.containerId,temporary),hasTemporary);
+        List<JsonElement> metadata=new ArrayList<>();for(MachineRef ref:capture.machines){JsonElement after=ref.machine.transactionState();metadata.add(after);if(!after.equals(ref.before))persistent.add(new Change(ref.address,ref.before,after));}
+        return new After(values,persistent,new Escrow(player.containerMenu.containerId,temporary),hasTemporary,metadata);
     }
-    void apply(ServerPlayer player,Capture capture,List<JsonElement> values){
+    void apply(ServerPlayer player,Capture capture,List<JsonElement> values,List<JsonElement> metadata){
+        for(int i=0;i<capture.machines.size();i++){MachineRef ref=capture.machines.get(i);ref.machine.restoreTransactionState(metadata==null?ref.before:metadata.get(i));}
         for(int i=0;i<capture.refs.size();i++){
             Ref ref=capture.refs.get(i);JsonElement value=values==null?ref.before:values.get(i);
             if(!inventory.encode(player,ref.container.getItem(ref.slot)).equals(value))ref.container.setItem(ref.slot,inventory.decode(player,value));
@@ -103,8 +108,10 @@ final class ContainerParticipants {
         if(!after.persistent.isEmpty())edits.put("containerPending/"+player.getUUID()+"/"+operation,JsonNull.INSTANCE);
     }
     void recoverPersistent(ServerPlayer player){
+        recoverIndustrial();
         for(String key:runtime.journal.keys("containerPending/")){
             Pending pending=runtime.journal.get(key,Pending.class,null);if(pending==null)continue;
+            if(pending.changes.stream().anyMatch(c->c.address.kind.equals("industrial")))continue;
             // Private ender inventories can only be recovered when their owner is online.
             ServerPlayer codecPlayer=pending.player.equals(player.getStringUUID())?player:player.level().getServer().getPlayerList().getPlayer(UUID.fromString(pending.player));
             if(codecPlayer==null&&pending.changes.stream().anyMatch(c->c.address.kind.equals("ender")))continue;
@@ -120,6 +127,17 @@ final class ContainerParticipants {
             codecPlayer.level().getServer().getPlayerList().getPlayerIo().save(codecPlayer);
             flushLevels(codecPlayer,pending.changes);
             try{runtime.journal.put(key,JsonNull.INSTANCE);}catch(Exception e){throw new IllegalStateException("容器事务恢复保存失败",e);}
+        }
+    }
+    void recoverIndustrial(){
+        for(String key:runtime.journal.keys("containerPending/")){
+            Pending pending=runtime.journal.get(key,Pending.class,null);if(pending==null||pending.changes.isEmpty()||pending.changes.stream().anyMatch(c->!c.address.kind.equals("industrial")))continue;
+            boolean waiting=false;
+            for(Change change:pending.changes){Address address=change.address;var level=runtime.server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(address.dimension)));BlockPos pos=new BlockPos(address.x,address.y,address.z);if(level==null||!level.hasChunkAt(pos)){waiting=true;continue;}
+                if(!(level.getBlockEntity(pos) instanceof cn.yumis.fight.industry.MachineBlockEntity be)||!be.identity.toString().equals(address.owner))throw new IllegalStateException("工业恢复目标已替换，已保留事务记录");
+                JsonElement actual=be.transactionState();if(actual.equals(change.after))continue;if(!actual.equals(change.before))throw new IllegalStateException("工业事务恢复冲突，未覆盖机器状态");be.restoreTransactionState(change.after);level.save(null,true,false);
+            }
+            if(!waiting)try{runtime.journal.put(key,JsonNull.INSTANCE);}catch(Exception e){throw new IllegalStateException("工业事务恢复记录保存失败",e);}
         }
     }
     private Container resolve(ServerPlayer player,Address address){

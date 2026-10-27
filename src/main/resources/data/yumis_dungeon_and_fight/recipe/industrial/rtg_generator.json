@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:machine_frame_5",
+    "minecraft:redstone_block",
+    "#c:storage_blocks/lead"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:rtg_generator",
+    "count": 1
+  }
+}

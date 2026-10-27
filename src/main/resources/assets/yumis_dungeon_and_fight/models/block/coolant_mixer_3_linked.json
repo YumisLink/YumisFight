@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "side": "yumis_dungeon_and_fight:block/machine_side_3",
+    "top": "yumis_dungeon_and_fight:block/machine_top_3",
+    "front": "yumis_dungeon_and_fight:block/coolant_mixer_linked"
+  }
+}

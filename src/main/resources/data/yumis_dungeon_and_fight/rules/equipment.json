@@ -2,7 +2,7 @@
   "affixes": {
     "flat_health": {
       "id": "flat_health",
-      "name": "flat_health",
+      "name": "生机",
       "operation": "FLAT",
       "group": "random",
       "stat": "HEALTH",
@@ -10,7 +10,7 @@
     },
     "percent_health": {
       "id": "percent_health",
-      "name": "percent_health",
+      "name": "丰沛",
       "operation": "PERCENT",
       "group": "random",
       "stat": "HEALTH",
@@ -26,7 +26,7 @@
     },
     "flat_mp": {
       "id": "flat_mp",
-      "name": "flat_mp",
+      "name": "魔泉",
       "operation": "FLAT",
       "group": "random",
       "stat": "MP",
@@ -34,7 +34,7 @@
     },
     "percent_mp": {
       "id": "percent_mp",
-      "name": "percent_mp",
+      "name": "盈魔",
       "operation": "PERCENT",
       "group": "random",
       "stat": "MP",
@@ -50,7 +50,7 @@
     },
     "flat_strength": {
       "id": "flat_strength",
-      "name": "flat_strength",
+      "name": "蛮力",
       "operation": "FLAT",
       "group": "random",
       "stat": "STRENGTH",
@@ -58,7 +58,7 @@
     },
     "percent_strength": {
       "id": "percent_strength",
-      "name": "percent_strength",
+      "name": "巨力",
       "operation": "PERCENT",
       "group": "random",
       "stat": "STRENGTH",
@@ -74,7 +74,7 @@
     },
     "flat_intelligence": {
       "id": "flat_intelligence",
-      "name": "flat_intelligence",
+      "name": "睿智",
       "operation": "FLAT",
       "group": "random",
       "stat": "INTELLIGENCE",
@@ -82,7 +82,7 @@
     },
     "percent_intelligence": {
       "id": "percent_intelligence",
-      "name": "percent_intelligence",
+      "name": "博识",
       "operation": "PERCENT",
       "group": "random",
       "stat": "INTELLIGENCE",
@@ -98,7 +98,7 @@
     },
     "flat_spirit": {
       "id": "flat_spirit",
-      "name": "flat_spirit",
+      "name": "凝神",
       "operation": "FLAT",
       "group": "random",
       "stat": "SPIRIT",
@@ -106,7 +106,7 @@
     },
     "percent_spirit": {
       "id": "percent_spirit",
-      "name": "percent_spirit",
+      "name": "冥想",
       "operation": "PERCENT",
       "group": "random",
       "stat": "SPIRIT",
@@ -122,7 +122,7 @@
     },
     "flat_physical_attack": {
       "id": "flat_physical_attack",
-      "name": "flat_physical_attack",
+      "name": "锋锐",
       "operation": "FLAT",
       "group": "random",
       "stat": "PHYSICAL_ATTACK",
@@ -130,7 +130,7 @@
     },
     "percent_physical_attack": {
       "id": "percent_physical_attack",
-      "name": "percent_physical_attack",
+      "name": "破军",
       "operation": "PERCENT",
       "group": "random",
       "stat": "PHYSICAL_ATTACK",
@@ -146,7 +146,7 @@
     },
     "flat_magical_attack": {
       "id": "flat_magical_attack",
-      "name": "flat_magical_attack",
+      "name": "秘能",
       "operation": "FLAT",
       "group": "random",
       "stat": "MAGICAL_ATTACK",
@@ -154,7 +154,7 @@
     },
     "percent_magical_attack": {
       "id": "percent_magical_attack",
-      "name": "percent_magical_attack",
+      "name": "奥秘",
       "operation": "PERCENT",
       "group": "random",
       "stat": "MAGICAL_ATTACK",
@@ -170,7 +170,7 @@
     },
     "flat_physical_defense": {
       "id": "flat_physical_defense",
-      "name": "flat_physical_defense",
+      "name": "坚甲",
       "operation": "FLAT",
       "group": "random",
       "stat": "PHYSICAL_DEFENSE",
@@ -178,7 +178,7 @@
     },
     "percent_physical_defense": {
       "id": "percent_physical_defense",
-      "name": "percent_physical_defense",
+      "name": "铁壁",
       "operation": "PERCENT",
       "group": "random",
       "stat": "PHYSICAL_DEFENSE",
@@ -194,7 +194,7 @@
     },
     "flat_magical_defense": {
       "id": "flat_magical_defense",
-      "name": "flat_magical_defense",
+      "name": "魔御",
       "operation": "FLAT",
       "group": "random",
       "stat": "MAGICAL_DEFENSE",
@@ -202,7 +202,7 @@
     },
     "percent_magical_defense": {
       "id": "percent_magical_defense",
-      "name": "percent_magical_defense",
+      "name": "法障",
       "operation": "PERCENT",
       "group": "random",
       "stat": "MAGICAL_DEFENSE",
@@ -218,7 +218,7 @@
     },
     "flat_light": {
       "id": "flat_light",
-      "name": "flat_light",
+      "name": "光明",
       "operation": "FLAT",
       "group": "random",
       "stat": "LIGHT",
@@ -226,7 +226,7 @@
     },
     "percent_light": {
       "id": "percent_light",
-      "name": "percent_light",
+      "name": "圣辉",
       "operation": "PERCENT",
       "group": "random",
       "stat": "LIGHT",
@@ -242,7 +242,7 @@
     },
     "flat_fire": {
       "id": "flat_fire",
-      "name": "flat_fire",
+      "name": "烈焰",
       "operation": "FLAT",
       "group": "random",
       "stat": "FIRE",
@@ -250,7 +250,7 @@
     },
     "percent_fire": {
       "id": "percent_fire",
-      "name": "percent_fire",
+      "name": "炽炎",
       "operation": "PERCENT",
       "group": "random",
       "stat": "FIRE",
@@ -266,7 +266,7 @@
     },
     "flat_ice": {
       "id": "flat_ice",
-      "name": "flat_ice",
+      "name": "寒霜",
       "operation": "FLAT",
       "group": "random",
       "stat": "ICE",
@@ -274,7 +274,7 @@
     },
     "percent_ice": {
       "id": "percent_ice",
-      "name": "percent_ice",
+      "name": "极寒",
       "operation": "PERCENT",
       "group": "random",
       "stat": "ICE",
@@ -290,7 +290,7 @@
     },
     "flat_dark": {
       "id": "flat_dark",
-      "name": "flat_dark",
+      "name": "暗影",
       "operation": "FLAT",
       "group": "random",
       "stat": "DARK",
@@ -298,7 +298,7 @@
     },
     "percent_dark": {
       "id": "percent_dark",
-      "name": "percent_dark",
+      "name": "深渊",
       "operation": "PERCENT",
       "group": "random",
       "stat": "DARK",
@@ -314,7 +314,7 @@
     },
     "flat_light_resist": {
       "id": "flat_light_resist",
-      "name": "flat_light_resist",
+      "name": "御光",
       "operation": "FLAT",
       "group": "random",
       "stat": "LIGHT_RESIST",
@@ -322,9 +322,9 @@
     },
     "percent_light_resist": {
       "id": "percent_light_resist",
-      "name": "percent_light_resist",
+      "name": "光佑",
       "operation": "PERCENT",
-      "group": "random",
+      "group": "legacy",
       "stat": "LIGHT_RESIST",
       "element": -1
     },
@@ -338,7 +338,7 @@
     },
     "flat_fire_resist": {
       "id": "flat_fire_resist",
-      "name": "flat_fire_resist",
+      "name": "耐火",
       "operation": "FLAT",
       "group": "random",
       "stat": "FIRE_RESIST",
@@ -346,9 +346,9 @@
     },
     "percent_fire_resist": {
       "id": "percent_fire_resist",
-      "name": "percent_fire_resist",
+      "name": "炎佑",
       "operation": "PERCENT",
-      "group": "random",
+      "group": "legacy",
       "stat": "FIRE_RESIST",
       "element": -1
     },
@@ -362,7 +362,7 @@
     },
     "flat_ice_resist": {
       "id": "flat_ice_resist",
-      "name": "flat_ice_resist",
+      "name": "御寒",
       "operation": "FLAT",
       "group": "random",
       "stat": "ICE_RESIST",
@@ -370,9 +370,9 @@
     },
     "percent_ice_resist": {
       "id": "percent_ice_resist",
-      "name": "percent_ice_resist",
+      "name": "霜佑",
       "operation": "PERCENT",
-      "group": "random",
+      "group": "legacy",
       "stat": "ICE_RESIST",
       "element": -1
     },
@@ -386,7 +386,7 @@
     },
     "flat_dark_resist": {
       "id": "flat_dark_resist",
-      "name": "flat_dark_resist",
+      "name": "辟暗",
       "operation": "FLAT",
       "group": "random",
       "stat": "DARK_RESIST",
@@ -394,9 +394,9 @@
     },
     "percent_dark_resist": {
       "id": "percent_dark_resist",
-      "name": "percent_dark_resist",
+      "name": "暗佑",
       "operation": "PERCENT",
-      "group": "random",
+      "group": "legacy",
       "stat": "DARK_RESIST",
       "element": -1
     },
@@ -410,7 +410,7 @@
     },
     "flat_drop_rate": {
       "id": "flat_drop_rate",
-      "name": "flat_drop_rate",
+      "name": "寻宝",
       "operation": "FLAT",
       "group": "random",
       "stat": "DROP_RATE",
@@ -418,7 +418,7 @@
     },
     "percent_drop_rate": {
       "id": "percent_drop_rate",
-      "name": "percent_drop_rate",
+      "name": "鸿运",
       "operation": "PERCENT",
       "group": "random",
       "stat": "DROP_RATE",
@@ -434,7 +434,7 @@
     },
     "flat_shield": {
       "id": "flat_shield",
-      "name": "flat_shield",
+      "name": "壁垒",
       "operation": "FLAT",
       "group": "random",
       "stat": "SHIELD",
@@ -442,7 +442,7 @@
     },
     "percent_shield": {
       "id": "percent_shield",
-      "name": "percent_shield",
+      "name": "坚壁",
       "operation": "PERCENT",
       "group": "random",
       "stat": "SHIELD",
@@ -458,7 +458,7 @@
     },
     "extra_0": {
       "id": "extra_0",
-      "name": "light",
+      "name": "圣光追击",
       "operation": "EXTRA",
       "group": "random",
       "stat": null,
@@ -466,7 +466,7 @@
     },
     "extra_1": {
       "id": "extra_1",
-      "name": "fire",
+      "name": "烈火追击",
       "operation": "EXTRA",
       "group": "random",
       "stat": null,
@@ -474,7 +474,7 @@
     },
     "extra_2": {
       "id": "extra_2",
-      "name": "ice",
+      "name": "冰霜追击",
       "operation": "EXTRA",
       "group": "random",
       "stat": null,
@@ -482,7 +482,7 @@
     },
     "extra_3": {
       "id": "extra_3",
-      "name": "dark",
+      "name": "暗影追击",
       "operation": "EXTRA",
       "group": "random",
       "stat": null,
@@ -566,6 +566,30 @@
       "operation": "FLAT",
       "group": "special",
       "stat": "SHIELD",
+      "element": -1
+    },
+    "flat_evasion": {
+      "id": "flat_evasion",
+      "name": "灵巧",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "EVASION",
+      "element": -1
+    },
+    "percent_evasion": {
+      "id": "percent_evasion",
+      "name": "幻步",
+      "operation": "PERCENT",
+      "group": "random",
+      "stat": "EVASION",
+      "element": -1
+    },
+    "flat_all_resistance": {
+      "id": "flat_all_resistance",
+      "name": "庇护",
+      "operation": "ALL_RESIST_FLAT",
+      "group": "random",
+      "stat": null,
       "element": -1
     }
   },
@@ -1033,6 +1057,193 @@
           "id": "minecraft:lapis_lazuli",
           "count": 2,
           "scaled": true
+        }
+      ]
+    }
+  },
+  "armorTypes": {
+    "CLOTH": {
+      "name": "布甲",
+      "defense": 0.2,
+      "shield": 0.5,
+      "evasion": 0
+    },
+    "LEATHER": {
+      "name": "皮甲",
+      "defense": 0.2,
+      "shield": 0.25,
+      "evasion": 0.9259259259259259
+    },
+    "LIGHT": {
+      "name": "轻甲",
+      "defense": 0.2,
+      "shield": 0,
+      "evasion": 1.8518518518518519
+    },
+    "HEAVY": {
+      "name": "重甲",
+      "defense": 0.6,
+      "shield": 0.25,
+      "evasion": 0
+    },
+    "PLATE": {
+      "name": "板甲",
+      "defense": 1,
+      "shield": 0,
+      "evasion": 0
+    }
+  },
+  "jewelryTypes": {
+    "HEALTH": {
+      "name": "生命",
+      "base": [
+        {
+          "stat": "HEALTH",
+          "base": 100,
+          "growth": 20,
+          "reference": "",
+          "factor": 0.75
+        }
+      ]
+    },
+    "MP": {
+      "name": "魔力",
+      "base": [
+        {
+          "stat": "MP",
+          "base": 100,
+          "growth": 14,
+          "reference": "",
+          "factor": 0.75
+        }
+      ]
+    },
+    "STRENGTH": {
+      "name": "力量",
+      "base": [
+        {
+          "stat": "STRENGTH",
+          "base": 20,
+          "growth": 3,
+          "reference": "",
+          "factor": 0.2
+        }
+      ]
+    },
+    "INTELLIGENCE": {
+      "name": "智力",
+      "base": [
+        {
+          "stat": "INTELLIGENCE",
+          "base": 15,
+          "growth": 2,
+          "reference": "",
+          "factor": 0.2
+        }
+      ]
+    },
+    "SPIRIT": {
+      "name": "精神",
+      "base": [
+        {
+          "stat": "SPIRIT",
+          "base": 10,
+          "growth": 2,
+          "reference": "",
+          "factor": 0.2
+        }
+      ]
+    },
+    "LIGHT_RESIST": {
+      "name": "御光",
+      "base": [
+        {
+          "stat": "LIGHT_RESIST",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 2
+        }
+      ]
+    },
+    "FIRE_RESIST": {
+      "name": "耐火",
+      "base": [
+        {
+          "stat": "FIRE_RESIST",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 2
+        }
+      ]
+    },
+    "ICE_RESIST": {
+      "name": "御寒",
+      "base": [
+        {
+          "stat": "ICE_RESIST",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 2
+        }
+      ]
+    },
+    "DARK_RESIST": {
+      "name": "辟暗",
+      "base": [
+        {
+          "stat": "DARK_RESIST",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 2
+        }
+      ]
+    },
+    "DROP_RATE": {
+      "name": "寻宝",
+      "base": [
+        {
+          "stat": "DROP_RATE",
+          "base": 10,
+          "growth": 0,
+          "reference": "",
+          "factor": 1
+        }
+      ]
+    },
+    "ALL_RESIST": {
+      "name": "庇护",
+      "base": [
+        {
+          "stat": "LIGHT_RESIST",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 0.75
+        },
+        {
+          "stat": "FIRE_RESIST",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 0.75
+        },
+        {
+          "stat": "ICE_RESIST",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 0.75
+        },
+        {
+          "stat": "DARK_RESIST",
+          "base": 3,
+          "growth": 0.15,
+          "reference": "",
+          "factor": 0.75
         }
       ]
     }

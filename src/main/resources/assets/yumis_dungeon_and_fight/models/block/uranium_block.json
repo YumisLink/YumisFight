@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "yumis_dungeon_and_fight:block/uranium_block"
+  }
+}

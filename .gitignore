@@ -27,3 +27,4 @@ replay_pid*
 # Local directories
 /temp/
 /art/
+/dist/

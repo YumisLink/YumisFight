@@ -18,7 +18,7 @@ import java.util.*;
 
 /** Vanilla owns collision/feedback; the existing RPG report is the only health writer. */
 public final class NativeHits {
-    private record Hit(UUID player,String session,long sourceGeneration,UUID target,long generation,long basis,String dimension,String instance,long expires,DamageSource source) {}
+    private record Hit(UUID player,String session,long sourceGeneration,UUID target,long generation,long basis,String dimension,String instance,long created,long expires,DamageSource source,NativeEffects.Scope effects) {}
     private final Map<String,Hit> hits=new HashMap<>();
     private final ServerRuntime runtime;
     public long forwarded,committed;
@@ -29,6 +29,7 @@ public final class NativeHits {
         if(runtime.bridge&&suppressProjectionFeedback){event.getContainer().setShouldCauseSideEffects(false);return;}
         var victim=event.getEntity();
         if(!handles(victim))return;
+        NativeEffects.attempted(victim);
         var source=event.getSource();
         var attacker=source.getEntity();
         boolean reject;
@@ -59,13 +60,30 @@ public final class NativeHits {
         long now=System.currentTimeMillis();
         hits.entrySet().removeIf(entry->entry.getValue().expires<now);
         String root=UUID.randomUUID().toString();
-        hits.put(root,new Hit(owner.getUUID(),session.id.toString(),session.life.generation,victim.getUUID(),life.generation,life.basis,life.dimension,life.instance,now+60000,source));
+        boolean direct=victim==owner&&source.getEntity() instanceof LivingEntity attacker&&attacker!=owner&&runtime.managed(attacker)&&!source.is(DamageTypes.THORNS)&&!Set.of("poison","wither","onFire","inFire","lava").contains(source.getMsgId());
+        NativeEffects.Scope effects=direct?NativeEffects.current(victim):null;
+        if(effects!=null){
+            container.setShouldCauseSideEffects(false);
+            effects.bind(root);
+            double dx,dz;
+            if(source.getDirectEntity() instanceof Projectile projectile){var direction=projectile.calculateHorizontalHurtKnockbackDirection(victim,source);dx=-direction.leftDouble();dz=-direction.rightDouble();}
+            else{var position=source.getSourcePosition();dx=position==null?0:position.x-victim.getX();dz=position==null?0:position.z-victim.getZ();}
+            final double x=dx,z=dz;
+            effects.defer(()->{
+                victim.hurtTime=10;victim.hurtDuration=10;
+                owner.level().broadcastDamageEvent(victim,source);
+                if(!source.is(DamageTypeTags.NO_IMPACT))victim.hurtMarked=true;
+                if(!source.is(DamageTypeTags.NO_KNOCKBACK)){victim.knockback(.4,x,z,source,(float)original);victim.indicateDamage(x,z);}
+            });
+        }
+        hits.put(root,new Hit(owner.getUUID(),session.id.toString(),session.life.generation,victim.getUUID(),life.generation,life.basis,life.dimension,life.instance,now,now+60000,source,effects));
         JsonObject data=new JsonObject();
         data.addProperty("session",session.id.toString());
         data.addProperty("generation",session.life.generation);
         data.addProperty("root",root);
         data.addProperty("nativeRoot",root);
         data.addProperty("nativeScale",scale);
+        data.addProperty("directAttack",direct);
         data.addProperty("source",victim.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&source.getMsgId().equals("magic")?"poison":source.getMsgId());
         data.addProperty("points",original);
         data.addProperty("projectile",source.getDirectEntity() instanceof Projectile);
@@ -102,5 +120,11 @@ public final class NativeHits {
         committed++;
     }
     public DamageSource source(JsonObject report){return hits.get(report.get("nativeRoot").getAsString()).source;}
+    public long occurredAt(JsonObject report){return hits.get(report.get("nativeRoot").getAsString()).created;}
+    public void complete(JsonObject report){
+        if(!report.has("nativeRoot"))return;
+        Hit hit=hits.get(report.get("nativeRoot").getAsString());
+        if(hit!=null&&hit.effects!=null)hit.effects.resolve(!report.has("outcome")||report.get("outcome").getAsString().equals("HIT"));
+    }
     private String key(ServerPlayer player,String root){return "nativeHit/"+runtime.session(player).id+"/"+root;}
 }

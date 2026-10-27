@@ -33,7 +33,8 @@ public final class GameItems {
             ));
             GEAR_IDS.add(id);
         }
-        for(String id:List.of("transmutation_stone","augmentation_stone","regal_stone","exalted_stone","divine_stone","crafting_material","set_stone","affix_gem","set_extraction_stone","affix_extraction_stone","socket_stone","epic_upgrade_stone","mythic_upgrade_stone"))ALL.put(id,ITEMS.registerSimpleItem(id));
+        for(var currency:CurrencyRules.ALL)ALL.put(currency.id(),ITEMS.registerItem(currency.id(),p->new CurrencyItem(p,currency.rarity())));
+        ALL.put("crafting_material",ITEMS.registerSimpleItem("crafting_material"));
         try(InputStream in=GameItems.class.getResourceAsStream("/assets/"+NS+"/equipment_catalog.json")){
             if(in!=null){
                 JsonElement e=JsonParser.parseReader(new InputStreamReader(in,java.nio.charset.StandardCharsets.UTF_8));
@@ -70,13 +71,17 @@ public final class GameItems {
         }
     }
     public static String appearance(Gear g){
+        if(g.slot.armor()&&EquipmentTemplates.armor(g)!=ArmorType.LEGACY)return EquipmentTemplates.armor(g).name().toLowerCase(Locale.ROOT)+"_"+g.slot.name().toLowerCase(Locale.ROOT);
         String kind=g.slot==Slot.WEAPON?g.weapon.name().toLowerCase(Locale.ROOT):g.slot.name().toLowerCase(Locale.ROOT);
         int band=g.level<20?10:g.level<30?20:g.level<40?30:g.level<50?40:50;
         String style=g.rarity==Rarity.EPIC?"epic":g.rarity==Rarity.MYTHIC?"mythic":"base";
         return kind+"_"+band+"_"+style;
     }
     public static String name(Gear g){
-        return NAMES.getOrDefault(appearance(g),g.slot==Slot.WEAPON?g.weapon.title():g.slot.title());
+        String base=NAMES.getOrDefault(appearance(g),g.slot==Slot.WEAPON?g.weapon.title():g.slot.title());
+        if(g.slot.armor()&&EquipmentTemplates.armor(g)!=ArmorType.LEGACY)return EquipmentTemplates.armor(g).title()+g.slot.title();
+        if(g.slot.jewelry()&&EquipmentTemplates.jewelry(g)!=JewelryType.LEGACY)return EquipmentTemplates.jewelry(g).title()+"之"+base;
+        return base;
     }
     public static void write(ItemStack stack,Gear g){
         string(stack,NS,JSON.toJson(g));
@@ -109,6 +114,13 @@ public final class GameItems {
     }
     public static boolean own(ItemStack stack){
         return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace().equals(NS);
+    }
+    public static Rarity rarity(ItemStack stack){
+        if(stack.isEmpty()||!own(stack))return Rarity.COMMON;
+        Gear gear=gear(stack);
+        if(gear!=null)return gear.rarity;
+        var currency=CurrencyRules.find(id(stack));
+        return currency==null?Rarity.COMMON:currency.rarity();
     }
     public static String id(ItemStack stack){
         return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();

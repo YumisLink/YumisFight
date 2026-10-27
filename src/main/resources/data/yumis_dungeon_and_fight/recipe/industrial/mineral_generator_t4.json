@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:machine_frame_4",
+    "minecraft:iron_pickaxe"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:mineral_generator_t4",
+    "count": 1
+  }
+}

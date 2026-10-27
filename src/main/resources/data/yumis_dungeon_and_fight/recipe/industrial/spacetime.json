@@ -1,0 +1,29 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 4,
+  "ingredients": [
+    {
+      "ingredient": "#c:ingots/terra",
+      "count": 8
+    },
+    {
+      "ingredient": "#c:ingots/titanium",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:industrial_magic_stone",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:ender_eye",
+      "count": 1
+    }
+  ],
+  "ticks": 2400,
+  "energy": 209715200,
+  "result": {
+    "id": "yumis_dungeon_and_fight:spacetime_ingot",
+    "count": 8
+  }
+}

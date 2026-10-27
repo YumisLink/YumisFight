@@ -28,7 +28,12 @@ public final class FightMod {
     public static final DeferredRegister<MenuType<?>> MENUS=DeferredRegister.create(Registries.MENU,ID);
     public static final DeferredHolder<MenuType<?>,MenuType<FabricatorMenu>> FABRICATOR_MENU=MENUS.register("fabricator",()->new MenuType<>(FabricatorMenu::new,FeatureFlags.DEFAULT_FLAGS));
     public static final DeferredRegister<AttachmentType<?>> ATTACHMENTS=DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES,ID);
-    public static final DeferredHolder<AttachmentType<?>,AttachmentType<String>> STATE=ATTACHMENTS.register("state",()->AttachmentType.builder(()->"").serialize(Codec.STRING.fieldOf("value")).copyOnDeath().build());
+    public static final com.mojang.serialization.MapCodec<String> STATE_CODEC=Codec.either(Codec.STRING,Codec.STRING.listOf()).xmap(value->value.map(java.util.function.Function.identity(),parts->String.join("",parts)),(String value)->{
+        if(value.length()<=8000)return com.mojang.datafixers.util.Either.left(value);
+        List<String> parts=new ArrayList<>();for(int i=0;i<value.length();i+=8000)parts.add(value.substring(i,Math.min(i+8000,value.length())));
+        return com.mojang.datafixers.util.Either.right(parts);
+    }).fieldOf("value");
+    public static final DeferredHolder<AttachmentType<?>,AttachmentType<String>> STATE=ATTACHMENTS.register("state",()->AttachmentType.builder(()->"").serialize(STATE_CODEC).copyOnDeath().build());
     public static final DeferredHolder<AttachmentType<?>,AttachmentType<String>> TARGET=ATTACHMENTS.register("target",()->AttachmentType.builder(()->"").serialize(Codec.STRING.fieldOf("value")).build());
     public static final DeferredHolder<AttachmentType<?>,AttachmentType<ExtraInventory>> EXTRA=ATTACHMENTS.register("extra_container",()->AttachmentType.builder(holder->new ExtraInventory((net.minecraft.world.entity.player.Player)holder)).build());
     public static final DeferredRegister<EntityType<?>> ENTITIES=DeferredRegister.create(Registries.ENTITY_TYPE,ID);
@@ -49,6 +54,7 @@ public final class FightMod {
         ));
     }
     public FightMod(IEventBus bus){
+        cn.yumis.fight.industry.IndustrialContent.register(bus);
         GameItems.ITEMS.registerSimpleBlockItem(FABRICATOR);
         GameItems.ITEMS.register(bus);
         BLOCKS.register(bus);

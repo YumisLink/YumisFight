@@ -64,8 +64,11 @@ public final class ServerEvents {
             if(e.getLevel() instanceof net.minecraft.server.level.ServerLevel l&&l.dimension()==DungeonService.DIMENSION)e.setCanceled(true);
         }
         );
-        NeoForge.EVENT_BUS.addListener((OnDatapackSyncEvent e)->{
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST,(OnDatapackSyncEvent e)->{
             if(ServerRuntime.ready()){
+                // Curios 16.0.0+26.2 replaces its resource object on reload but only
+                // populates it at server startup. Rebind parsed slots before capability queries.
+                if(e.getPlayer()==null)top.theillusivec4.curios.common.data.CuriosSlotResources.SERVER.populateData();
                 ServerRuntime.get().loadDefinitions();if(e.getPlayer()==null)ServerRuntime.get().refreshAll();
             }
         }
@@ -122,7 +125,7 @@ public final class ServerEvents {
         ));
         dev.then(Commands.literal("white").executes(c->{
             var r=ServerRuntime.get();ServerPlayer p=c.getSource().getPlayerOrException();JsonObject intent=new JsonObject();intent.addProperty("dev","white");r.inventory.transact(p,UUID.randomUUID().toString(),intent,()->{
-                for(Slot slot:Slot.values())if(r.session(p).progress.level>=slot.minimum())r.inventory.requireSpace(p,GameItems.gear(EquipmentRules.create(slot,Weapon.KATANA,Rarity.COMMON,r.session(p).progress.level,r.random)));
+                for(Slot slot:Slot.values())if(r.session(p).progress.level>=slot.minimum())r.inventory.requireSpace(p,GameItems.gear(EquipmentTemplates.createStandard(slot,Weapon.KATANA,Rarity.COMMON,r.session(p).progress.level,r.random)));
             }
             ,Map.of());r.profile(p);return 1;
         }

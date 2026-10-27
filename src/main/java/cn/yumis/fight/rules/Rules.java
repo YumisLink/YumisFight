@@ -3,12 +3,25 @@ import java.math.BigInteger;
 import java.util.*;
 /** Platform-independent, versioned rules. Values are never inferred from displayed lore. */
 public final class Rules {
-    public static final int VERSION=6, PROTOCOL=3, MAX_LEVEL=80;
+    public static final int VERSION=6, PROTOCOL=5, MAX_LEVEL=80;
     public static final int SLOTS_PER_LAYER=8, SLOT_COUNT=24;
+    public static final double DROP_RATE_BASE=1000;
     private Rules() {
     }
     public enum Stat {
-        HEALTH,MP,STRENGTH,INTELLIGENCE,SPIRIT,PHYSICAL_ATTACK,MAGICAL_ATTACK,PHYSICAL_DEFENSE,MAGICAL_DEFENSE,LIGHT,FIRE,ICE,DARK,LIGHT_RESIST,FIRE_RESIST,ICE_RESIST,DARK_RESIST,DROP_RATE,SHIELD
+        HEALTH,MP,STRENGTH,INTELLIGENCE,SPIRIT,PHYSICAL_ATTACK,MAGICAL_ATTACK,PHYSICAL_DEFENSE,MAGICAL_DEFENSE,LIGHT,FIRE,ICE,DARK,LIGHT_RESIST,FIRE_RESIST,ICE_RESIST,DARK_RESIST,DROP_RATE,SHIELD,EVASION
+    }
+    public enum ArmorType {
+        LEGACY("旧版"),CLOTH("布甲"),LEATHER("皮甲"),LIGHT("轻甲"),HEAVY("重甲"),PLATE("板甲");
+        private final String title;
+        ArmorType(String title){this.title=title;}
+        public String title(){return title;}
+    }
+    public enum JewelryType {
+        LEGACY("旧版"),HEALTH("生命"),MP("魔力"),STRENGTH("力量"),INTELLIGENCE("智力"),SPIRIT("精神"),LIGHT_RESIST("御光"),FIRE_RESIST("耐火"),ICE_RESIST("御寒"),DARK_RESIST("辟暗"),ALL_RESIST("庇护"),DROP_RATE("寻宝");
+        private final String title;
+        JewelryType(String title){this.title=title;}
+        public String title(){return title;}
     }
     public enum Rarity {
         COMMON,RARE,ARTIFACT,LEGENDARY,EPIC,MYTHIC;

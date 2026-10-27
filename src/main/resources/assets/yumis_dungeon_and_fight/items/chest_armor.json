@@ -1,1 +1,47 @@
-{"model":{"type":"minecraft:model","model":"yumis_dungeon_and_fight:item/chest_armor"}}
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "cloth_chest",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/cloth_chest"
+        }
+      },
+      {
+        "when": "leather_chest",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/leather_chest"
+        }
+      },
+      {
+        "when": "light_chest",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/light_chest"
+        }
+      },
+      {
+        "when": "heavy_chest",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/heavy_chest"
+        }
+      },
+      {
+        "when": "plate_chest",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/plate_chest"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/chest_armor"
+    }
+  }
+}

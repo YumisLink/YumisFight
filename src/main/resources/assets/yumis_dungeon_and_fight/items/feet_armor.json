@@ -1,1 +1,47 @@
-{"model":{"type":"minecraft:model","model":"yumis_dungeon_and_fight:item/feet_armor"}}
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "cloth_feet",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/cloth_feet"
+        }
+      },
+      {
+        "when": "leather_feet",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/leather_feet"
+        }
+      },
+      {
+        "when": "light_feet",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/light_feet"
+        }
+      },
+      {
+        "when": "heavy_feet",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/heavy_feet"
+        }
+      },
+      {
+        "when": "plate_feet",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/plate_feet"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/feet_armor"
+    }
+  }
+}

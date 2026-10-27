@@ -48,8 +48,10 @@ public final class ClientBootstrap {
             e.register(id("katana_style"),StyleProperty.TYPE);e.register(id("material"),MaterialProperty.TYPE);
         }
         );
-        bus.addListener((RegisterMenuScreensEvent e)->e.register(FightMod.FABRICATOR_MENU.get(),FabricatorScreen::new));
+        bus.addListener((RegisterMenuScreensEvent e)->{e.register(FightMod.FABRICATOR_MENU.get(),FabricatorScreen::new);e.register(cn.yumis.fight.industry.IndustrialContent.MACHINE_MENU.get(),IndustrialScreen::new);e.register(cn.yumis.fight.industry.IndustrialContent.STORAGE_MENU.get(),DimensionalScreen::new);});
+        bus.addListener((RegisterFluidModelsEvent e)->e.register(new net.minecraft.client.renderer.block.FluidModel.Unbaked(new net.minecraft.client.resources.model.sprite.Material(Identifier.withDefaultNamespace("block/water_still")),new net.minecraft.client.resources.model.sprite.Material(Identifier.withDefaultNamespace("block/water_flow")),null,net.neoforged.neoforge.client.fluid.FluidTintSources.constant(0xff70cbd2)),cn.yumis.fight.industry.IndustrialContent.COOLANT,cn.yumis.fight.industry.IndustrialContent.FLOWING_COOLANT));
         bus.addListener((EntityRenderersEvent.RegisterRenderers e)->{
+            e.registerBlockEntityRenderer(cn.yumis.fight.industry.IndustrialContent.MACHINE_BE.get(),IndustrialRenderer::new);
             e.registerEntityRenderer(FightMod.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(FightMod.CAGE.get(),CageRenderer::new);for(var type:FightMod.ENEMIES.entrySet()){
                 if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),GoblinRenderer::new);
                 else{
@@ -64,6 +66,7 @@ public final class ClientBootstrap {
         );
         bus.addListener((RegisterGuiLayersEvent e)->{e.registerAboveAll(id("hud"),Hud::render);e.registerAboveAll(id("stamina"),CloudMovement::render);});
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
+            IndustrialVisuals.tick();
             ClientState.INSTANCE.tick();ClientCombat.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();migrateKeys();while(MENU.consumeClick()){
                 var mc=Minecraft.getInstance();if(mc.player!=null&&mc.gui.screen()==null){
                     ClientState.INSTANCE.upload();mc.gui.setScreen(new FightScreen());

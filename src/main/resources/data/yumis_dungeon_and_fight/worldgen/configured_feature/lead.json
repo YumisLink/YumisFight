@@ -1,0 +1,6 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial_resources",
+  "config": {
+    "kind": "lead"
+  }
+}

@@ -1,1 +1,47 @@
-{"model":{"type":"minecraft:model","model":"yumis_dungeon_and_fight:item/head_armor"}}
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "cloth_head",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/cloth_head"
+        }
+      },
+      {
+        "when": "leather_head",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/leather_head"
+        }
+      },
+      {
+        "when": "light_head",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/light_head"
+        }
+      },
+      {
+        "when": "heavy_head",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/heavy_head"
+        }
+      },
+      {
+        "when": "plate_head",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/plate_head"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/head_armor"
+    }
+  }
+}

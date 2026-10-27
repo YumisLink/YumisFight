@@ -20,6 +20,8 @@ public final class Definitions {
     }
     public record EquipmentTemplate(String id,Slot slot,List<Curve> base){
     }
+    public record ArmorTemplate(String name,double defense,double shield,double evasion){}
+    public record JewelryTemplate(String name,List<Curve> base){}
     public record SetEffect(int pieces,Stat stat,double value,String modifier){
     }
     public record SetDefinition(String id,String name,String group,List<SetEffect> effects){
@@ -30,6 +32,8 @@ public final class Definitions {
     }
     public Map<String,AffixDefinition> affixes=new LinkedHashMap<>();
     public Map<Slot,EquipmentTemplate> equipment=new EnumMap<>(Slot.class);
+    public Map<ArmorType,ArmorTemplate> armorTypes=new EnumMap<>(ArmorType.class);
+    public Map<JewelryType,JewelryTemplate> jewelryTypes=new EnumMap<>(JewelryType.class);
     public Map<String,SetDefinition> sets=new LinkedHashMap<>();
     public Map<Slot,RecipeDefinition> recipes=new EnumMap<>(Slot.class);
     public static volatile Definitions CURRENT=defaults();
@@ -44,6 +48,15 @@ public final class Definitions {
     }
     public static Definitions parse(String json){
         Definitions d=Models.JSON.fromJson(json,Definitions.class);
+        for(ArmorType type:ArmorType.values())if(type!=ArmorType.LEGACY){
+            ArmorTemplate t=d.armorTypes.get(type);
+            if(t==null||!Double.isFinite(t.defense)||!Double.isFinite(t.shield)||!Double.isFinite(t.evasion)||t.defense<=0||t.shield<0||t.evasion<0)throw new IllegalArgumentException("Invalid armor type "+type);
+        }
+        for(JewelryType type:JewelryType.values())if(type!=JewelryType.LEGACY){
+            JewelryTemplate t=d.jewelryTypes.get(type);
+            if(t==null||t.base==null||t.base.isEmpty())throw new IllegalArgumentException("Missing jewelry type "+type);
+            for(Curve c:t.base)for(int l=1;l<=80;l++){double v=c.at(Slot.RING,l);Rules.finite(v);if(v<0)throw new IllegalArgumentException("Negative jewelry attribute");}
+        }
         for(Slot slot:Slot.values()){
             if(!d.equipment.containsKey(slot)||!d.recipes.containsKey(slot))throw new IllegalArgumentException("Missing definition for "+slot);
             RecipeDefinition r=d.recipes.get(slot);

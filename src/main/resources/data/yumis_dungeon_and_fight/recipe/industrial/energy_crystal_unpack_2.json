@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:energy_crystal_block_2"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:energy_crystal_2",
+    "count": 9
+  }
+}

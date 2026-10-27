@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "#c:ingots/lead",
+    "#c:ingots/uranium",
+    "#c:ingots/titanium",
+    "#c:ingots/terra",
+    "#c:ingots/spacetime"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 2,
+  "ingredients": [],
+  "ticks": 1200,
+  "energy": 51200,
+  "result": {
+    "id": "minecraft:diamond",
+    "count": 1
+  }
+}

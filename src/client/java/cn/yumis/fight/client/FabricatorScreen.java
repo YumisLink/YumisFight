@@ -5,6 +5,7 @@ import static cn.yumis.fight.rules.Rules.*;
 import com.google.gson.*;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
@@ -16,6 +17,8 @@ import java.util.*;
 public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMenu> {
     private Slot slot=Slot.WEAPON;
     private Weapon weapon=Weapon.KATANA;
+    private ArmorType armorType=ArmorType.LEGACY;
+    private JewelryType jewelryType=JewelryType.LEGACY;
     private int level=1;
     private List<Catalog.Need> needs=List.of();
     public FabricatorScreen(FabricatorMenu menu,Inventory inv,Component title){
@@ -30,8 +33,8 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
     private void controls(){
         clearWidgets();
         addRenderableWidget(Button.builder(Component.literal("制作"),b->craft()).bounds(leftPos+126,topPos+7,43,20).build(ThemedButton::new));
-        addRenderableWidget(Button.builder(Component.literal(slot==Slot.WEAPON?weapon.title():slot.title()),b->{
-            minecraft.gui.pushScreenLayer(new EquipmentSelectionScreen(this,slot,weapon,level));
+        addRenderableWidget(Button.builder(Component.literal(slot==Slot.WEAPON?weapon.title():slot.armor()?armorType.title()+slot.title():slot.jewelry()?jewelryType.title()+slot.title():slot.title()),b->{
+            minecraft.gui.pushScreenLayer(new EquipmentSelectionScreen(this,slot,weapon,armorType,jewelryType,level));
         }
         ).bounds(leftPos+33,topPos+7,88,20).build(ThemedButton::new));
         addRenderableWidget(Button.builder(Component.literal("−"),b->{
@@ -53,9 +56,10 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
             needs=List.of();
         }
     }
-    void selectTemplate(Slot selected,Weapon selectedWeapon){
+    void selectTemplate(Slot selected,Weapon selectedWeapon,ArmorType selectedArmor,JewelryType selectedJewelry){
         if(ClientState.INSTANCE.progress.level<selected.minimum())return;
         slot=selected;weapon=selectedWeapon;
+        armorType=selectedArmor;jewelryType=selectedJewelry;
         level=Math.clamp(level,slot.minimum(),Math.min(80,ClientState.INSTANCE.progress.level));
         controls();
     }
@@ -65,6 +69,8 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
         var j=s.operation("craft");
         j.addProperty("slot",slot.name());
         j.addProperty("weapon",weapon.name());
+        j.addProperty("armorType",armorType.name());
+        j.addProperty("jewelryType",jewelryType.name());
         j.addProperty("level",level);
         s.send("craft",j);
     }
@@ -98,8 +104,9 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
                 }
             }
         }
-        var gear=EquipmentRules.create(slot,weapon,Rarity.COMMON,level,new Random(0));
+        var gear=EquipmentRules.create(slot,weapon,Rarity.COMMON,level,armorType,jewelryType,new Random(0));
         g.item(GameItems.gear(gear),leftPos+10,topPos+14);
+        if(mx>=leftPos+8&&mx<leftPos+28&&my>=topPos+12&&my<topPos+32){var preview=GameItems.gear(gear);g.setComponentTooltipForNextFrame(UiFonts.font(),Screen.getTooltipFromItem(minecraft,preview),mx,my,preview);}
         g.text(UiFonts.font(),"Lv."+level,leftPos+59,topPos+36,0xfff4dba7,false);
         for(var s:menu.slots){
             int x=leftPos+s.x,y=topPos+s.y;

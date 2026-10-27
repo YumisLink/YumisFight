@@ -1,0 +1,17 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_crusher",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "#c:raw_materials/iron",
+      "count": 1
+    }
+  ],
+  "ticks": 100,
+  "energy": 100,
+  "result": {
+    "id": "yumis_dungeon_and_fight:crushed_iron",
+    "count": 2
+  }
+}

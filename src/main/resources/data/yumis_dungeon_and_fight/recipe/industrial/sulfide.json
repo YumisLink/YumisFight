@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#c:ingots/lead",
+    "#c:sands",
+    "minecraft:coal"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:sulfide",
+    "count": 1
+  }
+}

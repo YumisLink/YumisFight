@@ -1,0 +1,13 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "fuel_turbine_generator",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "minecraft:coal_block",
+      "count": 1
+    }
+  ],
+  "ticks": 5760,
+  "energy": 311040
+}

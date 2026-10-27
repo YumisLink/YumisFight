@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:smelting",
+  "category": "misc",
+  "ingredient": "#c:raw_materials/uranium",
+  "result": {
+    "id": "yumis_dungeon_and_fight:uranium_ingot"
+  },
+  "experience": 0.7,
+  "cookingtime": 200
+}

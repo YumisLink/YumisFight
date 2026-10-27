@@ -1,0 +1,17 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_furnace",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "#c:ores/lead",
+      "count": 1
+    }
+  ],
+  "ticks": 200,
+  "energy": 100,
+  "result": {
+    "id": "yumis_dungeon_and_fight:lead_ingot",
+    "count": 1
+  }
+}

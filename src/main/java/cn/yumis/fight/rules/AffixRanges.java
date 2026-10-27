@@ -7,7 +7,7 @@ public final class AffixRanges {
     private AffixRanges(){}
     public static Range reroll(Affix a,Rarity rarity,boolean gem){
         if(gem||a.base||a.fixed||rarity==Rarity.EPIC||rarity==Rarity.MYTHIC)return null;
-        if(!a.operation.equals("FLAT")&&!a.operation.equals("PERCENT")&&!a.operation.equals("EXTRA"))return null;
+        if(!a.operation.equals("FLAT")&&!a.operation.equals("PERCENT")&&!a.operation.equals("EXTRA")&&!a.operation.equals(AffixRules.ALL_RESIST_FLAT))return null;
         if(!Double.isFinite(a.baseline)||a.baseline<=0)return null;
         boolean interval=a.operation.equals("EXTRA");
         if(interval&&(!Double.isFinite(a.baselineMaximum)||a.baselineMaximum<a.baseline))return null;

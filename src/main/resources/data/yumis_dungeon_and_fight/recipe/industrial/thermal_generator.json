@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:machine_frame_3",
+    "minecraft:blast_furnace"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:thermal_generator",
+    "count": 1
+  }
+}

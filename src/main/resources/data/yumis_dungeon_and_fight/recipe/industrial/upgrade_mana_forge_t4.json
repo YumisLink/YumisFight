@@ -1,0 +1,13 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "upgrade_mana_forge_t4",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:machine_frame_4",
+      "count": 1
+    }
+  ],
+  "ticks": 1,
+  "energy": 0
+}

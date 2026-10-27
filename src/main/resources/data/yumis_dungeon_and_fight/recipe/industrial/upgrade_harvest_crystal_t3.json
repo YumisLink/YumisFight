@@ -1,0 +1,13 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "upgrade_harvest_crystal_t3",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:terra_ingot",
+      "count": 4
+    }
+  ],
+  "ticks": 1,
+  "energy": 0
+}

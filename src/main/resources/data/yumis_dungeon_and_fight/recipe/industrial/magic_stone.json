@@ -1,0 +1,25 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "minecraft:obsidian",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:amethyst_shard",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:blaze_powder",
+      "count": 1
+    }
+  ],
+  "ticks": 800,
+  "energy": 819200,
+  "result": {
+    "id": "yumis_dungeon_and_fight:industrial_magic_stone",
+    "count": 4
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "side": "yumis_dungeon_and_fight:block/machine_side_4",
+    "top": "yumis_dungeon_and_fight:block/machine_top_4",
+    "front": "yumis_dungeon_and_fight:block/turbine_generator_linked"
+  }
+}

@@ -4,6 +4,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import cn.yumis.fight.rules.CurrencyRules;
 import net.neoforged.neoforge.transfer.item.ResourceHandlerSlot;
 /** One shared definition of real, modifiable equipment slots. */
 public final class CurrencySlots {
@@ -11,7 +12,7 @@ public final class CurrencySlots {
     public static boolean isCurrency(ItemStack stack){
         if(stack.isEmpty()||!GameItems.own(stack))return false;
         String id=GameItems.id(stack);
-        return GameItems.ALL.containsKey(id)&&(id.endsWith("_stone")||id.equals("affix_gem"));
+        return CurrencyRules.find(id)!=null;
     }
     public static boolean isWritable(Slot slot,Player player){
         if(slot==null||!slot.isActive()||!slot.mayPickup(player)||!slot.mayPlace(slot.getItem()))return false;

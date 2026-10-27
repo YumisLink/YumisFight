@@ -1,0 +1,13 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "fuel_nuclear_reactor",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "#c:ingots/uranium",
+      "count": 1
+    }
+  ],
+  "ticks": 16000,
+  "energy": 86400000
+}

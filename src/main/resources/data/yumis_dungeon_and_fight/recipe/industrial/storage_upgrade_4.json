@@ -1,0 +1,17 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "storage_upgrade_4",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "#c:ingots/iron",
+      "count": 16
+    },
+    {
+      "ingredient": "minecraft:quartz",
+      "count": 8
+    }
+  ],
+  "ticks": 1,
+  "energy": 0
+}

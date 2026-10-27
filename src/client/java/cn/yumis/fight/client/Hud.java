@@ -134,9 +134,9 @@ public final class Hud {
     public static void equipment(ScreenEvent.Render.Background event){
         if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;
         for(var slot:screen.getMenu().slots){
-            var gear=GameItems.gear(slot.getItem());
-            if(gear!=null&&slot.isActive()&&gear.rarity!=Rarity.COMMON){
-                int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y,color=0xff000000|gear.rarity.color();
+            var rarity=GameItems.rarity(slot.getItem());
+            if(slot.isActive()&&rarity!=Rarity.COMMON){
+                int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y,color=0xff000000|rarity.color();
                 var g=event.getGuiGraphics();
                 g.fill(x-1,y-1,x+17,y,color);
                 g.fill(x-1,y+16,x+17,y+17,color);

@@ -1,2 +1,2 @@
-115114b31355c7708dc8f311b333d5ad8094163467ddd794be81d25d9a379b09  YumisDungeonAndFight-0.1.0-sources.jar
-2533a6f0dfbc12057e148c060c81706f0c3a263b064963ba2a1dddf308cc6239  YumisDungeonAndFight-0.1.0.jar
+6133d5ec517105e2a4895a649cd1d4f6153e24eec7f78cc6845092306edf40fb  YumisDungeonAndFight-0.1.0-sources.jar
+0c98ee367ca305adf58a2afeb97bbd5256a3877b0f10491cf774de31d72dc825  YumisDungeonAndFight-0.1.0.jar

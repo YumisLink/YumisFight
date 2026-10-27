@@ -57,6 +57,7 @@ public final class ClientCombat {
     }
     private ClientCombat(){
     }
+    public void verificationSeed(long seed){if(!Boolean.getBoolean("ydnf.verify"))throw new IllegalStateException("Verification is disabled");random.setSeed(seed);}
     public boolean validWeapon(){
         var p=Minecraft.getInstance().player;
         Gear g=p==null?null:GameItems.gear(p.getMainHandItem());
@@ -67,9 +68,6 @@ public final class ClientCombat {
     }
     public boolean invulnerable(){
         return cast!=null&&cast.skill==Skill.STORM;
-    }
-    public void combat(){
-        state.resources.combatUntil=ClientState.now()+10000;
     }
     public Stats snapshot(){
         return SkillPreview.currentStats(state.stats,state.resources,ClientState.now());
@@ -110,7 +108,6 @@ public final class ClientCombat {
             state.resources.mp-=mp;
             state.resources.cooldowns.put(skill.name(),now+(long)(cooldown*1000));
         }
-        combat();
         Cast c=new Cast();
         c.skill=skill;
         c.parameters=SkillParameters.forCast(p.getUUID(),skill,rank,stats.parameters);
@@ -142,7 +139,6 @@ public final class ClientCombat {
         var mc=Minecraft.getInstance();
         if(!validWeapon()||cast!=null||ClientState.now()-lastAttack<650)return;
         lastAttack=ClientState.now();
-        combat();
         var p=mc.player;
         if(mc.hitResult instanceof EntityHitResult hit&&hit.getEntity() instanceof CageEntity cage){
             JsonObject j=new JsonObject();
@@ -211,8 +207,8 @@ public final class ClientCombat {
         boolean out=now>=state.resources.combatUntil;
         if(!state.own.dead){
             state.resources.mp=Math.min(state.stats.get(Stat.MP),state.resources.mp+(1+.04*state.stats.get(Stat.SPIRIT))*(out?3:1)*dt);
+            if(CombatTiming.shieldReady(state.resources,now))state.resources.shield=Math.min(state.stats.get(Stat.SHIELD),state.resources.shield+.2*state.stats.get(Stat.SHIELD)*dt);
             if(out){
-                state.resources.shield=Math.min(state.stats.get(Stat.SHIELD),state.resources.shield+.2*state.stats.get(Stat.SHIELD)*dt);
                 if(state.predicted(state.own)<1){
                     regen+=.02*dt;
                     if(now-lastRegen>=100){
@@ -486,7 +482,6 @@ public final class ClientCombat {
                 extra.add("ailment",a);
             }
         }
-        combat();
         int color=parts.element()<0?0xffffff:new int[]{
             0xffed8d,0xff8a58,0x83dfff,0xc783ff
         }
@@ -572,8 +567,7 @@ public final class ClientCombat {
         if(j.has("session")&&!j.get("session").getAsString().equals(state.session)||j.has("generation")&&j.get("generation").getAsLong()!=state.own.generation)return;
         if(!state.ready||state.own.dead||!incomingRoots.add(j.get("root").getAsString()))return;
         if(incomingRoots.size()>2048)incomingRoots.clear();
-        combat();
-        if(invulnerable()||Minecraft.getInstance().player.isSpectator()||Minecraft.getInstance().player.getAbilities().invulnerable&&!(j.has("bypassInvulnerability")&&j.get("bypassInvulnerability").getAsBoolean()))return;
+        if(invulnerable()||Minecraft.getInstance().player.isSpectator()||Minecraft.getInstance().player.getAbilities().invulnerable&&!(j.has("bypassInvulnerability")&&j.get("bypassInvulnerability").getAsBoolean())){nativeOutcome(j,"IMMUNE");return;}
         double fraction;
         if(j.has("attacker")){
             Target attacker=JSON.fromJson(j.get("attacker"),Target.class);
@@ -591,7 +585,7 @@ public final class ClientCombat {
             }
             ;
             long now=ClientState.now();
-            if(delay>0&&environment.getOrDefault(source,0L)>now)return;
+            if(delay>0&&environment.getOrDefault(source,0L)>now){nativeOutcome(j,"IMMUNE");return;}
             environment.put(source,now+delay);
             fraction=switch(source){
                 case "fall"->Math.max(0,(j.get("fall").getAsDouble()-3)*.05);
@@ -620,9 +614,17 @@ public final class ClientCombat {
             if(source.equals("drown")&&Minecraft.getInstance().player.hasEffect(net.minecraft.world.effect.MobEffects.WATER_BREATHING))fraction=0;
         }
         fraction*=NativeRules.receivedMultiplier(Minecraft.getInstance().player,j.get("source").getAsString(),j.has("projectile")&&j.get("projectile").getAsBoolean(),j.has("bypassEnchantments")&&j.get("bypassEnchantments").getAsBoolean(),j.has("bypassResistance")&&j.get("bypassResistance").getAsBoolean());
+        fraction*=j.has("nativeScale")?j.get("nativeScale").getAsDouble():1;
+        if(fraction<=0){nativeOutcome(j,"IMMUNE");return;}
+        if(j.has("directAttack")&&j.get("directAttack").getAsBoolean()&&CombatRules.evades(state.stats.get(Stat.EVASION),random::nextDouble)){nativeOutcome(j,"DODGE");return;}
         JsonObject feedback=new JsonObject();
         if(j.has("nativeRoot"))feedback.add("nativeRoot",j.get("nativeRoot"));
-        ownDamage(fraction*(j.has("nativeScale")?j.get("nativeScale").getAsDouble():1),feedback);
+        ownDamage(fraction,feedback);
+    }
+    private void nativeOutcome(JsonObject source,String outcome){
+        if(!source.has("nativeRoot"))return;
+        JsonObject feedback=new JsonObject();feedback.add("nativeRoot",source.get("nativeRoot"));feedback.addProperty("outcome",outcome);
+        state.report(state.own,0,false,state.stats.get(Stat.HEALTH),0xff5555,feedback);
     }
     private double explosion(JsonObject j){
         if(!j.has("x")){
@@ -646,6 +648,8 @@ public final class ClientCombat {
     private void ownDamage(double fraction,JsonObject feedback){
         if(fraction<=0||!Double.isFinite(fraction))return;
         double damage=fraction*state.stats.get(Stat.HEALTH);
+        if(feedback==null)feedback=new JsonObject();
+        feedback.addProperty("outcome","HIT");feedback.addProperty("damageTaken",damage);
         for(String key:new ArrayList<>(state.resources.absorption.keySet()))if(!key.equals("overdrivePower")){
             double value=state.resources.absorption.get(key),take=Math.min(value,damage);
             state.resources.absorption.put(key,value-take);
@@ -655,6 +659,7 @@ public final class ClientCombat {
         state.resources.shield-=absorb;
         damage-=absorb;
         if(damage>0)state.report(state.own,damage/state.stats.get(Stat.HEALTH),false,state.stats.get(Stat.HEALTH),0xff5555,feedback);
+        else if(feedback.has("nativeRoot")||feedback.has("feedbackEntity"))state.report(state.own,0,false,state.stats.get(Stat.HEALTH),0xff5555,feedback);
         else state.upload();
     }
     public boolean nativeAttack(Entity raw){
@@ -733,8 +738,7 @@ public final class ClientCombat {
                 boolean geometry=shape.equals("SQUARE")?Math.abs(offset.x)<=radius+.3&&Math.abs(offset.z)<=radius+.3:shape.equals("RECT")?forward>=-.3&&forward<=radius+.3&&side<=(j.has("width")?j.get("width").getAsDouble():2)*.5+.3:offset.horizontalDistanceSqr()<=radius*radius&&(shape.equals("CIRCLE")||direction.lengthSqr()<.001||offset.lengthSqr()<.001||horizontal(offset).dot(direction.normalize())>=Math.cos(half));
                 if(geometry&&Math.abs(offset.y)<3&&visible(center.add(0,1,0),p.getEyePosition())){
                     bossHit.add(entry.getKey());
-                    combat();
-                    if(!invulnerable()&&!p.getAbilities().invulnerable&&!p.isSpectator()){
+                    if(!invulnerable()&&!p.getAbilities().invulnerable&&!p.isSpectator()&&!CombatRules.evades(state.stats.get(Stat.EVASION),random::nextDouble)){
                         Target boss=JSON.fromJson(j.get("boss"),Target.class);
                         int level=boss.level(state.progress.level,state.dungeon==null?state.progress.sync:state.dungeon.sync);
                         JsonObject feedback=new JsonObject();feedback.addProperty("feedbackEntity",boss.id.toString());

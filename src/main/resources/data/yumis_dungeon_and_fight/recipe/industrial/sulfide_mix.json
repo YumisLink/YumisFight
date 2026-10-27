@@ -1,0 +1,25 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "#c:ingots/lead",
+      "count": 1
+    },
+    {
+      "ingredient": "#c:sands",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:coal",
+      "count": 1
+    }
+  ],
+  "ticks": 100,
+  "energy": 100,
+  "result": {
+    "id": "yumis_dungeon_and_fight:sulfide",
+    "count": 1
+  }
+}

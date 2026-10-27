@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:machine_frame_2",
+    "#c:ingots/titanium",
+    "#c:ingots/titanium",
+    "#c:ingots/titanium",
+    "#c:ingots/titanium",
+    "#c:ingots/titanium",
+    "#c:ingots/titanium",
+    "#c:ingots/titanium",
+    "#c:ingots/titanium"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:machine_frame_3",
+    "count": 1
+  }
+}

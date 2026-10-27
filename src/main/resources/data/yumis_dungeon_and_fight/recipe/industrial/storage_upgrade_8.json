@@ -1,0 +1,17 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "storage_upgrade_8",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "#c:ingots/gold",
+      "count": 24
+    },
+    {
+      "ingredient": "minecraft:amethyst_shard",
+      "count": 4
+    }
+  ],
+  "ticks": 1,
+  "energy": 0
+}

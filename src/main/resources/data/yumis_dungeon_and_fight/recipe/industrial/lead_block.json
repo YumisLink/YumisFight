@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#c:ingots/lead",
+    "#c:ingots/lead",
+    "#c:ingots/lead",
+    "#c:ingots/lead",
+    "#c:ingots/lead",
+    "#c:ingots/lead",
+    "#c:ingots/lead",
+    "#c:ingots/lead",
+    "#c:ingots/lead"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:lead_block",
+    "count": 1
+  }
+}

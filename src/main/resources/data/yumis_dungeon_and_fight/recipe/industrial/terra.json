@@ -1,0 +1,29 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "#c:ingots/titanium",
+      "count": 8
+    },
+    {
+      "ingredient": "#c:ingots/iron",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:amethyst_shard",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:ender_pearl",
+      "count": 1
+    }
+  ],
+  "ticks": 1200,
+  "energy": 3276800,
+  "result": {
+    "id": "yumis_dungeon_and_fight:terra_ingot",
+    "count": 8
+  }
+}

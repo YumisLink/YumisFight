@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:machine_frame_2",
+    "minecraft:piston"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:turbine_generator",
+    "count": 1
+  }
+}

@@ -1,1 +1,47 @@
-{"model":{"type":"minecraft:model","model":"yumis_dungeon_and_fight:item/legs_armor"}}
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "cloth_legs",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/cloth_legs"
+        }
+      },
+      {
+        "when": "leather_legs",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/leather_legs"
+        }
+      },
+      {
+        "when": "light_legs",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/light_legs"
+        }
+      },
+      {
+        "when": "heavy_legs",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/heavy_legs"
+        }
+      },
+      {
+        "when": "plate_legs",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/armor/plate_legs"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/legs_armor"
+    }
+  }
+}

@@ -82,25 +82,12 @@ public final class LootService {
                 for(Slot s:List.of(Slot.SUB_EQUIPMENT,Slot.MAGIC_STONE,Slot.EARRING))if(progress.level>=s.minimum()&&level>=s.minimum())eligible.add(s);
                 double group=r.random.nextDouble();
                 Slot slot=rarity==Rarity.MYTHIC?(group<.5?Slot.WEAPON:eligible.get(r.random.nextInt(eligible.size()))):group<.2?Slot.WEAPON:group<.6?Slot.values()[1+r.random.nextInt(4)]:eligible.get(r.random.nextInt(eligible.size()));
-                Gear gear=EquipmentRules.create(slot,Weapon.values()[r.random.nextInt(5)],rarity,Math.clamp(level,1,80),r.random);
+                Gear gear=EquipmentTemplates.createStandard(slot,Weapon.values()[r.random.nextInt(5)],rarity,Math.clamp(level,1,80),r.random);
                 gear.source=target.life.target+"/"+target.life.generation;
                 create(p,GameItems.gear(gear),entity.position(),target.instance,instance);
             }
-            if(r.random.nextDouble()<.05){
-                double[] weights={
-                    50,25,15,7,3
-                }
-                ;
-                double sum=0;
-                for(int i=0;i<5;i++){
-                    weights[i]*=Math.pow(1+Math.max(0,stats.get(Stat.DROP_RATE))/100,i);
-                    sum+=weights[i];
-                }
-                double pick=r.random.nextDouble()*sum;
-                int index=0;
-                while(pick>=weights[index])pick-=weights[index++];
-                create(p,GameItems.item(List.of("transmutation_stone","augmentation_stone","regal_stone","exalted_stone","divine_stone").get(index),1),entity.position(),target.instance,instance);
-            }
+            var currency=CurrencyRules.roll(stats.get(Stat.DROP_RATE),r.random);
+            if(currency!=null)create(p,GameItems.item(currency.id(),1),entity.position(),target.instance,instance);
             if(instance){
                 Catalog.DungeonDef def=Catalog.CURRENT.dungeon(r.dungeons.byId(target.instance).dungeon);
                 int rolls=boss?4:target.elite?2:r.random.nextDouble()<.2?1:0;

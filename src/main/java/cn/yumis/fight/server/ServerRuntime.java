@@ -151,6 +151,7 @@ public final class ServerRuntime {
         ServerEvents.register();
     }
     public void loadDefinitions(){
+        cn.yumis.fight.industry.IndustrialWorld.loadRules(server);
         try{
             Catalog nextCatalog=Catalog.CURRENT;
             Definitions nextDefinitions=Definitions.CURRENT;
@@ -257,6 +258,8 @@ public final class ServerRuntime {
         if(s.resources.training)s.resources.trainingBoundary=s.resources.mp;
         VisualService.resetGravity(p);
         s.resources.shield=stats.get(Stat.SHIELD);
+        s.resources.combatUntil=0;
+        s.resources.shieldRecoveryAt=0;
         s.resources.buffs.clear();
         s.resources.absorption.clear();
         s.resources.absorptionUntil.clear();
@@ -313,7 +316,8 @@ public final class ServerRuntime {
         j.add("dungeonCatalog",JSON.toJsonTree(Catalog.CURRENT.dungeons));
         j.add("materials",JSON.toJsonTree(Catalog.CURRENT.materials));
         j.addProperty("definitionsRevision",Catalog.CURRENT.revision);
-        j.addProperty("equipmentState",p.getData(FightMod.STATE));
+        j.addProperty("equipmentState",inventory.clientStorageState(p));
+        j.add("industrialRules",JSON.toJsonTree(cn.yumis.fight.industry.IndustrialRules.CURRENT));
         j.add("catalog",JSON.toJsonTree(Catalog.CURRENT));
         j.add("equipmentDefinitions",JSON.toJsonTree(Definitions.CURRENT));
         j.add("equipmentLayout",JSON.toJsonTree(EquipmentLayout.CURRENT));
@@ -401,7 +405,7 @@ public final class ServerRuntime {
                     if(e instanceof LivingEntity l&&managed(l))context(p,l);
                 }
                 case "runtime"->runtime(p,j);
-                case "damage","heal"->{
+                case "damage","heal","nativeOutcome"->{
                     JsonObject report=j.deepCopy();
                     combatQueue.add(()->report(p,action,report));
                 }
@@ -438,7 +442,9 @@ public final class ServerRuntime {
         // These fields belong to the administrator command, never to combat prediction uploads.
         r.training=s.resources.training;
         r.trainingBoundary=s.resources.trainingBoundary;
-        r.combatUntil=issued+Math.max(0,r.combatUntil-local);
+        // Accepted damage events own these clocks; prediction uploads cannot extend them.
+        r.combatUntil=s.resources.combatUntil;
+        r.shieldRecoveryAt=s.resources.shieldRecoveryAt;
         r.cooldowns.replaceAll((k,v)->issued+Math.max(0,v-local));
         r.buffs.replaceAll((k,v)->issued+Math.max(0,v-local));
         r.absorptionUntil.replaceAll((k,v)->v==Long.MAX_VALUE?v:issued+Math.max(0,v-local));
@@ -466,7 +472,7 @@ public final class ServerRuntime {
             }
             if(!s.id.toString().equals(j.get("session").getAsString())||j.get("operation").getAsLong()<=0)throw new IllegalArgumentException("会话已失效");
             if(!j.has("sourceGeneration")||j.get("sourceGeneration").getAsLong()!=s.life.generation||s.life.dead)throw new IllegalArgumentException("施加者生命已失效");
-            boolean heal=action.equals("heal");
+            boolean heal=action.equals("heal"),outcomeOnly=action.equals("nativeOutcome");
             if(j.has("heal")&&j.get("heal").getAsBoolean()!=heal)throw new IllegalArgumentException("伤害类型不一致");
             UUID id=UUID.fromString(j.get("target").getAsString());
             LivingEntity entity=id.equals(p.getUUID())?p:(LivingEntity)p.level().getEntity(id);
@@ -486,7 +492,16 @@ public final class ServerRuntime {
                 dot=validateDot(p,j,target);
             }
             double fraction=j.get("fraction").getAsDouble();
-            Receipt receipt=Models.apply(life,fraction,heal);
+            String outcome=j.has("outcome")?j.get("outcome").getAsString():"HIT";
+            if(!Set.of("HIT","DODGE","IMMUNE").contains(outcome)||!outcome.equals("HIT")&&fraction!=0)throw new IllegalArgumentException("命中结果无效");
+            double taken=j.has("damageTaken")?j.get("damageTaken").getAsDouble():0;
+            finite(taken);
+            if(taken<0||!outcome.equals("HIT")&&taken!=0)throw new IllegalArgumentException("承伤结果无效");
+            if(outcomeOnly){
+                boolean bossHit=entity==p&&outcome.equals("HIT")&&taken>0&&j.has("feedbackEntity")&&p.level().getEntity(UUID.fromString(j.get("feedbackEntity").getAsString())) instanceof LivingEntity origin&&managed(origin);
+                if(heal||entity!=p||fraction!=0||!nativeHit&&!bossHit)throw new IllegalArgumentException("零伤害命中来源无效");
+            }
+            Receipt receipt=outcomeOnly?Models.noDamageReceipt(life):Models.apply(life,fraction,heal);
             JsonObject ack=new JsonObject();
             ack.addProperty("session",s.id.toString());
             ack.add("operation",j.get("operation"));
@@ -498,6 +513,13 @@ public final class ServerRuntime {
             stored.add("ack",ack);
             journal.begin();
             if(j.has("runtime"))runtime(p,j.getAsJsonObject("runtime"));
+            if(!heal&&(receipt.actual()>0||entity==p&&outcome.equals("HIT")&&taken>0)){
+                long eventTime=nativeHit?nativeHits.occurredAt(j):j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
+                if(entity==p)CombatTiming.taken(s.resources,eventTime);else CombatTiming.dealt(s.resources,eventTime);
+                journal.put("resources/"+p.getUUID(),s.resources);
+            }
+            ack.addProperty("combatUntil",s.resources.combatUntil);
+            ack.addProperty("shieldRecoveryAt",s.resources.shieldRecoveryAt);
             if(dot!=null){
                 dot.addProperty("nextIndex",dot.get("nextIndex").getAsInt()+1);
                 dot.addProperty("nextAt",System.currentTimeMillis()+1000);
@@ -539,9 +561,10 @@ public final class ServerRuntime {
                 bridge=false;
                 nativeHits.suppressProjectionFeedback=false;
             }
+            if(nativeHit)nativeHits.complete(j);
             Network.send(p,"ack",ack);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("health",JSON.toJson(life)));
-            if(receipt.actual()>0&&!heal&&!nativeHit){
+            if(!heal&&!nativeHit&&(receipt.actual()>0||entity==p&&taken>0)){
                 entity.hurtTime=10;
                 entity.hurtDuration=10;
                 LivingEntity feedbackAttacker=p;
@@ -658,6 +681,9 @@ public final class ServerRuntime {
         int level=j.get("level").getAsInt();
         if(level>s.progress.level)throw new IllegalArgumentException("制作等级超过角色等级");
         Weapon weapon=Weapon.valueOf(j.get("weapon").getAsString());
+        ArmorType armorType=j.has("armorType")?ArmorType.valueOf(j.get("armorType").getAsString()):ArmorType.LEGACY;
+        JewelryType jewelryType=j.has("jewelryType")?JewelryType.valueOf(j.get("jewelryType").getAsString()):JewelryType.LEGACY;
+        if(slot.armor()&&(armorType==ArmorType.LEGACY||jewelryType!=JewelryType.LEGACY)||slot.jewelry()&&(jewelryType==JewelryType.LEGACY||armorType!=ArmorType.LEGACY)||!slot.armor()&&!slot.jewelry()&&(armorType!=ArmorType.LEGACY||jewelryType!=JewelryType.LEGACY))throw new IllegalArgumentException("请选择有效装备类型");
         List<Catalog.Need> needs=Catalog.CURRENT.recipe(slot,level);
         String op=j.get("operation").getAsString();
         Profession prof=profession(p,"craftsman");
@@ -677,7 +703,7 @@ public final class ServerRuntime {
                     }
                 }
             }
-            inventory.requireSpace(p,GameItems.gear(EquipmentRules.create(slot,weapon,Rarity.COMMON,level,random)));
+            inventory.requireSpace(p,GameItems.gear(EquipmentRules.create(slot,weapon,Rarity.COMMON,level,armorType,jewelryType,random)));
         }
         ,edits);
         if(applied)message(p,"制作成功，工匠经验 +60");
@@ -729,7 +755,7 @@ public final class ServerRuntime {
         Session s=session(p);
         Progress next=copy(s.progress,Progress.class);
         String kind=j.get("kind").getAsString();
-        if(!kind.equals("bind")&&System.currentTimeMillis()<s.resources.combatUntil)throw new IllegalArgumentException("请脱战10秒后操作");
+        if(!kind.equals("bind")&&System.currentTimeMillis()<s.resources.combatUntil)throw new IllegalArgumentException("请在连续3秒未造成或受到伤害后操作");
         String op=j.get("operation").getAsString(),key="progressReceipt/"+p.getUUID()+"/"+op;
         JsonElement previous=journal.get(key);
         if(!previous.isJsonNull()){
@@ -829,8 +855,7 @@ public final class ServerRuntime {
             gear=EquipmentRules.socket(gear,gem,socket>=0?socket:gear.gems.size()<gear.sockets?gear.gems.size():0);
         }
         else if(id.equals("affix_extraction_stone"))throw new IllegalArgumentException("特殊装备词条拆卸暂未开放");
-        else if(id.endsWith("_stone"))gear=EquipmentRules.process(gear,id,random);
-        else return false;
+        else gear=EquipmentRules.process(gear,id,random);
         ItemStack updated=stack.copy();
         GameItems.write(updated,gear);
         menu.slots.get(slot).set(updated);
@@ -860,10 +885,11 @@ public final class ServerRuntime {
         if(!(p.containerMenu instanceof FabricatorMenu m)||!m.stillValid(p))throw new IllegalArgumentException("请使用装备制作器");
         int index=j.get("inventorySlot").getAsInt();
         if(index<0||index>=36)throw new IllegalArgumentException("背包槽无效");
-        Gear gear=GameItems.gear(p.getInventory().getItem(index));
-        if(gear==null||gear.rarity!=Rarity.EPIC&&gear.rarity!=Rarity.MYTHIC)throw new IllegalArgumentException("只能分解史诗或神话装备");
         inventory.transact(p,j.get("operation").getAsString(),j,()->{
-            p.getInventory().setItem(index,ItemStack.EMPTY);inventory.requireSpace(p,GameItems.item(gear.rarity==Rarity.EPIC?"epic_upgrade_stone":"mythic_upgrade_stone",1));
+            Gear gear=GameItems.gear(p.getInventory().getItem(index));
+            if(gear==null)throw new IllegalArgumentException("请选择装备");
+            String upgrade=CurrencyRules.salvageCurrency(gear.rarity);
+            p.getInventory().setItem(index,ItemStack.EMPTY);inventory.requireSpace(p,GameItems.item(upgrade,1));
         }
         ,Map.of());
         message(p,"分解完成，获得1枚升级石");
@@ -871,8 +897,7 @@ public final class ServerRuntime {
     }
     private void openBag(ServerPlayer p){
         inventory.closeCursor(p);
-        p.openMenu(new SimpleMenuProvider((id,inv,owner)->ChestMenu.sixRows(id,inv,MenuHooks.extra(p).bag),cn.yumis.fight.game.ModText.of("次元背包")));
-        inventory.bag(p,true);
+        cn.yumis.fight.industry.DimensionalMenu.open(p);
     }
     private void claimWaiting(ServerPlayer p){
         JsonElement waiting=journal.get("equipmentWaiting/"+p.getUUID());
@@ -968,6 +993,7 @@ public final class ServerRuntime {
     }
     private void tick(){
         ticks++;
+        cn.yumis.fight.industry.IndustrialWorld.tick(this);
         movement.tick();
         int size=combatQueue.size();
         for(int i=0;i<size;i++)combatQueue.removeFirst().run();
@@ -986,10 +1012,10 @@ public final class ServerRuntime {
                     String id=GameItems.id(stack);
                     Slot slot=Arrays.stream(Slot.values()).filter(x->x.item().equals(id)).findFirst().orElse(Slot.WEAPON);
                     Weapon w=Arrays.stream(Weapon.values()).filter(x->x.name().equalsIgnoreCase(id)).findFirst().orElse(Weapon.KATANA);
-                    if(s.progress.level>=slot.minimum())GameItems.write(stack,EquipmentRules.create(slot,w,Rarity.COMMON,s.progress.level,random));
+                    if(s.progress.level>=slot.minimum())GameItems.write(stack,EquipmentTemplates.createStandard(slot,w,Rarity.COMMON,s.progress.level,random));
                 }
             }
-            if(inventory.isBag(p)&&!(p.containerMenu instanceof ChestMenu))inventory.bag(p,false);
+            if(inventory.isBag(p)&&!(p.containerMenu instanceof cn.yumis.fight.industry.DimensionalMenu))inventory.bag(p,false);
             Stats st=stats(p);
             var max=p.getAttribute(Attributes.MAX_HEALTH);
             if(!JSON.toJson(st).equals(s.statsKey))profile(p);

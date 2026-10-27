@@ -6,12 +6,18 @@ public final class EquipmentRules {
     private EquipmentRules(){
     }
     public static Gear create(Slot slot,Weapon weapon,Rarity rarity,int level,Random random){
+        return create(slot,weapon,rarity,level,ArmorType.LEGACY,JewelryType.LEGACY,random);
+    }
+    public static Gear create(Slot slot,Weapon weapon,Rarity rarity,int level,ArmorType armorType,JewelryType jewelryType,Random random){
         if(level<slot.minimum()||level>80||rarity==Rarity.MYTHIC&&slot.armor())throw new IllegalArgumentException("装备模板未开放");
         Gear g=new Gear();
         g.slot=slot;
         g.weapon=weapon;
         g.rarity=rarity;
         g.level=level;
+        g.armorType=armorType==null?ArmorType.LEGACY:armorType;
+        g.jewelryType=jewelryType==null?JewelryType.LEGACY:jewelryType;
+        EquipmentTemplates.validate(g);
         addBases(g);
         int n=level-1;
         double budget=budget(level);
@@ -33,7 +39,7 @@ public final class EquipmentRules {
     }
     private static void addBases(Gear g){
         double scale=g.rarity==Rarity.MYTHIC?1.9:g.rarity==Rarity.EPIC?(g.slot==Slot.WEAPON?1.6:1.5):1;
-        for(Definitions.Curve curve:Definitions.CURRENT.equipment.get(g.slot).base())g.affixes.add(new Affix("base_"+curve.stat().name().toLowerCase(Locale.ROOT),curve.stat(),curve.at(g.slot,g.level)*scale,true));
+        for(Definitions.Curve curve:EquipmentTemplates.bases(g))g.affixes.add(new Affix("base_"+curve.stat().name().toLowerCase(Locale.ROOT),curve.stat(),curve.at(g.slot,g.level)*scale,true));
     }
     public static double budget(int level){
         double a=20+5*(level-1);
@@ -54,6 +60,10 @@ public final class EquipmentRules {
         for(Gem gem:g.gems)all.addAll(gem.affixes);
         Map<Stat,Double> flats=new EnumMap<>(Stat.class),percent=new EnumMap<>(Stat.class);
         for(Affix a:all){
+            if(a.operation.equals(AffixRules.ALL_RESIST_FLAT)){
+                for(Stat s:List.of(Stat.LIGHT_RESIST,Stat.FIRE_RESIST,Stat.ICE_RESIST,Stat.DARK_RESIST))flats.merge(s,a.value,Double::sum);
+                continue;
+            }
             if(a.stat.isEmpty())continue;
             Stat s=Stat.valueOf(a.stat);
             if(a.operation.equals("FLAT"))flats.merge(s,a.value,Double::sum);
@@ -62,37 +72,20 @@ public final class EquipmentRules {
         for(Stat s:flats.keySet())flats.put(s,flats.get(s)*(1+percent.getOrDefault(s,0d)));
         return flats;
     }
-    private static double reference(Gear g,Stat stat){
-        int n=g.level-1;
-        return switch(stat){
-            case HEALTH,SHIELD->100+20*n;
-            case MP->100+14*n;
-            case STRENGTH->20+3*n;
-            case INTELLIGENCE->15+2*n;
-            case SPIRIT->10+2*n;
-            case PHYSICAL_ATTACK,MAGICAL_ATTACK->15+4*n;
-            case PHYSICAL_DEFENSE->g.slot.armor()?defenses(g.level,false)[g.slot.ordinal()-1]:(80+15*n)/4d;
-            case MAGICAL_DEFENSE->g.slot.armor()?defenses(g.level,true)[g.slot.ordinal()-1]:(40+10*n)/4d;
-            case DROP_RATE->2;
-            default->3+.15*n;
-        }
-        ;
-    }
     public static void appendRandom(Gear g,Random random){
-        List<Stat> flat=new ArrayList<>(),percent=new ArrayList<>();
-        for(Stat s:Stat.values()){
-            if(s==Stat.SHIELD&&!g.slot.armor())continue;
-            if(g.affixes.stream().noneMatch(a->!a.base&&!a.fixed&&a.stat.equals(s.name())&&a.operation.equals("FLAT")))flat.add(s);
-            if(contribution(g).getOrDefault(s,0d)>0&&g.affixes.stream().noneMatch(a->!a.base&&a.stat.equals(s.name())&&a.operation.equals("PERCENT")))percent.add(s);
-        }
+        appendRandom(g,random,false);
+    }
+    private static void appendRandom(Gear g,Random random,boolean allowDuplicates){
+        var flat=AffixRules.candidates(g,false,allowDuplicates);
+        var percent=AffixRules.candidates(g,true,allowDuplicates);
         List<Integer> elements=new ArrayList<>();
         List<Family> families=new ArrayList<>();
         if(g.slot==Slot.WEAPON){
             if(g.affixes.stream().filter(a->a.operation.equals("EXTRA")&&!a.fixed).count()<2)for(int e=0;e<4;e++){
                 int f=e;
-                if(g.affixes.stream().noneMatch(a->a.operation.equals("EXTRA")&&a.element==f))elements.add(e);
+                if(allowDuplicates||g.affixes.stream().noneMatch(a->a.operation.equals("EXTRA")&&a.element==f))elements.add(e);
             }
-            for(Family f:Family.values())if(g.affixes.stream().noneMatch(a->a.family.equals(f.name())))families.add(f);
+            for(Family f:Family.values())if(allowDuplicates||g.affixes.stream().noneMatch(a->a.family.equals(f.name())))families.add(f);
         }
         double[] weights=g.slot==Slot.WEAPON?new double[]{
             51,21.25,12.75,15
@@ -130,16 +123,19 @@ public final class EquipmentRules {
             a.maximum=a.baselineMaximum*roll;
             return;
         }
-        Stat s=(group==0?flat:percent).get(random.nextInt(group==0?flat.size():percent.size()));
+        var definition=(group==0?flat:percent).get(random.nextInt(group==0?flat.size():percent.size()));
         Affix a=new Affix();
-        a.stat=s.name();
-        a.operation=group==0?"FLAT":"PERCENT";
-        a.id=(group==0?"flat_":"percent_")+s.name().toLowerCase(Locale.ROOT);
-        double base=group==1?.175:s==Stat.DROP_RATE?2:s.ordinal()>=Stat.LIGHT.ordinal()&&s.ordinal()<=Stat.DARK_RESIST.ordinal()?reference(g,s):reference(g,s)*(s==Stat.HEALTH||s==Stat.MP||s==Stat.SHIELD?.045:.075);
+        a.stat=definition.stat()==null?"":definition.stat().name();
+        a.operation=definition.operation();
+        a.id=definition.id();
+        double base=AffixRules.baseline(g,a);
         a.baseline=base;
         a.roll=roll;
         a.value=base*roll;
         g.affixes.add(a);
+    }
+    public static boolean replaceable(Affix a){
+        return !a.base&&!a.fixed&&!a.locked;
     }
     public static Gear process(Gear original,String currency,Random random){
         Gear g=copy(original,Gear.class);
@@ -163,6 +159,23 @@ public final class EquipmentRules {
                 if(g.rarity!=Rarity.LEGENDARY||g.affixes.stream().filter(a->!a.base).count()>=6)throw new IllegalArgumentException("仅未满六条的传说装备可加工");
                 appendRandom(g,random);
             }
+            case "chaos_stone"->{
+                if(g.rarity==Rarity.EPIC||g.rarity==Rarity.MYTHIC)throw new IllegalArgumentException("固定装备无法替换词条");
+                List<Affix> eligible=g.affixes.stream().filter(EquipmentRules::replaceable).toList();
+                if(eligible.isEmpty())throw new IllegalArgumentException("没有可删除替换的词条");
+                Affix removed=eligible.get(random.nextInt(eligible.size()));
+                int index=g.affixes.indexOf(removed);
+                g.affixes.remove(index);
+                appendRandom(g,random,true);
+                Affix replacement=g.affixes.removeLast();
+                g.affixes.add(index,replacement);
+            }
+            case "fracturing_orb"->{
+                if(g.rarity!=Rarity.LEGENDARY)throw new IllegalArgumentException("仅传说装备可锁定词条");
+                List<Affix> eligible=g.affixes.stream().filter(EquipmentRules::replaceable).toList();
+                if(eligible.isEmpty())throw new IllegalArgumentException("没有尚未锁定的可删除词条");
+                eligible.get(random.nextInt(eligible.size())).locked=true;
+            }
             case "divine_stone"->{
                 boolean changed=false;
                 if(g.rarity==Rarity.EPIC||g.rarity==Rarity.MYTHIC)throw new IllegalArgumentException("固定装备无法重洗");
@@ -177,6 +190,13 @@ public final class EquipmentRules {
             case "socket_stone"->{
                 if(g.sockets>=g.slot.maximumSockets())throw new IllegalArgumentException("宝石孔已满");
                 g.sockets++;
+            }
+            case "upgrade_stone"->{
+                if(g.rarity==Rarity.EPIC||g.rarity==Rarity.MYTHIC||g.level>=80)throw new IllegalArgumentException("仅未满80级的普通至传说装备可升级");
+                g.level=Math.min(80,g.level+5);
+                g.affixes.removeIf(a->a.base);
+                addBases(g);
+                AffixRules.grow(g);
             }
             case "epic_upgrade_stone","mythic_upgrade_stone"->{
                 Rarity required=currency.startsWith("epic")?Rarity.EPIC:Rarity.MYTHIC;

@@ -65,6 +65,8 @@ public final class VerificationChecks {
         j.addProperty("operation",prefix+sequence++);
         j.addProperty("slot",slot.name());
         j.addProperty("weapon",Weapon.KATANA.name());
+        j.addProperty("armorType",slot.armor()?ArmorType.CLOTH.name():ArmorType.LEGACY.name());
+        j.addProperty("jewelryType",slot.jewelry()?JewelryType.HEALTH.name():JewelryType.LEGACY.name());
         j.addProperty("level",level);
         return j;
     }
@@ -94,6 +96,54 @@ public final class VerificationChecks {
     }
     private String inventory(){
         return JSON.toJson(runtime.inventory.capture(player,"comparison"));
+    }
+    private void currencies(){
+        for(var currency:CurrencyRules.ALL){
+            ItemStack stack=GameItems.item(currency.id(),2);
+            check(CurrencySlots.isCurrency(stack)&&GameItems.rarity(stack)==currency.rarity()
+                &&stack.getHoverName().getStyle().getColor()!=null&&stack.getHoverName().getStyle().getColor().getValue()==currency.rarity().color(),"currency_registered_rarity_and_name_"+currency.id());
+        }
+        Gear gear=EquipmentRules.create(Slot.CHEST,Weapon.KATANA,Rarity.COMMON,35,new Random(91));
+        gear.rarity=Rarity.LEGENDARY;gear.sockets=1;
+        gear.affixes.add(new Affix("flat_strength",Stat.STRENGTH,10,false));
+        gear.affixes.add(new Affix("flat_health",Stat.HEALTH,20,false));
+        Affix fixed=new Affix("fixed_shield",Stat.SHIELD,5,false);fixed.fixed=true;gear.affixes.add(fixed);
+        Gem gem=new Gem();gem.name="锁定保留宝石";gear.gems.add(gem);
+        clear();
+        mutate(()->{player.getInventory().setItem(0,GameItems.gear(gear));player.inventoryMenu.setCarried(GameItems.item("fracturing_orb",2));});
+        JsonObject fracture=currency(0,null);
+        runtime.currencyRequest(player,fracture);
+        Gear first=GameItems.gear(player.getInventory().getItem(0));
+        check(first.affixes.stream().filter(a->a.locked).count()==1&&player.inventoryMenu.getCarried().getCount()==1,"fracturing_locks_one_and_consumes_one");
+        runtime.currencyRequest(player,fracture);
+        check(player.inventoryMenu.getCarried().getCount()==1&&GameItems.gear(player.getInventory().getItem(0)).revision==first.revision,"duplicate_fracturing_does_not_lock_twice");
+        runtime.currencyRequest(player,currency(0,null));
+        Gear locked=GameItems.gear(player.getInventory().getItem(0));
+        check(locked.affixes.stream().filter(a->a.locked).count()==2&&player.inventoryMenu.getCarried().isEmpty(),"fracturing_can_lock_every_random_affix");
+        ItemStack restored=runtime.inventory.decode(player,runtime.inventory.encode(player,player.getInventory().getItem(0)));
+        check(JSON.toJson(locked).equals(JSON.toJson(GameItems.gear(restored))),"locked_affixes_survive_native_item_codec");
+        mutate(()->player.inventoryMenu.setCarried(GameItems.item("fracturing_orb",2)));
+        String before=inventory();
+        rejects(()->runtime.currencyRequest(player,currency(0,null)),"all_locked_fracturing_rejected");
+        check(before.equals(inventory()),"failed_fracturing_keeps_equipment_and_full_cursor");
+        mutate(()->player.inventoryMenu.setCarried(GameItems.item("chaos_stone",2)));
+        before=inventory();
+        rejects(()->runtime.currencyRequest(player,currency(0,null)),"all_locked_chaos_rejected");
+        check(before.equals(inventory()),"failed_chaos_keeps_equipment_and_full_cursor");
+        Gear eligible=copy(locked,Gear.class);
+        int replace=-1;
+        for(int i=0;i<eligible.affixes.size();i++)if(eligible.affixes.get(i).locked){replace=i;break;}
+        eligible.affixes.get(replace).locked=false;
+        mutate(()->player.getInventory().setItem(0,GameItems.gear(eligible)));
+        JsonObject chaos=currency(0,null);
+        runtime.currencyRequest(player,chaos);
+        Gear changed=GameItems.gear(player.getInventory().getItem(0));
+        check(changed.instance.equals(eligible.instance)&&changed.revision==eligible.revision+1&&changed.affixes.size()==eligible.affixes.size()
+            &&player.inventoryMenu.getCarried().getCount()==1,"chaos_preserves_identity_count_and_consumes_one");
+        for(int i=0;i<eligible.affixes.size();i++)if(i!=replace)check(JSON.toJson(eligible.affixes.get(i)).equals(JSON.toJson(changed.affixes.get(i))),"chaos_preserves_other_affix_"+i);
+        check(JSON.toJson(eligible.gems).equals(JSON.toJson(changed.gems)),"chaos_preserves_embedded_gems");
+        runtime.currencyRequest(player,chaos);
+        check(player.inventoryMenu.getCarried().getCount()==1&&JSON.toJson(changed).equals(JSON.toJson(GameItems.gear(player.getInventory().getItem(0)))),"duplicate_chaos_returns_same_result_without_reroll");
     }
     private int run(){
         player.closeContainer();
@@ -199,6 +249,7 @@ public final class VerificationChecks {
             runtime.currencyRequest(player,upgrade);
             check(player.inventoryMenu.getCarried().getCount()==1,"duplicate_upgrade_returns_original_result");
             rejects(()->runtime.currencyRequest(player,currency(0,null)),"level80_upgrade_rejected");
+            currencies();
             clear();
             mutate(()->{
                 player.getInventory().setItem(0,GameItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,10,new Random(3))));player.inventoryMenu.setCarried(GameItems.item("socket_stone",2));
@@ -261,8 +312,9 @@ public final class VerificationChecks {
             player.closeContainer();
             clear();
             mutate(()->player.getInventory().setItem(0,GameItems.material("goblin_ingot",64)));
+            MenuHooks.extra(player).bagPage=0;
             runtime.handle(player,"bag",new JsonObject());
-            runtime.inventory.click(player,player.containerMenu,81,0,ContainerInput.QUICK_MOVE);
+            runtime.inventory.click(player,player.containerMenu,cn.yumis.fight.industry.DimensionalMenu.PLAYER_START+27,0,ContainerInput.QUICK_MOVE);
             check(MenuHooks.extra(player).bag.getItem(0).getCount()==64&&player.getInventory().getItem(0).isEmpty(),"dimensional_bag_shift_insert");
             runtime.inventory.click(player,player.containerMenu,0,0,ContainerInput.QUICK_MOVE);
             check(MenuHooks.extra(player).bag.getItem(0).isEmpty()&&regional("goblin_ingot")==64,"dimensional_bag_shift_withdraw");
@@ -285,6 +337,7 @@ public final class VerificationChecks {
             runtime.journal.put("inventoryApplied/"+player.getUUID(),"simulated-interruption");
             runtime.inventory.restore(player);
             check(saved.equals(inventory()),"pending_inventory_redo_from_wal_and_native_readback");
+            equipmentExpansion(pos);
             containerChecks(pos);
         }
         catch(Throwable e){
@@ -331,6 +384,44 @@ public final class VerificationChecks {
         j.addProperty("menu",menu.containerId);j.addProperty("slot",index);j.addProperty("equipment",gear.instance.toString());j.addProperty("revision",gear.revision);
         j.addProperty("count",menu.getCarried().getCount());j.add("cursor",runtime.inventory.encode(player,menu.getCarried()));return j;
     }
+    private void equipmentExpansion(net.minecraft.core.BlockPos pos)throws Exception{
+        player.closeContainer();clear();
+        for(Gear template:EquipmentTemplates.creative()){
+            Gear decoded=GameItems.gear(GameItems.gear(template));
+            check(decoded!=null&&decoded.armorType==template.armorType&&decoded.jewelryType==template.jewelryType,"typed_item_roundtrip_"+template.slot+"_"+template.weapon+"_"+template.armorType+"_"+template.jewelryType);
+        }
+        check(CurrencyRules.find("upgrade_stone").naturalDrop()&&CurrencyRules.find("upgrade_stone").rarity()==Rarity.ARTIFACT,"upgrade_stone_natural_artifact_registration");
+        for(Slot slot:List.of(Slot.CHEST,Slot.NECKLACE)){
+            player.closeContainer();clear();
+            var needs=Catalog.CURRENT.recipe(slot,50);
+            mutate(()->{int index=1;for(var need:needs)player.getInventory().setItem(index++,need.regional()?GameItems.material(need.id(),need.count()):new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(need.id())),need.count()));});
+            openFabricator(pos);JsonObject request=craft(slot,50);runtime.craft(player,request);
+            Gear result=java.util.stream.IntStream.range(0,36).mapToObj(i->GameItems.gear(player.getInventory().getItem(i))).filter(Objects::nonNull).findFirst().orElseThrow();
+            check(result.slot==slot&&result.level==50&&(slot.armor()?result.armorType==ArmorType.CLOTH:result.jewelryType==JewelryType.HEALTH),"typed_craft_matches_requested_"+slot);
+            if(slot.jewelry())check(EquipmentRules.contribution(result).get(Stat.HEALTH)==810,"health_jewelry_craft_75_percent");
+            String before=inventory();JsonObject invalid=craft(slot,50);invalid.addProperty(slot.armor()?"armorType":"jewelryType","LEGACY");
+            rejects(()->runtime.craft(player,invalid),"unclassified_new_craft_rejected_"+slot);
+            check(before.equals(inventory()),"invalid_type_craft_has_no_consumption_"+slot);
+        }
+        player.closeContainer();clear();
+        Gear gear=EquipmentRules.create(Slot.HEAD,Weapon.KATANA,Rarity.COMMON,78,ArmorType.LIGHT,JewelryType.LEGACY,new Random(0));gear.rarity=Rarity.LEGENDARY;
+        Affix locked=new Affix("percent_evasion",Stat.EVASION,AffixRules.percentBaseline(78,Stat.EVASION)*1.1,false);locked.operation="PERCENT";locked.baseline=locked.value/1.1;locked.roll=1.1;locked.locked=true;gear.affixes.add(locked);
+        gear.sockets=1;Gem gem=new Gem();gem.name="升级保留宝石";gear.gems.add(gem);
+        mutate(()->{player.getInventory().setItem(0,GameItems.gear(gear));player.inventoryMenu.setCarried(GameItems.item("upgrade_stone",2));});
+        JsonObject upgrade=currency(0,null);runtime.currencyRequest(player,upgrade);
+        Gear raised=GameItems.gear(player.getInventory().getItem(0));Affix grown=raised.affixes.stream().filter(a->a.id.equals("percent_evasion")).findFirst().orElseThrow();
+        check(raised.level==80&&raised.instance.equals(gear.instance)&&raised.armorType==ArmorType.LIGHT&&grown.locked&&Math.abs(grown.value-1.375)<1e-9&&raised.gems.getFirst().name.equals(gem.name),"upgrade_stone_grows_locked_numbers_and_preserves_identity");
+        check(player.inventoryMenu.getCarried().getCount()==1,"upgrade_stone_consumes_exactly_one");
+        runtime.currencyRequest(player,upgrade);check(player.inventoryMenu.getCarried().getCount()==1&&GameItems.gear(player.getInventory().getItem(0)).revision==raised.revision,"duplicate_new_upgrade_is_idempotent");
+        rejects(()->runtime.currencyRequest(player,currency(0,null)),"new_upgrade_level80_rejected");check(player.inventoryMenu.getCarried().getCount()==1,"failed_new_upgrade_keeps_stone");
+        mutate(()->player.inventoryMenu.setCarried(ItemStack.EMPTY));openFabricator(pos);
+        JsonObject salvage=new JsonObject();salvage.addProperty("operation",prefix+sequence++);salvage.addProperty("inventorySlot",0);
+        runtime.salvage(player,salvage);check(count("upgrade_stone")==1&&GameItems.gear(player.getInventory().getItem(0))==null,"legendary_salvage_yields_one_upgrade_stone");
+        runtime.salvage(player,salvage);check(count("upgrade_stone")==1,"duplicate_legendary_salvage_is_idempotent");
+        mutate(()->player.getInventory().setItem(0,GameItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,50,new Random(0)))));
+        String before=inventory();JsonObject bad=salvage.deepCopy();bad.addProperty("operation",prefix+sequence++);
+        rejects(()->runtime.salvage(player,bad),"common_salvage_rejected");check(before.equals(inventory()),"failed_salvage_keeps_equipment");
+    }
     private void containerChecks(net.minecraft.core.BlockPos pos)throws Exception{
         player.closeContainer();clear();
         player.level().setBlock(pos,net.minecraft.world.level.block.Blocks.CHEST.defaultBlockState(),3);
@@ -373,7 +464,7 @@ public final class VerificationChecks {
             var fullMenu=player.containerMenu;
             mutate(()->{
                 for(int i=0;i<36;i++)player.getInventory().setItem(i,new ItemStack(Items.DIRT,64));
-                if(fillBag)for(int i=0;i<54;i++)MenuHooks.extra(player).bag.setItem(i,new ItemStack(Items.DIRT,64));
+                if(fillBag)for(int i=0;i<MenuHooks.extra(player).bagLimit();i++)MenuHooks.extra(player).bag.setItem(i,new ItemStack(Items.DIRT,64));
                 fullMenu.getSlot(1).set(GameItems.gear(EquipmentRules.create(Slot.RING,Weapon.KATANA,Rarity.COMMON,10,new Random(94))));
                 if(fillBag)fullMenu.setCarried(GameItems.item("divine_stone",1));
             });

@@ -197,17 +197,18 @@ public final class FightScreen extends Screen {
         ;
         for(int i=0;i<3;i++){
             String id=ids[i];
-            line(statName(values[i])+"  "+number(s.get(values[i])));
+            line(statName(values[i])+"  "+AffixText.integer(s.get(values[i])));
             button("+1",contentWidth()-80,nextY-14,52,()->addPoints("allocate","stat",id));
             nextY+=10;
         }
         rowButton("重置自由点",()->simpleProgress("resetAttributes"));
         int columns=contentWidth()>=440?4:contentWidth()>=260?2:1,cell=(contentWidth()-24)/columns,index=0,base=nextY;
         for(Stat stat:Stat.values())if(stat!=Stat.STRENGTH&&stat!=Stat.INTELLIGENCE&&stat!=Stat.SPIRIT){
-            statCard(statName(stat),number(s.get(stat)),index++,columns,cell,base);
+            statCard(statName(stat),AffixText.integer(s.get(stat)),index++,columns,cell,base);
         }
-        statCard("物理面板攻击",number(s.panel(false)),index++,columns,cell,base);
-        statCard("魔法面板攻击",number(s.panel(true)),index++,columns,cell,base);
+        statCard("闪避率",AffixText.integer(CombatRules.evasionChance(s.get(Stat.EVASION))*100)+"%",index++,columns,cell,base);
+        statCard("物理面板攻击",AffixText.integer(s.panel(false)),index++,columns,cell,base);
+        statCard("魔法面板攻击",AffixText.integer(s.panel(true)),index++,columns,cell,base);
         nextY=base+((index+columns-1)/columns)*38;
         gap();
         rowButton("个人等级同步："+(p.sync?"开启":"关闭"),()->state.progress("sync","enabled",!p.sync));
@@ -481,7 +482,7 @@ public final class FightScreen extends Screen {
     }
     public static String statName(Stat s){
         return new String[]{
-            "生命","MP","力量","智力","精神","基础物攻","基础魔攻","物理防御","魔法防御","光强化","火强化","冰强化","暗强化","光抗性","火抗性","冰抗性","暗抗性","掉宝率","装备护盾"
+            "生命","MP","力量","智力","精神","基础物攻","基础魔攻","物理防御","魔法防御","光强化","火强化","冰强化","暗强化","光抗性","火抗性","冰抗性","暗抗性","掉宝率","装备护盾","闪避值"
         }
         [s.ordinal()];
     }

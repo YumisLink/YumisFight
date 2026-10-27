@@ -1,0 +1,21 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "coolant_mixer",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "minecraft:lapis_lazuli",
+      "count": 1
+    }
+  ],
+  "ticks": 100,
+  "energy": 1000,
+  "fluid_input": {
+    "ingredient": "minecraft:water",
+    "amount": 1000
+  },
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:coolant",
+    "amount": 1000
+  }
+}

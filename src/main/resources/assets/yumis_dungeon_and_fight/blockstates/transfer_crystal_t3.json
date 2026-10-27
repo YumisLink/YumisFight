@@ -1,0 +1,324 @@
+{
+  "variants": {
+    "facing=north,tier=1,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1",
+      "y": 0
+    },
+    "facing=north,tier=1,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_active",
+      "y": 0
+    },
+    "facing=north,tier=1,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_linked",
+      "y": 0
+    },
+    "facing=north,tier=1,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_active",
+      "y": 0
+    },
+    "facing=east,tier=1,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1",
+      "y": 90
+    },
+    "facing=east,tier=1,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_active",
+      "y": 90
+    },
+    "facing=east,tier=1,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_linked",
+      "y": 90
+    },
+    "facing=east,tier=1,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_active",
+      "y": 90
+    },
+    "facing=south,tier=1,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1",
+      "y": 180
+    },
+    "facing=south,tier=1,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_active",
+      "y": 180
+    },
+    "facing=south,tier=1,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_linked",
+      "y": 180
+    },
+    "facing=south,tier=1,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_active",
+      "y": 180
+    },
+    "facing=west,tier=1,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1",
+      "y": 270
+    },
+    "facing=west,tier=1,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_active",
+      "y": 270
+    },
+    "facing=west,tier=1,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_linked",
+      "y": 270
+    },
+    "facing=west,tier=1,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_1_active",
+      "y": 270
+    },
+    "facing=north,tier=2,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2",
+      "y": 0
+    },
+    "facing=north,tier=2,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_active",
+      "y": 0
+    },
+    "facing=north,tier=2,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_linked",
+      "y": 0
+    },
+    "facing=north,tier=2,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_active",
+      "y": 0
+    },
+    "facing=east,tier=2,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2",
+      "y": 90
+    },
+    "facing=east,tier=2,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_active",
+      "y": 90
+    },
+    "facing=east,tier=2,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_linked",
+      "y": 90
+    },
+    "facing=east,tier=2,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_active",
+      "y": 90
+    },
+    "facing=south,tier=2,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2",
+      "y": 180
+    },
+    "facing=south,tier=2,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_active",
+      "y": 180
+    },
+    "facing=south,tier=2,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_linked",
+      "y": 180
+    },
+    "facing=south,tier=2,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_active",
+      "y": 180
+    },
+    "facing=west,tier=2,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2",
+      "y": 270
+    },
+    "facing=west,tier=2,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_active",
+      "y": 270
+    },
+    "facing=west,tier=2,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_linked",
+      "y": 270
+    },
+    "facing=west,tier=2,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_2_active",
+      "y": 270
+    },
+    "facing=north,tier=3,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3",
+      "y": 0
+    },
+    "facing=north,tier=3,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_active",
+      "y": 0
+    },
+    "facing=north,tier=3,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_linked",
+      "y": 0
+    },
+    "facing=north,tier=3,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_active",
+      "y": 0
+    },
+    "facing=east,tier=3,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3",
+      "y": 90
+    },
+    "facing=east,tier=3,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_active",
+      "y": 90
+    },
+    "facing=east,tier=3,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_linked",
+      "y": 90
+    },
+    "facing=east,tier=3,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_active",
+      "y": 90
+    },
+    "facing=south,tier=3,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3",
+      "y": 180
+    },
+    "facing=south,tier=3,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_active",
+      "y": 180
+    },
+    "facing=south,tier=3,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_linked",
+      "y": 180
+    },
+    "facing=south,tier=3,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_active",
+      "y": 180
+    },
+    "facing=west,tier=3,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3",
+      "y": 270
+    },
+    "facing=west,tier=3,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_active",
+      "y": 270
+    },
+    "facing=west,tier=3,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_linked",
+      "y": 270
+    },
+    "facing=west,tier=3,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_3_active",
+      "y": 270
+    },
+    "facing=north,tier=4,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4",
+      "y": 0
+    },
+    "facing=north,tier=4,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_active",
+      "y": 0
+    },
+    "facing=north,tier=4,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_linked",
+      "y": 0
+    },
+    "facing=north,tier=4,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_active",
+      "y": 0
+    },
+    "facing=east,tier=4,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4",
+      "y": 90
+    },
+    "facing=east,tier=4,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_active",
+      "y": 90
+    },
+    "facing=east,tier=4,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_linked",
+      "y": 90
+    },
+    "facing=east,tier=4,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_active",
+      "y": 90
+    },
+    "facing=south,tier=4,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4",
+      "y": 180
+    },
+    "facing=south,tier=4,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_active",
+      "y": 180
+    },
+    "facing=south,tier=4,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_linked",
+      "y": 180
+    },
+    "facing=south,tier=4,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_active",
+      "y": 180
+    },
+    "facing=west,tier=4,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4",
+      "y": 270
+    },
+    "facing=west,tier=4,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_active",
+      "y": 270
+    },
+    "facing=west,tier=4,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_linked",
+      "y": 270
+    },
+    "facing=west,tier=4,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_4_active",
+      "y": 270
+    },
+    "facing=north,tier=5,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5",
+      "y": 0
+    },
+    "facing=north,tier=5,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_active",
+      "y": 0
+    },
+    "facing=north,tier=5,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_linked",
+      "y": 0
+    },
+    "facing=north,tier=5,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_active",
+      "y": 0
+    },
+    "facing=east,tier=5,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5",
+      "y": 90
+    },
+    "facing=east,tier=5,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_active",
+      "y": 90
+    },
+    "facing=east,tier=5,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_linked",
+      "y": 90
+    },
+    "facing=east,tier=5,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_active",
+      "y": 90
+    },
+    "facing=south,tier=5,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5",
+      "y": 180
+    },
+    "facing=south,tier=5,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_active",
+      "y": 180
+    },
+    "facing=south,tier=5,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_linked",
+      "y": 180
+    },
+    "facing=south,tier=5,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_active",
+      "y": 180
+    },
+    "facing=west,tier=5,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5",
+      "y": 270
+    },
+    "facing=west,tier=5,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_active",
+      "y": 270
+    },
+    "facing=west,tier=5,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_linked",
+      "y": 270
+    },
+    "facing=west,tier=5,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/transfer_crystal_5_active",
+      "y": 270
+    }
+  }
+}

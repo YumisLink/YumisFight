@@ -1,0 +1,13 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "fuel_thermal_generator",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:sulfide",
+      "count": 1
+    }
+  ],
+  "ticks": 640,
+  "energy": 204800
+}

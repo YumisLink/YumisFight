@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "yumis_dungeon_and_fight:machine_frame_3",
+    "minecraft:amethyst_block"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:mana_beacon_t3",
+    "count": 1
+  }
+}

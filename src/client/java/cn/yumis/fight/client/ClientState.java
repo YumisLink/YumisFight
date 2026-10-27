@@ -27,6 +27,7 @@ public final class ClientState {
     public boolean ready;
     private cn.yumis.fight.api.AttributeSources syncedSources=new cn.yumis.fight.api.AttributeSources();
     private long nextOperation=1,lastUpload,lastHello;
+    private long confirmedCombatUntil,confirmedShieldRecoveryAt;
     public long serverOffset;
     public final Map<UUID,Target> targets=new HashMap<>();
     public final Map<Long,Pending> pending=new LinkedHashMap<>();
@@ -39,6 +40,7 @@ public final class ClientState {
         public JsonObject report;
         public String action;
         public long sent;
+        public final long occurredAt;
         public double maximum;
         public int color;
         public net.minecraft.world.phys.Vec3 point;
@@ -48,6 +50,7 @@ public final class ClientState {
             maximum=max;
             this.color=color;
             sent=now();
+            occurredAt=sent;
             var mc=Minecraft.getInstance();
             var target=ClientState.INSTANCE.targets.get(UUID.fromString(r.get("target").getAsString()));
             var entity=target==null||mc.level==null?null:mc.level.getEntity(target.entityId);
@@ -85,6 +88,7 @@ public final class ClientState {
         session="";
         targets.clear();
         pending.clear();
+        confirmedCombatUntil=confirmedShieldRecoveryAt=0;
         ailments.clear();
         contextRequests.clear();
         numbers.clear();
@@ -98,6 +102,8 @@ public final class ClientState {
     }
     public void accept(String action,JsonObject j){
         switch(action){
+            case "industrial_ui"->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof cn.yumis.fight.industry.IndustrialMenu menu&&menu.containerId==j.get("menu").getAsInt())menu.info=j;}
+            case "storage_ui"->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof cn.yumis.fight.industry.DimensionalMenu menu)menu.preview=j;}
             case "profile"->{
                 if(j.get("protocol").getAsInt()!=PROTOCOL||j.get("rules").getAsInt()!=VERSION){
                     message("模组协议或规则版本不一致");
@@ -116,6 +122,8 @@ public final class ClientState {
                     ailments.clear();
                     resources=runtime;
                     translate(resources,now()-serverNow);
+                    confirmedCombatUntil=resources.combatUntil;
+                    confirmedShieldRecoveryAt=resources.shieldRecoveryAt;
                     if(!incoming.equals(session))nextOperation=1;
                 }
                 own=life;
@@ -128,6 +136,7 @@ public final class ClientState {
                 party=!j.has("party")||j.get("party").isJsonNull()?null:JSON.fromJson(j.get("party"),Team.class);
                 dungeon=!j.has("dungeon")||j.get("dungeon").isJsonNull()?null:JSON.fromJson(j.get("dungeon"),Dungeon.class);
                 if(j.has("catalog"))Catalog.CURRENT=Catalog.parse(j.get("catalog").toString());
+                if(j.has("industrialRules"))cn.yumis.fight.industry.IndustrialRules.CURRENT=cn.yumis.fight.industry.IndustrialRules.parse(j.get("industrialRules").toString());
                 if(j.has("equipmentDefinitions"))Definitions.CURRENT=Definitions.parse(j.get("equipmentDefinitions").toString());
                 if(j.has("equipmentLayout"))EquipmentLayout.CURRENT=JSON.fromJson(j.get("equipmentLayout"),EquipmentLayout.class);
                 if(j.has("equipmentGroups")&&Minecraft.getInstance().player!=null){
@@ -200,8 +209,8 @@ public final class ClientState {
             var p=Minecraft.getInstance().player;
             var context=p.registryAccess().createSerializationContext(JsonOps.INSTANCE);
             var extra=MenuHooks.extra(p);
-            JsonArray bag=j.getAsJsonArray("bag");
-            for(int i=0;i<Math.min(54,bag.size());i++)extra.bag.setItem(i,ItemStack.OPTIONAL_CODEC.parse(context,bag.get(i)).getOrThrow());
+            if(j.has("bagTier")){extra.bagTier=j.get("bagTier").getAsInt();extra.bagSchema=j.get("bagSchema").getAsInt();extra.bagPage=j.get("bagPage").getAsInt();}
+            if(j.has("bag")){JsonArray bag=j.getAsJsonArray("bag");extra.bag.clearContent();for(int i=0;i<Math.min(extra.bagLimit(),bag.size());i++)extra.bag.setItem(i,ItemStack.OPTIONAL_CODEC.parse(context,bag.get(i)).getOrThrow());}
         }
         catch(RuntimeException e){
             message("装备状态解码失败："+e.getMessage());
@@ -209,6 +218,7 @@ public final class ClientState {
     }
     private void translate(Models.Runtime r,long delta){
         r.combatUntil+=delta;
+        r.shieldRecoveryAt+=delta;
         r.cooldowns.replaceAll((k,v)->v+delta);
         r.buffs.replaceAll((k,v)->v+delta);
         r.absorptionUntil.replaceAll((k,v)->v+delta);
@@ -280,7 +290,8 @@ public final class ClientState {
         return EquipmentStats.build(Minecraft.getInstance().player,progress,syncedSources,weapon);
     }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,JsonObject extras){
-        if(!ready||life.dead||fraction<=0||!Double.isFinite(fraction))return;
+        boolean outcomeOnly=!heal&&fraction==0&&extras!=null&&extras.has("outcome")&&(extras.has("nativeRoot")||extras.has("feedbackEntity"));
+        if(!ready||life.dead||fraction<0||fraction==0&&!outcomeOnly||!Double.isFinite(fraction))return;
         JsonObject j=new JsonObject();
         j.addProperty("session",session);
         j.addProperty("operation",nextOperation++);
@@ -292,6 +303,11 @@ public final class ClientState {
         j.addProperty("instance",life.instance);
         j.addProperty("fraction",fraction);
         j.addProperty("heal",heal);
+        j.addProperty("occurredAt",serverNow());
+        if(extras!=null)extras.entrySet().forEach(e->j.add(e.getKey(),e.getValue()));
+        String action=heal?"heal":outcomeOnly?"nativeOutcome":"damage";
+        pending.put(j.get("operation").getAsLong(),new Pending(j,action,maximum,color));
+        refreshDamageClocks();
         JsonObject runtime=new JsonObject();
         runtime.addProperty("session",session);
         runtime.addProperty("generation",own.generation);
@@ -299,11 +315,19 @@ public final class ClientState {
         runtime.addProperty("serverIssuedAt",serverNow());
         runtime.add("state",JSON.toJsonTree(resources));
         j.add("runtime",runtime);
-        if(extras!=null)extras.entrySet().forEach(e->j.add(e.getKey(),e.getValue()));
         if(Boolean.getBoolean("ydnf.verify")&&j.has("nativeRoot"))FeedbackProbe.lastReport=j.deepCopy();
-        String action=heal?"heal":"damage";
-        pending.put(j.get("operation").getAsLong(),new Pending(j,action,maximum,color));
         send(action,j);
+    }
+    private void refreshDamageClocks(){
+        resources.combatUntil=confirmedCombatUntil;
+        resources.shieldRecoveryAt=confirmedShieldRecoveryAt;
+        for(Pending p:pending.values())if(!p.action.equals("heal")){
+            boolean hit=!p.report.has("outcome")||p.report.get("outcome").getAsString().equals("HIT");
+            if(!hit)continue;
+            boolean taken=p.report.get("target").getAsString().equals(own.target.toString());
+            double damage=p.report.has("damageTaken")?p.report.get("damageTaken").getAsDouble():p.report.get("fraction").getAsDouble();
+            if(damage>0){if(taken)CombatTiming.taken(resources,p.occurredAt);else CombatTiming.dealt(resources,p.occurredAt);}
+        }
     }
     private void ack(JsonObject j){
         if(!ready||!session.equals(j.get("session").getAsString()))return;
@@ -311,9 +335,13 @@ public final class ClientState {
         if(p==null)return;
         Receipt r=JSON.fromJson(j.get("receipt"),Receipt.class);
         if(!r.accepted()){
+            refreshDamageClocks();
             if(!r.reason().isEmpty())message(r.reason());
             return;
         }
+        if(j.has("combatUntil"))confirmedCombatUntil=Math.max(confirmedCombatUntil,j.get("combatUntil").getAsLong()-serverOffset);
+        if(j.has("shieldRecoveryAt"))confirmedShieldRecoveryAt=Math.max(confirmedShieldRecoveryAt,j.get("shieldRecoveryAt").getAsLong()-serverOffset);
+        refreshDamageClocks();
         UUID id=UUID.fromString(j.get("target").getAsString());
         Life l=id.equals(own.target)?own:targets.containsKey(id)?targets.get(id).life:null;
         if(l!=null&&j.get("generation").getAsLong()==l.generation&&r.revision()>=l.revision){

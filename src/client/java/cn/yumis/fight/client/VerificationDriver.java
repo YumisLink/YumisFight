@@ -11,6 +11,7 @@ import java.util.*;
 /** Explicit opt-in developer harness, inactive in ordinary launches. Uses real menus and payloads. */
 public final class VerificationDriver {
     private static long seen=-1,last;
+    static boolean tooltipShift;
     private VerificationDriver(){
     }
     public static void tick(){
@@ -44,6 +45,7 @@ public final class VerificationDriver {
             status.add("progress",JSON.toJsonTree(ClientState.INSTANCE.progress));
             status.add("life",JSON.toJsonTree(ClientState.INSTANCE.own));
             status.add("stats",JSON.toJsonTree(ClientState.INSTANCE.stats));
+            if(ClientState.INSTANCE.profile.has("stats"))status.add("serverStats",ClientState.INSTANCE.profile.get("stats"));
             status.addProperty("font",UiFonts.currentName());
             status.addProperty("fontBusy",UiFonts.busy());
             status.addProperty("fontStatus",UiFonts.status());
@@ -55,9 +57,12 @@ public final class VerificationDriver {
             status.add("vfxMetrics",JSON.toJsonTree(Effects.VFX.metrics()));
             status.addProperty("vfxActive",Effects.VFX.activeCount());
             if(mc.player!=null){
+                if(mc.player.containerMenu instanceof cn.yumis.fight.industry.IndustrialMenu industry)status.add("industry",industry.info.deepCopy());
+                var bag=MenuHooks.extra(mc.player);status.addProperty("bagTier",bag.bagTier);status.addProperty("bagPage",bag.bagPage);status.addProperty("bagSchema",bag.bagSchema);
                 status.addProperty("player",mc.player.getStringUUID());
                 status.addProperty("nativeMaximumHealth",mc.player.getMaxHealth());
                 status.addProperty("nativeHealth",mc.player.getHealth());
+                status.addProperty("nativeDead",mc.player.isDeadOrDying());
                 status.add("equipment",JSON.toJsonTree(java.util.stream.IntStream.range(0,MenuHooks.extra(mc.player).getContainerSize()).mapToObj(i->Map.of("index",i,"group",MenuHooks.extra(mc.player).groups.get(i),"gear",GameItems.string(MenuHooks.extra(mc.player).getItem(i),GameItems.NS))).toList()));
                 status.addProperty("cursor",mc.player.containerMenu.getCarried().toString());
                 status.addProperty("dimension",mc.player.level().dimension().identifier().toString());
@@ -157,6 +162,9 @@ public final class VerificationDriver {
             case "fontImport"->UiFonts.importFile(Path.of(j.get("path").getAsString()),()->{});
             case "fontDefault"->UiFonts.restoreDefault(()->{});
             case "feedbackReset"->FeedbackProbe.reset();
+            case "respawn"->mc.player.respawn();
+            case "tooltipShift"->tooltipShift=j.get("enabled").getAsBoolean();
+            case "combatSeed"->ClientCombat.INSTANCE.verificationSeed(j.get("seed").getAsLong());
             case "holdUse"->{mc.options.keyUse.setDown(true);mc.gameMode.useItem(mc.player,net.minecraft.world.InteractionHand.OFF_HAND);}
             case "releaseUse"->{mc.options.keyUse.setDown(false);mc.gameMode.releaseUsingItem(mc.player);}
             case "replayNative","duplicateNative"->{

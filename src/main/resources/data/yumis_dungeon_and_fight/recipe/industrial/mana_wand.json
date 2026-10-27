@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:stick",
+    "minecraft:stick",
+    "yumis_dungeon_and_fight:energy_crystal_2"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:mana_wand",
+    "count": 1
+  }
+}

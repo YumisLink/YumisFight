@@ -1,0 +1,13 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "upgrade_transfer_crystal_t2",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "#c:gems/diamond",
+      "count": 4
+    }
+  ],
+  "ticks": 1,
+  "energy": 0
+}

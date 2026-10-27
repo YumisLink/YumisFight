@@ -28,6 +28,13 @@ public final class CombatVerification {
     private static long forwarded,committed;
     private static String scenario="";
     private static boolean accepted;
+    private static final class SonicProbe extends net.minecraft.world.entity.ai.behavior.warden.SonicBoom {
+        void fire(net.minecraft.server.level.ServerLevel level,net.minecraft.world.entity.monster.warden.Warden warden){super.tick(level,warden,level.getGameTime());}
+    }
+    private static final class SlimeProbe extends net.minecraft.world.entity.monster.cubemob.Slime {
+        SlimeProbe(net.minecraft.world.level.Level level){super(EntityTypes.SLIME,level);}
+        void fire(LivingEntity target){super.dealDamage(target);}
+    }
     private CombatVerification(){}
     public static int run(ServerRuntime runtime,ServerPlayer player,String action)throws Exception{
         if(!Boolean.getBoolean("ydnf.verify"))throw new IllegalStateException("Verification is disabled");
@@ -42,7 +49,7 @@ public final class CombatVerification {
             MenuHooks.extra(player).clearContent();
             session.progress.level=80;session.resources.training=false;session.resources.controlEpoch++;session.resources.shield=0;
             session.resources.absorption.clear();session.resources.absorptionUntil.clear();session.resources.buffs.clear();
-            session.resources.combatUntil=System.currentTimeMillis()+60000;session.life.q=1;session.life.dead=false;session.life.revision++;
+            session.resources.combatUntil=System.currentTimeMillis()+60000;session.resources.shieldRecoveryAt=System.currentTimeMillis()+60000;session.life.q=1;session.life.dead=false;session.life.revision++;
             runtime.savePlayer(player);runtime.profile(player);
             scenario="reset";accepted=false;forwarded=runtime.nativeHits.forwarded;committed=runtime.nativeHits.committed;
         }else if(action.equals("absorb")){
@@ -52,6 +59,17 @@ public final class CombatVerification {
         }else if(action.equals("equipment_shield")){
             player.setItemSlot(EquipmentSlot.CHEST,GameItems.gear(EquipmentRules.create(Rules.Slot.CHEST,Rules.Weapon.KATANA,Rules.Rarity.EPIC,80,new Random(0))));
             session.resources.controlEpoch++;session.resources.shield=runtime.stats(player).get(Rules.Stat.SHIELD);runtime.savePlayer(player);runtime.profile(player);
+        }else if(action.equals("evasion_setup")||action.equals("evasion_off")||action.equals("timers")){
+            for(var slot:List.of(EquipmentSlot.HEAD,EquipmentSlot.CHEST,EquipmentSlot.LEGS,EquipmentSlot.FEET))player.setItemSlot(slot,ItemStack.EMPTY);
+            if(action.equals("evasion_setup")){
+                for(var slot:List.of(Rules.Slot.HEAD,Rules.Slot.CHEST,Rules.Slot.LEGS,Rules.Slot.FEET)){
+                    var gear=EquipmentRules.create(slot,Rules.Weapon.KATANA,Rules.Rarity.COMMON,50,Rules.ArmorType.LIGHT,Rules.JewelryType.LEGACY,new Random(0));
+                    if(slot==Rules.Slot.CHEST)gear.affixes.add(new cn.yumis.fight.rules.Models.Affix("verify_evasion",Rules.Stat.EVASION,2000,true));
+                    player.setItemSlot(slot==Rules.Slot.HEAD?EquipmentSlot.HEAD:slot==Rules.Slot.CHEST?EquipmentSlot.CHEST:slot==Rules.Slot.LEGS?EquipmentSlot.LEGS:EquipmentSlot.FEET,GameItems.gear(gear));
+                }
+            }
+            session.resources.controlEpoch++;session.resources.combatUntil=0;session.resources.shieldRecoveryAt=0;session.resources.shield=0;
+            runtime.savePlayer(player);runtime.profile(player);
         }else if(action.equals("resistance")){
             player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.RESISTANCE,100));
         }else if(action.equals("block")){
@@ -69,10 +87,31 @@ public final class CombatVerification {
         else if(action.equals("inspect")){}
         else{
             scenario=action;accepted=false;forwarded=runtime.nativeHits.forwarded;committed=runtime.nativeHits.committed;
-            if(action.equals("melee")||action.equals("rapid")||action.equals("enemy_arrow")){
+            if(action.equals("slime")){
+                var slime=new SlimeProbe(level);slime.setSize(2,false);slime.setNoAi(true);slime.setPos(80.5,100,81);spawn(level,slime);attacker=slime;runtime.target(slime);slime.fire(player);slime.discard();accepted=true;
+            }else if(action.equals("sonic")){
+                var warden=new net.minecraft.world.entity.monster.warden.Warden(EntityTypes.WARDEN,level);warden.setPos(80.5,100,84.5);warden.setNoAi(true);spawn(level,warden);attacker=warden;runtime.target(warden);
+                warden.getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET,player);new SonicProbe().fire(level,warden);accepted=true;
+            }else if(action.equals("explosion")){
+                attacker=mob(runtime,player,80.5,100,84.5);level.explode(attacker,80.5,100.5,82.5,2,net.minecraft.world.level.Level.ExplosionInteraction.NONE);accepted=true;
+            }else if(action.equals("cave_spider")||action.equals("husk")||action.equals("wither_skeleton")){
+                net.minecraft.world.entity.Mob mob=action.equals("cave_spider")?new net.minecraft.world.entity.monster.spider.CaveSpider(EntityTypes.CAVE_SPIDER,level):action.equals("husk")?new net.minecraft.world.entity.monster.zombie.Husk(EntityTypes.HUSK,level):new net.minecraft.world.entity.monster.skeleton.WitherSkeleton(EntityTypes.WITHER_SKELETON,level);
+                mob.setPos(80.5,100,84.5);mob.setNoAi(true);spawn(level,mob);attacker=mob;runtime.target(mob);accepted=mob.doHurtTarget(level,player);
+            }else if(action.equals("dot"))accepted=player.hurtServer(level,player.damageSources().wither(),1);
+            else if(action.equals("environment")){player.fallDistance=6;accepted=player.hurtServer(level,player.damageSources().fall(),1);player.fallDistance=0;}
+            else if(action.equals("direct_magic")||action.equals("burning_melee")){
                 attacker=mob(runtime,player,80.5,100,84.5);
-                if(action.equals("enemy_arrow")){
-                    Arrow arrow=new Arrow(level,attacker,new ItemStack(Items.ARROW),new ItemStack(Items.BOW));
+                try(var scope=NativeEffects.open(player,attacker)){
+                    accepted=player.hurtServer(level,action.equals("direct_magic")?player.damageSources().indirectMagic(attacker,attacker):player.damageSources().mobAttack(attacker),3);
+                    if(action.equals("burning_melee"))player.igniteForSeconds(5);
+                }
+            }else if(action.equals("melee")||action.equals("rapid")||action.startsWith("enemy_")){
+                attacker=mob(runtime,player,80.5,100,84.5);
+                if(action.startsWith("enemy_")){
+                    ItemStack bow=new ItemStack(Items.BOW);if(action.equals("enemy_punch"))bow.enchant(level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.PUNCH),2);
+                    AbstractArrow arrow=action.equals("enemy_trident")?new ThrownTrident(level,attacker,new ItemStack(Items.TRIDENT)):new Arrow(level,attacker,new ItemStack(Items.ARROW),bow);
+                    if(action.equals("enemy_tipped"))((Arrow)arrow).addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON,100));
+                    if(action.equals("enemy_flame"))arrow.igniteForSeconds(20);
                     arrow.setPos(80.5,101,83);arrow.setDeltaMovement(0,0,-1.2);projectile=arrow;spawn(level,arrow);
                 }else{
                     float before=player.getHealth();
@@ -124,6 +163,7 @@ public final class CombatVerification {
                 accepted=cow.hurtServer(level,cow.damageSources().playerAttack(player),2);
             }else throw new IllegalArgumentException("Unknown combat probe: "+action);
         }
+        player.inventoryMenu.broadcastFullState();
         JsonObject report=new JsonObject();
         report.addProperty("scenario",scenario);report.addProperty("accepted",accepted);
         report.addProperty("forwarded",runtime.nativeHits.forwarded-forwarded);report.addProperty("committed",runtime.nativeHits.committed-committed);
@@ -131,6 +171,11 @@ public final class CombatVerification {
         report.addProperty("player",player.getStringUUID());report.addProperty("blocking",player.isBlocking());report.addProperty("shieldDamage",player.getOffhandItem().getDamageValue());
         report.addProperty("absorption",session.resources.absorption.getOrDefault("probe",0d));report.addProperty("serverCooldown",player.invulnerableTime);
         report.addProperty("equipmentShield",session.resources.shield);
+        report.addProperty("combatRemaining",Math.max(0,session.resources.combatUntil-System.currentTimeMillis()));
+        report.addProperty("shieldRecoveryRemaining",Math.max(0,session.resources.shieldRecoveryAt-System.currentTimeMillis()));
+        report.addProperty("burning",player.isOnFire());report.addProperty("poisoned",player.hasEffect(net.minecraft.world.effect.MobEffects.POISON));
+        report.addProperty("withered",player.hasEffect(net.minecraft.world.effect.MobEffects.WITHER));report.addProperty("hungry",player.hasEffect(net.minecraft.world.effect.MobEffects.HUNGER));
+        report.addProperty("velocityX",player.getDeltaMovement().x);report.addProperty("velocityY",player.getDeltaMovement().y);report.addProperty("velocityZ",player.getDeltaMovement().z);
         if(target!=null){report.addProperty("target",target.getStringUUID());report.addProperty("targetHealth",target.getHealth());report.addProperty("targetArrows",target.getArrowCount());report.addProperty("targetQ",runtime.managed(target)?runtime.target(target).life.q:1);report.addProperty("targetRevision",runtime.managed(target)?runtime.target(target).life.revision:0);report.addProperty("glowing",target.hasEffect(net.minecraft.world.effect.MobEffects.GLOWING));}
         if(second!=null)report.addProperty("secondQ",runtime.target(second).life.q);
         if(projectile!=null){report.addProperty("projectileRemoved",projectile.isRemoved());report.addProperty("projectileVelocityZ",projectile.getDeltaMovement().z);}

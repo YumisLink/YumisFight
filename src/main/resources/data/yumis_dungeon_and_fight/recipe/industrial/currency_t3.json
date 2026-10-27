@@ -1,0 +1,8 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "currency_fabricator",
+  "minimum_tier": 3,
+  "ingredients": [],
+  "ticks": 300,
+  "energy": 6400
+}

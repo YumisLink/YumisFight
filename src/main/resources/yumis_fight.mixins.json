@@ -19,7 +19,16 @@
     "DragonCrystalMixin",
     "CreeperStunMixin",
     "LootMergeMixin",
-    "BerryHarvestMixin"
+    "BerryHarvestMixin",
+    "NativeAttackScopeMixin",
+    "NativeProjectileScopeMixin",
+    "NativeEntityEffectsMixin",
+    "NativeLivingEffectsMixin",
+    "NativeEnchantmentEffectsMixin",
+    "NativeSonicBoomMixin",
+    "NativeDragonAttackMixin",
+    "NativeExplosionScopeMixin",
+    "NativeCubeAttackMixin"
   ],
   "injectors": {
     "defaultRequire": 1

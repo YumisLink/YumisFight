@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#c:ingots/uranium",
+    "#c:ingots/uranium",
+    "#c:ingots/uranium",
+    "#c:ingots/uranium",
+    "#c:ingots/uranium",
+    "#c:ingots/uranium",
+    "#c:ingots/uranium",
+    "#c:ingots/uranium",
+    "#c:ingots/uranium"
+  ],
+  "result": {
+    "id": "yumis_dungeon_and_fight:uranium_block",
+    "count": 1
+  }
+}
