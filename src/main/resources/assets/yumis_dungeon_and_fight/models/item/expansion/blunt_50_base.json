@@ -1,1 +1,151 @@
-{"parent": "minecraft:item/handheld", "textures": {"layer0": "yumis_dungeon_and_fight:item/expansion/blunt_50_base"}}
+{
+  "loader": "neoforge:obj",
+  "model": "yumis_dungeon_and_fight:models/weapons/common_blunt.obj",
+  "automatic_culling": false,
+  "shade_quads": true,
+  "flip_v": true,
+  "ambientocclusion": false,
+  "gui_light": "front",
+  "textures": {
+    "atlas": "yumis_dungeon_and_fight:item/weapon3d/weapon_atlas",
+    "particle": "yumis_dungeon_and_fight:item/expansion/blunt_50_base"
+  },
+  "display": {
+    "gui": {
+      "rotation": [
+        0,
+        -25,
+        -32
+      ],
+      "translation": [
+        0,
+        -3,
+        0
+      ],
+      "scale": [
+        0.53,
+        0.53,
+        0.53
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        82
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        180,
+        -30
+      ],
+      "translation": [
+        0,
+        -3,
+        0
+      ],
+      "scale": [
+        0.56,
+        0.56,
+        0.56
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.8,
+        0.8,
+        0.8
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.8,
+        0.8,
+        0.8
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -25,
+        -25
+      ],
+      "translation": [
+        -2,
+        0,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        25,
+        25
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    },
+    "head": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        4,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    }
+  }
+}

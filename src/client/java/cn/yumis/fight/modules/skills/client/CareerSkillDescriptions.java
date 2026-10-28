@@ -15,19 +15,19 @@ final class CareerSkillDescriptions {
         descriptions.put(CareerSkills.KALLA,"持续20秒，普攻每周期发射一枚10格冥炎弹。最多3层，每层每0.5秒造成0.10系数暗伤，持续3秒；再次按键三连冥炎剑收尾，已附着冥炎继续计时。");
         descriptions.put(CareerSkills.BLACHE,"半径8、释放2秒期间无敌。吞自己的鬼阵：每个鬼神伤害MUT+100%，阵法每高一级再+5%；不重置阵法冷却。一级一觉、四鬼15级阵系数68.4。");
         descriptions.put(CareerSkills.BRANDS,"常驻魔攻提升15%并随等级成长。最多5印，每5秒自动产1印；成功施放地裂、邪光、冰波、火波各产1印，空放也可产印，多段不重复。");
-        descriptions.put(CareerSkills.ORB,"消耗全部刻印，至少1印；总系数3+0.4×印数。球体前进最多10格，首次接触后停留，3秒6段占75%，最终半径2爆炸占25%。");
-        descriptions.put(CareerSkills.CRESCENT,"按住蓄力最多1秒，总系数由2.0增至6.0；前进12格、宽4，每目标最多3段；释放成功产1印。");
+        descriptions.put(CareerSkills.ORB,"消耗全部刻印，至少1印；球体前进最多10格，命中首个敌人后附着持续攻击3秒，最多3+5×印数次，只攻击该目标。总系数3+0.4×印数，目标死亡即结束。");
+        descriptions.put(CareerSkills.CRESCENT,"按住蓄力最多1秒，发射一束前进12格的X字波；不蓄力宽高2格，满蓄力宽高4格，总系数由2.0增至6.0，每目标最多3段。释放成功产1印。");
         descriptions.put(CareerSkills.ICE,"前方长12、宽3的三轮冰刺，每段2.0；普通怪冻结1.5秒，精英减半，Boss免冻结。成功施放产1印。");
-        descriptions.put(CareerSkills.FIRE,"前方长10、宽5的四轮火焰，每段2.2；成功施放产1印。");
+        descriptions.put(CareerSkills.FIRE,"向前发射一道宽5格、波浪式前进的火焰波，最多10格；沿途每目标最多3段各2.2，到达最远处半径2.5爆炸一次、系数2.2。遇墙或断崖停止，成功施放产1印。");
         descriptions.put(CareerSkills.AGNI,"消耗全部刻印，至少1印。站定引导3秒，半径5；总系数4+1.6×印数，8段旋转占60%、爆炸占40%；Boss正常受伤且免硬控。");
-        descriptions.put(CareerSkills.EYE,"强化20秒：普攻及地裂、冰波、火波伤害MUT+20%，保留原消耗、冷却与段数。再次按键或到期炸眼，半径8、系数16；只有炸眼阶段无敌。");
+        descriptions.put(CareerSkills.EYE,"强化20秒：普攻及地裂、冰波、火波伤害MUT+20%，周围半径16格、无遮挡的敌人持续进入失明状态。再次按键或到期凝聚眼球并爆炸，半径16、系数16；炸眼全程无敌。");
         descriptions.put(CareerSkills.FRENZY,"开关双刀，每普攻周期两击、每击65%。物攻提升15%并随等级成长；攻速+15个百分点、移速提升10%、双防MUT-15个百分点，完全免疫战斗击退。生命≤70%伤害MUT+10%，≤40%为+20%，不叠加；不持续耗血。");
-        descriptions.put(CareerSkills.CRASH,"向前小跳3格，落地半径3：下砸0.6+冲击2.0。不消耗生命。");
+        descriptions.put(CareerSkills.CRASH,"向前小跳3格，落地后X形血气向四周飞出；半径3，下砸0.6+冲击2.0，伤害判定不变。不消耗生命。");
         descriptions.put(CareerSkills.HAND,"前方3格抓取并喷发，系数4.0；命中回复最大生命10%，每次施放最多回复一次，Boss同样有效，空放不回血。");
         descriptions.put(CareerSkills.RAGE,"半径4、五段血气，每段1.3；施放支付最大生命4%，不扣护盾。");
         descriptions.put(CareerSkills.BLADE,"前方5格突刺2.2，命中后半径3爆炸6.6；施放支付最大生命5%。");
-        descriptions.put(CareerSkills.ERUPTION,"前跳6格，落地半径6；下砸4.0+四段喷发各2.0；施放支付最大生命8%。");
-        descriptions.put(CareerSkills.SWORD,"开启15秒蓄血窗口并支付最大生命10%。有效普攻周期或主动技能首次命中+1层，最多10层，1秒最多2层；再次按键或到期释放，总系数24+1.6×层数，只有最后2秒演出无敌。");
+        descriptions.put(CareerSkills.ERUPTION,"前跳6格，落地后周围随机喷射血柱；半径6，下砸4.0+四段喷发各2.0；施放支付最大生命8%。");
+        descriptions.put(CareerSkills.SWORD,"支付最大生命10%，开启最多60秒蓄血；每个有效普攻周期或主动技能首次命中积累1，右侧量谱显示计数与剩余时间。再次按键或到期下斩血剑并爆炸，全程持续无敌；范围同剑魂觉醒，前方3格为中心、半径5，总系数24+1.6×积累。");
         descriptions.forEach((id,text)->SkillDescriptions.register(id,c->text));
     }
 }

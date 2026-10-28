@@ -62,11 +62,12 @@ public final class Hud {
                 String binding=s.progress.slots[group*8+i];
                 if(!binding.isEmpty()&&SkillCatalog.contains(binding)){
                     SkillDefinition skill=SkillCatalog.require(binding);
-                    g.blit(ClientBootstrap.id("textures/gui/skills/"+skill.icon()+".png"),x+2,y+13,x+10,y+21,0,1,0,1);
+                    int icon=cell-3,iconX=x+1,iconY=y+12;
+                    g.blit(ClientBootstrap.id("textures/gui/skills/"+skill.icon()+".png"),iconX,iconY,iconX+icon,iconY+icon,0,1,0,1);
                     long remaining=s.resources.cooldowns.getOrDefault(binding,0L)-now;
                     if(remaining>0){
-                        g.fill(x+1,y+12,x+cell-2,y+23,0xB0101010);
-                        g.text(font,Integer.toString((int)Math.ceil(remaining/1000d)),x+2,y+23,UiTheme.HUD_GOLD,true);
+                        g.fill(iconX,iconY,iconX+icon,iconY+icon,0x90101010);
+                        String cooldown=Integer.toString((int)Math.ceil(remaining/1000d));g.text(font,cooldown,iconX+(icon-font.width(cooldown))/2,iconY+(icon-8)/2,UiTheme.HUD_GOLD,true);
                     }
                 }
                 if(modifier<0)g.fill(x,y,x+cell-1,y+32,0x99101010);

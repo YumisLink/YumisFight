@@ -122,6 +122,7 @@ public final class SkillController {
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.request(skill,slot);return true;
     }
     public void release(int baseSlot){
+        cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.released(baseSlot);
         if(cast!=null&&cast.charging&&cast.slot%8==baseSlot)cast.release=true;
     }
     public void begin(SkillCast c){
@@ -446,6 +447,7 @@ public final class SkillController {
             j.addProperty("terminal",c.terminal);j.addProperty("sweep",c.terminal);
             if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIELD)){j.addProperty("x",c.center.x);j.addProperty("y",c.center.y);j.addProperty("z",c.center.z);j.addProperty("px",c.center.x);j.addProperty("py",c.center.y);j.addProperty("pz",c.center.z);}
             if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ORB)){j.addProperty("px",c.center.x);j.addProperty("py",c.center.y+.8);j.addProperty("pz",c.center.z);}
+            if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRESCENT)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIRE)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.SWORD)&&c.terminal){j.addProperty("px",c.center.x);j.addProperty("py",c.center.y);j.addProperty("pz",c.center.z);}
             if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.BLADE)&&phase.equals("FINISH")){j.addProperty("px",c.center.x);j.addProperty("py",c.center.y);j.addProperty("pz",c.center.z);}
             if(c.finisher&&(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRASH)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ERUPTION))){j.addProperty("px",c.center.x);j.addProperty("py",c.center.y);j.addProperty("pz",c.center.z);}
         }
@@ -455,6 +457,7 @@ public final class SkillController {
         j.addProperty("horizontalScale",c.parameters.get("meleeScale",1));
         j.addProperty("charge",Math.clamp((cn.yumis.fight.modules.presentation.api.client.ClientUi.now()-c.start)*c.speed/1000d,0,1));
         if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIELD))j.addProperty("charge",Math.min(1,c.parameters.rank()/15d));
+        if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRESCENT)&&!c.charging)j.addProperty("charge",c.moved);
         if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.SWORD))j.addProperty("charge",Math.min(1,c.parameters.get("blood",0)/10));
         j.addProperty("color",cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.visualColor(c.stats,SkillPresentation.color(c.skill,state().resources().buffs.getOrDefault("yumis_dungeon_and_fight:overdrive",0L)>cn.yumis.fight.modules.presentation.api.client.ClientUi.now())));
         Effects.receive(j);

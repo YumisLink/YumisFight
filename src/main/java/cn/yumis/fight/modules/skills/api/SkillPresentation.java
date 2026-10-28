@@ -29,7 +29,12 @@ public final class SkillPresentation {
     public static boolean segmented(SkillDefinition skill){return require(skill).segmentWindow()>0;}
     public static long segmentDelay(SkillDefinition skill){return require(skill).segmentDelay();}
     public static long segmentWindow(SkillDefinition skill){return require(skill).segmentWindow();}
-    public static long duration(SkillCast cast){var t=require(cast.skill);long value=t.duration().applyAsLong(cast);if(CareerSkills.contains(cast.skill.id)&&cast.terminal)return (long)(cast.parameters.get("actionDuration",1)*1000/cast.speed);return t.fixedVisualTime()?value:(long)(value/cast.speed);}
-    public static double visualSpeed(SkillCast cast){return require(cast.skill).fixedVisualTime()?1:cast.speed;}
+    public static long duration(SkillCast cast){
+        // The synchronized actor draws the full 60-second preparation without extending visual transport clocks.
+        if(cast.skill.id.equals(CareerSkills.SWORD)&&!cast.terminal)return 1000;
+        if(CareerSkills.contains(cast.skill.id)&&cast.terminal)return (long)(cast.parameters.get("actionDuration",1)*1000/cast.speed);
+        var traits=require(cast.skill);long value=traits.duration().applyAsLong(cast);return traits.fixedVisualTime()?value:(long)(value/cast.speed);
+    }
+    public static double visualSpeed(SkillCast cast){if(CareerSkills.contains(cast.skill.id)&&cast.terminal)return cast.speed;return require(cast.skill).fixedVisualTime()?1:cast.speed;}
     public static int color(SkillDefinition skill,boolean overdrive){var t=require(skill);return overdrive&&t.overdriveColor()?0xFFD368:t.color();}
 }

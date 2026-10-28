@@ -34,7 +34,7 @@ public final class CareerRules {
     public static SkillParameters.Snapshot resourceSnapshot(SkillParameters.Snapshot source,int brands,int blood,int fieldRank,boolean terminal){
         var values=new LinkedHashMap<>(source.values());double g=CareerSkills.growth(source.rank());String id=source.skill().id;
         values.put("resource",(double)brands);values.put("blood",(double)blood);values.put("fieldRank",(double)fieldRank);values.put("terminal",terminal?1d:0d);
-        if(id.equals(CareerSkills.ORB)){double total=(3+.4*brands)*g;values.put("damage",total*.75/6);values.put("finisher",total*.25);}
+        if(id.equals(CareerSkills.ORB)){int hits=CareerSkills.orbHits(brands);double total=(3+.4*brands)*g;values.put("slashes",(double)hits);values.put("damage",total/hits);values.put("finisher",0d);values.put("interval",3d/hits);}
         if(id.equals(CareerSkills.AGNI)){double total=(4+1.6*brands)*g;values.put("damage",total*.6/8);values.put("finisher",total*.4);}
         if(id.equals(CareerSkills.SWORD)){double total=(24+1.6*blood)*g;values.put("damage",total);values.put("previewDamage",total*.7/5);values.put("finisher",total*.3);}
         if(id.equals(CareerSkills.BLACHE))values.put("skillMut",CareerSkills.blacheMut(fieldRank));

@@ -41,31 +41,52 @@ final class CareerSkillVisuals {
             box(q,head.add(-1.15,1.25,-2.2),.4,.25,.12,0x9eeaf3,255);box(q,head.add(1.15,1.25,-2.2),.4,.25,.12,0x9eeaf3,255);
         });
         add(CareerSkills.BRANDS,(t,a,n,q)->ring(q,vector(t.start.origin()).add(0,1.4,0),1,.06,0xe8d391,190));
-        add(CareerSkills.ORB,(t,a,n,q)->{Vec3 p=vector(t.last.position());if(t.last.phase()==SkillVisualEvent.Phase.FINISH){ring(q,p.add(0,-.6,0),Math.min(2,(n-t.last.at())/120d),.12,0xd4c0ed,160);return;}box(q,p,.4,.7,.4,0xa17dc8,100);ring(q,p.add(0,-.35,0),.75,.07,0xe6d3ff,210);ring(q,p.add(0,.35,0),.75,.07,0xbd8ce7,210);});
-        add(CareerSkills.CRESCENT,(t,a,n,q)->{Vec3 p=vector(t.last.position());arc(q,p.add(0,1,0),vector(t.start.direction()),2,0xf2e9c0,210);});
+        add(CareerSkills.ORB,(t,a,n,q)->{
+            Vec3 p=vector(t.last.position());double fade=t.last.phase()==SkillVisualEvent.Phase.FINISH?Math.max(0,1-(n-t.last.at())/350d):1;if(fade<=0)return;
+            sphere(q,p,.68*fade,0xa17dc8,(int)(120*fade));sphere(q,p,.32*fade,0xf0e4ff,(int)(220*fade));
+            ring(q,p.add(0,-.28,0),.7*fade,.07,0xe6d3ff,(int)(220*fade));ring(q,p.add(0,.28,0),.7*fade,.07,0xbd8ce7,(int)(210*fade));
+        });
+        add(CareerSkills.CRESCENT,(t,a,n,q)->{
+            Vec3 d=vector(t.start.direction()),p=vector(t.last.position());double charge=t.last.charge();
+            if(!t.released){p=vector(t.start.origin()).add(d.scale(.8)).add(0,1.2,0);sphere(q,p,.2+.25*charge,0xf2e9c0,125);}
+            xWave(q,p,d,(t.released?1:.35)*(1+charge),0xf2e9c0,t.released?230:140);
+        });
         add(CareerSkills.ICE,(t,a,n,q)->{
             Vec3 p=vector(t.last.position()),d=vector(t.start.direction()),side=new Vec3(-d.z,0,d.x);if(t.last.phase()!=SkillVisualEvent.Phase.TRAIL)p=vector(t.start.origin());
             for(int i=0;i<7;i++){Vec3 v=p.add(d.scale(i*.35)).add(side.scale((i%3-1)*.6));box(q,v,.18,.45+(i%3)*.25,.18,0x5db7df,190);box(q,v.add(0,.55,0),.09,.28,.09,0xc3f9ff,230);}
         });
-        add(CareerSkills.FIRE,(t,a,n,q)->{Vec3 p=vector(t.last.position()),d=vector(t.start.direction()),side=new Vec3(-d.z,0,d.x);for(int i=0;i<9;i++)flame(q,p.add(d.scale((i/3)*.6)).add(side.scale((i%3-1)*.8)),.35,0xfa7f29,210);});
+        add(CareerSkills.FIRE,(t,a,n,q)->{
+            if(!t.released)return;Vec3 p=vector(t.last.position()),d=vector(t.start.direction()),side=new Vec3(-d.z,0,d.x);
+            if(t.last.phase()==SkillVisualEvent.Phase.FINISH){long age=n-t.last.at();double fade=Math.max(0,1-age/500d);if(fade<=0)return;double radius=Math.min(2.5,.4+age/100d);sphere(q,p.add(0,1,0),radius,0xf66e22,(int)(150*fade));ring(q,p.add(0,.08,0),radius,.2,0xffc35b,(int)(230*fade));return;}
+            for(int i=0;i<13;i++){double u=i/12d,angle=u*Math.PI;Vec3 at=p.add(side.scale((u-.5)*4.5)).add(0,Math.sin(angle)*1.8,0);flame(q,at,.25,0xfa7f29,210);flame(q,at.subtract(d.scale(.6)),.16,0xffc66a,130);}
+        });
         add(CareerSkills.AGNI,(t,a,n,q)->{
             Vec3 p=vector(t.start.origin());ring(q,p.add(0,.05,0),5,.15,0xe8bc59,170);
             for(int i=0;i<5;i++){double angle=i*Math.PI*2/5+a/180d;flame(q,p.add(Math.cos(angle)*3,1.1,Math.sin(angle)*3),.38,0xffb33d,240);}
             ring(q,p.add(0,1.1,0),3,.08,0xffcf70,120);
         });
         add(CareerSkills.EYE,(t,a,n,q)->{
-            Vec3 p=vector(t.start.origin());var actor=Minecraft.getInstance().level.getPlayerByUUID(t.start.caster());if(!t.start.sweep()){if(actor!=null)ring(q,actor.position().add(0,.1,0),2,.08,0xb28ace,140);return;}
-            box(q,p.add(0,2,0),2.5,.8,.18,0xe6d5ff,220);box(q,p.add(0,1.9,-.2),.45,1,.25,0x4b2569,240);box(q,p.add(0,2,-.48),.16,.65,.1,0xffd96d,255);ring(q,p.add(0,.1,0),Math.min(8,a/100d),.22,0xc9a5ef,170);
+            if(!t.start.sweep())return;Vec3 p=vector(t.start.origin()),d=vector(t.start.direction());
+            if(t.last.phase()!=SkillVisualEvent.Phase.FINISH){eye(q,p.add(0,2.5,0),d,1+.1*Math.sin(a/70d));ring(q,p.add(0,.08,0),16,.12,0xb28ace,110);return;}
+            long age=(long)((n-t.last.at())*t.speed);double fade=Math.max(0,1-age/450d);if(fade<=0)return;double radius=Math.min(16,1+age/25d);
+            sphere(q,p.add(0,2.5,0),Math.min(3,radius),0xc9a5ef,(int)(150*fade));ring(q,p.add(0,.1,0),radius,.25,0xe6d5ff,(int)(210*fade));
+            for(int i=0;i<12;i++){double angle=i*Math.PI/6;sphere(q,p.add(Math.cos(angle)*radius,1.5+Math.sin(i*2.3)*.8,Math.sin(angle)*radius),.2,0xffd96d,(int)(230*fade));}
         });
         add(CareerSkills.FRENZY,(t,a,n,q)->ring(q,vector(t.start.origin()).add(0,.1,0),1.2,.12,0xe2324c,160));
-        add(CareerSkills.CRASH,(t,a,n,q)->{if(t.last.phase()==SkillVisualEvent.Phase.FINISH)impact(q,vector(t.last.position()),3,n-t.last.at(),0xd9473e);});
+        add(CareerSkills.CRASH,(t,a,n,q)->{if(t.last.phase()==SkillVisualEvent.Phase.FINISH)bloodCross(q,vector(t.last.position()),vector(t.start.direction()),n-t.last.at());});
         add(CareerSkills.HAND,(t,a,n,q)->{Vec3 p=vector(t.start.origin()).add(vector(t.start.direction()).scale(1.3)).add(0,1,0);box(q,p,.45,.35,.35,0xb02b47,210);for(int i=0;i<4;i++)box(q,p.add(-.3+i*.2,.2,.3),.07,.35,.08,0xff7583,230);});
         add(CareerSkills.RAGE,(t,a,n,q)->{Vec3 p=vector(t.start.origin());ring(q,p.add(0,.03,0),4,.13,0xd6334a,170);for(int i=0;i<10;i++){double v=i*Math.PI/5;flame(q,p.add(Math.cos(v)*2.4,0,Math.sin(v)*2.4),.36,0xd92c46,200);}});
         add(CareerSkills.BLADE,(t,a,n,q)->{Vec3 p=vector(t.start.origin()),d=vector(t.start.direction());beam(q,p.add(0,1,0),p.add(d.scale(5)).add(0,1,0),.25,0xec4b61,210);if(t.last.phase()==SkillVisualEvent.Phase.FINISH)impact(q,vector(t.last.position()),3,a,0xd92c46);});
-        add(CareerSkills.ERUPTION,(t,a,n,q)->{var landing=t.flashes.stream().filter(e->e.phase()==SkillVisualEvent.Phase.RELEASE).findFirst().orElse(null);if(landing!=null)impact(q,vector(landing.position()),6,n-landing.at(),0xf06c3c);});
+        add(CareerSkills.ERUPTION,(t,a,n,q)->{
+            var landing=t.flashes.stream().filter(e->e.phase()==SkillVisualEvent.Phase.RELEASE).findFirst().orElse(null);if(landing==null)return;Vec3 p=vector(landing.position());
+            long age=n-landing.at();if(age<500)ring(q,p.add(0,.06,0),Math.min(6,.5+age/70d),.16,0xdf334a,(int)(180*(1-age/500d)));
+            for(var event:t.flashes)if(event.phase()==SkillVisualEvent.Phase.HIT)bloodPillars(q,p,t.start.seed()^((long)event.sequence()*0x9E3779B9L),n-event.at(),6);
+        });
         add(CareerSkills.SWORD,(t,a,n,q)->{
-            Vec3 p=vector(t.start.origin());if(!t.start.sweep())return;
-            double drop=Math.max(0,4-a/100d);sword(q,p.add(0,drop,0),6,0xb6193b,245);ring(q,p.add(0,.07,0),6,.2,0xe64a52,190);for(int i=0;i<12;i++){double angle=i*Math.PI/6;flame(q,p.add(Math.cos(angle)*4,0,Math.sin(angle)*4),.55,0xd63745,210);}
+            if(!t.start.sweep())return;Vec3 p=vector(t.last.position());double radius=StormChoreography.RADIUS,drop=Math.max(0,4-a/75d);
+            if(a<600)sword(q,p.add(0,drop,0),6,0xb6193b,245);
+            else {double pulse=.8+.2*Math.sin(a/60d);sphere(q,p.add(0,1.1,0),radius*pulse,0xb6193b,100);for(int i=0;i<12;i++){double angle=i*Math.PI/6;Vec3 end=p.add(Math.cos(angle)*radius,1+Math.sin(i+a/100d)*.5,Math.sin(angle)*radius);beam(q,p.add(0,1,0),end,.12,0xf17e85,190);}}
+            ring(q,p.add(0,.07,0),radius,.2,0xe64a52,190);
         });
     }
     static void transformed(SkillVfx.Track track,long age,List<Quad> out){
@@ -81,8 +102,8 @@ final class CareerSkillVisuals {
             for(int i=0;i<actor.brands;i++){double angle=now/900d+i*Math.PI*2/5;Vec3 rune=at.add(Math.cos(angle)*.38,p.getBbHeight()+.22+.035*Math.sin(angle*2),Math.sin(angle)*.38);box(out,rune,.045,.14,.045,0xf1d584,230);box(out,rune.add(0,.055,0),.10,.035,.035,0xffefbb,230);}
             if(actor.frenzy){sword(out,at.add(side.scale(-.42)).add(d.scale(.2)).add(0,.55,0),1.15,0xe63951,190);flame(out,at.add(side.scale(.4)).add(0,1,0),.12,0xe23250,120);}
             if(actor.kallaUntil>now){Vec3 behind=at.subtract(d.scale(.9)).add(0,.55,0);ghost(out,behind,0x4e2769,125);flame(out,behind.add(side.scale(.4)).add(0,.6,0),.16,0xa65bdf,180);}
-            if(actor.eyeUntil>now)ring(out,at.add(0,.08,0),1.8,.06,0xbe9ce5,110);
-            if(actor.bloodUntil>now)sword(out,at.subtract(d.scale(.5)).add(0,.7,0),2.5+actor.blood*.2,0xa92441,180);
+            if(actor.eyeUntil>now)ring(out,at.add(0,.08,0),16,.06,0xbe9ce5,80);
+            if(actor.bloodUntil>now)sword(out,at.subtract(d.scale(.5)).add(0,.7,0),2.5+Math.min(30,actor.blood)*.05,0xa92441,180);
         }
         CareerClient.INSTANCE.particles(out,now);
     }
@@ -92,6 +113,30 @@ final class CareerSkillVisuals {
         for(int i=0;i<12;i++){double a=i*Math.PI/6;Vec3 r=p.add(Math.cos(a)*4.45,.055,Math.sin(a)*4.45);box(q,r,.09,.035,.22,colors[0],130);}
     }
     private static void impact(List<Quad> q,Vec3 p,double radius,long age,int color){ring(q,p.add(0,.05,0),Math.min(radius,.5+age/130d),.15,color,180);for(int i=0;i<8;i++){double angle=i*Math.PI/4;Vec3 end=p.add(Math.cos(angle)*radius,.06,Math.sin(angle)*radius);beam(q,p.add(0,.06,0),end,.08,color,160);}for(int i=0;i<6;i++){double a=i*Math.PI/3;flame(q,p.add(Math.cos(a)*radius*.65,0,Math.sin(a)*radius*.65),.35,color,170);}}
+    private static void bloodCross(List<Quad> q,Vec3 p,Vec3 d,long age){
+        double fade=Math.max(0,1-age/650d),distance=Math.min(3,.3+age/90d);if(fade<=0)return;Vec3 side=new Vec3(-d.z,0,d.x);
+        for(int i=0;i<4;i++){double angle=Math.PI/4+i*Math.PI/2;Vec3 ray=d.scale(Math.cos(angle)).add(side.scale(Math.sin(angle))),head=p.add(ray.scale(distance)).add(0,.15,0),tail=p.add(ray.scale(Math.max(0,distance-1.5))).add(0,.1,0);beam(q,tail,head,.16,0xf0475c,(int)(230*fade));beam(q,head.add(side.scale(-.3)),head.add(side.scale(.3)).add(0,.65,0),.1,0xff8b92,(int)(190*fade));}
+    }
+    private static void bloodPillars(List<Quad> q,Vec3 p,long seed,long age,double radius){
+        if(age<0||age>650)return;Random random=new Random(seed);double progress=age/650d,envelope=Math.sin(Math.PI*progress);
+        for(int i=0;i<7;i++){double angle=random.nextDouble()*Math.PI*2,r=Math.sqrt(random.nextDouble())*(radius-.4),height=2.5+random.nextDouble()*3.5;Vec3 base=p.add(Math.cos(angle)*r,.04,Math.sin(angle)*r);double h=Math.max(.05,height*envelope);box(q,base,.18,h,.18,0xca233f,(int)(220*(1-progress)));box(q,base.add(.04,0,.04),.07,h*.95,.07,0xff8293,(int)(230*(1-progress)));sphere(q,base.add(0,h,0),.2,0xe7405b,(int)(200*(1-progress)));}
+    }
+    private static void xWave(List<Quad> q,Vec3 p,Vec3 d,double half,int color,int alpha){
+        Vec3 side=new Vec3(-d.z,0,d.x).scale(half),up=new Vec3(0,half,0);
+        beam(q,p.subtract(side).subtract(up),p.add(side).add(up),.13,color,alpha);beam(q,p.subtract(side).add(up),p.add(side).subtract(up),.13,color,alpha);
+        beam(q,p.subtract(side).subtract(up),p.add(side).add(up),.035,0xfffcdf,alpha);beam(q,p.subtract(side).add(up),p.add(side).subtract(up),.035,0xfffcdf,alpha);
+    }
+    private static void sphere(List<Quad> q,Vec3 p,double radius,int color,int alpha){ellipsoid(q,p,new Vec3(1,0,0),new Vec3(0,0,1),radius,radius,radius,color,alpha);}
+    private static void eye(List<Quad> q,Vec3 p,Vec3 d,double scale){
+        Vec3 side=new Vec3(-d.z,0,d.x);ellipsoid(q,p,side,d,1.8*scale,.8*scale,.5*scale,0xe6d5ff,220);
+        ellipsoid(q,p.add(d.scale(.46*scale)),side,d,.6*scale,.65*scale,.14*scale,0x66348b,245);
+        ellipsoid(q,p.add(d.scale(.59*scale)),side,d,.16*scale,.48*scale,.08*scale,0xffd96d,255);
+        sphere(q,p.add(d.scale(.67*scale)).add(side.scale(-.15*scale)).add(0,.2*scale,0),.1*scale,0xfff5dd,255);
+    }
+    private static void ellipsoid(List<Quad> q,Vec3 p,Vec3 side,Vec3 forward,double x,double y,double z,int color,int alpha){
+        for(int row=0;row<8;row++)for(int col=0;col<16;col++){double a=-Math.PI/2+row*Math.PI/8,b=a+Math.PI/8,u=col*Math.PI/8,v=u+Math.PI/8;q.add(new Quad(ellipsoidPoint(p,side,forward,x,y,z,a,u),ellipsoidPoint(p,side,forward,x,y,z,a,v),ellipsoidPoint(p,side,forward,x,y,z,b,v),ellipsoidPoint(p,side,forward,x,y,z,b,u),color,alpha));}
+    }
+    private static Vec3 ellipsoidPoint(Vec3 p,Vec3 side,Vec3 forward,double x,double y,double z,double latitude,double longitude){return p.add(side.scale(x*Math.cos(latitude)*Math.cos(longitude))).add(0,y*Math.sin(latitude),0).add(forward.scale(z*Math.cos(latitude)*Math.sin(longitude)));}
     static void flame(List<Quad> q,Vec3 p,double radius,int color,int alpha){box(q,p,radius,radius*2,radius,color,alpha);box(q,p.add(radius*.2,radius*1.7,0),radius*.5,radius*1.6,radius*.5,0xffca8b,alpha/2);}
     private static void ghost(List<Quad> q,Vec3 p,int color,int alpha){box(q,p,.27,.8,.18,color,alpha);box(q,p.add(0,.8,0),.33,.48,.24,color,alpha);box(q,p.add(-.4,.4,0),.12,.6,.12,color,alpha/2);box(q,p.add(.4,.4,0),.12,.6,.12,color,alpha/2);box(q,p.add(-.13,1,-.26),.06,.05,.025,0xe7edf2,alpha);box(q,p.add(.13,1,-.26),.06,.05,.025,0xe7edf2,alpha);}
     private static void sword(List<Quad> q,Vec3 p,double height,int color,int alpha){box(q,p,.11,height,.07,color,alpha);box(q,p.add(0,height*.12,0),.42,.1,.12,0xf7a3a3,alpha);box(q,p.add(0,height*.87,0),.055,height*.15,.045,0xffb8b3,alpha);}
