@@ -9,4 +9,5 @@ public interface CombatTarget {
     double maximumHealth(int playerLevel,boolean sync);
     String power();
     boolean rewardsEligible();
+    default Receipt receive(double fraction,boolean heal){return LifeRules.apply(life(),fraction,heal);}
 }

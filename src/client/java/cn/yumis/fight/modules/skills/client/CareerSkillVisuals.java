@@ -31,7 +31,7 @@ final class CareerSkillVisuals {
         add(CareerSkills.KALLA,(t,a,n,q)->{
             var player=Minecraft.getInstance().level.getPlayerByUUID(t.start.caster());Vec3 p=player==null?vector(t.start.origin()):player.position();
             if(t.start.sweep()){arc(q,p.add(vector(t.start.direction()).scale(2.4)).add(0,1.1,0),vector(t.start.direction()),3,0x9645d6,210);return;}
-            ghost(q,p.add(0,1.1,0),0x472560,150);flame(q,p.add(.45,1.3,0),.3,0xa65bdf,200);
+            // The attached form is drawn once by actors(), from the actor's current facing.
         });
         add(CareerSkills.BLACHE,(t,a,n,q)->{
             Vec3 p=vector(t.start.origin());ring(q,p.add(0,.04,0),8,.25,0x4e236d,170);disc(q,p.add(0,.03,0),7.8,0x160e22,150);
@@ -58,11 +58,11 @@ final class CareerSkillVisuals {
             box(q,p.add(0,2,0),2.5,.8,.18,0xe6d5ff,220);box(q,p.add(0,1.9,-.2),.45,1,.25,0x4b2569,240);box(q,p.add(0,2,-.48),.16,.65,.1,0xffd96d,255);ring(q,p.add(0,.1,0),Math.min(8,a/100d),.22,0xc9a5ef,170);
         });
         add(CareerSkills.FRENZY,(t,a,n,q)->ring(q,vector(t.start.origin()).add(0,.1,0),1.2,.12,0xe2324c,160));
-        add(CareerSkills.CRASH,(t,a,n,q)->impact(q,vector(t.last.position()),3,a,0xd9473e));
+        add(CareerSkills.CRASH,(t,a,n,q)->{if(t.last.phase()==SkillVisualEvent.Phase.FINISH)impact(q,vector(t.last.position()),3,n-t.last.at(),0xd9473e);});
         add(CareerSkills.HAND,(t,a,n,q)->{Vec3 p=vector(t.start.origin()).add(vector(t.start.direction()).scale(1.3)).add(0,1,0);box(q,p,.45,.35,.35,0xb02b47,210);for(int i=0;i<4;i++)box(q,p.add(-.3+i*.2,.2,.3),.07,.35,.08,0xff7583,230);});
         add(CareerSkills.RAGE,(t,a,n,q)->{Vec3 p=vector(t.start.origin());ring(q,p.add(0,.03,0),4,.13,0xd6334a,170);for(int i=0;i<10;i++){double v=i*Math.PI/5;flame(q,p.add(Math.cos(v)*2.4,0,Math.sin(v)*2.4),.36,0xd92c46,200);}});
         add(CareerSkills.BLADE,(t,a,n,q)->{Vec3 p=vector(t.start.origin()),d=vector(t.start.direction());beam(q,p.add(0,1,0),p.add(d.scale(5)).add(0,1,0),.25,0xec4b61,210);if(t.last.phase()==SkillVisualEvent.Phase.FINISH)impact(q,vector(t.last.position()),3,a,0xd92c46);});
-        add(CareerSkills.ERUPTION,(t,a,n,q)->impact(q,vector(t.last.position()),6,a,0xf06c3c));
+        add(CareerSkills.ERUPTION,(t,a,n,q)->{var landing=t.flashes.stream().filter(e->e.phase()==SkillVisualEvent.Phase.RELEASE).findFirst().orElse(null);if(landing!=null)impact(q,vector(landing.position()),6,n-landing.at(),0xf06c3c);});
         add(CareerSkills.SWORD,(t,a,n,q)->{
             Vec3 p=vector(t.start.origin());if(!t.start.sweep())return;
             double drop=Math.max(0,4-a/100d);sword(q,p.add(0,drop,0),6,0xb6193b,245);ring(q,p.add(0,.07,0),6,.2,0xe64a52,190);for(int i=0;i<12;i++){double angle=i*Math.PI/6;flame(q,p.add(Math.cos(angle)*4,0,Math.sin(angle)*4),.55,0xd63745,210);}
@@ -76,11 +76,11 @@ final class CareerSkillVisuals {
     }
     static void actors(List<Quad> out,long now){
         var mc=Minecraft.getInstance();if(mc.level==null)return;
-        for(var actor:CareerClient.INSTANCE.view.actors){var p=mc.level.getPlayerByUUID(UUID.fromString(actor.owner));if(p==null||!p.isAlive())continue;Vec3 at=p.position();Vec3 d=p.getLookAngle().multiply(1,0,1).normalize(),side=new Vec3(-d.z,0,d.x);
+        for(var actor:CareerClient.INSTANCE.view.actors){var p=mc.level.getPlayerByUUID(UUID.fromString(actor.owner));if(p==null||!p.isAlive())continue;Vec3 at=p.position();Vec3 d=Vec3.directionFromRotation(0,p.getYRot()),side=new Vec3(-d.z,0,d.x);
             if(actor.keiga>0)ghost(out,at.subtract(d.scale(.45)).add(0,.25,0),0x8052ac,90);
-            for(int i=0;i<actor.brands;i++){double angle=now/900d+i*Math.PI*2/5;Vec3 rune=at.add(Math.cos(angle)*1.1,1.6+.08*Math.sin(angle*2),Math.sin(angle)*1.1);box(out,rune,.08,.22,.08,0xf1d584,230);box(out,rune.add(0,.08,0),.18,.05,.05,0xffefbb,230);}
+            for(int i=0;i<actor.brands;i++){double angle=now/900d+i*Math.PI*2/5;Vec3 rune=at.add(Math.cos(angle)*.38,p.getBbHeight()+.22+.035*Math.sin(angle*2),Math.sin(angle)*.38);box(out,rune,.045,.14,.045,0xf1d584,230);box(out,rune.add(0,.055,0),.10,.035,.035,0xffefbb,230);}
             if(actor.frenzy){sword(out,at.add(side.scale(-.42)).add(d.scale(.2)).add(0,.55,0),1.15,0xe63951,190);flame(out,at.add(side.scale(.4)).add(0,1,0),.12,0xe23250,120);}
-            if(actor.kallaUntil>now)ghost(out,at.subtract(d.scale(.6)).add(0,1,0),0x4e2769,125);
+            if(actor.kallaUntil>now){Vec3 behind=at.subtract(d.scale(.9)).add(0,.55,0);ghost(out,behind,0x4e2769,125);flame(out,behind.add(side.scale(.4)).add(0,.6,0),.16,0xa65bdf,180);}
             if(actor.eyeUntil>now)ring(out,at.add(0,.08,0),1.8,.06,0xbe9ce5,110);
             if(actor.bloodUntil>now)sword(out,at.subtract(d.scale(.5)).add(0,.7,0),2.5+actor.blood*.2,0xa92441,180);
         }

@@ -124,7 +124,7 @@ public final class CombatApplication {
             }
             basicAttacks.validate(p,j);
             skills.validate(p,entity,j);
-            Receipt receipt=outcomeOnly?cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life):cn.yumis.fight.modules.combat.api.LifeRules.apply(life,fraction,heal);
+            Receipt receipt=outcomeOnly?cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life):target==null?cn.yumis.fight.modules.combat.api.LifeRules.apply(life,fraction,heal):target.receive(fraction,heal);
             Life actorLife=entity==p?life:copy(s.life,Life.class);
             CombatPorts.Commit skillCommit=skills.prepare(p,entity,j,receipt,actorLife);
             String previousBuffs=JSON.toJson(s.resources.equipmentBuffs);

@@ -1,17 +1,11 @@
 {
-  "type": "yumis_dungeon_and_fight:industrial",
-  "machine": "mana_furnace",
-  "minimum_tier": 1,
-  "ingredients": [
-    {
-      "ingredient": "yumis_dungeon_and_fight:crushed_lead",
-      "count": 1
-    }
-  ],
-  "ticks": 200,
-  "energy": 100,
+  "type": "minecraft:smelting",
+  "category": "misc",
+  "ingredient": "yumis_dungeon_and_fight:crushed_lead",
   "result": {
     "id": "yumis_dungeon_and_fight:lead_ingot",
     "count": 1
-  }
+  },
+  "experience": 0.0,
+  "cookingtime": 200
 }

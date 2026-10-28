@@ -135,5 +135,7 @@
   "item.yumis_dungeon_and_fight.rtg_core": "RTG核心",
   "item.yumis_dungeon_and_fight.staff": "Staff",
   "item.yumis_dungeon_and_fight.club": "Club",
-  "item.yumis_dungeon_and_fight.delezie_blood": "Delezie's Blood"
+  "item.yumis_dungeon_and_fight.delezie_blood": "Delezie's Blood",
+  "item.yumis_dungeon_and_fight.training_sandbag": "Training Sandbag",
+  "entity.yumis_dungeon_and_fight.training_sandbag": "Training Sandbag"
 }

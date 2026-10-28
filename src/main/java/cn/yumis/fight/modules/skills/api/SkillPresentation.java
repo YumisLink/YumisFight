@@ -22,7 +22,7 @@ public final class SkillPresentation {
     }
     private SkillPresentation(){}
     public static void register(SkillDefinition skill,Traits traits){if(CONTENT.putIfAbsent(skill,Objects.requireNonNull(traits))!=null)throw new IllegalArgumentException("Duplicate presentation: "+skill);}
-    public static Traits require(SkillDefinition skill){var value=CONTENT.get(skill);if(value==null){var content=CareerSkills.content(skill.id);if(content!=null)return new Traits(content.charging(),false,CareerSkills.persistent(skill.id),content.invulnerable(),0,0,content.color(),false,c->(long)(c.parameters.get("actionDuration",c.parameters.get("duration",1))*1000));}if(value==null)throw new IllegalArgumentException("Missing skill presentation: "+skill);return value;}
+    public static Traits require(SkillDefinition skill){var value=CONTENT.get(skill);if(value==null){var content=CareerSkills.content(skill.id);if(content!=null){boolean landing=skill.id.equals(CareerSkills.CRASH)||skill.id.equals(CareerSkills.ERUPTION);return new Traits(content.charging(),false,landing||CareerSkills.persistent(skill.id),content.invulnerable(),0,0,content.color(),false,c->landing?30000:(long)(c.parameters.get("actionDuration",c.parameters.get("duration",1))*1000));}}if(value==null)throw new IllegalArgumentException("Missing skill presentation: "+skill);return value;}
     public static boolean fixedActionTime(SkillDefinition skill){return require(skill).fixedActionTime();}
     public static boolean invulnerable(SkillDefinition skill){return require(skill).invulnerable();}
     public static boolean charging(SkillDefinition skill){return require(skill).charging();}

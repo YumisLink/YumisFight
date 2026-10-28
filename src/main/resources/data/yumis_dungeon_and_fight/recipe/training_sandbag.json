@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [" W ", "WHW", " S "],
+  "key": {"W": "#minecraft:wool", "H": "minecraft:hay_block", "S": "minecraft:oak_slab"},
+  "result": {"id": "yumis_dungeon_and_fight:training_sandbag", "count": 1}
+}

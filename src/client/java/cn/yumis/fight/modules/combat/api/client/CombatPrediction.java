@@ -8,6 +8,7 @@ public final class CombatPrediction {
     public interface State {
         boolean ready(); String session(); Life own(); Runtime resources(); long serverOffset(); long serverNow();
         Life target(UUID id); net.minecraft.world.phys.Vec3 position(UUID id);
+        default boolean consumesHealth(UUID id){return true;}
         void send(String action,JsonObject packet); void message(String text); void reported(JsonObject packet);
     }
     private final State state;
@@ -45,6 +46,7 @@ public final class CombatPrediction {
         }
     }
     public double predicted(Life life){
+        if(!state.consumesHealth(life.target))return life.q;
         double q=life.q;
         for(Pending p:pending.values())if(p.report.get("target").getAsString().equals(life.target.toString())&&p.report.get("generation").getAsLong()==life.generation&&p.report.get("basis").getAsLong()==life.basis)q=Math.clamp(q+(p.action.equals("heal")?1:-1)*p.report.get("fraction").getAsDouble(),0,1);
         return q;

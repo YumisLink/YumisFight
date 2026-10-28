@@ -80,7 +80,7 @@ final class BuiltinSkillVisuals {
             }
             for(SkillVisualEvent flash:t.flashes){
                 long elapsed=time-flash.at();
-                if(elapsed<0||elapsed>450)continue;
+                if(elapsed<0||elapsed>flashDuration(flash))continue;
                 slash(quads,flash,elapsed);
             }
             if(t.last.phase()==SkillVisualEvent.Phase.TRAIL&&time-t.last.at()<150)slash(quads,t.last,time-t.last.at());
@@ -136,7 +136,8 @@ final class BuiltinSkillVisuals {
     }
     private static void slash(List<Quad> out,SkillVisualEvent e,long age){
         Vec3 direction=vector(e.direction()),right=side(direction),p=vector(e.position()).add(direction.scale(e.forwardOffset()));
-        double fade=Math.max(0,1-age/(e.skill().equals("yumis_dungeon_and_fight:dance")?225.0:450.0));
+        double fade=Math.max(0,1-age/(double)flashDuration(e));
+        if(e.skill().equals("ATTACK"))fade=Math.sqrt(fade);
         int alpha=(int)(210*fade),color=e.color();
         int first=out.size();
         switch(e.skill()){
@@ -168,6 +169,7 @@ final class BuiltinSkillVisuals {
         }
         if(e.horizontalScale()!=1)for(int i=first;i<out.size();i++){Quad q=out.get(i);out.set(i,new Quad(horizontalScale(q.a(),p,e.horizontalScale()),horizontalScale(q.b(),p,e.horizontalScale()),horizontalScale(q.c(),p,e.horizontalScale()),horizontalScale(q.d(),p,e.horizontalScale()),q.rgb(),q.alpha()));}
     }
+    private static long flashDuration(SkillVisualEvent event){return event.skill().equals("ATTACK")?650:event.skill().equals("yumis_dungeon_and_fight:dance")?225:450;}
     private static Vec3 horizontalScale(Vec3 point,Vec3 origin,double scale){Vec3 delta=point.subtract(origin);return origin.add(delta.x*scale,delta.y,delta.z*scale);}
     private static Vec3 attackSpan(SkillVisualEvent e,Vec3 right){
         double tilt=new SplittableRandom(e.seed()).nextDouble(Math.PI*2);

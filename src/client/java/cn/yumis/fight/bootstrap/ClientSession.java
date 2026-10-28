@@ -63,6 +63,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         public cn.yumis.fight.modules.combat.api.Runtime resources(){return resources;}
         public long serverOffset(){return serverOffset;} public long serverNow(){return ClientSession.this.serverNow();}
         public Life target(UUID id){var target=targets.get(id);return target==null?null:target.life;}
+        public boolean consumesHealth(UUID id){var target=targets.get(id);return target==null||target.consumesHealth();}
         public net.minecraft.world.phys.Vec3 position(UUID id){var mc=Minecraft.getInstance();var target=targets.get(id);var entity=target==null||mc.level==null?null:mc.level.getEntity(target.entityId);return entity==null?mc.player.position().add(mc.player.getLookAngle().scale(2)).add(0,1,0):entity.position().add(0,entity.getBbHeight()*.8,0);}
         public void send(String action,JsonObject packet){ClientSession.this.send(action,packet);}
         public void message(String text){ClientSession.this.message(text);}

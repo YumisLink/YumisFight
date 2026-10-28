@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 public final class SkillsPage {
     private SkillsPage(){}
     public static void render(PlayerPageSurface page,Progress progress,Stats stats,Consumer<String> learn,Runnable reset){
+        page.cursor(page.cursor()+10);
         page.line("剩余SP："+progress.sp+"    装备可提高有效等级",UiTheme.GOLD);
         page.line("悬浮查看实时技能介绍；点击已学主动技能选择快捷槽。",UiTheme.MUTED);
         page.line("按住 Shift 点击学习：最多升5级；点数不足时尽量加满。",UiTheme.MUTED);

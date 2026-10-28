@@ -103,24 +103,7 @@ public final class Hud {
             g.text(font,text,-font.width(text)/2,0,(alpha<<24)|number.color(),true);
             g.pose().popMatrix();
         }
-        var cast=SkillController.INSTANCE.cast;
-        if(cast!=null&&(cast.skill==SkillCatalog.TRIPLE||cast.skill==SkillCatalog.DRAGON)){
-            int remaining=(int)cast.parameters.get("slashes",3)-cast.segment;
-            if(remaining>0){
-                int x=(int)(width*.8),y=(int)(height*.2);
-                g.blit(ClientBootstrap.id("textures/gui/skills/"+cast.skill.icon()+".png"),x-16,y-16,x+16,y+16,0,1,0,1);
-                if(now-cast.stageStart<(cast.skill==SkillCatalog.TRIPLE?200:250))g.fill(x-16,y-16,x+16,y+16,0x70000000);
-                g.nextStratum();
-                g.fill(x-9,y-11,x+9,y+11,0xB0101010);
-                g.nextStratum();
-                g.pose().pushMatrix();
-                g.pose().translate(x,y-9);
-                g.pose().scale(2,2);
-                String text=Integer.toString(remaining);
-                g.text(font,text,-font.width(text)/2,0,UiTheme.HUD_GOLD,true);
-                g.pose().popMatrix();
-            }
-        }
+        cn.yumis.fight.modules.skills.client.CareerHud.renderGauge(g,width,height,now);
         if(mc.hitResult instanceof EntityHitResult hit){
             var entity=hit.getEntity();
             if(entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part)entity=part.parentMob;

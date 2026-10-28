@@ -15,6 +15,8 @@ import cn.yumis.fight.platform.ItemData;
 public final class DungeonContentTypes {
     private static final String ID=ItemData.NS;
     public static final DeferredRegister<EntityType<?>> ENTITIES=DeferredRegister.create(Registries.ENTITY_TYPE,ID);
+    public static final DeferredHolder<EntityType<?>,EntityType<TrainingSandbag>> TRAINING_SANDBAG=ENTITIES.register("training_sandbag",()->EntityType.Builder.<TrainingSandbag>of(TrainingSandbag::new,MobCategory.MISC).sized(.8f,2).eyeHeight(1.5f).fireImmune().clientTrackingRange(10).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,"training_sandbag"))));
+    public static final DeferredItem<net.minecraft.world.item.Item> TRAINING_SANDBAG_ITEM=cn.yumis.fight.platform.ItemRegistry.ITEMS.registerItem("training_sandbag",p->new TrainingSandbagItem(p.stacksTo(16)));
     public static final DeferredHolder<EntityType<?>,EntityType<CageEntity>> CAGE=ENTITIES.register("lightning_cage",()->EntityType.Builder.<CageEntity>of(CageEntity::new,MobCategory.MISC).sized(3,2.5f).noSave().clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,"lightning_cage"))));
     public static final Map<String,DeferredHolder<EntityType<?>,EntityType<DungeonEnemy>>> ENEMIES=new LinkedHashMap<>();
     static {
@@ -25,6 +27,6 @@ public final class DungeonContentTypes {
         }
         ));
     }
-    public static void register(IEventBus bus){ENTITIES.register(bus);bus.addListener((EntityAttributeCreationEvent e)->{for(var type:ENEMIES.values())e.put(type.get(),DungeonEnemy.createAttributes().build());});}
+    public static void register(IEventBus bus){ENTITIES.register(bus);cn.yumis.fight.platform.ItemRegistry.ALL.put("training_sandbag",TRAINING_SANDBAG_ITEM);bus.addListener((EntityAttributeCreationEvent e)->{e.put(TRAINING_SANDBAG.get(),TrainingSandbag.createAttributes().build());for(var type:ENEMIES.values())e.put(type.get(),DungeonEnemy.createAttributes().build());});}
 
 }

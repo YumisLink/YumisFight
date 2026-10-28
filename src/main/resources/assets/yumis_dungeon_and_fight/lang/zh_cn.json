@@ -168,5 +168,7 @@
   "item.yumis_dungeon_and_fight.rtg_core": "RTG核心",
   "item.yumis_dungeon_and_fight.staff": "法杖",
   "item.yumis_dungeon_and_fight.club": "棍棒",
-  "item.yumis_dungeon_and_fight.delezie_blood": "狄瑞吉之血"
+  "item.yumis_dungeon_and_fight.delezie_blood": "狄瑞吉之血",
+  "item.yumis_dungeon_and_fight.training_sandbag": "训练沙袋",
+  "entity.yumis_dungeon_and_fight.training_sandbag": "训练沙袋"
 }

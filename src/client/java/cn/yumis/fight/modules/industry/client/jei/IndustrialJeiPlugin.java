@@ -46,7 +46,7 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         else if(operation.equals("recipes")||operation.equals("uses")){var item=BuiltInRegistries.ITEM.getValue(key.contains(":")?Identifier.parse(key):IndustrialContent.id(key));var focus=runtime.getJeiHelpers().getFocusFactory().createFocus(operation.equals("uses")?mezz.jei.api.recipe.RecipeIngredientRole.INPUT:mezz.jei.api.recipe.RecipeIngredientRole.OUTPUT,VanillaTypes.ITEM_STACK,new ItemStack(item));runtime.getRecipesGui().show(focus);}
         return result;
     }
-    private static final List<String> MACHINES=List.of("mana_crusher","mana_furnace","mineral_generator","mana_forge","coolant_mixer","currency_fabricator","fuel_coal_generator","fuel_turbine_generator","fuel_thermal_generator","fuel_nuclear_reactor","fuel_rtg_generator","storage_upgrade");
+    private static final List<String> MACHINES=List.of("mana_crusher","mineral_generator","mana_forge","coolant_mixer","currency_fabricator","fuel_coal_generator","fuel_turbine_generator","fuel_thermal_generator","fuel_nuclear_reactor","fuel_rtg_generator","storage_upgrade");
     private static final Map<String,IRecipeHolderType<IndustrialRecipe>> TYPES=new LinkedHashMap<>();
     static {for(String machine:MACHINES)TYPES.put(machine,IRecipeHolderType.create(IndustrialContent.id(machine)));}
     @Override public Identifier getPluginUid(){return IndustrialContent.id("industry");}

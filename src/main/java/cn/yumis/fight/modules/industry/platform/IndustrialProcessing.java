@@ -33,15 +33,27 @@ import java.util.*;
 
 /** Industrial module implementation; owns one scheduling responsibility. */
 public final class IndustrialProcessing {
-    public static List<RecipeHolder<IndustrialRecipe>> recipes(ServerLevel level,DeviceType kind){return level.recipeAccess().recipeMap().byType(IndustrialContent.RECIPE_TYPE.get()).stream().filter(h->h.value().machine().equals(kind.id)).sorted(Comparator.comparing(h->h.id().identifier().toString())).toList();}
+    public static List<RecipeHolder<IndustrialRecipe>> recipes(ServerLevel level,DeviceType kind){if(kind.has(DeviceType.Capability.SMELTING))return List.of();return level.recipeAccess().recipeMap().byType(IndustrialContent.RECIPE_TYPE.get()).stream().filter(h->h.value().machine().equals(kind.id)).sorted(Comparator.comparing(h->h.id().identifier().toString())).toList();}
     public static void prepare(MachineBlockEntity be){
         if(!be.device().selectedRecipe()){be.selected="";be.queued="";}if(!be.running||!be.tickTime.positive()){be.status="已停止";return;}if(be.device().needsStructure()&&!be.structureValid){be.status="结构不完整：缺少 "+IndustrialStructures.missing(be).size()+" 处";return;}if(!be.batchRecipe.isEmpty()){if(!be.canFinish())be.status="产物空间不足";return;}
         if(be.device().selectedRecipe()&&be.selected.isEmpty()){be.status="请选择生成配方";return;}
-        ServerLevel level=(ServerLevel)be.getLevel();List<ItemStack> input=new ArrayList<>();for(int i=0;i<be.device().inputs();i++)input.add(be.getItem((i+be.roundRobin)%Math.max(1,be.device().inputs())));
+        ServerLevel level=(ServerLevel)be.getLevel();
+        if(be.device().has(DeviceType.Capability.SMELTING)){prepareSmelting(be,level);return;}
+        List<ItemStack> input=new ArrayList<>();for(int i=0;i<be.device().inputs();i++)input.add(be.getItem((i+be.roundRobin)%Math.max(1,be.device().inputs())));
         RecipeHolder<IndustrialRecipe> chosen=null;int[] plan=null;int bestRank=Integer.MAX_VALUE;
         for(var holder:recipes(level,be.device())){IndustrialRecipe r=holder.value();if(r.minimumTier()>be.tier()||be.device().exactRecipeTier()&&r.minimumTier()!=be.tier())continue;if(be.device().selectedRecipe()&&!be.selected.isEmpty()&&!holder.id().identifier().toString().equals(be.selected))continue;int[] take=r.takePlan(input);if(take!=null&&fluidInputFits(be,r)){int rank=0;while(rank<take.length&&take[rank]==0)rank++;if(chosen==null||rank<bestRank){chosen=holder;plan=take;bestRank=rank;}}}
-        if(chosen==null&&be.device().has(DeviceType.Capability.SMELTING)){for(int i=0;i<3;i++){int slot=(i+be.roundRobin)%3;ItemStack stack=be.getItem(slot);if(stack.isEmpty())continue;SingleRecipeInput nativeInput=new SingleRecipeInput(stack);var nativeRecipe=level.recipeAccess().getRecipeFor(RecipeType.SMELTING,nativeInput,level);if(nativeRecipe.isPresent()){var recipe=nativeRecipe.get().value();IndustrialRecipe fallback=new IndustrialRecipe(be.device().id,1,List.of(new IndustrialRecipe.Need(Ingredient.of(stack.getItem()),1)),recipe.assemble(nativeInput),recipe.cookingTime(),100,Optional.empty(),FluidStack.EMPTY);start(be,"vanilla:"+nativeRecipe.get().id().identifier(),fallback,new int[]{1},new int[]{slot});return;}}}
         if(chosen==null){be.status="缺少原料或可用配方";return;}IndustrialRecipe r=chosen.value();int[] indices=new int[input.size()];for(int i=0;i<indices.length;i++)indices[i]=(i+be.roundRobin)%Math.max(1,be.device().inputs());if(be.device().selectedRecipe()&&be.selected.isEmpty())be.selected=chosen.id().identifier().toString();start(be,chosen.id().identifier().toString(),r,plan,indices);
+    }
+    private static void prepareSmelting(MachineBlockEntity be,ServerLevel level){
+        int slots=be.device().inputs();
+        for(int i=0;i<slots;i++){
+            int slot=(i+be.roundRobin)%slots;ItemStack stack=be.getItem(slot);if(stack.isEmpty())continue;
+            var input=new SingleRecipeInput(stack);var holder=level.recipeAccess().getRecipeFor(RecipeType.SMELTING,input,level);if(holder.isEmpty())continue;
+            var recipe=holder.get().value();
+            var batch=new IndustrialRecipe(be.device().id,1,List.of(new IndustrialRecipe.Need(Ingredient.of(stack.getItem()),1)),recipe.assemble(input),recipe.cookingTime(),100,Optional.empty(),FluidStack.EMPTY);
+            start(be,"vanilla:"+holder.get().id().identifier(),batch,new int[]{1},new int[]{slot});return;
+        }
+        be.status="缺少原版熔炉可熔炼的原料";
     }
     private static boolean fluidInputFits(MachineBlockEntity be,IndustrialRecipe r){return r.fluidInput().isEmpty()||r.fluidInput().get().test(be.fluids.getResource(0).toStack(be.fluids.getAmountAsInt(0)));}
     private static void start(MachineBlockEntity be,String id,IndustrialRecipe r,int[] plan,int[] indices){

@@ -58,9 +58,8 @@ for metal in ['lead','uranium','titanium']:
         tag(category+'/'+metal,[own(value)]);tag(category,['#c:'+category+'/'+metal])
     tag('ores/'+metal,[own(metal+'_ore')],'block');tag('storage_blocks/'+metal,[own(metal+'_block')],'block')
     craft(metal+'_block',['#c:ingots/'+metal]*9,metal+'_block');craft(metal+'_unpack',[own(metal+'_block')],metal+'_ingot',9)
-    if metal!='titanium':
-        for source in ['raw_materials','ores']:
-            recipe(metal+'_smelt_'+source,{'type':'minecraft:smelting','category':'misc','ingredient':'#c:'+source+'/'+metal,'result':{'id':own(metal+'_ingot')},'experience':.7,'cookingtime':200})
+    for source in ['raw_materials','ores']:
+        recipe(metal+'_smelt_'+source,{'type':'minecraft:smelting','category':'misc','ingredient':'#c:'+source+'/'+metal,'result':{'id':own(metal+'_ingot')},'experience':.7,'cookingtime':200})
 for metal,title in [('terra','泰拉石'),('spacetime','时空石')]:
     items.append(metal+'_ingot');blocks.append(metal+'_block');names[f'item.{NS}.{metal}_ingot']=title+'锭';names[f'block.{NS}.{metal}_block']=title+'块'
     tag('ingots/'+metal,[own(metal+'_ingot')]);tag('ingots',['#c:ingots/'+metal]);tag('storage_blocks/'+metal,[own(metal+'_block')]);tag('storage_blocks/'+metal,[own(metal+'_block')],'block')
@@ -77,9 +76,7 @@ process('sulfide_mix','mana_forge',['#c:ingots/lead','#c:sands','minecraft:coal'
 for metal,title in metal_names.items():
     key='crushed_'+metal;items.append(key);names[f'item.{NS}.{key}']='粉碎'+title+'矿'
     for source in ['raw_materials','ores']:process(f'crush_{metal}_{source}','mana_crusher',['#c:'+source+'/'+metal],own(key),2,tier=3 if metal=='titanium' else 1)
-    process('smelt_'+key,'mana_furnace',[own(key)],own(metal+'_ingot') if metal in ['lead','uranium','titanium'] else 'minecraft:'+metal+'_ingot',ticks=200,tier=2 if metal=='titanium' else 1)
-    if metal in ['lead','uranium','titanium']:
-        for source in ['raw_materials','ores']:process('mana_smelt_'+metal+'_'+source,'mana_furnace',['#c:'+source+'/'+metal],own(metal+'_ingot'),ticks=200,tier=2 if metal=='titanium' else 1)
+    recipe('smelt_'+key,{'type':'minecraft:smelting','category':'misc','ingredient':own(key),'result':{'id':own(metal+'_ingot') if metal in ['lead','uranium','titanium'] else 'minecraft:'+metal+'_ingot','count':1},'experience':0.0,'cookingtime':200})
 process('sand','mana_crusher',['minecraft:cobblestone'],'minecraft:sand')
 for key,out,count,ticks,energy,tier in [
     ('coal','minecraft:coal',1,400,40000,1),('iron','minecraft:raw_iron',1,400,1600,1),('copper','minecraft:raw_copper',1,300,1200,1),('cobblestone','minecraft:cobblestone',1,100,100,1),

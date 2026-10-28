@@ -21,15 +21,24 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public double maximumHealth(int playerLevel,boolean sync){return health(level(playerLevel,sync));}
     public String power(){return elitePower;}
     public boolean rewardsEligible(){return !noRewards;}
-    public double defense(int level,boolean magic){return (magic?20+5*(level-1):30+8*(level-1))*(elitePower.equals("armor")?1.5:1);}
+    public boolean training(){return kind.equals("TRAINING");}
+    public boolean consumesHealth(){return !training();}
+    @Override public cn.yumis.fight.modules.combat.api.Receipt receive(double fraction,boolean heal){
+        if(!training())return cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);
+        if(!Double.isFinite(fraction)||fraction<0)throw new IllegalArgumentException("伤害份额无效");
+        life.q=1;life.dead=false;life.revision++;
+        return new cn.yumis.fight.modules.combat.api.Receipt(true,"",heal?0:fraction,1,life.revision,"");
+    }
+    public double defense(int level,boolean magic){return training()?0:(magic?20+5*(level-1):30+8*(level-1))*(elitePower.equals("armor")?1.5:1);}
     public double[] resistances(){double[] copy=elementalResists.clone();if(elitePower.equals("elemental"))for(int i=0;i<4;i++)copy[i]+=30;return copy;}
     public double speciesHealth=1,speciesAttack=1;
     public Life life=new Life();
     public Map<String,Double> contributions=new HashMap<>();
     public int level(int playerLevel,boolean sync){
-        return sync?Math.max(originalLevel,playerLevel):originalLevel;
+        return training()?playerLevel:sync?Math.max(originalLevel,playerLevel):originalLevel;
     }
     public double health(int level){
+        if(training())return 10000;
         double n=level-1,base=switch(kind){
             case "BOSS","yumis_dungeon_and_fight:dragon"->2000+1000*n;
             case "WITHER"->1500+750*n;

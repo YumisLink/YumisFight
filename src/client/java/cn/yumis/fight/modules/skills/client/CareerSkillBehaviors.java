@@ -33,7 +33,7 @@ final class CareerSkillBehaviors {
         });
         SkillBehaviors.register(CareerSkills.EYE,(x,c,n,e,s,v)->{if(!c.terminal){x.cancel(true);return;}if(e>=800&&!c.finisher){c.finisher=true;c.center=c.origin;x.area(c,8,c.parameters.get("damage",16),false);x.visual(c,"FINISH");}if(e>=1200)x.cancel(true);});
         SkillBehaviors.register(CareerSkills.CRASH,(x,c,n,e,s,v)->{
-            leap(x,c,e,500,3,1.2);if(e>=500&&!c.finisher){c.finisher=true;c.center=x.player().position();c.hitIndex=0;x.area(c,3,c.parameters.get("damage",.6),false);c.hit.clear();c.hitIndex=1;x.area(c,3,c.parameters.get("finisher",2),false);x.visual(c,"FINISH");}if(e>=700)x.cancel(true);
+            if(!c.finisher&&land(x,c,n,e,500,3,1.2)){c.finisher=true;c.center=x.player().position();c.hitIndex=0;x.area(c,3,c.parameters.get("damage",.6),false);c.hit.clear();c.hitIndex=1;x.area(c,3,c.parameters.get("finisher",2),false);x.visual(c,"FINISH");}if(c.finisher&&(n-c.landedAt)*v>=200)x.cancel(true);
         });
         SkillBehaviors.register(CareerSkills.HAND,(x,c,n,e,s,v)->{if(e>=350&&!c.finisher){c.finisher=true;c.controlSeconds=.3;x.slash(c,3,2,3,c.parameters.get("damage",4),0,false);x.visual(c,"RELEASE");}if(e>=600)x.cancel(true);});
         SkillBehaviors.register(CareerSkills.RAGE,(x,c,n,e,s,v)->{int due=Math.min(5,(int)(e/150)+1);while(c.slashes<due){c.hit.clear();c.hitIndex=c.slashes++;x.area(c,4,c.parameters.get("damage",1.3),false);x.visual(c,"HIT");}if(e>=800)x.cancel(true);});
@@ -41,7 +41,8 @@ final class CareerSkillBehaviors {
             if(e>=200&&c.slashes==0){c.slashes=1;c.hitIndex=0;c.center=CareerClient.INSTANCE.firstTarget(c,5,2);x.slash(c,5,2,3,c.parameters.get("damage",2.2),0,false);}if(e>=350&&!c.finisher){c.finisher=true;if(!c.hit.isEmpty()){c.hit.clear();c.hitIndex=1;x.area(c,3,c.parameters.get("finisher",6.6),false);}x.visual(c,"FINISH");}if(e>=650)x.cancel(true);
         });
         SkillBehaviors.register(CareerSkills.ERUPTION,(x,c,n,e,s,v)->{
-            leap(x,c,e,600,6,2);if(e>=600&&!c.finisher){c.finisher=true;c.center=x.player().position();c.hitIndex=0;x.area(c,6,c.parameters.get("finisher",4),false);x.visual(c,"RELEASE");}int due=Math.min(4,Math.max(0,(int)((e-600)/200)+1));while(c.slashes<due){c.hit.clear();c.hitIndex=1+c.slashes++;x.area(c,6,c.parameters.get("damage",2),false);x.visual(c,"HIT");}if(e>=1500)x.cancel(true);
+            if(!c.finisher&&land(x,c,n,e,600,6,2)){c.finisher=true;c.center=x.player().position();c.hitIndex=0;x.area(c,6,c.parameters.get("finisher",4),false);x.visual(c,"RELEASE");}
+            if(!c.finisher)return;long landed=(long)((n-c.landedAt)*v);int due=Math.min(4,(int)(landed/200)+1);while(c.slashes<due){c.hit.clear();c.hitIndex=1+c.slashes++;x.area(c,6,c.parameters.get("damage",2),false);x.visual(c,"HIT");}if(landed>=900)x.cancel(true);
         });
         SkillBehaviors.register(CareerSkills.SWORD,(x,c,n,e,s,v)->{
             if(!c.terminal){x.cancel(true);return;}double total=c.parameters.get("damage",24);if(e>=300&&!c.finisher){c.finisher=true;c.hitIndex=0;x.area(c,6,total*.3,false);x.visual(c,"RELEASE");}int due=Math.min(5,Math.max(0,(int)((e-600)/300)+1));while(c.slashes<due){c.hit.clear();c.hitIndex=1+c.slashes++;x.area(c,6,total*.7/5,false);x.visual(c,"HIT");}if(e>=2000)x.cancel(true);
@@ -49,5 +50,12 @@ final class CareerSkillBehaviors {
     }
     private static void waves(SkillBehaviors.Context x,SkillCast c,long elapsed,int count,double range,double width,double fallback){int due=Math.min(count,(int)(elapsed/200)+1);while(c.slashes<due){c.hitIndex=c.slashes++;c.controlSeconds=c.skill.id.equals(CareerSkills.ICE)?1.5:0;x.wave(c.origin.add(0,.15,0),c.direction,range,width,2,c.stats,c.skill,c.parameters.get("damage",fallback),false,true);x.visual(c,"HIT");}if(elapsed>=count*200)x.cancel(true);}
     private static void stationary(SkillBehaviors.Context x,SkillCast c){x.player().setPos(c.origin);x.player().setDeltaMovement(Vec3.ZERO);}
-    private static void leap(SkillBehaviors.Context x,SkillCast c,long elapsed,double duration,double length,double height){double u=Math.min(1,elapsed/duration),desired=length*u,delta=Math.max(0,desired-c.moved);double y=c.origin.y+4*height*u*(1-u);x.player().move(MoverType.SELF,c.direction.scale(delta).add(0,y-x.player().getY(),0));c.moved=desired;}
+    private static boolean land(SkillBehaviors.Context x,SkillCast c,long now,long elapsed,double duration,double length,double height){
+        var p=x.player();
+        // The authored hop ends at its starting height; from there collision and gravity must find real ground.
+        if(elapsed<duration){double u=elapsed/duration,desired=length*u,delta=Math.max(0,desired-c.moved);double y=c.origin.y+4*height*u*(1-u);p.move(MoverType.SELF,c.direction.scale(delta).add(0,y-p.getY(),0));c.moved=desired;p.setDeltaMovement(Vec3.ZERO);return false;}
+        double delta=Math.max(0,length-c.moved);p.move(MoverType.SELF,c.direction.scale(delta).add(0,-Math.max(.35,Math.min(1.5,p.getY()-c.origin.y)),0));c.moved=length;
+        if(!p.onGround()){p.setDeltaMovement(0,Math.min(-.6,p.getDeltaMovement().y),0);if(now-c.start>=30000)x.cancel(false);return false;}
+        c.landedAt=now;p.setDeltaMovement(Vec3.ZERO);return true;
+    }
 }
