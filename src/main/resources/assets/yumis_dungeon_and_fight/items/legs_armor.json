@@ -4,6 +4,10 @@
     "property": "yumis_dungeon_and_fight:katana_style",
     "cases": [
       {
+        "when": "mage_blood_legs",
+        "model": {"type": "minecraft:model", "model": "yumis_dungeon_and_fight:item/armor/mage_blood_legs"}
+      },
+      {
         "when": "cloth_legs",
         "model": {
           "type": "minecraft:model",

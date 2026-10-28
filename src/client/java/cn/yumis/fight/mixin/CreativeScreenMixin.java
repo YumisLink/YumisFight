@@ -1,5 +1,6 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.client.ClientBootstrap;
+import net.minecraft.world.inventory.Slot;
+import cn.yumis.fight.bootstrap.ClientBootstrap;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.inventory.*;

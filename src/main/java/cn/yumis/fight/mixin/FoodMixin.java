@@ -1,6 +1,6 @@
 package cn.yumis.fight.mixin;
 import net.minecraft.world.food.FoodData;
-import net.minecraft.server.level.ServerPlayer;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.*;
 @Mixin(FoodData.class)

@@ -28,3 +28,29 @@ replay_pid*
 /temp/
 /art/
 /dist/
+
+# Per-computer tool paths and build instructions; each machine maintains its own.
+/doc/本机环境.md
+
+# Temporary validation output is local-only, including outside temp/.
+__pycache__/
+*.pyc
+.pytest_cache/
+.gradle/
+*.tmp
+*.bak
+*.orig
+*.rej
+/test-results/
+/test-reports/
+
+# Local game runs and generated reports never belong in submissions.
+/build/
+/run/
+/logs/
+screenshots/
+
+# Local hidden tool/configuration directories never enter Git.
+**/.*
+!.gitignore
+!.gitattributes

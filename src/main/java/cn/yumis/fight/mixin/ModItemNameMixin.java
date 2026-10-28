@@ -1,6 +1,7 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.game.GameItems;
-import cn.yumis.fight.game.ModText;
+import cn.yumis.fight.platform.ItemData;
+
+import cn.yumis.fight.modules.presentation.api.ModText;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -12,6 +13,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class ModItemNameMixin {
     @Inject(method="getHoverName",at=@At("RETURN"),cancellable=true)
     private void ydnf$font(CallbackInfoReturnable<Component> callback){
-        if(GameItems.own((ItemStack)(Object)this))callback.setReturnValue(ModText.decorate(callback.getReturnValue()));
+        if(ItemData.own((ItemStack)(Object)this))callback.setReturnValue(ModText.decorate(callback.getReturnValue()));
     }
 }

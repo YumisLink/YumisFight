@@ -1,8 +1,10 @@
+// 底层架构文件：构建与验证装配。修改前须用户明确授权，并逐批通过 question tool 确认已 GitHub fetch。
 plugins {
     id 'java-library'
     id 'net.neoforged.moddev' version '2.0.148'
 }
 version = '0.1.0'
+apply from: 'gradle/architecture.gradle'
 group = 'cn.yumis'
 base { archivesName = 'YumisDungeonAndFight' }
 layout.buildDirectory = file('temp/build')

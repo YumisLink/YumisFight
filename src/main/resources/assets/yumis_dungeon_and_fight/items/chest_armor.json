@@ -37,6 +37,20 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/armor/plate_chest"
         }
+      },
+      {
+        "when": "spacetime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/spacetime"
+        }
+      },
+      {
+        "when": "blood_oath",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/blood_oath"
+        }
       }
     ],
     "fallback": {

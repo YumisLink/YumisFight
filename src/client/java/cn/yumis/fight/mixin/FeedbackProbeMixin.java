@@ -1,5 +1,5 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.client.FeedbackProbe;
+import cn.yumis.fight.verification.FeedbackProbe;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;

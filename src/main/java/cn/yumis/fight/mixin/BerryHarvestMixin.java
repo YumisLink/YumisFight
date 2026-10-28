@@ -1,5 +1,5 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.server.ServerRuntime;
+import cn.yumis.fight.bootstrap.ServerApplication;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -17,7 +17,7 @@ import java.util.UUID;
 public abstract class BerryHarvestMixin {
     @Inject(method="useWithoutItem",at=@At("RETURN"))
     private void ydnf$harvest(BlockState before,Level level,BlockPos pos,Player player,BlockHitResult hit,CallbackInfoReturnable<InteractionResult> ci){
-        if(ServerRuntime.ready()&&player instanceof ServerPlayer serverPlayer&&before.getValue(SweetBerryBushBlock.AGE)==3&&level.getBlockState(pos).is(before.getBlock())&&level.getBlockState(pos).getValue(SweetBerryBushBlock.AGE)==1)
-        ServerRuntime.get().awardProfession(serverPlayer,"farmer",10,"berry/"+UUID.randomUUID());
+        if(ServerApplication.ready()&&player instanceof ServerPlayer serverPlayer&&before.getValue(SweetBerryBushBlock.AGE)==3&&level.getBlockState(pos).is(before.getBlock())&&level.getBlockState(pos).getValue(SweetBerryBushBlock.AGE)==1)
+        ServerApplication.get().professionService.award(serverPlayer.getUUID(),"farmer",10,"berry/"+UUID.randomUUID(),false);
     }
 }

@@ -343,7 +343,11 @@
     "ICE_RESIST": "冰属性抗性",
     "DARK_RESIST": "暗属性抗性",
     "DROP_RATE": "掉宝率",
-    "SHIELD": "装备护盾"
+    "SHIELD": "装备护盾",
+    "LIFE_STEAL": "吸血值",
+    "MANA_REGENERATION": "魔力回复速度",
+    "COOLDOWN_RECOVERY": "冷却恢复速度",
+    "EXPERIENCE_GAIN": "角色经验获取"
   },
   "templates": {},
   "revision": 1

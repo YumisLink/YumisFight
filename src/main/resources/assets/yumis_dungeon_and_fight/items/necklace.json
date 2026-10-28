@@ -107,6 +107,13 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/expansion/necklace_50_mythic"
         }
+      },
+      {
+        "when": "ryze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/ryze"
+        }
       }
     ],
     "fallback": {

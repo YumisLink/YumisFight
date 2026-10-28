@@ -107,6 +107,13 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_50_mythic"
         }
+      },
+      {
+        "when": "skyspine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/skyspine"
+        }
       }
     ],
     "fallback": {

@@ -1,0 +1,23 @@
+{
+  "description": "底层架构文件：修改清单或任何列出的文件之前，必须用户明确授权并逐批通过question tool确认已GitHub fetch。",
+  "files": [
+    "src/main/java/cn/yumis/fight/architecture/ProtocolVersion.java",
+    "src/main/java/cn/yumis/fight/network/Network.java",
+    "src/main/java/cn/yumis/fight/architecture/ModuleDescriptor.java",
+    "src/main/java/cn/yumis/fight/architecture/ModuleRegistry.java",
+    "src/main/java/cn/yumis/fight/architecture/CommandRouter.java",
+    "src/main/java/cn/yumis/fight/architecture/StableId.java",
+    "src/main/java/cn/yumis/fight/architecture/DefinitionSnapshot.java",
+    "src/main/java/cn/yumis/fight/architecture/RuleStore.java",
+    "src/main/java/cn/yumis/fight/architecture/AttributeMath.java",
+    "src/main/java/cn/yumis/fight/architecture/TransactionParticipant.java",
+    "src/main/java/cn/yumis/fight/architecture/UnitOfWork.java",
+    "src/main/java/cn/yumis/fight/architecture/Migration.java",
+    "src/main/java/cn/yumis/fight/foundation/Journal.java",
+    "src/main/java/cn/yumis/fight/architecture/AttributeValue.java",
+    "build.gradle",
+    "gradle/architecture.gradle",
+    "architecture/protected-files.json",
+    "tools/check-submission.ps1"
+  ]
+}

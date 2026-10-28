@@ -1,14 +1,16 @@
 package cn.yumis.fight.foundation;
 import com.google.gson.*;
-import cn.yumis.fight.rules.Models;
+import cn.yumis.fight.architecture.UnitOfWork;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.util.*;
 import java.util.zip.CRC32;
-/** One owner per world. Publish only after a full record has reached durable storage. */
-public final class Journal implements AutoCloseable {
+/** 底层架构文件：持久事务日志。修改前须用户明确授权，并逐批通过 question tool 确认已 GitHub fetch。
+ * One owner per world. Publish only after a full record has reached durable storage. */
+public final class Journal implements AutoCloseable, UnitOfWork<JsonElement> {
+    private static final Gson VALUE_JSON=new GsonBuilder().disableHtmlEscaping().create();
     private static final Gson WAL_JSON=new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
     private final Path path;
     private FileChannel channel;
@@ -70,7 +72,7 @@ public final class Journal implements AutoCloseable {
     }
     public synchronized <T>T get(String key,Class<T> type,T fallback){
         JsonElement v=get(key);
-        return v.isJsonNull()?fallback:Models.JSON.fromJson(v,type);
+        return v.isJsonNull()?fallback:VALUE_JSON.fromJson(v,type);
     }
     public synchronized Set<String> keys(String prefix){
         Set<String> result=new LinkedHashSet<>();
@@ -78,13 +80,14 @@ public final class Journal implements AutoCloseable {
         if(batch!=null)for(String k:batch.keySet())if(k.startsWith(prefix))result.add(k);
         return result;
     }
+    @Override public JsonElement read(String key){return get(key);}
     public synchronized void begin(){
         if(batch!=null)throw new IllegalStateException("Nested journal batch");
         batch=new LinkedHashMap<>();
     }
     public synchronized void put(String key,Object value)throws IOException{
         if(!healthy)throw new IOException("Journal unavailable");
-        JsonElement v=Models.JSON.toJsonTree(value);
+        JsonElement v=VALUE_JSON.toJsonTree(value);
         if(batch!=null)batch.put(key,v);
         else commit(Map.of(key,v));
     }

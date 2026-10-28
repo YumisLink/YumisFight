@@ -23,6 +23,13 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/expansion/sub_equipment_50_mythic"
         }
+      },
+      {
+        "when": "golden_cup",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/golden_cup"
+        }
       }
     ],
     "fallback": {

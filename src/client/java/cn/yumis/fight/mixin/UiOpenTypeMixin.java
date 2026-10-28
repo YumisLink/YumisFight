@@ -1,5 +1,5 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.client.UiOpenType;
+import cn.yumis.fight.modules.presentation.api.client.UiOpenType;
 import com.mojang.blaze3d.font.GlyphProvider;
 import net.minecraft.client.gui.font.providers.TrueTypeGlyphProviderDefinition;
 import net.minecraft.server.packs.resources.ResourceManager;

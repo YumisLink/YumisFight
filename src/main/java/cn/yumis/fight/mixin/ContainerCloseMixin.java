@@ -1,5 +1,5 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.server.ServerRuntime;
+import cn.yumis.fight.bootstrap.ServerApplication;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.spongepowered.asm.mixin.*;
@@ -12,7 +12,7 @@ public abstract class ContainerCloseMixin {
     private void ydnf$beforeClose(CallbackInfo ci){ydnf$closed=((ServerPlayer)(Object)this).containerMenu;}
     @Inject(method="doCloseContainer",at=@At("RETURN"))
     private void ydnf$afterClose(CallbackInfo ci){
-        if(ServerRuntime.ready()&&ydnf$closed!=null)ServerRuntime.get().inventory.finishMenu((ServerPlayer)(Object)this,ydnf$closed);
+        if(ServerApplication.ready()&&ydnf$closed!=null)ServerApplication.get().inventory.finishMenu((ServerPlayer)(Object)this,ydnf$closed);
         ydnf$closed=null;
     }
 }

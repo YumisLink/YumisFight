@@ -1,7 +1,12 @@
 package cn.yumis.fight;
-import cn.yumis.fight.api.AttributeSources;
-import cn.yumis.fight.api.AttributeSources.*;
-import cn.yumis.fight.rules.Rules.Stat;
+import cn.yumis.fight.modules.equipment.api.EquipmentAttributes;
+import cn.yumis.fight.modules.attributes.api.Stat;
+import cn.yumis.fight.modules.equipment.api.Rarity;
+import cn.yumis.fight.modules.equipment.api.Slot;
+import cn.yumis.fight.modules.equipment.api.Weapon;
+import cn.yumis.fight.modules.equipment.api.EquipmentRules;
+import cn.yumis.fight.modules.attributes.api.AttributeSources;
+import cn.yumis.fight.modules.attributes.api.AttributeSources.*;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
@@ -9,9 +14,9 @@ class AttributeSourcesTest {
     @Test void itemStageDoesNotMultiplyCharacterBaseAndCustomNamesRemainUsable(){
         var sources=new AttributeSources();
         sources.replace(1,List.of(new Source("test:stages",1,List.of(new Value(Stat.PHYSICAL_ATTACK,1,Operation.BASE_RATIO,Stage.ITEM),new Value("other:luck",3,Operation.ADD,Stage.CHARACTER)))));
-        var progress=new cn.yumis.fight.rules.Models.Progress();
-        var gear=cn.yumis.fight.rules.EquipmentRules.create(cn.yumis.fight.rules.Rules.Slot.WEAPON,cn.yumis.fight.rules.Rules.Weapon.KATANA,cn.yumis.fight.rules.Rules.Rarity.COMMON,1,new Random(0));
-        var stats=cn.yumis.fight.rules.EquipmentRules.stats(progress,List.of(gear),sources,ignored->{
+        var progress=new cn.yumis.fight.modules.character.api.Progress();
+        var gear=cn.yumis.fight.modules.equipment.api.EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,1,new Random(0));
+        var stats=cn.yumis.fight.modules.equipment.api.EquipmentAttributes.stats(progress,List.of(gear),sources,0,ignored->{
         }
         );
         assertEquals(29,stats.get(Stat.PHYSICAL_ATTACK),1e-9);

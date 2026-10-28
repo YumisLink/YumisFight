@@ -1,5 +1,5 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.client.ClientBootstrap;
+import cn.yumis.fight.bootstrap.ClientBootstrap;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.input.KeyEvent;
 import org.spongepowered.asm.mixin.Mixin;

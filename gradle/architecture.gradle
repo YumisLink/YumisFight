@@ -1,0 +1,111 @@
+// 底层架构文件：依赖与提交前验证。修改前须用户明确授权，并逐批通过 question tool 确认已 GitHub fetch。
+import groovy.json.JsonSlurper
+tasks.register('verifyArchitecture') {
+    group = 'verification'
+    doLast {
+        def failures = []
+        def protectedFiles = new JsonSlurper().parse(file('architecture/protected-files.json')).files
+        protectedFiles.each { name ->
+            def path = file(name)
+            if (!path.exists()) failures << "Protected file is missing: " + name
+            else if (!path.getText('UTF-8').contains('底层架构文件')) failures << "Missing protected header: " + name
+        }
+        def edges = [:].withDefault { [] as Set }
+        // Deleted central models and wrappers must never silently become compatibility paths again.
+        def removed = ['rules/Models', 'rules/PlayerAttribute', 'rules/EquipmentRules', 'rules/WeaponRules',
+                       'rules/SkillPreview', 'rules/SkillSchedule', 'rules/SkillVisualEvent', 'rules/CombatRules',
+                       'server/InventoryTransactions', 'server/ContainerParticipants', 'server/DungeonService',
+                       'server/LootService', 'server/BasicAttackService', 'server/NativeHits',
+                       'server/CloudLeapService', 'server/VisualService', 'server/DamageMeterService',
+                       'industry/DeviceKind', 'industry/DimensionalMenu', 'industry/StorageRules']
+        ['rules','server','client','game','industry','api'].each { oldPackage ->
+            ['main','client'].each { sourceSet ->
+                if(!fileTree('src/'+sourceSet+'/java/cn/yumis/fight/'+oldPackage).matching { include '**/*.java' }.isEmpty())
+                    failures << "Deleted central package restored: "+sourceSet+"/"+oldPackage
+            }
+        }
+        removed.each { name ->
+            if(file('src/main/java/cn/yumis/fight/'+name+'.java').exists()) failures << "Removed implementation restored: "+name
+        }
+        def sources = files(fileTree('src/main/java') { include '**/*.java' }, fileTree('src/client/java') { include '**/*.java' })
+        sources.files.each { path ->
+            def raw = path.getText('UTF-8')
+            def source = raw.replaceAll(/(?s)\/\*.*?\*\//, '').replaceAll(/(?m)\/\/.*$/, '')
+            def ownerMatch = source =~ /package\s+cn\.yumis\.fight\.modules\.([a-z_]+)\./
+            def owner = ownerMatch.find() ? ownerMatch.group(1) : null
+            if ((source =~ /\b(?:Rules\.Skill|Rules\.Family|PlayerAttribute)\b/).find()) failures << path.name + ": deleted model reference"
+            if (owner != null) {
+                edges[owner]
+                def refs = source =~ /cn\.yumis\.fight\.modules\.([a-z_]+)\.([a-z_]+)/
+                refs.each { ref ->
+                    def other = ref[1]
+                    if (other != owner) {
+                        if (ref[2] != 'api') failures << path.name + ": " + owner + " accesses " + other + "." + ref[2]
+                        edges[owner] << other
+                    }
+                }
+                if ((source =~ /\b(?:ServerRuntime|ServerApplication|ClientState|ClientSession)\b/).find()) failures << path.name + ": module depends on global runtime"
+                if ((source =~ /cn\.yumis\.fight\.(?:bootstrap|server|client|rules|game|industry)\./).find()) failures << path.name + ": module imports composition or deleted implementation"
+            }
+            def core = source.contains('package cn.yumis.fight.architecture;')
+            if (core && (source =~ /(?:cn\.yumis\.fight\.(?:modules|rules|server|client|game|industry)|net\.minecraft|net\.neoforged)\./).find())
+                failures << path.name + ": architecture depends on gameplay or platform"
+            if (path.path.replace('\\','/').contains('/src/main/java/') &&
+                (source =~ /(?:net\.minecraft\.client\.|cn\.yumis\.fight\.client\.|cn\.yumis\.fight\.modules\.[a-z_]+\.(?:api\.)?client\.)/).find())
+                failures << path.name + ": common/server source imports client"
+        }
+        def declared = [:]
+        (file('src/main/java/cn/yumis/fight/bootstrap/ApplicationModules.java').getText('UTF-8') =~ /module\("([a-z_]+)"([^)]*)\)/).each { entry ->
+            declared[entry[1]] = (entry[2] =~ /"([a-z_]+)"/).collect { it[1] } as Set
+        }
+        edges.each { owner, dependencies ->
+            if(!declared.containsKey(owner)) failures << "Unregistered module: "+owner
+            else dependencies.each { dependency ->
+                if(!declared[owner].contains(dependency)) failures << "Undeclared module dependency: "+owner+" -> "+dependency
+            }
+        }
+        def visited = [] as Set, visiting = [] as Set
+        Closure visit
+        visit = { String id ->
+            if (visiting.contains(id)) { failures << "Module cycle: " + visiting + " -> " + id; return }
+            if (visited.contains(id)) return
+            visiting.add(id)
+            (edges[id] ?: []).each { visit(it) }
+            visiting.remove(id); visited.add(id)
+        }
+        new ArrayList(edges.keySet()).each { visit(it) }
+        if (!failures.empty) throw new GradleException(failures.unique().join('\n'))
+        logger.lifecycle("Architecture checks passed: "+protectedFiles.size()+" protected files, "+edges.size()+" module namespaces.")
+    }
+}
+tasks.register('verifyTestBudget') {
+    group = 'verification'
+    doLast {
+        int javaCount = 0, pythonCount = 0
+        fileTree('src/test').matching { include '**/*.java' }.files.each {
+            javaCount += (it.getText('UTF-8') =~ /@(Test|ParameterizedTest|RepeatedTest|TestFactory)\b/).count
+        }
+        fileTree('tools').matching { include '**/test_*.py'; include '**/*_test.py'; exclude '**/__pycache__/**' }.files.each {
+            pythonCount += (it.getText('UTF-8') =~ /(?m)^\s*(?:async\s+)?def\s+test_[A-Za-z0-9_]+\s*\(/).count
+        }
+        if(javaCount > 80 || pythonCount > 10)
+            throw new GradleException("Test budget exceeded: Java="+javaCount+"/80, Python="+pythonCount+"/10. User approval is required to increase limits.")
+        logger.lifecycle("Test budget passed: Java="+javaCount+"/80, Python="+pythonCount+"/10.")
+    }
+}
+tasks.register('verifyPlayerWiki') {
+    group = 'verification'
+    doLast {
+        def broken = []
+        fileTree('playerread').matching { include '**/*.md' }.files.each { page ->
+            (page.getText('UTF-8') =~ /\]\(([^)]+)\)/).each { link ->
+                def target=link[1].replaceAll(/#.*$/, '')
+                if(target && !target.contains('://') && !new File(page.parentFile,target).exists())
+                    broken << page.toString()+": "+target
+            }
+        }
+        if(!broken.empty) throw new GradleException("Broken Wiki links:\n"+broken.join('\n'))
+    }
+}
+tasks.named('check') { dependsOn 'verifyArchitecture', 'verifyTestBudget', 'verifyPlayerWiki' }
+

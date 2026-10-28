@@ -324,7 +324,8 @@
       "id": "percent_light_resist",
       "name": "光佑",
       "operation": "PERCENT",
-      "group": "legacy",
+      "group": "retired",
+      "retired": true,
       "stat": "LIGHT_RESIST",
       "element": -1
     },
@@ -348,7 +349,8 @@
       "id": "percent_fire_resist",
       "name": "炎佑",
       "operation": "PERCENT",
-      "group": "legacy",
+      "group": "retired",
+      "retired": true,
       "stat": "FIRE_RESIST",
       "element": -1
     },
@@ -372,7 +374,8 @@
       "id": "percent_ice_resist",
       "name": "霜佑",
       "operation": "PERCENT",
-      "group": "legacy",
+      "group": "retired",
+      "retired": true,
       "stat": "ICE_RESIST",
       "element": -1
     },
@@ -396,7 +399,8 @@
       "id": "percent_dark_resist",
       "name": "暗佑",
       "operation": "PERCENT",
-      "group": "legacy",
+      "group": "retired",
+      "retired": true,
       "stat": "DARK_RESIST",
       "element": -1
     },
@@ -599,6 +603,463 @@
       "group": "random",
       "stat": "ATTACK_SPEED",
       "element": -1
+    },
+    "magic/basalt": {
+      "id": "magic/basalt",
+      "name": "玄武岩",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/granite": {
+      "id": "magic/granite",
+      "name": "灰岩",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/diamond": {
+      "id": "magic/diamond",
+      "name": "钻石",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/gold": {
+      "id": "magic/gold",
+      "name": "黄金",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/rock": {
+      "id": "magic/rock",
+      "name": "坚岩",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/jade": {
+      "id": "magic/jade",
+      "name": "青玉",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/mercury": {
+      "id": "magic/mercury",
+      "name": "水银",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/ruby": {
+      "id": "magic/ruby",
+      "name": "红玉",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/sapphire": {
+      "id": "magic/sapphire",
+      "name": "蓝玉",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/topaz": {
+      "id": "magic/topaz",
+      "name": "黄玉",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/amethyst": {
+      "id": "magic/amethyst",
+      "name": "紫晶",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/sulphur": {
+      "id": "magic/sulphur",
+      "name": "硫磺",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/antimony": {
+      "id": "magic/antimony",
+      "name": "黑锑",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic/silver": {
+      "id": "magic/silver",
+      "name": "白银",
+      "operation": "MAGIC",
+      "group": "magic",
+      "element": -1
+    },
+    "magic_amplification": {
+      "id": "magic_amplification",
+      "name": "魔法增幅",
+      "operation": "MAGIC_AMPLIFICATION",
+      "group": "magic",
+      "element": -1
+    },
+    "unique/gem_amplification": {
+      "id": "unique/gem_amplification",
+      "name": "宝石增幅",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 2,
+      "maximum": 3
+    },
+    "unique/fire_after_damage": {
+      "id": "unique/fire_after_damage",
+      "name": "结算后火伤",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 0.6,
+      "maximum": 1
+    },
+    "unique/fire_conversion": {
+      "id": "unique/fire_conversion",
+      "name": "火强化转换",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": null,
+      "fixedValue": 0.33
+    },
+    "unique/fire_only": {
+      "id": "unique/fire_only",
+      "name": "火焰染色",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": null,
+      "fixedValue": 1
+    },
+    "unique/bylle_physical_percent": {
+      "id": "unique/bylle_physical_percent",
+      "name": "本件物攻提高",
+      "operation": "PERCENT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "PHYSICAL_ATTACK",
+      "minimum": 1.5,
+      "maximum": 2.5
+    },
+    "unique/bylle_physical_flat": {
+      "id": "unique/bylle_physical_flat",
+      "name": "本件物攻",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "PHYSICAL_ATTACK",
+      "minimum": 400,
+      "maximum": 800
+    },
+    "unique/block_elemental": {
+      "id": "unique/block_elemental",
+      "name": "禁止元素伤害",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": null,
+      "fixedValue": 1
+    },
+    "unique/golden_power": {
+      "id": "unique/golden_power",
+      "name": "黄金之力",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": null,
+      "fixedValue": 1
+    },
+    "unique/imprint_power": {
+      "id": "unique/imprint_power",
+      "name": "印记之力",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": null,
+      "fixedValue": 1
+    },
+    "unique/hero_power": {
+      "id": "unique/hero_power",
+      "name": "英雄力量",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 10,
+      "maximum": 60
+    },
+    "unique/magic_ranks": {
+      "id": "unique/magic_ranks",
+      "name": "魔法技能等级",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": null,
+      "fixedValue": 3
+    },
+    "unique/niwu_speed": {
+      "id": "unique/niwu_speed",
+      "name": "攻击速度",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "ATTACK_SPEED",
+      "description": null,
+      "fixedValue": 40
+    },
+    "unique/chaser_resistance_todo": {
+      "id": "unique/chaser_resistance_todo",
+      "name": "炫纹抗性代价（未实现）",
+      "operation": "UNIMPLEMENTED",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": "每个炫纹使所有元素抗性−12，未实现",
+      "fixedValue": -12
+    },
+    "unique/chaser_limit_todo": {
+      "id": "unique/chaser_limit_todo",
+      "name": "炫纹上限（未实现）",
+      "operation": "UNIMPLEMENTED",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": "炫纹上限−3，未实现",
+      "fixedValue": -3
+    },
+    "unique/chaser_skill_todo": {
+      "id": "unique/chaser_skill_todo",
+      "name": "炫纹附身（未实现）",
+      "operation": "UNIMPLEMENTED",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": "授予右键技能炫纹附身，未实现",
+      "fixedValue": 1
+    },
+    "unique/cooldown_recovery": {
+      "id": "unique/cooldown_recovery",
+      "name": "冷却恢复速度",
+      "operation": "CHARACTER_PERCENT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "COOLDOWN_RECOVERY",
+      "minimum": 0.5,
+      "maximum": 1.5
+    },
+    "unique/magic_cooldown": {
+      "id": "unique/magic_cooldown",
+      "name": "魔法技能最终减冷却",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 1,
+      "maximum": 2
+    },
+    "unique/grant_blink": {
+      "id": "unique/grant_blink",
+      "name": "闪现",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": null,
+      "fixedValue": 1
+    },
+    "unique/kill_recovery": {
+      "id": "unique/kill_recovery",
+      "name": "击杀回复生命",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 0.02,
+      "maximum": 0.05
+    },
+    "unique/life_cost": {
+      "id": "unique/life_cost",
+      "name": "生命代替魔力",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 1,
+      "maximum": 2
+    },
+    "unique/life_steal": {
+      "id": "unique/life_steal",
+      "name": "吸血值",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "LIFE_STEAL",
+      "minimum": 80,
+      "maximum": 160
+    },
+    "unique/inverse_resists": {
+      "id": "unique/inverse_resists",
+      "name": "抗性反转",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": null,
+      "fixedValue": 1
+    },
+    "unique/resistance_cap": {
+      "id": "unique/resistance_cap",
+      "name": "自身四抗上限",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": -100,
+      "maximum": 0
+    },
+    "unique/clown_drop": {
+      "id": "unique/clown_drop",
+      "name": "掉宝率",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "DROP_RATE",
+      "minimum": -120,
+      "maximum": 120
+    },
+    "unique/crown_resistance": {
+      "id": "unique/crown_resistance",
+      "name": "所有元素抗性",
+      "operation": "ALL_RESIST_FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": -35,
+      "maximum": -15
+    },
+    "unique/crown_drop": {
+      "id": "unique/crown_drop",
+      "name": "掉宝率",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "DROP_RATE",
+      "minimum": 10,
+      "maximum": 15
+    },
+    "unique/experience_gain": {
+      "id": "unique/experience_gain",
+      "name": "经验获取",
+      "operation": "CHARACTER_PERCENT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "EXPERIENCE_GAIN",
+      "minimum": 0,
+      "maximum": 0.5
+    },
+    "unique/mana_regeneration": {
+      "id": "unique/mana_regeneration",
+      "name": "魔力回复速度",
+      "operation": "CHARACTER_PERCENT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "MANA_REGENERATION",
+      "minimum": -0.5,
+      "maximum": -0.3
+    },
+    "unique/mana_share": {
+      "id": "unique/mana_share",
+      "name": "魔力承担伤害",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 0.5,
+      "maximum": 1
+    },
+    "unique/gem_crown": {
+      "id": "unique/gem_crown",
+      "name": "皇冠宝石",
+      "operation": "CHARACTER_PERCENT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "EXPERIENCE_GAIN",
+      "description": null,
+      "fixedValue": 0.1
+    },
+    "unique/gem_clown": {
+      "id": "unique/gem_clown",
+      "name": "小丑宝石",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "DROP_RATE",
+      "description": null,
+      "fixedValue": 15
     }
   },
   "equipment": {

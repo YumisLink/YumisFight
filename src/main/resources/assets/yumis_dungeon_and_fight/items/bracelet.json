@@ -107,6 +107,13 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/expansion/bracelet_50_mythic"
         }
+      },
+      {
+        "when": "mana_flow",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/mana_flow"
+        }
       }
     ],
     "fallback": {

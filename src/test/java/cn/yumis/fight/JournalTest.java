@@ -1,7 +1,9 @@
 package cn.yumis.fight;
+
 import cn.yumis.fight.foundation.Journal;
-import cn.yumis.fight.rules.Models.*;
-import static cn.yumis.fight.rules.Models.JSON;
+import cn.yumis.fight.modules.combat.api.Life;
+import cn.yumis.fight.modules.combat.api.Receipt;
+import static cn.yumis.fight.bootstrap.ApplicationJson.JSON;
 import com.google.gson.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -80,7 +82,7 @@ class JournalTest {
                 final int operation=i%20;
                 all.add(executor.submit(()->{
                     synchronized(journal){
-                        String key="receipt/"+operation;if(!journal.get(key).isJsonNull())return;Receipt r=cn.yumis.fight.rules.Models.apply(life,.17,false);if(!r.deathId().isEmpty())deaths.add(r.deathId());actual[0]+=r.actual();try{
+                        String key="receipt/"+operation;if(!journal.get(key).isJsonNull())return;Receipt r=cn.yumis.fight.modules.combat.api.LifeRules.apply(life,.17,false);if(!r.deathId().isEmpty())deaths.add(r.deathId());actual[0]+=r.actual();try{
                             journal.transaction(Map.of("life",JSON.toJsonTree(life),key,JSON.toJsonTree(r)));
                         }
                         catch(Exception e){
@@ -112,8 +114,8 @@ class JournalTest {
     }
     @Test void invalidFractionsCannotModifyLife(){
         Life life=new Life();
-        assertThrows(IllegalArgumentException.class,()->cn.yumis.fight.rules.Models.apply(life,Double.NaN,false));
-        assertThrows(IllegalArgumentException.class,()->cn.yumis.fight.rules.Models.apply(life,-1,false));
+        assertThrows(IllegalArgumentException.class,()->cn.yumis.fight.modules.combat.api.LifeRules.apply(life,Double.NaN,false));
+        assertThrows(IllegalArgumentException.class,()->cn.yumis.fight.modules.combat.api.LifeRules.apply(life,-1,false));
         assertEquals(1,life.q);
     }
 }

@@ -1,5 +1,5 @@
 package cn.yumis.fight.mixin;
-import cn.yumis.fight.server.ServerRuntime;
+import cn.yumis.fight.bootstrap.ServerApplication;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class PlayerDropMixin {
     @Inject(method="drop(Z)V",at=@At("HEAD"),cancellable=true)
     private void ydnf$dropInventory(boolean all,CallbackInfo ci){
-        if(ServerRuntime.ready()&&!ServerRuntime.get().inventory.inside()){
-            var runtime=ServerRuntime.get();
+        if(ServerApplication.ready()&&!ServerApplication.get().inventory.inside()){
+            var runtime=ServerApplication.get();
             ServerPlayer player=(ServerPlayer)(Object)this;
             var intent=new com.google.gson.JsonObject();
             intent.addProperty("dropSelected",all);
@@ -22,6 +22,6 @@ public abstract class PlayerDropMixin {
     }
     @Inject(method="drop(Lnet/minecraft/world/item/ItemStack;ZZ)Lnet/minecraft/world/entity/item/ItemEntity;",at=@At("HEAD"),cancellable=true)
     private void ydnf$stage(ItemStack stack,boolean around,boolean hand,CallbackInfoReturnable<ItemEntity> cir){
-        if(ServerRuntime.ready()&&ServerRuntime.get().inventory.inside())cir.setReturnValue(ServerRuntime.get().inventory.stageDrop((ServerPlayer)(Object)this,stack));
+        if(ServerApplication.ready()&&ServerApplication.get().inventory.inside())cir.setReturnValue(ServerApplication.get().inventory.stageDrop((ServerPlayer)(Object)this,stack));
     }
 }

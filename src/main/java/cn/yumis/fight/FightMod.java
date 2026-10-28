@@ -1,13 +1,15 @@
 package cn.yumis.fight;
-import cn.yumis.fight.game.*;
+import cn.yumis.fight.bootstrap.CreativeCatalog;
+import cn.yumis.fight.modules.equipment.api.EquipmentLayout;
+import cn.yumis.fight.platform.ItemRegistry;
+import cn.yumis.fight.platform.ItemData;
+import cn.yumis.fight.modules.industry.platform.IndustrialWorld;
+import cn.yumis.fight.modules.industry.platform.IndustrialContent;
+
 import cn.yumis.fight.network.Network;
-import cn.yumis.fight.server.ServerRuntime;
-import com.mojang.serialization.Codec;
-import net.minecraft.core.registries.Registries;
+import cn.yumis.fight.bootstrap.ServerApplication;
 import net.minecraft.resources.*;
 import net.minecraft.world.level.block.*;
-import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.RangedAttribute;
@@ -16,58 +18,42 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.registries.*;
-import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.event.server.*;
-import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import java.util.*;
-@Mod(GameItems.NS)
+@Mod(ItemData.NS)
 public final class FightMod {
-    public static final String ID=GameItems.NS;
-    public static final DeferredRegister.Blocks BLOCKS=DeferredRegister.createBlocks(ID);
-    public static final DeferredBlock<FabricatorBlock> FABRICATOR=BLOCKS.registerBlock("equipment_fabricator",FabricatorBlock::new,p->p.strength(3).sound(SoundType.METAL));
-    public static final DeferredRegister<MenuType<?>> MENUS=DeferredRegister.create(Registries.MENU,ID);
-    public static final DeferredHolder<MenuType<?>,MenuType<FabricatorMenu>> FABRICATOR_MENU=MENUS.register("fabricator",()->new MenuType<>(FabricatorMenu::new,FeatureFlags.DEFAULT_FLAGS));
-    public static final DeferredRegister<AttachmentType<?>> ATTACHMENTS=DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES,ID);
-    public static final com.mojang.serialization.MapCodec<String> STATE_CODEC=Codec.either(Codec.STRING,Codec.STRING.listOf()).xmap(value->value.map(java.util.function.Function.identity(),parts->String.join("",parts)),(String value)->{
-        if(value.length()<=8000)return com.mojang.datafixers.util.Either.left(value);
-        List<String> parts=new ArrayList<>();for(int i=0;i<value.length();i+=8000)parts.add(value.substring(i,Math.min(i+8000,value.length())));
-        return com.mojang.datafixers.util.Either.right(parts);
-    }).fieldOf("value");
-    public static final DeferredHolder<AttachmentType<?>,AttachmentType<String>> STATE=ATTACHMENTS.register("state",()->AttachmentType.builder(()->"").serialize(STATE_CODEC).copyOnDeath().build());
-    public static final DeferredHolder<AttachmentType<?>,AttachmentType<String>> TARGET=ATTACHMENTS.register("target",()->AttachmentType.builder(()->"").serialize(Codec.STRING.fieldOf("value")).build());
-    public static final DeferredHolder<AttachmentType<?>,AttachmentType<ExtraInventory>> EXTRA=ATTACHMENTS.register("extra_container",()->AttachmentType.builder(holder->new ExtraInventory((net.minecraft.world.entity.player.Player)holder)).build());
-    public static final DeferredRegister<EntityType<?>> ENTITIES=DeferredRegister.create(Registries.ENTITY_TYPE,ID);
-    public static final DeferredHolder<EntityType<?>,EntityType<CageEntity>> CAGE=ENTITIES.register("lightning_cage",()->EntityType.Builder.<CageEntity>of(CageEntity::new,MobCategory.MISC).sized(3,2.5f).noSave().clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,"lightning_cage"))));
-    public static final Map<String,DeferredHolder<EntityType<?>,EntityType<DungeonEnemy>>> ENEMIES=new LinkedHashMap<>();
-    public static final DeferredHolder<EntityType<?>,EntityType<PrivateLoot>> PRIVATE_LOOT=ENTITIES.register("private_loot",()->EntityType.Builder.<PrivateLoot>of(PrivateLoot::new,MobCategory.MISC).sized(.3f,.3f).clientTrackingRange(8).updateInterval(10).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,"private_loot"))));
-    public static final DeferredRegister<MobEffect> EFFECTS=DeferredRegister.create(Registries.MOB_EFFECT,ID);
-    public static final DeferredHolder<MobEffect,MobEffect> STUN=EFFECTS.register("stun",()->new MobEffect(MobEffectCategory.HARMFUL,0xe8c56a){
-    }
-    );
-    public static final DeferredHolder<MobEffect,MobEffect> CLOUD_STEP=EFFECTS.register("cloud_step",()->new MobEffect(MobEffectCategory.BENEFICIAL,0xb9e4f4){});
-    static {
-        for(String name:List.of("goblin","goblin_thrower","goblin_captain","goblin_shaman","dragonman","wyvern","blue_dragonman","blue_wyvern","lucas"))ENEMIES.put(name,ENTITIES.register(name,()->{
-            float width=name.contains("wyvern")||name.equals("lucas")?1.1f:name.equals("goblin_captain")?1:name.equals("goblin_shaman")?1.05f:.9f;
-            float height=name.contains("wyvern")?1.2f:name.equals("lucas")?2.25f:name.equals("goblin_shaman")?1.75f:name.equals("goblin_captain")?1.5f:name.startsWith("goblin")?1.25f:1.95f;
-            return EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(width,height).eyeHeight(height*.8f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,name)));
-        }
-        ));
-    }
+    public static final String ID=ItemData.NS;
     public FightMod(IEventBus bus){
-        cn.yumis.fight.industry.IndustrialContent.register(bus);
-        GameItems.ITEMS.registerSimpleBlockItem(FABRICATOR);
-        GameItems.ITEMS.register(bus);
-        BLOCKS.register(bus);
-        MENUS.register(bus);
+        cn.yumis.fight.modules.inventory.api.WearablePolicy.install((player,group,stack)->{
+            if(!EquipmentLayout.current().accepts(group,stack))return false;
+            var gear=cn.yumis.fight.modules.equipment.api.EquipmentItems.gear(stack);
+            if(gear==null)return !cn.yumis.fight.modules.equipment.api.EquipmentItems.GEAR_IDS.contains(cn.yumis.fight.platform.ItemData.id(stack));
+            return gear.valid(cn.yumis.fight.modules.equipment.api.EquipmentEligibility.PROGRESS.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player));
+        });
+        cn.yumis.fight.modules.inventory.api.SlotAccess.currencyPolicy(stack->!stack.isEmpty()&&cn.yumis.fight.platform.ItemData.own(stack)&&cn.yumis.fight.modules.economy.api.CurrencyRules.find(cn.yumis.fight.platform.ItemData.id(stack))!=null);
+        cn.yumis.fight.modules.equipment.platform.EquipmentContent.register();
+        cn.yumis.fight.modules.economy.platform.CurrencyContent.register();
+        cn.yumis.fight.bootstrap.ApplicationModules.REGISTRY.order();
+        cn.yumis.fight.modules.industry.platform.IndustrialContent.register(bus);
+        cn.yumis.fight.modules.inventory.api.InventoryMenuPorts.install(
+            ()->cn.yumis.fight.modules.industry.platform.IndustrialContent.STORAGE_MENU.get(),
+            (player,tier)->{
+                var recipe=player.level().recipeAccess().recipeMap().byType(cn.yumis.fight.modules.industry.platform.IndustrialContent.RECIPE_TYPE.get()).stream().map(h->h.value()).filter(r->r.machine().equals("storage_upgrade_"+tier)).findFirst().orElse(null);
+                if(recipe==null)return null;
+                String requirements=recipe.ingredients().stream().map(n->n.count()+" × "+n.ingredient().items().findFirst().map(h->new net.minecraft.world.item.ItemStack(h.value()).getHoverName().getString()).orElse("缺少兼容材料")).reduce((a,b)->a+"；"+b).orElse("无需材料");
+                return new cn.yumis.fight.modules.inventory.api.InventoryMenuPorts.Upgrade(recipe::takePlan,requirements);
+            },
+            (player,action)->cn.yumis.fight.modules.industry.platform.IndustrialWorld.get(player.level()).defer(action),
+            (player,open)->ServerApplication.get().inventory.bag(player,open));
+
+        cn.yumis.fight.modules.equipment.api.EquipmentContentTypes.register(bus);
+        cn.yumis.fight.modules.inventory.api.InventoryContentTypes.register(bus);
+        cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.register(bus);
+        cn.yumis.fight.modules.economy.api.RewardContentTypes.register(bus);
+        cn.yumis.fight.modules.combat.api.CombatContentTypes.register(bus);
+        ItemRegistry.ITEMS.register(bus);
         CreativeCatalog.TABS.register(bus);
-        ATTACHMENTS.register(bus);
-        ENTITIES.register(bus);
-        EFFECTS.register(bus);
         bus.addListener(Network::register);
-        bus.addListener((EntityAttributeCreationEvent e)->{
-            for(var type:ENEMIES.values())e.put(type.get(),DungeonEnemy.createAttributes().build());
-        }
-        );
         try{
             var f=RangedAttribute.class.getDeclaredField("maxValue");
             f.setAccessible(true);
@@ -76,8 +62,8 @@ public final class FightMod {
         catch(Exception e){
             throw new IllegalStateException("无法扩大生命属性容量",e);
         }
-        NeoForge.EVENT_BUS.addListener((ServerStartedEvent e)->ServerRuntime.start(e.getServer()));
-        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e)->ServerRuntime.stop());
-        ServerRuntime.registerEvents();
+        NeoForge.EVENT_BUS.addListener((ServerStartedEvent e)->ServerApplication.start(e.getServer()));
+        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e)->ServerApplication.stop());
+        ServerApplication.registerEvents();
     }
 }

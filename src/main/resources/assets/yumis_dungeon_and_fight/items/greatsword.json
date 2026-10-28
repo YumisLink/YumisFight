@@ -107,6 +107,13 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/expansion/greatsword_50_mythic"
         }
+      },
+      {
+        "when": "bylle",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/bylle"
+        }
       }
     ],
     "fallback": {

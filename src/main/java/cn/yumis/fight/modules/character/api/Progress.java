@@ -1,0 +1,77 @@
+package cn.yumis.fight.modules.character.api;
+import static cn.yumis.fight.modules.character.api.CharacterRules.nextExperience;
+
+import java.util.*;
+
+/** character模块拥有的数据合同；仅接收当前存档代际。 */
+public class Progress {
+    public static final int SLOTS_PER_LAYER=8,SLOT_COUNT=24;
+    public int level=1,sp=15,strength,intelligence,spirit;
+    public long experience;
+    public boolean sync=true,starterGranted;
+    public String job=JobCatalog.BASE;
+    public Map<String,JobQuest> jobQuests=new LinkedHashMap<>();
+    public static class JobQuest {public boolean accepted;public int kills,elites;}
+    public JobQuest quest(String id){
+        return jobQuests.getOrDefault(JobCatalog.questId(id),new JobQuest());
+    }
+    public void acceptQuest(String id){
+        JobCatalog.require(id);
+        jobQuests.computeIfAbsent(JobCatalog.questId(id),key->new JobQuest()).accepted=true;
+    }
+    public void recordQuestKill(int enemyLevel,boolean elite){
+        Set<String> counted=new HashSet<>();
+        for(var definition:JobCatalog.all()){
+            String questId=JobCatalog.questId(definition.id());
+            if(!hasJob(JobCatalog.BASE)||definition.prerequisite().isEmpty()||!counted.add(questId)||enemyLevel<definition.minimumLevel())continue;
+            JobQuest q=quest(definition.id());if(!q.accepted)continue;
+            q.kills++;if(elite)q.elites++;
+            jobQuests.put(questId,q);
+        }
+    }
+    public String jobId(){return job==null||job.isBlank()?JobCatalog.BASE:job;}
+    public boolean hasJob(String id){return jobId().equals(id);}
+    public void promote(String id){JobCatalog.require(id);job=id;}
+    public Map<String,Integer> skills=new LinkedHashMap<>();
+    public String[] slots=new String[SLOT_COUNT];
+    public Progress(){
+        Arrays.fill(slots,"");
+    }
+    public int free(){
+        return 2*(level-1)-strength-intelligence-spirit;
+    }
+    public int learned(String id){
+        return skills.getOrDefault(id,0);
+    }
+    public void normalizeSlots(){
+        if(slots==null||slots.length!=SLOT_COUNT){slots=new String[SLOT_COUNT];Arrays.fill(slots,"");return;}
+        for(int i=0;i<slots.length;i++)if(slots[i]==null)slots[i]="";
+    }
+    public void grant(long amount){
+        if(amount<0)throw new IllegalArgumentException("经验不可为负");
+        experience=Math.addExact(experience,amount);
+        while(level<80&&experience>=nextExperience(level)){
+            experience-=nextExperience(level);
+            level++;
+            sp+=level<20?15:level<30?25:level<40?40:65;
+        }
+        if(level==80)experience=0;
+    }
+
+    public int allocate(String stat,int count){
+        batchCount(count);
+        int amount=Math.min(count,free());
+        if(amount<=0)throw new IllegalArgumentException("自由属性点不足");
+        switch(stat){
+            case "strength"->strength+=amount;
+            case "intelligence"->intelligence+=amount;
+            case "spirit"->spirit+=amount;
+            default->throw new IllegalArgumentException("未知属性");
+        }
+        return amount;
+    }
+    private static void batchCount(int count){
+        if(count!=1&&count!=5)throw new IllegalArgumentException("加点数量必须为1或5");
+    }
+
+}
