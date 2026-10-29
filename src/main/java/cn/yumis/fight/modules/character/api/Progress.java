@@ -10,27 +10,14 @@ public class Progress {
     public long experience;
     public boolean sync=true,starterGranted;
     public boolean dungeonSync=true;
-    public String job=JobCatalog.BASE;
-    public Map<String,JobQuest> jobQuests=new LinkedHashMap<>();
-    public static class JobQuest {public boolean accepted;public int kills,elites;}
-    public JobQuest quest(String id){
-        return jobQuests.getOrDefault(JobCatalog.questId(id),new JobQuest());
-    }
-    public void acceptQuest(String id){
-        JobCatalog.require(id);
-        jobQuests.computeIfAbsent(JobCatalog.questId(id),key->new JobQuest()).accepted=true;
-    }
-    public void recordQuestKill(int enemyLevel,boolean elite){
-        Set<String> counted=new HashSet<>();
-        for(var definition:JobCatalog.all()){
-            String questId=JobCatalog.questId(definition.id());
-            if(!hasJob(JobCatalog.BASE)||definition.prerequisite().isEmpty()||!counted.add(questId)||enemyLevel<definition.minimumLevel())continue;
-            JobQuest q=quest(definition.id());if(!q.accepted)continue;
-            q.kills++;if(elite)q.elites++;
-            jobQuests.put(questId,q);
-        }
-    }
-    public String jobId(){return job==null||job.isBlank()?JobCatalog.BASE:job;}
+    public String job=JobCatalog.NONE;
+    public Set<String> completedJobQuests=new LinkedHashSet<>();
+    /** Null distinguishes existing current-format profiles whose learned awakening is already owned. */
+    public Boolean awakened;
+    public boolean awakened(){return awakened!=null?awakened:learned(JobCatalog.style(jobId()).awakeningSkill())>0;}
+    public String baseJob(){return JobCatalog.base(jobId());}
+    public boolean selected(){return !hasJob(JobCatalog.NONE);}
+    public String jobId(){return job==null||job.isBlank()?JobCatalog.NONE:job;}
     public boolean hasJob(String id){return jobId().equals(id);}
     public void promote(String id){JobCatalog.require(id);job=id;}
     public Map<String,Integer> skills=new LinkedHashMap<>();

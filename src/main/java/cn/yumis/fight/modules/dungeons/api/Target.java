@@ -4,9 +4,18 @@ import static cn.yumis.fight.modules.dungeons.api.EncounterScaling.partyMultipli
 import java.util.*;
 
 import cn.yumis.fight.modules.combat.api.Life;
+import cn.yumis.fight.modules.character.api.CharacterRules;
 
 /** dungeons模块拥有的数据合同；仅接收当前存档代际。 */
 public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
+    /** Index 0 is level 1; multipliers are built once when this class is initialized. */
+    private static final double[] HEALTH_GROWTH=healthGrowth();
+    private static double[] healthGrowth(){
+        double[] growth=new double[CharacterRules.MAX_LEVEL];
+        growth[0]=1;
+        for(int i=1;i<growth.length;i++)growth[i]=growth[i-1]*1.08;
+        return growth;
+    }
     public UUID id(){return id;}
     public Life life(){return life;}
     public void life(Life value){life=value;}
@@ -39,13 +48,14 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     }
     public double health(int level){
         if(training())return 10000;
-        double n=level-1,base=switch(kind){
-            case "BOSS","yumis_dungeon_and_fight:dragon"->2000+1000*n;
-            case "WITHER"->1500+750*n;
-            default->50+25*n;
+        double base=switch(kind){
+            case "BOSS","yumis_dungeon_and_fight:dragon"->2000;
+            case "WITHER"->1500;
+            default->50;
         }
         ;
-        return base*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1);
+        double growth=HEALTH_GROWTH[level-1];
+        return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1);
     }
     public double attack(int level){
         return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1);

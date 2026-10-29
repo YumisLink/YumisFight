@@ -11,6 +11,10 @@ public final class SkillDescriptions {
     public record Context(double castSpeed,SkillParameters.Snapshot parameters,SkillPreview.Preview preview){}
     private static final Map<String,java.util.function.Function<Context,String>> DESCRIPTIONS=new LinkedHashMap<>();
     static {
+        register(MageSkills.STAR,c->"魔道系。星弹沿瞄准方向飞12格，最多命中3个敌人，各结算一次；遇墙停止。");
+        register(MageSkills.FANG,c->"体术系。人物不位移，向前5格、宽1.5格突刺，范围内敌人各命中一次；物理伤害。");
+        register(MageSkills.JACK,c->"元素系。南瓜火球抛物线最远12格，碰撞即爆炸，半径3格火伤。");
+        register(MageSkills.HERDER,c->"召唤系。召唤120秒，最多1只；5级解锁投石，10级三连投石（含装备加级）。召唤时保存攻击数据与属性；继承200%生命及双防、150%四抗及闪避值。");
         register(SkillCatalog.BLINK.id,c->"向水平前方至多5格闪现，不能穿墙；没有可站立的安全落点时不消耗资源、不进入冷却。");
         register(SkillCatalog.GHOST.id,c->"按住蓄力"+number(1/c.castSpeed())+"秒达到双倍系数，松开释放；满蓄后最多持有"+number(2/c.castSpeed())+"秒。");
         register(SkillCatalog.TRIPLE.id,c->"每段冲刺2.5格，窗口内再次按原槽续段，最多"+c.preview().slashes()+"段。");

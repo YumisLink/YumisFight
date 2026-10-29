@@ -108,7 +108,7 @@ public final class SkillController {
         return snapshotCache.copy();
     }
     public void invalidateSnapshot(){snapshotCache=null;}
-    public void clearTransient(){cast=null;secondSlash=null;pendingBasics.clear();waves.clear();staffBolts.clear();practiceBolts.clear();nativeLaunches.clear();bosses.clear();bossHit.clear();incomingRoots.clear();environment.clear();bleeds.clear();pendingBleeds.clear();deferred.clear();lastAttack=lastTick=lastRegen=0;currentWeapon="";invalidateSnapshot();TrainingCombat.clear();}
+    public void clearTransient(){cast=null;secondSlash=null;pendingBasics.clear();waves.clear();staffBolts.clear();practiceBolts.clear();nativeLaunches.clear();bosses.clear();bossHit.clear();incomingRoots.clear();environment.clear();bleeds.clear();pendingBleeds.clear();deferred.clear();lastAttack=lastTick=lastRegen=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
     public boolean press(int slot){
         if(!state().ready())return false;
         String initial=state().progress().slots[slot];
@@ -222,11 +222,12 @@ public final class SkillController {
             currentWeapon=weapon;
             if(!weapon.isEmpty())Effects.spark(mc.player.position().add(0,1,0),0xffedab);
         }
-        if(cast!=null&&(!validWeapon()||!cast.weapon.equals(weapon)||mc.player.isDeadOrDying()||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||!cast.dimension.equals(mc.level.dimension().identifier().toString())))cancel(false);
+        if(cast!=null&&(mc.player.isDeadOrDying()||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||!cast.dimension.equals(mc.level.dimension().identifier().toString())))cancel(false);
         if(secondSlash!=null){var next=secondSlash;if(cast!=null||!validWeapon()||!next.weapon.equals(weapon)||next.generation!=state().own().generation||mc.player.isDeadOrDying()||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||!next.dimension.equals(mc.level.dimension().identifier().toString())){secondSlash=null;TrainingCombat.actionFinished(next.cycle);}else if(now>=next.at){secondSlash=null;basicStrike(next.stats,next.cycle,1,WeaponSkills.interval(state().progress(),next.stats),next.effects);TrainingCombat.actionFinished(next.cycle);}}
         if(mc.gui.screen()==null&&mc.options.keyAttack.isDown()&&(mc.hitResult==null||mc.hitResult.getType()!=HitResult.Type.BLOCK))attack();
         if(cast!=null)advance(now,dt);
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.tick(skillContext);
+        cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.tick(skillContext);
         for(Wave w:new ArrayList<>(waves))advance(w);
         staffBolts.tick(state(),this::projectileBasicHit);
         tickPracticeProjectiles();TrainingCombat.tick();
@@ -397,7 +398,7 @@ public final class SkillController {
         CombatRules.Damage parts=CombatRules.calculate(stats,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,basic&&!passive?stats.modifiers.getOrDefault("basicDamageScale",1d):coefficient*(nativeContext!=null?stats.modifiers.getOrDefault("basicDamageScale",1d):1),!passive&&!dot,random);
         if(!mainAllowed)parts=parts.withMain(0);
         if(basic&&!passive)parts=parts.scaled(coefficient);
-        var resolved=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(parts,stats,skill!=null&&skill.basicSkill(),mastery(stats),basic,passive,advantage(state().progress().level,level));
+        var resolved=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(parts,stats,skill!=null&&skill.basicSkill(),mastery(stats),basic,passive,advantage(stats.modifiers.getOrDefault("sourceLevel",(double)state().progress().level).intValue(),level));
         double damage=resolved.total();
         double main=resolved.main();
         double[] components=resolved.components();

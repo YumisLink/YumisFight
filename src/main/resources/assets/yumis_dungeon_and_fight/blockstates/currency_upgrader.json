@@ -1,0 +1,68 @@
+{
+  "variants": {
+    "facing=north,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader",
+      "y": 0
+    },
+    "facing=north,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_active",
+      "y": 0
+    },
+    "facing=north,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_linked",
+      "y": 0
+    },
+    "facing=north,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_active",
+      "y": 0
+    },
+    "facing=east,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader",
+      "y": 90
+    },
+    "facing=east,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_active",
+      "y": 90
+    },
+    "facing=east,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_linked",
+      "y": 90
+    },
+    "facing=east,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_active",
+      "y": 90
+    },
+    "facing=south,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader",
+      "y": 180
+    },
+    "facing=south,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_active",
+      "y": 180
+    },
+    "facing=south,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_linked",
+      "y": 180
+    },
+    "facing=south,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_active",
+      "y": 180
+    },
+    "facing=west,connected=false,active=false": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader",
+      "y": 270
+    },
+    "facing=west,connected=false,active=true": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_active",
+      "y": 270
+    },
+    "facing=west,connected=true,active=false": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_linked",
+      "y": 270
+    },
+    "facing=west,connected=true,active=true": {
+      "model": "yumis_dungeon_and_fight:block/currency_upgrader_active",
+      "y": 270
+    }
+  }
+}

@@ -10,12 +10,13 @@ public final class SkillLearning {
     private SkillLearning(){}
     public static int effective(Stats stats,Progress progress,SkillDefinition skill){
         int learned=progress.learned(skill.id),granted=stats.ranks.getOrDefault("grant/"+skill.id,0);
-        if(granted<=0&&(learned==0||skill.advanced()&&!progress.hasJob(skill.requiredJob)))return 0;
+        if(!skill.available(progress)||granted<=0&&learned==0)return 0;
         int rank=Math.max(learned,granted)+stats.ranks.getOrDefault(skill.family,0);
         return rank+(CareerRules.magic(skill,progress)?stats.ranks.getOrDefault("tag/magic",0):0);
     }
     public static int learn(Progress progress,SkillDefinition skill,int count){
         if(skill.equipmentGranted)throw new IllegalArgumentException("装备授予技能无需SP，不能永久学习");
+        if(!skill.available(progress))throw new IllegalArgumentException("尚未获得该职业或觉醒资格");
         if(count!=1&&count!=5)throw new IllegalArgumentException("加点数量必须为1或5");
         int amount=Math.min(count,Math.min(skill.limit(progress.level,progress.jobId())-progress.learned(skill.id),progress.sp/skill.sp));
         if(amount<=0)throw new IllegalArgumentException("等级、职业或SP不足");

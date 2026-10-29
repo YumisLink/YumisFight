@@ -153,6 +153,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         cn.yumis.fight.modules.inventory.client.InventoryClientMessages.register(messages);
         cn.yumis.fight.modules.economy.client.EconomyClientMessages.register(messages);
         cn.yumis.fight.modules.skills.client.SkillsClientMessages.register(messages);
+        cn.yumis.fight.modules.character.api.client.CareerControls.register(messages);
         messages.register("dungeons","damageMeter",(context,j)->{
 damageMeter=j;
         });

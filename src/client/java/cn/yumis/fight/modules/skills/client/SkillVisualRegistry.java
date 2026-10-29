@@ -27,7 +27,7 @@ public final class SkillVisualRegistry {
     }
     private static final Map<String,Handler> HANDLERS=new LinkedHashMap<>();
     private static final Handler NONE=new Handler(){};
-    static {BuiltinSkillVisuals.install();CareerSkillVisuals.install();}
+    static {BuiltinSkillVisuals.install();CareerSkillVisuals.install();MageSkillVisuals.install();}
     private SkillVisualRegistry(){}
     public static void register(String id,Handler handler){if(HANDLERS.putIfAbsent(id,Objects.requireNonNull(handler))!=null)throw new IllegalArgumentException("Duplicate skill visual: "+id);}
     public static Handler handler(String id){return HANDLERS.getOrDefault(id,NONE);}

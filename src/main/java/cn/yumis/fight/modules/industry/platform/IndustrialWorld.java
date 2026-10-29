@@ -43,6 +43,9 @@ public final class IndustrialWorld extends SavedData {
     private final Map<String,Reservation> reservations=new HashMap<>();
     private final Map<String,Totals> totals=new HashMap<>();
     private final Set<MachineBlockEntity> validations=new LinkedHashSet<>();
+    private final Set<MachineBlockEntity> upgradeActive=new LinkedHashSet<>();
+    public void wakeUpgrade(MachineBlockEntity machine){if(machine.currencyUpgrade!=null&&loaded.get(machine.identity.toString())==machine)upgradeActive.add(machine);}
+    public void quietUpgrade(MachineBlockEntity machine){upgradeActive.remove(machine);}
     private boolean topologyDirty=true;
     private boolean needsRecovery=true;
     private final IndustrialGeneration generation=new IndustrialGeneration();
@@ -64,10 +67,12 @@ public final class IndustrialWorld extends SavedData {
         if(!be.registeredIdentity.isEmpty()&&!be.registeredIdentity.equals(key))loaded.remove(be.registeredIdentity,be);be.registeredIdentity=key;loaded.put(key,be);chunks.computeIfAbsent(dimension(be),d->new HashMap<>()).computeIfAbsent(chunk(be.getBlockPos()),c->new LinkedHashSet<>()).add(be);
         if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)){nodes.putIfAbsent(key,new Node(dimension(be),be.getBlockPos().asLong()));topologyDirty=true;setDirty();}
         if(be.device().needsStructure())validations.add(be);
+        if(be.currencyUpgrade!=null)be.currencyUpgrade.loaded();
         note(be,"区块加载：已恢复原有连接");
         if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))refreshCoverage(be);else discover(be);
     }
     public void unload(MachineBlockEntity be){
+        upgradeActive.remove(be);
         loaded.remove(be.identity.toString(),be);functions.unload(be.identity.toString());reservations.entrySet().removeIf(e->e.getValue().device.equals(be.identity.toString()));var dimension=chunks.get(dimension(be));if(dimension!=null){var bucket=dimension.get(chunk(be.getBlockPos()));if(bucket!=null)bucket.remove(be);}validations.remove(be);note(be,"区块卸载：该成员储能和容量暂不参与");
     }
     public void destroy(MachineBlockEntity be){
@@ -137,8 +142,10 @@ public final class IndustrialWorld extends SavedData {
             if(be.device().generator()){long generated=generation.generate(be);be.generated=generated;if(connected)production.merge(components.get(be.beacon),generated,Math::addExact);else be.overflow=generated;}
             else if(!be.device().has(DeviceType.Capability.STORAGE_NETWORK)){if(connected)devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);else if(be.device().processing()&&be.running&&(!be.device().needsStructure()||be.structureValid)){for(int round=0;round<128&&be.tickTime.positive();round++){IndustrialProcessing.prepare(be);if(be.batchRecipe.isEmpty())break;Fraction before=be.tickTime;long need=be.demand();be.advance(be.crystalSupply(need));if(before.equals(be.tickTime))break;}}}
             IndustrialProcessing.output(be);
+            if(be.currencyUpgrade!=null&&be.running)be.currencyUpgrade.charge(be.crystalSupply(be.currencyUpgrade.demand()));
         }
         for(var entry:cores.entrySet())settle(entry.getKey(),entry.getValue(),devices.getOrDefault(entry.getKey(),List.of()),production.getOrDefault(entry.getKey(),0L));
+        for(var be:new ArrayList<>(upgradeActive)){if(be.isRemoved()){upgradeActive.remove(be);continue;}if(be.currencyUpgrade.due()){upgradeActive.remove(be);be.currencyUpgrade.process();}}
         for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){visual(be,be.device().has(DeviceType.Capability.STORAGE_NETWORK)?!be.isRemoved():validBeacon(be)!=null);IndustrialProcessing.output(be);}
     }
     private void visual(MachineBlockEntity be,boolean connected){BlockState state=be.getBlockState();boolean active=be.device().generator()?be.generated>0:be.consumed>0;if(state.getValue(MachineBlock.CONNECTED)!=connected||state.getValue(MachineBlock.ACTIVE)!=active)be.getLevel().setBlock(be.getBlockPos(),state.setValue(MachineBlock.CONNECTED,connected).setValue(MachineBlock.ACTIVE,active),2);}
@@ -148,7 +155,7 @@ public final class IndustrialWorld extends SavedData {
         long stored=0,capacity=Math.multiplyExact(IndustrialRules.current().beaconCapacity,cores.size());for(var core:cores)stored=Math.addExact(stored,core.energy);long available=Math.addExact(stored,generated),used=0;
         Reservation reservation=reservations.get(group);if(reservation!=null&&(!loaded.containsKey(reservation.device)||validBeacon(loaded.get(reservation.device))==null||!Objects.equals(components.get(loaded.get(reservation.device).beacon),group)))reservation=null;
         long held=reservation==null?0:reservation.credit;String owner=reservation==null?"":reservation.device;if(held>stored){held=0;owner="";}
-        List<IndustrialFunctions.FunctionJob> jobs=new ArrayList<>();for(var be:devices)if(be.device().functional())functions.prepare(be,jobs);
+        List<IndustrialFunctions.FunctionJob> jobs=new ArrayList<>();for(var be:devices){if(be.device().functional())functions.prepare(be,jobs);else if(be.currencyUpgrade!=null&&be.running&&be.currencyUpgrade.demand()>0)jobs.add(new IndustrialFunctions.FunctionJob(be){long demand(){return be.currencyUpgrade.demand();}long run(long budget){long used=be.currencyUpgrade.charge(budget);done=true;return used;}});}
         for(int round=0;round<128;round++){
             List<MachineBlockEntity> processors=devices.stream().filter(b->b.device().processing()&&b.running&&(!b.device().needsStructure()||b.structureValid)&&b.tickTime.positive()).toList();for(var be:processors)IndustrialProcessing.prepare(be);
             long[] wants=new long[processors.size()+jobs.size()];for(int i=0;i<processors.size();i++)wants[i]=processors.get(i).demand();for(int i=0;i<jobs.size();i++)wants[processors.size()+i]=Math.max(0,jobs.get(i).demand()-(jobs.get(i).be.identity.toString().equals(owner)?held:0));

@@ -6,6 +6,9 @@ import static cn.yumis.fight.modules.attributes.api.AttributeNumbers.DROP_RATE_B
 import java.util.*;
 /** One catalog for registration, rarity, processing and the natural currency pool. */
 public final class CurrencyRules {
+    public record AccountCurrency(String id,String title){}
+    public static final AccountCurrency POINTS=new AccountCurrency("points","点券");
+    public static long resetTicketPrice(boolean profession){return profession?100:50;}
     public record Currency(String id,Rarity rarity,boolean naturalDrop){}
     public record Tier(Rarity rarity,double baseWeight,List<Currency> currencies){}
     public static final double DROP_CHANCE=.05;
@@ -55,6 +58,9 @@ public final class CurrencyRules {
         return new Tier(rarity,baseWeight,currencies);
     }
     public static Currency find(String id){return BY_ID.get(id);}
+    public static int upgradeTier(String id){var currency=find(id);return currency!=null&&currency.naturalDrop()&&currency.rarity().ordinal()<Rarity.EPIC.ordinal()?currency.rarity().ordinal():-1;}
+    public static List<Currency> upgradeResults(int tier){if(tier<0||tier>=Rarity.EPIC.ordinal())return List.of();return DROP_POOL.stream().filter(c->c.rarity().ordinal()==tier+1).toList();}
+    public static long upgradeCost(int tier){return switch(tier){case 0->100;case 1->1000;case 2->10000;case 3->100000;default->throw new IllegalArgumentException("不可升级的通货稀有度");};}
     public static String salvageCurrency(Rarity rarity){return switch(rarity){
         case LEGENDARY->"upgrade_stone";case EPIC->"epic_upgrade_stone";case MYTHIC->"mythic_upgrade_stone";
         default->throw new IllegalArgumentException("只能分解传说、史诗或神话装备");

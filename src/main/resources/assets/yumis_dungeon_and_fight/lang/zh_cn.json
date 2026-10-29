@@ -170,5 +170,9 @@
   "item.yumis_dungeon_and_fight.club": "棍棒",
   "item.yumis_dungeon_and_fight.delezie_blood": "狄瑞吉之血",
   "item.yumis_dungeon_and_fight.training_sandbag": "训练沙袋",
-  "entity.yumis_dungeon_and_fight.training_sandbag": "训练沙袋"
+  "entity.yumis_dungeon_and_fight.training_sandbag": "训练沙袋",
+  "entity.yumis_dungeon_and_fight.herder": "赫尔德",
+  "item.yumis_dungeon_and_fight.profession_reset_ticket": "职业重置券",
+  "item.yumis_dungeon_and_fight.career_reset_ticket": "转职重置券",
+  "block.yumis_dungeon_and_fight.currency_upgrader": "通货升级器"
 }

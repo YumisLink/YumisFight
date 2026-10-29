@@ -24,11 +24,22 @@ public final class EconomyService {
     public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("economy","sell",this::sell);router.register("economy","saleOpen",this::saleOpen);router.register("economy","purchase",this::purchase);}
     public long gold(ServerPlayer p){return journal.get("gold/"+p.getUUID(),Long.class,0L);}
     public long goldRevision(ServerPlayer p){return journal.get("goldRevision/"+p.getUUID(),Long.class,0L);}
+    public long points(ServerPlayer p){return journal.get(CurrencyRules.POINTS.id()+"/"+p.getUUID(),Long.class,0L);}
+    public long changePoints(ServerPlayer p,long amount){
+        long balance=Math.addExact(points(p),amount);if(balance<0)throw new IllegalArgumentException("点券余额不足");
+        var intent=new JsonObject();intent.addProperty("points",amount);inventory.transact(p,UUID.randomUUID().toString(),intent,()->{},Map.of(CurrencyRules.POINTS.id()+"/"+p.getUUID(),new JsonPrimitive(balance)));profile.accept(p);return balance;
+    }
     public void goldGain(ServerPlayer p,long amount,long balance,long revision){Network.send(p,"goldGain",Map.of("session",sessionId.apply(p).toString(),"amount",amount,"balance",balance,"revision",revision));}
     private boolean replay(ServerPlayer p,JsonObject j){var old=journal.get("inventoryReceipt/"+p.getUUID()+"/"+j.get("operation").getAsString());if(old.isJsonNull())return false;if(!old.getAsJsonObject().get("intent").equals(j))throw new IllegalArgumentException("操作号冲突");inventory.restore(p);profile.accept(p);return true;}
     private void session(ServerPlayer p,JsonObject j){if(!j.has("session")||!sessionId.apply(p).toString().equals(j.get("session").getAsString())||inventory.locked(p.getUUID()))throw new IllegalArgumentException("会话已失效或库存正在处理");}
     public void purchase(ServerPlayer p,JsonObject j){
         if(replay(p,j))return;session(p,j);
+        String product=j.has("product")?j.get("product").getAsString():"";
+        if(java.util.Set.of(cn.yumis.fight.modules.character.api.CharacterItems.PROFESSION_RESET,cn.yumis.fight.modules.character.api.CharacterItems.CAREER_RESET).contains(product)){
+            long cost=CurrencyRules.resetTicketPrice(product.equals(cn.yumis.fight.modules.character.api.CharacterItems.PROFESSION_RESET));
+            if(points(p)<cost)throw new IllegalArgumentException("点券不足，需要"+cost+"点券");
+            var item=cn.yumis.fight.platform.ItemRegistry.item(product,1);inventory.transact(p,j.get("operation").getAsString(),j,()->inventory.requireSpace(p,item),Map.of(CurrencyRules.POINTS.id()+"/"+p.getUUID(),new JsonPrimitive(points(p)-cost)));profile.accept(p);return;
+        }
         if(!j.has("product")||!j.get("product").getAsString().equals("overlord_contract"))throw new IllegalArgumentException("商品未上架");
         if(gold(p)<CONTRACT_PRICE)throw new IllegalArgumentException("金币不足，需要100000金币");
         Map<String,JsonElement> changes=new LinkedHashMap<>(entitlements.prepareContract(p.getUUID(),System.currentTimeMillis(),CONTRACT_DURATION));

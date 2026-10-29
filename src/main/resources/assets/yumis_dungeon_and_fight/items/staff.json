@@ -4,6 +4,13 @@
     "property": "yumis_dungeon_and_fight:katana_style",
     "cases": [
       {
+        "when": "starter_staff",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/starter_staff"
+        }
+      },
+      {
         "when": "willy_staff",
         "model": {
           "type": "minecraft:model",

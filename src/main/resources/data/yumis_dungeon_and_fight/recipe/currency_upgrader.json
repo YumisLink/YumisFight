@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ICI",
+    "CHC",
+    "ICI"
+  ],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "C": "yumis_dungeon_and_fight:energy_crystal_1",
+    "H": "minecraft:hopper"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:currency_upgrader",
+    "count": 1
+  }
+}

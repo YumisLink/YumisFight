@@ -1,13 +1,12 @@
 package cn.yumis.fight.modules.presentation.api;
 import java.util.*;
-/** Menu content registration. Legacy page indexes remain stable for saved client preferences. */
+/** Menu content registration and visible tab order. */
 public final class PlayerPages {
     public record Page(String id,String title,String tab,String icon,String openCommand,boolean screen){}
     private static final List<Page> PAGES=new ArrayList<>();
     static {
         register(new Page("character","角色属性","属性","character","",true));
         register(new Page("skills","职业技能","技能","skills","",true));
-        register(new Page("job","转职任务","转职","job","",true));
         register(new Page("professions","副职业","副职","professions","professions",true));
         register(new Page("party","战斗队伍","队伍","party","",true));
         register(new Page("dungeons","地下城","副本","dungeons","",true));

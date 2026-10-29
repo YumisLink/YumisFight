@@ -8,6 +8,7 @@ public final class SkillPresentation {
     public record Traits(boolean charging,boolean fixedActionTime,boolean fixedVisualTime,boolean invulnerable,long segmentDelay,long segmentWindow,int color,boolean overdriveColor,ToLongFunction<SkillCast> duration){}
     private static final Map<SkillDefinition,Traits> CONTENT=new LinkedHashMap<>();
     static {
+        for(String id:List.of(MageSkills.STAR,MageSkills.FANG,MageSkills.JACK,MageSkills.HERDER))register(MageSkills.skill(id),new Traits(false,false,false,false,0,0,id.equals(MageSkills.JACK)?0xff9b35:0xbcefff,false,c->1500));
         register(SkillCatalog.BLINK,new Traits(false,true,true,false,0,0,0xb4f2ff,false,c->100));
         register(SkillCatalog.GHOST,new Traits(true,false,false,false,0,0,0x8E56D9,false,c->3800));
         register(SkillCatalog.TRIPLE,new Traits(false,false,false,false,200,1200,0xB4F2FF,true,c->(long)(1200*c.parameters.get("slashes",3)+500)));

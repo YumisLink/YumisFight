@@ -112,6 +112,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             if(content==null||content.skill().passive())throw new IllegalArgumentException("不是主动职业技能");
             var skill=content.skill();var player=progress.apply(p);Stats equipment=SkillPreview.currentStats(stats.apply(p),session.resources,now);int rank=SkillLearning.effective(equipment,player,skill);
             if(rank<=0)throw new IllegalArgumentException("职业不符或技能未学习");
+            if(!skill.weaponAllowed(player,equipment))throw new IllegalArgumentException("主手需要本职业可用武器");
             boolean terminal=skillId.equals(CareerSkills.KALLA)&&s.kallaUntil>now||skillId.equals(CareerSkills.EYE)&&s.eyeUntil>0||skillId.equals(CareerSkills.SWORD)&&s.bloodUntil>0||skillId.equals(CareerSkills.FRENZY)&&s.frenzy;
             int slot=request.has("slot")?request.get("slot").getAsInt():-1;
             if(!terminal&&(slot<0||slot>=player.slots.length||!player.slots[slot].equals(skillId)))throw new IllegalArgumentException("技能绑定已改变");

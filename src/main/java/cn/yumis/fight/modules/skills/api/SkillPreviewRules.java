@@ -8,6 +8,7 @@ public final class SkillPreviewRules {
     public record Definition(ToIntFunction<SkillParameters.Snapshot> hits,boolean finisher,boolean shortSwordWave,boolean magicBeforePromotion,int element){}
     private static final Map<SkillDefinition,Definition> DEFINITIONS=new LinkedHashMap<>();
     static {
+        for(String id:List.of(MageSkills.STAR,MageSkills.FANG,MageSkills.JACK,MageSkills.HERDER))register(MageSkills.skill(id),new Definition(p->1,false,false,!id.equals(MageSkills.FANG),id.equals(MageSkills.JACK)?1:-1));
         register(SkillCatalog.BLINK,new Definition(p->0,false,false,true,-1));
         register(SkillCatalog.GHOST,new Definition(p->1,false,false,true,3));
         register(SkillCatalog.TRIPLE,new Definition(p->(int)p.get("slashes",1),false,true,false,-1));

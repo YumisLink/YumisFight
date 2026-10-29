@@ -1,0 +1,6 @@
+{
+  "parent": "yumis_dungeon_and_fight:block/currency_upgrader",
+  "textures": {
+    "front": "yumis_dungeon_and_fight:block/currency_upgrader_active"
+  }
+}

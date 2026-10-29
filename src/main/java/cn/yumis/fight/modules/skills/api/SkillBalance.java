@@ -28,9 +28,11 @@ public final class SkillBalance {
     static SkillBalanceProfile profile(SkillDefinition skill){return Objects.requireNonNull(PROFILES.get(skill));}
     public static double weight(SkillDefinition skill){SkillCatalog.all();var profile=PROFILES.get(skill);if(profile==null&&!NON_DAMAGE.contains(skill))throw new IllegalArgumentException("Missing balance registration: "+skill);return profile==null?0:profile.weight();}
     public static double futureWeight(int awakening){return awakening>=3?20:awakening>=1?10:5;}
+    /** Content damage boost: unlock level 1 is x10, level 50 and later are x3. */
+    public static double unlockMultiplier(int unlock){return 10-7*Math.clamp((unlock-1)/49d,0,1);}
     public static int rank(SkillDefinition skill){return 1+Math.max(0,LEVEL-skill.unlock)/5;}
     public static Context context(String job,String weapon){return new Context(job,weapon,style(job).mastery());}
-    public static Context reference(SkillDefinition skill){String job=skill.advanced()?skill.requiredJob:JobCatalog.BASE;return context(job,defaultWeapon(job));}
+    public static Context reference(SkillDefinition skill){String job=skill.advanced()?skill.requiredJob:skill.baseJob;return context(job,defaultWeapon(job));}
     public static String defaultWeapon(String job){return style(job).defaultWeapon();}
     public static double coverage(double duration,double cooldown){double covered=0;for(double t=0;t<WINDOW/1000d;t+=cooldown)covered+=Math.min(duration,WINDOW/1000d-t);return covered/(WINDOW/1000d);}
     public static double boost(Context context,SkillBalanceProfile profile,boolean passive){
@@ -52,20 +54,20 @@ public final class SkillBalance {
     public static void validate(SkillBalanceRules rules){
         SkillCatalog.all();
         for(var skill:PROFILES.keySet()){
-            var jobs=skill.advanced()?List.of(skill.requiredJob):JobCatalog.all().stream().map(JobCatalog.Definition::id).toList();
-            for(String job:jobs)for(String weapon:List.of("KATANA","LIGHTSABER","SHORTSWORD","BLUNT","GREATSWORD")){
-                double factor=scale(skill,context(job,weapon),rules.baseWeightDps());if(!(factor>0)||!Double.isFinite(factor))throw new IllegalArgumentException("技能基数超出可计算范围");
+            var jobs=skill.advanced()?List.of(skill.requiredJob):JobCatalog.all().stream().filter(j->JobCatalog.base(j.id()).equals(skill.baseJob)).map(JobCatalog.Definition::id).toList();
+            for(String job:jobs)for(String weapon:List.of("KATANA","LIGHTSABER","SHORTSWORD","BLUNT","GREATSWORD","STAFF","CLUB")){
+                double factor=scale(skill,context(job,weapon),rules.baseWeightDps())*unlockMultiplier(skill.unlock);if(!(factor>0)||!Double.isFinite(factor))throw new IllegalArgumentException("技能基数超出可计算范围");
                 for(String key:skill.damageParameters())if(!Double.isFinite(skill.parameters(rank(skill)).getOrDefault(key,0d)*factor))throw new IllegalArgumentException("技能倍率超出可计算范围");
             }
         }
         for(String job:STYLES.keySet())for(String weapon:List.of("KATANA","LIGHTSABER","SHORTSWORD","BLUNT","GREATSWORD"))for(boolean frenzy:List.of(false,true)){
-            double factor=basicFactor(context(job,weapon),frenzy,rules.baseWeightDps());if(!(factor>0)||!Double.isFinite(factor))throw new IllegalArgumentException("普攻基数超出可计算范围");
+            double factor=basicFactor(context(job,weapon),frenzy,rules.baseWeightDps())*unlockMultiplier(1);if(!(factor>0)||!Double.isFinite(factor))throw new IllegalArgumentException("普攻基数超出可计算范围");
         }
         PARAMETERS.forEach((skill,processor)->{var values=skill.parameters(rank(skill));processor.accept(values);if(values.values().stream().anyMatch(value->!Double.isFinite(value)))throw new IllegalArgumentException("技能派生参数无效");});
     }
     public static Map<String,Double> parameters(SkillDefinition skill,int rank){
         Map<String,Double> values=skill.parameters(rank);weight(skill);var rules=SkillBalanceRules.current();
-        if(PROFILES.containsKey(skill)){double scale=scale(skill,reference(skill),rules.baseWeightDps());for(String key:skill.damageParameters())values.computeIfPresent(key,(k,v)->v*scale);values.put("balanceScale",scale);}
+        if(PROFILES.containsKey(skill)){double scale=scale(skill,reference(skill),rules.baseWeightDps())*unlockMultiplier(skill.unlock);for(String key:skill.damageParameters())values.computeIfPresent(key,(k,v)->v*scale);values.put("balanceScale",scale);}
         var processor=PARAMETERS.get(skill);if(processor!=null)processor.accept(values);
         return values;
     }
@@ -116,7 +118,7 @@ public final class SkillBalance {
     public static double basicWeight(String job,String weapon,boolean frenzy){return basicReference(context(job,weapon),frenzy).weight();}
     public static double basicInterval(Context context,boolean frenzy){return basicReference(context,frenzy).interval();}
     public static double basicScale(String job,String weapon,boolean frenzy){
-        return basicFactor(context(job,weapon),frenzy,SkillBalanceRules.current().baseWeightDps());
+        return basicFactor(context(job,weapon),frenzy,SkillBalanceRules.current().baseWeightDps())*unlockMultiplier(1);
     }
     static double basicFactor(Context context,boolean frenzy,double base){return basicUnitScale(context,frenzy)*base;}
     private static double basicUnitScale(Context context,boolean frenzy){

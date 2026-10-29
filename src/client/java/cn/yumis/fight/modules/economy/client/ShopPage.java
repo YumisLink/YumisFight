@@ -10,10 +10,20 @@ import java.util.List;
 import java.util.function.*;
 public final class ShopPage {
     private ShopPage(){}
-    public static void render(PlayerPageSurface page,Screen parent,long gold,String session,long contractUntil,Supplier<JsonObject> operation,Consumer<JsonObject> submit,int titleColor,int muted){
+    public static void render(PlayerPageSurface page,Screen parent,long gold,long points,String session,long contractUntil,Supplier<JsonObject> operation,Consumer<JsonObject> submit,int titleColor,int muted){
         String category=page.remember("shop.category","contracts");
         page.navigation(List.of(new PlayerPageSurface.Navigation("items","道具"),new PlayerPageSurface.Navigation("materials","材料"),new PlayerPageSurface.Navigation("fashion","时装"),new PlayerPageSurface.Navigation("bundles","礼包"),new PlayerPageSurface.Navigation("contracts","契约")),category,id->{page.rememberValue("shop.category",id);page.rebuild();});
-        page.line("金币 "+gold,titleColor);var search=page.textInput("shopSearch","搜索商品",40);
+        page.line("金币 "+gold+"    点券 "+points,titleColor);var search=page.textInput("shopSearch","搜索商品",40);
+        if(category.equals("items")){
+            int y=page.cursor(),index=0,w=Math.max(80,Math.min(150,(page.contentWidth()-20)/2));
+            for(boolean base:List.of(true,false)){
+                String id=base?cn.yumis.fight.modules.character.api.CharacterItems.PROFESSION_RESET:cn.yumis.fight.modules.character.api.CharacterItems.CAREER_RESET,title=base?"职业重置券":"转职重置券";long cost=cn.yumis.fight.modules.economy.api.CurrencyRules.resetTicketPrice(base);
+                if(!search.get().isBlank()&&!(title+" "+id).contains(search.get().trim()))continue;
+                int x=index++*(w+8);page.card(x,y,w,92);page.icon("textures/item/"+id+".png",x+(w-24)/2,y+7,24);page.text(title,x+7,y+41,titleColor);page.text(cost+"点券",x+7,y+58,titleColor);
+                var hit=page.button("购买",x+5,y+72,w-10,()->Minecraft.getInstance().gui.setScreen(new ThemedConfirmScreen(yes->{Minecraft.getInstance().gui.setScreen(parent);if(yes){var request=operation.get();request.addProperty("session",session);request.addProperty("product",id);submit.accept(request);}},Component.literal("购买"+title+"？"),Component.literal(points<cost?"点券不足，需要"+cost+"点券。":"消耗"+cost+"点券，获得可交易实体券。右键确认使用，保留任务标记，清除觉醒。"),ThemeDomain.MENU)));hit.setHeight(16);
+            }
+            if(index==0)page.line("没有匹配商品。",muted);page.cursor(y+100);return;
+        }
         if(!category.equals("contracts")){page.line("暂无商品。",muted);return;}
         if(!search.get().isBlank()&&!"霸王之契约 overlord_contract".contains(search.get().trim())){page.line("没有匹配商品。",muted);return;}
         int available=page.contentWidth()-24,fit=(available+4)/60,columns=fit>=8?Math.min(12,fit):Math.clamp(fit,4,6),cell=available/columns,w=cell-4,y=page.cursor(),color=cn.yumis.fight.modules.equipment.api.Rarity.ARTIFACT.color();

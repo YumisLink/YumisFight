@@ -53,6 +53,11 @@ public final class SkillPreview {
         double coefficient=parameters.get("previewDamage",parameters.get("damage",0));
         if(skill.id.equals(CareerSkills.CRESCENT))coefficient/=3;
         Damage hit=count==0?new Damage(0,0):damage(progress,stats,skill,coefficient,false,effects);
+        if(skill.id.equals(MageSkills.HERDER)){
+            var inherited=HerderRules.inherit(stats);var melee=damage(progress,inherited,skill,parameters.get("damage",0),false,effects);var stone=damage(progress,inherited,skill,parameters.get("stoneDamage",0),false,effects);Damage total=new Damage(0,0);
+            for(var action:MageSkills.attacks(parameters.rank(),120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus(action.stone()?stone:melee);
+            hit=total;
+        }
         Damage finisher=definition.finisher()?damage(progress,stats,skill,parameters.get("finisher",0),false,effects):new Damage(0,0);
         Damage wave=new Damage(0,0);
         if(stats.weaponType.equals("SHORTSWORD")&&mastery(progress,stats)>0&&definition.shortSwordWave())

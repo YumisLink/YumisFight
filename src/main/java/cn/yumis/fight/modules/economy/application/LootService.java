@@ -134,7 +134,6 @@ public class LootService implements InventoryDrops {
             progress.grant(xp);
             long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,balance.settings().killGoldMultiplier());
             if(gold>0){long balance=Math.addExact(this.balance.gold(p),gold),revision=Math.incrementExact(this.balance.revision(p));journal.put("gold/"+p.getUUID(),balance);journal.put("goldRevision/"+p.getUUID(),revision);goldGains.add(new GoldGain(p.getUUID(),gold,balance,revision));}
-            if(p==killer)progress.recordQuestKill(level,target.elite);
             journal.put("player/"+p.getUUID(),progress);
             progressChanged.add(p.getUUID());
             int count=boss?3:random.nextDouble()<(target.elite?.45:.05)?1:0;

@@ -12,13 +12,18 @@ public final class CareerHud {
     private CareerHud(){}
     public static void render(GuiGraphicsExtractor g,int center,int y){
         var state=SkillsClient.current();var v=CareerClient.INSTANCE.view;long now=state.serverNow();String text="";int color=0xffc38be5;
-        if(state.progress().hasJob(JobCatalog.ASURA)){if(v.eyeUntil>now)text="波动眼 "+seconds(v.eyeUntil-now)+"秒";color=0xffe6d19b;}
-        if(state.progress().hasJob(JobCatalog.SOUL_BENDER)){if(v.field!=null)text="鬼阵 Lv."+v.field.rank+" · "+cn.yumis.fight.modules.skills.api.CareerSkills.ghosts(v.field.rank)+"鬼  "+seconds(v.field.expires-now)+"秒";if(v.kallaUntil>now)text+="  卡洛 "+seconds(v.kallaUntil-now)+"秒";}
+        if(state.progress().hasJob(JobCatalog.SOUL_BENDER)&&v.field!=null)text="鬼阵 Lv."+v.field.rank+" · "+cn.yumis.fight.modules.skills.api.CareerSkills.ghosts(v.field.rank)+"鬼  "+seconds(v.field.expires-now)+"秒";
         if(state.progress().hasJob(JobCatalog.BERSERKER)){text=v.frenzy?"血之狂暴 · "+(state.predicted(state.own())<=.4?"低血强化20%":state.predicted(state.own())<=.7?"低血强化10%":"双刀开启"):"双刀关闭";color=0xffee7d88;}
         if(text.isBlank())return;var font=UiFonts.font();int width=font.width(text)+12;g.fill(center-width/2,y,center+width/2,y+14,UiTheme.HUD_PANEL);g.text(font,text,center-width/2+6,y+3,color,true);
     }
     public static void renderGauge(GuiGraphicsExtractor g,int width,int height,long now){
         var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;int x=(int)(width*.8),y=Math.max(24,(int)(height*.2));
+        if(state.own().dead)return;
+        long overdrive=state.resources().buffs.getOrDefault(SkillCatalog.OVERDRIVE.id,0L)-now;
+        if(overdrive>0){timer(g,SkillCatalog.OVERDRIVE,x,y,overdrive,30000,0xfff6d16d);y+=68;}
+        long kalla=view.kallaUntil-state.serverNow();if(kalla>0){timer(g,SkillCatalog.require(CareerSkills.KALLA),x,y,kalla,20000,0xffb28fe5);y+=68;}
+        long eye=view.eyeUntil-state.serverNow();if(eye>0){timer(g,SkillCatalog.require(CareerSkills.EYE),x,y,eye,20000,0xffe6d19b);y+=68;}
+        long herder=MageClient.INSTANCE.summonUntil-state.serverNow();if(herder>0){timer(g,MageSkills.skill(MageSkills.HERDER),x,y,herder,120000,0xff92d49b);y+=68;}
         if(state.progress().hasJob(JobCatalog.ASURA)&&SkillLearning.effective(state.stats(),state.progress(),SkillCatalog.require(CareerSkills.BRANDS))>0){
             badge(g,SkillCatalog.require(CareerSkills.BRANDS),x,y,view.brands,false);y+=54;
         }
@@ -40,6 +45,9 @@ public final class CareerHud {
         g.pose().pushMatrix();g.pose().translate(x,y-9);g.pose().scale(2,2);
         String value=Integer.toString(count);g.text(font,value,-font.width(value)/2,0,UiTheme.HUD_GOLD,true);g.pose().popMatrix();
         String title=skill.title;g.text(font,title,x-font.width(title)/2,y+19,UiTheme.HUD_TEXT,true);
+    }
+    private static void timer(GuiGraphicsExtractor g,SkillDefinition skill,int x,int y,long left,long duration,int color){
+        badge(g,skill,x,y,(int)seconds(left),false);g.fill(x-24,y+34,x+24,y+38,UiTheme.HUD_PANEL);g.fill(x-24,y+34,x-24+(int)(48*Math.clamp(left/(double)duration,0,1)),y+38,color);var font=UiFonts.font();g.text(font,"剩余秒",x-font.width("剩余秒")/2,y+43,UiTheme.HUD_MUTED,true);
     }
     private static long seconds(long millis){return Math.max(0,(millis+999)/1000);}
 }

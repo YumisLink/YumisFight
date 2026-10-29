@@ -223,7 +223,8 @@ public final class SkillVfx {
             pose.mulPose(Axis.YP.rotationDegrees(sword.yaw()));
             var inclination=sword.inclination();double azimuth=Math.toRadians(inclination.azimuth());
             pose.mulPose(new org.joml.Quaternionf().rotationAxis((float)Math.toRadians(inclination.degrees()),(float)Math.cos(azimuth),0,(float)Math.sin(azimuth)));
-            pose.scale(2.4f,2.4f,2.4f);
+            pose.mulPose(Axis.ZP.rotationDegrees(180));
+            pose.scale(1.2f,1.2f,1.2f);
             sword.model().submit(pose,event.getSubmitNodeCollector(),0xF000F0,OverlayTexture.NO_OVERLAY,0);
             pose.popPose();
         }

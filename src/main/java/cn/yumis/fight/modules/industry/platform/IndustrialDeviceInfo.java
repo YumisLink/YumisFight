@@ -13,6 +13,14 @@ public final class IndustrialDeviceInfo {
     private IndustrialDeviceInfo(){}
     public static JsonObject enrich(MachineBlockEntity be,JsonObject j){
         JsonArray help=new JsonArray();help.add("工业魔能独立于角色MP；设备只在必要区块加载时运行。");
+        if(be.currencyUpgrade!=null){
+            j.addProperty("upgrade_capacity",CurrencyUpgrader.CAPACITY);
+            help.add("左9格输入、右9格输出，仅接收自然掉落池中低于史诗的通货；不同种类可按同稀有度混合凑4枚。");
+            help.add("每20tick一轮，低到高批量处理；每组50%成功，成功随机出下一稀有度1枚。失败同样消耗4枚与完整魔能，最高史诗。");
+            help.add("普通→稀有100；稀有→神器1000；神器→传说10000；传说→史诗100000魔能。");
+            help.add("缓存1000000魔能，支持信标及1—5阶水晶。右侧9格都被占用即停，未叠满也不继续。");
+            help.add("合成结束后退出活动队列；新投料或解除满仓/缺能阻塞唤醒。休眠保留充能与自动向下输出，产物不自行回流。");
+        }
         if(be.device().randomCurrency()){var rules=IndustrialRules.current();JsonArray probabilities=new JsonArray();for(double p:cn.yumis.fight.modules.economy.api.CurrencyRules.factoryProbabilities(rules.currencyRarityWeights,rules.currencyItemWeights))probabilities.add(p);j.add("currency_probabilities",probabilities);}
         if(be.device().processing()){help.add("插槽仅接受"+(be.tier()*2-1)+"～"+be.tier()*2+"阶。");help.add("产物先存本机，再向下方容器输出；缺能或满仓保留批次。");help.add("当前批次耗能 "+be.batchEnergy+"，已扣 "+be.paid+"；处理能力由整机共享。");if(be.device().randomCurrency())help.add("每轮必出1枚；使用当前工业奖池，不读取玩家掉宝，不再判5%。点击概率查看每种通货的实际权重。");}
         if(be.device().generator()){j.addProperty("power",be.currentPower);help.add("实际产能 "+be.currentPower+" 点/秒；满网继续运行，多余产能浪费。");if(be.fuelTotal>0)help.add("本燃料总产能 "+be.fuelEnergy+"，燃烧 "+String.format(java.util.Locale.ROOT,"%.1f 秒",be.fuelTotal/20.0)+"；流体 "+be.fuelFluidRate+" mB/秒。");if(be.device().has(DeviceType.Capability.SOLAR)||be.device().has(DeviceType.Capability.WIND)){ServerLevel l=(ServerLevel)be.getLevel();help.add("时间 "+Math.floorMod(l.getDefaultClockTime(),24000)+"；天气 "+(l.isThundering()?"雷暴":l.isRaining()?"雨":"晴")+"；顶部天空 "+(IndustrialGeneration.skyVisible(l,be.device().has(DeviceType.Capability.WIND)?be.getBlockPos().above(2):be.getBlockPos())?"可见":"被遮挡"));}}

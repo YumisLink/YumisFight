@@ -89,6 +89,7 @@ public final class CareerClient {
     public void cancel(SkillCast c){if(c==null)return;JsonObject j=new JsonObject();j.addProperty("id",c.id);state().send("careerCancel",j);sources.remove(c.id);}
     public void decorate(SkillCast source,LivingEntity target,JsonObject extra){
         if(source==null)return;
+        if(MageClient.decorate(source,extra))return;
         if(CareerSkills.contains(source.skill.id)){extra.addProperty("careerCast",source.id);extra.addProperty("careerIndex",source.hitIndex);if(source.skill.id.equals(CareerSkills.ORB))extra.addProperty("orbAt",source.scheduledHitAt);if(source.controlSeconds>0){String key=source.id+"/"+target.getUUID();long now=ClientUi.now();if(!source.skill.id.equals(CareerSkills.FIELD)||freezes.getOrDefault(key,0L)<=now){extra.addProperty("careerControl",source.controlSeconds);freezes.put(key,now+3000);}}}
         else extra.addProperty("sourceCast",source.id);
     }

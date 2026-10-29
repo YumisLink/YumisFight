@@ -47,6 +47,7 @@ public final class CareerRules {
         return new SkillParameters.Snapshot(source.skill(),source.rank(),values);
     }
     public static boolean magic(SkillDefinition skill,Progress progress){
+        if(skill!=null&&skill.magicDamage!=null)return skill.magicDamage;
         if(skill!=null&&skill.magicTag)return true;
         if(!progress.hasJob(JobCatalog.BASE))return JobCatalog.style(progress.jobId()).magic();
         return skill!=null&&SkillPreviewRules.require(skill).magicBeforePromotion();

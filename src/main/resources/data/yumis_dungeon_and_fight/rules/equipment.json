@@ -494,7 +494,7 @@
     },
     "family_sword": {
       "id": "family_sword",
-      "name": "sword",
+      "name": "剑术系技能",
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
@@ -502,7 +502,7 @@
     },
     "family_ghost": {
       "id": "family_ghost",
-      "name": "ghost",
+      "name": "鬼神系技能",
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
@@ -510,7 +510,7 @@
     },
     "family_wave": {
       "id": "family_wave",
-      "name": "wave",
+      "name": "波动系技能",
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
@@ -518,7 +518,7 @@
     },
     "family_blood": {
       "id": "family_blood",
-      "name": "blood",
+      "name": "血气系技能",
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
@@ -759,11 +759,11 @@
       "operation": "PERCENT",
       "group": "unique",
       "element": -1,
-      "revision": 1,
+      "revision": 2,
       "retired": false,
       "stat": "PHYSICAL_ATTACK",
-      "minimum": 1.5,
-      "maximum": 2.5
+      "minimum": 0.5,
+      "maximum": 1.0
     },
     "unique/bylle_physical_flat": {
       "id": "unique/bylle_physical_flat",
@@ -771,11 +771,11 @@
       "operation": "ITEM_FINAL_ADD",
       "group": "unique",
       "element": -1,
-      "revision": 2,
+      "revision": 3,
       "retired": false,
       "stat": "PHYSICAL_ATTACK",
-      "minimum": 400,
-      "maximum": 800
+      "minimum": 200,
+      "maximum": 400
     },
     "unique/block_elemental": {
       "id": "unique/block_elemental",

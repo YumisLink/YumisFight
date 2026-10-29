@@ -62,6 +62,11 @@ public final class SkillTooltip {
                 if(rank<8)add(result,"当前等级提供阵法增益，8级起获得持续伤害。",UiTheme.TEXT);
                 if(rank>=8)add(result,"每秒冰伤："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("iceDot",0),2,state.resources().equipment)),UiTheme.TEXT);
                 if(rank>=15)add(result,"每秒暗伤："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("darkDot",0),3,state.resources().equipment)),UiTheme.TEXT);
+            }else if(skill.id.equals(cn.yumis.fight.modules.skills.api.MageSkills.HERDER)){
+                add(result,"下次召唤敲击："+amount(SkillPreview.damage(state.progress(),stats,skill,parameters.get("damage",0),false,state.resources().equipment)),UiTheme.TEXT);
+                add(result,"下次召唤单石："+amount(SkillPreview.damage(state.progress(),stats,skill,parameters.get("stoneDamage",0),false,state.resources().equipment)),UiTheme.TEXT);
+                add(result,"120秒近身参考合计："+amount(preview.total()),UiTheme.ACCENT);
+                var summon=MageClient.INSTANCE;if(summon.summonUntil>state.serverNow()&&summon.summonedMelee!=null){add(result,"在场赫尔德快照 · Lv."+summon.summonRank,UiTheme.GOLD);add(result,"敲击："+amount(summon.summonedMelee),UiTheme.TEXT);if(summon.summonRank>=5)add(result,"单石："+amount(summon.summonedStone),UiTheme.TEXT);if(summon.summonRank>=10)add(result,"三连："+amount(summon.summonedTriple),UiTheme.TEXT);}add(result,"上述面板为零防抗、非暴击；命中时再结算敌人属性。",UiTheme.MUTED);
             }else{
                 add(result,"面板伤害："+amount(preview.hit())+" × "+preview.slashes()+"段",UiTheme.TEXT);
                 if(preview.finisher().maximum()>0)add(result,"终结伤害："+amount(preview.finisher())+" × 1段",UiTheme.TEXT);

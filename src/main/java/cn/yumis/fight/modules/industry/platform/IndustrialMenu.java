@@ -29,27 +29,29 @@ public final class IndustrialMenu extends AbstractContainerMenu {
     }
     public IndustrialMenu(int id,Inventory inventory,MachineBlockEntity be){
         super(IndustrialContent.MACHINE_MENU.get(),id);machine=be;
-        for(int i=0;i<MachineBlockEntity.SIZE;i++){
-            final int slot=i;int x=i<4?16+(i%2)*18:i<13?184+((i-4)%3)*18:i==13?64:64;int y=i<4?53+(i/2)*18:i<13?53+((i-4)/3)*18:i==13?87:53;
+        var layout=be.slots();boolean upgrader=be.device().currencyUpgrader();
+        for(int i=0;i<layout.size();i++){
+            final int slot=i;int x=layout.input(i)?16+(i%(upgrader?3:2))*18:layout.output(i)?184+((i-layout.outputStart())%3)*18:upgrader?118:64;int y=layout.input(i)?53+(i/(upgrader?3:2))*18:layout.output(i)?53+((i-layout.outputStart())/3)*18:i==layout.crystal()?87:53;
             addSlot(new Slot(be,i,x,y){
-                @Override public boolean isActive(){return slot<4?slot<be.device().inputs():slot<13?be.device().processing():slot==13?be.device().processing():be.device().has(DeviceType.Capability.FUEL);}
+                @Override public boolean isActive(){return layout.input(slot)||layout.output(slot)&&be.device().outputs()||slot==layout.crystal()&&be.device().outputs()||slot==layout.fuel()&&be.device().has(DeviceType.Capability.FUEL);}
                 @Override public boolean mayPlace(ItemStack s){return isActive()&&be.canPlaceItem(slot,s);}
                 @Override public boolean mayPickup(Player p){return isActive();}
+                @Override public void setChanged(){super.setChanged();if(be.currencyUpgrade!=null)be.currencyUpgrade.changed(slot);}
             });
         }
         addStandardInventorySlots(inventory,47,153);
     }
     @Override public boolean stillValid(Player p){return machine.stillValid(p);}
-    @Override public void clicked(int slot,int button,ContainerInput input,Player p){if(slot>=0&&slot<15&&!slots.get(slot).isActive())return;if(slot==MachineBlockEntity.CRYSTAL&&!getCarried().isEmpty()&&!machine.canPlaceItem(slot,getCarried())){if(p instanceof ServerPlayer server)server.sendOverlayMessage(net.minecraft.network.chat.Component.literal("本机仅接受第"+(machine.tier()*2-1)+"至第"+machine.tier()*2+"阶魔能水晶"));return;}super.clicked(slot,button,input,p);}
+    @Override public void clicked(int slot,int button,ContainerInput input,Player p){if(slot>=0&&slot<machine.getContainerSize()&&!slots.get(slot).isActive())return;if(slot==machine.slots().crystal()&&!getCarried().isEmpty()&&!machine.canPlaceItem(slot,getCarried())){if(p instanceof ServerPlayer server)server.sendOverlayMessage(net.minecraft.network.chat.Component.literal(machine.device().currencyUpgrader()?"本机接受1至5阶魔能水晶":"本机仅接受第"+(machine.tier()*2-1)+"至第"+machine.tier()*2+"阶魔能水晶"));return;}super.clicked(slot,button,input,p);}
     @Override public ItemStack quickMoveStack(Player p,int index){
         if(index<0||index>=slots.size())return ItemStack.EMPTY;Slot slot=slots.get(index);if(!slot.hasItem()||!slot.mayPickup(p))return ItemStack.EMPTY;ItemStack stack=slot.getItem(),copy=stack.copy();
-        if(index<15){if(!moveItemStackTo(stack,15,slots.size(),true))return ItemStack.EMPTY;}
-        else {boolean moved=false;for(int i=0;i<15&&!stack.isEmpty();i++)if(slots.get(i).mayPlace(stack))moved|=moveItemStackTo(stack,i,i+1,false);if(!moved)return ItemStack.EMPTY;}
+        if(index<machine.getContainerSize()){if(!moveItemStackTo(stack,machine.getContainerSize(),slots.size(),true))return ItemStack.EMPTY;}
+        else {boolean moved=false;for(int i=0;i<machine.getContainerSize()&&!stack.isEmpty();i++)if(slots.get(i).mayPlace(stack))moved|=moveItemStackTo(stack,i,i+1,false);if(!moved)return ItemStack.EMPTY;}
         slot.set(stack.isEmpty()?ItemStack.EMPTY:stack);slot.setChanged();return copy;
     }
     @Override public boolean clickMenuButton(Player p,int button){
         if(!(p instanceof ServerPlayer server)||!stillValid(p))return false;
-        if(button==0)machine.running=!machine.running;
+        if(button==0){machine.running=!machine.running;if(machine.running&&machine.currencyUpgrade!=null)machine.currencyUpgrade.wake();}
         else if(button==1)return false;
         else if(button==2)return false;
         else if(button==3){showLines=false;Network.send(server,"industrial_lines",IndustrialWorld.get(server.level()).connectionPreview(machine));}

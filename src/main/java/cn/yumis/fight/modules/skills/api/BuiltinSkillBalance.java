@@ -59,6 +59,8 @@ final class BuiltinSkillBalance {
     }
     private static double redMultiplier(){return (1+133*1.18/100)/(1+133d/100);}
     private static void styles(){
+        SkillBalance.registerStyle(JobCatalog.NONE,new SkillBalanceStyle("KATANA",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));
+        SkillBalance.registerStyle(JobCatalog.MAGE,new SkillBalanceStyle("STAFF",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));
         double g=CareerSkills.growth(9),attack=1+.15*g,overdrive=.15*g*SkillBalance.coverage(30,40),red=1+(redMultiplier()-1)*.6;
         SkillBalance.registerStyle(JobCatalog.BASE,new SkillBalanceStyle("KATANA",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));
         SkillBalance.registerStyle(JobCatalog.SWORDMASTER,new SkillBalanceStyle("KATANA",true,(p,c,passive)->(1+overdrive)*(1+p.personalMut())*(c.weapon().equals("GREATSWORD")&&!passive?1+.2*g:1),(c,f)->basic(c,false,c.weapon().equals("LIGHTSABER")?2:1,1+overdrive,0),w->w.equals("KATANA")?BLEED:w.equals("LIGHTSABER")?SHOCK:NONE,g));

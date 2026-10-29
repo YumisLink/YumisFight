@@ -33,6 +33,7 @@ public final class FightMod {
         cn.yumis.fight.modules.inventory.api.SlotAccess.currencyPolicy(stack->!stack.isEmpty()&&cn.yumis.fight.platform.ItemData.own(stack)&&cn.yumis.fight.modules.economy.api.CurrencyRules.find(cn.yumis.fight.platform.ItemData.id(stack))!=null);
         cn.yumis.fight.modules.equipment.platform.EquipmentContent.register();
         cn.yumis.fight.modules.economy.platform.CurrencyContent.register();
+        cn.yumis.fight.modules.character.platform.CharacterContent.register();
         cn.yumis.fight.bootstrap.ApplicationModules.REGISTRY.order();
         cn.yumis.fight.modules.industry.platform.IndustrialContent.register(bus);
         cn.yumis.fight.modules.inventory.api.InventoryMenuPorts.install(
@@ -51,6 +52,7 @@ public final class FightMod {
         cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.register(bus);
         cn.yumis.fight.modules.economy.api.RewardContentTypes.register(bus);
         cn.yumis.fight.modules.combat.api.CombatContentTypes.register(bus);
+        cn.yumis.fight.modules.skills.api.SkillContentTypes.register(bus);
         ItemRegistry.ITEMS.register(bus);
         CreativeCatalog.TABS.register(bus);
         bus.addListener(Network::register);

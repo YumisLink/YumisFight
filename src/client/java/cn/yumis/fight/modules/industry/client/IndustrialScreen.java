@@ -58,9 +58,10 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         if(kind.processing()){double shown=kind.selectedRecipe()?progress.value(0):menu.info.has("progress")?menu.info.get("progress").getAsDouble():0;g.text(UiFonts.font(),String.format(Locale.ROOT,"%.1f%%",shown*100),112,72,UiTheme.TEXT,false);}
         else if(kind.generator()){g.text(UiFonts.font(),"产能 "+number("power")+" 点/秒",88,63,UiTheme.MUTED,false);g.text(UiFonts.font(),"燃料余时 "+seconds(number("fuel")),88,81,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.STORAGE_NETWORK)){g.text(UiFonts.font(),"核心储能 "+number("energy"),16,64,UiTheme.MUTED,false);g.text(UiFonts.font(),"覆盖半径 "+number("radius")+" 格",16,79,UiTheme.MUTED,false);}
+        else if(kind.currencyUpgrader()){g.text(UiFonts.font(),"4 → 1",104,61,UiTheme.GOLD,false);g.text(UiFonts.font(),"50%",108,73,UiTheme.ACCENT,false);}
         else {g.text(UiFonts.font(),kind.has(DeviceType.Capability.LOGISTICS)?"权杖绑定接收容器":"成熟作物自动入下方箱",16,65,UiTheme.MUTED,false);}
         g.text(UiFonts.font(),font.plainSubstrByWidth(text("status","读取设备状态"),240),8,111,UiTheme.GOLD,false);
-        String line=kind.processing()?number("paid")+" / "+number("total_energy"):"网络 "+number("network_energy")+" / "+number("network_capacity");
+        String line=kind.currencyUpgrader()?"缓存 "+number("energy")+" / "+number("upgrade_capacity"):kind.processing()?number("paid")+" / "+number("total_energy"):"网络 "+number("network_energy")+" / "+number("network_capacity");
         g.text(UiFonts.font(),line,8,124,UiTheme.MUTED,false);g.text(UiFonts.font(),"玩家背包",47,141,UiTheme.MUTED,false);
         if(menu.machine.device().has(DeviceType.Capability.STORAGE_NETWORK))g.text(UiFonts.font(),"发能 "+number("generated")+"  消耗 "+number("consumed")+"  溢出 "+number("overflow"),8,94,UiTheme.MUTED,false);
     }

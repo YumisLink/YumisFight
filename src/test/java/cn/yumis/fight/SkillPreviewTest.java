@@ -43,7 +43,7 @@ class SkillPreviewTest {
         assertEquals(100,equipment.get(Stat.PHYSICAL_ATTACK));
     }
     @Test void panelRangeBracketsTheActualNoncriticalZeroDefenseFormula(){
-        Progress progress=new Progress();Stats stats=new Stats();
+        Progress progress=new Progress();progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.BASE);Stats stats=new Stats();
         stats.add(Stat.MAGICAL_ATTACK,70);stats.add(Stat.INTELLIGENCE,40);stats.add(Stat.DARK,60);stats.add(Stat.FIRE,30);
         stats.modifiers.put("final",.25);stats.modifiers.put("skillProduct",1.2);
         Affix affix=new Affix();affix.value=10;affix.maximum=30;affix.element=1;stats.extras.add(new cn.yumis.fight.modules.attributes.api.ExtraDamage(affix.element,affix.value,affix.maximum));
@@ -73,7 +73,7 @@ class SkillPreviewTest {
     }
 
     @Test void ghostUsesMagicBeforePromotionAndPhysicalAfterward(){
-        Progress progress=new Progress();Stats stats=new Stats();
+        Progress progress=new Progress();progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.BASE);Stats stats=new Stats();
         stats.add(Stat.MAGICAL_ATTACK,50);stats.add(Stat.PHYSICAL_ATTACK,100);stats.add(Stat.DARK,60);
         assertEquals(150,SkillPreview.damage(progress,stats,SkillCatalog.GHOST,2,false,new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot()).minimum());
         progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER);

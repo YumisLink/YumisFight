@@ -8,7 +8,7 @@ public final class GhostSwordsmanWeaponVisuals {
     public record Inclination(float degrees,float azimuth){}
     public static List<Inclination> inclinations(long seed){
         var random=new SplittableRandom(seed^0x2E8F51A7L);List<Inclination> result=new ArrayList<>(24);
-        for(int i=0;i<24;i++)result.add(new Inclination((float)random.nextDouble(-5,5),(float)random.nextDouble(360)));
+        for(int i=0;i<24;i++)result.add(new Inclination((float)random.nextDouble(-30,30),(float)random.nextDouble(360)));
         return List.copyOf(result);
     }
     public static List<EquipmentVisualItems.WeaponModel> chooseModels(long seed){

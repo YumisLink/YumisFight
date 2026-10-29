@@ -51,7 +51,8 @@ class RulesTest {
         Progress p=new Progress();
         p.level=80;
         p.promote(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER);
-        assertFalse(cn.yumis.fight.modules.character.api.JobCatalog.canAccept(p,cn.yumis.fight.modules.character.api.JobCatalog.BASE));
+        p.awakened=true;
+        assertFalse(cn.yumis.fight.modules.character.api.JobCatalog.canPromote(p,cn.yumis.fight.modules.character.api.JobCatalog.BASE));
         p.sp=10000;
         for(SkillDefinition skill:SkillCatalog.all()){
             if(skill.equipmentGranted){assertThrows(IllegalArgumentException.class,()->SkillLearning.learn(p,skill,1));continue;}

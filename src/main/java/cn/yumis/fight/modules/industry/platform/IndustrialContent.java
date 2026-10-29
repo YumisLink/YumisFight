@@ -55,7 +55,7 @@ public final class IndustrialContent {
             for(int i=1;i<=count;i++){
                 int tier=kind.minimumTier()+i-1;
                 String key=kind.id+(kind.graded||kind.functional()?"_t"+tier:"");Spec spec=new Spec(key,kind,tier);SPECS.put(key,spec);
-                var block=BLOCKS.registerBlock(key,p->new MachineBlock(spec,p),p->{p.strength(3.5f).sound(SoundType.METAL).noOcclusion();if(kind.has(DeviceType.Capability.WIND))p.pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK);return p;});ALL_BLOCKS.put(key,block);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(block));
+                var block=BLOCKS.registerBlock(key,p->new MachineBlock(spec,p),p->{p.strength(3.5f).sound(SoundType.METAL).noOcclusion();if(kind.currencyUpgrader())p.lightLevel(state->state.getValue(MachineBlock.ACTIVE)?7:0);if(kind.has(DeviceType.Capability.WIND))p.pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK);return p;});ALL_BLOCKS.put(key,block);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(block));
             }
         }
         for(int i=1;i<=10;i++)item("energy_crystal_"+i);

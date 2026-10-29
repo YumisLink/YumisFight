@@ -7,6 +7,10 @@ import java.util.*;
 public final class SkillsClientMessages {
     private SkillsClientMessages(){}
     public static void register(cn.yumis.fight.architecture.CommandRouter<Void,JsonObject> router){
+        router.register("skills","mageAttack",(context,j)->MageClient.INSTANCE.attack(j));
+        router.register("skills","mageSourceEnd",(context,j)->MageClient.INSTANCE.end(j));
+        router.register("skills","herderState",(context,j)->MageClient.INSTANCE.state(j));
+        router.register("skills","herderIncoming",(context,j)->MageClient.INSTANCE.incoming(j));
         router.register("skills","fireImpact",(context,j)->CareerClient.INSTANCE.fireImpact(j));
         router.register("skills","careerState",(context,j)->CareerClient.INSTANCE.receive(j));
         router.register("skills","careerStarted",(context,j)->CareerClient.INSTANCE.started(j));

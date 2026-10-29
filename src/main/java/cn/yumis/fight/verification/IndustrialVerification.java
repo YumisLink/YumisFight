@@ -128,16 +128,16 @@ public final class IndustrialVerification {
         try{
             for(var spec:IndustrialContent.SPECS.values())if(spec.device().processing()){
                 BlockPos p=area();var core=beacon(p,1);var crystal=machine("transfer_crystal_t1",p.east(2));var source=machine(spec.id(),crystal.getBlockPos().below());source.running=false;world.bind(core,crystal);var target=chest(p.east(10));
-                for(int i=0;i<MachineBlockEntity.OUTPUT;i++)source.setItem(i,new ItemStack(Items.IRON_INGOT,7));
-                for(int i=MachineBlockEntity.OUTPUT;i<MachineBlockEntity.OUTPUT_END;i++)source.setItem(i,new ItemStack(Items.IRON_INGOT));
-                source.setItem(MachineBlockEntity.CRYSTAL,IndustrialContent.stack("energy_crystal_"+(spec.tier()*2-1),2));source.setItem(MachineBlockEntity.FUEL,new ItemStack(Items.COAL,3));
+                for(int i=0;i<source.slots().outputStart();i++)source.setItem(i,new ItemStack(Items.IRON_INGOT,7));
+                for(int i=source.slots().outputStart();i<source.slots().outputEnd();i++)source.setItem(i,new ItemStack(Items.IRON_INGOT));
+                source.setItem(source.slots().crystal(),IndustrialContent.stack("energy_crystal_"+(spec.tier()*2-1),2));source.setItem(source.slots().fuel(),new ItemStack(Items.COAL,3));
                 crystal.targetDimension=level.dimension().identifier().toString();crystal.targetPosition=target.getBlockPos().asLong();core.energy=1000;
                 try{
                     ticks(1);equal(8,chestCount(target,Items.IRON_INGOT),spec.id()+"首次搬运数量");equal(1,outputCount(source,Items.IRON_INGOT),spec.id()+"产物余量");equal(200,core.energy,spec.id()+"逐件扣费");
                     ticks(1);equal(9,chestCount(target,Items.IRON_INGOT),spec.id()+"九个产物槽未全部抽取");equal(0,outputCount(source,Items.IRON_INGOT),spec.id()+"产物未抽空");equal(100,core.energy,spec.id()+"尾批扣费");
                     ticks(1);equal(9,chestCount(target,Items.IRON_INGOT),spec.id()+"抽走同种原料");equal(100,core.energy,spec.id()+"无产物仍扣费");
-                    for(int i=0;i<MachineBlockEntity.OUTPUT;i++)equal(7,source.getItem(i).getCount(),spec.id()+"原料槽被转移："+i);
-                    equal(2,source.getItem(MachineBlockEntity.CRYSTAL).getCount(),spec.id()+"供能水晶被转移");equal(3,source.getItem(MachineBlockEntity.FUEL).getCount(),spec.id()+"燃料被转移");
+                    for(int i=0;i<source.slots().outputStart();i++)equal(7,source.getItem(i).getCount(),spec.id()+"原料槽被转移："+i);
+                    equal(2,source.getItem(source.slots().crystal()).getCount(),spec.id()+"供能水晶被转移");equal(3,source.getItem(source.slots().fuel()).getCount(),spec.id()+"燃料被转移");
                 }finally{crystal.running=false;}
             }
         }finally{IndustrialRules.current().transferIntervals[0]=interval;}
@@ -148,7 +148,7 @@ public final class IndustrialVerification {
         int interval=IndustrialRules.current().transferIntervals[0];IndustrialRules.current().transferIntervals[0]=1;
         try{
             ticks(1);equal(0,chestCount(target,Items.IRON_INGOT),"无产物时转移原料");equal(1000,core.energy,"无产物时扣费");
-            source.setItem(MachineBlockEntity.OUTPUT,new ItemStack(Items.IRON_INGOT,7));for(int i=0;i<target.getContainerSize();i++)target.setItem(i,new ItemStack(Items.STONE,64));
+            source.setItem(source.slots().outputStart(),new ItemStack(Items.IRON_INGOT,7));for(int i=0;i<target.getContainerSize();i++)target.setItem(i,new ItemStack(Items.STONE,64));
             ticks(1);equal(7,outputCount(source,Items.IRON_INGOT),"满箱吞产物");equal(1000,core.energy,"满箱仍扣费");
             target.setItem(26,new ItemStack(Items.IRON_INGOT,61));ticks(1);equal(64,chestCount(target,Items.IRON_INGOT),"部分接收数量");equal(4,outputCount(source,Items.IRON_INGOT),"部分接收源数量");equal(700,core.energy,"部分接收应仅扣三件费用");
             target.setItem(26,ItemStack.EMPTY);core.energy=0;ticks(1);equal(4,outputCount(source,Items.IRON_INGOT),"缺能吞产物");equal(0,chestCount(target,Items.IRON_INGOT),"缺能仍传送");

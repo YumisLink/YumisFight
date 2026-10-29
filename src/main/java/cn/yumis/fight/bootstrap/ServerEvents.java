@@ -112,6 +112,14 @@ public final class ServerEvents {
             slots.then(Commands.literal(action).then(Commands.argument("player",EntityArgument.player()).then(group)));
         }
         root.then(equipment.then(slots));
+        var job=Commands.literal("job").requires(source->source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
+        job.then(Commands.literal("mark").then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("base",StringArgumentType.word()).suggests((context,builder)->{builder.suggest("ghost_swordsman");builder.suggest("mage");return builder.buildFuture();}).executes(c->{var value=StringArgumentType.getString(c,"base");ServerApplication.get().progressService.markQuest(EntityArgument.getPlayer(c,"player"),value.contains(":")?value:itemNamespace()+value);return 1;}))));
+        job.then(Commands.literal("awaken").then(Commands.argument("player",EntityArgument.player()).executes(c->{ServerApplication.get().progressService.awaken(EntityArgument.getPlayer(c,"player"));return 1;})));
+        root.then(job);
+        var points=Commands.literal("points").requires(source->source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
+        points.then(Commands.literal("get").then(Commands.argument("player",EntityArgument.player()).executes(c->{var player=EntityArgument.getPlayer(c,"player");long value=ServerApplication.get().economyService.points(player);c.getSource().sendSuccess(()->ModText.of(player.getName().getString()+"："+value+"点券"),false);return 1;})));
+        for(String operation:List.of("give","take"))points.then(Commands.literal(operation).then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("amount",LongArgumentType.longArg(1)).executes(c->{long amount=LongArgumentType.getLong(c,"amount")*(operation.equals("give")?1:-1);ServerApplication.get().economyService.changePoints(EntityArgument.getPlayer(c,"player"),amount);return 1;}))));
+        root.then(points);
         root.then(Commands.literal("profession").requires(source->source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)).then(Commands.literal("addxp").then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("profession",StringArgumentType.word()).then(Commands.argument("experience",LongArgumentType.longArg(1)).executes(c->{
             var runtime=ServerApplication.get();var player=EntityArgument.getPlayer(c,"player");runtime.professionService.award(player.getUUID(),StringArgumentType.getString(c,"profession"),LongArgumentType.getLong(c,"experience"),"administrator/"+UUID.randomUUID(),true);runtime.professions(player);return 1;
         }
@@ -121,10 +129,6 @@ public final class ServerEvents {
             ServerPlayer p=EntityArgument.getPlayer(c,"player");var r=ServerApplication.get();Progress pr=r.session(p).progress;int level=IntegerArgumentType.getInteger(c,"level");while(pr.level<level)pr.grant(nextExperience(pr.level));r.savePlayer(p);r.profile(p);r.message(p,"开发测试：角色等级已提高");return 1;
         }
         ))));
-        dev.then(Commands.literal("job").executes(c->{
-            var r=ServerApplication.get();ServerPlayer p=c.getSource().getPlayerOrException();if(r.session(p).progress.level<20)throw new IllegalArgumentException("开发转职仍需20级");r.session(p).progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER);r.savePlayer(p);r.profile(p);r.message(p,"开发测试：已跳过任务转职剑魂");return 1;
-        }
-        ));
         dev.then(Commands.literal("white").executes(c->{
             var r=ServerApplication.get();ServerPlayer p=c.getSource().getPlayerOrException();JsonObject intent=new JsonObject();intent.addProperty("dev","white");r.inventory.transact(p,UUID.randomUUID().toString(),intent,()->{
                 for(Slot slot:Slot.values())if(r.session(p).progress.level>=slot.minimum())r.inventory.requireSpace(p,EquipmentItems.gear(EquipmentTemplates.createStandard(slot,Weapon.KATANA,Rarity.COMMON,r.session(p).progress.level,r.random)));
@@ -149,4 +153,5 @@ public final class ServerEvents {
         root.then(dev);
         e.getDispatcher().register(root);
     }
+    private static String itemNamespace(){return cn.yumis.fight.platform.ItemData.NS+":";}
 }

@@ -4,12 +4,13 @@ import java.util.*;
 
 /** Stable device IDs composed from capabilities. Registration occurs before block registration. */
 public final class DeviceType {
-    public enum Capability {PROCESSING,GENERATION,LOGISTICS,HARVEST,STORAGE_NETWORK,STRUCTURE,SELECT_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR}
+    public enum Capability {PROCESSING,GENERATION,LOGISTICS,HARVEST,STORAGE_NETWORK,STRUCTURE,SELECT_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE}
     public enum Speed {TIER_EXPONENTIAL,FURNACE_TABLE,FIXED}
     public enum Output {RECIPE,CURRENCY}
     private static final Map<String,DeviceType> TYPES=new LinkedHashMap<>();
     public final String id;
     public final boolean graded;
+    public final MachineSlots slots;
     private final int inputs,minimumTier,maximumTier;
     private final Set<Capability> capabilities;
     private final Speed speed;
@@ -25,10 +26,11 @@ public final class DeviceType {
         THERMAL=generator("thermal_generator",3,Capability.FUEL,Capability.FLUID_FUEL),NUCLEAR=generator("nuclear_reactor",4,Capability.FUEL,Capability.FLUID_FUEL),RTG=generator("rtg_generator",5,Capability.FUEL),
         MIXER=register("coolant_mixer",false,1,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING),Speed.FIXED,Output.RECIPE),
         TRANSFER=register("transfer_crystal",false,0,1,3,Set.of(Capability.LOGISTICS),Speed.FIXED,Output.RECIPE),
-        HARVEST=register("harvest_crystal",false,0,1,3,Set.of(Capability.HARVEST),Speed.FIXED,Output.RECIPE);
-    private DeviceType(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){this.id=id;this.graded=graded;this.inputs=inputs;this.minimumTier=minimumTier;this.maximumTier=maximumTier;this.capabilities=Set.copyOf(capabilities);this.speed=speed;this.output=output;}
+        HARVEST=register("harvest_crystal",false,0,1,3,Set.of(Capability.HARVEST),Speed.FIXED,Output.RECIPE),
+        CURRENCY_UPGRADER=register("currency_upgrader",false,9,1,1,Set.of(Capability.CURRENCY_UPGRADE),Speed.FIXED,Output.RECIPE);
+    private DeviceType(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){this.id=id;this.graded=graded;this.inputs=inputs;this.minimumTier=minimumTier;this.maximumTier=maximumTier;this.capabilities=Set.copyOf(capabilities);this.speed=speed;this.output=output;this.slots=capabilities.contains(Capability.CURRENCY_UPGRADE)?MachineSlots.currencyUpgrade():MachineSlots.ordinary(inputs);}
     public static synchronized DeviceType register(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){
-        if(id==null||!id.matches("[a-z][a-z0-9_]*")||inputs<0||inputs>4||minimumTier<1||maximumTier>5||minimumTier>maximumTier)throw new IllegalArgumentException("Invalid device: "+id);
+        if(id==null||!id.matches("[a-z][a-z0-9_]*")||inputs<0||inputs>9||minimumTier<1||maximumTier>5||minimumTier>maximumTier)throw new IllegalArgumentException("Invalid device: "+id);
         var value=new DeviceType(id,graded,inputs,minimumTier,maximumTier,capabilities,Objects.requireNonNull(speed),Objects.requireNonNull(output));
         if(TYPES.putIfAbsent(id,value)!=null)throw new IllegalArgumentException("Duplicate device: "+id);return value;
     }
@@ -41,6 +43,8 @@ public final class DeviceType {
     public boolean generator(){return has(Capability.GENERATION);}
     public boolean functional(){return has(Capability.LOGISTICS)||has(Capability.HARVEST);}
     public boolean processing(){return has(Capability.PROCESSING);}
+    public boolean currencyUpgrader(){return has(Capability.CURRENCY_UPGRADE);}
+    public boolean outputs(){return processing()||currencyUpgrader();}
     public int inputs(){return inputs;}
     public int minimumTier(){return minimumTier;}
     public int maximumTier(){return maximumTier;}

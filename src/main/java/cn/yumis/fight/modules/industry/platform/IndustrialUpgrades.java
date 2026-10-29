@@ -23,8 +23,8 @@ public final class IndustrialUpgrades {
         inventory.transactMachine(player,"machine-upgrade/"+UUID.randomUUID(),intent,machine,()->{
             if(!machine.stillValid(player)||player.level().getBlockEntity(machine.getBlockPos())!=machine)throw new IllegalArgumentException("机器已失效");
             player.getItemInHand(hand).shrink(1);
-            ItemStack crystal=machine.getItem(MachineBlockEntity.CRYSTAL);
-            if(!crystal.isEmpty()&&!EnergyMath.accepts(machine.tier()+1,IndustrialContent.crystalTier(crystal))){inventory.requireSpace(player,crystal.copy());machine.setItem(MachineBlockEntity.CRYSTAL,ItemStack.EMPTY);}
+            ItemStack crystal=machine.getItem(machine.slots().crystal());
+            if(!crystal.isEmpty()&&!EnergyMath.accepts(machine.tier()+1,IndustrialContent.crystalTier(crystal))){inventory.requireSpace(player,crystal.copy());machine.setItem(machine.slots().crystal(),ItemStack.EMPTY);}
             player.level().setBlock(machine.getBlockPos(),machine.getBlockState().setValue(MachineBlock.TIER,machine.tier()+1),3);
             machine.setChanged();IndustrialWorld.get(player.level()).changed(player.level(),machine.getBlockPos());
         },Map.of());

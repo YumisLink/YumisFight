@@ -6,6 +6,7 @@ public final class NamedEquipment {
     public record Template(String id,String name,int level,Rarity rarity,Slot slot,Weapon weapon,ArmorType armor,JewelryType jewelry,int sockets,List<String> effects){}
     private static final Map<String,Template> ALL=new LinkedHashMap<>();
     static {
+        add("starter_staff","学徒法杖",1,Rarity.COMMON,Slot.WEAPON,Weapon.STAFF,ArmorType.UNTYPED,JewelryType.UNTYPED,0);
         add("willy_staff","威利的戒严法杖",55,Rarity.MYTHIC,Slot.WEAPON,Weapon.STAFF,ArmorType.UNTYPED,JewelryType.UNTYPED,8,"gem_amplification");
         add("skyspine","天脊乾坤剑",50,Rarity.EPIC,Slot.WEAPON,Weapon.LIGHTSABER,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"fire_after_damage","fire_conversion","fire_only");
         add("bylle","别云剑-无用",55,Rarity.EPIC,Slot.WEAPON,Weapon.GREATSWORD,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"bylle_physical_percent","bylle_physical_flat","block_elemental");
