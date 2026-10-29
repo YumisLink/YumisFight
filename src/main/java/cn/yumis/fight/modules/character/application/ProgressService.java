@@ -25,18 +25,18 @@ public final class ProgressService {
     private final InventoryOperations inventory;
     private final Function<ServerPlayer,Progress> progressOf;
     private final ToLongFunction<ServerPlayer> combatUntil;
+    private final LongSupplier combatDelay;
     private final BiConsumer<ServerPlayer,Progress> update;
     private final Consumer<ServerPlayer> profile;
     private JobTransitions transitions;
     public void transitions(JobTransitions value){transitions=Objects.requireNonNull(value);}
-    public ProgressService(Journal journal,InventoryOperations inventory,Function<ServerPlayer,Progress> progressOf,ToLongFunction<ServerPlayer> combatUntil,BiConsumer<ServerPlayer,Progress> update,Consumer<ServerPlayer> profile,Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> stats,SkillProgression skills){this.skills=skills;this.stats=stats;this.journal=journal;this.inventory=inventory;this.progressOf=progressOf;this.combatUntil=combatUntil;this.update=update;this.profile=profile;}
+    public ProgressService(Journal journal,InventoryOperations inventory,Function<ServerPlayer,Progress> progressOf,ToLongFunction<ServerPlayer> combatUntil,BiConsumer<ServerPlayer,Progress> update,Consumer<ServerPlayer> profile,Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> stats,SkillProgression skills,LongSupplier combatDelay){this.skills=skills;this.stats=stats;this.journal=journal;this.inventory=inventory;this.progressOf=progressOf;this.combatUntil=combatUntil;this.update=update;this.profile=profile;this.combatDelay=combatDelay;}
     public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("character","progress",this::request);}
 
     public void request(ServerPlayer p,JsonObject j){
         Progress current=progressOf.apply(p);
         Progress next=copy(current,Progress.class);
         String kind=j.get("kind").getAsString();
-        if(!kind.equals("bind")&&System.currentTimeMillis()<combatUntil.applyAsLong(p))throw new IllegalArgumentException("请在连续3秒未造成或受到伤害后操作");
         String op=j.get("operation").getAsString(),key="progressReceipt/"+p.getUUID()+"/"+op;
         JsonElement previous=journal.get(key);
         if(!previous.isJsonNull()){
@@ -45,9 +45,10 @@ public final class ProgressService {
             return;
         }
         String jobId=j.has("job")?j.get("job").getAsString():JobCatalog.SWORDMASTER;
+        if(!kind.equals("bind")&&System.currentTimeMillis()<combatUntil.applyAsLong(p))throw new IllegalArgumentException("请在连续"+(combatDelay.getAsLong()/1000d)+"秒未造成或受到伤害后操作");
         JobTransitions.Change change=null;
         switch(kind){
-            case "learn","resetSkills","bind"->skills.apply(next,stats.apply(p),j);
+            case "learn","unlearn","resetSkills","bind"->skills.apply(next,stats.apply(p),j);
             case "allocate"->next.allocate(j.get("stat").getAsString(),j.has("count")?j.get("count").getAsInt():1);
             case "resetAttributes"->{
                 next.strength=next.intelligence=next.spirit=0;
@@ -79,6 +80,7 @@ public final class ProgressService {
         }
         try{
             if(kind.equals("resetSkills")&&transitions!=null)change=transitions.clear(p,next);
+            if(kind.equals("unlearn"))change=Objects.requireNonNull(transitions,"技能退级端口未装配").reduceSkill(p,next,j.get("skill").getAsString());
             journal.begin();
             journal.put("player/"+p.getUUID(),next);
             journal.put(key,j);

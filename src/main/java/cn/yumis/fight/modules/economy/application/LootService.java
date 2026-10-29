@@ -129,7 +129,7 @@ public class LootService implements InventoryDrops {
         for(ServerPlayer p:candidates){
             Progress progress=copy(players.progress(p),Progress.class);
             Stats stats=players.stats(p);
-            int level=target.level(progress.level,instance?encounters.byId(target.instance).sync:progress.sync);
+            int level=target.level(progress.level,instance?encounters.byId(target.instance).syncFor(p.getUUID()):progress.sync);
             long xp=CurrencyRules.roundedReward((10+2*level)*(boss?10:target.elite?3:1)*target.difficulty.xp*balance.settings().combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN));
             progress.grant(xp);
             long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,balance.settings().killGoldMultiplier());

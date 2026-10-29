@@ -17,8 +17,10 @@ public final class IndustrialMenu extends AbstractContainerMenu {
     public JsonObject info=new JsonObject();
     private int broadcasts;
     public boolean showLines;
-    public IndustrialMenu(int id,Inventory inv,RegistryFriendlyByteBuf buf){this(id,inv,find(inv,buf));}
-    public static void writeOpen(RegistryFriendlyByteBuf buf,MachineBlockEntity be){buf.writeBlockPos(be.getBlockPos());buf.writeUtf(be.spec().id());buf.writeEnum(be.getBlockState().getValue(MachineBlock.FACING));}
+    private static final Map<String,JsonObject> INITIAL=new LinkedHashMap<>();
+    public static void initial(String token,JsonObject snapshot){INITIAL.put(token,snapshot);while(INITIAL.size()>8)INITIAL.remove(INITIAL.keySet().iterator().next());}
+    public IndustrialMenu(int id,Inventory inv,RegistryFriendlyByteBuf buf){this(id,inv,find(inv,buf));JsonObject snapshot=INITIAL.remove(buf.readUtf());if(snapshot==null)throw new IllegalStateException("缺少设备首屏快照");info=snapshot.getAsJsonObject("info");var data=snapshot.getAsJsonArray("slots");var codec=inv.player.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE);for(int i=0;i<slots.size();i++)slots.get(i).set(ItemStack.OPTIONAL_CODEC.parse(codec,data.get(i)).getOrThrow());}
+    public static void writeOpen(RegistryFriendlyByteBuf buf,MachineBlockEntity be,String token){buf.writeBlockPos(be.getBlockPos());buf.writeUtf(be.spec().id());buf.writeEnum(be.getBlockState().getValue(MachineBlock.FACING));buf.writeUtf(token);}
     private static MachineBlockEntity find(Inventory inv,RegistryFriendlyByteBuf buf){
         BlockPos pos=buf.readBlockPos();String spec=buf.readUtf();var facing=buf.readEnum(net.minecraft.core.Direction.class);
         if(inv.player.level().getBlockEntity(pos) instanceof MachineBlockEntity be&&be.spec().id().equals(spec)&&be.getBlockState().getValue(MachineBlock.FACING)==facing)return be;

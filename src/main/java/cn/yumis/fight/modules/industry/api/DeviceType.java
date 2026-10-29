@@ -19,7 +19,7 @@ public final class DeviceType {
         MINER=processor("mineral_generator",0,Speed.TIER_EXPONENTIAL,Output.RECIPE,Capability.SELECT_RECIPE),
         CURRENCY=processor("currency_fabricator",0,Speed.FIXED,Output.CURRENCY,Capability.EXACT_RECIPE_TIER),
         FORGE=processor("mana_forge",4,Speed.TIER_EXPONENTIAL,Output.RECIPE,Capability.STRUCTURE),
-        BEACON=register("mana_beacon",true,0,1,5,Set.of(Capability.STORAGE_NETWORK,Capability.STRUCTURE),Speed.FIXED,Output.RECIPE),
+        BEACON=register("mana_beacon",true,0,1,5,Set.of(Capability.STORAGE_NETWORK),Speed.FIXED,Output.RECIPE),
         COAL=generator("coal_generator",1,Capability.FUEL),SOLAR=generator("solar_collector",1,Capability.SOLAR),
         TURBINE=generator("turbine_generator",2,Capability.FUEL,Capability.FLUID_FUEL,Capability.ROTOR),WIND=generator("wind_generator",2,Capability.WIND),
         THERMAL=generator("thermal_generator",3,Capability.FUEL,Capability.FLUID_FUEL),NUCLEAR=generator("nuclear_reactor",4,Capability.FUEL,Capability.FLUID_FUEL),RTG=generator("rtg_generator",5,Capability.FUEL),

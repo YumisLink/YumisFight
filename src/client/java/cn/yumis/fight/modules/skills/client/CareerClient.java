@@ -47,6 +47,7 @@ public final class CareerClient {
     public void receive(JsonObject data){
         CareerState next=JSON.fromJson(data,CareerState.class);
         if(!state().session().equals(next.session)||next.generation!=state().own().generation)return;
+        for(var reduction:next.reductions.entrySet())if(reduction.getValue()>view.reductions.getOrDefault(reduction.getKey(),0L))SkillReductions.resources(reduction.getKey(),state().resources());
         if(view.field!=null&&(next.field==null||!next.field.id.equals(view.field.id))){TrainingCombat.release(view.field.id,"persistent");var old=sources.get(view.field.id);if(old!=null)SkillController.INSTANCE.stopVisual(old);}
         if(view.kallaUntil>0&&next.kallaUntil==0)for(var source:sources.values())if(source.skill.id.equals(CareerSkills.KALLA)&&!source.terminal)TrainingCombat.release(source.id,"persistent");
         for(var source:sources.values())if(!source.terminal&&(

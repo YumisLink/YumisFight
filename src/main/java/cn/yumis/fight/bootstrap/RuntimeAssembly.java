@@ -30,10 +30,12 @@ public final class RuntimeAssembly {
     public static cn.yumis.fight.modules.combat.application.NativeHits nativeHits(ServerApplication runtime){return new cn.yumis.fight.modules.combat.application.NativeHits(runtime.journal,runtime::session,runtime.targets::resolve,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,p->runtime.visuals.invulnerable(p)||runtime.careers.invulnerable(p),()->runtime.bridge,runtime.inventory::encode).launches((player,weapon)->runtime.careers.projectileSnapshot(player,weapon));}
     public static cn.yumis.fight.modules.skills.application.VisualService visualService(ServerApplication runtime){return new cn.yumis.fight.modules.skills.application.VisualService(runtime.server,runtime::session);}
     public static cn.yumis.fight.modules.skills.application.CloudLeapService cloudLeapService(ServerApplication runtime){return new cn.yumis.fight.modules.skills.application.CloudLeapService(runtime.server,runtime::session,runtime.inventory::locked,runtime.visuals::movementLocked);}
-    public static cn.yumis.fight.modules.dungeons.application.DamageMeterService damageMeterService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.DamageMeterService(runtime.journal,runtime.server,id->runtime.dungeons.current(id),(p,id)->runtime.dungeons.participant(p,id),p->runtime.session(p).progress.level);}
+    public static cn.yumis.fight.modules.dungeons.application.DamageMeterService damageMeterService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.DamageMeterService(runtime.journal,runtime.server,id->runtime.dungeons.current(id),(p,id)->runtime.dungeons.participant(p,id),p->runtime.session(p).progress.level,()->runtime.combatSettings);}
     public static DungeonService dungeonService(ServerApplication runtime){return new DungeonService(runtime.journal,runtime.server,new DungeonPorts.Players(){
         public CombatSession session(ServerPlayer p){return runtime.session(p);}
         public int level(ServerPlayer p){return runtime.session(p).progress.level;}
+        public Progress progress(ServerPlayer p){return runtime.session(p).progress;}
+        public void progress(ServerPlayer p,Progress next){runtime.session(p).progress=next;}
         public void save(ServerPlayer p)throws Exception{runtime.savePlayer(p);}
         public void profile(ServerPlayer p){runtime.profile(p);}
         public void message(ServerPlayer p,String text){runtime.message(p,text);}

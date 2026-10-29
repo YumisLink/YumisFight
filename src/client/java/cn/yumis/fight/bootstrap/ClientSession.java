@@ -34,11 +34,13 @@ import java.util.*;
 public final class ClientSession implements cn.yumis.fight.modules.equipment.api.client.EquipmentClient,cn.yumis.fight.modules.skills.api.client.SkillsClient {
     public Progress progress(){return progress;}
     public Stats stats(){return stats;}
+    public cn.yumis.fight.modules.combat.api.CombatSettings combatSettings(){return combatSettings;}
+    public cn.yumis.fight.modules.combat.api.CombatSettings combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
     public Life own(){return own;}
     public cn.yumis.fight.modules.combat.api.Runtime resources(){return resources;}
     public boolean ready(){return ready;}
     public String session(){return session;}
-    public boolean encounterSync(){return dungeon==null?progress.sync:dungeon.sync;}
+    public boolean encounterSync(){return dungeon==null?progress.sync:dungeon.syncFor(own.target);}
     public Map<UUID,Target> targets(){return targets;}
 
     public static final ClientSession INSTANCE=new ClientSession();
@@ -72,6 +74,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     public final cn.yumis.fight.modules.combat.api.client.CombatPrediction prediction=new cn.yumis.fight.modules.combat.api.client.CombatPrediction(new cn.yumis.fight.modules.combat.api.client.CombatPrediction.State(){
         public boolean ready(){return ready;} public String session(){return session;} public Life own(){return own;}
         public cn.yumis.fight.modules.combat.api.Runtime resources(){return resources;}
+        public cn.yumis.fight.modules.combat.api.CombatSettings combatSettings(){return combatSettings;}
         public long serverOffset(){return serverOffset;} public long serverNow(){return ClientSession.this.serverNow();}
         public Life target(UUID id){var target=targets.get(id);return target==null?null:target.life;}
         public boolean training(UUID id){return cn.yumis.fight.modules.skills.api.client.TrainingCombat.isTraining(id);}
@@ -113,6 +116,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         send("progress",j);
     }
     public void clear(){
+        cn.yumis.fight.modules.party.client.PartyInvitations.clear();combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
         cn.yumis.fight.modules.combat.api.client.DamageAnalysis.clear();
         gold.clear();viewSync.clear();checkpoint=null;checkpointGeneration=-1;reportedCheckpoints.clear();pendingRuntime=null;pendingRuntimeState=null;runtimeSequence=0;minimumRuntimeIssuedAt=0;lastResourceServerTime=lastClockArrival=Long.MIN_VALUE;definitionRetries=0;
         cn.yumis.fight.modules.skills.api.client.TrainingCombat.clear();
@@ -245,6 +249,7 @@ if(j.has("target")&&j.has("kind")){
                 session=incoming;
                 profile=j;
                 progress=JSON.fromJson(j.get("progress"),Progress.class);
+                combatSettings=JSON.fromJson(j.get("combatSettings"),cn.yumis.fight.modules.combat.api.CombatSettings.class);
                 if(freshResources)stats=JSON.fromJson(j.get("stats"),Stats.class);
                 if(freshResources&&j.has("equipmentEffects"))resources.equipment=JSON.fromJson(j.get("equipmentEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);
                 if(freshResources&&!reset){resources.equipmentBuffs=runtime.equipmentBuffs;for(var buff:resources.equipmentBuffs.values())buff.expires+=receivedAt-serverNow;}
@@ -252,6 +257,7 @@ if(j.has("target")&&j.has("kind")){
                 resources.mp=Math.clamp(resources.mp,0,stats.get(Stat.MP));
                 resources.shield=Math.clamp(resources.shield,0,stats.get(Stat.SHIELD));
                 party=!j.has("party")||j.get("party").isJsonNull()?null:JSON.fromJson(j.get("party"),Team.class);
+                cn.yumis.fight.modules.party.client.PartyInvitations.receive(j.getAsJsonArray("partyInvitations"));
                 dungeon=!j.has("dungeon")||j.get("dungeon").isJsonNull()?null:JSON.fromJson(j.get("dungeon"),Dungeon.class);
                 if(j.has("equipmentGroups")&&Minecraft.getInstance().player!=null){
                     var groups=new ArrayList<String>();
@@ -302,6 +308,8 @@ if(j.has("target")&&j.has("kind")){
     }
     public void tick(){
         var mc=Minecraft.getInstance();
+        cn.yumis.fight.modules.equipment.client.FabricatorOpening.tick();
+        cn.yumis.fight.modules.party.client.PartyInvitations.tick(ready&&mc.player!=null&&!own.dead&&mc.gui.screen()==null&&mc.player.containerMenu==mc.player.inventoryMenu&&now()>=resources.combatUntil&&!SkillController.INSTANCE.locked());
         if(mc.player==null||mc.level==null){
             if(ready)clear();
             return;

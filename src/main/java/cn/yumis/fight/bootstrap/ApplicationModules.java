@@ -13,7 +13,7 @@ public final class ApplicationModules {
         module("attributes"),
         module("character","attributes","inventory","presentation"),
         module("combat","attributes","character","equipment","presentation"),
-        module("dungeons","combat","party","presentation"),
+        module("dungeons","character","combat","party","presentation"),
         module("economy","affixes","attributes","character","dungeons","equipment","inventory","presentation"),
         module("equipment","affixes","attributes","character","inventory","presentation","professions"),
         module("industry","economy","inventory","presentation"),

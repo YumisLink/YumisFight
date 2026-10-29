@@ -35,6 +35,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
     private final Map<UUID,Long> lastBloodGain=new HashMap<>();
     private final Map<UUID,Map<String,Long>> orbHitClocks=new HashMap<>();
     private final Map<UUID,Long> invulnerable=new HashMap<>();
+    private final Map<UUID,Set<String>> reduced=new HashMap<>();
     private static final class Cast {
         String id,skill,session,dimension,instance;
         long generation,expires,started;
@@ -88,7 +89,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
     public Stats currentStats(ServerPlayer p){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),sessions.apply(p).resources,now),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
     public boolean invulnerable(ServerPlayer p){state(p);return invulnerable.getOrDefault(p.getUUID(),0L)>System.currentTimeMillis();}
     public boolean frenzy(ServerPlayer p){return state(p).frenzy&&!sessions.apply(p).life.dead;}
-    public void clear(ServerPlayer p){states.remove(p.getUUID());sentViews.remove(p.getUUID());casts.remove(p.getUUID());lastBloodGain.remove(p.getUUID());orbHitClocks.remove(p.getUUID());invulnerable.remove(p.getUUID());for(var kind:List.of(Attributes.KNOCKBACK_RESISTANCE,Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)){var attribute=p.getAttribute(kind);if(attribute!=null)attribute.removeModifier(STEADFAST);}}
+    public void clear(ServerPlayer p){reduced.remove(p.getUUID());states.remove(p.getUUID());sentViews.remove(p.getUUID());casts.remove(p.getUUID());lastBloodGain.remove(p.getUUID());orbHitClocks.remove(p.getUUID());invulnerable.remove(p.getUUID());for(var kind:List.of(Attributes.KNOCKBACK_RESISTANCE,Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)){var attribute=p.getAttribute(kind);if(attribute!=null)attribute.removeModifier(STEADFAST);}}
     private Cast cast(ServerPlayer p,String id){return casts.getOrDefault(p.getUUID(),Map.of()).get(id);}
     private final Map<UUID,JsonElement> sentViews=new HashMap<>();
     public void sync(ServerPlayer p){send(p);}
@@ -171,7 +172,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             Network.send(p,"careerStarted",ack);send(p);
         }catch(Exception error){journal.abort();JsonObject rejected=new JsonObject();rejected.addProperty("id",id);rejected.addProperty("error",Objects.toString(error.getMessage(),"施放失败"));Network.send(p,"careerRejected",rejected);}
     }
-    public void baseSucceeded(ServerPlayer p,SkillDefinition definition){if(progress.apply(p).hasJob(JobCatalog.ASURA)&&SkillLearning.effective(stats.apply(p),progress.apply(p),SkillCatalog.require(CareerSkills.BRANDS))>0&&CareerRules.producesBrand(definition.id)){var s=state(p);s.brands=Math.min(5,s.brands+1);send(p);}}
+    public void baseSucceeded(ServerPlayer p,SkillDefinition definition){var blocked=reduced.get(p.getUUID());if(blocked!=null)blocked.remove(definition.id);if(progress.apply(p).hasJob(JobCatalog.ASURA)&&SkillLearning.effective(stats.apply(p),progress.apply(p),SkillCatalog.require(CareerSkills.BRANDS))>0&&CareerRules.producesBrand(definition.id)){var s=state(p);s.brands=Math.min(5,s.brands+1);send(p);}}
     public Stats castStats(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime resources){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),resources,now),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
     /** A native projectile fixes both the weapon contribution and equipment policies at actual spawn. */
     public CombatPorts.NativeLaunch projectileSnapshot(ServerPlayer player,net.minecraft.world.item.ItemStack weapon){
@@ -185,7 +186,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
     public Stats sourceStats(ServerPlayer p,JsonObject report){Cast value=report.has("careerCast")?cast(p,report.get("careerCast").getAsString()):null;return value==null?null:value.stats;}
     public EquipmentEffects.Snapshot sourceEffects(ServerPlayer p,JsonObject report){Cast value=report.has("careerCast")?cast(p,report.get("careerCast").getAsString()):null;return value==null?null:value.equipment;}
     private void cancel(ServerPlayer p,JsonObject j){var c=cast(p,j.get("id").getAsString());if(c!=null){c.expires=0;if(c.terminal&&(c.skill.equals(CareerSkills.SWORD)||c.skill.equals(CareerSkills.EYE)))invulnerable.remove(p.getUUID());}}
-    @Override public void reconcile(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime previous,cn.yumis.fight.modules.combat.api.Runtime incoming){for(var content:CareerSkills.all()){String id=content.skill().id;long until=previous.cooldowns.getOrDefault(id,0L);if(until>incoming.cooldowns.getOrDefault(id,0L))incoming.cooldowns.put(id,until);}}
+    @Override public void reconcile(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime previous,cn.yumis.fight.modules.combat.api.Runtime incoming){for(String id:reduced.getOrDefault(p.getUUID(),Set.of()))SkillReductions.resources(id,incoming);for(var content:CareerSkills.all()){String id=content.skill().id;long until=previous.cooldowns.getOrDefault(id,0L);if(until>incoming.cooldowns.getOrDefault(id,0L))incoming.cooldowns.put(id,until);}}
     private String hitKey(JsonObject report){return report.get("careerIndex").getAsInt()+"/"+report.get("target").getAsString()+"/"+report.get("generation").getAsLong();}
     @Override public boolean direct(ServerPlayer p,JsonObject report){Cast c=report.has("careerCast")?cast(p,report.get("careerCast").getAsString()):null;return c==null||!c.skill.equals(CareerSkills.FIELD)&&!(c.skill.equals(CareerSkills.KALLA)&&report.get("careerIndex").getAsInt()>=64);}
     @Override public void validate(ServerPlayer p,LivingEntity target,JsonObject report){
@@ -274,6 +275,15 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         var session=sessions.apply(p);var resources=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);resources.controlEpoch++;
         resources.buffs.remove("yumis_dungeon_and_fight:overdrive");resources.absorption.remove("overdrivePower");
         return new Change(Map.of("resources/"+p.getUUID(),JSON.toJsonTree(resources)),()->{session.resources=resources;clear(p);send(p);});
+    }
+    @Override public Change reduceSkill(ServerPlayer p,Progress next,String skillId){
+        var session=sessions.apply(p);var state=copy(state(p),CareerState.class);var resources=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);
+        SkillReductions.apply(skillId,state,resources);state.reductions.merge(skillId,1L,Math::addExact);resources.recordedAt=System.currentTimeMillis();
+        return new Change(Map.of("resources/"+p.getUUID(),JSON.toJsonTree(resources)),()->{
+            session.resources=resources;states.put(p.getUUID(),state);reduced.computeIfAbsent(p.getUUID(),id->new HashSet<>()).add(skillId);
+            if(!state.frenzy)for(var kind:List.of(Attributes.KNOCKBACK_RESISTANCE,Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)){var attribute=p.getAttribute(kind);if(attribute!=null)attribute.removeModifier(STEADFAST);}
+            sentViews.remove(p.getUUID());send(p);
+        });
     }
     public void tick(){
         long now=System.currentTimeMillis();

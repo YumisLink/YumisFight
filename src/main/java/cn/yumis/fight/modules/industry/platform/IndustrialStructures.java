@@ -28,10 +28,6 @@ public final class IndustrialStructures {
     @FunctionalInterface public interface Pattern {List<BlockPos> missing(MachineBlockEntity machine);}
     private static final Map<String,Pattern> PATTERNS=new LinkedHashMap<>();
     static {
-        register(DeviceType.BEACON,be->{
-            List<BlockPos> missing=new ArrayList<>();Block material=structureMaterial(be.tier());
-            for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++){BlockPos pos=be.getBlockPos().offset(x,-1,z);if(!be.getLevel().hasChunkAt(pos)||!be.getLevel().getBlockState(pos).is(material))missing.add(pos);}return missing;
-        });
         register(DeviceType.FORGE,be->{
             List<BlockPos> missing=new ArrayList<>();Block material=structureMaterial(be.tier());BlockPos origin=be.getBlockPos(),center=origin.relative(be.getBlockState().getValue(MachineBlock.FACING).getOpposite()).above();
             for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)for(int z=-1;z<=1;z++){BlockPos pos=center.offset(x,y,z);if(pos.equals(origin))continue;boolean air=x==0&&y==0&&z==0;if(!be.getLevel().hasChunkAt(pos)||(air?!be.getLevel().getBlockState(pos).isAir():!be.getLevel().getBlockState(pos).is(material)))missing.add(pos);}return missing;

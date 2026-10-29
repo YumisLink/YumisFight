@@ -19,7 +19,7 @@ import java.util.*;
 public final class InventoryTransactions implements cn.yumis.fight.modules.inventory.api.InventoryOperations {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
-    public record Snapshot(List<JsonElement> items,List<JsonElement> equipment,List<JsonElement> bag,JsonElement cursor,String operation,List<String> groups,List<JsonElement> crafting,boolean curios,int bagSchema,int bagTier,int bagPage,List<JsonElement> bagOverflow) {
+    public record Snapshot(List<JsonElement> items,List<JsonElement> equipment,List<JsonElement> bag,JsonElement cursor,String operation,List<String> groups,List<JsonElement> crafting,boolean curios,int bagSchema,int bagTier,int bagPage) {
     }
     @FunctionalInterface public interface CurrencyAction {boolean apply(ServerPlayer player,AbstractContainerMenu menu,int slot,int button,ContainerInput input);}
     private final Journal journal;
@@ -86,11 +86,9 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         var extra=MenuHooks.extra(p);
         for(int i=0;i<extra.getContainerSize();i++)eq.add(encode(p,extra.getItem(i)));
         for(int i=0;i<extra.bagLimit();i++)bag.add(encode(p,extra.bag.getItem(i)));
-        List<JsonElement> overflow=new ArrayList<>();
-        for(int i=0;i<extra.bagOverflow.getContainerSize();i++)overflow.add(encode(p,extra.bagOverflow.getItem(i)));
         List<JsonElement> crafting=new ArrayList<>();
         for(int i=1;i<=4;i++)crafting.add(encode(p,p.inventoryMenu.getSlot(i).getItem()));
-        return new Snapshot(items,eq,bag,encode(p,p.containerMenu.getCarried()),operation,List.copyOf(extra.groups),crafting,true,extra.bagSchema,extra.bagTier,extra.bagPage,overflow);
+        return new Snapshot(items,eq,bag,encode(p,p.containerMenu.getCarried()),operation,List.copyOf(extra.groups),crafting,true,extra.bagSchema,extra.bagTier,extra.bagPage);
     }
     private void apply(ServerPlayer p,Snapshot s){
         for(int i=0;i<s.items.size();i++)p.getInventory().setItem(i,decode(p,s.items.get(i)));
@@ -135,11 +133,10 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         var extra=MenuHooks.extra(p);
         if(snapshot.bagSchema!=3||snapshot.bagTier<1||snapshot.bagTier>16)throw new IllegalStateException("次元储物档案无效，原数据已保留");
         int limit=cn.yumis.fight.modules.inventory.api.StorageRules.capacity(snapshot.bagTier);
-        if(snapshot.bag==null||snapshot.bag.size()>limit||snapshot.bagOverflow!=null&&snapshot.bagOverflow.size()>extra.bagOverflow.getContainerSize())throw new IllegalStateException("次元储物记录超出容量，原数据已保留");
-        extra.bag.clearContent();extra.bagOverflow.clearContent();extra.bagSchema=3;extra.bagTier=snapshot.bagTier;
+        if(snapshot.bag==null||snapshot.bag.size()>limit)throw new IllegalStateException("次元储物记录超出容量，原数据已保留");
+        extra.bag.clearContent();extra.bagSchema=3;extra.bagTier=snapshot.bagTier;
         extra.bagPage=Math.clamp(snapshot.bagPage,0,Math.max(0,(extra.bagLimit()+8)/9-1));
         for(int i=0;i<snapshot.bag.size();i++)extra.bag.setItem(i,decode(p,snapshot.bag.get(i)));
-        if(snapshot.bagOverflow!=null)for(int i=0;i<snapshot.bagOverflow.size();i++)extra.bagOverflow.setItem(i,decode(p,snapshot.bagOverflow.get(i)));
     }
     public String clientStorageState(ServerPlayer p){
         var extra=MenuHooks.extra(p);JsonObject value=new JsonObject();value.addProperty("bagSchema",extra.bagSchema);value.addProperty("bagTier",extra.bagTier);value.addProperty("bagPage",extra.bagPage);return value.toString();

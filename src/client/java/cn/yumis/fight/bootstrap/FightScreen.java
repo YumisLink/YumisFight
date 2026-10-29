@@ -35,6 +35,11 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     }
     private final List<Card> cards=new ArrayList<>();
     private final List<Icon> icons=new ArrayList<>();
+    private record Picture(String path,int x,int y,int width,int height,float u0,float u1,float v0,float v1){}
+    private record RightClick(int x,int y,int width,int height,Runnable action){}
+    private final List<Picture> pictures=new ArrayList<>();
+    private final List<RightClick> rightClicks=new ArrayList<>();
+    private List<PlayerPageSurface.Navigation> navigation=List.of();
     private final List<AbstractWidget> body=new ArrayList<>();
     private int sidebar,left,top,panelWidth,panelHeight,scroll,contentHeight;
     private EditBox input;
@@ -76,6 +81,8 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         lines.clear();hoverAreas.clear();
         cards.clear();
         icons.clear();
+        pictures.clear();rightClicks.clear();navigation=List.of();
+        sidebar=page>=0&&customPanel==null&&panelWidth>=480?112:0;
         nextY=0;
         buttonFixed(page<0?"关闭":"返回",left+panelWidth-50,top+7,42,()->{
             state.upload();if(page<0)onClose();else minecraft.gui.setScreen(new FightScreen());
@@ -185,14 +192,15 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         UiTheme.card(g,contentLeft(),bodyTop(),(contentLeft()+contentWidth())-(contentLeft()),(bodyTop()+bodyHeight())-(bodyTop()));
         UiTheme.card(g,left+6,top+panelHeight-28,(left+panelWidth-6)-(left+6),(top+panelHeight-6)-(top+panelHeight-28));
         g.text(font,page<0?"I / Esc 关闭":"I 返回菜单 · Esc 关闭 · 滚轮浏览",left+14,top+panelHeight-20,UiTheme.MUTED,false);
-        if(sidebar>0){
+        if(sidebar>0&&navigation.isEmpty()){
             UiTheme.card(g,left+6,bodyTop(),(left+sidebar+8)-(left+6),(bodyTop()+bodyHeight())-(bodyTop()));
             int yy=bodyTop()+12;
-            g.text(font,state.progress.hasJob(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER)?"剑魂":"鬼剑士",left+14,yy,UiTheme.GOLD,false);
+            g.text(font,cn.yumis.fight.modules.character.api.JobCatalog.require(state.progress.jobId()).title(),left+14,yy,UiTheme.GOLD,false);
             g.text(font,"战斗等级 "+state.progress.level,left+14,yy+21,UiTheme.TEXT,false);
             g.text(font,"可用 SP  "+state.progress.sp,left+14,yy+44,UiTheme.GOLD,false);
             g.text(font,"自由点  "+state.progress.free(),left+14,yy+65,UiTheme.ACCENT,false);
-            g.text(font,ClientSession.now()<state.resources.combatUntil?"战斗中":"脱战",left+14,yy+94,UiTheme.MUTED,false);
+            g.text(font,"职业减伤："+Math.round((1-cn.yumis.fight.modules.character.api.JobCatalog.style(state.progress.jobId()).damageTaken())*100)+"%",left+14,yy+86,UiTheme.TEXT,false);
+            g.text(font,ClientSession.now()<state.resources.combatUntil?"战斗中":"脱战",left+14,yy+109,UiTheme.MUTED,false);
         }
         g.enableScissor(left+5,bodyTop(),left+panelWidth-5,bodyTop()+bodyHeight());
         for(Card card:cards){
@@ -204,6 +212,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
             int yy=bodyTop()+icon.y-scroll;
             g.blit(ClientBootstrap.id(icon.path),contentLeft()+12+icon.x,yy,contentLeft()+12+icon.x+icon.size,yy+icon.size,0,1,0,1);
         }
+        for(Picture picture:pictures){int yy=bodyTop()+picture.y-scroll;g.blit(ClientBootstrap.id(picture.path),contentLeft()+12+picture.x,yy,contentLeft()+12+picture.x+picture.width,yy+picture.height,picture.u0,picture.u1,picture.v0,picture.v1);}
         for(Line l:lines){
             int y=bodyTop()+l.y-scroll;
             if(y>=bodyTop()&&y+9<=bodyTop()+bodyHeight())g.text(font,page==0?cn.yumis.fight.modules.skills.client.CombatAttributeTooltip.numbers(l.text):Component.literal(l.text),contentLeft()+12+l.x,y,0xff000000|l.color,false);
@@ -234,7 +243,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         }
         if(state.ready)Hud.gold(g,state);
     }
-    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;return super.mouseClicked(event,twice);}
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;if(event.button()==1&&event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())for(var area:rightClicks){int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;if(event.x()>=x&&event.x()<x+area.width&&event.y()>=y&&event.y()<y+area.height){area.action.run();return true;}}return super.mouseClicked(event,twice);}
     @Override public boolean mouseScrolled(double x,double y,double sx,double sy){
         if(customPanel!=null&&customPanel.mouseScrolled(x,y,sx,sy))return true;
         int old=scroll;
@@ -275,12 +284,23 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     public void text(String text,int x,int y,int color){lines.add(new Line(text,x,y,color));}
     public void card(int x,int y,int width,int height){cards.add(new Card(x,y,width,height));}
     public void icon(String path,int x,int y,int size){icons.add(new Icon(path,x,y,size));}
+    public void image(String path,int x,int y,int width,int height,float u0,float u1,float v0,float v1){pictures.add(new Picture(path,x,y,width,height,u0,u1,v0,v1));}
+    public boolean hasSidebar(){return sidebar>0;}
+    public void rightClick(int x,int y,int width,int height,Runnable action){rightClicks.add(new RightClick(x,y,width,height,action));}
+    public void navigation(List<PlayerPageSurface.Navigation> items,String selected,java.util.function.Consumer<String> select){
+        navigation=List.copyOf(items);sidebar=panelWidth>=480?88:0;
+        int index=0,columns=Math.max(1,(contentWidth()-24)/76),base=nextY;
+        for(var item:items){int xx=sidebar>0?left+8:contentLeft()+12+(index%columns)*(contentWidth()-24)/columns,yy=sidebar>0?bodyTop()+8+index*25:bodyTop()+base+(index/columns)*24-scroll;int w=sidebar>0?84:(contentWidth()-24)/columns-4;
+            var b=Button.builder(Component.literal(item.title()),ignored->select.accept(item.id())).bounds(xx,yy,w,21).build(ThemedButton::new);((ThemedButton)b).selected=item.id().equals(selected);addRenderableWidget(b);if(sidebar==0)body.add(b);index++;
+        }
+        if(sidebar==0)nextY=base+((items.size()+columns-1)/columns)*24+8;
+    }
     public void hover(AbstractWidget widget,Hover renderer){widgetHovers.put(widget,renderer);}
     public void hover(int x,int y,int width,int height,Hover renderer){hoverAreas.add(new HoverArea(x,y,width,height,renderer));}
     public java.util.function.Supplier<String> textInput(String key,String label,int maximum){
         var box=new EditBox(font,contentLeft()+12,bodyTop()+nextY-scroll,contentWidth()-24,20,Component.literal(label));
         box.setValue(remember(key,""));box.setMaxLength(maximum);box.setBordered(false);box.setResponder(value->rememberValue(key,value));
-        input=box;body.add(addRenderableWidget(box));nextY+=26;return box::getValue;
+        box.setResponder(value->{rememberValue(key,value);boolean focus=box.isFocused();int caret=box.getCursorPosition();build();if(focus&&input!=null){setFocused(input);input.setFocused(true);input.setCursorPosition(caret);}});input=box;body.add(addRenderableWidget(box));nextY+=26;return box::getValue;
     }
     @SuppressWarnings("unchecked") public <T>T remember(String key,T fallback){return (T)pageState.getOrDefault(key,fallback);}
     public void rememberValue(String key,Object value){pageState.put(key,value);}

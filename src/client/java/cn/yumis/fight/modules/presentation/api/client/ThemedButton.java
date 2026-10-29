@@ -7,6 +7,7 @@ public final class ThemedButton extends Button {
     public boolean selected;
     public int textInset=-1;
     public java.util.function.Supplier<String> dynamicText;
+    public int textColor=-1;
     public ThemedButton(Builder builder){
         super(builder);
     }
@@ -23,6 +24,6 @@ public final class ThemedButton extends Button {
         String text=getMessage().getString();
         int available=Math.max(0,w-inset-6);
         if(font.width(text)>available)text=font.width("…")<=available?font.plainSubstrByWidth(text,available-font.width("…"))+"…":"";
-        g.text(font,text,x+inset,y+(h-font.lineHeight)/2,active?UiTheme.TEXT:UiTheme.MUTED,false);
+        g.text(font,text,x+inset,y+(h-font.lineHeight)/2,active?(textColor==-1?UiTheme.TEXT:textColor):UiTheme.MUTED,false);
     }
 }

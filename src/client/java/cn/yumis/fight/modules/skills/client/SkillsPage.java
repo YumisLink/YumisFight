@@ -13,27 +13,27 @@ import java.util.function.Consumer;
 /** Skill page content; the menu shell has no skill-specific dispatch or tooltip state. */
 public final class SkillsPage {
     private SkillsPage(){}
-    private static String label(SkillDefinition skill){
-        var state=cn.yumis.fight.modules.skills.api.client.SkillsClient.current();int rank=state.progress().learned(skill.id),effective=SkillLearning.effective(state.stats(),state.progress(),skill),limit=skill.limit(state.progress().level,state.progress().jobId());
-        return skill.equipmentGranted?skill.title+" · "+(effective>0?"装备授予 "+effective+"级":"缺少有效装备来源"):skill.title+" "+rank+"/"+limit+(effective!=rank?" ["+effective+"]":"");
-    }
-    public static void render(PlayerPageSurface page,Progress progress,Stats stats,Consumer<String> learn,Runnable reset){
+    public static void render(PlayerPageSurface page,Progress progress,Stats stats,Consumer<String> learn,Consumer<String> unlearn,Runnable reset){
         page.cursor(page.cursor()+10);
         page.line("剩余SP："+progress.sp+"    装备可提高有效等级",UiTheme.GOLD);
-        page.line("悬浮查看实时技能介绍；点击已学主动技能选择快捷槽。",UiTheme.MUTED);
-        page.line("按住 Shift 点击学习：最多升5级；点数不足时尽量加满。",UiTheme.MUTED);
+        if(!page.hasSidebar())page.line("职业减伤："+Math.round((1-cn.yumis.fight.modules.character.api.JobCatalog.style(progress.jobId()).damageTaken())*100)+"%");
+        page.line("点击图标绑定；右键退1级，Shift右键退5级并返还SP。",UiTheme.MUTED);
+        page.line("Shift学习最多5级；卡片显示学习等级，有效等级见悬浮详情。",UiTheme.MUTED);
+        int base=page.cursor()+6,cell=(page.contentWidth()-24)/4,index=0;
         for(var skill:SkillCatalog.all()){
             if(skill.advanced()&&!progress.hasJob(skill.requiredJob))continue;
             if(skill.equipmentGranted&&SkillLearning.effective(stats,progress,skill)<=0&&!java.util.Arrays.asList(progress.slots).contains(skill.id))continue;
-            var row=page.button(label(skill),0,page.cursor(),page.contentWidth()-142,()->{var state=cn.yumis.fight.modules.skills.api.client.SkillsClient.current();if(SkillLearning.canBind(state.stats(),state.progress(),skill))Minecraft.getInstance().gui.pushScreenLayer(new SkillBindingScreen(skill));});
-            ((ThemedButton)row).textInset=24;
-            ((ThemedButton)row).dynamicText=()->label(skill);
-            page.hover(row,(g,x,y)->SkillTooltip.render(g,skill,x,y));
-            var buy=page.button(skill.equipmentGranted?"装备授予":"学习 "+skill.sp,page.contentWidth()-128,page.cursor(),104,()->learn.accept(skill.id));
-            buy.active=!skill.equipmentGranted;
-            page.hover(buy,(g,x,y)->SkillTooltip.render(g,skill,x,y));
-            page.icon("textures/gui/skills/"+skill.icon()+".png",4,page.cursor()+3,14);page.cursor(page.cursor()+24);
+            int x=(index%4)*cell,y=base+(index/4)*108,w=cell-5;index++;
+            page.card(x,y,w,102);
+            var row=page.button("",x+3,y+3,w-6,()->{var state=cn.yumis.fight.modules.skills.api.client.SkillsClient.current();if(SkillLearning.canBind(state.stats(),state.progress(),skill))Minecraft.getInstance().gui.pushScreenLayer(new SkillBindingScreen(skill));});row.setHeight(66);
+            page.icon("textures/gui/skills/"+skill.icon()+".png",x+(w-26)/2,y+7,26);
+            String title=cn.yumis.fight.modules.presentation.api.client.UiFonts.font().plainSubstrByWidth(skill.title,Math.max(1,w-10));
+            page.text(title,x+5,y+38,UiTheme.TEXT);
+            page.text(skill.equipmentGranted?"装备授予":progress.learned(skill.id)+"级",x+5,y+53,UiTheme.MUTED);
+            var buy=page.button(skill.equipmentGranted?"装备授予":"学习",x+4,y+76,w-8,()->learn.accept(skill.id));buy.active=!skill.equipmentGranted;
+            page.hover(x,y,w,102,(g,mx,my)->SkillTooltip.render(g,skill,mx,my));
+            page.rightClick(x,y,w,102,()->{if(!skill.equipmentGranted&&cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress().learned(skill.id)>0)unlearn.accept(skill.id);});
         }
-        page.gap();page.rowButton("洗点并返还技能SP",reset);
+        page.cursor(base+((index+3)/4)*108);page.gap();page.rowButton("洗点并返还技能SP",reset);
     }
 }

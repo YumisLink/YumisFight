@@ -15,6 +15,7 @@ public interface SkillsClient extends ClientUi {
     static SkillsClient current(){return java.util.Objects.requireNonNull(Binding.current,"Skills client is not assembled");}
     Progress progress();
     Stats stats();
+    cn.yumis.fight.modules.combat.api.CombatSettings combatSettings();
     Life own();
     cn.yumis.fight.modules.combat.api.Runtime resources();
     boolean encounterSync();

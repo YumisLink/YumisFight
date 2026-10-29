@@ -14,11 +14,9 @@ import java.util.*;
 
 /** Stable storage indices; only their viewport positions change. */
 public class DimensionalMenu extends AbstractContainerMenu implements cn.yumis.fight.modules.inventory.api.CheckpointMenu {
-    public static final int COLUMNS=9,BAG_Y=47,BAG_SLOTS=416,OVERFLOW_START=416,PLAYER_START=462;
+    public static final int COLUMNS=9,BAG_Y=47,BAG_SLOTS=416,PLAYER_START=416;
     public final ExtraInventory extra;
     public int rows;
-    public boolean overflow;
-    public int overflowPage;
     public String query="";
     private List<Integer> matches=List.of(),view=List.of();
     private final Set<Integer> visible=new HashSet<>();
@@ -26,63 +24,62 @@ public class DimensionalMenu extends AbstractContainerMenu implements cn.yumis.f
     private String lastPreview="";
     private long seenContents=-1,viewRevision,layoutRevision;
     private boolean viewDirty=true;
-    private int viewLimit=-1,viewUsed,overflowUsed,lastRows=-1,lastScroll=-1;
-    private boolean viewOverflow;
+    private int viewLimit=-1,viewUsed,lastRows=-1,lastScroll=-1;
     private long laidOutView=-1;
-    public long contentsRevision(){return extra.bag.revision()+extra.bagOverflow.revision();}
+    public long contentsRevision(){return extra.bag.revision();}
     public long layoutRevision(){return layoutRevision;}
     public int usedSlots(){rebuildView();return viewUsed;}
-    public DimensionalMenu(int id,Inventory inv,RegistryFriendlyByteBuf buf){this(id,inv,buf.readVarInt(),buf.readVarInt(),buf.readBoolean());}
-    public DimensionalMenu(int id,Inventory inv,int tier,int row,boolean overflow){
-        super(InventoryMenuPorts.type(),id);extra=MenuHooks.extra(inv.player);extra.bagTier=tier;extra.bagPage=row;this.overflow=overflow;rows=Math.min(8,((overflow?46:extra.bagLimit())+8)/9);
+    public DimensionalMenu(int id,Inventory inv,RegistryFriendlyByteBuf buf){this(id,inv,buf.readVarInt(),buf.readVarInt());preview=JsonParser.parseString(buf.readUtf()).getAsJsonObject();}
+    public DimensionalMenu(int id,Inventory inv,int tier,int row){
+        super(InventoryMenuPorts.type(),id);extra=MenuHooks.extra(inv.player);extra.bagTier=tier;extra.bagPage=row;rows=Math.min(8,(extra.bagLimit()+8)/9);
         for(int i=0;i<PLAYER_START;i++){
-            final int logical=i;var container=i<OVERFLOW_START?extra.bag:extra.bagOverflow;int source=i<OVERFLOW_START?i:i-OVERFLOW_START;
-            addSlot(new Slot(container,source,8+(source%9)*18,BAG_Y+(source/9)*18){
+            final int logical=i;
+            addSlot(new Slot(extra.bag,i,8+(i%9)*18,BAG_Y+(i/9)*18){
                 @Override public boolean isActive(){return visible.contains(logical);}
-                @Override public boolean mayPlace(ItemStack stack){return isActive()&&!DimensionalMenu.this.overflow;}
+                @Override public boolean mayPlace(ItemStack stack){return isActive();}
                 @Override public boolean mayPickup(Player p){return isActive();}
             });
         }
         addStandardInventorySlots(inv,8,70+rows*18);
         addDataSlots(new ContainerData(){
-            public int get(int i){return switch(i){case 0->extra.bagTier;case 1->extra.bagPage;case 2->DimensionalMenu.this.overflow?1:0;case 3->overflowPage;default->rows;};}
-            public void set(int i,int v){switch(i){case 0->extra.bagTier=v;case 1->extra.bagPage=v;case 2->DimensionalMenu.this.overflow=v!=0;case 3->overflowPage=v;default->rows=Math.clamp(v,1,8);}layout();}
-            public int getCount(){return 5;}
+            public int get(int i){return switch(i){case 0->extra.bagTier;case 1->extra.bagPage;default->rows;};}
+            public void set(int i,int v){switch(i){case 0->extra.bagTier=v;case 1->extra.bagPage=v;default->rows=Math.clamp(v,1,8);}layout();}
+            public int getCount(){return 3;}
         });
         layout();scrollTo(scrollRow());
     }
-    public static void open(ServerPlayer p){open(p,false);}
-    private static void open(ServerPlayer p,boolean overflow){
+    public static void open(ServerPlayer p){
         var e=MenuHooks.extra(p);
-        p.openMenu(new SimpleMenuProvider((id,inv,owner)->new DimensionalMenu(id,inv,e.bagTier,e.bagPage,overflow),Component.literal(StorageRules.NAMES[e.bagTier-1])),buf->{buf.writeVarInt(e.bagTier);buf.writeVarInt(e.bagPage);buf.writeBoolean(overflow);});InventoryMenuPorts.opened(p,true);
+        JsonObject initial=preview(p,e.bagTier);
+        p.openMenu(new SimpleMenuProvider((id,inv,owner)->new DimensionalMenu(id,inv,e.bagTier,e.bagPage),Component.literal(StorageRules.NAMES[e.bagTier-1])),buf->{buf.writeVarInt(e.bagTier);buf.writeVarInt(e.bagPage);buf.writeUtf(initial.toString());});InventoryMenuPorts.opened(p,true);
     }
-    public int scrollRow(){return overflow?overflowPage:extra.bagPage;}
+    private static JsonObject preview(ServerPlayer p,int tier){JsonObject info=new JsonObject();var recipe=tier<16?InventoryMenuPorts.upgrade(p,tier+1):null;info.addProperty("tier",tier);info.addProperty("requirements",tier>=16?"已达最高档":recipe==null?"当前数据包没有下一档储物升级配方":recipe.requirements());info.addProperty("available",recipe!=null);return info;}
+    public int scrollRow(){return extra.bagPage;}
     public int totalRows(){return (view.size()+8)/9;}
     public int maxScroll(){return Math.max(0,totalRows()-rows);}
     public boolean matches(List<Integer> indices){return matches.equals(indices);}
     private void rebuildView(){
-        int limit=overflow?46:extra.bagLimit();
+        int limit=extra.bagLimit();
         long revision=contentsRevision();if(seenContents!=revision){seenContents=revision;viewDirty=true;}
-        if(!viewDirty&&viewLimit==limit&&viewOverflow==overflow)return;
-        viewDirty=false;viewLimit=limit;viewOverflow=overflow;
-        List<Integer> next=new ArrayList<>();int start=overflow?OVERFLOW_START:0;
+        if(!viewDirty&&viewLimit==limit)return;
+        viewDirty=false;viewLimit=limit;
+        List<Integer> next=new ArrayList<>();int start=0;
         if(query.isEmpty())for(int i=0;i<limit;i++)next.add(start+i);
         else for(int logical:matches)if(logical>=start&&logical<start+limit&&!slots.get(logical).getItem().isEmpty())next.add(logical);
         List<Integer> frozen=List.copyOf(next);if(!view.equals(frozen)){view=frozen;viewRevision++;}
         viewUsed=0;for(int i=0;i<extra.bagLimit();i++)if(!extra.bag.getItem(i).isEmpty())viewUsed++;
-        overflowUsed=0;for(int i=0;i<46;i++)if(!extra.bagOverflow.getItem(i).isEmpty())overflowUsed++;
     }
     public void filter(String text,List<Integer> indices){
         if(text.length()>64||indices.size()>PLAYER_START)throw new IllegalArgumentException("搜索条件过长");
         Set<Integer> unique=new LinkedHashSet<>();for(int index:indices){if(index<0||index>=PLAYER_START)throw new IllegalArgumentException("搜索槽位无效");unique.add(index);}
         List<Integer> next=List.copyOf(unique);if(query.equals(text)&&matches.equals(next))return;
         boolean changed=!query.equals(text);query=text;matches=next;viewDirty=true;
-        if(changed){if(overflow)overflowPage=0;else extra.bagPage=0;}layout();
+        if(changed)extra.bagPage=0;layout();
     }
-    public void scrollTo(int row){rebuildView();if(overflow)overflowPage=Math.clamp(row,0,maxScroll());else extra.bagPage=Math.clamp(row,0,maxScroll());layout();}
+    public void scrollTo(int row){rebuildView();extra.bagPage=Math.clamp(row,0,maxScroll());layout();}
     public void resizeRows(int count){rows=Math.clamp(count,1,8);scrollTo(scrollRow());}
     public void layout(){
-        rebuildView();int current=Math.clamp(scrollRow(),0,maxScroll());if(overflow)overflowPage=current;else extra.bagPage=current;
+        rebuildView();int current=Math.clamp(scrollRow(),0,maxScroll());extra.bagPage=current;
         if(lastRows==rows&&lastScroll==current&&laidOutView==viewRevision)return;
         for(int logical:visible){var slot=(cn.yumis.fight.mixin.SlotPositionAccessor)slots.get(logical);slot.ydnf$x(-2000);slot.ydnf$y(-2000);}
         visible.clear();int offset=current*9;
@@ -100,7 +97,7 @@ public class DimensionalMenu extends AbstractContainerMenu implements cn.yumis.f
     }
     @Override public ItemStack quickMoveStack(Player p,int index){
         layout();if(index<0||index>=slots.size())return ItemStack.EMPTY;Slot slot=slots.get(index);if(!slot.hasItem()||!slot.mayPickup(p))return ItemStack.EMPTY;
-        ItemStack stack=slot.getItem(),before=stack.copy();if(index<PLAYER_START){if(!moveItemStackTo(stack,PLAYER_START,slots.size(),false))return ItemStack.EMPTY;}else{if(overflow)return ItemStack.EMPTY;intoBag(stack);}
+        ItemStack stack=slot.getItem(),before=stack.copy();if(index<PLAYER_START){if(!moveItemStackTo(stack,PLAYER_START,slots.size(),false))return ItemStack.EMPTY;}else{intoBag(stack);}
         if(stack.getCount()==before.getCount())return ItemStack.EMPTY;slot.set(stack.isEmpty()?ItemStack.EMPTY:stack);slot.setChanged();return before;
     }
     private void sort(){
@@ -108,15 +105,13 @@ public class DimensionalMenu extends AbstractContainerMenu implements cn.yumis.f
         merged.sort(Comparator.comparing((ItemStack s)->net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString()).thenComparing(s->s.getComponents().toString()));
         if(merged.size()>extra.bagLimit())throw new IllegalStateException("整理结果超出容量");for(int i=0;i<extra.bagLimit();i++)extra.bag.setItem(i,i<merged.size()?merged.get(i):ItemStack.EMPTY);scrollTo(0);
     }
-    public int overflowUsed(){rebuildView();return overflowUsed;}
     @Override public boolean clickMenuButton(Player p,int button){
         if(!(p instanceof ServerPlayer server)||!stillValid(p))return false;
         if(button>=1000&&button<=1008){resizeRows(button-1000);return true;}
         if(button>=100&&button<200){scrollTo(button-100);return true;}
         if(button==0||button==1){scrollTo(scrollRow()+(button==0?-1:1));return true;}
-        if(button==2){boolean mode=!overflow;InventoryMenuPorts.defer(server,()->{if(server.containerMenu==this)open(server,mode);});return true;}
-        if(button==4&&!overflow){sort();return true;}
-        if(button!=3||extra.bagTier>=16||overflow)return false;
+        if(button==4){sort();return true;}
+        if(button!=3||extra.bagTier>=16)return false;
         InventoryMenuPorts.Upgrade recipe=upgradeRecipe(server);if(recipe==null)throw new IllegalArgumentException("当前数据包没有下一档储物升级配方");
         List<ItemStack> all=new ArrayList<>();for(int i=0;i<36;i++)all.add(p.getInventory().getItem(i));for(int i=0;i<extra.bagLimit();i++)all.add(extra.bag.getItem(i));int[] plan=recipe.takePlan(all);if(plan==null)throw new IllegalArgumentException("储物升级材料不足");
         for(int i=0;i<plan.length;i++)if(plan[i]>0){if(i<36)p.getInventory().removeItem(i,plan[i]);else extra.bag.removeItem(i-36,plan[i]);}
@@ -125,6 +120,6 @@ public class DimensionalMenu extends AbstractContainerMenu implements cn.yumis.f
     private InventoryMenuPorts.Upgrade upgradeRecipe(ServerPlayer p){return InventoryMenuPorts.upgrade(p,extra.bagTier+1);}
     @Override public void broadcastChanges(){
         layout();super.broadcastChanges();if(!(extra.player instanceof ServerPlayer p))return;
-        JsonObject info=new JsonObject();InventoryMenuPorts.Upgrade recipe=extra.bagTier<16?upgradeRecipe(p):null;info.addProperty("requirements",recipe==null?"已达最高档":recipe.requirements());String value=info.toString();if(!value.equals(lastPreview)){lastPreview=value;Network.send(p,"storage_ui",info);}
+        JsonObject info=preview(p,extra.bagTier);info.addProperty("menu",containerId);String value=info.toString();if(!value.equals(lastPreview)){lastPreview=value;Network.send(p,"storage_ui",info);}
     }
 }

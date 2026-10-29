@@ -119,11 +119,11 @@ class EquipmentExpansionTest {
     }
     @Test void damageAndShieldUseIndependentClocks(){
         cn.yumis.fight.modules.combat.api.Runtime r=new cn.yumis.fight.modules.combat.api.Runtime();
-        CombatTiming.taken(r,1000);assertEquals(4000,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
-        CombatTiming.dealt(r,5500);assertEquals(8500,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
-        assertFalse(CombatTiming.out(r,8499));assertTrue(CombatTiming.out(r,8500));
+        CombatTiming.taken(r,1000,cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT);assertEquals(6000,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
+        CombatTiming.dealt(r,5500,cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT);assertEquals(10500,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
+        assertFalse(CombatTiming.out(r,10499));assertTrue(CombatTiming.out(r,10500));
         assertFalse(CombatTiming.out(r,6000));assertTrue(CombatTiming.shieldReady(r,6000));assertFalse(CombatTiming.shieldReady(r,5999));
-        CombatTiming.taken(r,500);assertEquals(8500,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
+        CombatTiming.taken(r,500,cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT);assertEquals(10500,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
     }
     @Test void zeroHpOutcomesNeverClaimActualDamageOrChangeTheLifeRevision(){
         Life life=new Life();life.target=UUID.randomUUID();life.q=.43;life.revision=19;

@@ -42,10 +42,11 @@ public final class IndustrialWorld extends SavedData {
     private final Map<String,Integer> cursors=new HashMap<>();
     private final Map<String,Reservation> reservations=new HashMap<>();
     private final Map<String,Totals> totals=new HashMap<>();
-    private final Set<MachineBlockEntity> validations=new LinkedHashSet<>(),buildEvents=new HashSet<>();
+    private final Set<MachineBlockEntity> validations=new LinkedHashSet<>();
     private boolean topologyDirty=true;
     private boolean needsRecovery=true;
     private final IndustrialGeneration generation=new IndustrialGeneration();
+    public final IndustrialOpening opening=new IndustrialOpening();
     private final ArrayDeque<Runnable> deferred=new ArrayDeque<>();
     public void defer(Runnable action){deferred.add(action);}
     private final Map<String,String> memberReasons=new HashMap<>();
@@ -64,9 +65,10 @@ public final class IndustrialWorld extends SavedData {
         if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)){nodes.putIfAbsent(key,new Node(dimension(be),be.getBlockPos().asLong()));topologyDirty=true;setDirty();}
         if(be.device().needsStructure())validations.add(be);
         note(be,"区块加载：已恢复原有连接");
+        if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))refreshCoverage(be);else discover(be);
     }
     public void unload(MachineBlockEntity be){
-        loaded.remove(be.identity.toString(),be);functions.unload(be.identity.toString());reservations.entrySet().removeIf(e->e.getValue().device.equals(be.identity.toString()));var dimension=chunks.get(dimension(be));if(dimension!=null){var bucket=dimension.get(chunk(be.getBlockPos()));if(bucket!=null)bucket.remove(be);}validations.remove(be);buildEvents.remove(be);note(be,"区块卸载：该成员储能和容量暂不参与");
+        loaded.remove(be.identity.toString(),be);functions.unload(be.identity.toString());reservations.entrySet().removeIf(e->e.getValue().device.equals(be.identity.toString()));var dimension=chunks.get(dimension(be));if(dimension!=null){var bucket=dimension.get(chunk(be.getBlockPos()));if(bucket!=null)bucket.remove(be);}validations.remove(be);note(be,"区块卸载：该成员储能和容量暂不参与");
     }
     public void destroy(MachineBlockEntity be){
         unload(be);if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)){note(be,"核心拆除：仅本核心余能消散");String key=be.identity.toString();nodes.remove(key);for(Node n:nodes.values())n.links.remove(key);for(var device:loaded.values())if(device.beacon.equals(key)){device.beacon="";device.setChanged();}be.energy=0;topologyDirty=true;reservations.clear();setDirty();}
@@ -76,21 +78,22 @@ public final class IndustrialWorld extends SavedData {
         List<MachineBlockEntity> found=new ArrayList<>();Map<Long,Set<MachineBlockEntity>> index=chunks.get(level.dimension().identifier().toString());if(index==null)return found;
         for(int x=(pos.getX()-range)>>4;x<=(pos.getX()+range)>>4;x++)for(int z=(pos.getZ()-range)>>4;z<=(pos.getZ()+range)>>4;z++){var list=index.get(net.minecraft.world.level.ChunkPos.pack(x,z));if(list!=null)for(var be:list)if(!be.isRemoved())found.add(be);}return found;
     }
-    public void changed(ServerLevel level,BlockPos pos,boolean build){for(var be:nearby(level,pos,3))if((be.device().needsStructure())&&be.getBlockPos().distSqr(pos)<=18){validations.add(be);if(build)buildEvents.add(be);}}
+    public void changed(ServerLevel level,BlockPos pos){for(var be:nearby(level,pos,3))if((be.device().needsStructure())&&be.getBlockPos().distSqr(pos)<=18){validations.add(be);}}
     public void chunkChanged(ServerLevel level){for(var be:loaded.values())if(be.getLevel()==level&&(be.device().needsStructure()))validations.add(be);}
     public void placed(MachineBlockEntity be){
-        register(be);if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)){validations.add(be);buildEvents.add(be);}else discover(be);
+        register(be);if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))refreshCoverage(be);else discover(be);
     }
+    public void refreshCoverage(MachineBlockEntity core){topologyDirty=true;for(var device:nearby((ServerLevel)core.getLevel(),core.getBlockPos(),core.radius()))discover(device);note(core,"信标覆盖已刷新");}
     public void discover(MachineBlockEntity be){
         if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)||validBeacon(be)!=null)return;
         int range=Arrays.stream(IndustrialRules.current().beaconRadii).max().orElse(32);MachineBlockEntity best=null;double dist=Double.MAX_VALUE;
-        for(var other:nearby((ServerLevel)be.getLevel(),be.getBlockPos(),range))if(other.device().has(DeviceType.Capability.STORAGE_NETWORK)&&other.structureValid){double d=be.getBlockPos().distSqr(other.getBlockPos());if(d<=other.radius()*(double)other.radius()&&(d<dist||d==dist&&best!=null&&other.identity.compareTo(best.identity)<0)){best=other;dist=d;}}
+        for(var other:nearby((ServerLevel)be.getLevel(),be.getBlockPos(),range))if(other.device().has(DeviceType.Capability.STORAGE_NETWORK)&&!other.isRemoved()){double d=be.getBlockPos().distSqr(other.getBlockPos());if(d<=other.radius()*(double)other.radius()&&(d<dist||d==dist&&best!=null&&other.identity.compareTo(best.identity)<0)){best=other;dist=d;}}
         if(best!=null){be.beacon=best.identity.toString();be.setChanged();}
     }
-    public MachineBlockEntity validBeacon(MachineBlockEntity be){MachineBlockEntity core=loaded.get(be.beacon);return core!=null&&core.device().has(DeviceType.Capability.STORAGE_NETWORK)&&core.structureValid&&core.getLevel()==be.getLevel()&&core.getBlockPos().distSqr(be.getBlockPos())<=core.radius()*(double)core.radius()?core:null;}
-    public void bind(MachineBlockEntity core,MachineBlockEntity device){if(!core.device().has(DeviceType.Capability.STORAGE_NETWORK)||!core.structureValid||device.device().has(DeviceType.Capability.STORAGE_NETWORK)||core.getLevel()!=device.getLevel()||core.getBlockPos().distSqr(device.getBlockPos())>core.radius()*(double)core.radius())throw new IllegalArgumentException("信标无效或设备超出覆盖范围");device.beacon=core.identity.toString();device.setChanged();}
+    public MachineBlockEntity validBeacon(MachineBlockEntity be){MachineBlockEntity core=loaded.get(be.beacon);return core!=null&&core.device().has(DeviceType.Capability.STORAGE_NETWORK)&&!core.isRemoved()&&core.getLevel()==be.getLevel()&&core.getBlockPos().distSqr(be.getBlockPos())<=core.radius()*(double)core.radius()?core:null;}
+    public void bind(MachineBlockEntity core,MachineBlockEntity device){if(!core.device().has(DeviceType.Capability.STORAGE_NETWORK)||core.isRemoved()||loaded.get(core.identity.toString())!=core||device.device().has(DeviceType.Capability.STORAGE_NETWORK)||core.getLevel()!=device.getLevel()||core.getBlockPos().distSqr(device.getBlockPos())>core.radius()*(double)core.radius())throw new IllegalArgumentException("信标无效或设备超出覆盖范围");device.beacon=core.identity.toString();device.setChanged();}
     public void link(MachineBlockEntity a,MachineBlockEntity b){
-        int range=Math.max(a.radius(),b.radius());if(a==b||!a.device().has(DeviceType.Capability.STORAGE_NETWORK)||!b.device().has(DeviceType.Capability.STORAGE_NETWORK)||!a.structureValid||!b.structureValid||a.getLevel()!=b.getLevel()||a.getBlockPos().distSqr(b.getBlockPos())>range*(double)range)throw new IllegalArgumentException("信标须有效、同维度且在较大半径内");
+        int range=Math.max(a.radius(),b.radius());if(a==b||!a.device().has(DeviceType.Capability.STORAGE_NETWORK)||!b.device().has(DeviceType.Capability.STORAGE_NETWORK)||a.isRemoved()||b.isRemoved()||loaded.get(a.identity.toString())!=a||loaded.get(b.identity.toString())!=b||a.getLevel()!=b.getLevel()||a.getBlockPos().distSqr(b.getBlockPos())>range*(double)range)throw new IllegalArgumentException("信标须有效、同维度且在较大半径内");
         Node left=nodes.get(a.identity.toString()),right=nodes.get(b.identity.toString());if(!left.links.remove(b.identity.toString())){left.links.add(b.identity.toString());right.links.add(a.identity.toString());}else right.links.remove(a.identity.toString());topologyDirty=true;reservations.clear();note(a,"权杖修改信标连接");note(b,"权杖修改信标连接");setDirty();
     }
     private void rebuild(){
@@ -118,6 +121,7 @@ public final class IndustrialWorld extends SavedData {
     }
     public static void rulesPublished(MinecraftServer server){
         var world=get(server.overworld());world.validations.addAll(world.loaded.values().stream().filter(b->b.device().needsStructure()).toList());
+        for(var core:world.loaded.values())if(core.device().has(DeviceType.Capability.STORAGE_NETWORK))world.refreshCoverage(core);
     }
 
     public static void tick(MinecraftServer server){get(server.overworld()).runTick(server);}
@@ -125,17 +129,17 @@ public final class IndustrialWorld extends SavedData {
         int count=deferred.size();for(int i=0;i<count;i++)deferred.removeFirst().run();
         if(needsRecovery&&IndustrialPorts.ready()){IndustrialPorts.recover();needsRecovery=false;}
         generation.beginTick();
-        for(var be:new ArrayList<>(validations)){if(be.isRemoved())continue;boolean was=be.structureValid;be.structureValid=IndustrialStructures.missing(be).isEmpty();if(be.structureValid&&!was&&buildEvents.contains(be)&&be.device().has(DeviceType.Capability.STORAGE_NETWORK))for(var device:nearby((ServerLevel)be.getLevel(),be.getBlockPos(),be.radius()))discover(device);if(was!=be.structureValid)note(be,be.structureValid?"结构修复：恢复原储能":"结构失效：该核心储能暂不可用");}validations.clear();buildEvents.clear();rebuild();
+        for(var be:new ArrayList<>(validations)){if(be.isRemoved())continue;boolean was=be.structureValid;be.structureValid=IndustrialStructures.missing(be).isEmpty();if(was!=be.structureValid)note(be,be.structureValid?"锻炉结构已完整":"锻炉结构不完整");}validations.clear();rebuild();
         Map<String,List<MachineBlockEntity>> cores=new LinkedHashMap<>(),devices=new LinkedHashMap<>();Map<String,Long> production=new HashMap<>();
         for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){
             be.tickTime=Fraction.of(128);be.workThisTick=0;be.consumed=0;boolean connected=validBeacon(be)!=null;
-            if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)&&be.structureValid)cores.computeIfAbsent(components.get(be.identity.toString()),k->new ArrayList<>()).add(be);
+            if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))cores.computeIfAbsent(components.get(be.identity.toString()),k->new ArrayList<>()).add(be);
             if(be.device().generator()){long generated=generation.generate(be);be.generated=generated;if(connected)production.merge(components.get(be.beacon),generated,Math::addExact);else be.overflow=generated;}
             else if(!be.device().has(DeviceType.Capability.STORAGE_NETWORK)){if(connected)devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);else if(be.device().processing()&&be.running&&(!be.device().needsStructure()||be.structureValid)){for(int round=0;round<128&&be.tickTime.positive();round++){IndustrialProcessing.prepare(be);if(be.batchRecipe.isEmpty())break;Fraction before=be.tickTime;long need=be.demand();be.advance(be.crystalSupply(need));if(before.equals(be.tickTime))break;}}}
             IndustrialProcessing.output(be);
         }
         for(var entry:cores.entrySet())settle(entry.getKey(),entry.getValue(),devices.getOrDefault(entry.getKey(),List.of()),production.getOrDefault(entry.getKey(),0L));
-        for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){visual(be,be.device().has(DeviceType.Capability.STORAGE_NETWORK)?be.structureValid:validBeacon(be)!=null);IndustrialProcessing.output(be);}
+        for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){visual(be,be.device().has(DeviceType.Capability.STORAGE_NETWORK)?!be.isRemoved():validBeacon(be)!=null);IndustrialProcessing.output(be);}
     }
     private void visual(MachineBlockEntity be,boolean connected){BlockState state=be.getBlockState();boolean active=be.device().generator()?be.generated>0:be.consumed>0;if(state.getValue(MachineBlock.CONNECTED)!=connected||state.getValue(MachineBlock.ACTIVE)!=active)be.getLevel().setBlock(be.getBlockPos(),state.setValue(MachineBlock.CONNECTED,connected).setValue(MachineBlock.ACTIVE,active),2);}
 
@@ -171,7 +175,7 @@ public final class IndustrialWorld extends SavedData {
         j.addProperty("progress_rate",duration==0||!be.running||!be.canFinish()||be.batchRecipe.isEmpty()?0:be.workThisTick/duration);
         j.addProperty("fluid_capacity",IndustrialRules.current().fluidCapacity);
         for(int tank=0;tank<2;tank++){var fluid=be.fluids.getResource(tank);String prefix=tank==0?"fluid_in":"fluid_out";j.addProperty(prefix+"_id",fluid.isEmpty()?"":BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());j.addProperty(prefix+"_name",fluid.isEmpty()?"空":fluid.toStack(1).getHoverName().getString());}
-        MachineBlockEntity core=be.device().has(DeviceType.Capability.STORAGE_NETWORK)?be:validBeacon(be);if(core!=null){String group=components.get(core.identity.toString());long balance=0,capacity=0;for(var other:loaded.values())if(other.device().has(DeviceType.Capability.STORAGE_NETWORK)&&other.structureValid&&Objects.equals(components.get(other.identity.toString()),group)){balance+=other.energy;capacity+=IndustrialRules.current().beaconCapacity;}j.addProperty("network_energy",balance);j.addProperty("network_capacity",capacity);Totals t=totals.get(group);if(t!=null){j.addProperty("generated",t.lastGenerated);j.addProperty("consumed",t.lastConsumed);j.addProperty("overflow",t.lastOverflow);}j.addProperty("member_change",memberReasons.getOrDefault(core.identity.toString(),"网络成员已恢复"));j.addProperty("radius",core.radius());}
+        MachineBlockEntity core=be.device().has(DeviceType.Capability.STORAGE_NETWORK)?be:validBeacon(be);if(core!=null){String group=components.get(core.identity.toString());long balance=0,capacity=0;for(var other:loaded.values())if(other.device().has(DeviceType.Capability.STORAGE_NETWORK)&&!other.isRemoved()&&Objects.equals(components.get(other.identity.toString()),group)){balance+=other.energy;capacity+=IndustrialRules.current().beaconCapacity;}j.addProperty("network_energy",balance);j.addProperty("network_capacity",capacity);Totals t=totals.get(group);if(t!=null){j.addProperty("generated",t.lastGenerated);j.addProperty("consumed",t.lastConsumed);j.addProperty("overflow",t.lastOverflow);}j.addProperty("member_change",memberReasons.getOrDefault(core.identity.toString(),"网络成员已恢复"));j.addProperty("radius",core.radius());}
         JsonArray list=new JsonArray();for(var r:IndustrialProcessing.recipes((ServerLevel)be.getLevel(),be.device())){JsonObject entry=new JsonObject();entry.addProperty("id",r.id().identifier().toString());entry.addProperty("tier",r.value().minimumTier());entry.addProperty("ticks",r.value().ticks());entry.addProperty("energy",r.value().energy());entry.addProperty("ingredients",r.value().ingredients().stream().map(n->n.count()+" × "+n.ingredient().items().limit(3).map(h->new ItemStack(h.value()).getHoverName().getString()).reduce((a,b)->a+" / "+b).orElse("缺少兼容材料")).reduce((a,b)->a+"；"+b).orElse("无需物品原料")+r.value().fluidInput().map(f->"；流体 "+f.amount()+" mB").orElse(""));entry.addProperty("name",r.value().result().isEmpty()?(r.value().fluidResult().isEmpty()?"随机通货":r.value().fluidResult().getHoverName().getString()+" "+r.value().fluidResult().getAmount()+" mB"):r.value().result().getHoverName().getString()+" ×"+r.value().result().getCount());list.add(entry);}j.add("recipes",list);j.addProperty("show_lines",includeLines);JsonArray links=new JsonArray();if(includeLines&&be.device().has(DeviceType.Capability.STORAGE_NETWORK)&&nodes.containsKey(be.identity.toString())){for(String id:nodes.get(be.identity.toString()).links){Node n=nodes.get(id);if(n!=null)links.add(n.position);}for(var device:loaded.values())if(device.beacon.equals(be.identity.toString())&&validBeacon(device)!=null)links.add(device.getBlockPos().asLong());}else if(includeLines&&validBeacon(be)!=null)links.add(validBeacon(be).getBlockPos().asLong());if(includeLines)j.add("links",links);
         return IndustrialDeviceInfo.enrich(be,j);
     }

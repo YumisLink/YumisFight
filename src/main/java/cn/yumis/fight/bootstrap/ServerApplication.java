@@ -92,6 +92,7 @@ public final class ServerApplication {
     public boolean bridge;
     public Difficulty worldDifficulty=Difficulty.NORMAL;
     public RewardSettings rewards=RewardSettings.DEFAULT;
+    public cn.yumis.fight.modules.combat.api.CombatSettings combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
     private final cn.yumis.fight.architecture.CommandRouter<ServerPlayer,JsonObject> commands=new cn.yumis.fight.architecture.CommandRouter<>();
     public final cn.yumis.fight.modules.equipment.application.EquipmentApplication equipmentApplication;
     public final cn.yumis.fight.modules.economy.application.EconomyService economyService;
@@ -150,7 +151,7 @@ public final class ServerApplication {
         equipmentApplication=new cn.yumis.fight.modules.equipment.application.EquipmentApplication(journal,inventory,p->session(p).progress,p->session(p).id,(p,id)->professionService.get(p.getUUID(),id),this::profile,this::message,random,cn.yumis.fight.modules.economy.api.CurrencyRules::salvageCurrency);
         equipmentContracts=new cn.yumis.fight.modules.equipment.application.EquipmentContracts(journal);
         economyService=new cn.yumis.fight.modules.economy.application.EconomyService(journal,inventory,p->session(p).id,this::profile,equipmentContracts);
-        progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,inventory,p->session(p).progress,p->session(p).resources.combatUntil,(p,next)->session(p).progress=next,this::profile,this::stats,cn.yumis.fight.modules.skills.api.SkillLearning::apply);
+        progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,inventory,p->session(p).progress,p->session(p).resources.combatUntil,(p,next)->session(p).progress=next,this::profile,this::stats,cn.yumis.fight.modules.skills.api.SkillLearning::apply,()->combatSettings.delayMillis());
         inventoryApplication=new cn.yumis.fight.modules.inventory.application.InventoryApplication(journal,inventory,p->session(p).id,this::message);
         cn.yumis.fight.modules.industry.api.IndustrialPorts.install(inventory,inventory::recoverIndustrial,this::message);
         combatApplication=new cn.yumis.fight.modules.combat.application.CombatApplication(journal,server,this::session,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,targets::resolve,
@@ -166,8 +167,9 @@ public final class ServerApplication {
         careers=new cn.yumis.fight.modules.skills.application.CareerSkillService(journal,server,this::session,p->session(p).progress,this::stats,(p,id)->{var team=partyService.team(p.getUUID());return team!=null&&team.members.contains(id);});
         skillStarts=new cn.yumis.fight.modules.skills.application.SkillStartService(journal,this::session,p->session(p).progress,this::stats,careers::castStats,careers::baseSucceeded,inventory::locked);
         progressService.transitions(careers);combatApplication.skills(cn.yumis.fight.modules.combat.api.CombatPorts.combine(careers,skillStarts));
-        combatApplication.equipment(p->cn.yumis.fight.modules.skills.api.SkillPreview.currentStats(stats(p),session(p).resources,System.currentTimeMillis()),p->session(p).progress,p->dungeons.current(p.getUUID())==null?session(p).progress.sync:dungeons.current(p.getUUID()).sync,this::profile);
+        combatApplication.equipment(p->cn.yumis.fight.modules.skills.api.SkillPreview.currentStats(stats(p),session(p).resources,System.currentTimeMillis()),p->session(p).progress,p->dungeons.current(p.getUUID())==null?session(p).progress.sync:dungeons.current(p.getUUID()).syncFor(p.getUUID()),this::profile);
         registerCommands();
+        combatApplication.timing(()->combatSettings);
         loadDefinitions();
         dungeons.recover();
         loot.recover();
@@ -293,7 +295,9 @@ public final class ServerApplication {
             var match=java.util.regex.Pattern.compile("worldDifficulty\\s*=\\s*\"(\\w+)\"").matcher(text);
             Difficulty nextDifficulty=match.find()?Difficulty.valueOf(match.group(1)):worldDifficulty;
             RewardSettings nextRewards=RewardSettings.parse(text);
+            var nextCombat=cn.yumis.fight.modules.combat.api.CombatSettings.parse(text);
             String additions="";
+            if(!java.util.regex.Pattern.compile("(?m)^\\s*combatTimeoutSeconds\\s*=").matcher(text).find())additions+="\n# 连续未造成或受到有效伤害的脱战秒数\ncombatTimeoutSeconds=5\n";
             if(!java.util.regex.Pattern.compile("(?m)^\\s*combatExperienceMultiplier\\s*=").matcher(text).find())additions+="\n# 战斗经验倍率；不影响副职业或管理员经验\ncombatExperienceMultiplier=1.0\n";
             if(!java.util.regex.Pattern.compile("(?m)^\\s*killGoldMultiplier\\s*=").matcher(text).find())additions+="\n# 仅杀怪金币倍率；出售价格不变\nkillGoldMultiplier=1.0\n";
             if(!additions.isEmpty())Files.writeString(config,additions,StandardOpenOption.APPEND);
@@ -305,6 +309,7 @@ public final class ServerApplication {
             cn.yumis.fight.bootstrap.ApplicationRules.publish(candidate);
             worldDifficulty=nextDifficulty;
             rewards=nextRewards;
+            combatSettings=nextCombat;
         }
         catch(Exception e){
             server.sendSystemMessage(cn.yumis.fight.modules.presentation.api.ModText.of("地下城定义重载失败，保留有效定义："+e.getMessage()));
@@ -463,6 +468,8 @@ public final class ServerApplication {
         j.addProperty("equipmentState",inventory.clientStorageState(p));
         j.add("equipmentGroups",JSON.toJsonTree(MenuHooks.extra(p).groups));
         JsonObject definition=definitions();
+        j.add("combatSettings",JSON.toJsonTree(combatSettings));
+        j.add("partyInvitations",JSON.toJsonTree(partyService.incoming(p.getUUID())));
         viewSenders.computeIfAbsent(p.getUUID(),id->new ProfileSync.Sender()).publish(s.id.toString(),definitionsKey,definition,j,(action,packet)->Network.send(p,action,packet));
         careers.sync(p);
         damageMeter.send(p,dungeons.current(p.getUUID()));
@@ -484,6 +491,7 @@ public final class ServerApplication {
         catch(Exception e){message(p,e.getMessage());}
     }
     private void registerCommands(){
+        commands.register("industry","industrialReady",(p,j)->IndustrialWorld.get(p.level()).opening.ready(p,j));
         careers.register(commands);skillStarts.register(commands);
         equipmentApplication.register(commands);economyService.register(commands);progressService.register(commands);inventoryApplication.register(commands);
         commands.register("presentation","hello",(p,j)->{if(j.get("protocol").getAsInt()!=cn.yumis.fight.architecture.ProtocolVersion.CURRENT||j.has("rules")&&j.get("rules").getAsInt()!=cn.yumis.fight.bootstrap.ApplicationRules.DATA_VERSION){p.connection.disconnect(ModText.of("模组协议或规则版本不一致"));return;}profile(p);});
@@ -518,6 +526,7 @@ public final class ServerApplication {
         ticks++;
         for(ServerPlayer viewer:server.getPlayerList().getPlayers()){var sender=viewSenders.get(viewer.getUUID());if(sender!=null)sender.flush((action,packet)->Network.send(viewer,action,packet));}
         cn.yumis.fight.modules.industry.platform.IndustrialWorld.tick(server);
+        IndustrialWorld.get(server.overworld()).opening.tick(server);
         movement.tick();
         int size=combatQueue.size();
         for(int i=0;i<size;i++)combatQueue.removeFirst().run();

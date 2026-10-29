@@ -23,6 +23,8 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
 
     private boolean dragging;
     private EditBox search;
+    private Button upgrade;
+    private String upgradePreview="";
     private String lastFilter="";
     private long lastContents=-1;
     private int lastCapacity=-1;
@@ -35,15 +37,13 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
     @Override protected void init(){
         UiTheme.check();menu.resizeRows(Math.max(1,Math.min(Math.min(8,Math.max(1,menu.totalRows())),(height-186)/18)));((cn.yumis.fight.mixin.ContainerScreenSizeAccessor)(Object)this).ydnf$height(menu.rows*18+174);inventoryLabelY=menu.rows*18+58;super.init();minecraft.gameMode.handleInventoryButtonClick(menu.containerId,1000+menu.rows);
         search=addRenderableWidget(new EditBox(UiFonts.font(),leftPos+8,topPos+24,124,18,Component.literal("搜索物品")));search.setMaxLength(64);search.setHint(Component.literal("搜索物品…"));search.setValue(menu.query);search.setResponder(text->queryChangedAt=ClientUi.now()+150);
-        if(!menu.overflow){Button sort=button("↧",137,24,18,4);sort.setTooltip(Tooltip.create(Component.literal("整理：合并相同物品并按类型排序")));}
-        button(menu.overflow?"返":"存",158,24,22,2).setTooltip(Tooltip.create(Component.literal(menu.overflow?"返回次元背包":"迁移暂存：只取不存")));
-        Button upgrade=button(menu.extra.bagTier>=16?"最高档":"升级",130,imageHeight-23,50,3);upgrade.active=!menu.overflow&&menu.extra.bagTier<16;upgrade.setTooltip(Tooltip.create(Component.literal(menu.preview.has("requirements")?menu.preview.get("requirements").getAsString():"升级材料载入中")));
-        if(!menu.overflow&&width>=240)button("↑",-18,29,17,3).active=menu.extra.bagTier<16;
+        button("整理",137,24,43,4).setTooltip(Tooltip.create(Component.literal("合并相同物品并按类型排序")));
+        upgrade=button(menu.extra.bagTier>=16?"最高档":"升级",130,imageHeight-23,50,3);upgradePreview="";refreshUpgrade();
         lastContents=-1;lastCapacity=-1;lastFilter="";
     }
     private Button button(String text,int x,int y,int width,int id){return addRenderableWidget(Button.builder(Component.literal(text),b->minecraft.gameMode.handleInventoryButtonClick(menu.containerId,id)).bounds(leftPos+x,topPos+y,width,18).build(ThemedButton::new));}
     private void filter(){
-        if(search==null)return;String query=search.getValue();int capacity=menu.overflow?46:menu.extra.bagLimit();
+        if(search==null)return;String query=search.getValue();int capacity=menu.extra.bagLimit();
         Object currentLanguage=net.minecraft.locale.Language.getInstance();
         if(language!=currentLanguage){language=currentLanguage;names.clear();ids.clear();nameComponents.clear();languageRevision++;}
         long revision=menu.contentsRevision()+languageRevision;
@@ -51,7 +51,7 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
         lastContents=revision;lastCapacity=capacity;lastFilter=query;
         if(query.isEmpty()&&menu.query.isEmpty())return;
         String normalized=query.toLowerCase(Locale.ROOT);List<Integer> indices=new ArrayList<>();
-        int start=menu.overflow?DimensionalMenu.OVERFLOW_START:0,end=start+capacity;
+        int start=0,end=capacity;
         for(int i=start;i<end;i++){
             var stack=menu.slots.get(i).getItem();if(stack.isEmpty()){nameComponents.remove(i);names.remove(i);ids.remove(i);continue;}
             Object components=stack.getComponentsPatch();String id=net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
@@ -61,17 +61,17 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
         if(query.equals(menu.query)&&menu.matches(indices))return;
         menu.filter(query,indices);JsonObject request=new JsonObject();request.addProperty("menu",menu.containerId);request.addProperty("query",query);request.add("indices",JSON.toJsonTree(indices));ClientUi.current().send("bagView",request);
     }
-    @Override protected void containerTick(){super.containerTick();if(ClientUi.now()>=queryChangedAt)filter();menu.layout();}
+    private void refreshUpgrade(){if(upgrade==null)return;String text=menu.preview.has("requirements")?menu.preview.get("requirements").getAsString():"材料信息未就绪，请重新打开背包";if(!text.equals(upgradePreview)){upgradePreview=text;upgrade.setTooltip(Tooltip.create(Component.literal(text)));}upgrade.active=menu.extra.bagTier<16&&menu.preview.has("available")&&menu.preview.get("available").getAsBoolean();}
+    @Override protected void containerTick(){super.containerTick();refreshUpgrade();if(ClientUi.now()>=queryChangedAt)filter();menu.layout();}
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float alpha){
         UiTheme.check();g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,leftPos,topPos,imageWidth,imageHeight);
         for(var slot:menu.slots)if(slot.isActive())UiTheme.slot(g,leftPos+slot.x,topPos+slot.y);
         if(menu.maxScroll()>0){int h=menu.rows*18,thumb=Math.max(12,h*menu.rows/Math.max(1,menu.totalRows())),offset=(h-thumb)*menu.scrollRow()/menu.maxScroll();UiTheme.scrollbar(g,leftPos+174,topPos+DimensionalMenu.BAG_Y-1,h,thumb,offset);}
-        if(!menu.overflow&&width>=240)UiTheme.panel(g,leftPos-20,topPos+26,21,24);
         if(menu.query.length()>0&&menu.totalRows()==0)g.text(UiFonts.font(),"没有匹配物品",leftPos+12,topPos+DimensionalMenu.BAG_Y+8,UiTheme.MUTED,false);
     }
     @Override protected void extractLabels(GuiGraphicsExtractor g,int x,int y){
-        g.text(UiFonts.font(),menu.overflow?"迁移暂存":StorageRules.NAMES[menu.extra.bagTier-1],8,8,UiTheme.TEXT,false);g.text(UiFonts.font(),menu.extra.bagTier+"阶",imageWidth-29,8,UiTheme.MUTED,false);g.text(UiFonts.font(),"玩家背包",8,inventoryLabelY,UiTheme.TEXT,false);
-        int used=menu.usedSlots();g.text(UiFonts.font(),menu.overflow?"只取不存 · "+menu.overflowUsed()+"格":used+" / "+menu.extra.bagLimit()+" 格",8,imageHeight-17,UiTheme.MUTED,false);
+        g.text(UiFonts.font(),StorageRules.NAMES[menu.extra.bagTier-1],8,8,UiTheme.TEXT,false);g.text(UiFonts.font(),menu.extra.bagTier+"阶",imageWidth-29,8,UiTheme.MUTED,false);g.text(UiFonts.font(),"玩家背包",8,inventoryLabelY,UiTheme.TEXT,false);
+        int used=menu.usedSlots();g.text(UiFonts.font(),used+" / "+menu.extra.bagLimit()+" 格",8,imageHeight-17,UiTheme.MUTED,false);
     }
     private void scroll(int row){int next=Math.clamp(row,0,menu.maxScroll());if(next==menu.scrollRow())return;menu.scrollTo(next);minecraft.gameMode.handleInventoryButtonClick(menu.containerId,100+menu.scrollRow());}
     private boolean scrollbar(double x,double y){return menu.maxScroll()>0&&x>=leftPos+172&&x<=leftPos+185&&y>=topPos+DimensionalMenu.BAG_Y&&y<=topPos+DimensionalMenu.BAG_Y+menu.rows*18;}

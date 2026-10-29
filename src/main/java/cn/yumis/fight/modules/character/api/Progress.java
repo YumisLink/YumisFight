@@ -9,6 +9,7 @@ public class Progress {
     public int level=1,sp=15,strength,intelligence,spirit;
     public long experience;
     public boolean sync=true,starterGranted;
+    public boolean dungeonSync=true;
     public String job=JobCatalog.BASE;
     public Map<String,JobQuest> jobQuests=new LinkedHashMap<>();
     public static class JobQuest {public boolean accepted;public int kills,elites;}

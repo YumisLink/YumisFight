@@ -10,6 +10,7 @@ public final class CareerState {
     public boolean frenzy;
     public double eyeBonusMut;
     public Field field;
+    public Map<String,Long> reductions=new LinkedHashMap<>();
     public List<Field> fields=new ArrayList<>();
     public List<Actor> actors=new ArrayList<>();
     public static final class Actor {public String owner="";public int keiga,brands,blood;public boolean frenzy;public long kallaUntil,eyeUntil,bloodUntil;}

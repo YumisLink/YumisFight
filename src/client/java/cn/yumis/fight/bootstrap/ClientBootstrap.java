@@ -115,6 +115,7 @@ public final class ClientBootstrap {
         }
         );
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Opening e)->{
+            cn.yumis.fight.modules.equipment.client.FabricatorOpening.opening(e);
             if(e.getNewScreen()!=null&&Minecraft.getInstance().player!=null)SkillController.INSTANCE.cancel(false);
             CloudMovement.screen(e.getNewScreen()!=null);
         }
@@ -161,7 +162,7 @@ public final class ClientBootstrap {
         var mc=Minecraft.getInstance();
         boolean control=InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_LEFT_CONTROL)||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_RIGHT_CONTROL);
         if(mc.player!=null&&ClientSession.INSTANCE.ready&&event.key()==GLFW.GLFW_KEY_RIGHT_BRACKET&&control&&(mc.gui.screen()==null||mc.gui.screen() instanceof FightScreen)){
-            if(action==GLFW.GLFW_PRESS){cn.yumis.fight.modules.combat.api.client.DamageAnalysis.toggle();ClientSession.INSTANCE.message("伤害分析："+(cn.yumis.fight.modules.combat.api.client.DamageAnalysis.recording()?"开始记录":"停止记录")+"；在角色页面查看结果");}
+            if(action==GLFW.GLFW_PRESS){cn.yumis.fight.modules.combat.api.client.DamageAnalysis.toggle(ClientSession.INSTANCE.resources.combatUntil);ClientSession.INSTANCE.message("伤害分析："+(cn.yumis.fight.modules.combat.api.client.DamageAnalysis.recording()?"开始记录":"停止记录")+"；在角色页面查看结果");}
             return true;
         }
         if(CloudMovement.key(event,action))return true;

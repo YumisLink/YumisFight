@@ -59,7 +59,7 @@ public final class TrainingCombat {
         double total=0;int strongest=0;for(int i=0;i<5;i++){double v=values[i];if(!Double.isFinite(v)||v<0||!Double.isFinite(attempt.values[i]+v))throw new IllegalArgumentException("训练伤害分量无效");total+=v;if(v>values[strongest])strongest=i;}
         if(!Double.isFinite(total)||!Double.isFinite(Arrays.stream(attempt.values).sum()+total))throw new IllegalArgumentException("训练伤害合计无效");
         for(int i=0;i<5;i++)attempt.values[i]+=values[i];
-        DamageAnalysis.training(DamageAnalysis.source(extras),total);
+        DamageAnalysis.training(DamageAnalysis.source(extras),total,SkillsClient.current().combatSettings());
         attempt.changed=ClientUi.now();
         var mc=Minecraft.getInstance();var entity=mc.level==null?null:mc.level.getEntity(target.entityId);
         if(total>0&&entity instanceof LivingEntity living){if(NUMBERS.size()>=96)NUMBERS.removeFirst();NUMBERS.add(new DamageNumber(total,ClientUi.now()+DamageNumber.LIFETIME_MILLIS,COLORS[strongest],entity.position().add(0,entity.getBbHeight()*.8,0),target.dimension,target.id,critical));living.hurtTime=10;living.hurtDuration=10;}

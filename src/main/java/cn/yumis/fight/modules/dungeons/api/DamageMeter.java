@@ -10,8 +10,8 @@ public final class DamageMeter {
         public String name="";
         public Map<Integer,Double> damage=new TreeMap<>();
         public List<long[]> combat=new ArrayList<>();
-        public void event(long time){
-            combat.add(new long[]{time,time+CombatTiming.COMBAT_DELAY});
+        public void event(long time,long delayMillis){
+            combat.add(new long[]{time,time+delayMillis});
             combat.sort(Comparator.comparingLong(a->a[0]));
             List<long[]> merged=new ArrayList<>();
             for(long[] span:combat){if(merged.isEmpty()||merged.getLast()[1]<span[0])merged.add(span.clone());else merged.getLast()[1]=Math.max(merged.getLast()[1],span[1]);}

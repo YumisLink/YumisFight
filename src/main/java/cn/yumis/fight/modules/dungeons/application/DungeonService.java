@@ -107,11 +107,15 @@ public class DungeonService {
         if(!def.available())throw new IllegalArgumentException("该副本尚未开放");
         if(playerAccess.level(p)<def.level())throw new IllegalArgumentException("角色等级不足");
         Dungeon old=current(p.getUUID());
-        if(old!=null&&!old.dungeon.equals(id)&&old.status.equals("RUNNING"))throw new IllegalArgumentException("请先退出当前副本");
+        Difficulty difficulty=Difficulty.valueOf(j.get("difficulty").getAsString());
+        String operation=j.get("operation").getAsString(),key="dungeonReceipt/"+p.getUUID()+"/"+playerAccess.session(p).id+"/"+operation;
+        JsonElement previous=journal.get(key);if(!previous.isJsonNull()){if(!previous.equals(j))throw new IllegalArgumentException("入场操作号冲突");playerAccess.profile(p);return;}
+        if(old!=null){if(old.dungeon.equals(id)&&old.difficulty==difficulty&&old.syncFor(p.getUUID())==j.get("sync").getAsBoolean()){playerAccess.profile(p);return;}throw new IllegalArgumentException("请先退出当前副本，再选择场次或同步");}
         Dungeon d=null;
-        for(String key:journal.keys("instance/")){
-            Dungeon candidate=journal.get(key,Dungeon.class,null);
-            if(candidate!=null&&candidate.dungeon.equals(id)&&candidate.status.equals("RUNNING")){
+        boolean created=false;
+        for(String recordKey:journal.keys("instance/")){
+            Dungeon candidate=journal.get(recordKey,Dungeon.class,null);
+            if(candidate!=null&&candidate.dungeon.equals(id)&&candidate.difficulty==difficulty&&candidate.status.equals("RUNNING")){
                 d=candidate;
                 break;
             }
@@ -119,34 +123,25 @@ public class DungeonService {
         if(d==null){
             Team team=this.team.apply(p.getUUID());
             if(team!=null&&!team.leader.equals(p.getUUID()))throw new IllegalArgumentException("仅队长可发起并选择副本设置");
-            for(ServerPlayer online:new ArrayList<>(server.getPlayerList().getPlayers())){
-                Dungeon previous=current(online.getUUID());
-                if(previous!=null&&previous.dungeon.equals(id))leave(online,true);
-            }
             d=new Dungeon();
+            created=true;
             d.dungeon=id;
-            d.cell=def.cell();
-            d.difficulty=Difficulty.valueOf(j.get("difficulty").getAsString());
-            d.sync=j.get("sync").getAsBoolean();
-            forceArena(d,true);
-            ensureArena(def);
+            d.cell=freeCell();
+            d.difficulty=difficulty;
+            journal.put("instance/"+d.id,d);
+            try{forceArena(d,true);ensureArena(def,d.cell);}catch(Exception failure){d.status="CLOSED";journal.put("instance/"+d.id,d);clearCell(d.cell);forceArena(d,false);throw failure;}
             clearCell(d.cell);
             journal.put("instance/"+d.id,d);
             resetDoors(d);
-        }
-        String operation=j.has("operation")?j.get("operation").getAsString():UUID.randomUUID().toString();
-        String key="dungeonReceipt/"+p.getUUID()+"/"+playerAccess.session(p).id+"/"+operation;
-        JsonElement previous=journal.get(key);
-        if(!previous.isJsonNull()){
-            if(!previous.equals(j))throw new IllegalArgumentException("入场操作号冲突");
-            playerAccess.profile(p);
-            return;
         }
         int oldSize=Math.max(1,d.roster.size());
         boolean newcomer=d.roster.add(p.getUUID());
         boolean returning=d.withdrawn.remove(p.getUUID());
         if(!d.returns.containsKey(p.getStringUUID()))d.returns.put(p.getStringUUID(),point(p));
+        var nextProgress=JSON.fromJson(JSON.toJson(playerAccess.progress(p)),cn.yumis.fight.modules.character.api.Progress.class);nextProgress.dungeonSync=j.get("sync").getAsBoolean();d.synchronization.put(p.getUUID(),nextProgress.dungeonSync);
         journal.begin();
+        try{
+        journal.put("player/"+p.getUUID(),nextProgress);
         journal.put(key,j);
         if(newcomer||returning)meter.join(d,p);
         journal.put("instance/"+d.id,d);
@@ -163,6 +158,8 @@ public class DungeonService {
             }
         }
         journal.finish();
+        }catch(Exception failure){journal.abort();if(created)close(d);throw failure;}
+        playerAccess.progress(p,nextProgress);
         playerAccess.session(p).life.instance=d.id.toString();
         playerAccess.session(p).life.dimension=DIMENSION.identifier().toString();
         teleport(p,level(),d.cell*512+.5,80,2.5);
@@ -191,6 +188,7 @@ public class DungeonService {
         playerAccess.session(p).life.dimension=p.level().dimension().identifier().toString();
         playerAccess.save(p);
         rewards.publish();
+        if(d.roster.stream().allMatch(d.withdrawn::contains))close(d);
         playerAccess.profile(p);
     }
     public void disconnected(ServerPlayer p)throws Exception{
@@ -242,12 +240,13 @@ public class DungeonService {
             if(forced)level().getChunk(x,z);
         }
     }
-    private void ensureArena(DungeonCatalog.DungeonDef def)throws Exception{
-        String key="arena/"+def.id();
-        if(journal.get(key,String.class,"").equals("YDNF_LAYOUT_2"))return;
+    private int freeCell(){Set<Integer> occupied=new HashSet<>();for(String key:journal.keys("instance/")){Dungeon d=journal.get(key,Dungeon.class,null);if(d!=null&&!d.status.equals("CLOSED"))occupied.add(d.cell);}int cell=DungeonCatalog.current().dungeons.stream().mapToInt(DungeonCatalog.DungeonDef::cell).max().orElse(-1)+1;while(occupied.contains(cell))cell++;return cell;}
+    private void ensureArena(DungeonCatalog.DungeonDef def,int cell)throws Exception{
+        String key="arenaCell/"+cell;String layout=def.id()+"/YDNF_LAYOUT_2";
+        if(journal.get(key,String.class,"").equals(layout))return;
         journal.put(key,"BUILDING_YDNF_LAYOUT_2");
         ServerLevel world=level();
-        BlockPos origin=new BlockPos(def.cell()*512,80,0);
+        BlockPos origin=new BlockPos(cell*512,80,0);
         for(int x=-23;x<=23;x++)for(int z=-6;z<=146;z++)for(int y=-2;y<=49;y++){
             BlockPos pos=origin.offset(x,y,z);
             if(!world.isEmptyBlock(pos))world.setBlock(pos,Blocks.AIR.defaultBlockState(),2);
@@ -255,7 +254,7 @@ public class DungeonService {
         if(def.id().equals("goblin_camp"))GoblinCamp.build(world,origin);
         else DragonTower.build(world,origin);
         world.getChunkSource().save(true);
-        journal.put(key,"YDNF_LAYOUT_2");
+        journal.put(key,layout);
     }
     private void clearCell(int cell){
         for(Entity e:level().getAllEntities())if((e instanceof DungeonEnemy||e instanceof CageEntity)&&Math.abs(e.getX()-cell*512)<128)e.discard();

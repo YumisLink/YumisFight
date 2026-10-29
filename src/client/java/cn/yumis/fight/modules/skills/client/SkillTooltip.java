@@ -40,6 +40,7 @@ public final class SkillTooltip {
         var preview=SkillPreview.resolve(state.progress(),stats,skill,parameters,state.resources().equipment);
         List<Component> result=new ArrayList<>();
         add(result,skill.title+" · "+(rank>0?"有效等级 "+rank:skill.equipmentGranted?"缺少有效装备来源":"未学习 · 1级预览"),UiTheme.GOLD);
+        if(!skill.equipmentGranted)add(result,"SP学习 "+state.progress().learned(skill.id)+"级 · 有效 "+rank+"级",UiTheme.TEXT);
         add(result,skill.equipmentGranted?"装备授予，无需SP；等级随有效来源装备变化":"学习等级 "+skill.unlock+(skill.advanced()?" · "+cn.yumis.fight.modules.character.api.JobCatalog.require(skill.requiredJob).title():"")+" · 每级 "+skill.sp+" SP",UiTheme.MUTED);
         if(skill==SkillCatalog.MASTERY){
             double power=Math.pow(1.12,Math.max(1,rank)-1);

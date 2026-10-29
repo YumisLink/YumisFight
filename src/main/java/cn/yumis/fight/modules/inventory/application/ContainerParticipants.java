@@ -49,7 +49,7 @@ final class ContainerParticipants {
                 var parts=(CompoundContainerAccessor)compound;int first=parts.ydnf$first().getContainerSize();
                 if(index<first)container=parts.ydnf$first();else{index-=first;container=parts.ydnf$second();}
             }
-            if(index<0||index>=container.getContainerSize()||container==player.getInventory()||container==extra||container==extra.bag||container==extra.bagOverflow)continue;
+            if(index<0||index>=container.getContainerSize()||container==player.getInventory()||container==extra||container==extra.bag)continue;
             if(player.inventoryMenu.slots.stream().anyMatch(s->s.container==slot.container))continue;
             if(!seen.computeIfAbsent(container,ignored->new HashSet<>()).add(index))continue;
             Address address=address(player,container,index);

@@ -26,6 +26,15 @@ public final class SkillLearning {
         for(var skill:SkillCatalog.all()){progress.sp+=progress.learned(skill.id)*skill.sp;progress.skills.remove(skill.id);}
         Arrays.fill(progress.slots,"");
     }
+    public static int unlearn(Progress progress,Stats stats,SkillDefinition skill,int count){
+        if(skill.equipmentGranted)throw new IllegalArgumentException("装备授予等级不能退还SP");
+        if(count!=1&&count!=5)throw new IllegalArgumentException("退级数量必须为1或5");
+        int amount=Math.min(count,progress.learned(skill.id));if(amount<=0)throw new IllegalArgumentException("该技能没有可退还的学习等级");
+        int remaining=progress.learned(skill.id)-amount;if(remaining==0)progress.skills.remove(skill.id);else progress.skills.put(skill.id,remaining);
+        progress.sp=Math.addExact(progress.sp,Math.multiplyExact(amount,skill.sp));
+        if(!canBind(stats,progress,skill))for(int i=0;i<progress.slots.length;i++)if(progress.slots[i].equals(skill.id))progress.slots[i]="";
+        return amount;
+    }
     public static void refundCareer(Progress progress){
         for(var skill:SkillCatalog.all())if(skill.advanced()){
             progress.sp+=progress.learned(skill.id)*skill.sp;progress.skills.remove(skill.id);
@@ -36,6 +45,7 @@ public final class SkillLearning {
     public static void apply(Progress progress,Stats stats,JsonObject request){
         switch(request.get("kind").getAsString()){
             case "learn"->learn(progress,SkillCatalog.require(request.get("skill").getAsString()),request.has("count")?request.get("count").getAsInt():1);
+            case "unlearn"->unlearn(progress,stats,SkillCatalog.require(request.get("skill").getAsString()),request.get("count").getAsInt());
             case "resetSkills"->reset(progress);
             case "refundCareer"->refundCareer(progress);
             case "bind"->{

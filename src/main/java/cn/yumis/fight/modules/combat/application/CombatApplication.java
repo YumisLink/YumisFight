@@ -23,6 +23,8 @@ import java.util.*;
 import java.util.function.*;
 /** Receipt validation and lifecycle. Rewards and encounter effects participate in the same WAL batch. */
 public final class CombatApplication {
+    private java.util.function.Supplier<cn.yumis.fight.modules.combat.api.CombatSettings> timing=()->cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
+    public void timing(java.util.function.Supplier<cn.yumis.fight.modules.combat.api.CombatSettings> settings){timing=java.util.Objects.requireNonNull(settings);}
     private java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> equipmentStats;
     private java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.character.api.Progress> equipmentProgress;
     private java.util.function.Predicate<ServerPlayer> equipmentSync=p->true;
@@ -145,7 +147,8 @@ public final class CombatApplication {
             ack.addProperty("runtimeRecordedAt",s.resources.recordedAt);
             if(!heal&&(receipt.actual()>0||entity==p&&outcome.equals("HIT")&&taken>0)){
                 long eventTime=nativeHit?nativeHits.occurredAt(j):j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
-                if(entity==p)CombatTiming.taken(s.resources,eventTime);else CombatTiming.dealt(s.resources,eventTime);
+                var clock=timing.get();ack.addProperty("combatDelayMillis",clock.delayMillis());
+                if(entity==p)CombatTiming.taken(s.resources,eventTime,clock);else CombatTiming.dealt(s.resources,eventTime,clock);
                 journal.put("resources/"+p.getUUID(),s.resources);
                 damageMeter.record(p,target,receipt.actual(),eventTime);
             }

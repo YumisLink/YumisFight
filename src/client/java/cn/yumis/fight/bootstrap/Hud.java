@@ -135,7 +135,7 @@ public final class Hud {
     private static String damageAmount(double value){return cn.yumis.fight.modules.presentation.api.client.NumberText.damage(value);}
     private static void target(GuiGraphicsExtractor g,LivingEntity e,Target t){
         var s=ClientSession.INSTANCE;
-        int level=t.level(s.progress.level,s.dungeon==null?s.progress.sync:s.dungeon.sync);
+        int level=t.level(s.progress.level,s.encounterSync());
         double maximum=t.health(level),q=s.predicted(t.life),scale=ClientSettings.targetScale;
         if(184*scale>g.guiWidth()-12)scale=1;
         int width=(int)(184*scale),x=ClientSettings.targetPosition.equals("top_left")?6:(g.guiWidth()-width)/2;

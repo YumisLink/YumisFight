@@ -10,6 +10,8 @@ public final class DungeonPorts {
     public interface Players {
         CombatSession session(ServerPlayer player);
         int level(ServerPlayer player);
+        cn.yumis.fight.modules.character.api.Progress progress(ServerPlayer player);
+        void progress(ServerPlayer player,cn.yumis.fight.modules.character.api.Progress next);
         void save(ServerPlayer player)throws Exception;
         void profile(ServerPlayer player);
         void message(ServerPlayer player,String message);
