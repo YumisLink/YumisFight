@@ -16,7 +16,7 @@ public final class ShopPage {
         int y=page.cursor(),width=Math.min(page.contentWidth(),340);page.card(0,y,width,154);page.icon("textures/item/currency/overlord_contract.png",10,y+12,30);
         page.text("霸王之契约 · 7天",48,y+15,titleColor);page.text("100000 金币",12,y+48,titleColor);page.text("可穿戴装备等级上限 +5，额度不叠加",12,y+67,muted);page.text("购买立即生效，离线计时，重复购买延长",12,y+84,muted);
         var button=page.button("购买并立即生效",12,y+109,width-24,()->{
-            Minecraft.getInstance().gui.setScreen(new ConfirmScreen(yes->{Minecraft.getInstance().gui.setScreen(parent);if(yes){var request=operation.get();request.addProperty("session",session);request.addProperty("product","overlord_contract");submit.accept(request);}},Component.literal("购买霸王之契约？"),Component.literal("消耗100000金币，立即延长7×24小时。")));
+            Minecraft.getInstance().gui.setScreen(new ThemedConfirmScreen(yes->{Minecraft.getInstance().gui.setScreen(parent);if(yes){var request=operation.get();request.addProperty("session",session);request.addProperty("product","overlord_contract");submit.accept(request);}},Component.literal("购买霸王之契约？"),Component.literal("消耗100000金币，立即延长7×24小时。"),ThemeDomain.MENU));
         });button.active=gold>=100000;page.cursor(y+164);
         long now=ClientUi.current().serverNow();page.line(contractUntil>now?"契约到期："+DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("Asia/Hong_Kong")).format(Instant.ofEpochMilli(contractUntil)):"当前没有生效的霸王之契约。",muted);
         page.line("等级之外的职业、装备槽资格仍须满足。",muted);

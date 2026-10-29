@@ -47,10 +47,14 @@ public final class ServerEvents {
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent e)->{if(e.getEntity() instanceof net.minecraft.world.entity.player.Player)e.setStrength(e.getStrength()*.1f);});
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent e)->{
             if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof net.minecraft.world.entity.item.ItemEntity item)ServerApplication.get().loot.nativeLeft(item);
+            if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof net.minecraft.world.entity.projectile.Projectile projectile&&projectile.getRemovalReason()!=net.minecraft.world.entity.Entity.RemovalReason.CHANGED_DIMENSION&&projectile.getRemovalReason()!=net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK)ServerApplication.get().nativeHits.projectileLeft(projectile.getUUID());
         }
         );
-        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.item.ItemTossEvent e)->{
-            if(ServerApplication.ready()&&ServerApplication.get().inventory.inside())e.setCanceled(true);
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST,true,(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e)->{
+            if(ServerApplication.ready()&&!e.isCanceled()&&!e.loadedFromDisk()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof net.minecraft.world.entity.projectile.Projectile projectile)ServerApplication.get().nativeHits.launched(projectile);
+        });
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST,true,(net.neoforged.neoforge.event.entity.item.ItemTossEvent e)->{
+            if(ServerApplication.ready())ServerApplication.get().inventory.tossEvent(e);
         }
         );
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e)->{
@@ -83,7 +87,7 @@ public final class ServerEvents {
         }
         );
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e)->commands(e));
-        NeoForge.EVENT_BUS.addListener((ItemEntityPickupEvent.Pre e)->{if(ServerApplication.ready())ServerApplication.get().loot.nativePickup(e);});
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST,(ItemEntityPickupEvent.Pre e)->{if(ServerApplication.ready())ServerApplication.get().loot.nativePickup(e);});
     }
     private static void commands(RegisterCommandsEvent e){
         var root=Commands.literal("ydnf").executes(c->{

@@ -28,6 +28,7 @@ final class BuiltinSkillVisuals {
                 public boolean immediateEnd(){return id.equals(SkillCatalog.STORM.id);}
                 public boolean persistentEnd(){return id.equals(SkillCatalog.OVERDRIVE.id);}
                 public boolean cinematic(){return id.equals(SkillCatalog.STORM.id);}
+                public long finishedUntil(Track track,SkillVisualEvent event){return cinematic()?track.start.startedAt()+Math.max(track.start.duration(),event.duration()):event.at()+500;}
                 public long defaultDuration(){return id.equals(SkillCatalog.STORM.id)?8000:id.equals(SkillCatalog.GHOST.id)?3800:id.equals(SkillCatalog.OVERDRIVE.id)?30000:2500;}
                 public int defaultColor(){return id.equals(SkillCatalog.GHOST.id)?SkillVisualEvent.DARK:SkillVisualEvent.CYAN;}
                 public void tick(Track track,long time){BuiltinSkillVisuals.tick(track,time);}
@@ -51,6 +52,7 @@ final class BuiltinSkillVisuals {
     }
     private static void render(LevelRenderContext context,Track t,long age,long time,List<Quad> quads,Vec3 camera){
         SkillVisualEvent event=t.start;
+        if(event.skill().equals("ATTACK")&&t.motion!=null){double fade=t.last.phase()==SkillVisualEvent.Phase.FINISH?Math.max(0,1-(time-t.last.at())/180d):1;Vec3 p=vector(t.last.position());orb(quads,p,.16*fade,event.color(),(int)(220*fade));ring(quads,p.add(0,-.1,0),.2*fade,event.color(),(int)(110*fade));return;}
             if(event.skill().equals("yumis_dungeon_and_fight:storm")){
                 storm(context,t,age,quads,camera);
                 return;
@@ -133,6 +135,7 @@ final class BuiltinSkillVisuals {
         if(t.swords!=null)return;
         t.swords=GhostSwordsmanWeaponVisuals.choose(t.start.seed());
         t.models=new ItemStackRenderState[24];
+        t.inclinations=GhostSwordsmanWeaponVisuals.inclinations(t.start.seed());
     }
     private static void slash(List<Quad> out,SkillVisualEvent e,long age){
         Vec3 direction=vector(e.direction()),right=side(direction),p=vector(e.position()).add(direction.scale(e.forwardOffset()));
@@ -206,7 +209,7 @@ final class BuiltinSkillVisuals {
                     Minecraft.getInstance().getItemModelResolver().updateForLiving(model,t.swords[i],ItemDisplayContext.NONE,Minecraft.getInstance().player);
                     t.models[i]=model;
                 }
-                context.swords().add(new Sword(model,p,i*30));
+                context.swords().add(new Sword(model,p,i*30,t.inclinations.get(i)));
                 ring(out,p.add(0,.04,0),.23,color,95);
             }
         }

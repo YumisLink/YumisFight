@@ -1,0 +1,26 @@
+RarityCore background texture
+============================
+
+Upstream project: RarityCore
+Upstream author: Yanbwe / RarityCore contributors
+Repository: https://github.com/Yanbwe/RarityCore
+Source revision: 0278bc8a02fb87586d5dc4fd7f9b861352c9e8ed
+Original file: common/src/main/resources/assets/raritycore/textures/border/rarity_1.png
+Source URL: https://github.com/Yanbwe/RarityCore/blob/0278bc8a02fb87586d5dc4fd7f9b861352c9e8ed/common/src/main/resources/assets/raritycore/textures/border/rarity_1.png
+Bundled file: assets/yumis_dungeon_and_fight/textures/gui/rarity/background.png
+Imported: 2026-10-29
+
+The bundled PNG is an unmodified copy of the upstream 16x16 white background.
+YumisDungeonAndFight applies its own six rarity colors at render time. No
+RarityCore Java source or rarity assignment system is included.
+
+The upstream project declares GNU GPL 3.0 in gradle.properties at the source
+revision. This texture is distributed under that license; see COPYING.txt.
+The full license text was copied verbatim from the upstream LICENSE at
+revision 3439e9718209398726e13ac4df37c385891afd4c.
+The project's own code retains its existing licensing; this notice identifies
+the separately bundled third-party asset.
+
+This asset is distributed WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.

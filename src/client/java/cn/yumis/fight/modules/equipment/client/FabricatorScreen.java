@@ -1,4 +1,5 @@
 package cn.yumis.fight.modules.equipment.client;
+import cn.yumis.fight.modules.presentation.api.client.*;
 import cn.yumis.fight.modules.equipment.api.client.EquipmentClient;
 
 import cn.yumis.fight.modules.presentation.api.client.ThemedButton;
@@ -26,7 +27,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
-public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMenu> {
+public final class FabricatorScreen extends ThemedContainerScreen<FabricatorMenu> {
     private Slot slot=Slot.WEAPON;
     private Weapon weapon=Weapon.KATANA;
     private ArmorType armorType=ArmorType.UNTYPED;
@@ -34,7 +35,7 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
     private int level=1;
     private List<MaterialCatalog.Need> needs=List.of();
     public FabricatorScreen(FabricatorMenu menu,Inventory inv,Component title){
-        super(menu,inv,title,176,208);
+        super(menu,inv,title,176,208,ThemeDomain.MACHINE);
         inventoryLabelY=100;
     }
     @Override protected void init(){
@@ -97,7 +98,7 @@ public final class FabricatorScreen extends AbstractContainerScreen<FabricatorMe
         }
         return total;
     }
-    @Override public void extractBackground(GuiGraphicsExtractor g,int mx,int my,float a){
+    @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float a){
         g.fill(0,0,width,height,UiTheme.OVERLAY);
         UiTheme.panel(g,leftPos-5,topPos-5,(leftPos+181)-(leftPos-5),(topPos+208)-(topPos-5));
 

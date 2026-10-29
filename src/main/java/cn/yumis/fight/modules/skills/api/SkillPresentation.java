@@ -10,13 +10,13 @@ public final class SkillPresentation {
     static {
         register(SkillCatalog.BLINK,new Traits(false,true,true,false,0,0,0xb4f2ff,false,c->100));
         register(SkillCatalog.GHOST,new Traits(true,false,false,false,0,0,0x8E56D9,false,c->3800));
-        register(SkillCatalog.TRIPLE,new Traits(false,false,false,false,200,1200,0xB4F2FF,true,c->4500));
+        register(SkillCatalog.TRIPLE,new Traits(false,false,false,false,200,1200,0xB4F2FF,true,c->(long)(1200*c.parameters.get("slashes",3)+500)));
         register(SkillCatalog.WAVE,new Traits(false,false,false,false,0,0,0xB4F2FF,false,c->1800));
         register(SkillCatalog.MASTERY,new Traits(false,false,false,false,0,0,0xB4F2FF,false,c->1800));
         register(SkillCatalog.OVERDRIVE,new Traits(false,false,true,false,0,0,0xB4F2FF,false,c->30000));
         register(SkillCatalog.RISING,new Traits(false,false,false,false,0,0,0xB4F2FF,true,c->1800));
         register(SkillCatalog.DRAW,new Traits(false,false,false,false,0,0,0xB4F2FF,true,c->1800));
-        register(SkillCatalog.DRAGON,new Traits(false,false,false,false,250,1050,0xB4F2FF,true,c->6000));
+        register(SkillCatalog.DRAGON,new Traits(false,false,false,false,250,1050,0xB4F2FF,true,c->(long)(1050*c.parameters.get("slashes",4)+500)));
         register(SkillCatalog.DANCE,new Traits(false,false,false,false,0,0,0xB4F2FF,true,c->(long)(c.parameters.get("duration",1.25)*1000+600)));
         register(SkillCatalog.STORM,new Traits(false,true,true,true,0,0,0xB4F2FF,true,c->(long)(c.parameters.get("duration",8)*1000)));
     }

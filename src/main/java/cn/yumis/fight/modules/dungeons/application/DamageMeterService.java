@@ -13,6 +13,9 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.*;
 
 public class DamageMeterService {
+    private final Map<UUID,JsonObject> sent=new HashMap<>();
+    public void forget(ServerPlayer player){sent.remove(player.getUUID());}
+    private void emit(ServerPlayer player,JsonObject value){if(!value.equals(sent.get(player.getUUID()))){sent.put(player.getUUID(),value.deepCopy());Network.send(player,"damageMeter",value);}}
     private final Journal journal;
     private final MinecraftServer server;
     private final Function<UUID,Dungeon> current;
@@ -38,11 +41,11 @@ public class DamageMeterService {
     public void freeze(Dungeon dungeon)throws Exception{DamageMeter meter=load(dungeon);if(meter.frozenAt==0){meter.frozenAt=System.currentTimeMillis();journal.put("damageMeter/"+dungeon.id,meter);}broadcast(dungeon);}
     public void broadcast(Dungeon dungeon){for(var player:server.getPlayerList().getPlayers())if(participant.test(player,dungeon.id.toString()))send(player,dungeon);}
     public void send(ServerPlayer viewer,Dungeon dungeon){
-        JsonObject result=new JsonObject();if(dungeon==null){Network.send(viewer,"damageMeter",result);return;}
+        JsonObject result=new JsonObject();if(dungeon==null){emit(viewer,result);return;}
         DamageMeter meter=load(dungeon);long now=meter.frozenAt>0?meter.frozenAt:System.currentTimeMillis();
         var entries=new ArrayList<>(meter.players.entrySet());entries.removeIf(e->dungeon.withdrawn.contains(UUID.fromString(e.getKey()))||server.getPlayerList().getPlayer(UUID.fromString(e.getKey()))==null);entries.sort(Comparator.<Map.Entry<String,DamageMeter.Entry>>comparingDouble(e->e.getValue().canonical()).reversed().thenComparing(Map.Entry::getKey));
         double total=entries.stream().mapToDouble(e->e.getValue().canonical()).sum(),max=entries.isEmpty()?0:entries.getFirst().getValue().canonical();
         JsonArray rows=new JsonArray();for(var pair:entries){var entry=pair.getValue();JsonObject row=new JsonObject();double damage=entry.displayed(level.applyAsInt(viewer),dungeon.sync);long elapsed=entry.elapsed(now);row.addProperty("name",entry.name);row.addProperty("damage",damage);row.addProperty("dps",elapsed>0?damage/(elapsed/1000d):0);row.addProperty("share",total>0?entry.canonical()/total:0);row.addProperty("bar",max>0?entry.canonical()/max:0);rows.add(row);}
-        result.addProperty("instance",dungeon.id.toString());result.addProperty("completed",meter.frozenAt>0);result.add("rows",rows);Network.send(viewer,"damageMeter",result);
+        result.addProperty("instance",dungeon.id.toString());result.addProperty("completed",meter.frozenAt>0);result.add("rows",rows);emit(viewer,result);
     }
 }

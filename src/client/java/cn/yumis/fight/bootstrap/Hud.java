@@ -4,8 +4,11 @@ import cn.yumis.fight.modules.presentation.api.client.ClientSettings;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.UiTheme;
 import cn.yumis.fight.modules.economy.api.ItemRarity;
+import cn.yumis.fight.modules.economy.api.CurrencyRules;
+import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.equipment.api.Rarity;
+import cn.yumis.fight.platform.ItemData;
 import static cn.yumis.fight.modules.character.api.CharacterRules.nextExperience;
 import cn.yumis.fight.modules.skills.api.SkillDefinition;
 import cn.yumis.fight.modules.skills.api.SkillCatalog;
@@ -13,12 +16,17 @@ import cn.yumis.fight.modules.skills.api.SkillCatalog;
 import cn.yumis.fight.modules.dungeons.api.Target;
 import net.minecraft.client.*;
 import net.minecraft.client.gui.*;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.inventory.*;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 public final class Hud {
+    // Unmodified RarityCore white texture, tinted with this project's rarity colors.
+    // Source and asset license: resources/licenses/raritycore/NOTICE.txt.
+    private static final Identifier RARITY_BACKGROUND=Identifier.fromNamespaceAndPath(ItemData.NS,"textures/gui/rarity/background.png");
     private Hud(){
     }
     private static void bar(GuiGraphicsExtractor g,int x,int y,int width,int height,double q,int color){
@@ -87,23 +95,9 @@ public final class Hud {
         }
         if(mc.gui.screen()!=null)return;
         g.nextStratum();
-        var camera=mc.gameRenderer.mainCamera();
-        var forward=camera.forwardVector();
-        for(var number:s.prediction.numbers()){
-            if(!number.dimension().equals(s.dimension))continue;
-            var relative=number.position().subtract(camera.position());
-            if(relative.x*forward.x()+relative.y*forward.y()+relative.z*forward.z()<=0)continue;
-            var screen=mc.gameRenderer.projectPointToScreen(number.position());
-            if(!Double.isFinite(screen.x)||!Double.isFinite(screen.y)||Math.abs(screen.x)>1||Math.abs(screen.y)>1)continue;
-            double age=Math.clamp(1-(number.expires()-now)/1100d,0,1);
-            int x=(int)Math.round((screen.x+1)*.5*width+number.lane()*(6+age*10)),y=(int)Math.round((1-screen.y)*.5*height-age*24),alpha=(int)(255*Math.min(1,(1-age)*4));
-            var text=net.minecraft.network.chat.Component.literal(cn.yumis.fight.modules.presentation.api.client.NumberText.number(number.amount()));
-            g.pose().pushMatrix();
-            g.pose().translate(x,y);
-            g.pose().scale(ClientSettings.damageScale,ClientSettings.damageScale);
-            g.text(font,text,-font.width(text)/2,0,(alpha<<24)|number.color(),true);
-            g.pose().popMatrix();
-        }
+        var numbers=new java.util.ArrayList<>(s.prediction.numbers());
+        numbers.addAll(cn.yumis.fight.modules.skills.api.client.TrainingCombat.numbers());
+        cn.yumis.fight.modules.combat.client.DamageNumbers.render(g,mc,now,s.dimension,numbers);
         cn.yumis.fight.modules.skills.client.CareerHud.renderGauge(g,width,height,now);
         if(mc.hitResult instanceof EntityHitResult hit){
             var entity=hit.getEntity();
@@ -118,7 +112,12 @@ public final class Hud {
         if(state.dungeon==null||!state.damageMeter.has("rows")||!state.damageMeter.has("instance")||!state.damageMeter.get("instance").getAsString().equals(state.dungeon.id.toString()))return;
         var rows=state.damageMeter.getAsJsonArray("rows");var font=UiFonts.font();int x=6,w=Math.min(250,Math.max(120,g.guiWidth()/2-12)),y=ClientSettings.targetPosition.equals("top_left")?(int)(65*ClientSettings.targetScale)+16:50;
         g.text(font,state.damageMeter.get("completed").getAsBoolean()?"本次副本输出 · 已结算":"本次副本输出",x+3,y,UiTheme.HUD_GOLD,false);y+=13;
-        for(var value:rows){if(y+17>g.guiHeight()-100)break;var row=value.getAsJsonObject();g.fill(x,y,x+w,y+17,UiTheme.HUD_PANEL);g.fill(x,y,x+(int)(w*row.get("bar").getAsDouble()),y+17,UiTheme.DAMAGE_BAR);String metrics=compact(row.get("damage").getAsDouble())+"  "+compact(row.get("dps").getAsDouble())+"/s  "+String.format(java.util.Locale.ROOT,"%.1f%%",row.get("share").getAsDouble()*100);int available=Math.max(12,w-font.width(metrics)-13);g.text(font,font.plainSubstrByWidth(row.get("name").getAsString(),available)+"：",x+3,y+4,UiTheme.HUD_TEXT,true);g.text(font,metrics,x+w-font.width(metrics)-3,y+4,UiTheme.HUD_TEXT,true);y+=19;}
+        for(var value:rows){
+            var row=value.getAsJsonObject();String damage=damageAmount(row.get("damage").getAsDouble()),dps=damageAmount(row.get("dps").getAsDouble())+"/s",share=String.format(java.util.Locale.ROOT,"%.1f%%",row.get("share").getAsDouble()*100);boolean narrow=font.width(damage+"  "+dps)>w-8;int height=narrow?41:29;
+            if(y+height>g.guiHeight()-100)break;g.fill(x,y,x+w,y+height,UiTheme.HUD_PANEL);g.fill(x,y,x+(int)(w*row.get("bar").getAsDouble()),y+height,UiTheme.DAMAGE_BAR);
+            g.text(font,font.plainSubstrByWidth(row.get("name").getAsString(),Math.max(12,w-font.width(share)-14)),x+3,y+3,UiTheme.HUD_TEXT,true);g.text(font,share,x+w-font.width(share)-3,y+3,UiTheme.HUD_TEXT,true);
+            g.text(font,damage,x+3,y+16,UiTheme.HUD_TEXT,true);g.text(font,dps,narrow?x+3:x+w-font.width(dps)-3,y+(narrow?28:16),UiTheme.HUD_TEXT,true);y+=height+2;
+        }
     }
     public static void gold(GuiGraphicsExtractor g,ClientSession state){
         var font=UiFonts.font();String text="金币 "+String.format(java.util.Locale.ROOT,"%,d",state.gold.balance);
@@ -133,7 +132,7 @@ public final class Hud {
             if(t>.75)g.fill(x,y,x+w,y+1,((int)(150*(1-t)*4)<<24)|(UiTheme.HUD_GOLD&0xffffff));
         }
     }
-    private static String compact(double value){return value>=1000000?String.format(java.util.Locale.ROOT,"%.1fm",value/1000000):value>=1000?String.format(java.util.Locale.ROOT,"%.1fk",value/1000):String.format(java.util.Locale.ROOT,"%.0f",value);}
+    private static String damageAmount(double value){return cn.yumis.fight.modules.presentation.api.client.NumberText.damage(value);}
     private static void target(GuiGraphicsExtractor g,LivingEntity e,Target t){
         var s=ClientSession.INSTANCE;
         int level=t.level(s.progress.level,s.dungeon==null?s.progress.sync:s.dungeon.sync);
@@ -153,15 +152,22 @@ public final class Hud {
     public static void equipment(ScreenEvent.Render.Background event){
         if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;
         for(var slot:screen.getMenu().slots){
-            var rarity=ItemRarity.rarity(slot.getItem());
-            if(slot.isActive()&&rarity!=Rarity.COMMON){
-                int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y,color=0xff000000|rarity.color();
-                var g=event.getGuiGraphics();
-                g.fill(x-1,y-1,x+17,y,color);
-                g.fill(x-1,y+16,x+17,y+17,color);
-                g.fill(x-1,y,x,y+16,color);
-                g.fill(x+16,y,x+17,y+16,color);
-            }
+            if(!slot.isActive())continue;
+            int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;
+            if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;
+            var stack=slot.getItem();
+            if(stack.isEmpty()||!ItemData.own(stack))continue;
+            var rarity=ItemRarity.rarity(stack);
+            // COMMON is also the fallback for unrelated items; only decorate known gear/currency.
+            if(rarity==Rarity.COMMON&&EquipmentItems.view(stack)==null&&CurrencyRules.find(ItemData.id(stack))==null)continue;
+            int color=0xff000000|rarity.color();
+            var g=event.getGuiGraphics();
+            g.blit(RenderPipelines.GUI_TEXTURED,RARITY_BACKGROUND,x,y,0.0F,0.0F,16,16,16,16,color);
+            // Former [x-1,x+17) / [y-1,y+17) frame moves inward one pixel on every side.
+            g.fill(x,y,x+16,y+1,color);
+            g.fill(x,y+15,x+16,y+16,color);
+            g.fill(x,y+1,x+1,y+15,color);
+            g.fill(x+15,y+1,x+16,y+15,color);
         }
     }
 }

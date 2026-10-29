@@ -45,6 +45,12 @@ public final class EconomyService {
                 boolean allowed=g!=null&&stack.getCount()==1&&ItemData.own(stack)&&(bag||slot!=p.getInventory().getSelectedSlot());row.addProperty("allowed",allowed);
                 row.addProperty("reason",allowed?"":stack.isEmpty()?"空槽":!bag&&slot==p.getInventory().getSelectedSlot()?"当前主手不可出售":"不是可出售的装备");
                 row.addProperty("name",stack.isEmpty()?"空槽":stack.getHoverName().getString());
+                if(g==null&&!stack.isEmpty()){
+                    // Only the visible item/name are needed; never transmit nested container contents.
+                    ItemStack preview=new ItemStack(stack.getItem(),stack.getCount());
+                    preview.set(net.minecraft.core.component.DataComponents.ITEM_NAME,stack.getHoverName());
+                    row.add("item",inventory.encode(p,preview));
+                }
                 if(g!=null){
                     row.addProperty("equipment",g.instance.toString());row.addProperty("revision",g.revision);row.addProperty("price",CurrencyRules.salePrice(g));
                     Gear preview=EquipmentJson.copy(g,Gear.class);preview.baseGrowth.clear();preview.affixes.clear();preview.gems.clear();row.add("item",inventory.encode(p,EquipmentItems.gear(preview)));

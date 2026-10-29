@@ -16,8 +16,8 @@ import top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler;
 public final class ExtraInventory extends SimpleContainer {
     public static final String[] SLOTS={"bracelet","necklace","ring","sub_equipment","magic_stone","earring"};
     public final Player player;
-    public final SimpleContainer bag=new SimpleContainer(416);
-    public final SimpleContainer bagOverflow=new SimpleContainer(46);
+    public final TrackedContainer bag=new TrackedContainer(416);
+    public final TrackedContainer bagOverflow=new TrackedContainer(46);
     public int bagSchema=3,bagTier=1,bagPage;
     public int bagLimit(){return cn.yumis.fight.modules.inventory.api.StorageRules.capacity(bagTier);}
     public List<String> groups=new ArrayList<>();

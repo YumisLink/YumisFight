@@ -28,7 +28,7 @@ public final class AffixText {
         else if(a.stat.isEmpty())body=a.id;
         else{
             boolean percent=a.operation.equals("PERCENT")||a.operation.equals("CHARACTER_PERCENT");var stat=cn.yumis.fight.modules.affixes.api.AffixEffects.stat(a);if(stat.isEmpty())return a.id+"（保留原记录）";Stat s=stat.get();
-            body=(a.operation.equals("PERCENT")?"本装备":"")+statName(s)+" "+signed(a.value*(percent?100:1))+(percent||s==Stat.ATTACK_SPEED?"%":s==Stat.DROP_RATE?" 个百分点":"");
+            body=(a.operation.equals("PERCENT")?"本装备":a.operation.equals("ITEM_FINAL_ADD")?"本武器最终固定增加":"")+statName(s)+" "+signed(a.value*(percent?100:1))+(percent||s==Stat.ATTACK_SPEED?"%":s==Stat.DROP_RATE?" 个百分点":"");
         }
         var definition=AffixDefinitions.current().affixes.get(a.id);
         return !a.base&&definition!=null&&!definition.name().equals(a.id)?definition.name()+"："+body:body;

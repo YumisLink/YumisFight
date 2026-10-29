@@ -5,10 +5,10 @@ import java.util.*;
 
 /** Registered server visual lifecycle policies. Each content entry owns its lifecycle key. */
 public final class SkillVisualRules {
-    public record Policy(boolean invulnerable,String gravityActiveKey,String previousGravityKey){}
-    private static final Policy NONE=new Policy(false,"","");
+    public record Policy(boolean invulnerable,String gravityActiveKey,String previousGravityKey,boolean refreshable){}
+    private static final Policy NONE=new Policy(false,"","",false);
     private static final Map<String,Policy> POLICIES=new LinkedHashMap<>();
-    static {register("yumis_dungeon_and_fight:storm",new Policy(true,"ydnf_storm_active","ydnf_storm_previous_gravity"));}
+    static {register("yumis_dungeon_and_fight:storm",new Policy(true,"ydnf_storm_active","ydnf_storm_previous_gravity",false));register("yumis_dungeon_and_fight:ghost_orb",new Policy(false,"","",true));}
     private SkillVisualRules(){}
     public static void register(String id,Policy policy){if(POLICIES.putIfAbsent(id,Objects.requireNonNull(policy))!=null)throw new IllegalArgumentException("Duplicate visual policy: "+id);}
     public static Policy policy(String id){return POLICIES.getOrDefault(id,NONE);}

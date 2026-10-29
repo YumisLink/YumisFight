@@ -18,6 +18,8 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 import java.util.*;
 public final class CurrencyUi {
     public record Target(AbstractContainerMenu menu,Slot slot,int index){}
+    private record PreviewKey(String equipment,net.minecraft.world.item.Item currencyItem,Object currency,Object equipmentRules,Object affixRules,boolean writable,String language){}
+    private static final Map<PreviewKey,List<Component>> PREVIEWS=new LinkedHashMap<>(16,.75f,true);
     private CurrencyUi(){}
     public static boolean isCurrency(ItemStack stack){return SlotAccess.isCurrency(stack);}
     public static Target target(AbstractContainerScreen<?> screen,double mouseX,double mouseY){
@@ -61,16 +63,18 @@ public final class CurrencyUi {
             Target target=target(screen,event.getMouseX(),event.getMouseY());
             if(target==null)return;
             ItemStack equipment=target.slot().getItem();
-            var gear=EquipmentItems.gear(equipment);
-            if(gear==null)return;
+            if(EquipmentItems.view(equipment)==null)return;
             List<Component> lines=new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(),equipment));
-            lines.add(Component.literal("──────── 当前通货 ────────").withColor(0x78869c));
-            lines.add(currency.getHoverName());
-            lines.addAll(EquipmentTooltip.currencyLines(currency));
-            if(cn.yumis.fight.platform.ItemData.id(currency).equals("affix_gem")){try{var gem=cn.yumis.fight.modules.equipment.api.EquipmentJson.JSON.fromJson(EquipmentItems.payload(currency),cn.yumis.fight.modules.equipment.api.Gem.class);double factor=cn.yumis.fight.modules.equipment.api.EquipmentEffects.gemMultiplier(gear);lines.add(Component.literal("镶嵌后数值 ×"+cn.yumis.fight.modules.presentation.api.client.NumberText.number(factor)).withColor(0x85e4d6));for(var original:gem.affixes){var a=cn.yumis.fight.modules.equipment.api.EquipmentJson.copy(original,cn.yumis.fight.modules.affixes.api.Affix.class);if(java.util.Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA").contains(a.operation)){a.value*=factor;a.maximum*=factor;}lines.add(Component.literal(cn.yumis.fight.modules.affixes.api.AffixText.affix(a)).withColor(0x85e4d6));}}catch(RuntimeException ignored){}}
-            String reason=EquipmentTooltip.processingReason(currency,gear);
-            if(!SlotAccess.isWritable(target.slot(),Minecraft.getInstance().player))reason="该栏位不能加工装备";
-            lines.add(Component.literal(reason.isEmpty()?"右键加工 · 消耗1枚":reason).withColor(reason.isEmpty()?0x85e4d6:0xff9696));
+            boolean writable=SlotAccess.isWritable(target.slot(),Minecraft.getInstance().player);
+            PreviewKey key=new PreviewKey(EquipmentItems.serialized(equipment),currency.getItem(),currency.getComponentsPatch(),cn.yumis.fight.modules.equipment.api.EquipmentDefinitions.current(),cn.yumis.fight.modules.affixes.api.AffixDefinitions.current(),writable,Minecraft.getInstance().getLanguageManager().getSelected());
+            List<Component> preview=PREVIEWS.get(key);
+            if(preview==null){var gear=EquipmentItems.gear(equipment);if(gear==null)return;List<Component> extra=new ArrayList<>();
+                extra.add(Component.literal("──────── 当前通货 ────────").withColor(0x78869c));extra.add(currency.getHoverName().copy());extra.addAll(EquipmentTooltip.currencyLines(currency));
+                if(cn.yumis.fight.platform.ItemData.id(currency).equals("affix_gem")){try{var gem=cn.yumis.fight.modules.equipment.api.EquipmentJson.JSON.fromJson(EquipmentItems.payload(currency),cn.yumis.fight.modules.equipment.api.Gem.class);double factor=cn.yumis.fight.modules.equipment.api.EquipmentEffects.gemMultiplier(gear);extra.add(Component.literal("镶嵌后数值 ×"+cn.yumis.fight.modules.presentation.api.client.NumberText.number(factor)).withColor(0x85e4d6));for(var original:gem.affixes){var a=cn.yumis.fight.modules.equipment.api.EquipmentJson.copy(original,cn.yumis.fight.modules.affixes.api.Affix.class);if(java.util.Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA").contains(a.operation)){a.value*=factor;a.maximum*=factor;}extra.add(Component.literal(cn.yumis.fight.modules.affixes.api.AffixText.affix(a)).withColor(0x85e4d6));}}catch(RuntimeException ignored){}}
+                String reason=writable?EquipmentTooltip.processingReason(currency,gear):"该栏位不能加工装备";extra.add(Component.literal(reason.isEmpty()?"右键加工 · 消耗1枚":reason).withColor(reason.isEmpty()?0x85e4d6:0xff9696));preview=List.copyOf(extra);
+                if(key.equipment().length()<=131072){PREVIEWS.put(key,preview);while(PREVIEWS.size()>128)PREVIEWS.remove(PREVIEWS.keySet().iterator().next());}
+            }
+            for(Component line:preview)lines.add(line.copy());
             event.getGuiGraphics().setComponentTooltipForNextFrame(UiFonts.font(),lines.stream().map(UiFonts::decorate).toList(),event.getMouseX(),event.getMouseY(),equipment);
         });
     }

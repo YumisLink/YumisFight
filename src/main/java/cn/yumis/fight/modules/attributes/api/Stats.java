@@ -28,6 +28,15 @@ public class Stats {
     public String weaponInstance="",weaponType="";
     public int armorSet,jewelrySet;
     public boolean weaponValid;
+    /** Detached snapshots keep speculative casts and display consumers from mutating cached equipment state. */
+    public Stats copy(){
+        Stats copy=new Stats();
+        attributes.forEach((key,source)->{AttributeValue value=new AttributeValue(source.base);value.mut=source.mut;value.add=source.add;value.alls=source.alls;value.fadd=source.fadd;copy.attributes.put(key,value);});
+        copy.ranks.putAll(ranks);copy.parameters.addAll(parameters);
+        for(ExtraDamage extra:extras)copy.extras.add(new ExtraDamage(extra.element,extra.value,extra.maximum));
+        copy.weaponInstance=weaponInstance;copy.weaponType=weaponType;copy.armorSet=armorSet;copy.jewelrySet=jewelrySet;copy.weaponValid=weaponValid;
+        return copy;
+    }
     public double get(Stat s){
         var a=attributes.get(s.name());return a==null?0:a.value();
     }

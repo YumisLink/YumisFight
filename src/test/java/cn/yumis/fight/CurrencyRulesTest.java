@@ -17,7 +17,7 @@ class CurrencyRulesTest {
 
     @Test void naturalPoolExcludesDerivedItemsAndUnreleasedExtraction(){
         assertEquals(Set.of("transmutation_stone","augmentation_stone","regal_stone","exalted_stone","divine_stone",
-            "chaos_stone","upgrade_stone","fracturing_orb","socket_stone","set_extraction_stone"),
+            "chaos_stone","upgrade_stone","fracturing_orb","socket_stone","set_extraction_stone","delezie_blood"),
             new HashSet<>(CurrencyRules.DROP_POOL.stream().map(Currency::id).toList()));
         for(String id:List.of("epic_upgrade_stone","mythic_upgrade_stone","set_stone","affix_gem","affix_extraction_stone"))
             assertFalse(CurrencyRules.find(id).naturalDrop(),id);

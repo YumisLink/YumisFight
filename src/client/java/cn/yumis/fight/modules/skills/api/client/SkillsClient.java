@@ -22,6 +22,6 @@ public interface SkillsClient extends ClientUi {
     Target context(LivingEntity entity);
     double predicted(Life life);
     Stats projectileStats(ItemStack weapon);
-    void report(Life life,double fraction,boolean heal,double maximum,int color,JsonObject extras);
+    void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras);
     JsonObject ailment(String target,String kind);
 }

@@ -7,10 +7,9 @@ import java.util.*;
 /** Pure, shared arithmetic for career sources and resource snapshots. */
 public final class CareerRules {
     public static final int EYE_COLOR=0xb9a4ff;
-    private static final com.google.gson.Gson JSON=new com.google.gson.Gson();
     private CareerRules(){}
-    public static Stats current(Stats base,Progress progress,CareerState state,double life,double red){
-        Stats result=JSON.fromJson(JSON.toJson(base),Stats.class);
+    public static Stats current(Stats base,Progress progress,CareerState state,double life,double red,boolean ownField,long now){
+        Stats result=base.copy();
         int keiga=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.KEIGA));
         int brands=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.BRANDS));
         if(keiga>0)result.mut(Stat.MAGICAL_ATTACK,.15*CareerSkills.growth(keiga));
@@ -24,7 +23,14 @@ public final class CareerRules {
             result.modifiers.put("basicSlashes",2d);result.modifiers.put("careerFrenzy",1d);
         }
         if(red>0){result.mut(Stat.STRENGTH,red);result.mut(Stat.INTELLIGENCE,red);}
+        if(state.eyeUntil>now)result.modifiers.put("careerEyeBonus",state.eyeBonusMut);
+        if(ownField)result.modifiers.put("ownGhostField",1d);
         return result;
+    }
+    public static Stats eyeDamage(Stats source,SkillDefinition skill){
+        if(skill!=null&&!Set.of(SkillCatalog.WAVE.id,CareerSkills.ICE,CareerSkills.FIRE).contains(skill.id))return source;
+        double desired=source.modifiers.getOrDefault("careerEyeBonus",0d),applied=source.modifiers.getOrDefault("careerEyeApplied",0d);if(desired<=0||desired==applied)return source;
+        Stats result=source.copy();result.modifier("final").mut+=desired-applied;result.modifiers.put("careerEye",1d);result.modifiers.put("careerEyeApplied",desired);return result;
     }
     public static double monsterTaken(Progress progress,Stats stats){
         double value=JobCatalog.style(progress.jobId()).damageTaken();
@@ -32,11 +38,11 @@ public final class CareerRules {
         return value;
     }
     public static SkillParameters.Snapshot resourceSnapshot(SkillParameters.Snapshot source,int brands,int blood,int fieldRank,boolean terminal){
-        var values=new LinkedHashMap<>(source.values());double g=CareerSkills.growth(source.rank());String id=source.skill().id;
+        var values=new LinkedHashMap<>(source.values());String id=source.skill().id;
         values.put("resource",(double)brands);values.put("blood",(double)blood);values.put("fieldRank",(double)fieldRank);values.put("terminal",terminal?1d:0d);
-        if(id.equals(CareerSkills.ORB)){int hits=CareerSkills.orbHits(brands);double total=(3+.4*brands)*g;values.put("slashes",(double)hits);values.put("damage",total/hits);values.put("finisher",0d);values.put("interval",3d/hits);}
-        if(id.equals(CareerSkills.AGNI)){double total=(4+1.6*brands)*g;values.put("damage",total*.6/8);values.put("finisher",total*.4);}
-        if(id.equals(CareerSkills.SWORD)){double total=(24+1.6*blood)*g;values.put("damage",total);values.put("previewDamage",total*.7/5);values.put("finisher",total*.3);}
+        if(id.equals(CareerSkills.ORB)){int hits=CareerSkills.orbHits(brands);double total=source.get("damage",0)+source.get("perBrandDamage",0)*brands;values.put("slashes",(double)hits);values.put("damage",total/hits);values.put("finisher",0d);values.put("interval",SkillResourceRules.ORB_INTERVAL/1000d);values.put("duration",2+hits*SkillResourceRules.ORB_INTERVAL/1000d);}
+        if(id.equals(CareerSkills.AGNI)){values.put("slashes",(double)SkillResourceRules.agniHits(brands));values.put("interval",SkillResourceRules.agniInterval(brands));}
+        if(id.equals(CareerSkills.SWORD)){double total=source.get("damage",0)+source.get("perBloodDamage",0)*Math.clamp(blood,0,SkillResourceRules.BLOOD_CAP);values.put("damage",total);values.put("previewDamage",total*.7/5);values.put("finisher",total*.3);}
         if(id.equals(CareerSkills.BLACHE))values.put("skillMut",CareerSkills.blacheMut(fieldRank));
         return new SkillParameters.Snapshot(source.skill(),source.rank(),values);
     }
@@ -49,6 +55,6 @@ public final class CareerRules {
     public static Stats castDamage(Stats source,SkillParameters.Snapshot parameters){
         double desired=parameters.get("skillMut",0),applied=source.modifiers.getOrDefault("careerCastMut",0d);
         if(desired==applied)return source;
-        Stats result=JSON.fromJson(JSON.toJson(source),Stats.class);result.modifier("final").mut+=desired-applied;result.modifiers.put("careerCastMut",desired);return result;
+        Stats result=source.copy();result.modifier("final").mut+=desired-applied;result.modifiers.put("careerCastMut",desired);return result;
     }
 }

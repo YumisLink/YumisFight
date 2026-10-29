@@ -1,4 +1,5 @@
 package cn.yumis.fight.modules.equipment.client;
+import cn.yumis.fight.modules.presentation.api.client.*;
 import cn.yumis.fight.modules.equipment.api.client.EquipmentClient;
 
 import cn.yumis.fight.modules.presentation.api.client.ThemedButton;
@@ -20,7 +21,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
 /** Template selection is a screen layer: the server-side fabricator remains open. */
-public final class EquipmentSelectionScreen extends Screen {
+public final class EquipmentSelectionScreen extends ThemedScreen {
     private final net.minecraft.client.gui.Font font=UiFonts.font();
     private record Entry(Slot slot,Weapon weapon,ItemStack preview,Button button,int row){}
     private final FabricatorScreen parent;
@@ -32,7 +33,7 @@ public final class EquipmentSelectionScreen extends Screen {
     private final List<Entry> entries=new ArrayList<>();
     private int left,top,panelWidth,panelHeight,bodyTop,bodyHeight,columns,scroll,contentHeight;
     EquipmentSelectionScreen(FabricatorScreen parent,Slot slot,Weapon weapon,ArmorType armor,JewelryType jewelry,int level){
-        super(Component.literal("选择制作装备"));this.parent=parent;this.selectedSlot=slot;this.selectedWeapon=weapon;this.selectedArmor=armor;this.selectedJewelry=jewelry;this.level=level;
+        super(Component.literal("选择制作装备"),ThemeDomain.MACHINE);this.parent=parent;this.selectedSlot=slot;this.selectedWeapon=weapon;this.selectedArmor=armor;this.selectedJewelry=jewelry;this.level=level;
     }
     @Override protected void init(){
         entries.clear();
@@ -58,12 +59,12 @@ public final class EquipmentSelectionScreen extends Screen {
     private void position(){
         for(Entry e:entries){e.button.setY(bodyTop+e.row*54-scroll);e.button.visible=e.button.getY()>=bodyTop&&e.button.getY()+48<=bodyTop+bodyHeight;}
     }
-    @Override public void extractBackground(GuiGraphicsExtractor g,int x,int y,float delta){
+    @Override protected void drawBackground(GuiGraphicsExtractor g,int x,int y,float delta){
         g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,left,top,(left+panelWidth)-(left),(top+panelHeight)-(top));
         g.text(font,title,left+12,top+13,UiTheme.TEXT,false);
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int x,int y,float delta){
-        super.extractRenderState(g,x,y,delta);
+    @Override protected void drawContents(GuiGraphicsExtractor g,int x,int y,float delta){
+        super.drawContents(g,x,y,delta);
         for(Entry e:entries)if(e.button.visible){
             int bx=e.button.getX(),by=e.button.getY();g.item(e.preview,bx+7,by+8);
             g.text(font,e.button.active?"普通 · Lv."+EquipmentItems.gear(e.preview).level:"Lv."+e.slot.minimum()+" 解锁",bx+7,by+34,e.button.active?UiTheme.MUTED:UiTheme.ERROR,false);

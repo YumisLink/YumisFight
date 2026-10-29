@@ -1,4 +1,5 @@
 package cn.yumis.fight.modules.skills.client;
+import cn.yumis.fight.modules.presentation.api.client.*;
 import cn.yumis.fight.modules.skills.api.client.SkillsClient;
 
 import cn.yumis.fight.modules.presentation.api.client.ThemedButton;
@@ -16,12 +17,14 @@ import java.util.Arrays;
 import net.minecraft.network.chat.Component;
 
 /** A modal layer: opening and closing it preserves the skill list's scroll position. */
-public final class SkillBindingScreen extends Screen {
+public final class SkillBindingScreen extends ThemedScreen {
     private final SkillDefinition skill;
     private int layer=-2,left,top,panelWidth,panelHeight,columns,cellWidth;
     private String bindingState="";
+    private boolean available;
+    private boolean available(){var state=SkillsClient.current();return cn.yumis.fight.modules.skills.api.SkillLearning.canBind(state.stats(),state.progress(),skill);}
     public SkillBindingScreen(SkillDefinition skill){
-        super(Minecraft.getInstance(),UiFonts.font(),Component.literal("选择快捷槽 · "+skill.title));
+        super(Minecraft.getInstance(),UiFonts.font(),Component.literal("选择快捷槽 · "+skill.title),ThemeDomain.MENU);
         this.skill=skill;
     }
     private int currentLayer(){
@@ -33,6 +36,7 @@ public final class SkillBindingScreen extends Screen {
         clearWidgets();
         layer=currentLayer();
         bindingState=Arrays.toString(SkillsClient.current().progress().slots);
+        available=available();
         panelWidth=Math.min(540,width-16);
         columns=panelWidth>=420||height<310?4:2;
         cellWidth=(panelWidth-24)/columns;
@@ -48,7 +52,7 @@ public final class SkillBindingScreen extends Screen {
             var button=Button.builder(Component.literal(key+" · "+(binding.isEmpty()?"空槽":SkillCatalog.contains(binding)?SkillCatalog.require(binding).title:"内容未加载")),b->bind(slot,skill.id))
                 .bounds(x,y,cellWidth-6,buttonHeight).build(ThemedButton::new);
             ((ThemedButton)button).selected=binding.equals(skill.id);
-            button.active=layer>=0&&SkillsClient.current().progress().learned(skill.id)>0;
+            button.active=layer>=0&&available;
             addRenderableWidget(button);
             if(!binding.isEmpty()){
                 var clear=Button.builder(Component.literal("清空"),b->bind(slot,""))
@@ -60,7 +64,7 @@ public final class SkillBindingScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("取消"),b->onClose()).bounds(left+panelWidth-64,top+panelHeight-27,52,20).build(ThemedButton::new));
     }
     private void bind(int slot,String value){
-        if(currentLayer()<0||currentLayer()!=layer)return;
+        if(currentLayer()<0||currentLayer()!=layer||!value.isEmpty()&&!available())return;
         var state=SkillsClient.current();
         state.upload();
         var request=state.operation("bind");
@@ -69,17 +73,17 @@ public final class SkillBindingScreen extends Screen {
         onClose();
     }
     @Override public void tick(){
-        if(layer!=currentLayer()||!bindingState.equals(Arrays.toString(SkillsClient.current().progress().slots)))rebuild();
+        if(layer!=currentLayer()||available!=available()||!bindingState.equals(Arrays.toString(SkillsClient.current().progress().slots)))rebuild();
     }
-    @Override public void extractBackground(GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){
         g.fill(0,0,width,height,UiTheme.OVERLAY);
         UiTheme.panel(g,left,top,(left+panelWidth)-(left),(top+panelHeight)-(top));
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float delta){
         if(layer!=currentLayer())rebuild();
         g.text(font,title,left+12,top+10,UiTheme.GOLD,false);
         g.text(font,layer<0?"Ctrl 与 Alt 同时按下：不可绑定":new String[]{"普通层","Ctrl 层","Alt 层"}[layer]+" · 按住 Ctrl / Alt 切换",left+12,top+26,UiTheme.MUTED,false);
-        super.extractRenderState(g,mx,my,delta);
+        super.drawContents(g,mx,my,delta);
         g.text(font,"点击替换 · Esc 取消",left+12,top+panelHeight-21,UiTheme.MUTED,false);
     }
     @Override public void onClose(){minecraft.gui.popScreenLayer();}

@@ -40,7 +40,8 @@ public final class SkillBehaviors {
                 if(c.release||elapsed>=3000){
                     x.visual(c,"RELEASE");
                     double charge=1+Math.min(1,elapsed/1000d);
-                    x.slash(c,c.parameters.get("range",3),3,2,c.parameters.get("damage",1.6)*charge+(elapsed>=1000?c.parameters.get("soulBonus",0):0),.4,false);
+                    double coefficient=c.parameters.get("damage",1.6)*charge+(elapsed>=1000?c.parameters.get("soulBonus",0):0);if(elapsed>=1000)coefficient*=c.parameters.get("ghostFieldMultiplier",1);
+                    x.slash(c,c.parameters.get("range",3),3,2,coefficient,.4,false);
                     x.cancel(true);
                 }
             

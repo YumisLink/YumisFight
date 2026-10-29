@@ -8,8 +8,8 @@ import static cn.yumis.fight.modules.equipment.api.EquipmentItems.gear;
 public final class ItemRarity {private ItemRarity(){}
     public static Rarity rarity(ItemStack stack){
         if(stack.isEmpty()||!own(stack))return Rarity.COMMON;
-        Gear gear=gear(stack);
-        if(gear!=null)return gear.rarity;
+        var gear=EquipmentItems.view(stack);
+        if(gear!=null)return gear.rarity();
         var currency=CurrencyRules.find(id(stack));
         return currency==null?Rarity.COMMON:currency.rarity();
     }

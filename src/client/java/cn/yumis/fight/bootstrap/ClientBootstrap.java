@@ -53,7 +53,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.equipment.api.client.EquipmentClient.install(ClientSession.INSTANCE);
         cn.yumis.fight.modules.skills.api.client.SkillsClient.install(ClientSession.INSTANCE);
         cn.yumis.fight.bootstrap.PlayerPageAssembly.register();
-        cn.yumis.fight.modules.presentation.api.client.MenuInput.navigation(()->Minecraft.getInstance().gui.setScreen(new FightScreen()));
+        cn.yumis.fight.modules.presentation.api.client.MenuInput.navigation(page->Minecraft.getInstance().gui.setScreen(new FightScreen(page)));
         IndustrialRecipeCache.register();
         Network.CLIENT=ClientSession.INSTANCE::accept;
         if(Boolean.getBoolean("ydnf.verify"))cn.yumis.fight.modules.skills.api.client.SkillDiagnostics.attack=(weapon,value)->{cn.yumis.fight.verification.FeedbackProbe.weapon=weapon;cn.yumis.fight.verification.FeedbackProbe.attack=value;};
@@ -158,10 +158,24 @@ public final class ClientBootstrap {
         return ctrl?1:alt?2:0;
     }
     public static boolean key(KeyEvent event,int action){
-        if(CloudMovement.key(event,action))return true;
         var mc=Minecraft.getInstance();
-        if(mc.player==null||mc.gui.screen()!=null||!SkillController.INSTANCE.validWeapon()||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_F3))return false;
+        boolean control=InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_LEFT_CONTROL)||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_RIGHT_CONTROL);
+        if(mc.player!=null&&ClientSession.INSTANCE.ready&&event.key()==GLFW.GLFW_KEY_RIGHT_BRACKET&&control&&(mc.gui.screen()==null||mc.gui.screen() instanceof FightScreen)){
+            if(action==GLFW.GLFW_PRESS){cn.yumis.fight.modules.combat.api.client.DamageAnalysis.toggle();ClientSession.INSTANCE.message("伤害分析："+(cn.yumis.fight.modules.combat.api.client.DamageAnalysis.recording()?"开始记录":"停止记录")+"；在角色页面查看结果");}
+            return true;
+        }
+        if(CloudMovement.key(event,action))return true;
+        if(mc.player==null||!ClientSession.INSTANCE.ready||mc.gui.screen()!=null||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_F3))return false;
         for(int i=0;i<8;i++)if(cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS[i].matches(event)){
+            var key=cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS[i];
+            if(action==GLFW.GLFW_RELEASE&&key.isDown()){key.setDown(false);SkillController.INSTANCE.release(i);return true;}
+            if(!SkillController.INSTANCE.validWeapon()){
+                int currentLayer=layer();if(currentLayer<0)return false;
+                var state=ClientSession.INSTANCE;String binding=state.progress.slots[currentLayer*8+i];
+                if(!cn.yumis.fight.modules.skills.api.SkillCatalog.contains(binding))return false;
+                var skill=cn.yumis.fight.modules.skills.api.SkillCatalog.require(binding);
+                if(!skill.equipmentGranted||!cn.yumis.fight.modules.skills.api.SkillLearning.canBind(state.stats,state.progress,skill))return false;
+            }
             cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS[i].setDown(action!=GLFW.GLFW_RELEASE);
             if(action==GLFW.GLFW_PRESS&&layer()>=0)SkillController.INSTANCE.press(layer()*8+i);
             else if(action==GLFW.GLFW_RELEASE)SkillController.INSTANCE.release(i);

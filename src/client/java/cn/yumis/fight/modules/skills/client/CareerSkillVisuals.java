@@ -14,6 +14,7 @@ final class CareerSkillVisuals {
     private CareerSkillVisuals(){}
     private static void add(String id,Drawing draw){var content=CareerSkills.content(id);SkillVisualRegistry.register(id,new SkillVisualRegistry.Handler(){
         public boolean persistentEnd(SkillVisualEvent event){return CareerSkills.persistent(id)&&!event.sweep();}
+        public boolean refreshable(){return id.equals(CareerSkills.ORB);}
         public int defaultColor(){return content.color();}
         public long defaultDuration(){return (long)(content.skill().parameters(1).getOrDefault("duration",1d)*1000);}
         public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long now,List<Quad> out,Vec3 camera){draw.draw(track,age,now,out);}
@@ -29,6 +30,7 @@ final class CareerSkillVisuals {
         });
         add(CareerSkills.PHANTOM,(t,a,n,q)->{Vec3 from=vector(t.start.origin()),end=vector(t.last.position());beam(q,from.add(0,.7,0),end.add(0,.7,0),.2,0x8c4bd0,170);for(int i=0;i<4;i++)ghost(q,from.lerp(end,i/4d),0x8e59c9,70+i*20);});
         add(CareerSkills.KALLA,(t,a,n,q)->{
+            if(t.motion!=null){double fade=t.last.phase()==SkillVisualEvent.Phase.FINISH?Math.max(0,1-(n-t.last.at())/180d):1;Vec3 center=vector(t.last.position());int stacks=(int)Math.round(t.last.charge()*3);if(stacks>0){for(int i=0;i<stacks;i++)flame(q,center.add(Math.cos(i*2.1+n/300d)*.4,-.5+i*.25,Math.sin(i*2.1+n/300d)*.4),.18,0x772daa,175);}else flame(q,center,.18*fade,0x8f43d0,(int)(220*fade));return;}
             var player=Minecraft.getInstance().level.getPlayerByUUID(t.start.caster());Vec3 p=player==null?vector(t.start.origin()):player.position();
             if(t.start.sweep()){arc(q,p.add(vector(t.start.direction()).scale(2.4)).add(0,1.1,0),vector(t.start.direction()),3,0x9645d6,210);return;}
             // The attached form is drawn once by actors(), from the actor's current facing.
@@ -48,7 +50,7 @@ final class CareerSkillVisuals {
         });
         add(CareerSkills.CRESCENT,(t,a,n,q)->{
             Vec3 d=vector(t.start.direction()),p=vector(t.last.position());double charge=t.last.charge();
-            if(!t.released){p=vector(t.start.origin()).add(d.scale(.8)).add(0,1.2,0);sphere(q,p,.2+.25*charge,0xf2e9c0,125);}
+            if(!t.released){charge=Math.clamp(a/1000d,0,1);p=vector(t.start.origin()).add(d.scale(.8)).add(0,1.2,0);sphere(q,p,.2+.25*charge,0xf2e9c0,125);}
             xWave(q,p,d,(t.released?1:.35)*(1+charge),0xf2e9c0,t.released?230:140);
         });
         add(CareerSkills.ICE,(t,a,n,q)->{
@@ -56,13 +58,13 @@ final class CareerSkillVisuals {
             for(int i=0;i<7;i++){Vec3 v=p.add(d.scale(i*.35)).add(side.scale((i%3-1)*.6));box(q,v,.18,.45+(i%3)*.25,.18,0x5db7df,190);box(q,v.add(0,.55,0),.09,.28,.09,0xc3f9ff,230);}
         });
         add(CareerSkills.FIRE,(t,a,n,q)->{
-            if(!t.released)return;Vec3 p=vector(t.last.position()),d=vector(t.start.direction()),side=new Vec3(-d.z,0,d.x);
+            if(!t.released)return;Vec3 p=vector(t.last.position());
             if(t.last.phase()==SkillVisualEvent.Phase.FINISH){long age=n-t.last.at();double fade=Math.max(0,1-age/500d);if(fade<=0)return;double radius=Math.min(2.5,.4+age/100d);sphere(q,p.add(0,1,0),radius,0xf66e22,(int)(150*fade));ring(q,p.add(0,.08,0),radius,.2,0xffc35b,(int)(230*fade));return;}
-            for(int i=0;i<13;i++){double u=i/12d,angle=u*Math.PI;Vec3 at=p.add(side.scale((u-.5)*4.5)).add(0,Math.sin(angle)*1.8,0);flame(q,at,.25,0xfa7f29,210);flame(q,at.subtract(d.scale(.6)),.16,0xffc66a,130);}
+            sphere(q,p,.65,0xf66e22,185);sphere(q,p,.33,0xffe29b,235);flame(q,p.add(0,.3,0),.42,0xffa62e,210);
         });
         add(CareerSkills.AGNI,(t,a,n,q)->{
             Vec3 p=vector(t.start.origin());ring(q,p.add(0,.05,0),5,.15,0xe8bc59,170);
-            for(int i=0;i<5;i++){double angle=i*Math.PI*2/5+a/180d;flame(q,p.add(Math.cos(angle)*3,1.1,Math.sin(angle)*3),.38,0xffb33d,240);}
+            int count=Math.clamp((int)Math.round(t.start.charge()*5),1,5);for(int i=0;i<count;i++){double angle=i*Math.PI*2/count+a/180d;flame(q,p.add(Math.cos(angle)*3,1.1,Math.sin(angle)*3),.38,0xffb33d,240);}
             ring(q,p.add(0,1.1,0),3,.08,0xffcf70,120);
         });
         add(CareerSkills.EYE,(t,a,n,q)->{
@@ -105,7 +107,6 @@ final class CareerSkillVisuals {
             if(actor.eyeUntil>now)ring(out,at.add(0,.08,0),16,.06,0xbe9ce5,80);
             if(actor.bloodUntil>now)sword(out,at.subtract(d.scale(.5)).add(0,.7,0),2.5+Math.min(30,actor.blood)*.05,0xa92441,180);
         }
-        CareerClient.INSTANCE.particles(out,now);
     }
     private static void field(List<Quad> q,Vec3 p,int rank,long now){
         int count=CareerSkills.ghosts(rank);int[] colors={0xd35c55,0x63b06d,0x7bd5ee,0xad6ad7};disc(q,p.add(0,.025,0),5,0x281936,35);

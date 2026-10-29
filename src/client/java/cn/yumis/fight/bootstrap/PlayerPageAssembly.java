@@ -26,7 +26,9 @@ public final class PlayerPageAssembly {
     private PlayerPageAssembly(){}
     public static void register(){
         var state=ClientSession.INSTANCE;
-        PlayerPageRenderers.register("character",page->CharacterPage.render(page,characterView(),stat->points("allocate","stat",stat),()->state.progress("resetAttributes","unused",0),enabled->state.progress("sync","enabled",enabled)));
+        PlayerPageRenderers.registerPanel("sale",cn.yumis.fight.modules.economy.client.SalePanel::new);
+        PlayerPageRenderers.registerPanel("damage_analysis",cn.yumis.fight.modules.combat.client.DamageAnalysisPanel::new);
+        PlayerPageRenderers.register("character",page->{CharacterPage.render(page,characterView(),stat->points("allocate","stat",stat),()->state.progress("resetAttributes","unused",0),enabled->state.progress("sync","enabled",enabled));page.rowButton("伤害分析",()->MenuInput.open("damage_analysis"));});
         PlayerPageRenderers.register("skills",page->SkillsPage.render(page,state.progress,state.stats,skill->points("learn","skill",skill),()->state.progress("resetSkills","unused",0)));
         PlayerPageRenderers.register("job",page->JobPage.render(page,state.progress,(kind,job)->{var request=state.operation(kind);request.addProperty("job",job);state.send("progress",request);},job->Minecraft.getInstance().gui.pushScreenLayer(new cn.yumis.fight.modules.skills.client.CareerPreviewScreen(job)),UiTheme.GOLD));
         PlayerPageRenderers.register("professions",page->ProfessionPage.render(page,state.professions,state.gold.balance,()->state.send("professions"),UiTheme.GOLD,UiTheme.MUTED));

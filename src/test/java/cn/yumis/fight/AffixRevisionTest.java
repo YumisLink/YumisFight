@@ -71,7 +71,7 @@ class AffixRevisionTest {
         Gear g=new Gear();Affix unknown=new Affix("external_unknown",Stat.STRENGTH,17.25,false);unknown.roll=7;g.affixes.add(unknown);
         Affix skill=new Affix();skill.id="external_parameter";skill.operation="SKILL_PARAMETER";skill.roll=2;skill.value=3;g.affixes.add(skill);
         g=EquipmentResolution.initialize(g);String saved=JSON.toJson(g);Gear next=EquipmentResolution.read(saved);
-        assertEquals(saved,JSON.toJson(next));assertEquals(2,next.affixes.get(1).roll);
+        assertEquals(com.google.gson.JsonParser.parseString(saved),com.google.gson.JsonParser.parseString(JSON.toJson(next)));assertEquals(2,next.affixes.get(1).roll);
         var raw=com.google.gson.JsonParser.parseString(saved).getAsJsonObject();
         raw.getAsJsonArray("affixes").get(0).getAsJsonObject().addProperty("providerFutureField","preserve-me");
         Gear roundTrip=EquipmentResolution.read(raw.toString());roundTrip.level++;

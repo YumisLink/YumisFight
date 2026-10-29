@@ -1,4 +1,5 @@
 package cn.yumis.fight.bootstrap;
+import cn.yumis.fight.modules.presentation.api.client.*;
 import cn.yumis.fight.modules.presentation.api.client.ClientSettings;
 import cn.yumis.fight.modules.presentation.api.client.ThemedButton;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
@@ -14,12 +15,14 @@ import net.minecraft.client.gui.*;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import java.util.*;
 /** Separate, scrollable pages. Text keeps Minecraft's native size at every GUI scale. */
-public final class FightScreen extends Screen implements cn.yumis.fight.modules.presentation.api.client.PlayerPageSurface {
+public final class FightScreen extends ThemedScreen implements cn.yumis.fight.modules.presentation.api.client.PlayerPageSurface {
     public final int page;
+    private final ClientPagePanel customPanel;
     private final ClientSession state=ClientSession.INSTANCE;
     private record Line(String text,int x,int y,int color){
     }
@@ -42,9 +45,11 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
     public FightScreen(){
         this(-1);
     }
+    public FightScreen(String pageId){this(pageId==null?-1:java.util.stream.IntStream.range(0,PlayerPages.all().size()).filter(i->PlayerPages.at(i).id().equals(pageId)).findFirst().orElse(-1));}
     public FightScreen(int page){
-        super(net.minecraft.client.Minecraft.getInstance(),UiFonts.font(),Component.literal(page<0?"地下城与战斗":PlayerPages.at(page).title()));
+        super(net.minecraft.client.Minecraft.getInstance(),UiFonts.font(),Component.literal(page<0?"地下城与战斗":PlayerPages.at(page).title()),ThemeDomain.MENU);
         this.page=page;
+        customPanel=page<0?null:PlayerPageRenderers.panel(PlayerPages.at(page).id());
     }
     @Override protected void init(){
         UiTheme.check();
@@ -54,14 +59,14 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
         if(page>=0&&small)panelWidth=Math.min(panelWidth,Math.round(width*.8f));
         left=(width-panelWidth)/2;
         top=(height-panelHeight)/2;
-        sidebar=page>=0&&panelWidth>=480?112:0;
+        sidebar=page>=0&&customPanel==null&&panelWidth>=480?112:0;
         build();
     }
     public void refresh(){
         if(font!=null&&!(input!=null&&input.isFocused()))build();
     }
     private void build(){
-        try(var palette=UiTheme.character(page==0&&ClientSettings.characterDark)){buildContent();}
+        try(var palette=themeScope()){buildContent();}
     }
     private void buildContent(){
         input=null;
@@ -76,7 +81,6 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
             state.upload();if(page<0)onClose();else minecraft.gui.setScreen(new FightScreen());
         }
         );
-        if(page==0)buttonFixed("暗色模式："+(ClientSettings.characterDark?"开":"关"),left+panelWidth-136,top+7,81,()->{ClientSettings.characterDark=!ClientSettings.characterDark;ClientSettings.save();build();});
         if(page>=0){
             var pages=PlayerPages.all();var tabs=java.util.stream.IntStream.range(0,pages.size()).filter(i->pages.get(i).screen()).toArray();
             int cell=(panelWidth-16)/tabs.length;
@@ -95,7 +99,7 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
             contentHeight=40;
             return;
         }
-        if(page<0)menu();else PlayerPageRenderers.render(PlayerPages.at(page).id(),this);
+        if(page<0)menu();else if(customPanel==null)PlayerPageRenderers.render(PlayerPages.at(page).id(),this);
         contentHeight=nextY+12;
         scroll=Math.clamp(scroll,0,Math.max(0,contentHeight-bodyHeight()));
         updateVisibility();
@@ -167,18 +171,15 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
             
         }
     }
-    @Override public void extractBackground(GuiGraphicsExtractor g,int mx,int my,float a){
-        try(var palette=UiTheme.character(page==0&&ClientSettings.characterDark)){drawBackground(g);}
+    @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float a){
+        try(var palette=themeScope()){drawBackground(g);}
     }
     private void drawBackground(GuiGraphicsExtractor g){
         g.fill(0,0,width,height,UiTheme.OVERLAY);
         UiTheme.panel(g,left,top,(left+panelWidth)-(left),(top+panelHeight)-(top));
 
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float a){
-        try(var palette=UiTheme.character(page==0&&ClientSettings.characterDark)){drawContents(g,mx,my,a);}
-    }
-    private void drawContents(GuiGraphicsExtractor g,int mx,int my,float a){
+    @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float a){
         UiTheme.card(g,left+6,top+6,(left+panelWidth-6)-(left+6),(top+30)-(top+6));
         g.text(font,title,left+14,top+13,UiTheme.TEXT,false);
         UiTheme.card(g,contentLeft(),bodyTop(),(contentLeft()+contentWidth())-(contentLeft()),(bodyTop()+bodyHeight())-(bodyTop()));
@@ -198,7 +199,7 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
             int yy=bodyTop()+card.y-scroll;
             UiTheme.card(g,contentLeft()+12+card.x,yy,(contentLeft()+12+card.x+card.width)-(contentLeft()+12+card.x),(yy+card.height)-(yy));
         }
-        super.extractRenderState(g,mx,my,a);
+        for(AbstractWidget widget:body)if(widget.visible)widget.extractRenderState(g,mx,my,a);
         for(Icon icon:icons){
             int yy=bodyTop()+icon.y-scroll;
             g.blit(ClientBootstrap.id(icon.path),contentLeft()+12+icon.x,yy,contentLeft()+12+icon.x+icon.size,yy+icon.size,0,1,0,1);
@@ -217,8 +218,9 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
             }
         }
         g.disableScissor();
+        for(var child:children())if(child instanceof AbstractWidget widget&&!body.contains(widget))widget.extractRenderState(g,mx,my,a);
+        if(customPanel!=null&&state.ready)customPanel.render(g,new ClientPagePanel.Region(contentLeft()+4,bodyTop()+4,contentWidth()-8,bodyHeight()-8),mx,my,a);
         if(my>=bodyTop()&&my<bodyTop()+bodyHeight())for(var area:hoverAreas){int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;if(mx>=x&&mx<x+area.width&&my>=y&&my<y+area.height){area.renderer.render(g,mx,my);break;}}
-        for(var child:children())if(child instanceof AbstractWidget w&&!body.contains(w))w.extractRenderState(g,mx,my,a);
         if(minecraft.gui.screen()==this)for(var row:widgetHovers.entrySet()){
             var widget=row.getKey();
             if(widget.visible&&mx>=widget.getX()&&mx<widget.getX()+widget.getWidth()&&my>=widget.getY()&&my<widget.getY()+widget.getHeight()){
@@ -232,7 +234,9 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
         }
         if(state.ready)Hud.gold(g,state);
     }
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;return super.mouseClicked(event,twice);}
     @Override public boolean mouseScrolled(double x,double y,double sx,double sy){
+        if(customPanel!=null&&customPanel.mouseScrolled(x,y,sx,sy))return true;
         int old=scroll;
         scroll=Math.clamp(scroll-(int)(sy*24),0,Math.max(0,contentHeight-bodyHeight()));
         if(old!=scroll){
@@ -242,6 +246,7 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
         return true;
     }
     @Override public boolean keyPressed(KeyEvent e){
+        if(customPanel!=null&&customPanel.keyPressed(e))return true;
         if(e.isEscape()){
             onClose();
             return true;
@@ -258,7 +263,8 @@ public final class FightScreen extends Screen implements cn.yumis.fight.modules.
         state.upload();
         minecraft.gui.setScreen(null);
     }
-    @Override public void tick(){UiTheme.check();if(themeRevision!=UiTheme.revision){themeRevision=UiTheme.revision;build();}}
+    @Override public void tick(){UiTheme.check();if(customPanel!=null&&state.ready)customPanel.tick();if(themeRevision!=UiTheme.revision){themeRevision=UiTheme.revision;build();}}
+    @Override public void removed(){if(customPanel!=null)customPanel.close();super.removed();}
     @Override public boolean isPauseScreen(){
         return false;
     }

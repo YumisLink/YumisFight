@@ -32,7 +32,8 @@ public final class AffixResolver {
         var o=a.origin;
         if(definition.revision()<o.revision){a.syncStatus="newer_instance";return;}
         if(definition.revision()==o.revision)return;
-        if(!definition.operation().equals(o.operation)){a.syncStatus="effect_conflict";return;}
+        boolean bylleFinalAdd=definition.id().equals("unique/bylle_physical_flat")&&"FLAT".equals(o.operation)&&"PHYSICAL_ATTACK".equals(o.stat)&&definition.operation().equals("ITEM_FINAL_ADD")&&definition.stat()==cn.yumis.fight.modules.attributes.api.Stat.PHYSICAL_ATTACK;
+        if(!definition.operation().equals(o.operation)&&!bylleFinalAdd){a.syncStatus="effect_conflict";return;}
         // Unknown random origin cannot be reconstructed from display values or guessed from the default roll.
         if(o.quality==null&&!a.fixed&&!a.operation.equals("MAGIC")&&!a.operation.equals("SKILL_PARAMETER")&&!a.operation.equals("SKILL_FAMILY")){a.syncStatus="unresolved_snapshot";return;}
         double ratio=definition.scale()/o.definitionScale;
@@ -46,6 +47,7 @@ public final class AffixResolver {
         if(definition.fixedValue()!=null)value=definition.fixedValue()*definition.scale();
         if(!Double.isFinite(value)||!Double.isFinite(maximum)||!Double.isFinite(baseline)||!Double.isFinite(baselineMaximum))throw new IllegalArgumentException("Non-finite resolved affix: "+a.id);
         a.value=value*a.corruptionMultiplier;a.maximum=maximum*a.corruptionMultiplier;a.baseline=baseline;a.baselineMaximum=baselineMaximum;
+        if(bylleFinalAdd)a.operation=definition.operation();
         if(a.operation.equals("SKILL_FAMILY"))a.rank=definition.fixedRank()==null?o.rank:definition.fixedRank();
         if(a.operation.equals("SKILL_PARAMETER"))a.roll=definition.parameterMultiplier()==null?o.roll:definition.parameterMultiplier();
         a.stat=definition.stat()==null?o.stat:definition.stat().name();a.element=definition.element();

@@ -1,4 +1,5 @@
 package cn.yumis.fight.modules.inventory.client;
+import cn.yumis.fight.modules.presentation.api.client.*;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 
 import cn.yumis.fight.modules.presentation.api.client.ThemedButton;
@@ -17,34 +18,52 @@ import net.minecraft.world.entity.player.Inventory;
 import java.util.*;
 
 /** Gray beveled storage, nine-column inventory, search, sort and a draggable viewport. */
-public final class DimensionalScreen extends AbstractContainerScreen<DimensionalMenu> {
+public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMenu> {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
     private boolean dragging;
     private EditBox search;
     private String lastFilter="";
-    private int lastContents;
-    public DimensionalScreen(DimensionalMenu menu,Inventory inventory,Component title){super(menu,inventory,title,188,menu.rows*18+174);inventoryLabelY=menu.rows*18+58;}
+    private long lastContents=-1;
+    private int lastCapacity=-1;
+    private final Map<Integer,String> names=new HashMap<>(),ids=new HashMap<>();
+    private final Map<Integer,Object> nameComponents=new HashMap<>();
+    private long languageRevision;
+    private Object language;
+    private long queryChangedAt;
+    public DimensionalScreen(DimensionalMenu menu,Inventory inventory,Component title){super(menu,inventory,title,188,menu.rows*18+174,ThemeDomain.MACHINE);inventoryLabelY=menu.rows*18+58;}
     @Override protected void init(){
         UiTheme.check();menu.resizeRows(Math.max(1,Math.min(Math.min(8,Math.max(1,menu.totalRows())),(height-186)/18)));((cn.yumis.fight.mixin.ContainerScreenSizeAccessor)(Object)this).ydnf$height(menu.rows*18+174);inventoryLabelY=menu.rows*18+58;super.init();minecraft.gameMode.handleInventoryButtonClick(menu.containerId,1000+menu.rows);
-        search=addRenderableWidget(new EditBox(UiFonts.font(),leftPos+8,topPos+24,124,18,Component.literal("搜索物品")));search.setMaxLength(64);search.setHint(Component.literal("搜索物品…"));search.setValue(menu.query);search.setResponder(text->filter());
+        search=addRenderableWidget(new EditBox(UiFonts.font(),leftPos+8,topPos+24,124,18,Component.literal("搜索物品")));search.setMaxLength(64);search.setHint(Component.literal("搜索物品…"));search.setValue(menu.query);search.setResponder(text->queryChangedAt=ClientUi.now()+150);
         if(!menu.overflow){Button sort=button("↧",137,24,18,4);sort.setTooltip(Tooltip.create(Component.literal("整理：合并相同物品并按类型排序")));}
         button(menu.overflow?"返":"存",158,24,22,2).setTooltip(Tooltip.create(Component.literal(menu.overflow?"返回次元背包":"迁移暂存：只取不存")));
         Button upgrade=button(menu.extra.bagTier>=16?"最高档":"升级",130,imageHeight-23,50,3);upgrade.active=!menu.overflow&&menu.extra.bagTier<16;upgrade.setTooltip(Tooltip.create(Component.literal(menu.preview.has("requirements")?menu.preview.get("requirements").getAsString():"升级材料载入中")));
         if(!menu.overflow&&width>=240)button("↑",-18,29,17,3).active=menu.extra.bagTier<16;
-        lastContents=0;lastFilter="";
+        lastContents=-1;lastCapacity=-1;lastFilter="";
     }
     private Button button(String text,int x,int y,int width,int id){return addRenderableWidget(Button.builder(Component.literal(text),b->minecraft.gameMode.handleInventoryButtonClick(menu.containerId,id)).bounds(leftPos+x,topPos+y,width,18).build(ThemedButton::new));}
     private void filter(){
-        if(search==null)return;String query=search.getValue(),normalized=query.toLowerCase(Locale.ROOT);List<Integer> indices=new ArrayList<>();int start=menu.overflow?DimensionalMenu.OVERFLOW_START:0,end=menu.overflow?DimensionalMenu.PLAYER_START:menu.extra.bagLimit();int hash=1;
-        for(int i=start;i<end;i++){var stack=menu.slots.get(i).getItem();hash=31*hash+stack.getCount();hash=31*hash+stack.getHoverName().getString().hashCode();if(!stack.isEmpty()&&(stack.getHoverName().getString().toLowerCase(Locale.ROOT).contains(normalized)||net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().contains(normalized)))indices.add(i);}
-        if(query.equals(lastFilter)&&hash==lastContents)return;lastFilter=query;lastContents=hash;
+        if(search==null)return;String query=search.getValue();int capacity=menu.overflow?46:menu.extra.bagLimit();
+        Object currentLanguage=net.minecraft.locale.Language.getInstance();
+        if(language!=currentLanguage){language=currentLanguage;names.clear();ids.clear();nameComponents.clear();languageRevision++;}
+        long revision=menu.contentsRevision()+languageRevision;
+        if(query.equals(lastFilter)&&lastContents==revision&&lastCapacity==capacity)return;
+        lastContents=revision;lastCapacity=capacity;lastFilter=query;
         if(query.isEmpty()&&menu.query.isEmpty())return;
+        String normalized=query.toLowerCase(Locale.ROOT);List<Integer> indices=new ArrayList<>();
+        int start=menu.overflow?DimensionalMenu.OVERFLOW_START:0,end=start+capacity;
+        for(int i=start;i<end;i++){
+            var stack=menu.slots.get(i).getItem();if(stack.isEmpty()){nameComponents.remove(i);names.remove(i);ids.remove(i);continue;}
+            Object components=stack.getComponentsPatch();String id=net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            if(!Objects.equals(nameComponents.get(i),components)||!id.equals(ids.get(i))){nameComponents.put(i,components);ids.put(i,id);names.put(i,stack.getHoverName().getString().toLowerCase(Locale.ROOT));}
+            if(names.get(i).contains(normalized)||id.contains(normalized))indices.add(i);
+        }
+        if(query.equals(menu.query)&&menu.matches(indices))return;
         menu.filter(query,indices);JsonObject request=new JsonObject();request.addProperty("menu",menu.containerId);request.addProperty("query",query);request.add("indices",JSON.toJsonTree(indices));ClientUi.current().send("bagView",request);
     }
-    @Override protected void containerTick(){super.containerTick();filter();}
-    @Override public void extractBackground(GuiGraphicsExtractor g,int mx,int my,float alpha){
-        UiTheme.check();g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,leftPos,topPos,imageWidth,imageHeight);menu.layout();
+    @Override protected void containerTick(){super.containerTick();if(ClientUi.now()>=queryChangedAt)filter();menu.layout();}
+    @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float alpha){
+        UiTheme.check();g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,leftPos,topPos,imageWidth,imageHeight);
         for(var slot:menu.slots)if(slot.isActive())UiTheme.slot(g,leftPos+slot.x,topPos+slot.y);
         if(menu.maxScroll()>0){int h=menu.rows*18,thumb=Math.max(12,h*menu.rows/Math.max(1,menu.totalRows())),offset=(h-thumb)*menu.scrollRow()/menu.maxScroll();UiTheme.scrollbar(g,leftPos+174,topPos+DimensionalMenu.BAG_Y-1,h,thumb,offset);}
         if(!menu.overflow&&width>=240)UiTheme.panel(g,leftPos-20,topPos+26,21,24);
@@ -52,9 +71,9 @@ public final class DimensionalScreen extends AbstractContainerScreen<Dimensional
     }
     @Override protected void extractLabels(GuiGraphicsExtractor g,int x,int y){
         g.text(UiFonts.font(),menu.overflow?"迁移暂存":StorageRules.NAMES[menu.extra.bagTier-1],8,8,UiTheme.TEXT,false);g.text(UiFonts.font(),menu.extra.bagTier+"阶",imageWidth-29,8,UiTheme.MUTED,false);g.text(UiFonts.font(),"玩家背包",8,inventoryLabelY,UiTheme.TEXT,false);
-        int used=0;for(int i=0;i<menu.extra.bagLimit();i++)if(!menu.extra.bag.getItem(i).isEmpty())used++;g.text(UiFonts.font(),menu.overflow?"只取不存 · "+menu.overflowUsed()+"格":used+" / "+menu.extra.bagLimit()+" 格",8,imageHeight-17,UiTheme.MUTED,false);
+        int used=menu.usedSlots();g.text(UiFonts.font(),menu.overflow?"只取不存 · "+menu.overflowUsed()+"格":used+" / "+menu.extra.bagLimit()+" 格",8,imageHeight-17,UiTheme.MUTED,false);
     }
-    private void scroll(int row){menu.scrollTo(row);minecraft.gameMode.handleInventoryButtonClick(menu.containerId,100+menu.scrollRow());}
+    private void scroll(int row){int next=Math.clamp(row,0,menu.maxScroll());if(next==menu.scrollRow())return;menu.scrollTo(next);minecraft.gameMode.handleInventoryButtonClick(menu.containerId,100+menu.scrollRow());}
     private boolean scrollbar(double x,double y){return menu.maxScroll()>0&&x>=leftPos+172&&x<=leftPos+185&&y>=topPos+DimensionalMenu.BAG_Y&&y<=topPos+DimensionalMenu.BAG_Y+menu.rows*18;}
     private void drag(double y){int h=menu.rows*18,thumb=Math.max(12,h*menu.rows/Math.max(1,menu.totalRows()));scroll((int)Math.round(Math.clamp((y-topPos-DimensionalMenu.BAG_Y-thumb/2d)/Math.max(1,h-thumb),0,1)*menu.maxScroll()));}
     @Override public boolean mouseScrolled(double x,double y,double sx,double sy){if(x>=leftPos&&x<leftPos+imageWidth&&y>=topPos+DimensionalMenu.BAG_Y&&y<topPos+DimensionalMenu.BAG_Y+menu.rows*18){scroll(menu.scrollRow()-(int)Math.signum(sy));return true;}return super.mouseScrolled(x,y,sx,sy);}

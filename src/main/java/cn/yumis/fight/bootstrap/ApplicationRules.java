@@ -13,7 +13,7 @@ import java.util.Objects;
 
 /** Application composition of module rules; publishes one complete validated snapshot. */
 public final class ApplicationRules {
-    public static final int DATA_VERSION=8;
+    public static final int DATA_VERSION=9;
     public static final class Bundle {
         private final MaterialCatalog materials;
         private final DungeonCatalog dungeons;
@@ -22,9 +22,11 @@ public final class ApplicationRules {
         private final AffixDefinitions affixes;
         private final EquipmentLayout layout;
         private final IndustrialRules industry;
-        private Bundle(MaterialCatalog materials,DungeonCatalog dungeons,AttributeNames names,EquipmentDefinitions equipment,AffixDefinitions affixes,EquipmentLayout layout,IndustrialRules industry){
+        private final cn.yumis.fight.modules.skills.api.SkillBalanceRules skills;
+        private Bundle(MaterialCatalog materials,DungeonCatalog dungeons,AttributeNames names,EquipmentDefinitions equipment,AffixDefinitions affixes,EquipmentLayout layout,IndustrialRules industry,cn.yumis.fight.modules.skills.api.SkillBalanceRules skills){
             this.materials=Objects.requireNonNull(materials);this.dungeons=Objects.requireNonNull(dungeons);this.names=Objects.requireNonNull(names);
             this.equipment=Objects.requireNonNull(equipment);this.affixes=Objects.requireNonNull(affixes);this.layout=Objects.requireNonNull(layout);this.industry=Objects.requireNonNull(industry);
+            this.skills=Objects.requireNonNull(skills);
         }
         public MaterialCatalog materials(){return materials;}
         public DungeonCatalog dungeons(){return dungeons;}
@@ -33,19 +35,22 @@ public final class ApplicationRules {
         public AffixDefinitions affixes(){return affixes;}
         public EquipmentLayout layout(){return layout;}
         public IndustrialRules industry(){return industry;}
-        public static Bundle validated(MaterialCatalog materials,DungeonCatalog dungeons,AttributeNames names,EquipmentDefinitions equipment,AffixDefinitions affixes,EquipmentLayout layout,IndustrialRules industry){
+        public cn.yumis.fight.modules.skills.api.SkillBalanceRules skills(){return skills;}
+        public static Bundle validated(MaterialCatalog materials,DungeonCatalog dungeons,AttributeNames names,EquipmentDefinitions equipment,AffixDefinitions affixes,EquipmentLayout layout,IndustrialRules industry,cn.yumis.fight.modules.skills.api.SkillBalanceRules skills){
             var result=new Bundle(MaterialCatalog.parse(ApplicationJson.JSON.toJson(materials)),DungeonCatalog.parse(ApplicationJson.JSON.toJson(dungeons)),
                 AttributeNames.parse(ApplicationJson.JSON.toJson(names)),EquipmentDefinitions.parse(ApplicationJson.JSON.toJson(equipment)),AffixDefinitions.parse(ApplicationJson.JSON.toJson(affixes)),
-                EquipmentLayout.parse(ApplicationJson.JSON.toJson(layout)),IndustrialRules.parse(ApplicationJson.JSON.toJson(industry)));
+                EquipmentLayout.parse(ApplicationJson.JSON.toJson(layout)),IndustrialRules.parse(ApplicationJson.JSON.toJson(industry)),cn.yumis.fight.modules.skills.api.SkillBalanceRules.parse(ApplicationJson.JSON.toJson(skills)));
             for(var dungeon:result.dungeons.dungeons)for(String material:dungeon.materials())if(!result.materials.materials.containsKey(material))throw new IllegalArgumentException("Unknown dungeon material: "+material);
+            cn.yumis.fight.modules.skills.api.SkillBalance.validate(result.skills);
             return result;
         }
     }
-    private static final RuleStore<Bundle> STORE=new RuleStore<>(new Bundle(MaterialCatalog.current(),DungeonCatalog.current(),AttributeNames.current(),EquipmentDefinitions.current(),AffixDefinitions.current(),EquipmentLayout.current(),IndustrialRules.current()),Objects::requireNonNull);
+    private static final RuleStore<Bundle> STORE=new RuleStore<>(new Bundle(MaterialCatalog.current(),DungeonCatalog.current(),AttributeNames.current(),EquipmentDefinitions.current(),AffixDefinitions.current(),EquipmentLayout.current(),IndustrialRules.current(),cn.yumis.fight.modules.skills.api.SkillBalanceRules.defaults()),Objects::requireNonNull);
     private ApplicationRules(){}
     public static void install(){
         MaterialCatalog.source(()->current().materials());DungeonCatalog.source(()->current().dungeons());AttributeNames.source(()->current().names());
         EquipmentDefinitions.source(()->current().equipment());AffixDefinitions.source(()->current().affixes());EquipmentLayout.source(()->current().layout());IndustrialRules.source(()->current().industry());
+        cn.yumis.fight.modules.skills.api.SkillBalanceRules.source(()->current().skills());
     }
     public static Bundle current(){return STORE.snapshot().value();}
     public static void publish(Bundle candidate){STORE.publish(candidate);}
@@ -58,6 +63,7 @@ public final class ApplicationRules {
             packet.has("equipmentDefinitions")?EquipmentDefinitions.parse(packet.get("equipmentDefinitions").toString()):before.equipment(),
             packet.has("affixDefinitions")?AffixDefinitions.parse(packet.get("affixDefinitions").toString()):before.affixes(),
             packet.has("equipmentLayout")?EquipmentLayout.parse(packet.get("equipmentLayout").toString()):before.layout(),
-            packet.has("industrialRules")?IndustrialRules.parse(packet.get("industrialRules").toString()):before.industry()));
+            packet.has("industrialRules")?IndustrialRules.parse(packet.get("industrialRules").toString()):before.industry(),
+            cn.yumis.fight.modules.skills.api.SkillBalanceRules.parse(packet.get("skillBalanceRules").toString())));
     }
 }

@@ -8,6 +8,7 @@ public final class CareerState {
     public long generation,nextBrand,kallaUntil,eyeUntil,bloodUntil;
     public int brands,blood;
     public boolean frenzy;
+    public double eyeBonusMut;
     public Field field;
     public List<Field> fields=new ArrayList<>();
     public List<Actor> actors=new ArrayList<>();
@@ -22,4 +23,5 @@ public final class CareerState {
     }
     public double red(double x,double y,double z,long now){return fields.stream().filter(f->f.friendly&&f.expires>now&&f.contains(x,y,z)).mapToDouble(f->CareerSkills.redBonus(f.rank)).max().orElse(0);}
     public boolean green(double x,double y,double z,long now){return fields.stream().anyMatch(f->f.rank>=3&&f.expires>now&&f.contains(x,y,z));}
+    public boolean ownField(double x,double y,double z,long now){return field!=null&&field.expires>now&&field.contains(x,y,z);}
 }

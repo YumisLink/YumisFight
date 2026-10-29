@@ -6,10 +6,15 @@ import net.minecraft.client.gui.components.Button;
 public final class ThemedButton extends Button {
     public boolean selected;
     public int textInset=-1;
+    public java.util.function.Supplier<String> dynamicText;
     public ThemedButton(Builder builder){
         super(builder);
     }
     @Override protected void extractContents(GuiGraphicsExtractor g,int mouseX,int mouseY,float delta){
+        try(var ignored=UiTheme.scoped()?null:UiTheme.use(ClientSettings.globalTheme)){draw(g,mouseX,mouseY,delta);}
+    }
+    private void draw(GuiGraphicsExtractor g,int mouseX,int mouseY,float delta){
+        if(dynamicText!=null){String value=dynamicText.get();if(!value.equals(getMessage().getString()))setMessage(net.minecraft.network.chat.Component.literal(value));}
         boolean hover=isHoveredOrFocused();
         int x=getX(),y=getY(),w=getWidth(),h=getHeight();
         UiTheme.button(g,x,y,w,h,active,hover,selected);

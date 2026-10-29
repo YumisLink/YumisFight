@@ -32,7 +32,8 @@ public final class SkillLearning {
             for(int i=0;i<progress.slots.length;i++)if(progress.slots[i].equals(skill.id))progress.slots[i]="";
         }
     }
-    public static void apply(Progress progress,JsonObject request){
+    public static boolean canBind(Stats stats,Progress progress,SkillDefinition skill){return !skill.passive()&&effective(stats,progress,skill)>0;}
+    public static void apply(Progress progress,Stats stats,JsonObject request){
         switch(request.get("kind").getAsString()){
             case "learn"->learn(progress,SkillCatalog.require(request.get("skill").getAsString()),request.has("count")?request.get("count").getAsInt():1);
             case "resetSkills"->reset(progress);
@@ -40,7 +41,7 @@ public final class SkillLearning {
             case "bind"->{
                 int slot=request.get("slot").getAsInt();if(slot<0||slot>=progress.slots.length)throw new IllegalArgumentException("快捷槽无效");
                 String id=request.get("skill").getAsString();
-                if(!id.isEmpty()&&(SkillCatalog.require(id).passive()||progress.learned(id)<=0&&!SkillCatalog.require(id).equipmentGranted||SkillCatalog.require(id).advanced()&&!progress.hasJob(SkillCatalog.require(id).requiredJob)))throw new IllegalArgumentException("该技能尚未学习或为被动");
+                if(!id.isEmpty()&&!canBind(stats,progress,SkillCatalog.require(id)))throw new IllegalArgumentException("该技能未学习、缺少有效装备来源或为被动");
                 progress.slots[slot]=id;
             }
             default->throw new IllegalArgumentException("未知技能操作");

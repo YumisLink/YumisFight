@@ -7,6 +7,13 @@ import cn.yumis.fight.modules.presentation.api.client.PlayerPageSurface;
 public final class SettingsPage {
     private SettingsPage(){}
     public static void render(PlayerPageSurface page,java.util.function.Consumer<String> message){
+        page.rowButton("统一主题："+ClientSettings.themeName(ClientSettings.globalTheme),()->{ClientSettings.toggleGlobalTheme();page.rebuild();});
+        page.rowButton("I面板跟随统一主题："+(ClientSettings.menuFollowsTheme?"开":"关"),()->{ClientSettings.follow(cn.yumis.fight.modules.presentation.api.client.ThemeDomain.MENU,!ClientSettings.menuFollowsTheme);page.rebuild();});
+        if(!ClientSettings.menuFollowsTheme)page.rowButton("I面板主题："+ClientSettings.themeName(ClientSettings.menuTheme),()->{ClientSettings.toggleDomain(cn.yumis.fight.modules.presentation.api.client.ThemeDomain.MENU);page.rebuild();});
+        page.rowButton("机器面板跟随统一主题："+(ClientSettings.machineFollowsTheme?"开":"关"),()->{ClientSettings.follow(cn.yumis.fight.modules.presentation.api.client.ThemeDomain.MACHINE,!ClientSettings.machineFollowsTheme);page.rebuild();});
+        if(!ClientSettings.machineFollowsTheme)page.rowButton("机器主题："+ClientSettings.themeName(ClientSettings.machineTheme),()->{ClientSettings.toggleDomain(cn.yumis.fight.modules.presentation.api.client.ThemeDomain.MACHINE);page.rebuild();});
+        page.line("机器含工业设备、配方/结构/概率与次元背包。取消跟随保留当前样式。",UiTheme.MUTED);
+        page.gap();
         page.rowButton("面板大小："+ClientSettings.panel,()->{
             ClientSettings.panel=switch(ClientSettings.panel){
                 case "small"->"medium";case "medium"->"large";default->"small";

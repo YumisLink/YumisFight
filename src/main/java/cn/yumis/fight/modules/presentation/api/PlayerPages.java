@@ -14,6 +14,8 @@ public final class PlayerPages {
         register(new Page("settings","设置","设置","settings","",true));
         register(new Page("shop","商城","商城","shop","",true));
         register(new Page("bag","次元背包","背包","dimensional_bag","bag",false));
+        register(new Page("sale","出售装备","出售","shop","",true));
+        register(new Page("damage_analysis","伤害分析","伤害","skills","",true));
     }
     private PlayerPages(){}
     public static synchronized int register(Page page){

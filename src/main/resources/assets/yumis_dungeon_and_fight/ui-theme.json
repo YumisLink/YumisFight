@@ -12,15 +12,16 @@
     "HUD_PANEL": "#CC202020", "HUD_TEXT": "#FFE9EBEE", "HUD_MUTED": "#FFBAC2CB", "HUD_GOLD": "#FFFFDC78",
     "DAMAGE_BAR": "#BBD95328"
   },
-  "characterDark": {
+  "dark": {
     "style": "flat",
     "colors": {
-      "OVERLAY": "#A4000000", "PANEL": "#18212D", "CARD": "#222F3E",
-      "BUTTON": "#2E4054", "HOVER": "#3C5872", "SELECTED": "#355873", "DISABLED": "#293744",
+      "OVERLAY": "#A4000000", "PANEL": "#CC101010", "CARD": "#A51A1A1A",
+      "BUTTON": "#B0292929", "HOVER": "#CC3B3B3B", "SELECTED": "#CC383838", "DISABLED": "#88202020",
       "TEXT": "#E9EBEE", "MUTED": "#B9C0C7", "ACCENT": "#80C6EF", "GOLD": "#EBC36D",
       "ERROR": "#FF8181", "SUCCESS": "#92C88B", "NUMERIC": "#71ACFF",
-      "BORDER": "#0D141D", "LIGHT": "#536779", "SHADOW": "#0D141D",
-      "SCROLL_TRACK": "#101923", "SCROLL_THUMB": "#596F83"
+      "BORDER": "#FF101010", "LIGHT": "#FF575757", "SHADOW": "#FF101010",
+      "SLOT": "#AA232323", "SLOT_SHADOW": "#FF101010", "SLOT_LIGHT": "#FF505050",
+      "SCROLL_TRACK": "#AA151515", "SCROLL_THUMB": "#FF909090"
     }
   }
 }

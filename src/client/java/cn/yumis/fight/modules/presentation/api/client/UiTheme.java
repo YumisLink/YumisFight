@@ -13,14 +13,14 @@ public final class UiTheme {
     public static int TIP_TEXT,TIP_MUTED,TIP_TITLE,TIP_NUMBER,HUD_PANEL,HUD_TEXT,HUD_MUTED,HUD_GOLD,DAMAGE_BAR;
     public static long revision;
     public static String status="";
-    private static ThemeDefinition definition,darkDefinition;
+    private static ThemeDefinition definition,lightDefinition,darkDefinition;
     private static int paletteDepth;
     private static long nextCheck,stamp=Long.MIN_VALUE;
     private static final String DEFAULTS;
     static {
         try(var source=UiTheme.class.getResourceAsStream("/assets/yumis_dungeon_and_fight/ui-theme.json")){
             if(source==null)throw new IllegalStateException("缺少默认界面主题");
-            DEFAULTS=new String(source.readAllBytes(),StandardCharsets.UTF_8);apply(ThemeDefinition.parse(DEFAULTS,null));darkDefinition=dark(DEFAULTS,definition);
+            DEFAULTS=new String(source.readAllBytes(),StandardCharsets.UTF_8);lightDefinition=ThemeDefinition.parse(DEFAULTS,null);darkDefinition=dark(DEFAULTS,lightDefinition);apply(lightDefinition);
         }catch(Exception failure){throw new ExceptionInInitializerError(failure);}
     }
     private UiTheme(){}
@@ -38,23 +38,54 @@ public final class UiTheme {
         long modified=Files.getLastModifiedTime(path()).toMillis();if(stamp==modified)return;
         ThemeDefinition next=ThemeDefinition.parse(Files.readString(path()),ThemeDefinition.parse(DEFAULTS,null));
         ThemeDefinition nextDark=dark(Files.readString(path()),next);
-        apply(next);darkDefinition=nextDark;stamp=modified;status="";revision++;
+        lightDefinition=next;darkDefinition=nextDark;apply(next);stamp=modified;status="";revision++;
     }
     private static ThemeDefinition dark(String text,ThemeDefinition light){
         var defaults=com.google.gson.JsonParser.parseString(DEFAULTS).getAsJsonObject();var json=com.google.gson.JsonParser.parseString(text).getAsJsonObject();
-        ThemeDefinition fallback=ThemeDefinition.parse(defaults.getAsJsonObject("characterDark").toString(),light);
-        return json.has("characterDark")?ThemeDefinition.parse(json.getAsJsonObject("characterDark").toString(),fallback):fallback;
+        ThemeDefinition fallback=ThemeDefinition.parse(defaults.getAsJsonObject("dark").toString(),light);
+        return json.has("dark")?ThemeDefinition.parse(json.getAsJsonObject("dark").toString(),fallback):fallback;
     }
-    public static PaletteScope character(boolean enabled){return new PaletteScope(enabled);}
+    public static void preferencesChanged(){revision++;}
+    public static boolean scoped(){return paletteDepth>0;}
+    public static PaletteScope use(String theme){check();return new PaletteScope(theme.equals("dark")?darkDefinition:lightDefinition);}
     public static final class PaletteScope implements AutoCloseable {
         private final ThemeDefinition previous;
-        private PaletteScope(boolean enabled){previous=enabled?definition:null;if(enabled){paletteDepth++;apply(darkDefinition);}}
-        @Override public void close(){if(previous!=null){apply(previous);paletteDepth--;}}
+        private PaletteScope(ThemeDefinition next){previous=definition;paletteDepth++;apply(next);}
+        @Override public void close(){apply(previous);paletteDepth--;}
     }
     private static void apply(ThemeDefinition next){
-        var fields=UiTheme.class.getFields();for(var field:fields)if(field.getType()==int.class)next.color(field.getName());
-        try{for(var field:fields)if(field.getType()==int.class)field.setInt(null,next.color(field.getName()));}
-        catch(IllegalAccessException failure){throw new IllegalStateException(failure);}
+        if(definition==next)return;
+        OVERLAY=next.color("OVERLAY");
+        PANEL=next.color("PANEL");
+        CARD=next.color("CARD");
+        BUTTON=next.color("BUTTON");
+        HOVER=next.color("HOVER");
+        SELECTED=next.color("SELECTED");
+        DISABLED=next.color("DISABLED");
+        TEXT=next.color("TEXT");
+        MUTED=next.color("MUTED");
+        ACCENT=next.color("ACCENT");
+        GOLD=next.color("GOLD");
+        ERROR=next.color("ERROR");
+        SUCCESS=next.color("SUCCESS");
+        NUMERIC=next.color("NUMERIC");
+        BORDER=next.color("BORDER");
+        LIGHT=next.color("LIGHT");
+        SHADOW=next.color("SHADOW");
+        SLOT=next.color("SLOT");
+        SLOT_SHADOW=next.color("SLOT_SHADOW");
+        SLOT_LIGHT=next.color("SLOT_LIGHT");
+        SCROLL_TRACK=next.color("SCROLL_TRACK");
+        SCROLL_THUMB=next.color("SCROLL_THUMB");
+        TIP_TEXT=next.color("TIP_TEXT");
+        TIP_MUTED=next.color("TIP_MUTED");
+        TIP_TITLE=next.color("TIP_TITLE");
+        TIP_NUMBER=next.color("TIP_NUMBER");
+        HUD_PANEL=next.color("HUD_PANEL");
+        HUD_TEXT=next.color("HUD_TEXT");
+        HUD_MUTED=next.color("HUD_MUTED");
+        HUD_GOLD=next.color("HUD_GOLD");
+        DAMAGE_BAR=next.color("DAMAGE_BAR");
         definition=next;
     }
     public static int textInset(){return definition.textInset();}

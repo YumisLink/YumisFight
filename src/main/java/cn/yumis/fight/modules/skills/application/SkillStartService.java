@@ -44,7 +44,7 @@ public final class SkillStartService implements CombatPorts.SkillEffects {
             Action action=ACTIONS.get(skill.id);Vec3 destination=action==null?null:action.prepare(p);
             var resources=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);resources.equipment=effects;Life life=copy(session.life,Life.class);
             EquipmentBuffs.prune(resources,effects,now,false);EquipmentBuffs.imprint(resources,effects,now);
-            Stats resolved=castStats.apply(p,resources);var cost=SkillCosts.resolve(skill,rank,resolved,effects,CareerRules.magic(skill,player));SkillCosts.pay(cost,resources,life,resolved.get(Stat.HEALTH),0);
+            Stats resolved=CareerRules.eyeDamage(castStats.apply(p,resources),skill);var cost=SkillCosts.resolve(skill,rank,resolved,effects,CareerRules.magic(skill,player));SkillCosts.pay(cost,resources,life,resolved.get(Stat.HEALTH),0);
             if(!resources.training)resources.cooldowns.put(skill.id,now+(long)(cost.cooldown()*1000));resources.controlEpoch++;resources.recordedAt=now;
             var parameters=WeaponSkills.skill(SkillParameters.forCast(p.getUUID(),skill,rank,resolved.parameters),player,resolved);
             JsonObject ack=new JsonObject();ack.addProperty("id",id);ack.addProperty("skill",skill.id);ack.addProperty("slot",slot);ack.addProperty("serverNow",now);ack.addProperty("session",session.id.toString());ack.addProperty("generation",life.generation);ack.addProperty("rank",rank);ack.addProperty("terminal",false);ack.addProperty("instant",action!=null);

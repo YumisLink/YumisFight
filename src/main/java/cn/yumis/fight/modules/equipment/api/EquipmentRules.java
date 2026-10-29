@@ -71,13 +71,16 @@ public final class EquipmentRules {
     public static Map<Stat,Double> contribution(Gear input){
         Gear g=cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(input);
         List<Affix> all=EquipmentEffects.effectiveAffixes(g);
-        Map<Stat,Double> flats=new EnumMap<>(Stat.class),percent=new EnumMap<>(Stat.class);
+        Map<Stat,Double> flats=new EnumMap<>(Stat.class),percent=new EnumMap<>(Stat.class),finalAdds=new EnumMap<>(Stat.class);
         var sink=new cn.yumis.fight.modules.affixes.api.AffixEffects.ItemSink(){
             public void flat(Stat stat,double value){flats.merge(stat,value,Double::sum);}
             public void percent(Stat stat,double value){percent.merge(stat,value,Double::sum);}
+            public void finalAdd(Stat stat,double value){finalAdds.merge(stat,value,Double::sum);}
         };
         for(Affix a:all)cn.yumis.fight.modules.affixes.api.AffixEffects.item(a,sink);
         for(Stat s:flats.keySet())flats.put(s,flats.get(s)*(1+percent.getOrDefault(s,0d)));
+        // This is the item's final addition. Its complete contribution subsequently enters player BASE.
+        finalAdds.forEach((stat,value)->flats.merge(stat,value,Double::sum));
         return flats;
     }
     public static void appendRandom(Gear g,Random random){

@@ -23,7 +23,8 @@ public final class AffixDefinitions {
             AffixDefinition next=affixes.get(entry.getKey()),old=entry.getValue();
             if(next==null){affixes.put(entry.getKey(),old.retire());continue;}
             if(next.revision()<old.revision()||!next.sameEffect(old)&&next.revision()<=old.revision())throw new IllegalArgumentException("词条效果变更必须提高revision："+entry.getKey());
-            if(!next.operation().equals(old.operation()))throw new IllegalArgumentException("词条类型不可复用原ID，请登记新ID："+entry.getKey());
+            boolean bylleFinalAdd=entry.getKey().equals("unique/bylle_physical_flat")&&old.operation().equals("FLAT")&&next.operation().equals("ITEM_FINAL_ADD")&&old.stat()==cn.yumis.fight.modules.attributes.api.Stat.PHYSICAL_ATTACK&&next.stat()==old.stat();
+            if(!next.operation().equals(old.operation())&&!bylleFinalAdd)throw new IllegalArgumentException("词条类型不可复用原ID，请登记新ID："+entry.getKey());
         }
         revision=Math.incrementExact(previous.revision);
     }

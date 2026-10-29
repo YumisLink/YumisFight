@@ -29,21 +29,33 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
     private final CurrencyAction currencyAction;
     private final ContainerParticipants containers;
     private final Set<UUID> locks=new HashSet<>(),bags=new HashSet<>();
-    private boolean inside;
+    private boolean inside,projectingDrops;
     public static final class NoSpace extends IllegalStateException {
         public NoSpace(){
             super("背包空间不足");
         }
     }
+    private static final class DropDenied extends IllegalStateException {}
     private final List<cn.yumis.fight.modules.inventory.api.InventoryDrops.Prepared> stagedDrops=new ArrayList<>();
-    public net.minecraft.world.entity.item.ItemEntity stageDrop(ServerPlayer p,ItemStack stack){
-        if(stack.isEmpty())return null;
-        var drop=loot.prepare(p,stack,p.position());
-        stagedDrops.add(drop);
-        var entity=new net.minecraft.world.entity.item.ItemEntity(p.level(),drop.position().x,drop.position().y,drop.position().z,stack.copy());
-        entity.setUUID(drop.id());
-        entity.setDefaultPickUpDelay();
-        return entity;
+    private final Map<net.minecraft.world.entity.item.ItemEntity,ServerPlayer> stagedEntities=new LinkedHashMap<>();
+    private final Map<net.minecraft.world.entity.item.ItemEntity,net.neoforged.neoforge.event.entity.item.ItemTossEvent> tossEvents=new IdentityHashMap<>();
+    private ServerPlayer actingPlayer;
+    public void stageDrop(ServerPlayer player,net.minecraft.world.entity.item.ItemEntity entity){
+        if(inside&&entity!=null&&!entity.getItem().isEmpty())stagedEntities.put(entity,player);
+    }
+    public boolean deferDrop(net.minecraft.world.entity.item.ItemEntity entity){
+        if(!inside||projectingDrops||actingPlayer==null)return false;
+        stageDrop(actingPlayer,entity);return true;
+    }
+    public void tossEvent(net.neoforged.neoforge.event.entity.item.ItemTossEvent event){
+        if(inside)tossEvents.put(event.getEntity(),event);
+    }
+    private void prepareDrops(){
+        for(var entry:stagedEntities.entrySet()){
+            var event=tossEvents.get(entry.getKey());
+            if(event!=null&&event.isCanceled())throw new DropDenied();
+            if(!entry.getKey().getItem().isEmpty())stagedDrops.add(loot.prepare(entry.getValue(),entry.getKey()));
+        }
     }
     public InventoryTransactions(Journal journal,net.minecraft.server.MinecraftServer server,cn.yumis.fight.modules.inventory.api.InventoryDrops loot,java.util.function.Consumer<ServerPlayer> profile,java.util.function.BiConsumer<ServerPlayer,String> message,CurrencyAction currencyAction){
         this.journal=journal;this.loot=loot;this.profile=profile;this.message=message;this.currencyAction=currencyAction;
@@ -169,8 +181,9 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
                 return false;
             }
             inside=true;
-            stagedDrops.clear();
+            actingPlayer=p;stagedDrops.clear();stagedEntities.clear();tossEvents.clear();
             mutation.run();
+            prepareDrops();
             Snapshot after=capture(p,operation);
             var externalAfter=containers.after(p,external);
             apply(p,before);
@@ -193,12 +206,13 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             containers.completed(p,operation,externalAfter,completed);
             journal.transaction(completed);
             p.containerMenu.broadcastFullState();
-            if(!stagedDrops.isEmpty())loot.publishPrepared(stagedDrops);
+            if(!stagedDrops.isEmpty()){projectingDrops=true;try{loot.publishPrepared(stagedDrops);}finally{projectingDrops=false;}}
             return true;
         }
         catch(Exception error){
             if(!committed){apply(p,before);containers.apply(p,external,null,null);}
             else p.connection.disconnect(ModText.of("背包已保存，原生恢复未完成，请重新连接："+error.getMessage()));
+            if(!committed&&error instanceof DropDenied){message.accept(p,"丢弃已被其他规则取消");p.containerMenu.broadcastFullState();return false;}
             if(!committed&&error instanceof NoSpace space)throw space;
             throw new IllegalStateException(error.getMessage(),error);
         }
@@ -206,6 +220,7 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             if(committed)for(var participant:external.machines())participant.machine().requestRecovery();
             inside=false;
             stagedDrops.clear();
+            stagedEntities.clear();tossEvents.clear();actingPlayer=null;
             locks.remove(p.getUUID());
         }
     }

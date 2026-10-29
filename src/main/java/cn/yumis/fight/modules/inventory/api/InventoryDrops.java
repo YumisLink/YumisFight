@@ -9,6 +9,6 @@ import java.util.*;
 /** A prepared item drop joins the inventory transaction before its world projection is published. */
 public interface InventoryDrops {
     record Prepared(UUID id,Vec3 position,String journalKey,JsonElement state){}
-    Prepared prepare(ServerPlayer player,ItemStack stack,Vec3 position);
+    Prepared prepare(ServerPlayer player,net.minecraft.world.entity.item.ItemEntity projection);
     void publishPrepared(Collection<Prepared> drops);
 }

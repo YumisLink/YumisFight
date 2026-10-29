@@ -28,7 +28,7 @@ public final class SkillParameters {
     private SkillParameters(){
     }
     public static Snapshot resolve(SkillDefinition skill,int rank,Collection<ParameterModifier> changes){
-        Map<String,Double> p=skill.parameters(rank);
+        Map<String,Double> p=SkillBalance.parameters(skill,rank);
         Map<String,Double> additions=new HashMap<>(),products=new HashMap<>();
         Set<String> seen=new HashSet<>();
         for(ParameterModifier c:changes)if(c.skill().equals(skill.id)){

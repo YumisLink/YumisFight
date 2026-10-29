@@ -26,7 +26,7 @@ public final class FightMod {
     public FightMod(IEventBus bus){
         cn.yumis.fight.modules.inventory.api.WearablePolicy.install((player,group,stack)->{
             if(!EquipmentLayout.current().accepts(group,stack))return false;
-            var gear=cn.yumis.fight.modules.equipment.api.EquipmentItems.gear(stack);
+            var gear=cn.yumis.fight.modules.equipment.api.EquipmentItems.view(stack);
             if(gear==null)return !cn.yumis.fight.modules.equipment.api.EquipmentItems.GEAR_IDS.contains(cn.yumis.fight.platform.ItemData.id(stack));
             return gear.valid(cn.yumis.fight.modules.equipment.api.EquipmentEligibility.PROGRESS.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player));
         });

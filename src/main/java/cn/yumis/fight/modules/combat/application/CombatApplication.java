@@ -46,15 +46,16 @@ public final class CombatApplication {
     private final Consumer<Boolean> projection;
     private final BiConsumer<ServerPlayer,String> message;
     public CombatApplication(Journal journal,MinecraftServer server,Function<ServerPlayer,? extends CombatSession> sessions,Predicate<Entity> managed,Function<LivingEntity,? extends CombatTarget> targets,CombatPorts.Encounters dungeons,CombatPorts.Rewards loot,CombatPorts.NativeHits nativeHits,CombatPorts.Attacks basicAttacks,CombatPorts.Recorder damageMeter,Consumer<Boolean> projection,BiConsumer<ServerPlayer,String> message){this.journal=journal;this.server=server;this.sessions=sessions;this.managed=managed;this.targets=targets;this.dungeons=dungeons;this.loot=loot;this.nativeHits=nativeHits;this.basicAttacks=basicAttacks;this.damageMeter=damageMeter;this.projection=projection;this.message=message;}
-    public void runtime(ServerPlayer p,JsonObject j){
+    public boolean runtime(ServerPlayer p,JsonObject j){
         CombatSession s=sessions.apply(p);
-        if(j.has("session")&&!s.id.toString().equals(j.get("session").getAsString()))return;
+        if(j.has("session")&&!s.id.toString().equals(j.get("session").getAsString()))return false;
         long generation=j.has("generation")?j.get("generation").getAsLong():s.life.generation;
-        if(generation!=s.life.generation)return;
+        if(generation!=s.life.generation)return false;
         cn.yumis.fight.modules.combat.api.Runtime r=JSON.fromJson(j.has("state")?j.get("state"):j,cn.yumis.fight.modules.combat.api.Runtime.class);
         r.validate();
         long issued=j.has("serverIssuedAt")?j.get("serverIssuedAt").getAsLong():r.recordedAt;
-        if(r.controlEpoch!=s.resources.controlEpoch||issued<s.resources.recordedAt)return;
+        if(r.controlEpoch!=s.resources.controlEpoch)return false;
+        if(issued<s.resources.recordedAt)return false;
         long local=r.recordedAt;
         // These fields belong to the administrator command, never to combat prediction uploads.
         r.training=s.resources.training;
@@ -69,9 +70,10 @@ public final class CombatApplication {
         r.equipment=s.resources.equipment;
         r.equipmentBuffs=copy(s.resources,cn.yumis.fight.modules.combat.api.Runtime.class).equipmentBuffs;
         skills.reconcile(p,s.resources,r);
-        s.resources=r;
         try{
             journal.put("resources/"+p.getUUID(),r);
+            s.resources=r;
+            return true;
         }
         catch(Exception e){
             throw new IllegalStateException(e);
@@ -100,6 +102,7 @@ public final class CombatApplication {
             if(entity instanceof Player&&entity!=p)throw new IllegalArgumentException("PVP已关闭");
             if(heal&&entity!=p)throw new IllegalArgumentException("仅支持本人恢复");
             CombatTarget target=entity==p?null:targets.apply(entity);
+            if(target!=null&&target.training())return;
             Life life=entity==p?copy(s.life,Life.class):target.life();
             double hitMaximum=target==null||equipmentProgress==null?0:target.maximumHealth(equipmentProgress.apply(p).level,equipmentSync.test(p));
             if(!j.has("dimension")||!j.get("dimension").getAsString().equals(p.level().dimension().identifier().toString()))throw new IllegalArgumentException("维度已改变");
@@ -138,7 +141,8 @@ public final class CombatApplication {
             stored.add("intent",j);
             stored.add("ack",ack);
             journal.begin();
-            if(j.has("runtime"))runtime(p,j.getAsJsonObject("runtime"));
+            if(j.has("runtime"))ack.addProperty("runtimeApplied",runtime(p,j.getAsJsonObject("runtime")));
+            ack.addProperty("runtimeRecordedAt",s.resources.recordedAt);
             if(!heal&&(receipt.actual()>0||entity==p&&outcome.equals("HIT")&&taken>0)){
                 long eventTime=nativeHit?nativeHits.occurredAt(j):j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
                 if(entity==p)CombatTiming.taken(s.resources,eventTime);else CombatTiming.dealt(s.resources,eventTime);

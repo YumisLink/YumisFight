@@ -75,7 +75,7 @@ public final class VerificationDriver {
             status.add("jei",jeiInspection.deepCopy());status.addProperty("industrialBeams",IndustrialVisuals.beams().size());status.addProperty("industrialBeamRemaining",IndustrialVisuals.remaining());
             if(ClientSession.INSTANCE.profile.has("stats"))status.add("serverStats",ClientSession.INSTANCE.profile.get("stats"));
             status.addProperty("font",UiFonts.currentName());
-            status.addProperty("characterDark",ClientSettings.characterDark);
+            status.addProperty("menuTheme",ClientSettings.theme(cn.yumis.fight.modules.presentation.api.client.ThemeDomain.MENU));
             status.addProperty("themeRevision",UiTheme.revision);status.addProperty("themeStatus",UiTheme.status);status.addProperty("themePanel",Integer.toHexString(UiTheme.PANEL));
             status.addProperty("fontBusy",UiFonts.busy());
             status.addProperty("fontStatus",UiFonts.status());

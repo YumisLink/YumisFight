@@ -36,7 +36,10 @@ public class LootService implements InventoryDrops {
     private static <T>T copy(T value,Class<T> type){return JSON.fromJson(JSON.toJson(value),type);}
 
     public void nativePickup(net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent.Pre e){
-            if(!(e.getPlayer() instanceof ServerPlayer p))return;String id=e.getItemEntity().getPersistentData().getStringOr("ydnf_drop","");if(id.isEmpty())return;e.setCanPickup(net.minecraft.util.TriState.FALSE);LootService.Drop drop=journal.get("loot/"+id,LootService.Drop.class,null);if(drop==null||!journal.get("lootEnd/"+id).isJsonNull())return;ItemStack actual=e.getItemEntity().getItem();int room=0;for(int i=0;i<36;i++){
+            if(!(e.getPlayer() instanceof ServerPlayer p)||e.canPickup().isFalse())return;String id=e.getItemEntity().getPersistentData().getStringOr("ydnf_drop","");if(id.isEmpty())return;e.setCanPickup(net.minecraft.util.TriState.FALSE);
+            // NeoForge fires Pre before vanilla checks the delay/target. Keep both checks before our transaction.
+            if(e.getItemEntity().hasPickUpDelay()||e.getItemEntity().getTarget()!=null&&!p.getUUID().equals(e.getItemEntity().getTarget())||inventory.get().locked(p.getUUID()))return;
+            LootService.Drop drop=journal.get("loot/"+id,LootService.Drop.class,null);if(drop==null||!journal.get("lootEnd/"+id).isJsonNull())return;ItemStack actual=e.getItemEntity().getItem();int room=0;for(int i=0;i<36;i++){
                 ItemStack s=p.getInventory().getItem(i);room+=s.isEmpty()?actual.getMaxStackSize():ItemStack.isSameItemSameComponents(s,actual)?Math.max(0,s.getMaxStackSize()-s.getCount()):0;
             }
             int take=Math.min(room,actual.getCount());if(take<=0)return;ItemStack result=actual.copyWithCount(take),left=actual.copyWithCount(actual.getCount()-take);var next=copy(drop,LootService.Drop.class);next.item=inventory.get().encode(p,left);Map<String,JsonElement> edits=new HashMap<>();edits.put("loot/"+id,JSON.toJsonTree(next));if(left.isEmpty())edits.put("lootEnd/"+id,JSON.toJsonTree("picked"));JsonObject intent=new JsonObject();intent.addProperty("publicPickup",id);intent.addProperty("count",take);try{
@@ -50,6 +53,10 @@ public class LootService implements InventoryDrops {
         public UUID id=UUID.randomUUID();
         public String owner="",session="",dimension="",instance="";
         public double x,y,z;
+        public boolean nativeToss;
+        public double dx,dy,dz;
+        public String thrower="";
+        public long pickupAt;
         public long expires=System.currentTimeMillis()+300000;
         public JsonElement item;
     }
@@ -82,8 +89,15 @@ public class LootService implements InventoryDrops {
     public LootService(Journal journal,MinecraftServer server,Supplier<InventoryOperations> inventory,RewardPorts.Players players,RewardPorts.Encounters encounters,RewardPorts.Balance balance,Random random){
         this.journal=journal;this.server=server;this.inventory=inventory;this.players=players;this.encounters=encounters;this.balance=balance;this.random=random;
     }
-    @Override public InventoryDrops.Prepared prepare(ServerPlayer player,ItemStack stack,Vec3 position){
-        Drop drop=manual(player,stack,position);
+    @Override public InventoryDrops.Prepared prepare(ServerPlayer player,ItemEntity projection){
+        Drop drop=new Drop();drop.id=projection.getUUID();drop.nativeToss=true;
+        drop.dimension=player.level().dimension().identifier().toString();
+        drop.x=projection.getX();drop.y=projection.getY();drop.z=projection.getZ();
+        var motion=projection.getDeltaMovement();drop.dx=motion.x;drop.dy=motion.y;drop.dz=motion.z;
+        var access=(cn.yumis.fight.mixin.ItemDropAccessor)projection;
+        var thrower=access.ydnf$thrower();drop.thrower=thrower==null?"":thrower.getUUID().toString();
+        drop.pickupAt=System.currentTimeMillis()+access.ydnf$pickupDelay()*50L;
+        drop.item=inventory.get().encode(player,projection.getItem());
         return new InventoryDrops.Prepared(drop.id,new Vec3(drop.x,drop.y,drop.z),"loot/"+drop.id,JSON.toJsonTree(drop));
     }
     @Override public void publishPrepared(Collection<InventoryDrops.Prepared> drops){
@@ -164,6 +178,16 @@ public class LootService implements InventoryDrops {
     private ItemStack decode(Drop d){
         return ItemStack.OPTIONAL_CODEC.parse(server.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),d.item).getOrThrow();
     }
+    private ItemEntity projection(ServerLevel level,Drop drop,ItemStack stack){
+        ItemEntity entity=new ItemEntity(level,drop.x,drop.y,drop.z,stack);
+        entity.setUUID(drop.id);entity.getPersistentData().putString("ydnf_drop",drop.id.toString());
+        if(drop.nativeToss){
+            entity.setDeltaMovement(drop.dx,drop.dy,drop.dz);
+            entity.setPickUpDelay((int)Math.clamp((drop.pickupAt-System.currentTimeMillis()+49)/50,0,32767));
+            if(!drop.thrower.isEmpty())((cn.yumis.fight.mixin.ItemDropAccessor)entity).ydnf$thrower(EntityReference.of(UUID.fromString(drop.thrower)));
+        }else entity.setDefaultPickUpDelay();
+        return entity;
+    }
     public void publish(){
         for(Drop d:new ArrayList<>(publish)){
             ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));
@@ -173,10 +197,7 @@ public class LootService implements InventoryDrops {
             ItemStack stack=decode(d);
             if(level.getEntity(d.id)!=null)continue;
             if(d.owner.isEmpty()){
-                ItemEntity e=new ItemEntity(level,d.x,d.y,d.z,stack);
-                e.setUUID(d.id);
-                e.getPersistentData().putString("ydnf_drop",d.id.toString());
-                e.setDefaultPickUpDelay();
+                ItemEntity e=projection(level,d,stack);
                 level.addFreshEntity(e);
             }
             else{
@@ -266,7 +287,10 @@ public class LootService implements InventoryDrops {
     }
     public void nativeLeft(ItemEntity entity){
         String id=entity.getPersistentData().getStringOr("ydnf_drop","");
-        if(id.isEmpty()||entity.getRemovalReason()==Entity.RemovalReason.UNLOADED_TO_CHUNK||entity.getRemovalReason()==Entity.RemovalReason.CHANGED_DIMENSION)return;
+        // Leaving the tracked entity set also occurs on chunk visibility changes with no removal reason.
+        // Only actual destruction closes the durable drop; unloading must remain recoverable.
+        var reason=entity.getRemovalReason();
+        if(id.isEmpty()||reason==null||!reason.shouldDestroy())return;
         try{
             if(journal.get("lootEnd/"+id).isJsonNull())journal.put("lootEnd/"+id,"native-ended");
         }
@@ -289,10 +313,7 @@ public class LootService implements InventoryDrops {
                 }
                 Entity existing=level.getEntity(d.id);
                 if(existing==null){
-                    ItemEntity item=new ItemEntity(level,d.x,d.y,d.z,decode(d));
-                    item.setUUID(d.id);
-                    item.getPersistentData().putString("ydnf_drop",d.id.toString());
-                    item.setDefaultPickUpDelay();
+                    ItemEntity item=projection(level,d,decode(d));
                     level.addFreshEntity(item);
                 }
                 else if(existing instanceof ItemEntity item){
@@ -314,6 +335,7 @@ public class LootService implements InventoryDrops {
                         d.y=item.getY();
                         d.z=item.getZ();
                         d.dimension=level.dimension().identifier().toString();
+                        if(d.nativeToss){var velocity=item.getDeltaMovement();d.dx=velocity.x;d.dy=velocity.y;d.dz=velocity.z;}
                         try{
                             journal.put("loot/"+id,d);
                         }

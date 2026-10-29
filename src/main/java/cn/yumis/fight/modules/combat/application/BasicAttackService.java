@@ -9,7 +9,7 @@ import java.util.*;
 
 /** An attack cycle survives weapon switching. Each slash can damage a target only once. */
 public class BasicAttackService implements cn.yumis.fight.modules.combat.api.CombatPorts.Attacks {
-    private record Cycle(UUID player,String session,long generation,long start,double interval,int slashes,Set<String> hits,net.minecraft.world.phys.Vec3 origin,net.minecraft.world.phys.Vec3 direction,double range,double speed,cn.yumis.fight.modules.attributes.api.Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){}
+    private record Cycle(UUID player,String session,long generation,long start,double interval,int slashes,double damageScale,double eyeMut,Set<String> hits,net.minecraft.world.phys.Vec3 origin,net.minecraft.world.phys.Vec3 direction,double range,double speed,cn.yumis.fight.modules.attributes.api.Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){}
     private java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> sourceStats;
     private java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot> sourceEffects;
     public BasicAttackService sources(java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> stats,java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot> effects){sourceStats=stats;sourceEffects=effects;return this;}
@@ -22,9 +22,12 @@ public class BasicAttackService implements cn.yumis.fight.modules.combat.api.Com
     private final java.util.function.Function<ServerPlayer,BasicAttackProfile> profile;
     public BasicAttackService(java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.combat.api.CombatSession> sessions,java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.character.api.Progress> progress,java.util.function.Function<ServerPlayer,BasicAttackProfile> profile){this.sessions=sessions;this.progress=progress;this.profile=profile;}
     public void start(ServerPlayer player,JsonObject j){
+        try{startChecked(player,j);}catch(RuntimeException failure){JsonObject rejected=new JsonObject();if(j.has("id"))rejected.add("id",j.get("id"));rejected.addProperty("error",Objects.toString(failure.getMessage(),"普通攻击失败"));cn.yumis.fight.network.Network.send(player,"basicRejected",rejected);}
+    }
+    private void startChecked(ServerPlayer player,JsonObject j){
         var session=sessions.apply(player);long now=System.currentTimeMillis();
         String id=j.get("id").getAsString();
-        if(cycles.containsKey(id))throw new IllegalArgumentException("普攻周期已使用");
+        if(cycles.containsKey(id)){var previous=cycles.get(id);if(previous.player.equals(player.getUUID())&&previous.session.equals(session.id.toString())){accepted(player,id,previous);return;}throw new IllegalArgumentException("普攻周期已使用");}
         var gear=EquipmentItems.gear(player.getMainHandItem());
         if(gear==null||gear.slot!=Slot.WEAPON||!gear.valid(progress.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player))||session.life.dead||player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN))throw new IllegalArgumentException("当前不能普通攻击");
         double ready=next.getOrDefault(player.getUUID(),0d);
@@ -32,9 +35,11 @@ public class BasicAttackService implements cn.yumis.fight.modules.combat.api.Com
         var attack=profile.apply(player);double interval=attack.interval();
         next.put(player.getUUID(),Math.max(now,ready)+interval);
         int slashes=attack.slashes();
-        cycles.put(id,new Cycle(player.getUUID(),session.id.toString(),session.life.generation,now,interval,slashes,new HashSet<>(),player.getEyePosition(),player.getLookAngle().normalize(),cn.yumis.fight.modules.equipment.api.WeaponTraits.basic(gear.weapon.name()).range(),cn.yumis.fight.modules.equipment.api.WeaponTraits.basic(gear.weapon.name()).projectileSpeed(),sourceStats==null?null:sourceStats.apply(player),sourceEffects==null?null:sourceEffects.apply(player)));
+        cycles.put(id,new Cycle(player.getUUID(),session.id.toString(),session.life.generation,now,interval,slashes,attack.damageScale(),attack.eyeMut(),new HashSet<>(),player.getEyePosition(),player.getLookAngle().normalize(),cn.yumis.fight.modules.equipment.api.WeaponTraits.basic(gear.weapon.name()).range(),cn.yumis.fight.modules.equipment.api.WeaponTraits.basic(gear.weapon.name()).projectileSpeed(),sourceStats==null?null:sourceStats.apply(player),sourceEffects==null?null:sourceEffects.apply(player)));
         cycles.entrySet().removeIf(e->now-e.getValue().start>30000);
+        accepted(player,id,cycles.get(id));
     }
+    private void accepted(ServerPlayer player,String id,Cycle cycle){JsonObject ack=new JsonObject();ack.addProperty("id",id);ack.addProperty("session",cycle.session);ack.addProperty("generation",cycle.generation);ack.addProperty("serverNow",cycle.start);ack.addProperty("interval",cycle.interval);ack.addProperty("slashes",cycle.slashes);ack.addProperty("damageScale",cycle.damageScale);ack.addProperty("eyeMut",cycle.eyeMut);cn.yumis.fight.network.Network.send(player,"basicStarted",ack);}
     public void validate(ServerPlayer player,JsonObject j){
         if(!j.has("basicCycle"))return;
         Cycle c=cycles.get(j.get("basicCycle").getAsString());var s=sessions.apply(player);

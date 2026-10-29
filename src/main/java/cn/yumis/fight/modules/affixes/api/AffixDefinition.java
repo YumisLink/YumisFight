@@ -11,7 +11,8 @@ public record AffixDefinition(String id,String name,String operation,String grou
         if(id==null||id.isBlank()||name==null||operation==null||group==null||revision<0)throw new IllegalArgumentException("Invalid affix definition");
         if(fixedValue!=null&&!Double.isFinite(fixedValue))throw new IllegalArgumentException("Invalid fixed affix value: "+id);
         pair(minimum,maximum);pair(upperMinimum,upperMaximum);
-        if(java.util.Set.of("FLAT","PERCENT","CHARACTER_PERCENT").contains(operation)&&stat==null)throw new IllegalArgumentException("Missing affix stat: "+id);
+        if(java.util.Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ITEM_FINAL_ADD").contains(operation)&&stat==null)throw new IllegalArgumentException("Missing affix stat: "+id);
+        if(operation.equals("ITEM_FINAL_ADD")&&stat!=Stat.PHYSICAL_ATTACK&&stat!=Stat.MAGICAL_ATTACK)throw new IllegalArgumentException("Item final addition requires an attack stat: "+id);
         if(operation.equals("EXTRA")&&(element<0||element>=4))throw new IllegalArgumentException("Invalid affix element: "+id);
         if(upperMinimum!=null&&(!operation.equals("EXTRA")||minimum==null||upperMinimum<minimum||upperMaximum<maximum))throw new IllegalArgumentException("Invalid extra damage interval: "+id);
         if(balanceScale!=null&&(!Double.isFinite(balanceScale)||balanceScale<=0))throw new IllegalArgumentException("Invalid balance scale: "+id);

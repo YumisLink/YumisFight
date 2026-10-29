@@ -24,8 +24,8 @@ public final class CareerSkills {
         add(ORB,"鬼印珠",JobCatalog.ASURA,"WAVE",20,.08,8,3,false,-1,0xc9bbeb,10,28,0,.5,5,false,false,0);
         add(CRESCENT,"邪光斩",JobCatalog.ASURA,"WAVE",25,.12,12,2,false,-1,0xe8e0b5,12,3,0,.1,3,true,false,0);
         add(ICE,"冰刃·波动剑",JobCatalog.ASURA,"WAVE",30,.14,15,2,false,2,0x75d8f5,12,3,0,.2,.6,false,false,0);
-        add(FIRE,"爆炎·波动剑",JobCatalog.ASURA,"WAVE",35,.18,22,2.2,false,1,0xff923e,10,3,2.2,.2,3,false,false,0);
-        add(AGNI,"不动明王阵",JobCatalog.ASURA,"WAVE",40,.22,30,.3,false,-1,0xf4b552,5,8,1.6,.3,3,false,false,0);
+        add(FIRE,"爆炎·波动剑",JobCatalog.ASURA,"WAVE",35,.18,22,8.8,false,1,0xff923e,10,1,0,.2,3,false,false,0);
+        add(AGNI,"不动明王阵",JobCatalog.ASURA,"WAVE",40,.22,30,.528,false,-1,0xf4b552,5,10,3.52,.85/3,3,false,false,0);
         add(EYE,"暗天波动眼",JobCatalog.ASURA,"WAVE",50,.35,90,16,false,-1,0xd7b8ee,16,1,0,.8,20,false,false,0);
         add(FRENZY,"血之狂暴",JobCatalog.BERSERKER,"BLOOD",20,.10,5,0,false,-1,0xd52e47,0,0,0,0,0,false,false,0);
         add(CRASH,"崩山击",JobCatalog.BERSERKER,"BLOOD",20,.06,8,.6,false,-1,0xe75145,3,1,2,.5,.7,false,false,0);
@@ -34,11 +34,14 @@ public final class CareerSkills {
         add(BLADE,"血气之刃",JobCatalog.BERSERKER,"BLOOD",35,.18,22,2.2,false,-1,0xf14955,5,1,6.6,.35,.65,false,false,.05);
         add(ERUPTION,"崩山裂地斩",JobCatalog.BERSERKER,"BLOOD",40,.22,30,2,false,-1,0xee5945,6,4,4,.2,1.2,false,false,.08);
         add(SWORD,"魔狱血刹",JobCatalog.BERSERKER,"BLOOD",50,.35,90,24,false,-1,0xbf1738,StormChoreography.RADIUS,1,0,.6,60,false,false,.10);
+        SkillCatalog.require(ORB).damageParameter("perBrandDamage",.4);
+        SkillCatalog.require(SWORD).damageParameter("perBloodDamage",1.6);
+        SkillCatalog.require(FIELD).damageParameter("iceDot",.25).damageParameter("darkDot",.20);
+        SkillCatalog.require(KALLA).damageParameter("flameDot",.10);
     }
     private static void add(String id,String title,String job,String family,int unlock,double mp,double cd,double coefficient,boolean passive,int element,int color,double range,int hits,double finish,double interval,double duration,boolean charging,boolean invulnerable,double hp){
         int sp=unlock==20?30:unlock==25?40:unlock<40?50:unlock==40?60:100;
-        int cap=id.equals(FIELD)?15:unlock==20?7:unlock==25?6:unlock==30?5:unlock==35?4:unlock==40?3:1;
-        var skill=SkillCatalog.register(new SkillDefinition(id,title,family,job,unlock,sp,cap,mp,cd,coefficient,passive,Map.of("range",range,"slashes",(double)Math.max(1,hits),"finisher",finish,"interval",interval,"duration",duration,"hpCost",hp)));
+        var skill=SkillCatalog.register(new SkillDefinition(id,title,family,job,unlock,sp,mp,cd,coefficient,passive,Map.of("range",range,"slashes",(double)Math.max(1,hits),"finisher",finish,"interval",interval,"duration",duration,"hpCost",hp)));
         CONTENT.put(id,new Content(skill,element,color,hits,finish>0,charging,invulnerable,hp));
     }
     public static boolean contains(String id){SkillCatalog.all();return CONTENT.containsKey(id);}
@@ -58,6 +61,7 @@ public final class CareerSkills {
         if(id.equals(SWORD))return terminal?5:-1;
         if(id.equals(EYE))return terminal?0:-1;
         if(id.equals(ERUPTION))return 4;
+        if(id.equals(AGNI))return SkillResourceRules.agniHits(5);
         var content=content(id);return content==null?-1:content.hits()-1+(content.finisher()?1:0);
     }
     public static boolean canPayHealth(double fraction,double maximum,double cost){return cost==0||maximum>0&&(fraction-cost)*maximum>=1-1e-9;}

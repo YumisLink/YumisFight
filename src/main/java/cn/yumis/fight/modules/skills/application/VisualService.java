@@ -10,7 +10,7 @@ import java.util.*;
 public class VisualService {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
-    private record Active(UUID owner,String session,long generation,JsonObject data,long expires){
+    private record Active(UUID owner,String session,long generation,JsonObject data,long expires,List<JsonObject> history){
     }
     private final Map<String,Active> active=new HashMap<>();
     private final Map<String,Long> ended=new HashMap<>();
@@ -25,10 +25,17 @@ public class VisualService {
         String key=player.getUUID()+"/"+session.id+"/"+id;
         long now=System.currentTimeMillis();
         if(ended.containsKey(key))return;
+        Active current=active.get(key);
         JsonObject j=input.deepCopy();
+        j.remove("replay"); // Only the server tracking path may construct a replay batch.
+        // Each client has its own clock estimate. Anchor the stream once on this server,
+        // and include the send sample so observers never inherit another client's offset.
+        long started=phase.equals("START")||current==null?now:current.data.get("startedAt").getAsLong();
+        j.addProperty("startedAt",started);j.addProperty("at",Math.max(started,now));j.addProperty("serverNow",now);
         j.addProperty("caster",player.getStringUUID());
         j.addProperty("dimension",player.level().dimension().identifier().toString());
         j.addProperty("instance",session.life.instance);
+        if(j.has("motion")){JsonObject motion=j.getAsJsonObject("motion");motion.add("at",j.get("at"));for(String axis:List.of("x","y","z")){motion.add("p"+axis,j.has("p"+axis)?j.get("p"+axis):j.get(axis));motion.add("d"+axis,j.get("d"+axis));}}
         if(phase.equals("END")||phase.equals("CANCEL")){
             if(phase.equals("END")&&cn.yumis.fight.modules.skills.api.CareerSkills.persistent(input.get("kind").getAsString())&&!(input.has("terminal")&&input.get("terminal").getAsBoolean())){
                 PacketDistributor.sendToPlayersTrackingEntity(player,new Network.Snapshot("visual",JSON.toJson(j)));return;
@@ -39,20 +46,21 @@ public class VisualService {
         }
         else if(phase.equals("START")){
             if(active.containsKey(key))return;
-            long started=input.get("startedAt").getAsLong();
             long duration=input.has("duration")?Math.clamp(input.get("duration").getAsLong(),0,40000):2000;
             SkillVisualRules.start(player,input.get("kind").getAsString());
-            active.put(key,new Active(player.getUUID(),session.id.toString(),session.life.generation,j,Math.min(now+duration,started+duration)));
+            active.put(key,new Active(player.getUUID(),session.id.toString(),session.life.generation,j,Math.min(now+duration,started+duration),List.of(j.deepCopy())));
         }
         else if(!active.containsKey(key))return;
+        else {Active old=active.get(key);JsonObject latest=old.data.deepCopy();j.entrySet().forEach(e->latest.add(e.getKey(),e.getValue()));long expires=old.expires;if(latest.has("cosmeticOnly")&&latest.get("cosmeticOnly").getAsBoolean()&&latest.has("duration"))expires=Math.min(now+40000,latest.get("startedAt").getAsLong()+Math.clamp(latest.get("duration").getAsLong(),0,40000));if(SkillVisualRules.policy(input.get("kind").getAsString()).refreshable())expires=now+5000;List<JsonObject> history=new ArrayList<>(old.history);history.add(j.deepCopy());if(history.size()>32)history.remove(1);active.put(key,new Active(old.owner,old.session,old.generation,latest,expires,List.copyOf(history)));}
         PacketDistributor.sendToPlayersTrackingEntity(player,new Network.Snapshot("visual",JSON.toJson(j)));
     }
     public void track(ServerPlayer observer,ServerPlayer caster){
-        for(Active cast:active.values())if(cast.owner.equals(caster.getUUID())&&cast.expires>System.currentTimeMillis())Network.send(observer,"visual",cast.data);
+        long now=System.currentTimeMillis();
+        for(Active cast:active.values())if(cast.owner.equals(caster.getUUID())&&cast.expires>now){JsonObject replay=new JsonObject();JsonArray events=new JsonArray();for(JsonObject event:cast.history){JsonObject copy=event.deepCopy();copy.addProperty("serverNow",now);events.add(copy);}replay.add("replay",events);Network.send(observer,"visual",replay);}
     }
     public boolean movementLocked(ServerPlayer player){
         var session=sessions.apply(player);long now=System.currentTimeMillis();
-        return active.values().stream().anyMatch(a->a.owner.equals(player.getUUID())&&a.session.equals(session.id.toString())&&a.generation==session.life.generation&&a.expires>now&&!cn.yumis.fight.modules.skills.api.CareerSkills.persistent(a.data.get("kind").getAsString()));
+        return active.values().stream().anyMatch(a->a.owner.equals(player.getUUID())&&a.session.equals(session.id.toString())&&a.generation==session.life.generation&&a.expires>now&&!(a.data.has("cosmeticOnly")&&a.data.get("cosmeticOnly").getAsBoolean())&&!cn.yumis.fight.modules.skills.api.CareerSkills.persistent(a.data.get("kind").getAsString()));
     }
     public boolean invulnerable(ServerPlayer player){
         var session=sessions.apply(player);long now=System.currentTimeMillis();
@@ -72,6 +80,7 @@ public class VisualService {
             if(!valid){
                 JsonObject cancel=a.data.deepCopy();
                 cancel.addProperty("phase","CANCEL");
+                cancel.addProperty("at",now);cancel.addProperty("serverNow",now);
                 for(ServerPlayer observer:server.getPlayerList().getPlayers())Network.send(observer,"visual",cancel);
                 if(player!=null)SkillVisualRules.end(player,a.data.get("kind").getAsString());
                 active.remove(entry.getKey());

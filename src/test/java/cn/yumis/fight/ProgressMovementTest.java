@@ -20,7 +20,7 @@ class ProgressMovementTest {
         Progress p=new Progress();p.level=80;p.sp=36;
         assertEquals(2,SkillLearning.learn(p,SkillCatalog.GHOST,5));assertEquals(6,p.sp);assertEquals(2,p.learned(SkillCatalog.GHOST.id));
         assertThrows(IllegalArgumentException.class,()->SkillLearning.learn(p,SkillCatalog.GHOST,5));assertEquals(6,p.sp);
-        p.sp=10000;p.skills.put("yumis_dungeon_and_fight:ghost",SkillCatalog.GHOST.cap-1);
+        p.sp=10000;p.skills.put("yumis_dungeon_and_fight:ghost",SkillCatalog.GHOST.limit(p.level,p.jobId())-1);
         assertEquals(1,SkillLearning.learn(p,SkillCatalog.GHOST,5));assertEquals(9985,p.sp);
         assertThrows(IllegalArgumentException.class,()->SkillLearning.learn(p,SkillCatalog.GHOST,2));
     }

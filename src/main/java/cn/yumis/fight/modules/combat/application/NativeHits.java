@@ -35,9 +35,19 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
     private final Predicate<ServerPlayer> invulnerable;
     private final BooleanSupplier bridge;
     private final BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode;
+    private BiFunction<ServerPlayer,ItemStack,CombatPorts.NativeLaunch> launchSnapshots;
+    private final Map<UUID,Long> launchSent=new LinkedHashMap<>();
     public long forwarded,committed;
     public boolean suppressProjectionFeedback;
     public NativeHits(Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<LivingEntity,CombatTarget> targets,Predicate<LivingEntity> managed,Predicate<ServerPlayer> invulnerable,BooleanSupplier bridge,BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode){this.journal=journal;this.sessions=sessions;this.targets=targets;this.managed=managed;this.invulnerable=invulnerable;this.bridge=bridge;this.encode=encode;}
+    public NativeHits launches(BiFunction<ServerPlayer,ItemStack,CombatPorts.NativeLaunch> snapshots){launchSnapshots=Objects.requireNonNull(snapshots);return this;}
+    public void launched(Projectile projectile){
+        if(launchSnapshots==null||!(projectile instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow)||!(arrow.getOwner() instanceof ServerPlayer owner)||launchSent.containsKey(arrow.getUUID()))return;
+        long now=System.currentTimeMillis();launchSent.values().removeIf(expires->expires<now);launchSent.put(arrow.getUUID(),now+300000);while(launchSent.size()>4096)launchSent.remove(launchSent.keySet().iterator().next());
+        ItemStack weapon=arrow.getWeaponItem();if(weapon==null||weapon.isEmpty())weapon=owner.getMainHandItem();var snapshot=launchSnapshots.apply(owner,weapon.copy());var session=sessions.apply(owner);
+        JsonObject message=new JsonObject();message.addProperty("id",arrow.getStringUUID());message.addProperty("session",session.id.toString());message.addProperty("generation",session.life.generation);message.addProperty("dimension",owner.level().dimension().identifier().toString());message.addProperty("at",now);message.addProperty("item",cn.yumis.fight.platform.ItemData.id(weapon));message.add("stats",JSON.toJsonTree(snapshot.stats()));message.add("equipmentEffects",JSON.toJsonTree(snapshot.effects()));Network.send(owner,"nativeLaunch",message);
+    }
+    public void projectileLeft(UUID projectile){launchSent.remove(projectile);}
     public boolean handles(LivingEntity entity){return !bridge.getAsBoolean()&&managed.test(entity)&&!entity.level().isClientSide();}
     public void incoming(LivingIncomingDamageEvent event){
         if(bridge.getAsBoolean()&&suppressProjectionFeedback){event.getContainer().setShouldCauseSideEffects(false);return;}
@@ -64,6 +74,8 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         double scale=original>0?Math.clamp((original-container.getBlockedDamage())/original,0,1):0;
         // Never let vanilla consume health or absorption; hurtServer's local hit result is retained.
         event.setNewDamage(0);
+        // A practice hit has no root, WAL entry, client request or authoritative hit side effect.
+        if(!(victim instanceof ServerPlayer)&&targets.apply(victim).training()){container.setShouldCauseSideEffects(false);return;}
         if(scale<=0)return;
         DamageSource source=event.getSource();
         ServerPlayer owner=victim instanceof ServerPlayer player?player:source.getEntity() instanceof ServerPlayer player?player:null;
@@ -101,6 +113,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         data.addProperty("source",victim.hasEffect(net.minecraft.world.effect.MobEffects.POISON)&&source.getMsgId().equals("magic")?"poison":source.getMsgId());
         data.addProperty("points",original);
         data.addProperty("projectile",source.getDirectEntity() instanceof Projectile);
+        if(source.getDirectEntity() instanceof Projectile projectile)data.addProperty("projectileId",projectile.getStringUUID());
         data.addProperty("bypassInvulnerability",source.is(DamageTypeTags.BYPASSES_INVULNERABILITY));
         data.addProperty("bypassEnchantments",source.is(DamageTypeTags.BYPASSES_ENCHANTMENTS));
         data.addProperty("bypassResistance",source.is(DamageTypeTags.BYPASSES_RESISTANCE));

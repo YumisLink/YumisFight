@@ -2,6 +2,7 @@ package cn.yumis.fight;
 import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.skills.api.SkillSchedule;
 import cn.yumis.fight.modules.skills.api.SkillPreview;
+import cn.yumis.fight.modules.skills.api.SkillCosts;
 import cn.yumis.fight.modules.combat.api.CombatRules;
 import cn.yumis.fight.modules.attributes.api.ParameterModifier;
 
@@ -86,6 +87,6 @@ class SkillPreviewTest {
         assertEquals(3,preview.rank());assertEquals(12,preview.slashes());
         assertEquals(preview.hit().minimum()*12+preview.finisher().minimum(),preview.total().minimum(),1e-8);
         stats.modifiers.put("cooldownRecovery",.5);
-        assertEquals(20,SkillPreview.cooldown(SkillCatalog.DANCE,stats));
+        assertEquals(20,SkillCosts.resolve(SkillCatalog.DANCE,3,stats,new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot(),false).cooldown());
     }
 }

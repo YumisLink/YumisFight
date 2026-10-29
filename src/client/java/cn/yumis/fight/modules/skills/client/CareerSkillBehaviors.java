@@ -21,14 +21,14 @@ final class CareerSkillBehaviors {
             double desired=8*Math.min(1,e/250d),move=Math.max(0,desired-c.moved);x.player().move(MoverType.SELF,c.direction.scale(move));c.moved=desired;c.controlSeconds=.5;x.slash(c,1.5,3,3,c.parameters.get("damage",8.8),0,false);x.visual(c,"TRAIL");if(e>=400)x.cancel(true);
         });
         SkillBehaviors.register(CareerSkills.BLACHE,(x,c,n,e,s,v)->{if(e>=1200&&!c.finisher){c.finisher=true;c.center=c.origin;c.hitIndex=0;x.area(c,8,c.parameters.get("damage",12),false);x.visual(c,"FINISH");}if(e>=2000)x.cancel(true);});
-        SkillBehaviors.register(CareerSkills.ORB,(x,c,n,e,s,v)->{CareerClient.INSTANCE.orb(c);x.cancel(true);});
+        SkillBehaviors.register(CareerSkills.ORB,(x,c,n,e,s,v)->{CareerClient.INSTANCE.orb(c,x);x.cancel(true);});
         SkillBehaviors.register(CareerSkills.CRESCENT,(x,c,n,e,s,v)->{
             if(!c.release&&e<1000){c.center=c.origin.add(c.direction.scale(.8)).add(0,1.2,0);if(n-c.visualTrail>=100){x.visual(c,"TRAIL");c.visualTrail=n;}return;}c.moved=Math.min(1,e/1000d);c.charging=false;CareerClient.INSTANCE.wave(c,x);x.cancel(true);
         });
         SkillBehaviors.register(CareerSkills.ICE,(x,c,n,e,s,v)->waves(x,c,e,3,12,3,2));
         SkillBehaviors.register(CareerSkills.FIRE,(x,c,n,e,s,v)->{CareerClient.INSTANCE.wave(c,x);x.cancel(true);});
         SkillBehaviors.register(CareerSkills.AGNI,(x,c,n,e,s,v)->{
-            stationary(x,c);int due=Math.min(8,(int)(e/300));while(c.slashes<due){c.hit.clear();c.hitIndex=c.slashes++;c.controlSeconds=c.hitIndex==0?3:0;x.area(c,5,c.parameters.get("damage",0),false);x.visual(c,"HIT");}if(e>=3000&&!c.finisher){c.finisher=true;c.controlSeconds=0;c.hit.clear();c.hitIndex=8;x.area(c,5,c.parameters.get("finisher",0),false);x.visual(c,"FINISH");}if(e>=3000)x.cancel(true);
+            stationary(x,c);int count=(int)c.parameters.get("slashes",10),due=Math.min(count,(int)(e/(c.parameters.get("interval",.85/3)*1000)));while(c.slashes<due){c.hit.clear();c.hitIndex=c.slashes++;c.controlSeconds=c.hitIndex==0?3:0;x.area(c,5,c.parameters.get("damage",0),false);x.visual(c,"HIT");}if(e>=3000&&!c.finisher){c.finisher=true;c.controlSeconds=0;c.hit.clear();c.hitIndex=count;x.area(c,5,c.parameters.get("finisher",0),false);x.visual(c,"FINISH");}if(e>=3000)x.cancel(true);
         });
         SkillBehaviors.register(CareerSkills.EYE,(x,c,n,e,s,v)->{if(!c.terminal){x.cancel(true);return;}if(e>=800&&!c.finisher){c.finisher=true;c.center=c.origin;x.area(c,c.parameters.get("range",16),c.parameters.get("damage",16),false);x.visual(c,"FINISH");}if(e>=1200)x.cancel(true);});
         SkillBehaviors.register(CareerSkills.CRASH,(x,c,n,e,s,v)->{

@@ -17,9 +17,20 @@ import cn.yumis.fight.modules.presentation.api.ModText;
 public final class EquipmentItems {
     public static final Map<String,String> NAMES=new HashMap<>();
     public static final Set<String> GEAR_IDS=new HashSet<>();
+    private static final Map<ItemStack,Strings> STRINGS=new WeakHashMap<>();
+    private record Strings(net.minecraft.world.item.component.CustomData data,String gear,String payload,String appearance){}
     private EquipmentItems(){}
+    /** CustomData is immutable; an in-place stack component replacement invalidates this cheap identity check. */
+    public static synchronized String metadata(ItemStack stack,String key){
+        var data=stack.get(DataComponents.CUSTOM_DATA);if(data==null)return "";
+        Strings values=STRINGS.get(stack);
+        if(values==null||values.data()!=data){var tag=data.copyTag();values=new Strings(data,tag.getStringOr(NS,""),tag.getStringOr(NS+"_payload_modules_v1",""),tag.getStringOr(NS+"_appearance",""));if(STRINGS.size()>=4096)STRINGS.clear();STRINGS.put(stack,values);}
+        if(key.equals(NS))return values.gear();if(key.equals(NS+"_payload_modules_v1"))return values.payload();if(key.equals(NS+"_appearance"))return values.appearance();return string(stack,key);
+    }
+    public static String serialized(ItemStack stack){return metadata(stack,NS);}
+    public static EquipmentResolution.View view(ItemStack stack){return stack.isEmpty()?null:EquipmentResolution.view(serialized(stack));}
     public static Gear gear(ItemStack stack){
-        String s=string(stack,NS);
+        String s=serialized(stack);
         if(s.isEmpty())return null;
         try{
             return cn.yumis.fight.modules.equipment.api.EquipmentResolution.read(s);
@@ -64,6 +75,6 @@ public final class EquipmentItems {
         return s;
     }
     public static String payload(ItemStack stack){
-        return string(stack,NS+"_payload_modules_v1");
+        return metadata(stack,NS+"_payload_modules_v1");
     }
 }

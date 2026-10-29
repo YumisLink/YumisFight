@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.equipment.client;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
+import cn.yumis.fight.modules.presentation.api.client.ClientSettings;
 import cn.yumis.fight.modules.inventory.api.SlotAccess;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.platform.ItemData;
@@ -16,6 +17,7 @@ import cn.yumis.fight.modules.equipment.api.JewelryType;
 import cn.yumis.fight.modules.equipment.api.Slot;
 import cn.yumis.fight.modules.equipment.api.Weapon;
 import cn.yumis.fight.modules.equipment.api.WeaponTraits;
+import cn.yumis.fight.modules.equipment.api.WeaponDisplayValues;
 
 import cn.yumis.fight.modules.equipment.api.EquipmentRules;
 import cn.yumis.fight.modules.equipment.api.EquipmentJson;
@@ -32,6 +34,11 @@ import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 public final class EquipmentTooltip {
+    private record TooltipKey(String equipment,Object affixes,long affixRevision,Object definitions,long equipmentRevision,int weaponDisplayRevision,boolean expanded,boolean valid,boolean advanced,String language,String fontId,String fontName,Object font){}
+    private static final Map<TooltipKey,List<Component>> TOOLTIPS=new LinkedHashMap<>(32,.75f,true);
+    private static long tooltipHits,tooltipBuilds;
+    public record CacheMetrics(long hits,long builds,int entries){}
+    public static CacheMetrics cacheMetrics(){return new CacheMetrics(tooltipHits,tooltipBuilds,TOOLTIPS.size());}
     private static java.util.function.Function<String,Component> currencyBadge=id->null;
     private static java.util.function.Function<String,List<String>> materialSources=id->List.of();
     private static java.util.function.BooleanSupplier extended=()->false;
@@ -155,29 +162,19 @@ public final class EquipmentTooltip {
         if(range)out.add(text("  套装效果不可重掷",0x78869c));
     }
     private static void addWeaponAttributes(List<Component> out,Gear gear){
-        separator(out,"武器属性（含词条与宝石）");
-        Map<Stat,Double> values=new EnumMap<>(Stat.class);
-        values.putAll(EquipmentRules.contribution(gear));
-        double speed=WeaponTraits.speed(gear.weapon.name());
-        if(speed!=0)values.merge(Stat.ATTACK_SPEED,speed,Double::sum);
-        for(var entry:values.entrySet()){
-            Stat stat=entry.getKey();
-            String name=switch(stat){
-                case PHYSICAL_ATTACK->"物理攻击";
-                case MAGICAL_ATTACK->"魔法攻击";
-                default->AffixText.statName(stat);
-            };
-            String unit=stat==Stat.ATTACK_SPEED?"%":stat==Stat.DROP_RATE?" 个百分点":"";
-            out.add(text(name+" "+AffixText.signed(entry.getValue())+unit,0xd9e4ed));
-        }
+        separator(out,"武器属性（双攻与附加伤害）");
+        var values=WeaponDisplayValues.project(gear);
+        out.add(text("物理攻击 "+AffixText.signed(values.physicalAttack()),0xd9e4ed));
+        out.add(text("魔法攻击 "+AffixText.signed(values.magicalAttack()),0xd9e4ed));
+        for(var extra:values.extras())out.add(text("附加"+AffixText.integer(extra.minimum())+"～"+AffixText.integer(extra.maximum())+"点"+new String[]{"光","火","冰","暗"}[extra.element()]+"属性伤害",0x85e4d6));
     }
     public static void item(ItemTooltipEvent e){
 
         var stack=e.getItemStack();
-        Gear g=EquipmentItems.gear(stack);
+        var view=EquipmentItems.view(stack);
         List<Component> out=e.getToolTip();
         if(ItemData.own(stack))out.replaceAll(UiFonts::decorate);
-        if(g==null){
+        if(view==null){
             String id=ItemData.id(stack);
             if(SlotAccess.isCurrency(stack)){out.addAll(currencyLines(stack));return;}
             if(id.equals("crafting_material")){
@@ -190,10 +187,21 @@ public final class EquipmentTooltip {
             }
             return;
         }
+        var affixes=cn.yumis.fight.modules.affixes.api.AffixDefinitions.current();var definitions=EquipmentDefinitions.current();
+        boolean valid=e.getEntity()==null||view.valid(cn.yumis.fight.modules.equipment.api.client.EquipmentClient.current().progress(),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(e.getEntity()));
+        TooltipKey key=new TooltipKey(EquipmentItems.serialized(stack),affixes,affixes.revision,definitions,definitions.revision,WeaponDisplayValues.REVISION,shift(),valid,e.getFlags().isAdvanced(),Minecraft.getInstance().getLanguageManager().getSelected(),ClientSettings.uiFont,UiFonts.currentName(),UiFonts.font());
+        List<Component> cached=TOOLTIPS.get(key);
+        if(cached==null){Gear gear=EquipmentItems.gear(stack);if(gear==null)return;cached=gearLines(gear,valid,key.advanced());tooltipBuilds++;if(key.equipment().length()<=131072){TOOLTIPS.put(key,cached);while(TOOLTIPS.size()>256)TOOLTIPS.remove(TOOLTIPS.keySet().iterator().next());}}
+        else tooltipHits++;
+        // Other tooltip providers retain their original lines; only our appended section is cached.
+        for(Component line:cached)out.add(line.copy());
+    }
+    private static List<Component> gearLines(Gear g,boolean valid,boolean advanced){
+        List<Component> out=new ArrayList<>();
         // Keep vanilla enchantments, lore and component descriptions supplied by other mods.
         if(g.corrupted)out.add(text("腐化 · 禁止常规加工，仍可镶嵌、出售、整件分解",0xff7070));
         out.add(text(g.rarity.title()+" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.armor()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.jewelry()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.title())+" · 需求 Lv."+g.level,g.rarity.color()));
-        if(e.getEntity()!=null&&!g.valid(cn.yumis.fight.modules.equipment.api.client.EquipmentClient.current().progress(),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(e.getEntity())))out.add(text("等级或职业条件不足，装备属性不生效",0xff7272));
+        if(!valid)out.add(text("等级或职业条件不足，装备属性不生效",0xff7272));
         boolean weapon=g.slot==Slot.WEAPON;
         boolean baseValues=shift();
         if(weapon&&g.weapon==Weapon.STAFF)out.add(text("技能释放速度 −20% · 12格无元素魔法弹",0x9aa9be));
@@ -242,6 +250,7 @@ public final class EquipmentTooltip {
             }
         }
         if(!baseValues)out.add(text(weapon?"按住 Shift 查看基础属性与可重掷范围":"按住 Shift 查看可重掷范围",0x78869c));
-        if(e.getFlags().isAdvanced())out.add(text("ID "+g.instance+" / r"+g.revision,0x68748b));
+        if(advanced)out.add(text("ID "+g.instance+" / r"+g.revision,0x68748b));
+        return List.copyOf(out);
     }
 }

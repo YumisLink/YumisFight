@@ -24,6 +24,14 @@ public class DimensionalMenu extends AbstractContainerMenu implements cn.yumis.f
     private final Set<Integer> visible=new HashSet<>();
     public JsonObject preview=new JsonObject();
     private String lastPreview="";
+    private long seenContents=-1,viewRevision,layoutRevision;
+    private boolean viewDirty=true;
+    private int viewLimit=-1,viewUsed,overflowUsed,lastRows=-1,lastScroll=-1;
+    private boolean viewOverflow;
+    private long laidOutView=-1;
+    public long contentsRevision(){return extra.bag.revision()+extra.bagOverflow.revision();}
+    public long layoutRevision(){return layoutRevision;}
+    public int usedSlots(){rebuildView();return viewUsed;}
     public DimensionalMenu(int id,Inventory inv,RegistryFriendlyByteBuf buf){this(id,inv,buf.readVarInt(),buf.readVarInt(),buf.readBoolean());}
     public DimensionalMenu(int id,Inventory inv,int tier,int row,boolean overflow){
         super(InventoryMenuPorts.type(),id);extra=MenuHooks.extra(inv.player);extra.bagTier=tier;extra.bagPage=row;this.overflow=overflow;rows=Math.min(8,((overflow?46:extra.bagLimit())+8)/9);
@@ -51,24 +59,36 @@ public class DimensionalMenu extends AbstractContainerMenu implements cn.yumis.f
     public int scrollRow(){return overflow?overflowPage:extra.bagPage;}
     public int totalRows(){return (view.size()+8)/9;}
     public int maxScroll(){return Math.max(0,totalRows()-rows);}
+    public boolean matches(List<Integer> indices){return matches.equals(indices);}
     private void rebuildView(){
-        List<Integer> next=new ArrayList<>();int start=overflow?OVERFLOW_START:0,limit=overflow?46:extra.bagLimit();
+        int limit=overflow?46:extra.bagLimit();
+        long revision=contentsRevision();if(seenContents!=revision){seenContents=revision;viewDirty=true;}
+        if(!viewDirty&&viewLimit==limit&&viewOverflow==overflow)return;
+        viewDirty=false;viewLimit=limit;viewOverflow=overflow;
+        List<Integer> next=new ArrayList<>();int start=overflow?OVERFLOW_START:0;
         if(query.isEmpty())for(int i=0;i<limit;i++)next.add(start+i);
         else for(int logical:matches)if(logical>=start&&logical<start+limit&&!slots.get(logical).getItem().isEmpty())next.add(logical);
-        view=List.copyOf(next);
+        List<Integer> frozen=List.copyOf(next);if(!view.equals(frozen)){view=frozen;viewRevision++;}
+        viewUsed=0;for(int i=0;i<extra.bagLimit();i++)if(!extra.bag.getItem(i).isEmpty())viewUsed++;
+        overflowUsed=0;for(int i=0;i<46;i++)if(!extra.bagOverflow.getItem(i).isEmpty())overflowUsed++;
     }
     public void filter(String text,List<Integer> indices){
         if(text.length()>64||indices.size()>PLAYER_START)throw new IllegalArgumentException("搜索条件过长");
         Set<Integer> unique=new LinkedHashSet<>();for(int index:indices){if(index<0||index>=PLAYER_START)throw new IllegalArgumentException("搜索槽位无效");unique.add(index);}
-        query=text;matches=List.copyOf(unique);if(overflow)overflowPage=0;else extra.bagPage=0;layout();
+        List<Integer> next=List.copyOf(unique);if(query.equals(text)&&matches.equals(next))return;
+        boolean changed=!query.equals(text);query=text;matches=next;viewDirty=true;
+        if(changed){if(overflow)overflowPage=0;else extra.bagPage=0;}layout();
     }
     public void scrollTo(int row){rebuildView();if(overflow)overflowPage=Math.clamp(row,0,maxScroll());else extra.bagPage=Math.clamp(row,0,maxScroll());layout();}
     public void resizeRows(int count){rows=Math.clamp(count,1,8);scrollTo(scrollRow());}
     public void layout(){
-        rebuildView();visible.clear();int offset=scrollRow()*9;
-        for(int i=0;i<PLAYER_START;i++){var slot=(cn.yumis.fight.mixin.SlotPositionAccessor)slots.get(i);slot.ydnf$x(-2000);slot.ydnf$y(-2000);}
+        rebuildView();int current=Math.clamp(scrollRow(),0,maxScroll());if(overflow)overflowPage=current;else extra.bagPage=current;
+        if(lastRows==rows&&lastScroll==current&&laidOutView==viewRevision)return;
+        for(int logical:visible){var slot=(cn.yumis.fight.mixin.SlotPositionAccessor)slots.get(logical);slot.ydnf$x(-2000);slot.ydnf$y(-2000);}
+        visible.clear();int offset=current*9;
         for(int i=offset;i<Math.min(view.size(),offset+rows*9);i++){int logical=view.get(i),position=i-offset;var slot=(cn.yumis.fight.mixin.SlotPositionAccessor)slots.get(logical);slot.ydnf$x(8+(position%9)*18);slot.ydnf$y(BAG_Y+(position/9)*18);visible.add(logical);}
-        for(int i=PLAYER_START;i<slots.size();i++){int relative=i-PLAYER_START;var slot=(cn.yumis.fight.mixin.SlotPositionAccessor)slots.get(i);slot.ydnf$x(8+(relative%9)*18);slot.ydnf$y(70+rows*18+(relative<27?relative/9*18:58));}
+        if(lastRows!=rows)for(int i=PLAYER_START;i<slots.size();i++){int relative=i-PLAYER_START;var slot=(cn.yumis.fight.mixin.SlotPositionAccessor)slots.get(i);slot.ydnf$x(8+(relative%9)*18);slot.ydnf$y(70+rows*18+(relative<27?relative/9*18:58));}
+        lastRows=rows;lastScroll=current;laidOutView=viewRevision;layoutRevision++;
     }
     @Override public boolean stillValid(Player p){return p.isAlive();}
     @Override public void clicked(int index,int button,ContainerInput input,Player p){layout();if(index>=0&&index<PLAYER_START&&!visible.contains(index))return;super.clicked(index,button,input,p);}
@@ -88,7 +108,7 @@ public class DimensionalMenu extends AbstractContainerMenu implements cn.yumis.f
         merged.sort(Comparator.comparing((ItemStack s)->net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem()).toString()).thenComparing(s->s.getComponents().toString()));
         if(merged.size()>extra.bagLimit())throw new IllegalStateException("整理结果超出容量");for(int i=0;i<extra.bagLimit();i++)extra.bag.setItem(i,i<merged.size()?merged.get(i):ItemStack.EMPTY);scrollTo(0);
     }
-    public int overflowUsed(){int n=0;for(int i=0;i<46;i++)if(!extra.bagOverflow.getItem(i).isEmpty())n++;return n;}
+    public int overflowUsed(){rebuildView();return overflowUsed;}
     @Override public boolean clickMenuButton(Player p,int button){
         if(!(p instanceof ServerPlayer server)||!stillValid(p))return false;
         if(button>=1000&&button<=1008){resizeRows(button-1000);return true;}

@@ -768,10 +768,10 @@
     "unique/bylle_physical_flat": {
       "id": "unique/bylle_physical_flat",
       "name": "本件物攻",
-      "operation": "FLAT",
+      "operation": "ITEM_FINAL_ADD",
       "group": "unique",
       "element": -1,
-      "revision": 1,
+      "revision": 2,
       "retired": false,
       "stat": "PHYSICAL_ATTACK",
       "minimum": 400,

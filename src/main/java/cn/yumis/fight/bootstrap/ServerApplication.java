@@ -105,10 +105,29 @@ public final class ServerApplication {
     public final cn.yumis.fight.modules.dungeons.application.TargetService targets;
     public final cn.yumis.fight.modules.dungeons.application.WorldHealthService worldHealth;
     private int ticks;
+    private final Map<UUID,ProfileSync.Sender> viewSenders=new HashMap<>();
+    private ApplicationRules.Bundle definitionsBundle;
+    private JsonObject wireDefinitions;
+    private String definitionsKey="";
+    public String definitionKey(){definitions();return definitionsKey;}
+    private JsonObject definitions(){
+        var bundle=ApplicationRules.current();
+        if(bundle!=definitionsBundle){
+            JsonObject value=new JsonObject();
+            value.add("industrialRules",JSON.toJsonTree(bundle.industry()));value.add("materialCatalog",JSON.toJsonTree(bundle.materials()));
+            value.add("dungeonDefinitions",JSON.toJsonTree(bundle.dungeons()));value.add("attributeNames",JSON.toJsonTree(bundle.names()));
+            value.add("affixDefinitions",JSON.toJsonTree(bundle.affixes()));value.add("equipmentDefinitions",JSON.toJsonTree(bundle.equipment()));value.add("equipmentLayout",JSON.toJsonTree(bundle.layout()));
+            value.add("skillBalanceRules",JSON.toJsonTree(bundle.skills()));
+            wireDefinitions=value;definitionsKey=ProfileSync.digest(value);definitionsBundle=bundle;
+        }
+        return wireDefinitions;
+    }
     private final cn.yumis.fight.modules.combat.application.StunControl stunControl=new cn.yumis.fight.modules.combat.application.StunControl();
     public static final class Session extends cn.yumis.fight.modules.combat.api.CombatSession {
         public Progress progress;
-        public String statsKey="";
+        public long statsRevision=-1;
+        public long runtimeSequence=-1;
+        public long runtimeGeneration=-1,runtimeEpoch=-1;
         public Session(Progress p,cn.yumis.fight.modules.combat.api.Runtime r,Life l){super(r,l);progress=p;r.equipmentBuffs.clear();}
     }
     private ServerApplication(MinecraftServer server)throws Exception{
@@ -131,7 +150,7 @@ public final class ServerApplication {
         equipmentApplication=new cn.yumis.fight.modules.equipment.application.EquipmentApplication(journal,inventory,p->session(p).progress,p->session(p).id,(p,id)->professionService.get(p.getUUID(),id),this::profile,this::message,random,cn.yumis.fight.modules.economy.api.CurrencyRules::salvageCurrency);
         equipmentContracts=new cn.yumis.fight.modules.equipment.application.EquipmentContracts(journal);
         economyService=new cn.yumis.fight.modules.economy.application.EconomyService(journal,inventory,p->session(p).id,this::profile,equipmentContracts);
-        progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,inventory,p->session(p).progress,p->session(p).resources.combatUntil,(p,next)->session(p).progress=next,this::profile,cn.yumis.fight.modules.skills.api.SkillLearning::apply);
+        progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,inventory,p->session(p).progress,p->session(p).resources.combatUntil,(p,next)->session(p).progress=next,this::profile,this::stats,cn.yumis.fight.modules.skills.api.SkillLearning::apply);
         inventoryApplication=new cn.yumis.fight.modules.inventory.application.InventoryApplication(journal,inventory,p->session(p).id,this::message);
         cn.yumis.fight.modules.industry.api.IndustrialPorts.install(inventory,inventory::recoverIndustrial,this::message);
         combatApplication=new cn.yumis.fight.modules.combat.application.CombatApplication(journal,server,this::session,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,targets::resolve,
@@ -278,8 +297,11 @@ public final class ServerApplication {
             if(!java.util.regex.Pattern.compile("(?m)^\\s*combatExperienceMultiplier\\s*=").matcher(text).find())additions+="\n# 战斗经验倍率；不影响副职业或管理员经验\ncombatExperienceMultiplier=1.0\n";
             if(!java.util.regex.Pattern.compile("(?m)^\\s*killGoldMultiplier\\s*=").matcher(text).find())additions+="\n# 仅杀怪金币倍率；出售价格不变\nkillGoldMultiplier=1.0\n";
             if(!additions.isEmpty())Files.writeString(config,additions,StandardOpenOption.APPEND);
-            var candidate=cn.yumis.fight.bootstrap.ApplicationRules.Bundle.validated(nextCatalog,nextDungeons,nextNames,nextDefinitions,nextAffixes,nextLayout,nextIndustrial);
-            journal.transaction(Map.of("definitions/equipment",JSON.toJsonTree(candidate.equipment()),"definitions/affixes",JSON.toJsonTree(candidate.affixes())));
+            var nextSkills=cn.yumis.fight.modules.skills.api.SkillBalanceRules.defaults();
+            var skillResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/skills.json"));
+            if(skillResource.isPresent())try(var reader=skillResource.get().openAsReader()){nextSkills=cn.yumis.fight.modules.skills.api.SkillBalanceRules.parse(JsonParser.parseReader(reader).toString());}
+            var candidate=cn.yumis.fight.bootstrap.ApplicationRules.Bundle.validated(nextCatalog,nextDungeons,nextNames,nextDefinitions,nextAffixes,nextLayout,nextIndustrial,nextSkills);
+            journal.transaction(Map.of("definitions/equipment",JSON.toJsonTree(candidate.equipment()),"definitions/affixes",JSON.toJsonTree(candidate.affixes()),"definitions/skills",JSON.toJsonTree(candidate.skills())));
             cn.yumis.fight.bootstrap.ApplicationRules.publish(candidate);
             worldDifficulty=nextDifficulty;
             rewards=nextRewards;
@@ -301,6 +323,7 @@ public final class ServerApplication {
         );
     }
     public void login(ServerPlayer p){
+        damageMeter.forget(p);
         try{
             inventory.restore(p);
             this.equipmentLayout.reconcile(p,this.equipmentLayout.bonus(p));
@@ -346,6 +369,7 @@ public final class ServerApplication {
         }
     }
     public void logout(ServerPlayer p){
+        viewSenders.remove(p.getUUID());
         try{
             careers.clear(p);
             session(p).resources.equipmentBuffs.clear();
@@ -407,7 +431,7 @@ public final class ServerApplication {
     public void profile(ServerPlayer p){
         Session s=session(p);
         Stats stats=stats(p);
-        s.statsKey=JSON.toJson(stats);
+        s.statsRevision=EquipmentStats.cacheRevision(p);
         var effective=cn.yumis.fight.modules.skills.api.SkillPreview.currentStats(stats,s.resources,System.currentTimeMillis());
         var attribute=p.getAttribute(Attributes.MAX_HEALTH);
         if(attribute!=null)attribute.setBaseValue(Math.max(1,effective.get(Stat.HEALTH)));
@@ -436,26 +460,18 @@ public final class ServerApplication {
         j.add("attributeSources",JSON.toJsonTree(sources.snapshot()));
         j.add("party",JSON.toJsonTree(partyService.team(p.getUUID())));
         j.add("dungeon",JSON.toJsonTree(dungeons.current(p.getUUID())));
-        j.add("dungeonCatalog",JSON.toJsonTree(DungeonCatalog.current().dungeons));
-        j.add("materials",JSON.toJsonTree(MaterialCatalog.current().materials));
-        j.addProperty("definitionsRevision",MaterialCatalog.current().revision);
         j.addProperty("equipmentState",inventory.clientStorageState(p));
-        j.add("industrialRules",JSON.toJsonTree(cn.yumis.fight.modules.industry.api.IndustrialRules.current()));
-        j.add("materialCatalog",JSON.toJsonTree(MaterialCatalog.current()));
-        j.add("dungeonDefinitions",JSON.toJsonTree(DungeonCatalog.current()));
-        j.add("attributeNames",JSON.toJsonTree(AttributeNames.current()));
-        j.add("affixDefinitions",JSON.toJsonTree(AffixDefinitions.current()));
-        j.add("equipmentDefinitions",JSON.toJsonTree(EquipmentDefinitions.current()));
-        j.add("equipmentLayout",JSON.toJsonTree(EquipmentLayout.current()));
         j.add("equipmentGroups",JSON.toJsonTree(MenuHooks.extra(p).groups));
-        Network.send(p,"profile",j);
-        Network.send(p,"careerState",careers.snapshot(p));
+        JsonObject definition=definitions();
+        viewSenders.computeIfAbsent(p.getUUID(),id->new ProfileSync.Sender()).publish(s.id.toString(),definitionsKey,definition,j,(action,packet)->Network.send(p,action,packet));
+        careers.sync(p);
         damageMeter.send(p,dungeons.current(p.getUUID()));
     }
     public void message(ServerPlayer p,String message){
         Network.send(p,"message",Map.of("text",message==null?"操作失败":message));
     }
     public void context(ServerPlayer p,LivingEntity e){
+        if(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag)return;
         Target t=targets.resolve(e);
         Network.send(p,"context",t);
         for(String key:journal.keys("ailments/"+t.id+"/")){
@@ -471,9 +487,16 @@ public final class ServerApplication {
         careers.register(commands);skillStarts.register(commands);
         equipmentApplication.register(commands);economyService.register(commands);progressService.register(commands);inventoryApplication.register(commands);
         commands.register("presentation","hello",(p,j)->{if(j.get("protocol").getAsInt()!=cn.yumis.fight.architecture.ProtocolVersion.CURRENT||j.has("rules")&&j.get("rules").getAsInt()!=cn.yumis.fight.bootstrap.ApplicationRules.DATA_VERSION){p.connection.disconnect(ModText.of("模组协议或规则版本不一致"));return;}profile(p);});
-        commands.register("presentation","profile",(p,j)->profile(p));
+        commands.register("presentation","profile",(p,j)->{var sender=viewSenders.get(p.getUUID());if(sender!=null){if(j.has("definitions")&&j.get("definitions").getAsBoolean())sender.resetDefinitions();else sender.resetPersonal();}profile(p);});
         commands.register("combat","context",(p,j)->{Entity e=p.level().getEntity(j.get("entity").getAsInt());if(e instanceof LivingEntity l&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(l))context(p,l);});
-        commands.register("combat","runtime",combatApplication::runtime);
+        commands.register("combat","runtime",(p,j)->{
+            var state=session(p);long sequence=j.get("checkpoint").getAsLong();
+            if(state.runtimeGeneration!=state.life.generation||state.runtimeEpoch!=state.resources.controlEpoch){state.runtimeSequence=-1;state.runtimeGeneration=state.life.generation;state.runtimeEpoch=state.resources.controlEpoch;}
+            boolean accepted=state.id.toString().equals(j.get("session").getAsString())&&state.life.generation==j.get("generation").getAsLong()&&state.resources.controlEpoch==j.getAsJsonObject("state").get("controlEpoch").getAsLong()&&(sequence<=state.runtimeSequence||combatApplication.runtime(p,j));
+            if(accepted)state.runtimeSequence=Math.max(state.runtimeSequence,sequence);
+            Network.send(p,"runtimeAck",Map.of("session",state.id.toString(),"generation",state.life.generation,"checkpoint",sequence,"accepted",accepted,"epoch",state.resources.controlEpoch,"recordedAt",state.resources.recordedAt,"serverNow",System.currentTimeMillis()));
+            if(!accepted&&(state.life.generation!=j.get("generation").getAsLong()||state.resources.controlEpoch!=j.getAsJsonObject("state").get("controlEpoch").getAsLong())){var sender=viewSenders.get(p.getUUID());if(sender!=null)sender.resetPersonal();profile(p);}
+        });
         for(String action:List.of("damage","heal","nativeOutcome"))commands.register("combat",action,(p,j)->{JsonObject report=j.deepCopy();combatQueue.add(()->combatApplication.report(p,action,report));});
         commands.register("professions","professions",(p,j)->professions(p));commands.register("party","party",partyService::request);
         commands.register("dungeons","dungeon",dungeons::request);commands.register("dungeons","cageHit",dungeons::cageHit);
@@ -493,6 +516,7 @@ public final class ServerApplication {
 
     private void tick(){
         ticks++;
+        for(ServerPlayer viewer:server.getPlayerList().getPlayers()){var sender=viewSenders.get(viewer.getUUID());if(sender!=null)sender.flush((action,packet)->Network.send(viewer,action,packet));}
         cn.yumis.fight.modules.industry.platform.IndustrialWorld.tick(server);
         movement.tick();
         int size=combatQueue.size();
@@ -514,7 +538,7 @@ public final class ServerApplication {
             Stats st=stats(p);
             if(cn.yumis.fight.modules.combat.api.EquipmentBuffs.prune(s.resources,s.resources.equipment,System.currentTimeMillis(),s.life.dead))profile(p);
             var max=p.getAttribute(Attributes.MAX_HEALTH);
-            if(!JSON.toJson(st).equals(s.statsKey))profile(p);
+            if(EquipmentStats.cacheRevision(p)!=s.statsRevision)profile(p);
         }
         stunControl.tick(server);
     }

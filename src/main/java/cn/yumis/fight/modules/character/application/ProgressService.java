@@ -20,6 +20,7 @@ public final class ProgressService {
     private static <T>T copy(T value,Class<T> type){return JSON.fromJson(JSON.toJson(value),type);}
 
     private final SkillProgression skills;
+    private final Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> stats;
     private final Journal journal;
     private final InventoryOperations inventory;
     private final Function<ServerPlayer,Progress> progressOf;
@@ -28,7 +29,7 @@ public final class ProgressService {
     private final Consumer<ServerPlayer> profile;
     private JobTransitions transitions;
     public void transitions(JobTransitions value){transitions=Objects.requireNonNull(value);}
-    public ProgressService(Journal journal,InventoryOperations inventory,Function<ServerPlayer,Progress> progressOf,ToLongFunction<ServerPlayer> combatUntil,BiConsumer<ServerPlayer,Progress> update,Consumer<ServerPlayer> profile,SkillProgression skills){this.skills=skills;this.journal=journal;this.inventory=inventory;this.progressOf=progressOf;this.combatUntil=combatUntil;this.update=update;this.profile=profile;}
+    public ProgressService(Journal journal,InventoryOperations inventory,Function<ServerPlayer,Progress> progressOf,ToLongFunction<ServerPlayer> combatUntil,BiConsumer<ServerPlayer,Progress> update,Consumer<ServerPlayer> profile,Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> stats,SkillProgression skills){this.skills=skills;this.stats=stats;this.journal=journal;this.inventory=inventory;this.progressOf=progressOf;this.combatUntil=combatUntil;this.update=update;this.profile=profile;}
     public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("character","progress",this::request);}
 
     public void request(ServerPlayer p,JsonObject j){
@@ -46,7 +47,7 @@ public final class ProgressService {
         String jobId=j.has("job")?j.get("job").getAsString():JobCatalog.SWORDMASTER;
         JobTransitions.Change change=null;
         switch(kind){
-            case "learn","resetSkills","bind"->skills.apply(next,j);
+            case "learn","resetSkills","bind"->skills.apply(next,stats.apply(p),j);
             case "allocate"->next.allocate(j.get("stat").getAsString(),j.has("count")?j.get("count").getAsInt():1);
             case "resetAttributes"->{
                 next.strength=next.intelligence=next.spirit=0;

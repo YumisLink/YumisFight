@@ -24,7 +24,7 @@ public final class SkillPreviewRules {
     public static void register(SkillDefinition skill,Definition definition){if(DEFINITIONS.putIfAbsent(skill,Objects.requireNonNull(definition))!=null)throw new IllegalArgumentException("Duplicate skill preview: "+skill);}
     public static Definition require(SkillDefinition skill){
         var definition=DEFINITIONS.get(skill);
-        if(definition==null){var content=CareerSkills.content(skill.id);if(content!=null)return new Definition(p->skill.id.equals(CareerSkills.SWORD)?5:skill.id.equals(CareerSkills.ORB)?(int)p.get("slashes",CareerSkills.orbHits(5)):content.hits(),content.finisher()||skill.id.equals(CareerSkills.SWORD),false,cn.yumis.fight.modules.character.api.JobCatalog.style(skill.requiredJob).magic(),content.element());}
+        if(definition==null){var content=CareerSkills.content(skill.id);if(content!=null)return new Definition(p->skill.id.equals(CareerSkills.SWORD)?5:(int)p.get("slashes",content.hits()),content.finisher()||skill.id.equals(CareerSkills.SWORD),false,cn.yumis.fight.modules.character.api.JobCatalog.style(skill.requiredJob).magic(),content.element());}
         if(definition==null)throw new IllegalArgumentException("Missing skill preview: "+skill);return definition;
     }
     public static boolean magic(SkillDefinition skill,boolean promoted){return skill!=null&&!promoted&&require(skill).magicBeforePromotion();}

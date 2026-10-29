@@ -32,7 +32,8 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
     private final BiPredicate<ServerPlayer,UUID> friendly;
     private final Map<UUID,CareerState> states=new HashMap<>();
     private final Map<UUID,Map<String,Cast>> casts=new HashMap<>();
-    private final Map<UUID,Set<String>> bloodCredits=new HashMap<>();
+    private final Map<UUID,Long> lastBloodGain=new HashMap<>();
+    private final Map<UUID,Map<String,Long>> orbHitClocks=new HashMap<>();
     private final Map<UUID,Long> invulnerable=new HashMap<>();
     private static final class Cast {
         String id,skill,session,dimension,instance;
@@ -46,13 +47,19 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         boolean healed,terminal;
         UUID orbTarget;
         long orbGeneration;
+        Vec3 firePoint;
+        double fireProgress;
+        boolean fireFinished;
+        final Set<UUID> captured=new HashSet<>();
     }
     public CareerSkillService(Journal journal,MinecraftServer server,Function<ServerPlayer,CombatSession> sessions,Function<ServerPlayer,Progress> progress,Function<ServerPlayer,Stats> stats,BiPredicate<ServerPlayer,UUID> friendly){this.journal=journal;this.server=server;this.sessions=sessions;this.progress=progress;this.stats=stats;this.friendly=friendly;}
     public void register(CommandRouter<ServerPlayer,JsonObject> router){
         router.register("skills","careerCast",this::start);
+        router.register("skills","fireAdvance",this::fireAdvance);
+        router.register("skills","orbKeepalive",(p,j)->{var c=cast(p,j.get("id").getAsString());var s=sessions.apply(p);long now=System.currentTimeMillis();if(c!=null&&c.skill.equals(CareerSkills.ORB)&&c.expires>=now&&c.session.equals(s.id.toString())&&c.generation==s.life.generation&&!s.life.dead&&c.hits.size()<c.parameters.get("slashes",0))c.expires=now+15000;});
         
         router.register("skills","careerCancel",this::cancel);
-        router.register("skills","careerState",(p,j)->send(p));
+        router.register("skills","careerState",(p,j)->{sentViews.remove(p.getUUID());send(p);});
     }
     private CareerState state(ServerPlayer p){
         var session=sessions.apply(p);String dimension=p.level().dimension().identifier().toString();
@@ -78,12 +85,21 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         }
         return view;
     }
-    public Stats currentStats(ServerPlayer p){var view=snapshot(p);return CareerRules.current(SkillPreview.currentStats(stats.apply(p),sessions.apply(p).resources,System.currentTimeMillis()),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),System.currentTimeMillis()));}
+    public Stats currentStats(ServerPlayer p){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),sessions.apply(p).resources,now),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
     public boolean invulnerable(ServerPlayer p){state(p);return invulnerable.getOrDefault(p.getUUID(),0L)>System.currentTimeMillis();}
     public boolean frenzy(ServerPlayer p){return state(p).frenzy&&!sessions.apply(p).life.dead;}
-    public void clear(ServerPlayer p){states.remove(p.getUUID());casts.remove(p.getUUID());bloodCredits.remove(p.getUUID());invulnerable.remove(p.getUUID());for(var kind:List.of(Attributes.KNOCKBACK_RESISTANCE,Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)){var attribute=p.getAttribute(kind);if(attribute!=null)attribute.removeModifier(STEADFAST);}}
+    public void clear(ServerPlayer p){states.remove(p.getUUID());sentViews.remove(p.getUUID());casts.remove(p.getUUID());lastBloodGain.remove(p.getUUID());orbHitClocks.remove(p.getUUID());invulnerable.remove(p.getUUID());for(var kind:List.of(Attributes.KNOCKBACK_RESISTANCE,Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)){var attribute=p.getAttribute(kind);if(attribute!=null)attribute.removeModifier(STEADFAST);}}
     private Cast cast(ServerPlayer p,String id){return casts.getOrDefault(p.getUUID(),Map.of()).get(id);}
-    private void send(ServerPlayer p){Network.send(p,"careerState",snapshot(p));}
+    private final Map<UUID,JsonElement> sentViews=new HashMap<>();
+    public void sync(ServerPlayer p){send(p);}
+    private void send(ServerPlayer p){
+        var view=snapshot(p);
+        // The replenishment clock is irrelevant without a replenishing brand slot.
+        if(!progress.apply(p).hasJob(JobCatalog.ASURA)||view.brands>=5||SkillLearning.effective(stats.apply(p),progress.apply(p),SkillCatalog.require(CareerSkills.BRANDS))<=0)view.nextBrand=0;
+        JsonElement next=JSON.toJsonTree(view);
+        if(next.equals(sentViews.get(p.getUUID())))return;
+        sentViews.put(p.getUUID(),next);Network.send(p,"careerState",next);
+    }
     private void ensureActor(ServerPlayer p){if(sessions.apply(p).life.dead||p.isDeadOrDying()||p.hasEffect(CombatContentTypes.STUN))throw new IllegalArgumentException("当前不能施放技能");var gear=EquipmentItems.gear(p.getMainHandItem());if(gear==null||gear.slot!=Slot.WEAPON||!gear.valid(progress.apply(p),EquipmentEligibility.allowance(p)))throw new IllegalArgumentException("需要可用的职业武器");}
     private void start(ServerPlayer p,JsonObject request){
         String id=request.get("id").getAsString();UUID.fromString(id);
@@ -108,18 +124,22 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             equipment=SkillPreview.currentStats(stats.apply(p),resources,now);
             var next=copy(s,CareerState.class);int fieldRank=skillId.equals(CareerSkills.BLACHE)&&next.field!=null&&next.field.expires>now?next.field.rank:0;
             int brands=next.brands,blood=next.blood;
-            var parameters=SkillParameters.forCast(p.getUUID(),skill,rank,equipment.parameters);
-            Stats resolved=CareerRules.current(equipment,player,next,life.q,snapshot(p).red(p.getX(),p.getY(),p.getZ(),now));
+            Stats resolved=CareerRules.current(equipment,player,next,life.q,snapshot(p).red(p.getX(),p.getY(),p.getZ(),now),next.ownField(p.getX(),p.getY(),p.getZ(),now),now);
+            var parameters=WeaponSkills.skill(SkillParameters.forCast(p.getUUID(),skill,rank,equipment.parameters),player,resolved);
             // State phases hold their first-cast snapshot, even after the weapon or effective rank changes.
             if(terminal){var original=casts.getOrDefault(p.getUUID(),Map.of()).values().stream().filter(c->c.skill.equals(skillId)&&!c.terminal).max(Comparator.comparingLong(c->c.started)).orElse(null);if(original!=null){parameters=original.parameters;resolved=copy(original.stats,Stats.class);rank=parameters.rank();}}
             parameters=CareerRules.resourceSnapshot(parameters,brands,blood,fieldRank,terminal);
             resolved=CareerRules.castDamage(resolved,parameters);
             var parameterValues=new LinkedHashMap<>(parameters.values());
             if(terminal)parameterValues.put("actionDuration",skillId.equals(CareerSkills.KALLA)?.9:skillId.equals(CareerSkills.EYE)?1.2:2d);
-            if(skillId.equals(CareerSkills.ORB))parameterValues.put("duration",5d);
+            if(skillId.equals(CareerSkills.FIRE)){
+                Vec3 from=p.getEyePosition();var end=p.level().clip(new ClipContext(from,from.add(p.getLookAngle().scale(10)),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
+                Vec3 destination=end.getType()==HitResult.Type.MISS?from.add(p.getLookAngle().scale(10)):end.getLocation().subtract(p.getLookAngle().scale(.05));
+                new FireWavePath(from,destination,1.5,Math.max(1,from.distanceTo(destination)/15*1000)).write(parameterValues);
+            }
             parameters=new SkillParameters.Snapshot(skill,rank,parameterValues);
-            if(s.eyeUntil>now&&(skillId.equals(CareerSkills.ICE)||skillId.equals(CareerSkills.FIRE))){resolved.modifier("final").mut+=.20;resolved.modifiers.put("careerEye",1d);}
-            Vec3 origin=p.position(),direction=horizontal(p.getLookAngle()),center=origin;
+            resolved=CareerRules.eyeDamage(resolved,skill);
+            Vec3 origin=skillId.equals(CareerSkills.FIRE)?FireWavePath.from(parameters).origin():p.position(),direction=skillId.equals(CareerSkills.FIRE)?p.getLookAngle().normalize():horizontal(p.getLookAngle()),center=origin;
             if(skillId.equals(CareerSkills.SWORD)&&terminal)center=origin.add(direction.scale(StormChoreography.CENTER_OFFSET));
             if(skillId.equals(CareerSkills.FIELD)){
                 var hit=p.level().clip(new ClipContext(p.getEyePosition(),p.getEyePosition().add(p.getLookAngle().scale(8)),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
@@ -132,17 +152,19 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             if(skillId.equals(CareerSkills.ORB)||skillId.equals(CareerSkills.AGNI))next.brands=0;
             if(skillId.equals(CareerSkills.FRENZY))next.frenzy=!terminal;
             if(skillId.equals(CareerSkills.KALLA))next.kallaUntil=terminal?0:now+20000;
-            if(skillId.equals(CareerSkills.EYE))next.eyeUntil=terminal?0:now+20000;
+            if(skillId.equals(CareerSkills.EYE)){next.eyeUntil=terminal?0:now+20000;next.eyeBonusMut=terminal?0:parameters.get("eyeBonusMut",.20);}
             if(skillId.equals(CareerSkills.SWORD)){next.bloodUntil=terminal?0:now+60000;next.blood=0;}
             if(CareerRules.producesBrand(skillId))next.brands=Math.min(5,next.brands+1);
             if(!terminal&&!resources.training)resources.cooldowns.put(skillId,now+(long)(SkillCosts.resolve(skill,rank,resolved,resources.equipment,CareerRules.magic(skill,player)).cooldown()*1000));
             resources.controlEpoch++;resources.recordedAt=now;
             Cast accepted=new Cast();accepted.id=id;accepted.skill=skillId;accepted.session=session.id.toString();accepted.generation=life.generation;accepted.dimension=next.dimension;accepted.instance=next.instance;accepted.started=now;accepted.expires=now+(long)((skillId.equals(CareerSkills.FIELD)?12:Math.max(parameters.get("duration",1),5))*1000)+5000;accepted.parameters=parameters;accepted.stats=resolved;accepted.equipment=resources.equipment;accepted.origin=origin;accepted.center=center;accepted.direction=direction;accepted.terminal=terminal;
             if(skillId.equals(CareerSkills.CRASH)||skillId.equals(CareerSkills.ERUPTION))accepted.expires=now+35000;
+            if(skillId.equals(CareerSkills.ORB))accepted.expires=now+15000;
+            if(skillId.equals(CareerSkills.FIRE))accepted.firePoint=origin;
             JsonObject ack=new JsonObject();ack.addProperty("id",id);ack.addProperty("skill",skillId);ack.addProperty("slot",slot);ack.addProperty("serverNow",now);ack.addProperty("session",session.id.toString());ack.addProperty("generation",life.generation);ack.addProperty("rank",rank);ack.addProperty("terminal",terminal);ack.add("parameters",JSON.toJsonTree(parameters.values()));ack.add("stats",JSON.toJsonTree(resolved));ack.add("equipmentEffects",JSON.toJsonTree(resources.equipment));ack.add("origin",JSON.toJsonTree(new double[]{origin.x,origin.y,origin.z}));ack.add("center",JSON.toJsonTree(new double[]{center.x,center.y,center.z}));ack.add("direction",JSON.toJsonTree(new double[]{direction.x,direction.y,direction.z}));ack.add("resources",JSON.toJsonTree(resources));ack.add("life",JSON.toJsonTree(life));
             journal.begin();journal.put("resources/"+p.getUUID(),resources);journal.put("life/"+p.getUUID(),life);journal.put(receipt,ack);journal.finish();
             session.resources=resources;session.life=life;states.put(p.getUUID(),next);casts.computeIfAbsent(p.getUUID(),k->new LinkedHashMap<>()).put(id,accepted);
-            if(skillId.equals(CareerSkills.SWORD))bloodCredits.remove(p.getUUID());
+            if(skillId.equals(CareerSkills.SWORD))lastBloodGain.remove(p.getUUID());
             if(content.invulnerable()||terminal&&(skillId.equals(CareerSkills.EYE)||skillId.equals(CareerSkills.SWORD)))invulnerable.put(p.getUUID(),now+(long)((skillId.equals(CareerSkills.EYE)?1200:2000)/Math.max(.01,resolved.get(Stat.CAST_SPEED))));
             if(skillId.equals(CareerSkills.PHANTOM))invulnerable.put(p.getUUID(),now+250);
             if(!terminal&&(hpCost>0||cost.life()>0)){p.setHealth((float)Math.max(1,life.q*p.getMaxHealth()));Network.send(p,"health",life);}
@@ -150,7 +172,16 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         }catch(Exception error){journal.abort();JsonObject rejected=new JsonObject();rejected.addProperty("id",id);rejected.addProperty("error",Objects.toString(error.getMessage(),"施放失败"));Network.send(p,"careerRejected",rejected);}
     }
     public void baseSucceeded(ServerPlayer p,SkillDefinition definition){if(progress.apply(p).hasJob(JobCatalog.ASURA)&&SkillLearning.effective(stats.apply(p),progress.apply(p),SkillCatalog.require(CareerSkills.BRANDS))>0&&CareerRules.producesBrand(definition.id)){var s=state(p);s.brands=Math.min(5,s.brands+1);send(p);}}
-    public Stats castStats(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime resources){var view=snapshot(p);return CareerRules.current(SkillPreview.currentStats(stats.apply(p),resources,System.currentTimeMillis()),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),System.currentTimeMillis()));}
+    public Stats castStats(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime resources){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),resources,now),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
+    /** A native projectile fixes both the weapon contribution and equipment policies at actual spawn. */
+    public CombatPorts.NativeLaunch projectileSnapshot(ServerPlayer player,net.minecraft.world.item.ItemStack weapon){
+        var progress=this.progress.apply(player);var session=sessions.apply(player);long now=System.currentTimeMillis();var effects=EquipmentStats.projectileEffects(player,progress,weapon);
+        var source=EquipmentStats.build(player,progress,cn.yumis.fight.modules.attributes.api.AttributeServices.attributes(player.getUUID()),weapon);
+        var resources=new cn.yumis.fight.modules.combat.api.Runtime();resources.equipment=effects;resources.buffs=session.resources.buffs;resources.absorption=session.resources.absorption;resources.equipmentBuffs=session.resources.equipmentBuffs;
+        // Preserve native charge/velocity arithmetic and freeze this skill-owned scaling at launch.
+        var resolved=SkillPreview.currentStats(source,resources,now);resolved.modifiers.put("basicDamageScale",SkillBalance.basicScale(progress.jobId(),resolved.weaponType,false));
+        return new CombatPorts.NativeLaunch(resolved,effects);
+    }
     public Stats sourceStats(ServerPlayer p,JsonObject report){Cast value=report.has("careerCast")?cast(p,report.get("careerCast").getAsString()):null;return value==null?null:value.stats;}
     public EquipmentEffects.Snapshot sourceEffects(ServerPlayer p,JsonObject report){Cast value=report.has("careerCast")?cast(p,report.get("careerCast").getAsString()):null;return value==null?null:value.equipment;}
     private void cancel(ServerPlayer p,JsonObject j){var c=cast(p,j.get("id").getAsString());if(c!=null){c.expires=0;if(c.terminal&&(c.skill.equals(CareerSkills.SWORD)||c.skill.equals(CareerSkills.EYE)))invulnerable.remove(p.getUUID());}}
@@ -161,6 +192,12 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         if(!report.has("careerCast"))return;Cast c=cast(p,report.get("careerCast").getAsString());var s=sessions.apply(p);long now=System.currentTimeMillis();int index=report.get("careerIndex").getAsInt();
         if(c==null||!c.session.equals(s.id.toString())||c.generation!=s.life.generation||!c.dimension.equals(p.level().dimension().identifier().toString())||!c.instance.equals(s.life.instance)||c.expires<now||index<0||index>CareerSkills.hitLimit(c.skill,c.terminal)||c.hits.contains(hitKey(report)))throw new IllegalArgumentException("技能命中阶段或生命已失效");
         if(c.skill.equals(CareerSkills.ORB)&&(index>=(int)c.parameters.get("slashes",0)||c.orbTarget!=null&&(!c.orbTarget.equals(target.getUUID())||c.orbGeneration!=report.get("generation").getAsLong())))throw new IllegalArgumentException("鬼印珠目标或攻击次数无效");
+        if(c.skill.equals(CareerSkills.ORB)){
+            long at=report.has("orbAt")?report.get("orbAt").getAsLong():-1,last=orbHitClocks.getOrDefault(p.getUUID(),Map.of()).getOrDefault(orbKey(report),Long.MIN_VALUE);
+            if(at<c.started||at>now+250||last!=Long.MIN_VALUE&&at-last<SkillResourceRules.ORB_INTERVAL)throw new IllegalArgumentException("鬼印珠共享命中间隔无效");
+        }
+        if(c.skill.equals(CareerSkills.AGNI)&&index>c.parameters.get("slashes",0))throw new IllegalArgumentException("不动明王阵命中阶段无效");
+        if(c.skill.equals(CareerSkills.FIRE)&&(!c.fireFinished||index!=0||target.getBoundingBox().getCenter().distanceToSqr(c.firePoint)>Math.pow(2.5+target.getBbWidth(),2)+4))throw new IllegalArgumentException("爆炎终点或爆炸阶段无效");
         if(c.skill.equals(CareerSkills.FIELD)&&(index<16?index>11||c.parameters.rank()<8:c.parameters.rank()<15))throw new IllegalArgumentException("鬼阵效果尚未解锁");
         if(report.has("careerControl")){double seconds=report.get("careerControl").getAsDouble();if(!Double.isFinite(seconds)||seconds<0||seconds>CareerSkills.controlLimit(c.skill))throw new IllegalArgumentException("控制参数无效");}
     }
@@ -169,20 +206,50 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         Cast c=report.has("careerCast")?cast(p,report.get("careerCast").getAsString()):null;
         boolean heal=c!=null&&c.skill.equals(CareerSkills.HAND)&&!c.healed;
         Life next=heal?actorLife:null;if(heal)LifeRules.apply(next,.10,true);
-        String credit=report.has("basicCycle")?report.get("basicCycle").getAsString():c!=null?c.id:report.has("sourceCast")?report.get("sourceCast").getAsString():"";
         return new CombatPorts.Commit(){
             
             public void publish(){
                 if(c!=null)c.hits.add(hitKey(report));
                 if(c!=null&&c.skill.equals(CareerSkills.ORB)&&c.orbTarget==null){c.orbTarget=target.getUUID();c.orbGeneration=report.get("generation").getAsLong();}
+                if(c!=null&&c.skill.equals(CareerSkills.ORB))orbHitClocks.computeIfAbsent(p.getUUID(),key->new HashMap<>()).put(orbKey(report),report.get("orbAt").getAsLong());
                 if(next!=null){c.healed=true;sessions.apply(p).life=next;p.setHealth((float)Math.max(1,p.getMaxHealth()*next.q));Network.send(p,"health",next);}
-                if(!credit.isEmpty()&&direct(p,report)&&(report.has("basicCycle")||c!=null||report.has("sourceCast")||cast(p,credit)!=null))credit(p,credit);
+                credit(p);
                 if(c!=null&&report.has("careerControl")&&(!c.skill.equals(CareerSkills.FIELD)||c.controls.getOrDefault(target.getUUID(),0L)<=System.currentTimeMillis())){control(p,target,report.get("careerControl").getAsDouble());c.controls.put(target.getUUID(),System.currentTimeMillis()+3000);}
                 if(c!=null&&c.skill.equals(CareerSkills.HAND)&&!kind(target).equals("BOSS")){Vec3 delta=p.position().add(p.getLookAngle().multiply(1,0,1)).subtract(target.position());target.move(MoverType.SELF,delta.normalize().scale(Math.min(2,delta.length())));}
             }
         };
     }
-    private void credit(ServerPlayer p,String id){var s=state(p);if(s.bloodUntil<=System.currentTimeMillis())return;var used=bloodCredits.computeIfAbsent(p.getUUID(),k->new HashSet<>());if(used.add(id)){s.blood++;send(p);}}
+    private void credit(ServerPlayer p){var s=state(p);long now=System.currentTimeMillis();if(s.bloodUntil<=now||s.blood>=SkillResourceRules.BLOOD_CAP||now-lastBloodGain.getOrDefault(p.getUUID(),0L)<SkillResourceRules.BLOOD_INTERVAL)return;s.blood++;lastBloodGain.put(p.getUUID(),now);send(p);}
+    private static String orbKey(JsonObject report){return report.get("target").getAsString()+"/"+report.get("generation").getAsLong();}
+    private boolean immuneToCapture(LivingEntity target){return kind(target).equals("BOSS")||target.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE)>=1;}
+    /** Client geometry advances a content-owned path; only this server applies validated movement. */
+    private void fireAdvance(ServerPlayer p,JsonObject request){
+        Cast c=cast(p,request.get("id").getAsString());var session=sessions.apply(p);long now=System.currentTimeMillis();
+        if(c==null||!c.skill.equals(CareerSkills.FIRE)||c.expires<now||!c.session.equals(session.id.toString())||c.generation!=session.life.generation||session.life.dead||!c.dimension.equals(p.level().dimension().identifier().toString())||!c.instance.equals(session.life.instance))return;
+        if(c.fireFinished){fireImpact(p,c);return;}
+        double progress=request.get("progress").getAsDouble();FireWavePath path=FireWavePath.from(c.parameters);
+        if(!Double.isFinite(progress)||progress<0||progress>1||progress<=c.fireProgress||c.started+progress*path.millis()>now+250)return;
+        // Validate every short segment even if a delayed client submits a larger progress advance.
+        double fromProgress=c.fireProgress;
+        while(fromProgress<progress&&!c.fireFinished){
+            double step=Math.min(progress,fromProgress+.05);Vec3 from=c.firePoint,to=path.point(step);
+            var wall=p.level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
+            if(wall.getType()!=HitResult.Type.MISS){to=wall.getLocation().subtract(to.subtract(from).normalize().scale(.05));c.fireFinished=true;}
+            for(var target:p.level().getEntitiesOfClass(LivingEntity.class,new AABB(from,to).inflate(2.5),e->e.isAlive()&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon))){
+                if(immuneToCapture(target))continue;
+                var obstruction=p.level().clip(new ClipContext(to,target.getBoundingBox().getCenter(),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
+                if(obstruction.getType()==HitResult.Type.MISS)c.captured.add(target.getUUID());
+            }
+            for(UUID id:new ArrayList<>(c.captured)){
+                var entity=p.level().getEntity(id);if(!(entity instanceof LivingEntity target)||!target.isAlive()||immuneToCapture(target)){c.captured.remove(id);continue;}
+                Vec3 destination=to.add(0,-target.getBbHeight()*.5,0);target.move(MoverType.SELF,destination.subtract(target.position()));target.setDeltaMovement(Vec3.ZERO);target.hurtMarked=true;
+            }
+            c.firePoint=to;c.fireProgress=step;fromProgress=step;
+        }
+        if(progress>=1)c.fireFinished=true;
+        if(c.fireFinished)fireImpact(p,c);
+    }
+    private void fireImpact(ServerPlayer p,Cast c){JsonObject ack=new JsonObject();ack.addProperty("id",c.id);ack.addProperty("session",c.session);ack.addProperty("generation",c.generation);ack.addProperty("x",c.firePoint.x);ack.addProperty("y",c.firePoint.y);ack.addProperty("z",c.firePoint.z);JsonArray captured=new JsonArray();c.captured.forEach(id->captured.add(id.toString()));ack.add("captured",captured);Network.send(p,"fireImpact",ack);}
     private void control(ServerPlayer p,LivingEntity target,double seconds){
         if(seconds<=0||target instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon||target instanceof net.minecraft.world.entity.boss.wither.WitherBoss)return;
         String kind=kind(target);
@@ -216,7 +283,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             if(s.kallaUntil<=now)s.kallaUntil=0;
             if(s.eyeUntil>now){
                 double radius=casts.getOrDefault(p.getUUID(),Map.of()).values().stream().filter(c->c.skill.equals(CareerSkills.EYE)&&!c.terminal).max(Comparator.comparingLong(c->c.started)).map(c->c.parameters.get("range",16)).orElse(16d);
-                for(var enemy:p.level().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(radius,4,radius),e->e.isAlive()&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon))){
+                for(var enemy:p.level().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(radius,4,radius),e->e.isAlive()&&!(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag)&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon))){
                     if(enemy.position().subtract(p.position()).horizontalDistanceSqr()>radius*radius||Math.abs(enemy.getY()-p.getY())>4)continue;
                     var block=p.level().clip(new ClipContext(p.getEyePosition(),enemy.getBoundingBox().getCenter(),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
                     if(block.getType()==HitResult.Type.MISS)enemy.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.BLINDNESS,20,0,false,true));
@@ -228,6 +295,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             send(p);
         }
         states.keySet().removeIf(id->server.getPlayerList().getPlayer(id)==null);
+        orbHitClocks.values().forEach(clocks->clocks.values().removeIf(at->at<now-30000));
     }
     private static Vec3 horizontal(Vec3 v){var h=new Vec3(v.x,0,v.z);return h.lengthSqr()<.001?new Vec3(0,0,1):h.normalize();}
 }

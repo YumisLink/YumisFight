@@ -13,6 +13,9 @@ public final class EquipmentEffects {
         public String goldenSource="",imprintSource="",heroSource="";
         public Map<String,Integer> grants=new LinkedHashMap<>();
         public Map<String,String> grantSources=new LinkedHashMap<>();
+        public Snapshot copy(){
+            Snapshot copy=new Snapshot();copy.gemAmplification=gemAmplification;copy.fireAfterDamage=fireAfterDamage;copy.fireConversion=fireConversion;copy.manaShare=manaShare;copy.lifeCostRatio=lifeCostRatio;copy.killRecovery=killRecovery;copy.magicCooldownReduction=magicCooldownReduction;copy.heroDuration=heroDuration;copy.resistanceCap=resistanceCap;copy.magicSkillRanks=magicSkillRanks;copy.fireOnly=fireOnly;copy.blockElemental=blockElemental;copy.inverseResists=inverseResists;copy.goldenSource=goldenSource;copy.imprintSource=imprintSource;copy.heroSource=heroSource;copy.grants.putAll(grants);copy.grantSources.putAll(grantSources);return copy;
+        }
     }
     @FunctionalInterface public interface Rule {void apply(Snapshot target,Affix affix,Gear source);}
     private static final Map<String,Rule> RULES=new LinkedHashMap<>();
@@ -32,7 +35,7 @@ public final class EquipmentEffects {
         register("golden_power",(s,a,g)->s.goldenSource=g.instance.toString());
         register("imprint_power",(s,a,g)->s.imprintSource=g.instance.toString());
         register("hero_power",(s,a,g)->{s.heroSource=g.instance.toString();s.heroDuration=Math.max(s.heroDuration,a.value);});
-        register("grant_blink",(s,a,g)->{s.grants.merge(BLINK,g.level/5+1,Math::max);s.grantSources.put(BLINK,g.instance.toString());});
+        register("grant_blink",(s,a,g)->{s.grants.merge(BLINK,Math.max(1,g.level/5),Math::max);s.grantSources.put(BLINK,g.instance.toString());});
     }
     private EquipmentEffects(){}
     public static void register(String key,Rule rule){if(RULES.putIfAbsent(key,rule)!=null)throw new IllegalArgumentException("重复装备效果："+key);}

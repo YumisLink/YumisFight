@@ -14,8 +14,10 @@ public final class SkillVisualRegistry {
         default boolean persistentEnd(){return false;}
         default boolean persistentEnd(SkillVisualEvent event){return persistentEnd();}
         default boolean cinematic(){return false;}
+        default boolean refreshable(){return false;}
         default long defaultDuration(){return 2500;}
         default int defaultColor(){return SkillVisualEvent.CYAN;}
+        default long finishedUntil(Track track,SkillVisualEvent event){return event.at()+500;}
         default void tick(Track track,long time){}
         default void render(LevelRenderContext context,Track track,long age,long time,List<Quad> quads,Vec3 camera){}
         default void play(SkillVisualEvent event){}

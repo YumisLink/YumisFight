@@ -7,7 +7,9 @@ import cn.yumis.fight.modules.affixes.api.Affix;
 
 /** equipment模块拥有的数据合同；只接收当前存档代际。 */
 public class Gear {
-    public UUID instance=UUID.randomUUID();
+    public UUID instance;
+    public Gear(){this(UUID.randomUUID());}
+    Gear(UUID instance){this.instance=instance;}
     public static final int SCHEMA_VERSION=9;
     public boolean corrupted,creativeTemplate;
     public int version=SCHEMA_VERSION,level=1,revision,sockets;
@@ -22,6 +24,7 @@ public class Gear {
     public List<Affix> affixes=new ArrayList<>();
     public List<Gem> gems=new ArrayList<>();
     public boolean valid(Progress p,int allowance){
-        return level<=p.level+allowance&&p.level>=slot.minimum()&&(slot!=Slot.WEAPON||weapon!=Weapon.LIGHTSABER||p.hasJob(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER));
+        return valid(level,slot,weapon,p,allowance);
     }
+    static boolean valid(int level,Slot slot,Weapon weapon,Progress p,int allowance){return level<=p.level+allowance&&p.level>=slot.minimum()&&(slot!=Slot.WEAPON||weapon!=Weapon.LIGHTSABER||p.hasJob(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER));}
 }

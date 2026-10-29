@@ -8,6 +8,7 @@ import java.util.UUID;
 /** Each interface describes one participant in the existing receipt transaction. */
 public final class CombatPorts {
     private CombatPorts(){}
+    public record NativeLaunch(cn.yumis.fight.modules.attributes.api.Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){}
     public interface Encounters {boolean participant(ServerPlayer player,String instance);void died(LivingEntity target);void cancelBoss(UUID target);}
     public interface Rewards {void death(ServerPlayer player,LivingEntity entity,CombatTarget target)throws Exception;void publish();void abort();}
     public interface NativeHits {

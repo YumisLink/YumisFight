@@ -16,7 +16,9 @@ public final class EconomyClientMessages {
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Init.Post event)->{
             if(event.getScreen() instanceof InventoryScreen||event.getScreen() instanceof AbstractContainerScreen<?> s&&s.getMenu() instanceof DimensionalMenu){
                 int x=Math.max(2,event.getScreen().width/2-88),y=Math.max(2,event.getScreen().height-25);
-                event.addListener(Button.builder(Component.literal("出售装备"),b->{var request=ClientUi.current().operation("saleOpen");request.addProperty("session",ClientUi.current().session());ClientUi.current().send("saleOpen",request);}).bounds(x,y,92,20).build(ThemedButton::new));
+                int width=92,height=20;
+                if(event.getScreen() instanceof AbstractContainerScreen<?> container&&container.getMenu() instanceof DimensionalMenu menu){x=container.getLeftPos()+76;y=container.getTopPos()+menu.rows*18+174-23;width=50;height=18;}
+                event.addListener(Button.builder(Component.literal("出售装备"),b->SaleClient.open(event.getScreen() instanceof AbstractContainerScreen<?> container&&container.getMenu() instanceof DimensionalMenu)).bounds(x,y,width,height).build(ThemedButton::new));
             }
         });
         router.register("economy","saleState",(context,j)->{
@@ -25,7 +27,7 @@ public final class EconomyClientMessages {
             if(part==0){pending=j.deepCopy();pending.add("rows",new JsonArray());nextPart=0;}
             if(pending==null||part!=nextPart||!pending.get("token").equals(j.get("token")))return;
             nextPart++;j.getAsJsonArray("rows").forEach(row->pending.getAsJsonArray("rows").add(row.deepCopy()));
-            if(j.get("done").getAsBoolean()){Minecraft.getInstance().gui.setScreen(new SaleScreen(pending));pending=null;}
+            if(j.get("done").getAsBoolean()){SaleClient.accept(pending);pending=null;}
         });
     }
 }

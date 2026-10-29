@@ -8,12 +8,9 @@ import cn.yumis.fight.modules.combat.api.Runtime;
 import cn.yumis.fight.modules.attributes.api.Stats;
 /** Zero-defense, zero-resistance, non-critical panel damage; never rolls combat RNG. */
 public final class SkillPreview {
-    private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
-    private static <T>T copy(T value,Class<T> type){return JSON.fromJson(JSON.toJson(value),type);}
-
     private SkillPreview(){}
     public static Stats currentStats(Stats equipment,cn.yumis.fight.modules.combat.api.Runtime resources,long now){
-        Stats stats=copy(equipment,Stats.class);
+        Stats stats=equipment.copy();
         if(resources.buffs.getOrDefault("yumis_dungeon_and_fight:overdrive",0L)>now){
             double power=resources.absorption.getOrDefault("overdrivePower",0d);
             stats.mut(Stat.PHYSICAL_ATTACK,power);
@@ -32,14 +29,21 @@ public final class SkillPreview {
         return rank<=0?0:Math.pow(1.12,rank-1);
     }
     public static Damage damage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,boolean passive,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
+        return damage(progress,stats,skill,coefficient,passive,true,SkillPreviewRules.elements(skill),effects);
+    }
+    public static Damage dotDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int element,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
+        return damage(progress,stats,skill,coefficient,true,false,new int[]{element},effects);
+    }
+    private static Damage damage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,boolean passive,boolean append,int[] elements,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
+        stats=CareerRules.eyeDamage(stats,skill);
         boolean magic=CareerRules.magic(skill,progress);
-        int[] elements=SkillPreviewRules.elements(skill);boolean allowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(effects,elements);elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(effects,elements);
+        boolean allowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(effects,elements);elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(effects,elements);
         double mastery=mastery(progress,stats);
         var low=CombatRules.panel(stats,magic,elements,coefficient,!passive,false);
         var high=CombatRules.panel(stats,magic,elements,coefficient,!passive,true);
-        if(!allowed){low=new CombatRules.Damage(0,low.extra(),low.element());high=new CombatRules.Damage(0,high.extra(),high.element());}
+        if(!allowed){low=low.withMain(0);high=high.withMain(0);}
         double minimum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(low,stats,skill!=null&&skill.basicSkill(),mastery,false,passive,1).total(),maximum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(high,stats,skill!=null&&skill.basicSkill(),mastery,false,passive,1).total();
-        return new Damage(minimum+cn.yumis.fight.modules.combat.api.EquipmentDamage.append(minimum,stats,effects,0,new double[4]),maximum+cn.yumis.fight.modules.combat.api.EquipmentDamage.append(maximum,stats,effects,0,new double[4]));
+        return new Damage(minimum+(append?cn.yumis.fight.modules.combat.api.EquipmentDamage.append(minimum,stats,effects,0,new double[4]):0),maximum+(append?cn.yumis.fight.modules.combat.api.EquipmentDamage.append(maximum,stats,effects,0,new double[4]):0));
     }
     public static Preview resolve(Progress progress,Stats stats,SkillDefinition skill,SkillParameters.Snapshot parameters,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.castDamage(stats,parameters);

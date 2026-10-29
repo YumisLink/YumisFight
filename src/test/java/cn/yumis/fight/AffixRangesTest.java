@@ -13,9 +13,9 @@ class AffixRangesTest {
         assertEquals(8,range.minimum());assertEquals(12,range.maximum());
     }
 
-    @Test void fixedBaseGemsAndFixedRaritiesAreNeverOfferedAsRerollable(){
+    @Test void allRaritiesRerollWhileFixedBaseAndGemsRemainProtected(){
         Affix a=new Affix("flat_strength",Stat.STRENGTH,10,false);
-        assertNull(EquipmentAffixRanges.reroll(a,Rarity.EPIC,false));assertNull(EquipmentAffixRanges.reroll(a,Rarity.MYTHIC,false));
+        assertNotNull(EquipmentAffixRanges.reroll(a,Rarity.EPIC,false));assertNotNull(EquipmentAffixRanges.reroll(a,Rarity.MYTHIC,false));
         assertNull(EquipmentAffixRanges.reroll(a,Rarity.RARE,true));a.fixed=true;assertNull(EquipmentAffixRanges.reroll(a,Rarity.RARE,false));
         a.fixed=false;a.base=true;assertNull(EquipmentAffixRanges.reroll(a,Rarity.RARE,false));
         a.base=false;a.operation="SKILL_PARAMETER";assertNull(EquipmentAffixRanges.reroll(a,Rarity.RARE,false));

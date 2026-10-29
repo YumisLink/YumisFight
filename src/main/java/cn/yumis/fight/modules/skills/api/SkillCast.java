@@ -16,6 +16,7 @@ public class SkillCast {
         public int slot,segment=1,slashes,visualSequence=-1;
         public long visualTrail;
         public long landedAt;
+        public long scheduledHitAt;
         public boolean charging,release,finisher;
         public double speed=1,moved;
         public int hitIndex,elementOverride=-2;

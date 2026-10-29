@@ -24,7 +24,7 @@ public final class CareerHud {
         }
         if(state.progress().hasJob(JobCatalog.BERSERKER)&&view.bloodUntil>0){
             badge(g,SkillCatalog.require(CareerSkills.SWORD),x,y,view.blood,false);
-            String time=seconds(view.bloodUntil-state.serverNow())+"秒";var font=UiFonts.font();g.text(font,time,x-font.width(time)/2,y+31,UiTheme.HUD_MUTED,true);y+=66;
+            String time="/ "+SkillResourceRules.BLOOD_CAP+"  "+seconds(view.bloodUntil-state.serverNow())+"秒";var font=UiFonts.font();g.text(font,time,x-font.width(time)/2,y+31,UiTheme.HUD_MUTED,true);y+=66;
         }
         var cast=SkillController.INSTANCE.cast;
         if(cast!=null&&SkillPresentation.segmented(cast.skill)){

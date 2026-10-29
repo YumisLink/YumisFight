@@ -6,7 +6,7 @@ import java.util.function.*;
 
 /** Effect registration belongs to affixes. Equipment only supplies accumulation ports. */
 public final class AffixEffects {
-    public interface ItemSink {void flat(Stat stat,double value);void percent(Stat stat,double value);}
+    public interface ItemSink {void flat(Stat stat,double value);void percent(Stat stat,double value);void finalAdd(Stat stat,double value);}
     public interface CharacterSink {
         void extra(Affix affix);
         void family(String family,int rank);
@@ -20,6 +20,7 @@ public final class AffixEffects {
     static {
         registerItem("FLAT",(a,s)->stat(a).ifPresent(k->s.flat(k,a.value)));
         registerItem("PERCENT",(a,s)->stat(a).ifPresent(k->s.percent(k,a.value)));
+        registerItem("ITEM_FINAL_ADD",(a,s)->stat(a).ifPresent(k->s.finalAdd(k,a.value)));
         registerItem("ALL_RESIST_FLAT",(a,s)->{for(Stat k:List.of(Stat.LIGHT_RESIST,Stat.FIRE_RESIST,Stat.ICE_RESIST,Stat.DARK_RESIST))s.flat(k,a.value);});
         registerCharacter("EXTRA",(a,id,s)->{if(a.element>=0&&a.element<4)s.extra(a);});
         registerCharacter("SKILL_FAMILY",(a,id,s)->s.family(a.family,a.rank));

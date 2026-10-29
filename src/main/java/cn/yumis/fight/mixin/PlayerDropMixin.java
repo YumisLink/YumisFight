@@ -20,8 +20,8 @@ public abstract class PlayerDropMixin {
             ci.cancel();
         }
     }
-    @Inject(method="drop(Lnet/minecraft/world/item/ItemStack;ZZ)Lnet/minecraft/world/entity/item/ItemEntity;",at=@At("HEAD"),cancellable=true)
+    @Inject(method="drop(Lnet/minecraft/world/item/ItemStack;ZZ)Lnet/minecraft/world/entity/item/ItemEntity;",at=@At("RETURN"))
     private void ydnf$stage(ItemStack stack,boolean around,boolean hand,CallbackInfoReturnable<ItemEntity> cir){
-        if(ServerApplication.ready()&&ServerApplication.get().inventory.inside())cir.setReturnValue(ServerApplication.get().inventory.stageDrop((ServerPlayer)(Object)this,stack));
+        if(ServerApplication.ready()&&ServerApplication.get().inventory.inside())ServerApplication.get().inventory.stageDrop((ServerPlayer)(Object)this,cir.getReturnValue());
     }
 }
