@@ -82,7 +82,7 @@ class AffixCurrencyTest {
     }
     @Test void locksPersistWithoutTurningIntoFixedAffixesAndDivineCanRerollTheirValues(){
         Gear original=gear();original.rarity=Rarity.LEGENDARY;
-        Affix affix=affix("flat_strength",Stat.STRENGTH);affix.locked=true;affix.value=1;original.affixes.add(affix);
+        Affix affix=affix("flat_strength",Stat.STRENGTH);affix.locked=true;affix.value=8;original.affixes.add(affix);
         Gear saved=JSON.fromJson(JSON.toJson(original),Gear.class);
         assertTrue(saved.affixes.getLast().locked);assertFalse(saved.affixes.getLast().fixed);
         Gear changed=EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(saved),"divine_stone",new Random(8));

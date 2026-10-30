@@ -38,8 +38,8 @@ import java.util.*;
 public final class EconomyVerification {
     private EconomyVerification(){}
     private static JsonObject request(ServerApplication r,ServerPlayer p,int slot,boolean bag){
-        var stack=(bag?MenuHooks.extra(p).bag:p.getInventory()).getItem(slot);var g=EquipmentItems.gear(stack);var j=new JsonObject();
-        j.addProperty("operation","verify/economy/"+UUID.randomUUID());j.addProperty("session",r.session(p).id.toString());j.addProperty("menu",p.containerMenu.containerId);j.addProperty("slot",slot);j.addProperty("bag",bag);j.addProperty("equipment",g.instance.toString());j.addProperty("revision",g.revision);j.add("item",r.inventory.encode(p,stack));return j;
+        var j=new JsonObject();j.addProperty("session",r.session(p).id.toString());String token=r.economyService.saleOpen(p,j);
+        j.addProperty("operation","verify/economy/"+UUID.randomUUID());j.addProperty("menu",p.inventoryMenu.containerId);j.addProperty("token",token);var items=new JsonArray();items.add((bag?"bag/":"inventory/")+slot);j.add("items",items);return j;
     }
     public static int run(ServerApplication r,ServerPlayer p)throws Exception{
         if(!Boolean.getBoolean("ydnf.verify"))throw new IllegalStateException("verification disabled");

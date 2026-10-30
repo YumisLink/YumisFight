@@ -18,13 +18,13 @@ public final class EquipmentResolution {
     private static long definitionRevision=-1,lookups,hits,decodes;
     private static int characters;
     /** The render path only sees this immutable projection; no mutable Gear escapes the cache. */
-    public record View(Rarity rarity,String appearance,int level,Slot slot,Weapon weapon,UUID instance,int revision){
+    public record View(Rarity rarity,String appearance,int level,Slot slot,Weapon weapon,UUID instance,int revision,boolean creativeTemplate){
         public boolean valid(cn.yumis.fight.modules.character.api.Progress progress,int allowance){return Gear.valid(level,slot,weapon,progress,allowance);}
     }
     private static final class Entry {
         private final Gear snapshot;
         private final View view;
-        private Entry(Gear value){snapshot=value;view=value==null?null:new View(value.rarity,EquipmentTemplates.appearance(value),value.level,value.slot,value.weapon,value.instance,value.revision);}
+        private Entry(Gear value){snapshot=value;view=value==null?null:new View(value.rarity,EquipmentTemplates.appearance(value),value.level,value.slot,value.weapon,value.instance,value.revision,value.creativeTemplate);}
         private Gear detached(){return snapshot==null?null:EquipmentCopies.gear(snapshot);}
     }
     public record CacheMetrics(long lookups,long hits,long decodes,int entries,int characters){}
@@ -53,16 +53,16 @@ public final class EquipmentResolution {
         return resolveOwned(EquipmentCopies.gear(original));
     }
     private static Gear resolveOwned(Gear g){
-        for(int i=0;i<g.affixes.size();i++)resolve(g.affixes.get(i),g.instance+"/affixes/"+i);
-        for(int i=0;i<g.gems.size();i++)for(int j=0;j<g.gems.get(i).affixes.size();j++)resolve(g.gems.get(i).affixes.get(j),g.instance+"/gems/"+i+"/"+j);
+        for(int i=0;i<g.affixes.size();i++)resolve(g.affixes.get(i),g.instance+"/affixes/"+i,g.level);
+        for(int i=0;i<g.gems.size();i++)for(int j=0;j<g.gems.get(i).affixes.size();j++)resolve(g.gems.get(i).affixes.get(j),g.instance+"/gems/"+i+"/"+j,g.gems.get(i).level);
         return g;
     }
-    private static void resolve(Affix a,String path){AffixResolver.resolve(a,AffixDefinitions.current().affixes.get(AffixResolver.definitionId(a)),path);}
+    private static void resolve(Affix a,String path,int level){var d=AffixDefinitions.current().affixes.get(AffixResolver.definitionId(a));AffixResolver.resolve(a,d,path,d==null?1:d.effectiveScale(level));}
     /** Explicit creation or mutation boundary. Reads never invent missing random origins. */
     public static Gear initialize(Gear g){
         for(int i=0;i<g.affixes.size();i++)initialize(g.affixes.get(i),g.instance+"/affixes/"+i);
         for(int i=0;i<g.gems.size();i++)for(int j=0;j<g.gems.get(i).affixes.size();j++)initialize(g.gems.get(i).affixes.get(j),g.instance+"/gems/"+i+"/"+j);
         return resolve(g);
     }
-    private static void initialize(Affix a,String path){if(!a.base&&a.origin==null)AffixResolver.anchor(a,path,null,0);}
+    private static void initialize(Affix a,String path){if(!a.base&&a.origin==null)AffixResolver.anchor(a,path,null,0,1);}
 }

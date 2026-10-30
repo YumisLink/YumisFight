@@ -39,11 +39,12 @@ public class LootService implements InventoryDrops {
             if(!(e.getPlayer() instanceof ServerPlayer p)||e.canPickup().isFalse())return;String id=e.getItemEntity().getPersistentData().getStringOr("ydnf_drop","");if(id.isEmpty())return;e.setCanPickup(net.minecraft.util.TriState.FALSE);
             // NeoForge fires Pre before vanilla checks the delay/target. Keep both checks before our transaction.
             if(e.getItemEntity().hasPickUpDelay()||e.getItemEntity().getTarget()!=null&&!p.getUUID().equals(e.getItemEntity().getTarget())||inventory.get().locked(p.getUUID()))return;
-            LootService.Drop drop=journal.get("loot/"+id,LootService.Drop.class,null);if(drop==null||!journal.get("lootEnd/"+id).isJsonNull())return;ItemStack actual=e.getItemEntity().getItem();int room=0;for(int i=0;i<36;i++){
+            LootService.Drop drop=journal.get("loot/"+id,LootService.Drop.class,null);if(drop==null||!journal.get("lootEnd/"+id).isJsonNull())return;ItemStack actual=e.getItemEntity().getItem();if(accountPickup(p,drop,actual)){if(!journal.get("lootEnd/"+id).isJsonNull())e.getItemEntity().discard();return;}int room=0;for(int i=0;i<36;i++){
                 ItemStack s=p.getInventory().getItem(i);room+=s.isEmpty()?actual.getMaxStackSize():ItemStack.isSameItemSameComponents(s,actual)?Math.max(0,s.getMaxStackSize()-s.getCount()):0;
             }
             int take=Math.min(room,actual.getCount());if(take<=0)return;ItemStack result=actual.copyWithCount(take),left=actual.copyWithCount(actual.getCount()-take);var next=copy(drop,LootService.Drop.class);next.item=inventory.get().encode(p,left);Map<String,JsonElement> edits=new HashMap<>();edits.put("loot/"+id,JSON.toJsonTree(next));if(left.isEmpty())edits.put("lootEnd/"+id,JSON.toJsonTree("picked"));JsonObject intent=new JsonObject();intent.addProperty("publicPickup",id);intent.addProperty("count",take);try{
                 inventory.get().transact(p,"public-pickup/"+UUID.randomUUID(),intent,()->inventory.get().requireSpace(p,result),edits);if(left.isEmpty())e.getItemEntity().discard();else e.getItemEntity().setItem(left);
+                var view=EquipmentItems.view(result);if(view!=null&&view.creativeTemplate())players.profile(p);
             }
             catch(Exception failure){
                 players.message(p,failure.getMessage());
@@ -143,6 +144,7 @@ public class LootService implements InventoryDrops {
                 for(Slot s:List.of(Slot.SUB_EQUIPMENT,Slot.MAGIC_STONE,Slot.EARRING))if(progress.level>=s.minimum()&&level>=s.minimum())eligible.add(s);
                 double group=random.nextDouble();
                 Slot slot=rarity==Rarity.MYTHIC?(group<.5?Slot.WEAPON:eligible.get(random.nextInt(eligible.size()))):group<.2?Slot.WEAPON:group<.6?Slot.values()[1+random.nextInt(4)]:eligible.get(random.nextInt(eligible.size()));
+                if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;
                 Gear gear=EquipmentTemplates.createStandard(slot,Weapon.values()[random.nextInt(5)],rarity,Math.clamp(level,1,80),random);
                 gear.source=target.life.target+"/"+target.life.generation;
                 create(p,EquipmentItems.gear(gear),entity.position(),target.instance,instance);
@@ -231,6 +233,7 @@ public class LootService implements InventoryDrops {
         Drop d=journal.get("loot/"+e.dropId,Drop.class,null);
         if(d==null||!players.session(p).toString().equals(d.session)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull())return;
         ItemStack stack=inventory.get().decode(p,d.item);
+        if(accountPickup(p,d,stack)){if(!journal.get("lootEnd/"+e.dropId).isJsonNull())e.discard();return;}
         int room=0;
         for(int i=0;i<36;i++){
             ItemStack s=p.getInventory().getItem(i);
@@ -251,12 +254,26 @@ public class LootService implements InventoryDrops {
         if(stack.isEmpty())changes.put("lootEnd/"+e.dropId,JSON.toJsonTree("picked"));
         try{
             inventory.get().transact(p,"pickup/"+UUID.randomUUID(),j,()->inventory.get().requireSpace(p,received),changes);
+            var view=EquipmentItems.view(received);if(view!=null&&view.creativeTemplate())players.profile(p);
             if(stack.isEmpty())e.discard();
             else e.initialize(e.dropId,e.owner(),stack);
         }
         catch(Exception failure){
             players.message(p,failure.getMessage());
         }
+    }
+    /** Currency projections settle their balance and durable pickup marker atomically, even with a full bag. */
+    private boolean accountPickup(ServerPlayer player,Drop drop,ItemStack actual){
+        if(!cn.yumis.fight.platform.ItemData.own(actual)||!cn.yumis.fight.platform.ItemData.id(actual).equals(CurrencyRules.COLORLESS_CRYSTAL.id()))return false;
+        try{
+            ItemStack expected=inventory.get().decode(player,drop.item);
+            if(drop.expires<System.currentTimeMillis()||actual.isEmpty()||!ItemStack.matches(expected,actual))return true;
+            String key=CurrencyRules.COLORLESS_CRYSTAL.id()+"/"+player.getUUID();long balance=Math.addExact(journal.get(key,Long.class,0L),actual.getCount());
+            JsonObject intent=new JsonObject();intent.addProperty("accountPickup",drop.id.toString());intent.addProperty("count",actual.getCount());
+            inventory.get().transact(player,"account-pickup/"+drop.id,intent,()->{},Map.of(key,new JsonPrimitive(balance),"lootEnd/"+drop.id,new JsonPrimitive("picked")));
+            players.profile(player);
+        }catch(RuntimeException failure){players.message(player,failure.getMessage());}
+        return true;
     }
     public void move(ServerPlayer p,String instance,ReturnPoint point){
         try{

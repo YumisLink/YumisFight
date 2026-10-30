@@ -13,7 +13,13 @@ public final class TrainingSandbagItem extends Item {
     public TrainingSandbagItem(Properties properties){super(properties);}
     @Override public InteractionResult useOn(UseOnContext context){
         var player=context.getPlayer();if(player==null)return InteractionResult.PASS;
+        if(context.getLevel().isClientSide()){
+            if(player.isShiftKeyDown())TrainingActions.clientUse(context);
+            return InteractionResult.SUCCESS;
+        }
         if(!(context.getLevel() instanceof ServerLevel level))return InteractionResult.SUCCESS;
+        if(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer&&TrainingActions.consumeVanillaUse(serverPlayer,context))return InteractionResult.SUCCESS;
+        if(player.isShiftKeyDown())return InteractionResult.SUCCESS;
         BlockPos pos=context.getClickedPos().relative(context.getClickedFace());
         if(!level.mayInteract(player,pos)||!player.mayUseItemAt(pos,context.getClickedFace(),context.getItemInHand()))return InteractionResult.FAIL;
         if(!level.getBlockState(pos.below()).isFaceSturdy(level,pos.below(),net.minecraft.core.Direction.UP))return InteractionResult.FAIL;

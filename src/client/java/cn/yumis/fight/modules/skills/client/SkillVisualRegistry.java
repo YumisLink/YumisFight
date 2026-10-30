@@ -14,6 +14,9 @@ public final class SkillVisualRegistry {
         default boolean persistentEnd(){return false;}
         default boolean persistentEnd(SkillVisualEvent event){return persistentEnd();}
         default boolean cinematic(){return false;}
+        default boolean restoreCamera(){return false;}
+        default boolean blocksTurning(){return false;}
+        default boolean blocksHotbar(){return false;}
         default boolean refreshable(){return false;}
         default long defaultDuration(){return 2500;}
         default int defaultColor(){return SkillVisualEvent.CYAN;}
@@ -27,7 +30,7 @@ public final class SkillVisualRegistry {
     }
     private static final Map<String,Handler> HANDLERS=new LinkedHashMap<>();
     private static final Handler NONE=new Handler(){};
-    static {BuiltinSkillVisuals.install();CareerSkillVisuals.install();MageSkillVisuals.install();}
+    static {BuiltinSkillVisuals.install();CareerSkillVisuals.install();MageSkillVisuals.install();OracleSkillVisuals.install();}
     private SkillVisualRegistry(){}
     public static void register(String id,Handler handler){if(HANDLERS.putIfAbsent(id,Objects.requireNonNull(handler))!=null)throw new IllegalArgumentException("Duplicate skill visual: "+id);}
     public static Handler handler(String id){return HANDLERS.getOrDefault(id,NONE);}

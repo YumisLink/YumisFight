@@ -14,6 +14,7 @@ public final class PlayerPages {
         register(new Page("shop","商城","商城","shop","",true));
         register(new Page("bag","次元背包","背包","dimensional_bag","bag",false));
         register(new Page("sale","出售装备","出售","shop","",true));
+        register(new Page("affix_compendium","词条宝典","词条","skills","",true));
         register(new Page("damage_analysis","伤害分析","伤害","skills","",true));
     }
     private PlayerPages(){}

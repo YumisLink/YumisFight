@@ -30,6 +30,13 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/named/golden_cup"
         }
+      },
+      {
+        "when": "mana_flower",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/mana_flower"
+        }
       }
     ],
     "fallback": {

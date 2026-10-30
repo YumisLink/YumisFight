@@ -1,0 +1,8 @@
+{
+  "required": false,
+  "package": "cn.yumis.fight.compat.modernui",
+  "plugin": "cn.yumis.fight.compat.modernui.ModernUiMixinPlugin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["MythicBorderMixin"],
+  "injectors": {"defaultRequire": 1}
+}

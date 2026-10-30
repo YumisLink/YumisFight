@@ -34,7 +34,7 @@ import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 public final class EquipmentTooltip {
-    private record TooltipKey(String equipment,Object affixes,long affixRevision,Object definitions,long equipmentRevision,int weaponDisplayRevision,boolean expanded,boolean valid,boolean advanced,String language,String fontId,String fontName,Object font){}
+    private record TooltipKey(String equipment,Object affixes,long affixRevision,Object definitions,long equipmentRevision,int weaponDisplayRevision,long favoritesRevision,boolean expanded,boolean valid,boolean advanced,String language,String fontId,String fontName,Object font){}
     private static final Map<TooltipKey,List<Component>> TOOLTIPS=new LinkedHashMap<>(32,.75f,true);
     private static long tooltipHits,tooltipBuilds;
     public record CacheMetrics(long hits,long builds,int entries){}
@@ -95,7 +95,7 @@ public final class EquipmentTooltip {
                 Gem gem=EquipmentJson.JSON.fromJson(EquipmentItems.payload(stack),Gem.class);
                 if(gem!=null){
                     lines.add(text("来源 Lv."+gem.level+" · "+groupName(gem.group),0xc5cfdd));
-                    for(Affix a:gem.affixes)lines.add(text(affix(a),0x85e4d6));
+                    for(Affix a:gem.affixes)lines.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(affix(a),0x85e4d6)));
                 }
             }
         }catch(RuntimeException malformed){lines.add(text("道具数据无效，无法加工",0xff9696));}
@@ -141,11 +141,11 @@ public final class EquipmentTooltip {
         if(MageBlood.is(gear)&&(a.operation.equals("MAGIC")||a.operation.equals("MAGIC_AMPLIFICATION"))){out.add(text(MagicEffects.text(a),color));if(shift())out.add(text(a.operation.equals("MAGIC")?"  神圣石从14种魔法重抽；允许重复，同名只生效一次":"  神圣石可洗：25%～50%",0x9aa9be));return;}
         if(gem){a=EquipmentJson.copy(a,Affix.class);if(Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA").contains(a.operation)){double factor=cn.yumis.fight.modules.equipment.api.EquipmentEffects.gemMultiplier(gear);a.value*=factor;a.maximum*=factor;}}
         String label=(gem?"  ":"")+affix(a)+(a.locked?" 〔已锁定·不可删除替换〕":"");
-        if(!shift()){out.add(text(label,color));return;}
+        if(!shift()){out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label,color)));return;}
         var range=EquipmentAffixRanges.reroll(a,gear.rarity,gem);
-        if(range==null){out.add(text(label+" 〔不可重掷〕",color));return;}
+        if(range==null){out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label+" 〔不可重掷〕",color)));return;}
         String unit=EquipmentAffixRanges.percentage(a)?"%":"";
-        out.add(text(label,color));
+        out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label,color)));
         if(range.interval())out.add(text("  可洗区间："+AffixText.integer(range.minimum())+"～"+AffixText.integer(range.upperMinimum())+" 至 "+AffixText.integer(range.maximum())+"～"+AffixText.integer(range.upperMaximum())+"（上下限同步变化）",0x9aa9be));
         else out.add(text("  可洗："+AffixText.integer(range.minimum())+unit+"～"+AffixText.integer(range.maximum())+unit,0x9aa9be));
     }
@@ -174,9 +174,11 @@ public final class EquipmentTooltip {
         var view=EquipmentItems.view(stack);
         List<Component> out=e.getToolTip();
         if(ItemData.own(stack))out.replaceAll(UiFonts::decorate);
+        if(cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mythic(stack)&&!out.isEmpty())out.set(0,cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(out.getFirst()));
         if(view==null){
             String id=ItemData.id(stack);
-            if(SlotAccess.isCurrency(stack)){out.addAll(currencyLines(stack));return;}
+            if(id.equals("colorless_crystal")&&ItemData.own(stack)){out.add(text("拾取后存入无色小晶块余额，不占背包；余额在I菜单商城中查看",0xc5e6f5));return;}
+            if(SlotAccess.isCurrency(stack)){var currencies=currencyLines(stack);if(!out.isEmpty()&&currencies.stream().anyMatch(line->cn.yumis.fight.modules.equipment.api.client.MythicDisplay.marked(line.getVisualOrderText())))out.set(0,cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(out.getFirst()));out.addAll(currencies);return;}
             if(id.equals("crafting_material")){
                 var m=MaterialCatalog.current().materials.get(EquipmentItems.material(stack));
                 if(m!=null){
@@ -189,7 +191,7 @@ public final class EquipmentTooltip {
         }
         var affixes=cn.yumis.fight.modules.affixes.api.AffixDefinitions.current();var definitions=EquipmentDefinitions.current();
         boolean valid=e.getEntity()==null||view.valid(cn.yumis.fight.modules.equipment.api.client.EquipmentClient.current().progress(),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(e.getEntity()));
-        TooltipKey key=new TooltipKey(EquipmentItems.serialized(stack),affixes,affixes.revision,definitions,definitions.revision,WeaponDisplayValues.REVISION,shift(),valid,e.getFlags().isAdvanced(),Minecraft.getInstance().getLanguageManager().getSelected(),ClientSettings.uiFont,UiFonts.currentName(),UiFonts.font());
+        TooltipKey key=new TooltipKey(EquipmentItems.serialized(stack),affixes,affixes.revision,definitions,definitions.revision,WeaponDisplayValues.REVISION,cn.yumis.fight.modules.affixes.api.client.AffixFavorites.revision(),shift(),valid,e.getFlags().isAdvanced(),Minecraft.getInstance().getLanguageManager().getSelected(),ClientSettings.uiFont,UiFonts.currentName(),UiFonts.font());
         List<Component> cached=TOOLTIPS.get(key);
         if(cached==null){Gear gear=EquipmentItems.gear(stack);if(gear==null)return;cached=gearLines(gear,valid,key.advanced());tooltipBuilds++;if(key.equipment().length()<=131072){TOOLTIPS.put(key,cached);while(TOOLTIPS.size()>256)TOOLTIPS.remove(TOOLTIPS.keySet().iterator().next());}}
         else tooltipHits++;
@@ -200,7 +202,8 @@ public final class EquipmentTooltip {
         List<Component> out=new ArrayList<>();
         // Keep vanilla enchantments, lore and component descriptions supplied by other mods.
         if(g.corrupted)out.add(text("腐化 · 禁止常规加工，仍可镶嵌、出售、整件分解",0xff7070));
-        out.add(text(g.rarity.title()+" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.armor()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.jewelry()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.title())+" · 需求 Lv."+g.level,g.rarity.color()));
+        Component quality=text(g.rarity.title(),g.rarity.color());if(g.rarity==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC)quality=cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(quality);
+        out.add(Component.empty().append(quality).append(text(" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.armor()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.jewelry()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.title())+" · 需求 Lv."+g.level,g.rarity.color())));
         if(!valid)out.add(text("等级或职业条件不足，装备属性不生效",0xff7272));
         boolean weapon=g.slot==Slot.WEAPON;
         boolean baseValues=shift();

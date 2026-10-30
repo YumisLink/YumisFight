@@ -19,6 +19,6 @@ public final class DamageMeter {
         }
         public long elapsed(long now){long total=0;for(long[] span:combat)total+=Math.max(0,Math.min(now,span[1])-span[0]);return total;}
         public double canonical(){return damage.values().stream().mapToDouble(Double::doubleValue).sum();}
-        public double displayed(int viewerLevel,boolean sync){double value=0;for(var bucket:damage.entrySet())value+=bucket.getValue()*(sync?(Math.max(bucket.getKey(),viewerLevel)+1d)/(bucket.getKey()+1d):1);return value;}
+        public double displayed(int viewerLevel,boolean sync){double value=0;for(var bucket:damage.entrySet())value+=bucket.getValue()*Target.healthProjection(bucket.getKey(),viewerLevel,sync);return value;}
     }
 }

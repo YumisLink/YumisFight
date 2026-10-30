@@ -24,13 +24,20 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public int entityId,originalLevel=1,partySize=1;
     public String dimension="",instance="",kind="NORMAL";
     public Difficulty difficulty=Difficulty.NORMAL;
-    public boolean elite,noRewards;
+    public boolean elite,noRewards,timedTraining;
     public String elitePower="";
     public double[] elementalResists={0,0,0,0};
     public double maximumHealth(int playerLevel,boolean sync){return health(level(playerLevel,sync));}
+    /** Ratio between the same enemy's synchronized and original maximum health. */
+    public static double healthProjection(int originalLevel,int viewerLevel,boolean sync){
+        int original=Math.clamp(originalLevel,1,CharacterRules.MAX_LEVEL);
+        int projected=sync?Math.max(original,Math.clamp(viewerLevel,1,CharacterRules.MAX_LEVEL)):original;
+        return HEALTH_GROWTH[projected-1]/HEALTH_GROWTH[original-1];
+    }
     public String power(){return elitePower;}
     public boolean rewardsEligible(){return !noRewards;}
     public boolean training(){return kind.equals("TRAINING");}
+    @Override public boolean networkTraining(){return training()&&timedTraining;}
     public boolean consumesHealth(){return !training();}
     @Override public cn.yumis.fight.modules.combat.api.Receipt receive(double fraction,boolean heal){
         if(!training())return cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);

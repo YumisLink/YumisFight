@@ -13,7 +13,7 @@ public final class DamageAnalysisPanel implements ClientPagePanel {
         region=r;var font=UiFonts.font();var view=DamageAnalysis.view();
         int x=r.x()+8,y=r.y()+8,w=Math.max(1,r.width()-16);
         g.text(font,"Ctrl＋】开始 / 停止 · "+view.reason(),x,y,view.recording()?UiTheme.GOLD:UiTheme.MUTED,false);
-        y+=16;String mode=view.kind()==null?"等待首次命中":view.kind()==DamageAnalysis.Kind.COMBAT?"实战有效伤害":"沙袋训练伤害";
+        y+=16;String mode=view.kind()==null?"等待首次命中":view.kind()==DamageAnalysis.Kind.COMBAT?"实战有效伤害":view.kind()==DamageAnalysis.Kind.MIXED?"实战及计时沙袋伤害":"沙袋训练伤害";
         g.text(font,mode+" · "+String.format(Locale.ROOT,"%.1f",view.seconds())+"秒",x,y,UiTheme.TEXT,false);
         y+=16;double dps=view.seconds()>0?view.total()/view.seconds():0;
         String total="总伤害 "+NumberText.damage(view.total()),dpsText="DPS "+NumberText.damage(dps);

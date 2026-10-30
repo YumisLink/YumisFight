@@ -9,6 +9,7 @@ public final class SkillReductions {
     private static void register(String id,Consumer<CareerState> state,Consumer<Runtime> resources){if(HANDLERS.putIfAbsent(id,new Handler(state,resources))!=null)throw new IllegalArgumentException("重复退级处理："+id);}
     static {
         register(SkillCatalog.OVERDRIVE.id,s->{},r->{r.buffs.remove(SkillCatalog.OVERDRIVE.id);r.absorption.remove("overdrivePower");r.absorptionUntil.remove("overdrivePower");});
+        register(OracleSkills.WILL,s->s.oracle=new OracleState(),r->{});
         register(CareerSkills.FIELD,s->s.field=null,r->{});
         register(CareerSkills.FRENZY,s->s.frenzy=false,r->{});
         register(CareerSkills.BRANDS,s->{s.brands=0;s.nextBrand=System.currentTimeMillis()+5000;},r->{});

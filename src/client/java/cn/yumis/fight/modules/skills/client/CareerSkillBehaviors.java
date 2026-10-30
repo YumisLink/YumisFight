@@ -9,6 +9,7 @@ import java.util.*;
 final class CareerSkillBehaviors {
     private CareerSkillBehaviors(){}
     static void install(){
+        SkillBehaviors.registerStart(CareerSkills.EYE,(x,c,now)->{if(!c.terminal)CareerClient.INSTANCE.eyeStarted(c,now);});
         SkillBehaviors.register(CareerSkills.FIELD,(x,c,n,e,s,v)->x.cancel(true));
         SkillBehaviors.register(CareerSkills.FRENZY,(x,c,n,e,s,v)->x.cancel(true));
         SkillBehaviors.register(CareerSkills.KALLA,(x,c,n,e,s,v)->{

@@ -52,6 +52,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.presentation.api.client.ClientUi.install(ClientSession.INSTANCE);
         cn.yumis.fight.modules.equipment.api.client.EquipmentClient.install(ClientSession.INSTANCE);
         cn.yumis.fight.modules.skills.api.client.SkillsClient.install(ClientSession.INSTANCE);
+        cn.yumis.fight.modules.dungeons.api.TrainingActions.client(cn.yumis.fight.modules.dungeons.client.TrainingInput::use);
         cn.yumis.fight.bootstrap.PlayerPageAssembly.register();
         cn.yumis.fight.modules.presentation.api.client.MenuInput.navigation(page->Minecraft.getInstance().gui.setScreen(new FightScreen(page)));
         IndustrialRecipeCache.register();
@@ -63,8 +64,9 @@ public final class ClientBootstrap {
         UiTheme.load();
         UiFonts.register(bus);
         CurrencyUi.register();
+        NeoForge.EVENT_BUS.addListener((RenderTooltipEvent.Texture event)->{if(cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mythic(event.getItemStack())||cn.yumis.fight.modules.equipment.api.client.MythicDisplay.marked(event.getComponents()))event.setTexture(cn.yumis.fight.modules.equipment.api.client.MythicDisplay.TOOLTIP);});
         EquipmentEligibility.CLIENT_PROGRESS=p->ClientSession.INSTANCE.progress;
-        EquipmentTooltip.install(id->{var currency=cn.yumis.fight.modules.economy.api.CurrencyRules.find(id);return currency==null?null:cn.yumis.fight.modules.presentation.api.client.UiFonts.decorate(net.minecraft.network.chat.Component.literal(currency.rarity().title()+" · 通货").withStyle(style->style.withColor(currency.rarity().color()).withItalic(false)));},
+        EquipmentTooltip.install(id->{var currency=cn.yumis.fight.modules.economy.api.CurrencyRules.find(id);if(currency==null)return null;var label=cn.yumis.fight.modules.presentation.api.client.UiFonts.decorate(net.minecraft.network.chat.Component.literal(currency.rarity().title()+" · 通货").withStyle(style->style.withColor(currency.rarity().color()).withItalic(false)));return currency.rarity()==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC?cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(label):label;},
             id->cn.yumis.fight.modules.dungeons.api.DungeonCatalog.current().dungeons.stream().filter(d->d.materials().contains(id)).map(d->"来源："+d.name()+(d.available()?"":"（尚未开放）")).toList(),
             ()->Boolean.getBoolean("ydnf.verify")&&VerificationDriver.tooltipShift);
         bus.addListener((RegisterKeyMappingsEvent e)->{
@@ -106,6 +108,7 @@ public final class ClientBootstrap {
             ;
         }
         );
+        NeoForge.EVENT_BUS.addListener((InputEvent.MouseScrollingEvent event)->{if(cn.yumis.fight.modules.skills.client.Effects.VFX.blocksHotbar())event.setCanceled(true);});
         NeoForge.EVENT_BUS.addListener((InputEvent.InteractionKeyMappingTriggered e)->{
             if(e.isAttack()&&SkillController.INSTANCE.validWeapon()&&(Minecraft.getInstance().hitResult==null||Minecraft.getInstance().hitResult.getType()!=HitResult.Type.BLOCK)){
                 e.setCanceled(true);e.setSwingHand(false);SkillController.INSTANCE.attack();
@@ -163,7 +166,7 @@ public final class ClientBootstrap {
         var mc=Minecraft.getInstance();
         boolean control=InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_LEFT_CONTROL)||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_RIGHT_CONTROL);
         if(mc.player!=null&&ClientSession.INSTANCE.ready&&event.key()==GLFW.GLFW_KEY_RIGHT_BRACKET&&control&&(mc.gui.screen()==null||mc.gui.screen() instanceof FightScreen)){
-            if(action==GLFW.GLFW_PRESS){cn.yumis.fight.modules.combat.api.client.DamageAnalysis.toggle(ClientSession.INSTANCE.resources.combatUntil);ClientSession.INSTANCE.message("伤害分析："+(cn.yumis.fight.modules.combat.api.client.DamageAnalysis.recording()?"开始记录":"停止记录")+"；在角色页面查看结果");}
+            if(action==GLFW.GLFW_PRESS){var state=ClientSession.INSTANCE;cn.yumis.fight.modules.combat.api.client.DamageAnalysis.toggle(state.resources.combatUntil,state.trainingMeter.has("id")&&!state.trainingMeter.get("completed").getAsBoolean());state.message("伤害分析："+(cn.yumis.fight.modules.combat.api.client.DamageAnalysis.recording()?"开始记录":"停止记录")+"；在角色页面查看结果");}
             return true;
         }
         if(CloudMovement.key(event,action))return true;

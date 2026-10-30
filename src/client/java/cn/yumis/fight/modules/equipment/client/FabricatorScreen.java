@@ -58,10 +58,6 @@ public final class FabricatorScreen extends ThemedContainerScreen<FabricatorMenu
             level=Math.min(80,Math.min(EquipmentClient.current().progress().level,level+1));controls();
         }
         ).bounds(leftPos+101,topPos+31,20,18).build(ThemedButton::new));
-        addRenderableWidget(Button.builder(Component.literal("分解主手"),b->{
-            var j=EquipmentClient.current().operation("salvage");j.addProperty("inventorySlot",minecraft.player.getInventory().getSelectedSlot());EquipmentClient.current().send("salvage",j);
-        }
-        ).bounds(leftPos+124,topPos+31,48,18).build(ThemedButton::new));
         try{
             needs=MaterialCatalog.current().recipe(slot,level);
         }

@@ -33,12 +33,14 @@ public final class TrainingCombat {
     }
     private TrainingCombat(){}
     public static Target context(LivingEntity entity){
-        if(!(entity instanceof TrainingSandbag))return null;
+        if(!(entity instanceof TrainingSandbag bag))return null;
+        if(bag.timed()){TARGETS.remove(entity.getUUID());return null;}
         Target target=TARGETS.computeIfAbsent(entity.getUUID(),id->{var t=new Target();t.id=id;t.kind="TRAINING";t.noRewards=true;t.originalLevel=1;t.life.target=id;return t;});
         target.entityId=entity.getId();target.dimension=entity.level().dimension().identifier().toString();target.life.dimension=target.dimension;
         return target;
     }
     public static boolean isTraining(UUID target){return TARGETS.containsKey(target);}
+    public static void forget(UUID target){TARGETS.remove(target);}
     public static boolean isTraining(Life life){return life!=null&&isTraining(life.target);}
     public static boolean accepts(String root){return !CLOSED.contains(root);}
     /** A broken practice attempt is discarded as a unit; real combat and its reports keep running. */

@@ -28,6 +28,15 @@ public final class AffixGeneration {
         },(c,d,roll,random)->{Affix a=instance(d);a.family=d.id().substring(7).toUpperCase(Locale.ROOT);a.rank=1+random.nextInt(3);a.fixed=true;return a;}));
     }
     private AffixGeneration(){}
+    /** Enumerates actual eligible content without consuming random draws or constructing affix instances. */
+    public static List<AffixDefinition> candidates(Item item,boolean duplicates){
+        var result=new LinkedHashMap<String,AffixDefinition>();var context=new Context(item,duplicates);
+        for(var group:GROUPS.values()){
+            double weight=group.weight.applyAsDouble(context);if(!Double.isFinite(weight)||weight<0)throw new IllegalArgumentException("Invalid affix group weight");
+            if(weight>0)for(var definition:group.candidates.apply(context))if(definition.active())result.putIfAbsent(definition.id(),definition);
+        }
+        return List.copyOf(result.values());
+    }
     private static Affix instance(AffixDefinition definition){Affix a=new Affix();a.instanceId=UUID.randomUUID().toString();a.id=definition.id();a.stat=definition.stat()==null?"":definition.stat().name();a.operation=definition.operation();a.element=definition.element();return a;}
     private static Affix stat(Context context,AffixDefinition definition,double roll,Random random){
         Affix a=instance(definition);a.baseline=context.item.baseline(a);a.roll=roll;a.value=a.baseline*roll;

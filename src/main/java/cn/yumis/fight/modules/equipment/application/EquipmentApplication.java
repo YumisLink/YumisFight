@@ -43,9 +43,39 @@ public final class EquipmentApplication {
     private final Consumer<ServerPlayer> profile;
     private final BiConsumer<ServerPlayer,String> message;
     private final Random random;
-    private final Function<Rarity,String> salvageCurrency;
-    public EquipmentApplication(Journal journal,InventoryOperations inventory,Function<ServerPlayer,Progress> progressOf,Function<ServerPlayer,UUID> sessionId,BiFunction<ServerPlayer,String,Profession> professionOf,Consumer<ServerPlayer> profile,BiConsumer<ServerPlayer,String> message,Random random,Function<Rarity,String> salvageCurrency){this.salvageCurrency=salvageCurrency;this.journal=journal;this.inventory=inventory;this.progressOf=progressOf;this.sessionId=sessionId;this.professionOf=professionOf;this.profile=profile;this.message=message;this.random=random;}
-    public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("equipment","craft",this::craft);router.register("equipment","currency",this::currencyRequest);router.register("equipment","salvage",this::salvage);}
+    private record CreativeSlot(UUID player,int slot){}
+    private record CreativeArrival(ServerPlayer player,int slot,ItemStack expected,long due){}
+    private final Map<CreativeSlot,CreativeArrival> creativeArrivals=new LinkedHashMap<>();
+    private long creativeTick;
+    public EquipmentApplication(Journal journal,InventoryOperations inventory,Function<ServerPlayer,Progress> progressOf,Function<ServerPlayer,UUID> sessionId,BiFunction<ServerPlayer,String,Profession> professionOf,Consumer<ServerPlayer> profile,BiConsumer<ServerPlayer,String> message,Random random){this.journal=journal;this.inventory=inventory;this.progressOf=progressOf;this.sessionId=sessionId;this.professionOf=professionOf;this.profile=profile;this.message=message;this.random=random;}
+    public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("equipment","craft",this::craft);router.register("equipment","currency",this::currencyRequest);}
+    /** Called after vanilla accepts a creative slot, never while reading the incoming template. */
+    public void creativeArrived(ServerPlayer player,int menuSlot){
+        if(!player.isCreative()||menuSlot<0||menuSlot>=player.inventoryMenu.slots.size())return;
+        var slot=player.inventoryMenu.getSlot(menuSlot);if(slot.container!=player.getInventory())return;
+        queueCreativeSlot(player,slot.getContainerSlot());
+    }
+    /** Rechecks actual ownership after inventory commits or reconnect, including a template moved before its callback. */
+    public void inventoryArrived(ServerPlayer player){for(int index=0;index<player.getInventory().getContainerSize();index++)queueCreativeSlot(player,index);}
+    private void queueCreativeSlot(ServerPlayer player,int index){
+        var key=new CreativeSlot(player.getUUID(),index);var stack=player.getInventory().getItem(index);var view=EquipmentItems.view(stack);
+        if(view==null||!view.creativeTemplate()){creativeArrivals.remove(key);return;}
+        var previous=creativeArrivals.get(key);if(previous==null||!ItemStack.matches(previous.expected,stack))creativeArrivals.put(key,new CreativeArrival(player,index,stack.copy(),creativeTick+1));
+    }
+    public void tickCreativeArrivals(){
+        creativeTick++;
+        for(var iterator=creativeArrivals.values().iterator();iterator.hasNext();){
+            var arrival=iterator.next();if(arrival.due>creativeTick)continue;var player=arrival.player;
+            if(player.level().getServer().getPlayerList().getPlayer(player.getUUID())!=player){iterator.remove();continue;}
+            if(inventory.locked(player.getUUID()))continue;iterator.remove();
+            var stack=player.getInventory().getItem(arrival.slot);if(!ItemStack.matches(stack,arrival.expected))continue;
+            var gear=EquipmentItems.gear(stack);if(gear==null||!gear.creativeTemplate)continue;
+            var generated=CreativeEquipment.materialize(stack,random);if(generated==stack)continue;
+            player.getInventory().setItem(arrival.slot,generated);player.getInventory().setChanged();
+            // The creative cursor belongs to the client. Never publish a full container here.
+            player.connection.send(player.getInventory().createInventoryUpdatePacket(arrival.slot));
+        }
+    }
 
     public void craft(ServerPlayer p,JsonObject j){
         requireRuleRevision(p,j);
@@ -156,20 +186,6 @@ public final class EquipmentApplication {
             if(!currencyClick(p,p.containerMenu,index,1,ContainerInput.PICKUP,j.has("socket")?j.get("socket").getAsInt():-1))throw new IllegalArgumentException("无法加工");
         }
         ,Map.of());
-        profile.accept(p);
-    }
-    public void salvage(ServerPlayer p,JsonObject j){
-        if(!(p.containerMenu instanceof FabricatorMenu m)||!m.stillValid(p))throw new IllegalArgumentException("请使用装备制作器");
-        int index=j.get("inventorySlot").getAsInt();
-        if(index<0||index>=36)throw new IllegalArgumentException("背包槽无效");
-        inventory.transact(p,j.get("operation").getAsString(),j,()->{
-            Gear gear=EquipmentItems.gear(p.getInventory().getItem(index));
-            if(gear==null)throw new IllegalArgumentException("请选择装备");
-            String upgrade=salvageCurrency.apply(gear.rarity);
-            p.getInventory().setItem(index,ItemStack.EMPTY);inventory.requireSpace(p,ItemRegistry.item(upgrade,1));
-        }
-        ,Map.of());
-        message.accept(p,"分解完成，获得1枚升级石");
         profile.accept(p);
     }
 }

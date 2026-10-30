@@ -10,5 +10,7 @@ public interface CombatTarget {
     String power();
     boolean rewardsEligible();
     default boolean training(){return false;}
+    /** Server-confirmed practice targets retain training health semantics. */
+    default boolean networkTraining(){return false;}
     default Receipt receive(double fraction,boolean heal){return LifeRules.apply(life(),fraction,heal);}
 }

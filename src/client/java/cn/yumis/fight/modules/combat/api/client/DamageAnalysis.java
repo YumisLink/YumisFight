@@ -6,7 +6,7 @@ import java.util.*;
 /** Local analysis rounds consume confirmed outcomes; this state never participates in combat authority. */
 public final class DamageAnalysis {
     public static final String LOCAL_SOURCE="_analysisSource";
-    public enum Kind { COMBAT, TRAINING }
+    public enum Kind { COMBAT, TRAINING, TIMED_TRAINING, MIXED }
     public record Source(String id,String title) {
         public Source {Objects.requireNonNull(id);Objects.requireNonNull(title);}
     }
@@ -26,10 +26,10 @@ public final class DamageAnalysis {
     private DamageAnalysis(){}
     private static long now(){return net.minecraft.util.Util.getMillis();}
     public static boolean recording(){return recording;}
-    public static void toggle(long combatUntil){
+    public static void toggle(long combatUntil,boolean timedTraining){
         if(recording){stop("手动停止");return;}
         round++;ROWS.clear();INTERVALS.clear();kind=null;started=now();stopped=0;recording=true;reason="等待交战";
-        if(combatUntil>started){kind=Kind.COMBAT;INTERVALS.add(new long[]{started,combatUntil});}
+        if(combatUntil>started){kind=timedTraining?Kind.TIMED_TRAINING:Kind.COMBAT;INTERVALS.add(new long[]{started,combatUntil});}
     }
     public static void stop(String why){if(recording){recording=false;stopped=now();reason=why;}}
     public static void clear(){round++;ROWS.clear();INTERVALS.clear();EFFECTS.clear();recording=false;started=stopped=0;kind=null;reason="尚未开始";initialized=false;}
@@ -42,9 +42,17 @@ public final class DamageAnalysis {
         return changed;
     }
     public static Ticket submit(Source source,Kind eventKind,long occurredAt,cn.yumis.fight.modules.combat.api.CombatSettings settings){return recording?new Ticket(round,source,eventKind,occurredAt,settings.delayMillis()):null;}
+    private static boolean acceptKind(Kind event){
+        if(kind==null){kind=event;return true;}
+        if(kind==event||kind==Kind.TRAINING&&event==Kind.TIMED_TRAINING)return true;
+        if(kind==Kind.TIMED_TRAINING&&event==Kind.TRAINING){kind=Kind.TRAINING;return true;}
+        if(kind==Kind.COMBAT&&event==Kind.TIMED_TRAINING||kind==Kind.TIMED_TRAINING&&event==Kind.COMBAT){kind=Kind.MIXED;return true;}
+        if(kind==Kind.MIXED&&(event==Kind.COMBAT||event==Kind.TIMED_TRAINING))return true;
+        stop("实战与沙袋切换，已停止");return false;
+    }
     public static void combat(Ticket ticket){
         if(ticket==null||ticket.round!=round)return;
-        if(kind==null)kind=ticket.kind;if(kind!=ticket.kind){stop("实战与沙袋切换，已停止");return;}
+        if(!acceptKind(ticket.kind))return;
         long start=Math.max(started,ticket.occurredAt),end=ticket.occurredAt+ticket.delayMillis;if(end<=start)return;
         INTERVALS.add(new long[]{start,end});INTERVALS.sort(Comparator.comparingLong(span->span[0]));
         for(int i=1;i<INTERVALS.size();)if(INTERVALS.get(i-1)[1]>=INTERVALS.get(i)[0]){INTERVALS.get(i-1)[1]=Math.max(INTERVALS.get(i-1)[1],INTERVALS.remove(i)[1]);}else i++;
@@ -52,8 +60,7 @@ public final class DamageAnalysis {
     public static boolean current(Ticket ticket){return ticket!=null&&ticket.round==round;}
     public static void accepted(Ticket ticket,double damage){
         if(ticket==null||ticket.round!=round||!Double.isFinite(damage)||damage<=0)return;
-        if(kind==null)kind=ticket.kind;
-        if(kind!=ticket.kind){stop("实战与沙袋切换，已停止");return;}
+        if(!acceptKind(ticket.kind))return;
         combat(ticket);
         Row old=ROWS.get(ticket.source.id);
         ROWS.put(ticket.source.id,new Row(ticket.source,(old==null?0:old.damage)+damage,(old==null?0:old.hits)+1));

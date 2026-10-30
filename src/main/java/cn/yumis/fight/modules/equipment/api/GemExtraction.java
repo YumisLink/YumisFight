@@ -13,6 +13,6 @@ public final class GemExtraction {
         Recipe recipe=RECIPES.get(gear.template);if(gear.corrupted||recipe==null)throw new IllegalArgumentException("该装备尚未开放词条提炼，或已经腐化");
         Gem gem=new Gem();gem.name=recipe.name;gem.level=gear.level;gem.group="armor";
         var d=AffixDefinitions.current().affixes.get(recipe.affix);Affix a=new Affix();a.id=recipe.affix;a.operation=d.operation();a.stat=d.stat().name();a.value=a.baseline=recipe.value;a.fixed=true;
-        AffixResolver.anchor(a,UUID.randomUUID().toString(),d,d.revision());gem.affixes.add(a);return gem;
+        AffixResolver.anchor(a,UUID.randomUUID().toString(),d,d.revision(),d.effectiveScale(gem.level));gem.affixes.add(a);return gem;
     }
 }

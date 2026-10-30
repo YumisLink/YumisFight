@@ -87,6 +87,13 @@ public final class VerificationChecks {
         }
         return count;
     }
+    private JsonObject dismantleRequest(int slot){
+        var request=new JsonObject();request.addProperty("session",runtime.session(player).id.toString());String token=runtime.economyService.saleOpen(player,request);
+        request.addProperty("operation",prefix+sequence++);request.addProperty("menu",player.inventoryMenu.containerId);request.addProperty("token",token);var items=new JsonArray();items.add("inventory/"+slot);request.add("items",items);return request;
+    }
+    private long droppedSince(Set<String> previous,String item){
+        long total=0;for(String key:runtime.journal.keys("loot/"))if(!previous.contains(key)){var value=runtime.journal.get(key);if(value.isJsonObject()&&value.getAsJsonObject().has("item")){var stack=runtime.inventory.decode(player,value.getAsJsonObject().get("item"));if(ItemData.id(stack).equals(item))total+=stack.getCount();}}return total;
+    }
     private JsonObject craft(Slot slot,int level){
         JsonObject j=new JsonObject();
         j.addProperty("rulesRevision",EquipmentDefinitions.current().revision);
@@ -331,13 +338,10 @@ public final class VerificationChecks {
             runtime.equipmentApplication.currencyRequest(player,currency(0,null));
             check(EquipmentItems.gear(player.getInventory().getItem(0)).set.equals("first_sword")&&player.inventoryMenu.getCarried().isEmpty(),"set_transfer_allows_white_target");
             clear();
-            mutate(()->player.getInventory().setItem(0,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.EPIC,20,new Random(2)))));
-            openFabricator(pos);
-            JsonObject salvage=new JsonObject();
-            salvage.addProperty("operation",prefix+sequence++);
-            salvage.addProperty("inventorySlot",0);
-            runtime.equipmentApplication.salvage(player,salvage);
-            check(count("epic_upgrade_stone")==1&&count("katana")==0,"whole_epic_salvage_exactly_one_upgrade_stone");
+            mutate(()->player.getInventory().setItem(10,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.EPIC,20,new Random(2)))));
+            var beforeDrops=new HashSet<>(runtime.journal.keys("loot/"));JsonObject dismantle=dismantleRequest(10);
+            runtime.economyService.dismantle(player,dismantle);
+            check(droppedSince(beforeDrops,"epic_upgrade_stone")==1&&count("katana")==0,"whole_epic_dismantle_drops_exactly_one_upgrade_stone");
             player.closeContainer();
             clear();
             mutate(()->player.getInventory().setItem(0,EquipmentItems.material("goblin_ingot",64)));
@@ -453,13 +457,14 @@ public final class VerificationChecks {
         check(player.inventoryMenu.getCarried().getCount()==1,"upgrade_stone_consumes_exactly_one");
         runtime.equipmentApplication.currencyRequest(player,upgrade);check(player.inventoryMenu.getCarried().getCount()==1&&EquipmentItems.gear(player.getInventory().getItem(0)).revision==raised.revision,"duplicate_new_upgrade_is_idempotent");
         rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"new_upgrade_level80_rejected");check(player.inventoryMenu.getCarried().getCount()==1,"failed_new_upgrade_keeps_stone");
-        mutate(()->player.inventoryMenu.setCarried(ItemStack.EMPTY));openFabricator(pos);
-        JsonObject salvage=new JsonObject();salvage.addProperty("operation",prefix+sequence++);salvage.addProperty("inventorySlot",0);
-        runtime.equipmentApplication.salvage(player,salvage);check(count("upgrade_stone")==1&&EquipmentItems.gear(player.getInventory().getItem(0))==null,"legendary_salvage_yields_one_upgrade_stone");
-        runtime.equipmentApplication.salvage(player,salvage);check(count("upgrade_stone")==1,"duplicate_legendary_salvage_is_idempotent");
-        mutate(()->player.getInventory().setItem(0,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,50,new Random(0)))));
-        String before=inventory();JsonObject bad=salvage.deepCopy();bad.addProperty("operation",prefix+sequence++);
-        rejects(()->runtime.equipmentApplication.salvage(player,bad),"common_salvage_rejected");check(before.equals(inventory()),"failed_salvage_keeps_equipment");
+        mutate(()->{player.inventoryMenu.setCarried(ItemStack.EMPTY);player.getInventory().setItem(10,player.getInventory().getItem(0));player.getInventory().setItem(0,ItemStack.EMPTY);});
+        var beforeDrops=new HashSet<>(runtime.journal.keys("loot/"));JsonObject dismantle=dismantleRequest(10);
+        runtime.economyService.dismantle(player,dismantle);long produced=CurrencyRules.dismantlePool(Rarity.LEGENDARY).stream().mapToLong(id->droppedSince(beforeDrops,id)).sum();
+        check(produced>=1&&produced<=3&&player.getInventory().getItem(10).isEmpty(),"legendary_dismantle_drops_one_to_three_lower_currencies");
+        runtime.economyService.dismantle(player,dismantle);check(CurrencyRules.dismantlePool(Rarity.LEGENDARY).stream().mapToLong(id->droppedSince(beforeDrops,id)).sum()==produced,"duplicate_dismantle_is_idempotent");
+        mutate(()->player.getInventory().setItem(10,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,50,new Random(0)))));
+        JsonObject bad=dismantleRequest(10);mutate(()->player.getInventory().setItem(10,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,50,new Random(1)))));String before=inventory();
+        rejects(()->runtime.economyService.dismantle(player,bad),"stale_dismantle_rejected");check(before.equals(inventory()),"failed_dismantle_keeps_equipment");
     }
     private void containerChecks(net.minecraft.core.BlockPos pos)throws Exception{
         player.closeContainer();clear();

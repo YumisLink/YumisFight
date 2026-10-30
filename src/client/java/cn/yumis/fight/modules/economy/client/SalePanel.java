@@ -1,6 +1,9 @@
 package cn.yumis.fight.modules.economy.client;
 
 import cn.yumis.fight.modules.presentation.api.client.*;
+import cn.yumis.fight.modules.affixes.api.client.AffixFavorites;
+import cn.yumis.fight.modules.equipment.api.Rarity;
+import cn.yumis.fight.modules.equipment.api.client.MythicDisplay;
 import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.client.Minecraft;
@@ -13,7 +16,7 @@ import java.util.*;
 
 /** Nine real inventory columns, a detail pane, and fixed batch totals inside the I menu. */
 public final class SalePanel implements ClientPagePanel {
-    private record Row(String key,boolean bag,int slot,boolean allowed,String name,String reason,long price,String identity,ItemStack preview,List<Component> details){}
+    private record Row(String key,boolean bag,int slot,boolean allowed,String name,String reason,long price,String dismantle,Rarity rarity,String identity,ItemStack preview,List<Component> details){}
     private record Cell(Row row,int x,int y){}
     private record InventoryValue(Object item,int count,Object components){}
     private final Map<String,Row> rows=new LinkedHashMap<>();
@@ -24,7 +27,8 @@ public final class SalePanel implements ClientPagePanel {
     private JsonObject quote;
     private Region region;
     private String focused="",detailKey="";
-    private boolean bag=SaleClient.bag(),requested,waiting,confirming,layoutDirty=true;
+    private boolean bag=SaleClient.bag(),requested,waiting,confirming,dismantling,layoutDirty=true;
+    private long favoriteRevision=AffixFavorites.revision();
     private int scroll,maxScroll,cell,gridLeft,gridTop,gridBottom,detailLeft,detailWidth,detailScroll;
     private long revision=SaleClient.revision(),total,lastRequest,dirtyAt=-1;
     private int observedHand=-1;
@@ -37,6 +41,7 @@ public final class SalePanel implements ClientPagePanel {
             var data=SaleClient.snapshot();
             if(data!=null){accept(data);revision=SaleClient.revision();}
         }
+        if(favoriteRevision!=AffixFavorites.revision()&&quote!=null){favoriteRevision=AffixFavorites.revision();accept(quote);}
         var player=Minecraft.getInstance().player;
         if(player!=null){
             if(observedHand>=0&&observedHand!=player.getInventory().getSelectedSlot()){dirtyAt=now;confirming=false;}
@@ -54,13 +59,16 @@ public final class SalePanel implements ClientPagePanel {
         for(var value:data.getAsJsonArray("rows")){
             var row=value.getAsJsonObject();String key=row.get("key").getAsString();
             ItemStack preview=row.has("item")?ItemStack.OPTIONAL_CODEC.parse(mc.player.registryAccess().createSerializationContext(JsonOps.INSTANCE),row.get("item")).result().orElse(ItemStack.EMPTY):ItemStack.EMPTY;
-            List<Component> lines=new ArrayList<>();lines.add(Component.literal(row.get("name").getAsString()));
+            Rarity rarity=row.has("rarity")?Rarity.valueOf(row.get("rarity").getAsString()):Rarity.COMMON;
+            List<Component> lines=new ArrayList<>();Component name=Component.literal(row.get("name").getAsString());lines.add(rarity==Rarity.MYTHIC?MythicDisplay.mark(name):name);
             long price=row.has("price")?row.get("price").getAsLong():0;
-            if(row.has("price"))lines.add(Component.literal("售价："+price+"金币"));
+            String dismantle=row.has("dismantle")?row.get("dismantle").getAsString():"";
+            if(row.has("price"))lines.add(Component.literal(dismantling?"分解："+dismantle:"售价："+price+"金币"));
+            if(dismantling&&row.has("gems")&&row.get("gems").getAsInt()>0)lines.add(Component.literal("镶嵌宝石将一并销毁").withColor(0xff8a58));
             if(!row.get("allowed").getAsBoolean())lines.add(Component.literal(row.get("reason").getAsString()));
-            if(row.has("lines"))for(var line:row.getAsJsonArray("lines"))lines.add(Component.literal(line.getAsString()));
+            if(row.has("lines"))for(var valueLine:row.getAsJsonArray("lines")){var line=valueLine.getAsJsonObject();lines.add(AffixFavorites.decorate(line.get("id").getAsString(),Component.literal(line.get("text").getAsString())));}
             String identity=row.has("equipment")?row.get("equipment").getAsString()+":"+row.get("revision").getAsInt():"";
-            next.put(key,new Row(key,row.get("bag").getAsBoolean(),row.get("slot").getAsInt(),row.get("allowed").getAsBoolean(),row.get("name").getAsString(),row.get("reason").getAsString(),price,identity,preview,List.copyOf(lines)));
+            next.put(key,new Row(key,row.get("bag").getAsBoolean(),row.get("slot").getAsInt(),row.get("allowed").getAsBoolean(),row.get("name").getAsString(),row.get("reason").getAsString(),price,dismantle,rarity,identity,preview,List.copyOf(lines)));
         }
         selected.removeIf(key->{var old=rows.get(key);var current=next.get(key);return old==null||current==null||!current.allowed||!old.identity.equals(current.identity)||old.price!=current.price;});
         rows.clear();rows.putAll(next);quote=data;waiting=false;confirming=false;layoutDirty=true;detailKey="";sum();
@@ -70,14 +78,14 @@ public final class SalePanel implements ClientPagePanel {
     private boolean valid(){return quote!=null&&!waiting&&dirtyAt<0&&ClientUi.current().ready()&&quote.get("session").getAsString().equals(ClientUi.current().session());}
     private void sell(){
         if(!valid()||selected.isEmpty())return;
-        var request=ClientUi.current().operation("sell");request.addProperty("session",quote.get("session").getAsString());request.addProperty("menu",quote.get("menu").getAsInt());request.addProperty("token",quote.get("token").getAsString());
-        JsonArray keys=new JsonArray();selected.forEach(keys::add);request.add("items",keys);waiting=true;lastRequest=ClientUi.now();confirming=false;ClientUi.current().send("sell",request);
+        String action=dismantling?"dismantle":"sell";var request=ClientUi.current().operation(action);request.addProperty("session",quote.get("session").getAsString());request.addProperty("menu",quote.get("menu").getAsInt());request.addProperty("token",quote.get("token").getAsString());
+        JsonArray keys=new JsonArray();selected.forEach(keys::add);request.add("items",keys);waiting=true;lastRequest=ClientUi.now();confirming=false;ClientUi.current().send(action,request);
     }
     private void layout(){
         if(region==null||!layoutDirty)return;layoutDirty=false;
         detailWidth=region.width()>=390?Math.min(260,region.width()/2):0;
         int gridWidth=region.width()-detailWidth-(detailWidth>0?12:8);
-        cell=Math.max(18,Math.min(38,(gridWidth-12)/9));gridLeft=region.x()+6;gridTop=region.y()+30;
+        cell=Math.max(18,Math.min(38,(gridWidth-12)/9));gridLeft=region.x()+6;gridTop=region.y()+54;
         gridBottom=region.y()+region.height()-(region.height()<160?52:76);detailLeft=gridLeft+cell*9+12;
         if(detailWidth==0&&region.height()>=180)gridBottom-=32;
         int available=Math.max(1,(gridBottom-gridTop)/cell),count=(int)rows.values().stream().filter(row->row.bag==bag).count();
@@ -99,11 +107,12 @@ public final class SalePanel implements ClientPagePanel {
         int x=area.x()+6,y=area.y()+4;
         int toolWidth=area.width()>=330?76:Math.max(30,(area.width()-24)/4);
         button(g,area.width()>=330?"普通背包":"背包",x,y,toolWidth,!waiting,!bag,mx,my);button(g,area.width()>=330?"次元背包":"次元",x+toolWidth+4,y,toolWidth,!waiting,bag,mx,my);
-        button(g,area.width()>=330?"全部可售":"全选",x+(toolWidth+4)*2,y,toolWidth,!waiting,false,mx,my);button(g,"清空",x+(toolWidth+4)*3,y,area.width()>=330?44:toolWidth,!waiting,false,mx,my);
+        button(g,area.width()>=330?"全部可选":"全选",x+(toolWidth+4)*2,y,toolWidth,!waiting,false,mx,my);button(g,"清空",x+(toolWidth+4)*3,y,area.width()>=330?44:toolWidth,!waiting,false,mx,my);
+        button(g,"出售",x,y+24,toolWidth,!waiting,!dismantling,mx,my);button(g,"分解",x+toolWidth+4,y+24,toolWidth,!waiting,dismantling,mx,my);
         Row hovered=null;
         for(Cell slot:cells){
             var row=slot.row;boolean chosen=selected.contains(row.key);UiTheme.button(g,slot.x,slot.y,cell-2,cell-2,row.allowed,inside(mx,my,slot.x,slot.y,cell-2,cell-2),chosen);
-            if(!row.preview.isEmpty()){int iconX=slot.x+(cell-18)/2,iconY=slot.y+(cell-18)/2;g.item(row.preview,iconX,iconY);}
+            if(!row.preview.isEmpty()){int iconX=slot.x+(cell-18)/2,iconY=slot.y+(cell-18)/2;g.item(row.preview,iconX,iconY);if(row.rarity==Rarity.MYTHIC)MythicDisplay.frame(g,iconX,iconY,16,16);}
             if(chosen){g.fill(slot.x,slot.y,slot.x+cell-2,slot.y+1,UiTheme.SUCCESS);g.fill(slot.x,slot.y,slot.x+1,slot.y+cell-2,UiTheme.SUCCESS);}
             if(inside(mx,my,slot.x,slot.y,cell-2,cell-2))hovered=row;
         }
@@ -117,15 +126,15 @@ public final class SalePanel implements ClientPagePanel {
                 String cache=detail.key+":"+w+":"+revision;if(!cache.equals(detailKey)){List<FormattedCharSequence> lines=new ArrayList<>();for(Component line:detail.details)lines.addAll(UiFonts.font().split(line,w-16));detailLines=List.copyOf(lines);detailKey=cache;}
                 int limit=Math.max(1,(h-16)/12);detailScroll=Math.clamp(detailScroll,0,Math.max(0,detailLines.size()-limit));
                 g.enableScissor(detailLeft+4,gridTop+4,detailLeft+w-4,gridBottom-4);
-                for(int i=detailScroll;i<Math.min(detailLines.size(),detailScroll+limit);i++)g.text(UiFonts.font(),detailLines.get(i),detailLeft+8,gridTop+8+(i-detailScroll)*12,i==0?UiTheme.GOLD:UiTheme.TEXT,false);
+                for(int i=detailScroll;i<Math.min(detailLines.size(),detailScroll+limit);i++)MythicDisplay.text(g,UiFonts.font(),detailLines.get(i),detailLeft+8,gridTop+8+(i-detailScroll)*12,i==0?UiTheme.GOLD:UiTheme.TEXT,false);
                 g.disableScissor();g.enableScissor(area.x(),area.y(),area.x()+area.width(),area.y()+area.height());
             }
-        }else if(detail!=null&&area.height()>=180){text(g,detail.name,gridLeft,gridBottom+5,UiTheme.GOLD,area.width()-12);text(g,detail.allowed?"售价 "+detail.price+"金币":detail.reason,gridLeft,gridBottom+18,detail.allowed?UiTheme.TEXT:UiTheme.ERROR,area.width()-12);}
+        }else if(detail!=null&&area.height()>=180){Component title=Component.literal(UiFonts.font().plainSubstrByWidth(detail.name,area.width()-12));MythicDisplay.text(g,UiFonts.font(),(detail.rarity==Rarity.MYTHIC?MythicDisplay.mark(title):title).getVisualOrderText(),gridLeft,gridBottom+5,UiTheme.GOLD,false);text(g,detail.allowed?(dismantling?detail.dismantle:"售价 "+detail.price+"金币"):detail.reason,gridLeft,gridBottom+18,detail.allowed?UiTheme.TEXT:UiTheme.ERROR,area.width()-12);}
         int bottom=area.y()+area.height();boolean compact=area.height()<160;int footer=compact?48:70;UiTheme.card(g,area.x()+2,bottom-footer,area.width()-4,footer-2);
-        text(g,waiting?"正在读取报价…":dirtyAt>=0?"背包已变化，正在更新报价…":compact&&confirming?"出售 "+selected.size()+" 件 · "+total+"金币（含宝石）":"已选 "+selected.size()+" 件 · 合计 "+total+"金币",x,bottom-(compact?43:61),confirming?UiTheme.ERROR:UiTheme.GOLD,area.width()-12);
-        if(!compact)text(g,confirming?"宝石一并出售。再次确认后不可撤回。":"当前主手、穿戴装备与待领取物品不可出售。",x,bottom-46,confirming?UiTheme.ERROR:UiTheme.MUTED,area.width()-12);
+        text(g,waiting?"正在读取报价…":dirtyAt>=0?"背包已变化，正在更新报价…":compact&&confirming?(dismantling?"宝石一并销毁 · 分解":"宝石一并出售 · ")+selected.size()+"件":dismantling?"已选 "+selected.size()+" 件 · 产物公开落地":"已选 "+selected.size()+" 件 · 合计 "+total+"金币",x,bottom-(compact?43:61),confirming?UiTheme.ERROR:UiTheme.GOLD,area.width()-12);
+        if(!compact)text(g,confirming?(dismantling?"宝石一并销毁。再次确认后不可撤回。":"宝石一并出售。再次确认后不可撤回。"):"当前主手、穿戴装备与待领取物品不可处理。",x,bottom-46,confirming?UiTheme.ERROR:UiTheme.MUTED,area.width()-12);
         int confirmWidth=Math.min(144,Math.max(84,(area.width()-22)/2));
-        button(g,confirming?"确定出售":"确认出售",x,bottom-26,confirmWidth,valid()&&!selected.isEmpty(),confirming,mx,my);
+        button(g,confirming?(dismantling?"确定分解":"确定出售"):(dismantling?"确认分解":"确认出售"),x,bottom-26,confirmWidth,valid()&&!selected.isEmpty(),confirming,mx,my);
         button(g,confirming?"取消确认":"清空选择",x+confirmWidth+6,bottom-26,Math.min(88,Math.max(64,area.width()-confirmWidth-24)),!waiting,false,mx,my);
         if(waiting&&ClientUi.now()-lastRequest>=10000)button(g,"刷新报价",area.x()+area.width()-88,area.y()+4,82,true,false,mx,my);
         g.disableScissor();
@@ -136,6 +145,7 @@ public final class SalePanel implements ClientPagePanel {
         if(event.button()!=0)return true;double x=event.x(),y=event.y();int left=region.x()+6,top=region.y()+4,bottom=region.y()+region.height();
         if(waiting){if(ClientUi.now()-lastRequest>=10000&&inside(x,y,region.x()+region.width()-88,top,82,20))request();return true;}
         int toolWidth=region.width()>=330?76:Math.max(30,(region.width()-24)/4);
+        if(inside(x,y,left,top+24,toolWidth,20)||inside(x,y,left+toolWidth+4,top+24,toolWidth,20)){boolean next=x>=left+toolWidth+4;if(dismantling!=next){dismantling=next;confirming=false;detailKey="";if(quote!=null)accept(quote);}return true;}
         if(inside(x,y,left,top,toolWidth,20)||inside(x,y,left+toolWidth+4,top,toolWidth,20)){bag=x>=left+toolWidth+4;SaleClient.bag(bag);scroll=0;layoutDirty=true;confirming=false;return true;}
         if(inside(x,y,left+(toolWidth+4)*2,top,toolWidth,20)){for(var row:rows.values())if(row.allowed)selected.add(row.key);sum();confirming=false;return true;}
         if(inside(x,y,left+(toolWidth+4)*3,top,region.width()>=330?44:toolWidth,20)){selected.clear();sum();confirming=false;return true;}

@@ -21,6 +21,17 @@ final class CareerSkillVisuals {
         public void play(SkillVisualEvent e){if(e.phase()!=SkillVisualEvent.Phase.START&&e.phase()!=SkillVisualEvent.Phase.FINISH&&e.phase()!=SkillVisualEvent.Phase.RELEASE)return;var level=Minecraft.getInstance().level;if(level==null)return;Vec3 p=vector(e.position());var sound=e.phase()==SkillVisualEvent.Phase.FINISH?SoundEvents.GENERIC_EXPLODE.value():content.element()==3?SoundEvents.SOUL_ESCAPE.value():SoundEvents.PLAYER_ATTACK_SWEEP;level.playLocalSound(p.x,p.y,p.z,sound,SoundSource.PLAYERS,.65f,e.phase()==SkillVisualEvent.Phase.FINISH?.7f:1.1f,false);}
     });}
     static void install(){
+        SkillVisualRegistry.register(AsuraRules.GEAR_VISUAL,new SkillVisualRegistry.Handler(){
+            public long defaultDuration(){return 4000;}
+            public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long now,List<Quad> out,Vec3 camera){
+                Vec3 p=vector(track.last.position()),d=vector(track.start.direction()).normalize(),side=new Vec3(-d.z,0,d.x).normalize(),up=d.cross(side).normalize();
+                if(side.lengthSqr()<.1){side=new Vec3(1,0,0);up=new Vec3(0,0,1);}
+                for(int i=0;i<20;i++){double angle=i*Math.PI/10+age/250d,next=(i+1)*Math.PI/10+age/250d,r=i%2==0?.85:.65,r2=i%2==0?.65:.85;
+                    beam(out,p.add(side.scale(Math.cos(angle)*r)).add(up.scale(Math.sin(angle)*r)),p.add(side.scale(Math.cos(next)*r2)).add(up.scale(Math.sin(next)*r2)),.09,CareerRules.EYE_COLOR,230);
+                }
+                beam(out,p.subtract(side.scale(.55)),p.add(side.scale(.55)),.08,0xf6e6ff,210);beam(out,p.subtract(up.scale(.55)),p.add(up.scale(.55)),.08,0xf6e6ff,210);
+            }
+        });
         add(CareerSkills.FIELD,(t,a,n,q)->field(q,vector(t.start.origin()),Math.max(1,(int)Math.round(t.start.charge()*15)),n));
         add(CareerSkills.KEIGA,(t,a,n,q)->ghost(q,vector(t.start.origin()).add(0,.4,0),0x8855cc,120));
         add(CareerSkills.SOUL_SLASH,(t,a,n,q)->arc(q,vector(t.last.position()).add(0,1,0),vector(t.start.direction()),3,0xad67e0,170));
@@ -99,12 +110,12 @@ final class CareerSkillVisuals {
     }
     static void actors(List<Quad> out,long now){
         var mc=Minecraft.getInstance();if(mc.level==null)return;
-        for(var actor:CareerClient.INSTANCE.view.actors){var p=mc.level.getPlayerByUUID(UUID.fromString(actor.owner));if(p==null||!p.isAlive())continue;Vec3 at=p.position();Vec3 d=Vec3.directionFromRotation(0,p.getYRot()),side=new Vec3(-d.z,0,d.x);
+        for(var actor:CareerClient.INSTANCE.view.actors){var p=mc.level.getPlayerByUUID(UUID.fromString(actor.owner));if(p==null||!p.isAlive())continue;Vec3 at=PlayerVisualAnchor.position(p);Vec3 d=PlayerVisualAnchor.forward(p),side=new Vec3(-d.z,0,d.x);
             if(actor.keiga>0)ghost(out,at.subtract(d.scale(.45)).add(0,.25,0),0x8052ac,90);
             for(int i=0;i<actor.brands;i++){double angle=now/900d+i*Math.PI*2/5;Vec3 rune=at.add(Math.cos(angle)*.38,p.getBbHeight()+.22+.035*Math.sin(angle*2),Math.sin(angle)*.38);box(out,rune,.045,.14,.045,0xf1d584,230);box(out,rune.add(0,.055,0),.10,.035,.035,0xffefbb,230);}
             if(actor.frenzy){sword(out,at.add(side.scale(-.42)).add(d.scale(.2)).add(0,.55,0),1.15,0xe63951,190);flame(out,at.add(side.scale(.4)).add(0,1,0),.12,0xe23250,120);}
             if(actor.kallaUntil>now){Vec3 behind=at.subtract(d.scale(.9)).add(0,.55,0);ghost(out,behind,0x4e2769,125);flame(out,behind.add(side.scale(.4)).add(0,.6,0),.16,0xa65bdf,180);}
-            if(actor.eyeUntil>now)ring(out,at.add(0,.08,0),16,.06,0xbe9ce5,80);
+            if(actor.eyeUntil>now){ring(out,at.add(0,.08,0),16,.06,0xbe9ce5,80);double pulse=Math.floorMod(now-actor.eyeUntil,1000)/1000d;ring(out,at.add(0,.1,0),AsuraRules.AURA_RADIUS*pulse,.08,0xcb80dd,(int)(150*(1-pulse)));}
             if(actor.bloodUntil>now)sword(out,at.subtract(d.scale(.5)).add(0,.7,0),2.5+Math.min(30,actor.blood)*.05,0xa92441,180);
         }
     }

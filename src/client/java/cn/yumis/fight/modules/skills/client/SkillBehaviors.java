@@ -21,6 +21,7 @@ public final class SkillBehaviors {
         void absorption(String name,double value);
         void visual(SkillCast cast,String phase);
         void slash(SkillCast cast,double length,double width,double height,double coefficient,double knockback,boolean fan);
+        void path(SkillCast cast,Vec3 from,Vec3 to,double width,double height,double coefficient,double knockback);
         void wave(Vec3 origin,Vec3 direction,double range,double width,double height,Stats stats,SkillDefinition skill,double coefficient,boolean passive,boolean ground);
         void area(SkillCast cast,double radius,double coefficient,boolean inward);
         void passive(SkillCast cast);
@@ -99,15 +100,14 @@ public final class SkillBehaviors {
             
         });
         register(List.of(SkillCatalog.DRAW),(x,c,now,elapsed,stage,speed)->{
-            var p=x.player();
-                if(elapsed>=400&&!c.finisher){
-                    c.finisher=true;
-                    x.visual(c,"RELEASE");
-                    x.slash(c,c.parameters.get("range",5),10,3,c.parameters.get("damage",6.5),.4,true);
-                    if(c.stats.weaponType.equals("SHORTSWORD"))x.passive(c);
-                }
-                if(elapsed>=800)x.cancel(true);
-            
+            c.sweepDegrees=360;
+            if(elapsed>=400&&!c.release){c.release=true;c.hitIndex=0;x.slash(c,c.parameters.get("range",5),5,3,c.parameters.get("damage",1),.4,true);x.visual(c,"RELEASE");if(c.stats.weaponType.equals("SHORTSWORD"))x.passive(c);}
+            boolean light=Set.of("LIGHTSABER","KATANA").contains(c.stats.weaponType)&&SkillLearning.effective(c.stats,cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress(),SkillCatalog.MASTERY)>0;
+            if(elapsed>=550&&light&&!c.finisher){
+                c.finisher=true;c.hit.clear();c.hitIndex=1;c.elementOverride=0;c.passiveDamage=true;c.suppressEquipment=true;Stats original=c.stats;c.stats=original.copy();c.stats.modifiers.put("crit",0d);
+                x.slash(c,c.parameters.get("range",5),5,3,c.parameters.get("damage",1)*.2,0,true);x.visual(c,"HIT");c.stats=original;c.elementOverride=-2;c.passiveDamage=false;c.suppressEquipment=false;
+            }
+            if(elapsed>=800)x.cancel(true);
         });
         register(List.of(SkillCatalog.DANCE),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
@@ -147,7 +147,7 @@ public final class SkillBehaviors {
             
         });
     }
-    static {CareerSkillBehaviors.install();}
+    static {CareerSkillBehaviors.install();OracleClient.install();}
     private SkillBehaviors(){}
     private static void register(List<SkillDefinition> skills,Behavior behavior){for(SkillDefinition skill:skills)register(skill.id,behavior);}
     public static void register(String id,Behavior behavior){if(BEHAVIORS.putIfAbsent(id,Objects.requireNonNull(behavior))!=null)throw new IllegalArgumentException("Duplicate skill behavior: "+id);}

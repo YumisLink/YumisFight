@@ -28,6 +28,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
     @Override public void suppressProjectionFeedback(boolean enabled){suppressProjectionFeedback=enabled;}
     private record Hit(UUID player,String session,long sourceGeneration,UUID target,long generation,long basis,String dimension,String instance,long created,long expires,DamageSource source,NativeEffects.Scope effects) {}
     private final Map<String,Hit> hits=new HashMap<>();
+    private final VanillaAttackClock vanillaAttacks=new VanillaAttackClock();
     private final Journal journal;
     private final Function<ServerPlayer,CombatSession> sessions;
     private final Function<LivingEntity,CombatTarget> targets;
@@ -36,11 +37,13 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
     private final BooleanSupplier bridge;
     private final BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode;
     private BiFunction<ServerPlayer,ItemStack,CombatPorts.NativeLaunch> launchSnapshots;
+    private BiPredicate<LivingEntity,ServerPlayer> targetAccess=(target,player)->true;
     private final Map<UUID,Long> launchSent=new LinkedHashMap<>();
     public long forwarded,committed;
     public boolean suppressProjectionFeedback;
     public NativeHits(Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<LivingEntity,CombatTarget> targets,Predicate<LivingEntity> managed,Predicate<ServerPlayer> invulnerable,BooleanSupplier bridge,BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode){this.journal=journal;this.sessions=sessions;this.targets=targets;this.managed=managed;this.invulnerable=invulnerable;this.bridge=bridge;this.encode=encode;}
     public NativeHits launches(BiFunction<ServerPlayer,ItemStack,CombatPorts.NativeLaunch> snapshots){launchSnapshots=Objects.requireNonNull(snapshots);return this;}
+    public void targetAccess(BiPredicate<LivingEntity,ServerPlayer> access){targetAccess=Objects.requireNonNull(access);}
     public void launched(Projectile projectile){
         if(launchSnapshots==null||!(projectile instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow)||!(arrow.getOwner() instanceof ServerPlayer owner)||launchSent.containsKey(arrow.getUUID()))return;
         long now=System.currentTimeMillis();launchSent.values().removeIf(expires->expires<now);launchSent.put(arrow.getUUID(),now+300000);while(launchSent.size()>4096)launchSent.remove(launchSent.keySet().iterator().next());
@@ -56,6 +59,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         NativeEffects.attempted(victim);
         var source=event.getSource();
         var attacker=source.getEntity();
+        if(!targetAccess.test(victim,attacker instanceof ServerPlayer player?player:null)){event.getContainer().setShouldCauseSideEffects(false);event.setCanceled(true);return;}
         boolean reject;
         if(victim instanceof ServerPlayer player){
             reject=attacker instanceof Player&&attacker!=player
@@ -63,7 +67,12 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
                 ||invulnerable.test(player);
         }else reject=!(attacker instanceof ServerPlayer);
         if(reject){event.setCanceled(true);return;}
-        // This project deliberately accepts every collision, including during an existing hurt animation.
+        if(victim instanceof ServerPlayer player&&attacker instanceof LivingEntity&&!(attacker instanceof Player)
+            &&net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(attacker.getType()).getNamespace().equals("minecraft")
+            &&!source.is(DamageTypes.THORNS)&&!Set.of("poison","wither","onFire","inFire","lava").contains(source.getMsgId())){
+            long now=System.currentTimeMillis();var session=sessions.apply(player);
+            if(!vanillaAttacks.accept(attacker.getUUID(),player.getUUID(),session.id.toString(),session.life.generation,now)){event.getContainer().setShouldCauseSideEffects(false);event.setCanceled(true);return;}
+        }
         event.setInvulnerabilityTicks(0);
     }
     public void pre(LivingDamageEvent.Pre event){
@@ -75,7 +84,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         // Never let vanilla consume health or absorption; hurtServer's local hit result is retained.
         event.setNewDamage(0);
         // A practice hit has no root, WAL entry, client request or authoritative hit side effect.
-        if(!(victim instanceof ServerPlayer)&&targets.apply(victim).training()){container.setShouldCauseSideEffects(false);return;}
+        if(!(victim instanceof ServerPlayer)&&targets.apply(victim).training()&&!targets.apply(victim).networkTraining()){container.setShouldCauseSideEffects(false);return;}
         if(scale<=0)return;
         DamageSource source=event.getSource();
         ServerPlayer owner=victim instanceof ServerPlayer player?player:source.getEntity() instanceof ServerPlayer player?player:null;
@@ -86,7 +95,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         long now=System.currentTimeMillis();
         hits.entrySet().removeIf(entry->entry.getValue().expires<now);
         String root=UUID.randomUUID().toString();
-        boolean direct=victim==owner&&source.getEntity() instanceof LivingEntity attacker&&attacker!=owner&&managed.test(attacker)&&!source.is(DamageTypes.THORNS)&&!Set.of("poison","wither","onFire","inFire","lava").contains(source.getMsgId());
+        boolean direct=victim==owner&&source.getEntity() instanceof LivingEntity attacker&&attacker!=owner&&!(attacker instanceof Player)&&!source.is(DamageTypes.THORNS)&&!Set.of("poison","wither","onFire","inFire","lava").contains(source.getMsgId());
         NativeEffects.Scope effects=direct?NativeEffects.current(victim):null;
         if(effects!=null){
             container.setShouldCauseSideEffects(false);
@@ -122,7 +131,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         if(pos!=null){data.addProperty("x",pos.x);data.addProperty("y",pos.y);data.addProperty("z",pos.z);}
         if(victim==owner){
             data.addProperty("fall",victim.fallDistance);
-            if(!source.is(DamageTypes.THORNS)&&source.getEntity() instanceof LivingEntity attacker&&attacker!=owner&&managed.test(attacker))data.add("attacker",JSON.toJsonTree(targets.apply(attacker)));
+            if(!source.is(DamageTypes.THORNS)&&source.getEntity() instanceof LivingEntity attacker&&attacker!=owner&&!(attacker instanceof Player))data.add("attacker",JSON.toJsonTree(targets.apply(attacker)));
             Network.send(owner,"incoming",data);
         }else{
             data.add("target",JSON.toJsonTree(targets.apply(victim)));

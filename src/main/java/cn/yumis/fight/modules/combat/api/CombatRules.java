@@ -52,7 +52,7 @@ public final class CombatRules {
         if(includeExtras)for(ExtraDamage a:attacker.extras){
             double base=a.value+roll.getAsDouble()*Math.max(0,a.maximum-a.value);
             double difference=attacker.get(Stat.values()[Stat.LIGHT.ordinal()+a.element])-resist[a.element];
-            double amount=base*mitigation*Math.max(0,1+difference/120);extra+=amount;components[a.element+1]+=amount;
+            double amount=base*coefficient*mitigation*Math.max(0,1+difference/120);extra+=amount;components[a.element+1]+=amount;
         }
         double multiplier=(1+attacker.modifiers.getOrDefault("final",0d))*attacker.modifiers.getOrDefault("skillProduct",1d);
         boolean critical=criticalEnabled&&roll.getAsDouble()<attacker.modifiers.getOrDefault("crit",0d);
@@ -62,21 +62,4 @@ public final class CombatRules {
     }
     private CombatRules(){
     }
-    public static double damage(Stats attacker,double defense,double[] resist,boolean magic,int[] elements,double coefficient,Random random){
-        double max=Arrays.stream(resist).max().orElse(0);
-        double delta=-Math.max(0,max);
-        if(elements.length>0){
-            delta=-Double.MAX_VALUE;
-            for(int e:elements)delta=Math.max(delta,attacker.get(Stat.values()[Stat.LIGHT.ordinal()+e])-resist[e]);
-        }
-        double result=attacker.panel(magic)*coefficient*1000/(1000+Math.max(0,defense))*Math.max(0,1+delta/120);
-        for(ExtraDamage a:attacker.extras){
-            double base=a.value+random.nextDouble()*Math.max(0,a.maximum-a.value);
-            double d=attacker.get(Stat.values()[Stat.LIGHT.ordinal()+a.element])-resist[a.element];
-            result+=base*1000/(1000+Math.max(0,defense))*Math.max(0,1+d/120);
-        }
-        if(random.nextDouble()<attacker.modifiers.getOrDefault("crit",0d))result*=1.5+attacker.modifiers.getOrDefault("critDamage",0d);
-        return result*(1+attacker.modifiers.getOrDefault("final",0d))*attacker.modifiers.getOrDefault("skillProduct",1d);
-    }
-
 }

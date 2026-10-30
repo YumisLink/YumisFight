@@ -34,6 +34,7 @@ public final class SkillPreview {
     public static Damage dotDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int element,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         return damage(progress,stats,skill,coefficient,true,false,new int[]{element},effects);
     }
+    public static Damage passiveElementDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int element,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){return damage(progress,stats,skill,coefficient,true,false,new int[]{element},effects);}
     private static Damage damage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,boolean passive,boolean append,int[] elements,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.eyeDamage(stats,skill);
         boolean magic=CareerRules.magic(skill,progress);
@@ -51,6 +52,7 @@ public final class SkillPreview {
         var definition=SkillPreviewRules.require(skill);
         int count=definition.hits().applyAsInt(parameters);
         double coefficient=parameters.get("previewDamage",parameters.get("damage",0));
+        var pattern=SkillPreviewRules.pattern(skill,parameters);if(pattern!=null){count=pattern.hits();coefficient=pattern.coefficient();}
         if(skill.id.equals(CareerSkills.CRESCENT))coefficient/=3;
         Damage hit=count==0?new Damage(0,0):damage(progress,stats,skill,coefficient,false,effects);
         if(skill.id.equals(MageSkills.HERDER)){
@@ -58,10 +60,10 @@ public final class SkillPreview {
             for(var action:MageSkills.attacks(parameters.rank(),120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus(action.stone()?stone:melee);
             hit=total;
         }
-        Damage finisher=definition.finisher()?damage(progress,stats,skill,parameters.get("finisher",0),false,effects):new Damage(0,0);
+        Damage finisher=pattern!=null&&pattern.finisher()>0?damage(progress,stats,skill,pattern.finisher(),false,effects):definition.finisher()?damage(progress,stats,skill,parameters.get("finisher",0),false,effects):new Damage(0,0);
         Damage wave=new Damage(0,0);
         if(stats.weaponType.equals("SHORTSWORD")&&mastery(progress,stats)>0&&definition.shortSwordWave())
             wave=damage(progress,stats,skill,parameters.get("damage",0)*.2*mastery(progress,stats),true,effects);
-        return new Preview(rank,count,hit,finisher,hit.times(count).plus(finisher),wave,skill.mp(Math.max(1,rank)),SkillCosts.resolve(skill,rank,stats,effects,CareerRules.magic(skill,progress)).cooldown(),parameters,effects);
+        return new Preview(rank,count,hit,finisher,hit.times(count).plus(finisher).plus(SkillPreviewRules.supplement(skill,progress,stats,parameters,effects)),wave,skill.mp(Math.max(1,rank)),SkillCosts.resolve(skill,rank,stats,effects,CareerRules.magic(skill,progress)).cooldown(),parameters,effects);
     }
 }

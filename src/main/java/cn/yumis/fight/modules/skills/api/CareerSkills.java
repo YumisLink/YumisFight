@@ -13,6 +13,7 @@ public final class CareerSkills {
     private static final Map<String,Content> CONTENT=new LinkedHashMap<>();
     private CareerSkills(){}
     static void install(){
+        AsuraRules.install();
         add(KEIGA,"残影之凯贾",JobCatalog.SOUL_BENDER,"GHOST",20,0,0,0,true,3,0x8855cc,0,0,0,0,0,false,false,0);
         add(FIELD,"鬼神之阵",JobCatalog.SOUL_BENDER,"GHOST",20,.10,20,0,false,3,0x8b52be,5,1,0,1,12,false,false,0);
         add(SOUL_SLASH,"噬灵鬼斩",JobCatalog.SOUL_BENDER,"GHOST",25,0,0,2,true,3,0xb56ee8,3,0,0,0,0,false,false,0);
@@ -44,6 +45,7 @@ public final class CareerSkills {
         var skill=SkillCatalog.register(new SkillDefinition(id,title,family,job,unlock,sp,mp,cd,coefficient,passive,Map.of("range",range,"slashes",(double)Math.max(1,hits),"finisher",finish,"interval",interval,"duration",duration,"hpCost",hp)));
         CONTENT.put(id,new Content(skill,element,color,hits,finish>0,charging,invulnerable,hp));
     }
+    public static void register(Content content){if(CONTENT.putIfAbsent(content.skill().id,content)!=null)throw new IllegalArgumentException("Duplicate career content");}
     public static boolean contains(String id){SkillCatalog.all();return CONTENT.containsKey(id);}
     public static Content content(String id){SkillCatalog.all();return CONTENT.get(id);}
     public static Collection<Content> all(){SkillCatalog.all();return List.copyOf(CONTENT.values());}
@@ -59,7 +61,7 @@ public final class CareerSkills {
         if(id.equals(FIELD))return 27;
         if(id.equals(KALLA))return terminal?2:127;
         if(id.equals(SWORD))return terminal?5:-1;
-        if(id.equals(EYE))return terminal?0:-1;
+        if(id.equals(EYE))return terminal?0:AsuraRules.GEAR_INDEX;
         if(id.equals(ERUPTION))return 4;
         if(id.equals(AGNI))return SkillResourceRules.agniHits(5);
         var content=content(id);return content==null?-1:content.hits()-1+(content.finisher()?1:0);

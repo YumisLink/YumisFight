@@ -10,7 +10,13 @@ local function line(x,y,X,Y,col) local n=math.max(math.abs(X-x),math.abs(Y-y));i
 local function layer(name) cel.image=img;local l=spr:newLayer();l.name=name;cel=spr:newCel(l,1,Image(S,S,ColorMode.RGB),Point(0,0));img=cel.image:clone() end
 local function begin(size) S=size;spr=Sprite(S,S,ColorMode.RGB);spr.layers[1].name="01 / silhouette";cel=spr.cels[1];img=cel.image:clone() end
 local function finish(name) cel.image=img;spr:saveAs(source..name..".aseprite");spr:saveCopyAs(target..name..".png");spr:close() end
-local stone={"312b4d","382d50","413356","4b3b5d","684b6d"}
+local tierStone={
+ {"0b1018","151c26","232d39","465261","87929e"},
+ {"19494e","236c72","36989a","70cfcf","c4f6ed"},
+ {"0a2157","123475","1d4a98","3167c5","6799ee"},
+ {"081328","101e3b","182c50","253c65","4c6287"},
+ {"312b4d","382d50","413356","4b3b5d","684b6d"}
+}
 local gold={"8e6c30","b49c3b","dcc545","e2d35e","ede574","fffd9c"}
 local familyNames={"mana_crusher","mana_furnace","mineral_generator","currency_fabricator","mana_forge","mana_beacon","coal_generator","solar_collector","turbine_generator","wind_generator","thermal_generator","nuclear_reactor","rtg_generator","coolant_mixer","transfer_crystal","harvest_crystal","equipment_fabricator"}
 local coreColors={mana_furnace={"713344","b55a42","f2a565","ffe2a6"},coal_generator={"603244","a34e43","e49a63","f5d599"},thermal_generator={"494278","8e7dc5","c5b0ed","eee1ff"},nuclear_reactor={"385749","789e67","bbd88a","f0f5bb"},coolant_mixer={"34566d","6099bb","9bdbde","e8fcf3"},harvest_crystal={"375e54","6eaa83","b7dca4","f0f2c0"}}
@@ -22,10 +28,12 @@ local glyphs={
  mana_forge={"#####","..#..",".###.","#####",".###."},mana_beacon={"..#..",".#.#.","#.#.#",".#.#.","..#.."},
  wind_generator={"..#..","..#..",".###.","#.#.#","..#.."},turbine_generator={"..##.","#.#..",".###.","..#.#",".##.."}}
 for _,family in ipairs(familyNames) do for tier=1,5 do for _,state in ipairs({"","_linked","_active"}) do
- begin(32);layer("02 / purple sourcestone study, independently drawn")
+ local stone=tierStone[tier]
+ begin(32);layer("02 / tier stone and white stripe inlay")
  for y=0,15 do for x=0,15 do local band=2+((math.floor(x/4)+math.floor(y/3))%3);px(x,y,stone[band]) end end
  line(0,0,15,0,stone[4]);line(0,1,0,15,stone[4]);line(1,15,15,15,stone[1]);line(15,1,15,15,stone[1])
  line(3,5,9,5,stone[1]);line(9,5,12,2,stone[1]);line(7,10,12,10,stone[5]);px(13,9,stone[5])
+ if tier==1 then for y=2,13 do for x=2,13 do local stripe=(x+y)%12;if stripe==0 then px(x,y,"e5eaf0") elseif stripe==1 then px(x,y,"aebac7") end end end end
  -- Atlas quadrant 2: gold, quadrant 3: cut crystal, quadrant 4: small rune.
  layer("03 / warm gilded edges")
  for y=0,15 do for x=16,31 do px(x,y,gold[2+((x+math.floor(y/4))%3)]) end end

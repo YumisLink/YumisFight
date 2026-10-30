@@ -4,7 +4,7 @@ import java.util.*;
 /** 转职内容注册表。新增职业只添加定义和本模块任务处理。 */
 public final class JobCatalog {
     public static final String NONE="yumis_dungeon_and_fight:unselected", MAGE="yumis_dungeon_and_fight:mage", BASE="yumis_dungeon_and_fight:ghost_swordsman", SWORDMASTER="yumis_dungeon_and_fight:swordmaster",
-        SOUL_BENDER="yumis_dungeon_and_fight:soul_bender", ASURA="yumis_dungeon_and_fight:asura", BERSERKER="yumis_dungeon_and_fight:berserker";
+        ORACLE="yumis_dungeon_and_fight:oracle_executor", SOUL_BENDER="yumis_dungeon_and_fight:soul_bender", ASURA="yumis_dungeon_and_fight:asura", BERSERKER="yumis_dungeon_and_fight:berserker";
     public record CombatStyle(boolean magic,double damageTaken,String awakening,String awakeningSkill){}
     private static final Map<String,CombatStyle> STYLES=new LinkedHashMap<>();
     private static final Map<String,Set<String>> WEAPONS=new LinkedHashMap<>();
@@ -17,6 +17,7 @@ public final class JobCatalog {
         STYLES.put(MAGE,new CombatStyle(true,.65,"",""));
         STYLES.put(BASE,new CombatStyle(false,.65,"",""));
         WEAPONS.put(BASE,Set.of("KATANA","LIGHTSABER","SHORTSWORD","GREATSWORD","BLUNT"));WEAPONS.put(MAGE,Set.of("STAFF","CLUB"));
+        add(ORACLE,"神谕代行者",false,.35,"神谕代行者","furioso_replica");
         add(SWORDMASTER,"剑魂",false,.35,"剑圣","storm");
         add(SOUL_BENDER,"鬼泣",true,.50,"弑魂","blache");
         add(ASURA,"阿修罗",true,.75,"大暗黑天","wave_eye");
@@ -28,6 +29,7 @@ public final class JobCatalog {
         STYLES.put(id,new CombatStyle(magic,taken,awakening,"yumis_dungeon_and_fight:"+awakeningSkill));
     }
     public static CombatStyle style(String id){require(id);return STYLES.getOrDefault(id,new CombatStyle(false,.65,"",""));}
+    public static boolean weaponQualified(Progress progress,String type){return !type.equals("LIGHTSABER")||progress.hasJob(SWORDMASTER)||progress.hasJob(ORACLE)&&progress.learned("yumis_dungeon_and_fight:oracle_will")>0;}
     public static boolean basic(String id){return !id.equals(NONE)&&require(id).prerequisite().isEmpty();}
     public static Set<String> weapons(String id){return WEAPONS.getOrDefault(base(id),Set.of());}
     public static String base(String id){var job=require(id);return job.prerequisite().isEmpty()?id:base(job.prerequisite());}

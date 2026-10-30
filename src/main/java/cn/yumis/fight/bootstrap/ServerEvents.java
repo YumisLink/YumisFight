@@ -88,6 +88,11 @@ public final class ServerEvents {
         );
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e)->commands(e));
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST,(ItemEntityPickupEvent.Pre e)->{if(ServerApplication.ready())ServerApplication.get().loot.nativePickup(e);});
+        NeoForge.EVENT_BUS.addListener((ItemEntityPickupEvent.Post e)->{
+            if(!ServerApplication.ready()||!(e.getPlayer() instanceof ServerPlayer player))return;
+            var original=e.getOriginalStack();var view=EquipmentItems.view(original);
+            if(view!=null&&view.creativeTemplate()&&original.getCount()>e.getCurrentStack().getCount())ServerApplication.get().equipmentApplication.inventoryArrived(player);
+        });
     }
     private static void commands(RegisterCommandsEvent e){
         var root=Commands.literal("ydnf").executes(c->{
@@ -140,11 +145,11 @@ public final class ServerEvents {
             var r=ServerApplication.get();ServerPlayer p=c.getSource().getPlayerOrException();String id=StringArgumentType.getString(c,"id");ItemStack item;if(MaterialCatalog.current().materials.containsKey(id))item=EquipmentItems.material(id,64);else if(id.equals("test_gem")){
                 Gem gem=new Gem();gem.level=1;gem.group="all";gem.name="开发样本 · 力量";Affix a=new Affix("test_strength",Stat.STRENGTH,5,false);a.fixed=true;gem.affixes.add(a);item=EquipmentItems.payload("affix_gem",gem,gem.name);
             }
-            else if(id.equals("epic")||id.equals("mythic"))item=EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,id.equals("epic")?Rarity.EPIC:Rarity.MYTHIC,r.session(p).progress.level,r.random));else if(ItemRegistry.ALL.containsKey(id))item=ItemRegistry.item(id,64);else throw new IllegalArgumentException("未知测试物品");JsonObject intent=new JsonObject();intent.addProperty("give",id);r.inventory.transact(p,UUID.randomUUID().toString(),intent,()->r.inventory.requireSpace(p,item),Map.of());return 1;
+            else if(ItemRegistry.ALL.containsKey(id))item=ItemRegistry.item(id,64);else throw new IllegalArgumentException("未知测试物品");JsonObject intent=new JsonObject();intent.addProperty("give",id);r.inventory.transact(p,UUID.randomUUID().toString(),intent,()->r.inventory.requireSpace(p,item),Map.of());return 1;
         }
         )));
         for(String mode:List.of("on","off"))dev.then(Commands.literal("nocd").then(Commands.literal(mode).executes(c->{
-            var r=ServerApplication.get();ServerPlayer p=c.getSource().getPlayerOrException();var s=r.session(p);s.resources.controlEpoch++;boolean enabled=mode.equals("on");if(enabled&&!s.resources.training)s.resources.trainingBoundary=s.resources.mp;if(!enabled&&s.resources.training&&s.resources.trainingBoundary>=0)s.resources.mp=Math.min(s.resources.mp,s.resources.trainingBoundary);s.resources.training=enabled;s.resources.mp=Math.min(s.resources.mp,r.stats(p).get(Stat.MP));r.savePlayer(p);r.profile(p);r.message(p,"开发训练模式："+mode);return 1;
+            var r=ServerApplication.get();ServerPlayer p=c.getSource().getPlayerOrException();var s=r.session(p);s.resources.controlEpoch++;boolean enabled=mode.equals("on");if(enabled)s.resources.cooldowns.clear();if(enabled&&!s.resources.training)s.resources.trainingBoundary=s.resources.mp;if(!enabled&&s.resources.training&&s.resources.trainingBoundary>=0)s.resources.mp=Math.min(s.resources.mp,s.resources.trainingBoundary);s.resources.training=enabled;s.resources.mp=Math.min(s.resources.mp,r.stats(p).get(Stat.MP));r.savePlayer(p);r.profile(p);r.message(p,"开发训练模式："+mode);return 1;
         }
         )));
         root.then(Commands.literal("verify").requires(source->Boolean.getBoolean("ydnf.verify")&&source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)).executes(c->VerificationChecks.run(ServerApplication.get(),c.getSource().getPlayerOrException()))

@@ -51,7 +51,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     public String session="",dimension="";
     public Team party;
     public Dungeon dungeon;
-    public JsonObject profile=new JsonObject(),professions=new JsonObject(),damageMeter=new JsonObject();
+    public JsonObject profile=new JsonObject(),professions=new JsonObject(),damageMeter=new JsonObject(),trainingMeter=new JsonObject();
     public boolean ready;
     public final GoldFeedback gold=new GoldFeedback();
     private cn.yumis.fight.modules.attributes.api.AttributeSources syncedSources=new cn.yumis.fight.modules.attributes.api.AttributeSources();
@@ -77,7 +77,8 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         public cn.yumis.fight.modules.combat.api.CombatSettings combatSettings(){return combatSettings;}
         public long serverOffset(){return serverOffset;} public long serverNow(){return ClientSession.this.serverNow();}
         public Life target(UUID id){var target=targets.get(id);return target==null?null:target.life;}
-        public boolean training(UUID id){return cn.yumis.fight.modules.skills.api.client.TrainingCombat.isTraining(id);}
+        public boolean training(UUID id){var target=targets.get(id);return (target==null||!target.networkTraining())&&cn.yumis.fight.modules.skills.api.client.TrainingCombat.isTraining(id);}
+        public boolean networkTraining(UUID id){var target=targets.get(id);return target!=null&&target.networkTraining();}
         public boolean consumesHealth(UUID id){var target=targets.get(id);return target==null||target.consumesHealth();}
         public net.minecraft.world.phys.Vec3 position(UUID id){var mc=Minecraft.getInstance();var target=targets.get(id);var entity=target==null||mc.level==null?null:mc.level.getEntity(target.entityId);return entity==null?mc.player.position().add(mc.player.getLookAngle().scale(2)).add(0,1,0):entity.position().add(0,entity.getBbHeight()*.8,0);}
         public void send(String action,JsonObject packet){ClientSession.this.send(action,packet);}
@@ -122,6 +123,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         cn.yumis.fight.modules.skills.api.client.TrainingCombat.clear();
         ready=false;
         damageMeter=new JsonObject();
+        trainingMeter=new JsonObject();
         IndustrialVisuals.clear();
         session="";
         targets.clear();
@@ -157,6 +159,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         messages.register("dungeons","damageMeter",(context,j)->{
 damageMeter=j;
         });
+        messages.register("dungeons","trainingMeter",(context,j)->{trainingMeter=j;});
         messages.register("presentation","profile",(context,j)->{if(!viewSync.personal(j,now(),this::applyProfile))send("profile");});
         messages.register("presentation","definitionPart",(context,j)->viewSync.definition(j,value->{
             // An integrated server already owns this shared static store. A delayed wire copy must never roll it back.
@@ -343,10 +346,14 @@ if(j.has("target")&&j.has("kind")){
             Effects.clear();
         }
         analysisLifecycle();
+        targets.entrySet().removeIf(entry->{Target target=entry.getValue();if(!target.networkTraining())return false;var entity=mc.level.getEntity(target.entityId);return entity==null||!entity.getUUID().equals(entry.getKey());});
         prediction.tick();
         if(now()-lastUploadCheck>=500)upload();
     }
     public Target context(net.minecraft.world.entity.LivingEntity entity){
+        Target known=targets.get(entity.getUUID());
+        if(known!=null&&known.networkTraining()){cn.yumis.fight.modules.skills.api.client.TrainingCombat.forget(entity.getUUID());return known;}
+        if(entity instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag&&bag.timed()&&known!=null){targets.remove(entity.getUUID());cn.yumis.fight.modules.skills.api.client.TrainingCombat.forget(entity.getUUID());}
         Target training=cn.yumis.fight.modules.skills.api.client.TrainingCombat.context(entity);
         if(training!=null){targets.put(training.id,training);return training;}
         Target t=targets.get(entity.getUUID());
@@ -369,7 +376,7 @@ if(j.has("target")&&j.has("kind")){
     }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){prediction.report(life,fraction,heal,maximum,color,critical,extras);}
     public JsonObject ailment(String target,String kind){
-        if(cn.yumis.fight.modules.skills.api.client.TrainingCombat.isTraining(UUID.fromString(target)))return cn.yumis.fight.modules.skills.api.client.TrainingCombat.ailment(target,kind);
+        var known=targets.get(UUID.fromString(target));if((known==null||!known.networkTraining())&&cn.yumis.fight.modules.skills.api.client.TrainingCombat.isTraining(UUID.fromString(target)))return cn.yumis.fight.modules.skills.api.client.TrainingCombat.ailment(target,kind);
         return ailments.values().stream().filter(a->a.get("target").getAsString().equals(target)&&a.get("kind").getAsString().equals(kind)&&a.get("expires").getAsLong()>serverNow()).max(java.util.Comparator.comparingLong(a->a.get("expires").getAsLong())).orElse(null);
     }
     public void message(String s){

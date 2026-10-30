@@ -45,7 +45,7 @@ class CombatEquipmentRevisionTest {
     }
     @Test void speedAffixEndpointsAndGrowthPreserveRoll(){
         assertEquals(3,AttackSpeedRoll.sample(1,.8));assertEquals(5,AttackSpeedRoll.sample(1,1.2));assertEquals(10,AttackSpeedRoll.sample(80,.8));assertEquals(15,AttackSpeedRoll.sample(80,1.2));
-        var g=EquipmentRules.create(Slot.RING,Weapon.KATANA,Rarity.RARE,75,new Random());g.affixes.removeIf(a->!a.base);var a=new Affix("attack_speed",Stat.ATTACK_SPEED,1,false);a.roll=.93;g.affixes.add(a);
+        var g=EquipmentRules.create(Slot.RING,Weapon.KATANA,Rarity.RARE,75,new Random());g.affixes.removeIf(a->!a.base);var a=new Affix("attack_speed",Stat.ATTACK_SPEED,1,false);a.roll=.93;a.value=AttackSpeedRoll.sample(75,a.roll);a.baseline=AttackSpeedRoll.sample(75,.8);a.baselineMaximum=AttackSpeedRoll.sample(75,1.2);g.affixes.add(a);
         var next=EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(g),"upgrade_stone",new Random());var speed=next.affixes.stream().filter(v->v.id.equals("attack_speed")).findFirst().orElseThrow();assertEquals(.93,speed.roll);assertEquals(AttackSpeedRoll.sample(80,.93),speed.value,1e-9);
         for(Slot slot:Slot.values())assertEquals(slot==Slot.WEAPON||EquipmentAffixes.sixJewelry(slot),EquipmentAffixes.flatAllowed(gFor(slot),Stat.ATTACK_SPEED));
     }

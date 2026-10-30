@@ -29,10 +29,10 @@ class SkillPreviewTest {
         var actual=CombatRules.calculate(stats,0,new double[4],false,new int[0],2,true,sequence);
         assertEquals(3,calls[0]);
         assertEquals(300,actual.main());
-        assertEquals(97.5,actual.extra());
-        assertEquals(397.5,actual.total());
+        assertEquals(195,actual.extra());
+        assertEquals(495,actual.total());
         var panel=CombatRules.panel(stats,false,new int[0],2,true,true);
-        assertEquals(290,panel.total());
+        assertEquals(380,panel.total());
         assertEquals(3,calls[0]);
     }
     @Test void currentBuffExpiresWithoutMutatingEquipmentSnapshot(){

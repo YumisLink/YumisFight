@@ -8,7 +8,7 @@ public final class SkillDefinition {
     public final String id,title,family,requiredJob;
     public final int unlock,sp;
     public final double mpRatio,cooldown,coefficient;
-    public boolean equipmentGranted,magicTag;
+    public boolean equipmentGranted,magicTag,bindingProxy;
     public Boolean magicDamage;
     public String baseJob=cn.yumis.fight.modules.character.api.JobCatalog.BASE;
     public double cooldownPerRank;

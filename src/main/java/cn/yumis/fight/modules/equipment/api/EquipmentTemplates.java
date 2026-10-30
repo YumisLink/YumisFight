@@ -40,6 +40,7 @@ public final class EquipmentTemplates {
         return EquipmentDefinitions.current().equipment.get(g.slot).base();
     }
     public static Gear createStandard(Slot slot,Weapon weapon,Rarity rarity,int level,Random random){
+        if(!designed(rarity))throw new IllegalArgumentException("通用史诗和神话装备已停止新投放");
         ArmorType armor=slot.armor()&&designed(rarity)?ArmorType.values()[1+random.nextInt(5)]:ArmorType.UNTYPED;
         JewelryType jewelry=slot.jewelry()&&designed(rarity)?JewelryType.values()[1+random.nextInt(11)]:JewelryType.UNTYPED;
         return EquipmentRules.create(slot,weapon,rarity,level,armor,jewelry,random);
@@ -55,17 +56,12 @@ public final class EquipmentTemplates {
             else if(slot.jewelry())for(JewelryType type:JewelryType.values()){if(type!=JewelryType.UNTYPED)all.add(EquipmentRules.create(slot,Weapon.KATANA,Rarity.COMMON,1,ArmorType.UNTYPED,type,new Random(0)));}
             else all.add(EquipmentRules.create(slot,Weapon.KATANA,Rarity.COMMON,slot.minimum(),new Random(0)));
         }
+        all.forEach(g->g.creativeTemplate=true);
         return all;
     }
     public static List<Gear> creative(Rarity rarity){
         if(rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC)throw new IllegalArgumentException("仅史诗、神话目录");
         List<Gear> all=new ArrayList<>();Random random=new Random(0);
-        for(int level:List.of(10,20,30,40,50)){
-            for(Weapon w:Weapon.standard())all.add(EquipmentRules.create(Slot.WEAPON,w,rarity,level,random));
-            for(Slot slot:List.of(Slot.BRACELET,Slot.NECKLACE,Slot.RING))all.add(EquipmentRules.create(slot,Weapon.KATANA,rarity,level,random));
-        }
-        if(rarity==Rarity.EPIC)for(Slot slot:List.of(Slot.CHEST,Slot.HEAD,Slot.LEGS,Slot.FEET))all.add(EquipmentRules.create(slot,Weapon.KATANA,rarity,50,random));
-        for(Slot slot:List.of(Slot.SUB_EQUIPMENT,Slot.MAGIC_STONE,Slot.EARRING))all.add(EquipmentRules.create(slot,Weapon.KATANA,rarity,Math.max(50,slot.minimum()),random));
         if(rarity==Rarity.MYTHIC)all.add(MageBlood.create(random));
         for(var template:NamedEquipment.all())if(template.rarity()==rarity)all.add(NamedEquipment.create(template.id(),random));
         all.forEach(g->g.creativeTemplate=true);

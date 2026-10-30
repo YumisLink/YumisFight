@@ -11,6 +11,7 @@ public final class SkillsClientMessages {
         router.register("skills","mageSourceEnd",(context,j)->MageClient.INSTANCE.end(j));
         router.register("skills","herderState",(context,j)->MageClient.INSTANCE.state(j));
         router.register("skills","herderIncoming",(context,j)->MageClient.INSTANCE.incoming(j));
+        router.register("skills","oracleStep",(context,j)->OracleClient.INSTANCE.receive(j));
         router.register("skills","fireImpact",(context,j)->CareerClient.INSTANCE.fireImpact(j));
         router.register("skills","careerState",(context,j)->CareerClient.INSTANCE.receive(j));
         router.register("skills","careerStarted",(context,j)->CareerClient.INSTANCE.started(j));

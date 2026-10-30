@@ -26,5 +26,5 @@ public class Gear {
     public boolean valid(Progress p,int allowance){
         return valid(level,slot,weapon,p,allowance);
     }
-    static boolean valid(int level,Slot slot,Weapon weapon,Progress p,int allowance){return level<=p.level+allowance&&p.level>=slot.minimum()&&(slot!=Slot.WEAPON||weapon!=Weapon.LIGHTSABER||p.hasJob(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER));}
+    static boolean valid(int level,Slot slot,Weapon weapon,Progress p,int allowance){return level<=p.level+allowance&&p.level>=slot.minimum()&&(slot!=Slot.WEAPON||cn.yumis.fight.modules.character.api.JobCatalog.weaponQualified(p,weapon.name()));}
 }

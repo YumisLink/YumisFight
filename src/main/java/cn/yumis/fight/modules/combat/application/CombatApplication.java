@@ -32,6 +32,8 @@ public final class CombatApplication {
     public void equipment(java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> stats,java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.character.api.Progress> progress,java.util.function.Predicate<ServerPlayer> sync,java.util.function.Consumer<ServerPlayer> profile){equipmentStats=stats;equipmentProgress=progress;equipmentSync=sync;equipmentProfile=profile;}
     private CombatPorts.SkillEffects skills=new CombatPorts.SkillEffects(){};
     public void skills(CombatPorts.SkillEffects value){skills=java.util.Objects.requireNonNull(value);}
+    private CombatPorts.Training training;
+    public void training(CombatPorts.Training value){training=java.util.Objects.requireNonNull(value);}
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
     private static <T>T copy(T value,Class<T> type){return JSON.fromJson(JSON.toJson(value),type);}
 
@@ -104,7 +106,7 @@ public final class CombatApplication {
             if(entity instanceof Player&&entity!=p)throw new IllegalArgumentException("PVP已关闭");
             if(heal&&entity!=p)throw new IllegalArgumentException("仅支持本人恢复");
             CombatTarget target=entity==p?null:targets.apply(entity);
-            if(target!=null&&target.training())return;
+            if(target!=null&&target.training()&&!target.networkTraining())return;
             Life life=entity==p?copy(s.life,Life.class):target.life();
             double hitMaximum=target==null||equipmentProgress==null?0:target.maximumHealth(equipmentProgress.apply(p).level,equipmentSync.test(p));
             if(!j.has("dimension")||!j.get("dimension").getAsString().equals(p.level().dimension().identifier().toString()))throw new IllegalArgumentException("维度已改变");
@@ -129,6 +131,12 @@ public final class CombatApplication {
             }
             basicAttacks.validate(p,j);
             skills.validate(p,entity,j);
+            long eventTime=nativeHit?nativeHits.occurredAt(j):j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
+            if(!nativeHit&&target!=null&&target.networkTraining()){long issued=skills.occurredAt(p,j);if(issued>=0)eventTime=issued;}
+            if(target!=null&&target.networkTraining()){
+                if(training==null||heal)throw new IllegalArgumentException("训练会话不可用");
+                training.validate(p,target,eventTime);
+            }
             Receipt receipt=outcomeOnly?cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life):target==null?cn.yumis.fight.modules.combat.api.LifeRules.apply(life,fraction,heal):target.receive(fraction,heal);
             Life actorLife=entity==p?life:copy(s.life,Life.class);
             CombatPorts.Commit skillCommit=skills.prepare(p,entity,j,receipt,actorLife);
@@ -146,11 +154,11 @@ public final class CombatApplication {
             if(j.has("runtime"))ack.addProperty("runtimeApplied",runtime(p,j.getAsJsonObject("runtime")));
             ack.addProperty("runtimeRecordedAt",s.resources.recordedAt);
             if(!heal&&(receipt.actual()>0||entity==p&&outcome.equals("HIT")&&taken>0)){
-                long eventTime=nativeHit?nativeHits.occurredAt(j):j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
                 var clock=timing.get();ack.addProperty("combatDelayMillis",clock.delayMillis());
                 if(entity==p)CombatTiming.taken(s.resources,eventTime,clock);else CombatTiming.dealt(s.resources,eventTime,clock);
                 journal.put("resources/"+p.getUUID(),s.resources);
-                damageMeter.record(p,target,receipt.actual(),eventTime);
+                if(target!=null&&target.networkTraining())training.record(p,target,receipt.actual(),eventTime);
+                else damageMeter.record(p,target,receipt.actual(),eventTime);
             }
             ack.addProperty("combatUntil",s.resources.combatUntil);
             ack.addProperty("shieldRecoveryAt",s.resources.shieldRecoveryAt);

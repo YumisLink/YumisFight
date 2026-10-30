@@ -9,6 +9,8 @@ authors="Yumis"
 description='''独立地下城战斗、词条装备与副职业模组。'''
 [[mixins]]
 config="yumis_fight.mixins.json"
+[[mixins]]
+config="yumis_fight.modernui.mixins.json"
 [[dependencies.yumis_dungeon_and_fight]]
 modId="neoforge"
 type="required"

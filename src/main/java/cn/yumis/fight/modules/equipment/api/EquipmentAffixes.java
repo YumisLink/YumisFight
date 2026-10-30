@@ -89,13 +89,14 @@ public final class EquipmentAffixes {
     }
     public static void grow(Gear g){
         for(Affix a:g.affixes){
+            if(a.origin!=null&&a.origin.quality==null&&!a.fixed){a.syncStatus="unresolved_snapshot";continue;}
             if(a.base||a.fixed||!AffixDefinitions.current().affixes.containsKey(a.id))continue;
-            if(a.stat.equals("ATTACK_SPEED")){a.value=AttackSpeedRoll.sample(g.level,a.roll);a.baseline=AttackSpeedRoll.sample(g.level,.8);a.baselineMaximum=AttackSpeedRoll.sample(g.level,1.2);a.origin=null;continue;}
+            if(a.stat.equals("ATTACK_SPEED")){a.value=AttackSpeedRoll.sample(g.level,a.roll)*a.corruptionMultiplier;a.baseline=AttackSpeedRoll.sample(g.level,.8);a.baselineMaximum=AttackSpeedRoll.sample(g.level,1.2);a.origin=null;continue;}
             if(a.operation.equals("EXTRA")){
                 a.baseline=.1*EquipmentRules.budget(g.level);a.baselineMaximum=.2*EquipmentRules.budget(g.level);
             }else if(a.operation.equals("FLAT")||a.operation.equals("PERCENT")||a.operation.equals(ALL_RESIST_FLAT))a.baseline=baseline(g,a);
             else continue;
-            a.value=a.baseline*a.roll;a.maximum=a.baselineMaximum*a.roll;a.origin=null;
+            a.value=a.baseline*a.roll*a.corruptionMultiplier;a.maximum=a.baselineMaximum*a.roll*a.corruptionMultiplier;a.origin=null;
         }
     }
 }

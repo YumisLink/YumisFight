@@ -11,6 +11,7 @@ public final class CombatPrediction {
         Life target(UUID id); net.minecraft.world.phys.Vec3 position(UUID id);
         default boolean consumesHealth(UUID id){return true;}
         default boolean training(UUID id){return false;}
+        default boolean networkTraining(UUID id){return false;}
         void send(String action,JsonObject packet); void message(String text); void reported(JsonObject packet);
     }
     private final State state;
@@ -50,7 +51,7 @@ public final class CombatPrediction {
             this.color=color;
             this.critical=critical;
             timing=state.combatSettings();
-            analysis=!a.equals("heal")?DamageAnalysis.submit(source,DamageAnalysis.Kind.COMBAT,now(),state.combatSettings()):null;
+            analysis=!a.equals("heal")?DamageAnalysis.submit(source,state.networkTraining(UUID.fromString(r.get("target").getAsString()))?DamageAnalysis.Kind.TIMED_TRAINING:DamageAnalysis.Kind.COMBAT,now(),state.combatSettings()):null;
             sent=now();
             occurredAt=sent;
             point=state.position(UUID.fromString(r.get("target").getAsString()));

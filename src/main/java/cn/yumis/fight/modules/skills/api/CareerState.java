@@ -9,6 +9,7 @@ public final class CareerState {
     public int brands,blood;
     public boolean frenzy;
     public double eyeBonusMut;
+    public OracleState oracle=new OracleState();
     public Field field;
     public Map<String,Long> reductions=new LinkedHashMap<>();
     public List<Field> fields=new ArrayList<>();

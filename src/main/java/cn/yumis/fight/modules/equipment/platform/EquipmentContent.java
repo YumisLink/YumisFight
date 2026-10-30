@@ -21,7 +21,7 @@ public final class EquipmentContent {
     static {
         for(Weapon w:Weapon.values()){
             String id=w.name().toLowerCase(Locale.ROOT);
-            ALL.put(id,ITEMS.registerItem(id,Item::new,p->p.stacksTo(1)));
+            ALL.put(id,ITEMS.registerItem(id,WeaponItem::new,p->p.stacksTo(1)));
             GEAR_IDS.add(id);
         }
         for(Slot s:Slot.values())if(s!=Slot.WEAPON){

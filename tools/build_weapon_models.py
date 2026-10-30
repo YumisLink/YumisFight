@@ -374,10 +374,10 @@ def item_definition(ident,icon):
       'gui':{'rotation':[0,-25,-32],'translation':[0,-3,0],'scale':[.53,.53,.53]},
       'ground':{'rotation':[0,0,82],'translation':[0,3,0],'scale':[.42,.42,.42]},
       'fixed':{'rotation':[0,180,-30],'translation':[0,-3,0],'scale':[.56,.56,.56]},
-      'thirdperson_righthand':{'rotation':[0,0,0],'translation':[0,0,0],'scale':[.8,.8,.8]},
-      'thirdperson_lefthand':{'rotation':[0,0,0],'translation':[0,0,0],'scale':[.8,.8,.8]},
-      'firstperson_righthand':{'rotation':[0,-25,-25],'translation':[-2,0,0],'scale':[.6,.6,.6]},
-      'firstperson_lefthand':{'rotation':[0,25,25],'translation':[0,0,0],'scale':[.6,.6,.6]},
+      'thirdperson_righthand':{'rotation':[0,90,0],'translation':[0,0,0],'scale':[.8,.8,.8]},
+      'thirdperson_lefthand':{'rotation':[0,-90,0],'translation':[0,0,0],'scale':[.8,.8,.8]},
+      'firstperson_righthand':{'rotation':[0,-85,-25],'translation':[-2,0,0],'scale':[.6,.6,.6]},
+      'firstperson_lefthand':{'rotation':[0,85,25],'translation':[0,0,0],'scale':[.6,.6,.6]},
       'head':{'rotation':[0,0,0],'translation':[0,4,0],'scale':[.5,.5,.5]}}}
 
 bindings=[]

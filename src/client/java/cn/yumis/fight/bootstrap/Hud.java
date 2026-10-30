@@ -109,9 +109,21 @@ public final class Hud {
         }
     }
     private static void damageMeter(GuiGraphicsExtractor g,ClientSession state){
-        if(state.dungeon==null||!state.damageMeter.has("rows")||!state.damageMeter.has("instance")||!state.damageMeter.get("instance").getAsString().equals(state.dungeon.id.toString()))return;
-        var rows=state.damageMeter.getAsJsonArray("rows");var font=UiFonts.font();int x=6,w=Math.min(250,Math.max(120,g.guiWidth()/2-12)),y=ClientSettings.targetPosition.equals("top_left")?(int)(65*ClientSettings.targetScale)+16:50;
-        g.text(font,state.damageMeter.get("completed").getAsBoolean()?"本次副本输出 · 已结算":"本次副本输出",x+3,y,UiTheme.HUD_GOLD,false);y+=13;
+        com.google.gson.JsonArray rows;String title;
+        if(state.dungeon!=null){
+            if(!state.damageMeter.has("rows")||!state.damageMeter.has("instance")||!state.damageMeter.get("instance").getAsString().equals(state.dungeon.id.toString()))return;
+            rows=state.damageMeter.getAsJsonArray("rows");title=state.damageMeter.get("completed").getAsBoolean()?"本次副本输出 · 已结算":"本次副本输出";
+        }else{
+            var test=state.trainingMeter;if(!test.has("id"))return;
+            long start=test.get("started").getAsLong(),duration=test.get("duration").getAsLong(),now=state.serverNow();
+            if(start>0&&now>=start+duration+60_000)return;
+            boolean complete=start>0&&now>=start+duration;
+            long elapsed=start==0?0:Math.clamp(now-start,0,duration);double damage=test.get("damage").getAsDouble();
+            title=start==0?"沙袋测试 · 等待首次命中":complete?"沙袋测试 · 已结算":"沙袋测试 · 剩余 "+(long)Math.ceil((duration-elapsed)/1000d)+" 秒";
+            rows=new com.google.gson.JsonArray();var row=new com.google.gson.JsonObject();row.addProperty("name",test.get("name").getAsString());row.addProperty("damage",damage);row.addProperty("dps",elapsed>0?damage/(elapsed/1000d):0);row.addProperty("share",damage>0?1:0);row.addProperty("bar",damage>0?1:0);rows.add(row);
+        }
+        var font=UiFonts.font();int x=6,w=Math.min(250,Math.max(120,g.guiWidth()/2-12)),y=ClientSettings.targetPosition.equals("top_left")?(int)(65*ClientSettings.targetScale)+16:50;
+        g.text(font,title,x+3,y,UiTheme.HUD_GOLD,false);y+=13;
         for(var value:rows){
             var row=value.getAsJsonObject();String damage=damageAmount(row.get("damage").getAsDouble()),dps=damageAmount(row.get("dps").getAsDouble())+"/s",share=String.format(java.util.Locale.ROOT,"%.1f%%",row.get("share").getAsDouble()*100);boolean narrow=font.width(damage+"  "+dps)>w-8;int height=narrow?41:29;
             if(y+height>g.guiHeight()-100)break;g.fill(x,y,x+w,y+height,UiTheme.HUD_PANEL);g.fill(x,y,x+(int)(w*row.get("bar").getAsDouble()),y+height,UiTheme.DAMAGE_BAR);
@@ -164,10 +176,8 @@ public final class Hud {
             var g=event.getGuiGraphics();
             g.blit(RenderPipelines.GUI_TEXTURED,RARITY_BACKGROUND,x,y,0.0F,0.0F,16,16,16,16,color);
             // Former [x-1,x+17) / [y-1,y+17) frame moves inward one pixel on every side.
-            g.fill(x,y,x+16,y+1,color);
-            g.fill(x,y+15,x+16,y+16,color);
-            g.fill(x,y+1,x+1,y+15,color);
-            g.fill(x+15,y+1,x+16,y+15,color);
+            if(rarity==Rarity.MYTHIC)cn.yumis.fight.modules.equipment.api.client.MythicDisplay.frame(g,x,y,16,16);
+            else {g.fill(x,y,x+16,y+1,color);g.fill(x,y+15,x+16,y+16,color);g.fill(x,y+1,x+1,y+15,color);g.fill(x+15,y+1,x+16,y+15,color);}
         }
     }
 }

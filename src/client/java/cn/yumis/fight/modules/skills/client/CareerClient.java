@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.skills.api.client.*;
 import cn.yumis.fight.modules.attributes.api.*;
 import cn.yumis.fight.modules.character.api.*;
 import cn.yumis.fight.modules.combat.api.Life;
+import cn.yumis.fight.modules.combat.api.ProjectileSpawn;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
@@ -29,6 +30,7 @@ public final class CareerClient {
     private final List<FireBall> fireBalls=new ArrayList<>();
     private final Map<String,OrbClock> orbClocks=new HashMap<>();
     private final List<FlameBolt> bolts=new ArrayList<>();
+    private final AsuraClient asura=new AsuraClient();
     private String session="",job="",dimension="",instance="";
     private long generation=-1;
     private static final class Flame {LivingEntity target;SkillCast source;int stacks,sequence;long expires,next,started;String visualId;}
@@ -40,16 +42,17 @@ public final class CareerClient {
         final Map<UUID,Integer> hits=new HashMap<>();
         final Map<UUID,Long> nextHit=new HashMap<>();
     }
-    private static final class FlameBolt {SkillCast source;Vec3 origin,position,direction;double remaining=10;long next,started;String id;int sequence;}
+    private static final class FlameBolt {SkillCast source;Vec3 origin,position,direction;double remaining,range;long next,started;String id;int sequence;}
     private CareerClient(){}
     private SkillsClient state(){return SkillsClient.current();}
-    public void clear(){for(var source:sources.values()){SkillController.INSTANCE.stopVisual(source);TrainingCombat.release(source.id,"persistent");TrainingCombat.actionFinished(source.id);}for(var orb:orbs){orbVisual(orb,"CANCEL");TrainingCombat.release(orb.source.id,"orb");}for(var wave:waves)TrainingCombat.release(wave.source.id,"wave");for(var bolt:bolts)TrainingCombat.release(bolt.source.id,bolt.id);for(var mark:flames.values()){attachmentVisual(mark,"CANCEL");TrainingCombat.release(mark.source.id,"flame/"+mark.target.getUUID());}for(var ball:fireBalls)TrainingCombat.release(ball.source.id,"fire");fireBalls.clear();orbClocks.clear();pending.clear();pendingSlots.clear();released.clear();sources.clear();fieldTicks.clear();freezes.clear();flames.clear();orbs.clear();waves.clear();bolts.clear();view=new CareerState();}
+    public void clear(){asura.clear();OracleClient.INSTANCE.clear();for(var source:sources.values()){SkillController.INSTANCE.stopVisual(source);TrainingCombat.release(source.id,"persistent");TrainingCombat.actionFinished(source.id);}for(var orb:orbs){orbVisual(orb,"CANCEL");TrainingCombat.release(orb.source.id,"orb");}for(var wave:waves)TrainingCombat.release(wave.source.id,"wave");for(var bolt:bolts)TrainingCombat.release(bolt.source.id,bolt.id);for(var mark:flames.values()){attachmentVisual(mark,"CANCEL");TrainingCombat.release(mark.source.id,"flame/"+mark.target.getUUID());}for(var ball:fireBalls)TrainingCombat.release(ball.source.id,"fire");fireBalls.clear();orbClocks.clear();pending.clear();pendingSlots.clear();released.clear();sources.clear();fieldTicks.clear();freezes.clear();flames.clear();orbs.clear();waves.clear();bolts.clear();view=new CareerState();}
     public void receive(JsonObject data){
         CareerState next=JSON.fromJson(data,CareerState.class);
         if(!state().session().equals(next.session)||next.generation!=state().own().generation)return;
         for(var reduction:next.reductions.entrySet())if(reduction.getValue()>view.reductions.getOrDefault(reduction.getKey(),0L))SkillReductions.resources(reduction.getKey(),state().resources());
         if(view.field!=null&&(next.field==null||!next.field.id.equals(view.field.id))){TrainingCombat.release(view.field.id,"persistent");var old=sources.get(view.field.id);if(old!=null)SkillController.INSTANCE.stopVisual(old);}
         if(view.kallaUntil>0&&next.kallaUntil==0)for(var source:sources.values())if(source.skill.id.equals(CareerSkills.KALLA)&&!source.terminal)TrainingCombat.release(source.id,"persistent");
+        if(view.eyeUntil>0&&next.eyeUntil==0)for(var source:sources.values())if(source.skill.id.equals(CareerSkills.EYE)&&!source.terminal)TrainingCombat.release(source.id,"persistent");
         for(var source:sources.values())if(!source.terminal&&(
             source.skill.id.equals(CareerSkills.KALLA)&&view.kallaUntil>0&&next.kallaUntil==0||
             source.skill.id.equals(CareerSkills.EYE)&&view.eyeUntil>0&&next.eyeUntil==0||
@@ -86,9 +89,14 @@ public final class CareerClient {
     public int visualColor(Stats stats,int fallback){return stats.modifiers.getOrDefault("careerEye",0d)>0?CareerRules.EYE_COLOR:fallback;}
     public int basicColor(Stats stats){if(stats.modifiers.getOrDefault("careerEye",0d)>0)return CareerRules.EYE_COLOR;if(stats.modifiers.getOrDefault("careerFrenzy",0d)>0)return 0xe63951;return SkillLearning.effective(stats,state().progress(),SkillCatalog.require(CareerSkills.KEIGA))>0?0x8e56d9:0xb4f2ff;}
     public boolean invulnerable(SkillCast c){if(c==null)return false;if(c.skill.id.equals(CareerSkills.PHANTOM))return (ClientUi.now()-c.start)*c.speed<=250;return c.terminal&&(c.skill.id.equals(CareerSkills.EYE)||c.skill.id.equals(CareerSkills.SWORD));}
-    public void cancel(SkillCast c){if(c==null)return;JsonObject j=new JsonObject();j.addProperty("id",c.id);state().send("careerCancel",j);sources.remove(c.id);}
+    void eyeStarted(SkillCast cast,long now){
+        for(var old:sources.values())if(!old.id.equals(cast.id)&&old.skill.id.equals(CareerSkills.EYE)&&!old.terminal)TrainingCombat.release(old.id,"persistent");
+        TrainingCombat.hold(cast.id,"persistent",now+20000);
+    }
+    public void cancel(SkillCast c){if(c==null)return;OracleClient.INSTANCE.cancel(c.id);TrainingCombat.release(c.id,"persistent");JsonObject j=new JsonObject();j.addProperty("id",c.id);state().send("careerCancel",j);sources.remove(c.id);}
     public void decorate(SkillCast source,LivingEntity target,JsonObject extra){
         if(source==null)return;
+        if(!source.eyeGear.isEmpty()){extra.addProperty("eyeGear",source.eyeGear);extra.add("eyePoint",JSON.toJsonTree(new double[]{source.center.x,source.center.y,source.center.z}));}
         if(MageClient.decorate(source,extra))return;
         if(CareerSkills.contains(source.skill.id)){extra.addProperty("careerCast",source.id);extra.addProperty("careerIndex",source.hitIndex);if(source.skill.id.equals(CareerSkills.ORB))extra.addProperty("orbAt",source.scheduledHitAt);if(source.controlSeconds>0){String key=source.id+"/"+target.getUUID();long now=ClientUi.now();if(!source.skill.id.equals(CareerSkills.FIELD)||freezes.getOrDefault(key,0L)<=now){extra.addProperty("careerControl",source.controlSeconds);freezes.put(key,now+3000);}}}
         else extra.addProperty("sourceCast",source.id);
@@ -111,12 +119,13 @@ public final class CareerClient {
         if(!state().session().equals(ack.get("session").getAsString())||state().own().generation!=ack.get("generation").getAsLong())return;
         for(var ball:fireBalls)if(ball.source.id.equals(ack.get("id").getAsString())){ball.position=new Vec3(ack.get("x").getAsDouble(),ack.get("y").getAsDouble(),ack.get("z").getAsDouble());ack.getAsJsonArray("captured").forEach(id->ball.captured.add(UUID.fromString(id.getAsString())));ball.waiting=true;ball.confirmed=true;break;}
     }
-    public void basic(Stats stats,String cycle){
-        long now=state().serverNow();if(view.kallaUntil<=now)return;
-        SkillCast source=sources.values().stream().filter(c->c.skill.id.equals(CareerSkills.KALLA)&&!c.terminal).max(Comparator.comparingLong(c->c.start)).orElse(null);if(source==null)return;
-        var p=Minecraft.getInstance().player;FlameBolt bolt=new FlameBolt();bolt.source=source;bolt.origin=bolt.position=p.getEyePosition().add(0,-.3,0);bolt.direction=p.getLookAngle().normalize();bolt.next=ClientUi.now();bolt.started=state().serverNow();bolt.id=UUID.nameUUIDFromBytes((cycle+"/kalla").getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();bolts.add(bolt);TrainingCombat.hold(source.id,bolt.id,ClientUi.now()+2000);flameVisual(bolt,"START");
+    public boolean basic(Stats stats,String cycle,JsonObject content){
+        if(asura.basic(cycle,content,sources))return true;
+        long now=state().serverNow();if(view.kallaUntil<=now)return false;
+        SkillCast source=sources.values().stream().filter(c->c.skill.id.equals(CareerSkills.KALLA)&&!c.terminal).max(Comparator.comparingLong(c->c.start)).orElse(null);if(source==null)return false;
+        if(!content.has("kallaProjectile"))return false;var launch=content.getAsJsonObject("kallaProjectile");FlameBolt bolt=new FlameBolt();bolt.source=source;bolt.origin=bolt.position=ProjectileSpawn.vector(launch.getAsJsonArray("origin"));bolt.direction=ProjectileSpawn.vector(launch.getAsJsonArray("direction"));bolt.remaining=bolt.range=launch.get("range").getAsDouble();bolt.started=launch.get("at").getAsLong();bolt.next=ClientUi.now()-Math.clamp(state().serverNow()-bolt.started,0,2000);bolt.id=UUID.nameUUIDFromBytes((cycle+"/kalla").getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();bolts.add(bolt);TrainingCombat.hold(source.id,bolt.id,ClientUi.now()+2000);flameVisual(bolt,"START");return false;
     }
-    private void flameVisual(FlameBolt b,String phase){var p=Minecraft.getInstance().player;if(p==null)return;JsonObject j=new JsonObject();j.addProperty("caster",p.getStringUUID());j.addProperty("session",state().session());j.addProperty("generation",state().own().generation);j.addProperty("id",b.id);j.addProperty("kind",CareerSkills.KALLA);j.addProperty("phase",phase);j.addProperty("sequence",b.sequence++);j.addProperty("seed",b.id.hashCode());j.addProperty("startedAt",b.started);j.addProperty("at",state().serverNow());j.addProperty("duration",2000);j.addProperty("color",0x8f43d0);j.addProperty("x",b.origin.x);j.addProperty("y",b.origin.y);j.addProperty("z",b.origin.z);j.addProperty("px",b.position.x);j.addProperty("py",b.position.y);j.addProperty("pz",b.position.z);j.addProperty("dx",b.direction.x);j.addProperty("dy",b.direction.y);j.addProperty("dz",b.direction.z);if(phase.equals("START"))j.add("motion",SkillController.motion(10,1000d*10/15,false));Effects.receive(j);state().send("visual",j);}
+    private void flameVisual(FlameBolt b,String phase){var p=Minecraft.getInstance().player;if(p==null)return;JsonObject j=new JsonObject();j.addProperty("caster",p.getStringUUID());j.addProperty("session",state().session());j.addProperty("generation",state().own().generation);j.addProperty("id",b.id);j.addProperty("kind",CareerSkills.KALLA);j.addProperty("phase",phase);j.addProperty("sequence",b.sequence++);j.addProperty("seed",b.id.hashCode());j.addProperty("startedAt",b.started);j.addProperty("at",state().serverNow());j.addProperty("duration",2000);j.addProperty("color",0x8f43d0);j.addProperty("x",b.origin.x);j.addProperty("y",b.origin.y);j.addProperty("z",b.origin.z);j.addProperty("px",b.position.x);j.addProperty("py",b.position.y);j.addProperty("pz",b.position.z);j.addProperty("dx",b.direction.x);j.addProperty("dy",b.direction.y);j.addProperty("dz",b.direction.z);if(phase.equals("START")){var motion=SkillController.motion(b.range,1000d*b.range/15,false);motion.addProperty("at",b.started);j.add("motion",motion);}Effects.receive(j);state().send("visual",j);}
     private void flame(LivingEntity target,SkillCast source){
         var mark=flames.get(target.getUUID());boolean first=mark==null||!mark.source.id.equals(source.id);
         if(first){if(mark!=null){attachmentVisual(mark,"CANCEL");TrainingCombat.release(mark.source.id,"flame/"+target.getUUID());}mark=new Flame();mark.target=target;mark.source=source;mark.next=ClientUi.now()+500;mark.started=ClientUi.now();mark.visualId=UUID.nameUUIDFromBytes((source.id+"/flame/"+target.getUUID()).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();flames.put(target.getUUID(),mark);}
@@ -133,14 +142,16 @@ public final class CareerClient {
         String currentDimension=mc.level.dimension().identifier().toString();
         if(!session.equals(state().session())||generation!=state().own().generation||!job.equals(state().progress().jobId())||!dimension.equals(currentDimension)||!instance.equals(state().own().instance)||state().own().dead){clear();session=state().session();generation=state().own().generation;job=state().progress().jobId();dimension=currentDimension;instance=state().own().instance;if(!state().own().dead)state().send("careerState",new JsonObject());}
         long now=ClientUi.now(),wall=state().serverNow();
+        OracleClient.INSTANCE.tick(now);
         for(var source:sources.values()){
             if(source.skill.id.equals(CareerSkills.FIELD)&&(now-source.start>=12000||view.field!=null&&view.field.id.equals(source.id)&&view.field.expires<=wall))TrainingCombat.release(source.id,"persistent");
             if(source.skill.id.equals(CareerSkills.KALLA)&&!source.terminal&&(now-source.start>=20000||view.kallaUntil>0&&view.kallaUntil<=wall))TrainingCombat.release(source.id,"persistent");
+            if(source.skill.id.equals(CareerSkills.EYE)&&!source.terminal&&(now-source.start>=20000||view.eyeUntil>0&&view.eyeUntil<=wall))TrainingCombat.release(source.id,"persistent");
         }
         cn.yumis.fight.modules.equipment.api.EquipmentStats.applyMovement(p,SkillController.INSTANCE.snapshot());
         pending.entrySet().removeIf(e->{if(now-e.getValue()>5000){pendingSlots.remove(e.getKey());released.remove(e.getKey());state().message("技能施放确认超时，请重试");return true;}return false;});
         if(view.field!=null&&view.field.expires>wall){SkillCast c=sources.get(view.field.id);if(c!=null){long next=fieldTicks.getOrDefault(c.id,c.start+1000);while(now>=next&&next<c.start+12001){int index=(int)((next-c.start)/1000)-1;c.center=new Vec3(view.field.x,view.field.y,view.field.z);c.dot=true;c.hit.clear();if(view.field.rank>=8){c.hitIndex=index;c.elementOverride=2;c.controlSeconds=.5;context.area(c,5,c.parameters.get("iceDot",0),false);}if(view.field.rank>=15){c.hit.clear();c.hitIndex=16+index;c.elementOverride=3;c.controlSeconds=0;context.area(c,5,c.parameters.get("darkDot",0),false);}next+=1000;}fieldTicks.put(c.id,next);}}
-        for(var bolt:new ArrayList<>(bolts)){while(now>=bolt.next&&bolt.remaining>0){Vec3 from=bolt.position,to=from.add(bolt.direction.scale(.75));if(!SkillController.INSTANCE.sight(from,to)){bolt.remaining=0;break;}bolt.position=to;bolt.remaining-=.75;bolt.next+=50;var hit=SkillController.INSTANCE.targets(new AABB(from,to).inflate(.35)).stream().findFirst().orElse(null);if(hit!=null){flame(hit,bolt.source);bolt.remaining=0;}}if(bolt.remaining<=0){flameVisual(bolt,"FINISH");TrainingCombat.release(bolt.source.id,bolt.id);bolts.remove(bolt);}}
+        for(var bolt:new ArrayList<>(bolts)){while(now>=bolt.next&&bolt.remaining>0){double step=Math.min(.75,bolt.remaining);Vec3 from=bolt.position,to=from.add(bolt.direction.scale(step));if(!SkillController.INSTANCE.sight(from,to)){bolt.remaining=0;break;}bolt.position=to;bolt.remaining-=step;bolt.next+=50;var hit=SkillController.INSTANCE.targets(new AABB(from,to).inflate(.35)).stream().findFirst().orElse(null);if(hit!=null){flame(hit,bolt.source);bolt.remaining=0;}}if(bolt.remaining<=0){flameVisual(bolt,"FINISH");TrainingCombat.release(bolt.source.id,bolt.id);bolts.remove(bolt);}}
         for(var mark:new ArrayList<>(flames.values())){if(!mark.target.isAlive()||mark.expires<now){attachmentVisual(mark,"CANCEL");TrainingCombat.release(mark.source.id,"flame/"+mark.target.getUUID());flames.remove(mark.target.getUUID());continue;}while(mark.next<=now&&mark.next<=mark.expires){SkillCast c=mark.source;c.dot=true;c.elementOverride=3;c.controlSeconds=0;c.hitIndex=64+(int)((mark.next-c.start)/500);context.hit(c,mark.target,c.parameters.get("flameDot",0)*mark.stacks);mark.next+=500;}}
         for(var orb:new ArrayList<>(orbs)){
             SkillCast c=orb.source;
@@ -170,6 +181,7 @@ public final class CareerClient {
             if(context.hit(c,orb.target,c.parameters.get("damage",0))){orb.index++;orb.next=now+SkillResourceRules.ORB_INTERVAL;clock.next=orb.next;clock.lastServer=c.scheduledHitAt;}
         }
         orbClocks.entrySet().removeIf(entry->entry.getValue().next+5000<now);
+        asura.tick(context,sources.values().stream().filter(c->c.skill.id.equals(CareerSkills.EYE)&&!c.terminal).max(Comparator.comparingLong(c->c.start)).orElse(null),view.eyeUntil);
         for(var ball:new ArrayList<>(fireBalls))advanceFire(ball,context,now);
         for(var wave:new ArrayList<>(waves))advance(wave,context,now);
         if(!waiting()&&SkillController.INSTANCE.cast==null&&!p.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)){

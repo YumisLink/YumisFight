@@ -121,6 +121,8 @@
       "element": -1
     },
     "flat_physical_attack": {
+      "revision": 1,
+      "levelCurve": "weapon_attack_extra_alignment",
       "id": "flat_physical_attack",
       "name": "锋锐",
       "operation": "FLAT",
@@ -145,6 +147,8 @@
       "element": -1
     },
     "flat_magical_attack": {
+      "revision": 1,
+      "levelCurve": "weapon_attack_extra_alignment",
       "id": "flat_magical_attack",
       "name": "秘能",
       "operation": "FLAT",
@@ -461,6 +465,8 @@
       "element": -1
     },
     "extra_0": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "extra_0",
       "name": "圣光追击",
       "operation": "EXTRA",
@@ -469,6 +475,8 @@
       "element": 0
     },
     "extra_1": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "extra_1",
       "name": "烈火追击",
       "operation": "EXTRA",
@@ -477,6 +485,8 @@
       "element": 1
     },
     "extra_2": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "extra_2",
       "name": "冰霜追击",
       "operation": "EXTRA",
@@ -485,6 +495,8 @@
       "element": 2
     },
     "extra_3": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "extra_3",
       "name": "暗影追击",
       "operation": "EXTRA",
@@ -525,6 +537,8 @@
       "element": -1
     },
     "epic_dark": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "epic_dark",
       "name": "epic_dark",
       "operation": "EXTRA",
@@ -533,6 +547,8 @@
       "element": 3
     },
     "mythic_four_0": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "mythic_four_0",
       "name": "mythic_four_0",
       "operation": "EXTRA",
@@ -541,6 +557,8 @@
       "element": 0
     },
     "mythic_four_1": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "mythic_four_1",
       "name": "mythic_four_1",
       "operation": "EXTRA",
@@ -549,6 +567,8 @@
       "element": 1
     },
     "mythic_four_2": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "mythic_four_2",
       "name": "mythic_four_2",
       "operation": "EXTRA",
@@ -557,6 +577,8 @@
       "element": 2
     },
     "mythic_four_3": {
+      "revision": 1,
+      "balanceScale": 0.25,
       "id": "mythic_four_3",
       "name": "mythic_four_3",
       "operation": "EXTRA",
@@ -1036,6 +1058,30 @@
       "retired": false,
       "minimum": 0.5,
       "maximum": 1
+    },
+    "unique/mana_flower_capacity": {
+      "id": "unique/mana_flower_capacity",
+      "name": "魔力之花",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "MP",
+      "minimum": 4000,
+      "maximum": 6000
+    },
+    "unique/mana_flower_recovery": {
+      "id": "unique/mana_flower_recovery",
+      "name": "无尽魔力",
+      "operation": "CHARACTER_PERCENT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "MANA_REGENERATION",
+      "minimum": 2,
+      "maximum": 6
     },
     "unique/gem_crown": {
       "id": "unique/gem_crown",

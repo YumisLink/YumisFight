@@ -20,11 +20,13 @@ public final class EconomyService {
     private record SaleItem(boolean bag,int slot,JsonElement snapshot,String equipment,int revision,long price){}
     private record Quote(String session,String token,Map<String,SaleItem> items){}
     private final Map<UUID,Quote> quotes=new HashMap<>();
+    private final Random random=new Random();
     public EconomyService(Journal journal,InventoryOperations inventory,Function<ServerPlayer,UUID> sessionId,Consumer<ServerPlayer> profile,EquipmentEntitlements entitlements){this.journal=journal;this.inventory=inventory;this.sessionId=sessionId;this.profile=profile;this.entitlements=entitlements;}
-    public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("economy","sell",this::sell);router.register("economy","saleOpen",this::saleOpen);router.register("economy","purchase",this::purchase);}
+    public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("economy","sell",this::sell);router.register("economy","dismantle",this::dismantle);router.register("economy","saleOpen",this::saleOpen);router.register("economy","purchase",this::purchase);}
     public long gold(ServerPlayer p){return journal.get("gold/"+p.getUUID(),Long.class,0L);}
     public long goldRevision(ServerPlayer p){return journal.get("goldRevision/"+p.getUUID(),Long.class,0L);}
     public long points(ServerPlayer p){return journal.get(CurrencyRules.POINTS.id()+"/"+p.getUUID(),Long.class,0L);}
+    public long colorlessCrystals(ServerPlayer p){return journal.get(CurrencyRules.COLORLESS_CRYSTAL.id()+"/"+p.getUUID(),Long.class,0L);}
     public long changePoints(ServerPlayer p,long amount){
         long balance=Math.addExact(points(p),amount);if(balance<0)throw new IllegalArgumentException("点券余额不足");
         var intent=new JsonObject();intent.addProperty("points",amount);inventory.transact(p,UUID.randomUUID().toString(),intent,()->{},Map.of(CurrencyRules.POINTS.id()+"/"+p.getUUID(),new JsonPrimitive(balance)));profile.accept(p);return balance;
@@ -46,15 +48,15 @@ public final class EconomyService {
         changes.put("gold/"+p.getUUID(),new JsonPrimitive(gold(p)-CONTRACT_PRICE));changes.put("goldRevision/"+p.getUUID(),new JsonPrimitive(Math.incrementExact(goldRevision(p))));
         inventory.transact(p,j.get("operation").getAsString(),j,()->{},changes);profile.accept(p);
     }
-    public void saleOpen(ServerPlayer p,JsonObject j){
+    public String saleOpen(ServerPlayer p,JsonObject j){
         session(p,j);if(p.containerMenu!=p.inventoryMenu)p.closeContainer();
         String token=UUID.randomUUID().toString();Map<String,SaleItem> items=new LinkedHashMap<>();List<JsonObject> rows=new ArrayList<>();
         for(int group=0;group<2;group++){boolean bag=group==1;Container container=bag?MenuHooks.extra(p).bag:p.getInventory();int limit=bag?MenuHooks.extra(p).bagLimit():36;
             for(int slot=0;slot<limit;slot++){
                 ItemStack stack=container.getItem(slot);Gear g=EquipmentItems.gear(stack);JsonObject row=new JsonObject();String key=(bag?"bag/":"inventory/")+slot;
                 row.addProperty("key",key);row.addProperty("bag",bag);row.addProperty("slot",slot);row.addProperty("empty",stack.isEmpty());
-                boolean allowed=g!=null&&stack.getCount()==1&&ItemData.own(stack)&&(bag||slot!=p.getInventory().getSelectedSlot());row.addProperty("allowed",allowed);
-                row.addProperty("reason",allowed?"":stack.isEmpty()?"空槽":!bag&&slot==p.getInventory().getSelectedSlot()?"当前主手不可出售":"不是可出售的装备");
+                boolean allowed=g!=null&&!g.creativeTemplate&&stack.getCount()==1&&ItemData.own(stack)&&(bag||slot!=p.getInventory().getSelectedSlot());row.addProperty("allowed",allowed);
+                row.addProperty("reason",allowed?"":stack.isEmpty()?"空槽":!bag&&slot==p.getInventory().getSelectedSlot()?"当前主手不可处理":g!=null&&g.creativeTemplate?"装备正在初始化":"不是可处理的装备");
                 row.addProperty("name",stack.isEmpty()?"空槽":stack.getHoverName().getString());
                 if(g==null&&!stack.isEmpty()){
                     // Only the visible item/name are needed; never transmit nested container contents.
@@ -63,9 +65,11 @@ public final class EconomyService {
                     row.add("item",inventory.encode(p,preview));
                 }
                 if(g!=null){
-                    row.addProperty("equipment",g.instance.toString());row.addProperty("revision",g.revision);row.addProperty("price",CurrencyRules.salePrice(g));
+                    row.addProperty("equipment",g.instance.toString());row.addProperty("revision",g.revision);row.addProperty("price",CurrencyRules.salePrice(g));row.addProperty("rarity",g.rarity.name());
+                    String products=String.join("／",CurrencyRules.dismantlePool(g.rarity).stream().map(id->cn.yumis.fight.platform.ItemRegistry.item(id,1).getHoverName().getString()).toList());
+                    row.addProperty("dismantle",(g.rarity==Rarity.EPIC||g.rarity==Rarity.MYTHIC?"1个":"1～3个同种随机")+products);row.addProperty("gems",g.gems.size());
                     Gear preview=EquipmentJson.copy(g,Gear.class);preview.baseGrowth.clear();preview.affixes.clear();preview.gems.clear();row.add("item",inventory.encode(p,EquipmentItems.gear(preview)));
-                    JsonArray lines=new JsonArray();g.affixes.forEach(a->lines.add(cn.yumis.fight.modules.affixes.api.AffixText.affix(a)));row.add("lines",lines);
+                    JsonArray lines=new JsonArray();g.affixes.forEach(a->{JsonObject line=new JsonObject();line.addProperty("id",cn.yumis.fight.modules.affixes.api.AffixResolver.definitionId(a));line.addProperty("text",cn.yumis.fight.modules.affixes.api.AffixText.affix(a));lines.add(line);});row.add("lines",lines);
                     if(allowed)items.put(key,new SaleItem(bag,slot,inventory.encode(p,stack).deepCopy(),g.instance.toString(),g.revision,CurrencyRules.salePrice(g)));
                 }
                 rows.add(row);
@@ -76,18 +80,29 @@ public final class EconomyService {
         List<JsonObject> chunk=new ArrayList<>();int size=0,part=0;
         for(JsonObject row:rows){int n=row.toString().length();if(size+n>110000&&!chunk.isEmpty()){sendSale(p,token,part++,false,chunk);chunk=new ArrayList<>();size=0;}chunk.add(row);size+=n;}
         sendSale(p,token,part,true,chunk);
+        return token;
     }
     private void sendSale(ServerPlayer p,String token,int part,boolean done,List<JsonObject> rows){Network.send(p,"saleState",Map.of("session",sessionId.apply(p).toString(),"token",token,"part",part,"done",done,"menu",p.inventoryMenu.containerId,"rows",rows));}
     public void sell(ServerPlayer p,JsonObject j){
-        if(replay(p,j))return;session(p,j);Quote quote=quotes.get(p.getUUID());
-        if(p.containerMenu!=p.inventoryMenu||j.get("menu").getAsInt()!=p.inventoryMenu.containerId||quote==null||!quote.session.equals(sessionId.apply(p).toString())||!quote.token.equals(j.get("token").getAsString()))throw new IllegalArgumentException("出售报价已失效，请刷新");
+        processSelection(p,j,false);
+    }
+    public void dismantle(ServerPlayer p,JsonObject j){processSelection(p,j,true);}
+    private void processSelection(ServerPlayer p,JsonObject j,boolean dismantle){
+        if(replay(p,j)){if(p.containerMenu==p.inventoryMenu){JsonObject refresh=new JsonObject();refresh.addProperty("session",sessionId.apply(p).toString());saleOpen(p,refresh);}return;}session(p,j);Quote quote=quotes.get(p.getUUID());
+        if(p.containerMenu!=p.inventoryMenu||j.get("menu").getAsInt()!=p.inventoryMenu.containerId||quote==null||!quote.session.equals(sessionId.apply(p).toString())||!quote.token.equals(j.get("token").getAsString()))throw new IllegalArgumentException("装备报价已失效，请刷新");
         try{
             JsonArray selected=j.getAsJsonArray("items");if(selected==null||selected.isEmpty()||selected.size()>452)throw new IllegalArgumentException("请选择有效装备");
-            Set<String> keys=new HashSet<>();List<SaleItem> valid=new ArrayList<>();long total=0;
+            Set<String> keys=new HashSet<>();List<SaleItem> valid=new ArrayList<>();List<CurrencyRules.DismantleResult> products=new ArrayList<>();long total=0;
             for(JsonElement element:selected){String key=element.getAsString();if(!keys.add(key))throw new IllegalArgumentException("重复选择槽位");SaleItem row=quote.items.get(key);if(row==null)throw new IllegalArgumentException("装备不可出售");
                 Container container=row.bag?MenuHooks.extra(p).bag:p.getInventory();ItemStack stack=container.getItem(row.slot);Gear gear=EquipmentItems.gear(stack);
-                if(!row.bag&&row.slot==p.getInventory().getSelectedSlot()||gear==null||!gear.instance.toString().equals(row.equipment)||gear.revision!=row.revision||stack.getCount()!=1||!row.snapshot.equals(inventory.encode(p,stack))||CurrencyRules.salePrice(gear)!=row.price)throw new IllegalArgumentException("装备已发生变化，已刷新选择");
-                total=Math.addExact(total,row.price);valid.add(row);
+                if(!row.bag&&row.slot==p.getInventory().getSelectedSlot()||gear==null||gear.creativeTemplate||!gear.instance.toString().equals(row.equipment)||gear.revision!=row.revision||stack.getCount()!=1||!row.snapshot.equals(inventory.encode(p,stack))||CurrencyRules.salePrice(gear)!=row.price)throw new IllegalArgumentException("装备已发生变化，已刷新选择");
+                total=Math.addExact(total,row.price);valid.add(row);if(dismantle)products.add(CurrencyRules.dismantle(gear.rarity,random));
+            }
+            if(dismantle){
+                inventory.transact(p,j.get("operation").getAsString(),j,()->{
+                    for(int index=0;index<valid.size();index++){SaleItem row=valid.get(index);Container container=row.bag?MenuHooks.extra(p).bag:p.getInventory();container.setItem(row.slot,ItemStack.EMPTY);
+                        var product=products.get(index);if(p.drop(cn.yumis.fight.platform.ItemRegistry.item(product.item(),product.count()),false)==null)throw new IllegalStateException("分解掉落被取消，装备已保留");}
+                },Map.of());profile.accept(p);saleOpen(p,j);return;
             }
             long income=total,balance=Math.addExact(gold(p),total),revision=Math.incrementExact(goldRevision(p));
             boolean committed=inventory.transact(p,j.get("operation").getAsString(),j,()->{for(SaleItem row:valid){Container c=row.bag?MenuHooks.extra(p).bag:p.getInventory();c.setItem(row.slot,ItemStack.EMPTY);}},Map.of("gold/"+p.getUUID(),new JsonPrimitive(balance),"goldRevision/"+p.getUUID(),new JsonPrimitive(revision)));

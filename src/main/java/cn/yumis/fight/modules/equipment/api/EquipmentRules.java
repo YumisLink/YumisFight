@@ -87,14 +87,17 @@ public final class EquipmentRules {
         appendRandom(g,random,false);
     }
     private static void appendRandom(Gear g,Random random,boolean allowDuplicates){
-        g.affixes.add(cn.yumis.fight.modules.affixes.api.AffixGeneration.sample(new cn.yumis.fight.modules.affixes.api.AffixGeneration.Item(){
+        g.affixes.add(cn.yumis.fight.modules.affixes.api.AffixGeneration.sample(generationItem(g),allowDuplicates,random));
+    }
+    static cn.yumis.fight.modules.affixes.api.AffixGeneration.Item generationItem(Gear g){
+        return new cn.yumis.fight.modules.affixes.api.AffixGeneration.Item(){
             public boolean weapon(){return g.slot==Slot.WEAPON;}
             public int level(){return g.level;}
             public double budget(){return EquipmentRules.budget(g.level);}
             public List<Affix> affixes(){return g.affixes;}
             public List<cn.yumis.fight.modules.affixes.api.AffixDefinition> candidates(boolean percent,boolean duplicates){return EquipmentAffixes.candidates(g,percent,duplicates);}
             public double baseline(Affix affix){return EquipmentAffixes.baseline(g,affix);}
-        },allowDuplicates,random));
+        };
     }
     public static boolean replaceable(Affix a){
         return !a.base&&(!a.fixed||a.operation.equals("SKILL_FAMILY"))&&!a.locked;
@@ -142,6 +145,7 @@ public final class EquipmentRules {
             case "delezie_blood"->{
                 boolean level=random.nextDouble()<.2,refresh=random.nextDouble()<.2,socket=random.nextDouble()<.2;
                 if(level){g.level=Math.max(1,Math.min(85,g.level+random.nextInt(11)-5));rebuildBases(g);if(g.rarity!=Rarity.EPIC&&g.rarity!=Rarity.MYTHIC)EquipmentAffixes.grow(g);}
+                if(level)g=EquipmentResolution.initialize(g);
                 if(refresh)reroll(g,random,true,false);
                 if(socket)g.sockets++;
                 g.corrupted=true;
@@ -180,12 +184,14 @@ public final class EquipmentRules {
         if(MageBlood.is(g)){MageBlood.reroll(g,random);if(corrupt)for(Affix a:g.affixes)if(a.operation.equals("MAGIC_AMPLIFICATION")){a.corruptionMultiplier=.8+random.nextDouble()*.6;a.value*=a.corruptionMultiplier;}return;}
         boolean changed=false;
         for(Affix a:g.affixes)if(washable(a)){
+            if(a.origin!=null&&a.origin.quality==null&&!a.fixed){a.syncStatus="unresolved_snapshot";continue;}
             a.corruptionMultiplier=1;a.roll=.8+random.nextDouble()*.4;double q=(a.roll-.8)/.4;
             a.value=a.baseline*a.roll;a.maximum=a.baselineMaximum*a.roll;
             if(a.stat.equals("ATTACK_SPEED"))a.value=AttackSpeedRoll.sample(g.level,a.roll);
             var d=AffixDefinitions.current().affixes.get(a.id);
             if(d!=null&&d.minimum()!=null){a.value=(d.minimum()+(d.maximum()-d.minimum())*q)*d.scale();if(d.upperMinimum()!=null)a.maximum=(d.upperMinimum()+(d.upperMaximum()-d.upperMinimum())*q)*d.scale();}
-            AffixResolver.anchor(a,g.instance+"/"+a.instanceId,d,d==null?0:d.revision());
+            boolean unresolved=a.origin!=null&&a.origin.quality==null&&!a.fixed;
+            if(!unresolved)AffixResolver.anchor(a,g.instance+"/"+a.instanceId,d,d==null?0:d.revision(),d==null?1:d.effectiveScale(g.level));
             if(corrupt){a.corruptionMultiplier=.8+random.nextDouble()*.6;a.value*=a.corruptionMultiplier;a.maximum*=a.corruptionMultiplier;}
             changed=true;
         }

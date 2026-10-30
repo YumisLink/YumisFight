@@ -42,7 +42,7 @@ public final class SkillLearning {
             for(int i=0;i<progress.slots.length;i++)if(progress.slots[i].equals(skill.id))progress.slots[i]="";
         }
     }
-    public static boolean canBind(Stats stats,Progress progress,SkillDefinition skill){return !skill.passive()&&effective(stats,progress,skill)>0;}
+    public static boolean canBind(Stats stats,Progress progress,SkillDefinition skill){return (!skill.passive()||skill.bindingProxy)&&effective(stats,progress,skill)>0;}
     public static void apply(Progress progress,Stats stats,JsonObject request){
         switch(request.get("kind").getAsString()){
             case "learn"->learn(progress,SkillCatalog.require(request.get("skill").getAsString()),request.has("count")?request.get("count").getAsInt():1);

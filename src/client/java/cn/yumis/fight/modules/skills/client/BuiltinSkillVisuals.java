@@ -60,24 +60,25 @@ final class BuiltinSkillVisuals {
             if(event.skill().equals("yumis_dungeon_and_fight:overdrive")){
                 Player actor=Minecraft.getInstance().level.getPlayerByUUID(event.caster());
                 if(actor!=null){
-                    Vec3 p=actor.position().add(actor.getLookAngle().multiply(1,0,1).scale(.55)).add(0,1,0);
+                    Vec3 p=PlayerVisualAnchor.position(actor).add(PlayerVisualAnchor.look(actor).multiply(1,0,1).scale(.55)).add(0,1,0);
                     orb(quads,p,.10,SkillVisualEvent.GOLD,100);
-                    if(age<550)ring(quads,actor.position().add(0,.08,0),Math.min(1.8,age/250.0),SkillVisualEvent.GOLD,(int)(160*(1-age/550.0)));
+                    if(age<550)ring(quads,PlayerVisualAnchor.position(actor).add(0,.08,0),Math.min(1.8,age/250.0),SkillVisualEvent.GOLD,(int)(160*(1-age/550.0)));
                 }
                 return;
             }
             if(event.skill().equals("yumis_dungeon_and_fight:ghost")&&!t.released){
                 Player actor=Minecraft.getInstance().level.getPlayerByUUID(event.caster());
-                Vec3 p=(actor==null?vector(event.origin()):actor.position()).add(vector(event.direction()).scale(.8)).add(0,1.2,0);
+                Vec3 p=(actor==null?vector(event.origin()):PlayerVisualAnchor.position(actor)).add(vector(event.direction()).scale(.8)).add(0,1.2,0);
                 orb(quads,p,.15+.18*Math.min(1,age/1000.0),event.color(),180);
                 ringVertical(quads,p,.35+.3*Math.min(1,age/1000.0),vector(event.direction()),event.color(),130);
             }
             if(event.skill().equals("yumis_dungeon_and_fight:draw")&&!t.released&&age<400)ring(quads,vector(event.origin()).add(0,.1,0),1.2*(1-age/500.0),event.color(),160);
             if((event.skill().equals("yumis_dungeon_and_fight:wave")||(event.skill().equals("yumis_dungeon_and_fight:dance")||event.skill().equals("MASTERY_WAVE"))&&t.released)&&t.last.phase()==SkillVisualEvent.Phase.TRAIL&&time-t.last.at()<180){
-                double radius=event.skill().equals("yumis_dungeon_and_fight:wave")?1:1.5;
+                double radius=(event.skill().equals("yumis_dungeon_and_fight:wave")?1:1.5)*event.horizontalScale();
                 Vec3 direction=vector(t.last.direction());
                 Vec3 p=vector(t.last.position()).subtract(direction.scale(radius*.65)).add(0,event.skill().equals("yumis_dungeon_and_fight:wave")?.8:1,0);
-                crescent(quads,p,direction.scale(.65),UP.scale(.72),radius,.35,event.color(),event.color(),200);
+                double angle=Math.toRadians(event.slashAngle());Vec3 span=UP.scale(Math.cos(angle)).add(side(direction).scale(Math.sin(angle)));
+                crescent(quads,p,direction.scale(.65),span.scale(.72),radius,.35,event.color(),event.color(),200);
                 ring(quads,vector(t.last.position()).add(0,.08,0),.4,event.color(),75);
             }
             for(SkillVisualEvent flash:t.flashes){
@@ -162,7 +163,7 @@ final class BuiltinSkillVisuals {
                 if(e.phase()==SkillVisualEvent.Phase.RELEASE)crescent(out,p.add(direction.scale(.5)).add(0,.7+age/650.0,0),direction,UP.scale(.75),1.3,.4,color,color,alpha);
             }
             case "yumis_dungeon_and_fight:draw"->{
-                if(e.phase()==SkillVisualEvent.Phase.RELEASE)crescent(out,p.add(0,1,0),direction,right,5,.45,color,0xF5FFFF,alpha);
+                if(e.phase()==SkillVisualEvent.Phase.RELEASE||e.phase()==SkillVisualEvent.Phase.HIT){ring(out,p.add(0,1,0),5,e.phase()==SkillVisualEvent.Phase.HIT?0xffef9c:color,alpha);crescent(out,p.add(0,1,0),direction,right,5,.45,color,0xF5FFFF,alpha);crescent(out,p.add(0,1,0),direction.scale(-1),right,5,.45,color,0xF5FFFF,alpha);}
             }
             case "yumis_dungeon_and_fight:dance"->{
                 if(e.phase()==SkillVisualEvent.Phase.HIT)crescent(out,p.add(direction.scale(.65)).add(0,1.2,0),direction,danceSpan(e,right),1.45,.25,color,color,alpha);

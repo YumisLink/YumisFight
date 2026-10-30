@@ -8,6 +8,7 @@ import java.util.*;
 public final class CurrencyRules {
     public record AccountCurrency(String id,String title){}
     public static final AccountCurrency POINTS=new AccountCurrency("points","点券");
+    public static final AccountCurrency COLORLESS_CRYSTAL=new AccountCurrency("colorless_crystal","无色小晶块");
     public static long resetTicketPrice(boolean profession){return profession?100:50;}
     public record Currency(String id,Rarity rarity,boolean naturalDrop){}
     public record Tier(Rarity rarity,double baseWeight,List<Currency> currencies){}
@@ -61,10 +62,20 @@ public final class CurrencyRules {
     public static int upgradeTier(String id){var currency=find(id);return currency!=null&&currency.naturalDrop()&&currency.rarity().ordinal()<Rarity.EPIC.ordinal()?currency.rarity().ordinal():-1;}
     public static List<Currency> upgradeResults(int tier){if(tier<0||tier>=Rarity.EPIC.ordinal())return List.of();return DROP_POOL.stream().filter(c->c.rarity().ordinal()==tier+1).toList();}
     public static long upgradeCost(int tier){return switch(tier){case 0->100;case 1->1000;case 2->10000;case 3->100000;default->throw new IllegalArgumentException("不可升级的通货稀有度");};}
-    public static String salvageCurrency(Rarity rarity){return switch(rarity){
-        case LEGENDARY->"upgrade_stone";case EPIC->"epic_upgrade_stone";case MYTHIC->"mythic_upgrade_stone";
-        default->throw new IllegalArgumentException("只能分解传说、史诗或神话装备");
-    };}
+    public record DismantleResult(String item,int count){}
+    public static List<String> dismantlePool(Rarity rarity){
+        return switch(rarity){
+            case COMMON->List.of(COLORLESS_CRYSTAL.id());
+            case EPIC->List.of("epic_upgrade_stone");
+            case MYTHIC->List.of("mythic_upgrade_stone");
+            default->DROP_POOL.stream().filter(c->c.rarity().ordinal()==rarity.ordinal()-1).map(Currency::id).toList();
+        };
+    }
+    /** One kind per item. Neither the quantity nor the uniform pool depends on drop-rate stats. */
+    public static DismantleResult dismantle(Rarity rarity,Random random){
+        var pool=dismantlePool(rarity);int count=rarity==Rarity.EPIC||rarity==Rarity.MYTHIC?1:1+random.nextInt(3);
+        return new DismantleResult(pool.get(random.nextInt(pool.size())),count);
+    }
     /** Rarity is rolled before a uniform choice within that rarity's eligible pool. */
     public static double[] rarityProbabilities(double dropRate){
         finite(dropRate);

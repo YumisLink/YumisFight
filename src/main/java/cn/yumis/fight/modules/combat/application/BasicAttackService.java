@@ -9,9 +9,13 @@ import java.util.*;
 
 /** An attack cycle survives weapon switching. Each slash can damage a target only once. */
 public class BasicAttackService implements cn.yumis.fight.modules.combat.api.CombatPorts.Attacks {
-    private record Cycle(UUID player,String session,long generation,long start,double interval,int slashes,double damageScale,double eyeMut,Set<String> hits,net.minecraft.world.phys.Vec3 origin,net.minecraft.world.phys.Vec3 direction,double range,double speed,cn.yumis.fight.modules.attributes.api.Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){}
+    private record Cycle(UUID player,String session,long generation,long start,double interval,int slashes,double damageScale,JsonObject content,Set<String> hits,net.minecraft.world.phys.Vec3 origin,net.minecraft.world.phys.Vec3 direction,double range,double speed,cn.yumis.fight.modules.attributes.api.Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){}
+    private java.util.function.BiFunction<ServerPlayer,String,JsonObject> started=(p,id)->new JsonObject();
+    public void lifecycle(java.util.function.BiFunction<ServerPlayer,String,JsonObject> accepted){started=Objects.requireNonNull(accepted);}
     private java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> sourceStats;
     private java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot> sourceEffects;
+    private java.util.function.Predicate<ServerPlayer> inputLock=p->false;
+    public void inputLock(java.util.function.Predicate<ServerPlayer> lock){inputLock=Objects.requireNonNull(lock);}
     public BasicAttackService sources(java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> stats,java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot> effects){sourceStats=stats;sourceEffects=effects;return this;}
     public cn.yumis.fight.modules.attributes.api.Stats sourceStats(ServerPlayer player,JsonObject report){var c=report.has("basicCycle")?cycles.get(report.get("basicCycle").getAsString()):null;return c==null?null:c.stats;}
     public cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot sourceEffects(ServerPlayer player,JsonObject report){var c=report.has("basicCycle")?cycles.get(report.get("basicCycle").getAsString()):null;return c==null?null:c.effects;}
@@ -28,6 +32,7 @@ public class BasicAttackService implements cn.yumis.fight.modules.combat.api.Com
         var session=sessions.apply(player);long now=System.currentTimeMillis();
         String id=j.get("id").getAsString();
         if(cycles.containsKey(id)){var previous=cycles.get(id);if(previous.player.equals(player.getUUID())&&previous.session.equals(session.id.toString())){accepted(player,id,previous);return;}throw new IllegalArgumentException("普攻周期已使用");}
+        if(inputLock.test(player))throw new IllegalArgumentException("当前演出期间不能普通攻击");
         var gear=EquipmentItems.gear(player.getMainHandItem());
         if(gear==null||gear.slot!=Slot.WEAPON||!gear.valid(progress.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player))||session.life.dead||player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN))throw new IllegalArgumentException("当前不能普通攻击");
         double ready=next.getOrDefault(player.getUUID(),0d);
@@ -35,11 +40,13 @@ public class BasicAttackService implements cn.yumis.fight.modules.combat.api.Com
         var attack=profile.apply(player);double interval=attack.interval();
         next.put(player.getUUID(),Math.max(now,ready)+interval);
         int slashes=attack.slashes();
-        cycles.put(id,new Cycle(player.getUUID(),session.id.toString(),session.life.generation,now,interval,slashes,attack.damageScale(),attack.eyeMut(),new HashSet<>(),player.getEyePosition(),player.getLookAngle().normalize(),cn.yumis.fight.modules.equipment.api.WeaponTraits.basic(gear.weapon.name()).range(),cn.yumis.fight.modules.equipment.api.WeaponTraits.basic(gear.weapon.name()).projectileSpeed(),sourceStats==null?null:sourceStats.apply(player),sourceEffects==null?null:sourceEffects.apply(player)));
+        var content=started.apply(player,id);var origin=player.getEyePosition();var direction=player.getLookAngle().normalize();var profile=cn.yumis.fight.modules.equipment.api.WeaponTraits.basic(gear.weapon.name());double range=profile.range();
+        if(profile.projectileSpeed()>0){var spawn=cn.yumis.fight.modules.combat.api.ProjectileSpawn.inWorld(player,origin,direction,range,.15,entity->entity.isAlive()&&(entity instanceof net.minecraft.world.entity.monster.Enemy||entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon));origin=spawn.position();range=spawn.remainingRange();content.add("staffProjectile",cn.yumis.fight.modules.combat.api.ProjectileSpawn.snapshot(spawn,direction,now));}
+        cycles.put(id,new Cycle(player.getUUID(),session.id.toString(),session.life.generation,now,interval,slashes,attack.damageScale(),content,new HashSet<>(),origin,direction,range,profile.projectileSpeed(),sourceStats==null?null:sourceStats.apply(player),sourceEffects==null?null:sourceEffects.apply(player)));
         cycles.entrySet().removeIf(e->now-e.getValue().start>30000);
         accepted(player,id,cycles.get(id));
     }
-    private void accepted(ServerPlayer player,String id,Cycle cycle){JsonObject ack=new JsonObject();ack.addProperty("id",id);ack.addProperty("session",cycle.session);ack.addProperty("generation",cycle.generation);ack.addProperty("serverNow",cycle.start);ack.addProperty("interval",cycle.interval);ack.addProperty("slashes",cycle.slashes);ack.addProperty("damageScale",cycle.damageScale);ack.addProperty("eyeMut",cycle.eyeMut);cn.yumis.fight.network.Network.send(player,"basicStarted",ack);}
+    private void accepted(ServerPlayer player,String id,Cycle cycle){JsonObject ack=new JsonObject();ack.addProperty("id",id);ack.addProperty("session",cycle.session);ack.addProperty("generation",cycle.generation);ack.addProperty("serverNow",cycle.start);ack.addProperty("interval",cycle.interval);ack.addProperty("slashes",cycle.slashes);ack.addProperty("damageScale",cycle.damageScale);ack.add("content",cycle.content);cn.yumis.fight.network.Network.send(player,"basicStarted",ack);}
     public void validate(ServerPlayer player,JsonObject j){
         if(!j.has("basicCycle"))return;
         Cycle c=cycles.get(j.get("basicCycle").getAsString());var s=sessions.apply(player);

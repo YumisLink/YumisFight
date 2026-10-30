@@ -139,7 +139,7 @@ public final class SkillVfx {
                 if(motion.ground){var floor=mc.level.clip(new net.minecraft.world.level.ClipContext(p.add(0,1.2,0),p.add(0,-1.5,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mc.player));if(floor.getType()!=HitResult.Type.MISS)p=new Vec3(p.x,floor.getLocation().y+.15,p.z);}}
         }
         var e=track.last;var phase=e.phase()==SkillVisualEvent.Phase.FINISH?e.phase():SkillVisualEvent.Phase.TRAIL;long eventAt=phase==SkillVisualEvent.Phase.FINISH?e.at():at;
-        return new SkillVisualEvent(e.caster(),e.session(),e.cast(),e.generation(),e.dimension(),e.instance(),e.skill(),phase,e.sequence(),e.startedAt(),eventAt,e.duration(),e.seed(),e.origin(),new SkillVisualEvent.Point(p.x,p.y,p.z),e.direction(),e.charge(),e.color(),e.forwardOffset(),e.horizontalScale(),e.sweep());
+        return new SkillVisualEvent(e.caster(),e.session(),e.cast(),e.generation(),e.dimension(),e.instance(),e.skill(),phase,e.sequence(),e.startedAt(),eventAt,e.duration(),e.seed(),e.origin(),new SkillVisualEvent.Point(p.x,p.y,p.z),e.direction(),e.charge(),e.color(),e.forwardOffset(),e.horizontalScale(),e.sweep(),e.weaponType(),e.slashAngle());
     }
     public void tick(){
         long time=now();
@@ -169,6 +169,8 @@ public final class SkillVfx {
             else mc.options.setCameraType(SkillVisualRegistry.handler(t.start.skill()).cameraType(t,time));
         }
     }
+    public boolean blocksTurning(){var t=tracks.get(cameraCast);return t!=null&&SkillVisualRegistry.handler(t.start.skill()).blocksTurning();}
+    public boolean blocksHotbar(){var t=tracks.get(cameraCast);return t!=null&&SkillVisualRegistry.handler(t.start.skill()).blocksHotbar();}
     public void beginCamera(UUID cast){
         if(cameraCast!=null)endCamera(false);
         previousCamera=Minecraft.getInstance().options.getCameraType();
@@ -177,7 +179,8 @@ public final class SkillVfx {
     }
     public void endCamera(boolean normal){
         if(cameraCast==null)return;
-        Minecraft.getInstance().options.setCameraType(normal?CameraType.FIRST_PERSON:previousCamera);
+        var track=tracks.get(cameraCast);boolean restore=track!=null&&SkillVisualRegistry.handler(track.start.skill()).restoreCamera();
+        Minecraft.getInstance().options.setCameraType(normal&&!restore?CameraType.FIRST_PERSON:previousCamera);
         cameraCast=null;
         previousCamera=null;
     }
@@ -201,7 +204,7 @@ public final class SkillVfx {
             var event=t.start;
             if(mc.level==null||mc.level.getPlayerByUUID(event.caster())==null)continue;
             long age=time-event.startedAt();
-            if(age<0||age>Math.max(event.duration(),t.last.duration())+500)continue;
+            if(age<0||!SkillVisualRegistry.handler(event.skill()).refreshable()&&age>Math.max(event.duration(),t.last.duration())+500)continue;
             age=(long)(age*t.speed);
             var last=t.last;t.last=sample(t,time);
             try{SkillVisualRegistry.handler(event.skill()).render(context,t,age,time,quads,camera);CareerSkillVisuals.transformed(t,age,quads);}finally{t.last=last;}

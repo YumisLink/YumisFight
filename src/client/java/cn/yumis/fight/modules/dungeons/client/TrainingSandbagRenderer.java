@@ -16,14 +16,15 @@ import net.minecraft.resources.Identifier;
 /** Original cube-built canvas sandbag and weighted timber stand; uses vanilla material textures. */
 public final class TrainingSandbagRenderer extends EntityRenderer<TrainingSandbag,TrainingSandbagRenderer.State> {
     private final Model stand=new Model(0),canvas=new Model(1),seams=new Model(2),target=new Model(3);
-    public static final class State extends EntityRenderState {float yaw,wobble;}
+    public static final class State extends EntityRenderState {float yaw,wobble;boolean finished;}
     public TrainingSandbagRenderer(EntityRendererProvider.Context context){super(context);shadowRadius=.4f;}
     @Override public State createRenderState(){return new State();}
     @Override public void extractRenderState(TrainingSandbag bag,State state,float partial){
-        super.extractRenderState(bag,state,partial);state.yaw=bag.getYRot();
+        super.extractRenderState(bag,state,partial);state.yaw=bag.getYRot();state.finished=bag.finished();
         float hurt=Math.max(0,bag.hurtTime-partial);state.wobble=(float)(Math.sin(hurt*1.5)*hurt*.35);
     }
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector collector,CameraRenderState camera){
+        if(state.finished)return;
         pose.pushPose();pose.mulPose(Axis.YP.rotationDegrees(180-state.yaw));pose.scale(1,-1,1);
         draw(stand,"dark_oak_planks",state,pose,collector,-1);
         pose.translate(0,-.35,0);pose.mulPose(Axis.ZP.rotationDegrees(state.wobble));pose.translate(0,.35,0);

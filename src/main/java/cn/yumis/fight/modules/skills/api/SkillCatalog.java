@@ -17,7 +17,7 @@ public final class SkillCatalog {
     public static final SkillDefinition STORM=register(new SkillDefinition("yumis_dungeon_and_fight:storm","极鬼剑术·暴风式","SWORD",JobCatalog.SWORDMASTER,50,100,.35,90,1,false,parameters(5,24,8,.25/StormChoreography.SPEED,StormChoreography.END/StormChoreography.SPEED/1000)));
     public static final SkillDefinition BLINK=equipmentBlink();
     private static SkillDefinition equipmentBlink(){var skill=new SkillDefinition(cn.yumis.fight.modules.equipment.api.EquipmentEffects.BLINK,"闪现","EQUIPMENT_MAGIC","",1,1,.2,8,0,false,parameters(5,0,0,0,0));skill.equipmentGranted=true;skill.magicTag=true;skill.cooldownPerRank=.1;return register(skill);}
-    static {CareerSkills.install();MageSkills.install();BuiltinSkillBalance.install();MageSkills.balance();}
+    static {CareerSkills.install();MageSkills.install();OracleSkills.install();BuiltinSkillBalance.install();MageSkills.balance();OracleSkills.balance();}
     private SkillCatalog(){}
     private static Map<String,Double> parameters(double range,double slashes,double finisher,double interval,double duration){return Map.of("range",range,"slashes",slashes,"finisher",finisher,"interval",interval,"duration",duration);}
     public static synchronized SkillDefinition register(SkillDefinition definition){if(DEFINITIONS.putIfAbsent(definition.id,definition)!=null)throw new IllegalArgumentException("Duplicate skill: "+definition.id);return definition;}

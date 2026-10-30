@@ -20,6 +20,7 @@ public final class NamedEquipment {
         add("clown_hat","华丽的小丑帽",15,Rarity.EPIC,Slot.HEAD,Weapon.KATANA,ArmorType.CLOTH,JewelryType.UNTYPED,0,"clown_drop");
         add("crown","皇冠",35,Rarity.EPIC,Slot.HEAD,Weapon.KATANA,ArmorType.LIGHT,JewelryType.UNTYPED,0,"crown_resistance","crown_drop","experience_gain");
         add("mana_flow","魔力流转",45,Rarity.EPIC,Slot.BRACELET,Weapon.KATANA,ArmorType.UNTYPED,JewelryType.MP,0,"mana_regeneration","mana_share");
+        add("mana_flower","无尽魔力之花",50,Rarity.EPIC,Slot.SUB_EQUIPMENT,Weapon.KATANA,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"mana_flower_capacity","mana_flower_recovery");
     }
     private static void add(String id,String name,int level,Rarity rarity,Slot slot,Weapon weapon,ArmorType armor,JewelryType jewelry,int sockets,String... effects){ALL.put("named/"+id,new Template("named/"+id,name,level,rarity,slot,weapon,armor,jewelry,sockets,List.of(effects)));}
     private NamedEquipment(){}
@@ -31,7 +32,7 @@ public final class NamedEquipment {
         for(String key:t.effects){var d=AffixDefinitions.current().affixes.get("unique/"+key);if(d==null)throw new IllegalStateException("缺少独特词条定义："+key);
             Affix a=new Affix();a.id=d.id();a.operation=d.operation();a.stat=d.stat()==null?"":d.stat().name();a.parameter=key;a.fixed=true;a.instanceId=UUID.randomUUID().toString();
             a.value=d.minimum()==null?(d.fixedValue()==null?1:d.fixedValue()):d.minimum()+random.nextDouble()*(d.maximum()-d.minimum());a.baseline=a.value;
-            g.affixes.add(a);AffixResolver.anchor(a,g.instance+"/"+a.instanceId,d,d.revision());
+            g.affixes.add(a);AffixResolver.anchor(a,g.instance+"/"+a.instanceId,d,d.revision(),d.effectiveScale(g.level));
         }
         return EquipmentResolution.initialize(g);
     }

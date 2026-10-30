@@ -10,13 +10,10 @@ public final class CareerRules {
     private CareerRules(){}
     public static Stats current(Stats base,Progress progress,CareerState state,double life,double red,boolean ownField,long now){
         Stats result=base.copy();
-        int keiga=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.KEIGA));
         int brands=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.BRANDS));
-        if(keiga>0)result.mut(Stat.MAGICAL_ATTACK,.15*CareerSkills.growth(keiga));
-        if(brands>0)result.mut(Stat.MAGICAL_ATTACK,.15*CareerSkills.growth(brands));
+        if(brands>0)result.mut(Stat.MANA_REGENERATION,.5*state.brands);
         int frenzy=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.FRENZY));
         if(state.frenzy&&frenzy>0){
-            result.mut(Stat.PHYSICAL_ATTACK,.15*CareerSkills.growth(frenzy));
             result.extra(Stat.ATTACK_SPEED,15);result.mut(Stat.MOVEMENT_SPEED,.10);
             result.mut(Stat.PHYSICAL_DEFENSE,-.15);result.mut(Stat.MAGICAL_DEFENSE,-.15);
             result.modifier("final").mut+=CareerSkills.lowHealthMut(life);
@@ -25,10 +22,10 @@ public final class CareerRules {
         if(red>0){result.mut(Stat.STRENGTH,red);result.mut(Stat.INTELLIGENCE,red);}
         if(state.eyeUntil>now)result.modifiers.put("careerEyeBonus",state.eyeBonusMut);
         if(ownField)result.modifiers.put("ownGhostField",1d);
-        return result;
+        return OracleRules.current(result,progress,state.oracle,now);
     }
     public static Stats eyeDamage(Stats source,SkillDefinition skill){
-        if(skill!=null&&!Set.of(SkillCatalog.WAVE.id,CareerSkills.ICE,CareerSkills.FIRE).contains(skill.id))return source;
+        if(skill==null||!Set.of(SkillCatalog.WAVE.id,CareerSkills.ICE,CareerSkills.FIRE).contains(skill.id))return source;
         double desired=source.modifiers.getOrDefault("careerEyeBonus",0d),applied=source.modifiers.getOrDefault("careerEyeApplied",0d);if(desired<=0||desired==applied)return source;
         Stats result=source.copy();result.modifier("final").mut+=desired-applied;result.modifiers.put("careerEye",1d);result.modifiers.put("careerEyeApplied",desired);return result;
     }

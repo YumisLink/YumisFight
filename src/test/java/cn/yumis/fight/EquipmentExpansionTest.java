@@ -100,12 +100,13 @@ class EquipmentExpansionTest {
         Gear weapon=EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,50,new Random(1));
         Affix extra=new Affix();extra.id="extra_0";extra.operation="EXTRA";extra.roll=.8;extra.value=extra.baseline=1;extra.maximum=extra.baselineMaximum=2;weapon.affixes.add(extra);
         Gear upgraded=EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(weapon),"upgrade_stone",new Random(3));Affix e=upgraded.affixes.stream().filter(a->a.operation.equals("EXTRA")).findFirst().orElseThrow();
-        assertEquals(.1*EquipmentRules.budget(55)*.8,e.value,1e-9);assertEquals(2*e.value,e.maximum,1e-9);
+        assertEquals(.1*EquipmentRules.budget(55)*.8*.25,e.value,1e-9);assertEquals(2*e.value,e.maximum,1e-9);
         Gear washed=EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(upgraded),"divine_stone",new Random(4));Affix w=washed.affixes.stream().filter(a->a.operation.equals("EXTRA")).findFirst().orElseThrow();assertEquals(2*w.value,w.maximum,1e-9);
         weapon.level=78;assertEquals(80,EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(weapon),"upgrade_stone",new Random()).level);
         weapon.level=80;assertThrows(IllegalArgumentException.class,()->EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(weapon),"upgrade_stone",new Random()));
         for(Rarity rarity:List.of(Rarity.EPIC,Rarity.MYTHIC)){Gear fixed=EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,rarity,70,new Random());assertThrows(IllegalArgumentException.class,()->EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(fixed),"upgrade_stone",new Random()));}
-        assertEquals("upgrade_stone",CurrencyRules.salvageCurrency(Rarity.LEGENDARY));assertThrows(IllegalArgumentException.class,()->CurrencyRules.salvageCurrency(Rarity.ARTIFACT));
+        assertEquals(List.of("regal_stone","chaos_stone","upgrade_stone"),CurrencyRules.dismantlePool(Rarity.LEGENDARY));
+        assertEquals(List.of("augmentation_stone","delezie_blood","socket_stone"),CurrencyRules.dismantlePool(Rarity.ARTIFACT));
     }
     @Test void legacyReadsAndFormattingKeepAllOriginalPrecision(){
         Gear legacy=JSON.fromJson("{\"slot\":\"CHEST\",\"level\":50,\"affixes\":[{\"id\":\"flat_health\",\"stat\":\"HEALTH\",\"value\":38.88,\"baseline\":48.6,\"roll\":0.8}]}",Gear.class);

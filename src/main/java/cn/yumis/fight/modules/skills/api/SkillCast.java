@@ -11,7 +11,9 @@ public class SkillCast {
         public Stats stats;
         public cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot equipment;
         public String weapon,id,dimension;
-        public String mageAttack="";
+        public String mageAttack="",visualWeapon="",eyeGear="";
+        public double sweepDegrees;
+        public boolean passiveDamage,suppressEquipment;
         public Vec3 origin,direction,center;
         public long start,stageStart,window;
         public int slot,segment=1,slashes,visualSequence=-1;
