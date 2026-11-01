@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:orichalcum_ingot",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:copper_ingot",
+      "count": 3
+    },
+    {
+      "ingredient": "minecraft:gold_ingot",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:orichalcum_alloy",
+      "count": 8
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 300,
+  "energy": 6400
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ABC",
+    "CDD",
+    "DD "
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:niobium_ingot",
+    "B": "yumis_dungeon_and_fight:tantalum_ingot",
+    "C": "minecraft:gold_ingot",
+    "D": "minecraft:redstone"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:control_component",
+    "count": 1
+  }
+}

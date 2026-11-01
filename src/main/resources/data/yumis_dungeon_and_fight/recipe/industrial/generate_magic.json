@@ -1,0 +1,15 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 2,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:energy_crystal_3",
+      "count": 2
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 800,
+  "energy": 48000
+}

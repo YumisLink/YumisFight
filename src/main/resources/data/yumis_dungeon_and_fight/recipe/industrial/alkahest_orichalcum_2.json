@@ -1,0 +1,32 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "alchemical_reactor",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "minecraft:amethyst_shard",
+      "count": 2
+    },
+    {
+      "ingredient": "minecraft:wheat_seeds",
+      "count": 16
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:orichalcum_alloy",
+      "count": 1
+    }
+  ],
+  "results": [],
+  "fluid_inputs": [
+    {
+      "ingredient": "minecraft:water",
+      "amount": 4000
+    }
+  ],
+  "ticks": 200,
+  "energy": 4800,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:alkahest",
+    "amount": 4000
+  }
+}

@@ -15,6 +15,9 @@ import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.item.*;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.Minecraft;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
@@ -26,20 +29,31 @@ import java.util.WeakHashMap;
 public final class IndustrialRenderer implements BlockEntityRenderer<MachineBlockEntity,IndustrialRenderer.State> {
     private final ItemModelResolver items;
     private final Map<MachineBlockEntity,RotorMotion> rotors=new WeakHashMap<>();
-    public static final class State extends BlockEntityRenderState {final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();boolean show,iconVisible,wind,turbine;float angle,bob,rotorAngle;Direction facing;}
+    public static final class State extends BlockEntityRenderState {final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();boolean show,iconVisible,wind,turbine;float angle,bob,rotorAngle,fluidFill;int fluidTint,fluidLight;TextureAtlasSprite fluidSprite;Direction facing;}
     public IndustrialRenderer(BlockEntityRendererProvider.Context context){items=context.itemModelResolver();}
     @Override public State createRenderState(){return new State();}
     @Override public void extractRenderState(MachineBlockEntity be,State state,float partial,Vec3 camera,ModelFeatureRenderer.CrumblingOverlay breaking){
         BlockEntityRenderer.super.extractRenderState(be,state,partial,camera,breaking);
         state.wind=be.device().has(DeviceType.Capability.WIND)&&WindGeneratorPartBlock.complete(be.getLevel(),be.getBlockPos());state.turbine=be.device().has(DeviceType.Capability.ROTOR);
         state.facing=be.getBlockState().getValue(MachineBlock.FACING);
+        state.fluidFill=0;state.fluidSprite=null;
+        if(be.device().has(DeviceType.Capability.FLUID_STORAGE)){
+            var fluid=be.visibleTankFluid();
+            if(!fluid.isEmpty()){
+                var model=Minecraft.getInstance().getModelManager().getFluidStateModelSet().get(fluid.getFluid().defaultFluidState());
+                state.fluidSprite=model.stillMaterial().sprite();state.fluidTint=model.fluidTintSource()==null?-1:model.fluidTintSource().colorAsStack(fluid);
+                state.fluidFill=Math.clamp((float)fluid.getAmount()/be.fluidCapacity(),0,1);
+                state.fluidLight=LightCoordsUtil.pack(Math.max(LightCoordsUtil.block(state.lightCoords),fluid.getFluidType().getLightLevel(fluid)),LightCoordsUtil.sky(state.lightCoords));
+            }
+        }
         if(state.wind||state.turbine)state.rotorAngle=rotors.computeIfAbsent(be,k->new RotorMotion()).sample(be.getLevel().getGameTime()+partial,be.getBlockState().getValue(MachineBlock.ACTIVE),state.wind?6:12);
-        state.show=be.device().functional()||be.device().has(DeviceType.Capability.STORAGE_NETWORK);state.iconVisible=be.device().functional();if(!state.show)return;
+        state.iconVisible=be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS)||be.device().has(DeviceType.Capability.HARVEST);state.show=state.iconVisible||be.device().has(DeviceType.Capability.STORAGE_NETWORK);if(!state.show)return;
         double age=be.getLevel().getGameTime()+partial;state.angle=(float)((age%180)*2);state.bob=(float)Math.sin((age%200)*Math.PI/100)*.045f;
         items.updateForTopItem(state.gem,IndustrialContent.stack("energy_crystal_"+Math.min(10,be.tier()*2),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
         if(state.iconVisible)items.updateForTopItem(state.icon,IndustrialContent.stack(be.spec().id(),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
     }
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector nodes,CameraRenderState camera){
+        if(state.fluidFill>0&&state.fluidSprite!=null)TankFluidMesh.submit(pose,nodes,state.fluidSprite,state.fluidTint,state.fluidFill,state.fluidLight);
         if(state.wind||state.turbine){
             pose.pushPose();pose.translate(.5,0,.5);
             pose.mulPose(Axis.YP.rotationDegrees(switch(state.facing){case EAST->-90;case SOUTH->180;case WEST->90;default->0;}));

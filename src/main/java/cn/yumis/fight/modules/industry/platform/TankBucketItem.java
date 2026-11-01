@@ -6,6 +6,6 @@ import net.minecraft.world.item.BucketItem;
 
 /** Standard bucket placement and source pickup; coolant does not regenerate sources. */
 public final class TankBucketItem extends BucketItem {
-    public TankBucketItem(Properties p){super(IndustrialContent.COOLANT.get(),p);}
+    public TankBucketItem(java.util.function.Supplier<? extends net.minecraft.world.level.material.Fluid> fluid,Properties p){super(fluid.get(),p);}
 
 }

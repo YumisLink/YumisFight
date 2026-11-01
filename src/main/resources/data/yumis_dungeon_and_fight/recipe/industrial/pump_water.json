@@ -1,0 +1,14 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "water_pump",
+  "minimum_tier": 1,
+  "ingredients": [],
+  "results": [],
+  "fluid_inputs": [],
+  "ticks": 20,
+  "energy": 100,
+  "fluid_result": {
+    "id": "minecraft:water",
+    "amount": 1000
+  }
+}

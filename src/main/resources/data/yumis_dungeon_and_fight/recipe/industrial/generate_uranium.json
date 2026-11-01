@@ -1,0 +1,15 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 4,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:raw_uranium",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 2000,
+  "energy": 1080000
+}

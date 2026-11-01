@@ -1,0 +1,15 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 3,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:raw_molybdenum",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1000,
+  "energy": 100000
+}

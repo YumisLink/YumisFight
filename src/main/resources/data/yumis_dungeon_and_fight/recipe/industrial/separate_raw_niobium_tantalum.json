@@ -1,0 +1,29 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_refinery",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:raw_niobium_tantalum",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:niobium_concentrate",
+      "count": 1
+    },
+    {
+      "id": "yumis_dungeon_and_fight:tantalum_concentrate",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "minecraft:water",
+      "amount": 1000
+    }
+  ],
+  "ticks": 300,
+  "energy": 3200
+}

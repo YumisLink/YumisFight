@@ -1,0 +1,29 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:mithril_niobium_alloy",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:copper_ingot",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:composite_conductor",
+      "count": 8
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:ceruleum",
+      "amount": 250
+    }
+  ],
+  "ticks": 800,
+  "energy": 819200
+}

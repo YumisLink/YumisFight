@@ -5,6 +5,15 @@
     "#c:ingots/uranium",
     "#c:ingots/titanium",
     "#c:ingots/terra",
-    "#c:ingots/spacetime"
+    "#c:ingots/spacetime",
+    "#c:ingots/vanadium",
+    "#c:ingots/molybdenum",
+    "#c:ingots/zirconium",
+    "#c:ingots/mithril",
+    "#c:ingots/adamantite",
+    "#c:ingots/orichalcum",
+    "#c:ingots/iridium",
+    "#c:ingots/niobium",
+    "#c:ingots/tantalum"
   ]
 }

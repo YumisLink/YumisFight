@@ -2,6 +2,10 @@
   "replace": false,
   "values": [
     "yumis_dungeon_and_fight:lead_ore",
-    "yumis_dungeon_and_fight:magic_ore"
+    "yumis_dungeon_and_fight:magic_ore",
+    "yumis_dungeon_and_fight:orichalcum_ore",
+    "yumis_dungeon_and_fight:vanadium_ore",
+    "yumis_dungeon_and_fight:molybdenum_ore",
+    "yumis_dungeon_and_fight:zirconium_ore"
   ]
 }

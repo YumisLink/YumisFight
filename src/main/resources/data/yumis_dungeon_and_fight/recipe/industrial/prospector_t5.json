@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ABC",
+    "CD "
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:prospector_t4",
+    "B": "yumis_dungeon_and_fight:industrial_upgrade_5",
+    "C": "yumis_dungeon_and_fight:mithril_mana_component",
+    "D": "yumis_dungeon_and_fight:control_component"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:prospector_t5",
+    "count": 1
+  }
+}

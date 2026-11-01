@@ -1,0 +1,15 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 3,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:raw_mithril",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1200,
+  "energy": 192000
+}

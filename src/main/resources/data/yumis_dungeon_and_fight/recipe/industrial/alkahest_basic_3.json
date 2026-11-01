@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "alchemical_reactor",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "minecraft:amethyst_shard",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:beetroot_seeds",
+      "count": 8
+    }
+  ],
+  "results": [],
+  "fluid_inputs": [
+    {
+      "ingredient": "minecraft:water",
+      "amount": 1000
+    }
+  ],
+  "ticks": 200,
+  "energy": 1600,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:alkahest",
+    "amount": 1000
+  }
+}

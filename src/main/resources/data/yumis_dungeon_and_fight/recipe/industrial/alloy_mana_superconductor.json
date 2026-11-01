@@ -1,0 +1,33 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:henghui_alloy",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_mithril_ingot",
+      "count": 2
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:lattice_substrate",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:mana_superconductor",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:penduliquid",
+      "amount": 500
+    }
+  ],
+  "ticks": 1600,
+  "energy": 26214400
+}

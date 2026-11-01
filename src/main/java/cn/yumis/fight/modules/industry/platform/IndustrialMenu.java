@@ -33,7 +33,7 @@ public final class IndustrialMenu extends AbstractContainerMenu {
         for(int i=0;i<layout.size();i++){
             final int slot=i;int x=layout.input(i)?16+(i%(upgrader?3:2))*18:layout.output(i)?184+((i-layout.outputStart())%3)*18:upgrader?118:64;int y=layout.input(i)?53+(i/(upgrader?3:2))*18:layout.output(i)?53+((i-layout.outputStart())/3)*18:i==layout.crystal()?87:53;
             addSlot(new Slot(be,i,x,y){
-                @Override public boolean isActive(){return layout.input(slot)||layout.output(slot)&&be.device().outputs()||slot==layout.crystal()&&be.device().outputs()||slot==layout.fuel()&&be.device().has(DeviceType.Capability.FUEL);}
+                @Override public boolean isActive(){return layout.input(slot)||layout.output(slot)&&be.device().outputs()||slot==layout.crystal()&&be.device().outputs()&&!be.device().has(DeviceType.Capability.GRID_ONLY)||slot==layout.fuel()&&be.device().has(DeviceType.Capability.FUEL);}
                 @Override public boolean mayPlace(ItemStack s){return isActive()&&be.canPlaceItem(slot,s);}
                 @Override public boolean mayPickup(Player p){return isActive();}
                 @Override public void setChanged(){super.setChanged();if(be.currencyUpgrade!=null)be.currencyUpgrade.changed(slot);}
@@ -46,17 +46,18 @@ public final class IndustrialMenu extends AbstractContainerMenu {
     @Override public ItemStack quickMoveStack(Player p,int index){
         if(index<0||index>=slots.size())return ItemStack.EMPTY;Slot slot=slots.get(index);if(!slot.hasItem()||!slot.mayPickup(p))return ItemStack.EMPTY;ItemStack stack=slot.getItem(),copy=stack.copy();
         if(index<machine.getContainerSize()){if(!moveItemStackTo(stack,machine.getContainerSize(),slots.size(),true))return ItemStack.EMPTY;}
-        else {boolean moved=false;for(int i=0;i<machine.getContainerSize()&&!stack.isEmpty();i++)if(slots.get(i).mayPlace(stack))moved|=moveItemStackTo(stack,i,i+1,false);if(!moved)return ItemStack.EMPTY;}
+        else {boolean moved=false;int crystal=machine.slots().crystal();if(machine.canPlaceItem(crystal,stack))moved=moveItemStackTo(stack,crystal,crystal+1,false);for(int i=0;i<machine.getContainerSize()&&!stack.isEmpty();i++)if(slots.get(i).mayPlace(stack))moved|=moveItemStackTo(stack,i,i+1,false);if(!moved)return ItemStack.EMPTY;}
         slot.set(stack.isEmpty()?ItemStack.EMPTY:stack);slot.setChanged();return copy;
     }
     @Override public boolean clickMenuButton(Player p,int button){
         if(!(p instanceof ServerPlayer server)||!stillValid(p))return false;
-        if(button==0){machine.running=!machine.running;if(machine.running&&machine.currencyUpgrade!=null)machine.currencyUpgrade.wake();}
+        if(button==0){if(!machine.device().processing()&&!machine.device().generator()&&!machine.device().functional()&&!machine.device().currencyUpgrader())return false;machine.running=!machine.running;if(machine.running&&machine.currencyUpgrade!=null)machine.currencyUpgrade.wake();}
         else if(button==1)return false;
         else if(button==2)return false;
         else if(button==3){showLines=false;Network.send(server,"industrial_lines",IndustrialWorld.get(server.level()).connectionPreview(machine));}
         else if(button==4){if(!machine.device().selectedRecipe())return false;if(machine.batchRecipe.isEmpty())machine.selected="";else machine.queued="@auto";}
-        else if(button>=100){if(!machine.device().selectedRecipe())return false;var recipes=IndustrialProcessing.recipes(server.level(),machine.device());int at=button-100;if(at<0||at>=recipes.size())return false;var selected=recipes.get(at);if(selected.value().minimumTier()>machine.tier())throw new IllegalArgumentException("需要"+selected.value().minimumTier()+"级机器");String id=selected.id().identifier().toString();if(machine.batchRecipe.isEmpty())machine.selected=id;else machine.queued=id;}
+        else if(button>=70&&button<=72){int tank=button-70;if(tank>=machine.device().fluidTanks()||machine.fluidsFor(null)==null)return false;try(var tx=net.neoforged.neoforge.transfer.transaction.Transaction.openRoot()){int amount=machine.fluids.getAmountAsInt(tank);if(amount>0)machine.fluids.extract(tank,machine.fluids.getResource(tank),amount,tx);tx.commit();}}
+        else if(button>=100){if(!machine.device().selectedRecipe())return false;var recipes=IndustrialProcessing.choices(machine);int at=button-100;if(at<0||at>=recipes.size())return false;var selected=recipes.get(at);if(selected.value().minimumTier()>machine.tier())throw new IllegalArgumentException("需要"+selected.value().minimumTier()+"级机器");String id=selected.id().identifier().toString();if(!info.has("recipes")||at>=info.getAsJsonArray("recipes").size()||!id.equals(info.getAsJsonArray("recipes").get(at).getAsJsonObject().get("id").getAsString()))return false;if(machine.batchRecipe.isEmpty())machine.selected=id;else machine.queued=id;}
         else return false;machine.setChanged();return true;
     }
     @Override public void broadcastChanges(){super.broadcastChanges();if(machine.getLevel() instanceof net.minecraft.server.level.ServerLevel server&&++broadcasts%5==1){info=IndustrialWorld.get(server).info(machine,showLines);info.addProperty("menu",containerId);for(var player:server.getServer().getPlayerList().getPlayers())if(player.containerMenu==this)Network.send(player,"industrial_ui",info);}}

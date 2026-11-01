@@ -3,10 +3,13 @@
   "machine": "mineral_generator",
   "minimum_tier": 2,
   "ingredients": [],
+  "results": [
+    {
+      "id": "minecraft:redstone",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [],
   "ticks": 400,
-  "energy": 12800,
-  "result": {
-    "id": "minecraft:redstone",
-    "count": 4
-  }
+  "energy": 12800
 }

@@ -1,0 +1,24 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_niobium_ingot",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:titanium_ingot",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:niobium_titanium_alloy",
+      "count": 8
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 600,
+  "energy": 102400
+}

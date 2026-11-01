@@ -3,6 +3,14 @@
   "values": [
     "#c:raw_materials/lead",
     "#c:raw_materials/uranium",
-    "#c:raw_materials/titanium"
+    "#c:raw_materials/titanium",
+    "#c:raw_materials/vanadium",
+    "#c:raw_materials/molybdenum",
+    "#c:raw_materials/zirconium",
+    "#c:raw_materials/mithril",
+    "#c:raw_materials/adamantite",
+    "#c:raw_materials/orichalcum",
+    "#c:raw_materials/iridium",
+    "#c:raw_materials/niobium_tantalum"
   ]
 }

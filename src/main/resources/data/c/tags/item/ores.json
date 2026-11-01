@@ -3,6 +3,14 @@
   "values": [
     "#c:ores/lead",
     "#c:ores/uranium",
-    "#c:ores/titanium"
+    "#c:ores/titanium",
+    "#c:ores/vanadium",
+    "#c:ores/molybdenum",
+    "#c:ores/zirconium",
+    "#c:ores/mithril",
+    "#c:ores/adamantite",
+    "#c:ores/orichalcum",
+    "#c:ores/iridium",
+    "#c:ores/niobium_tantalum"
   ]
 }

@@ -1,0 +1,29 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_refinery",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:crushed_mithril",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:mithril_concentrate",
+      "count": 3
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:alkahest",
+      "amount": 1000
+    }
+  ],
+  "ticks": 300,
+  "energy": 6400,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:spent_solvent",
+    "amount": 1000
+  }
+}

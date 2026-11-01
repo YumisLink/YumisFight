@@ -26,6 +26,14 @@ public final class IndustrialRules {
     public long harvestEnergy=200;
     public List<String> harvestCrops=new ArrayList<>(List.of("minecraft:wheat","minecraft:carrots","minecraft:potatoes","minecraft:beetroots","minecraft:nether_wart"));
     public int fluidCapacity=20000;
+    public int[] tankCapacities={64000,256000,1024000};
+    public long[] accumulatorCapacities={100000,1000000,100000000,1000000000};
+    public int scanTicks=40,scanCooldown=100,miningWaterRate=100,miningCoolantRate=40;
+    public int pumpAmount=1000,pumpInterval=20;
+    public long pumpEnergy=100;
+    public int[] fluidTransferAmounts={1000,4000,16000};
+    public long[] fluidTransferEnergyPerBucket={20,40,80};
+    public Map<String,MineralCatalog.Mineral> minerals=MineralCatalog.defaults();
     public int magicGrassChance=16;
     public int crystalDropMin=2,crystalDropMax=8,highCrystalWeight=20;
     public boolean leadWorldgen=true,uraniumWorldgen=true,titaniumWorldgen=true,magicWorldgen=true;
@@ -46,6 +54,11 @@ public final class IndustrialRules {
         r.generators.put("nuclear_reactor",new Generator(1000,"yumis_dungeon_and_fight:coolant"));
         r.generators.put("rtg_generator",new Generator(0,""));
         r.ores.put("magic",new Ore(-32,32,3,6,1,1));r.ores.put("lead",new Ore(-32,48,4,8,1,1));r.ores.put("uranium",new Ore(-64,0,2,4,4,1));r.ores.put("titanium",new Ore(0,80,3,6,1,1));
+        r.ores.put("titanium_overworld",new Ore(-48,16,3,6,2,1));
+        r.ores.put("orichalcum",new Ore(-16,64,4,8,1,1));r.ores.put("vanadium",new Ore(-32,32,3,6,2,1));
+        r.ores.put("molybdenum",new Ore(-48,16,3,5,3,1));r.ores.put("zirconium",new Ore(-32,32,3,6,3,1));
+        r.ores.put("mithril",new Ore(-48,0,2,5,4,1));r.ores.put("niobium_tantalum",new Ore(-64,-16,2,4,5,1));
+        r.ores.put("adamantite",new Ore(-64,-32,2,4,8,1));r.ores.put("iridium",new Ore(-64,-40,1,3,16,1));
         return r;
     }
     public static IndustrialRules parse(String json){
@@ -53,6 +66,10 @@ public final class IndustrialRules {
         if(r==null||r.version!=VERSION||r.beaconCapacity<1||r.beaconRadii.length!=5||r.furnaceSpeeds.length!=5||r.solarPeriods.length!=4||r.transferIntervals.length!=3||r.transferAmounts.length!=3||r.transferRanges.length!=3||r.transferEnergy.length!=3||r.harvestSizes.length!=3||r.harvestPeriod<1||r.harvestEnergy<0||r.fluidCapacity<1000||r.magicGrassChance<1||r.crystalDropMin<1||r.crystalDropMax<r.crystalDropMin||r.highCrystalWeight<0||r.highCrystalWeight>100||r.windHeightStep<1||r.windBasePower<0||r.windPowerStep<0||r.solarDayPower<0||r.solarEdgePower<0||r.solarRainPower<0)throw new IllegalArgumentException("无效工业规则");
         for(int v:r.beaconRadii)positive(v);for(int v:r.furnaceSpeeds){positive(v);if(v>128||128%v!=0)throw new IllegalArgumentException("熔炉速度必须整除128");}for(int v:r.transferIntervals)positive(v);for(int v:r.transferAmounts)positive(v);for(int v:r.harvestSizes)positive(v);
         for(long v:r.transferEnergy)if(v<0)throw new IllegalArgumentException("负搬运费用");
+        if(r.tankCapacities.length!=3||r.accumulatorCapacities.length!=4||r.fluidTransferAmounts.length!=3||r.fluidTransferEnergyPerBucket.length!=3||r.scanTicks<1||r.scanCooldown<1||r.miningWaterRate<1||r.miningCoolantRate<1||r.pumpInterval<1||r.pumpAmount<1||r.pumpEnergy<0)throw new IllegalArgumentException("无效新增工业规则");
+        for(int v:r.tankCapacities)positive(v);for(long v:r.accumulatorCapacities)if(v<1)throw new IllegalArgumentException("无效蓄能容量");
+        for(int v:r.fluidTransferAmounts)positive(v);for(long v:r.fluidTransferEnergyPerBucket)if(v<0)throw new IllegalArgumentException("负供液费用");
+        for(String id:MineralCatalog.defaults().keySet()){var m=r.minerals.get(id);if(m==null||m.tier()<1||m.tier()>5||m.chance()<1||m.chance()>100||m.ticks()<1||m.power()<1||m.count()<1)throw new IllegalArgumentException("无效矿藏规则 "+id);}
         for(var entry:defaults().generators.keySet()){
             Generator g=r.generators.get(entry);if(g==null||g.fluidPerSecond<0)throw new IllegalArgumentException("无效发电规则 "+entry);
         }

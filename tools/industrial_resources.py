@@ -18,7 +18,8 @@ def result(item,count=1):return {'id':item,'count':count}
 def need(item,count=1):return {'ingredient':item,'count':count}
 def process(name,machine,ingredients,out=None,count=1,ticks=100,energy=100,tier=1,**extra):
     value={'type':own('industrial'),'machine':machine,'minimum_tier':tier,'ingredients':[need(*x) if isinstance(x,tuple) else need(x) for x in ingredients],'ticks':ticks,'energy':energy,**extra}
-    if out:value['result']=result(out,count)
+    if out:value['results']=[result(out,count)]
+    if 'fluid_input' in value:value['fluid_inputs']=[value.pop('fluid_input')]
     recipe(name,value)
 def craft(name,ingredients,out,count=1):recipe(name,{'type':'minecraft:crafting_shapeless','category':'misc','ingredients':ingredients,'result':result(own(out),count)})
 def tag(name,values,registry='item',namespace='c'):
@@ -103,7 +104,7 @@ rules={'version':1,'beaconCapacity':1000,'beaconRadii':[3,5,9,18,32],'furnaceSpe
 for k,vals in {'magic':(-32,32,3,6,1),'lead':(-32,48,4,8,1),'uranium':(-64,0,2,4,4),'titanium':(0,80,3,6,1)}.items():rules['ores'][k]=dict(zip(['minY','maxY','minSize','maxSize','chance','attempts'],(*vals,1)))
 for k,power,ticks,fluid,rate in [('coal_generator',60,640,'',0),('turbine_generator',1080,640,'minecraft:water',1000),('thermal_generator',6400,640,own('coolant'),100),('nuclear_reactor',108000,16000,own('coolant'),1000),('rtg_generator',10800,160000,'',0)]:rules['generators'][k]={'fluidPerSecond':rate,'fluid':fluid}
 rules.update(windBaseHeight=60,windBasePower=50,windHeightStep=5,windPowerStep=1,solarDayPower=2,solarEdgePower=1,solarRainPower=1)
-code=(ROOT/'src/main/java/cn/yumis/fight/rules/CurrencyRules.java').read_text(encoding='utf-8')
+code=(ROOT/'src/main/java/cn/yumis/fight/modules/economy/api/CurrencyRules.java').read_text(encoding='utf-8')
 rules['currencyItemWeights']={name:1 for name,rarity in re.findall(r'new Currency\("([^"]+)",Rarity\.(\w+),true\)',code)}
 rules['currencyRarityWeights']={rarity:float(weight) for rarity,weight in re.findall(r'tier\(Rarity\.(\w+),(\d+)\)',code)}
 write(DATA/'rules/industrial.json',rules)
@@ -153,3 +154,6 @@ refresh_arcane_models()
 # Apply the single authoritative shaped catalog after legacy data generation.
 from industrial_crafting import generate as refresh_crafting
 refresh_crafting()
+
+from industrial_expansion import generate as refresh_expansion
+refresh_expansion()

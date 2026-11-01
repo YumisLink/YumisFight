@@ -22,8 +22,10 @@
   ],
   "ticks": 1200,
   "energy": 3276800,
-  "result": {
-    "id": "yumis_dungeon_and_fight:terra_ingot",
-    "count": 8
-  }
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:terra_ingot",
+      "count": 8
+    }
+  ]
 }

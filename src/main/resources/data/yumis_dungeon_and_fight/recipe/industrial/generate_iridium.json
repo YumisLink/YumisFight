@@ -1,0 +1,15 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 5,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:raw_iridium",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 2400,
+  "energy": 3072000
+}

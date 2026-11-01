@@ -57,6 +57,27 @@
     "yumis_dungeon_and_fight:magic_ore",
     "yumis_dungeon_and_fight:industrial_magic_stone_block",
     "yumis_dungeon_and_fight:wind_generator_part",
-    "yumis_dungeon_and_fight:currency_upgrader"
+    "yumis_dungeon_and_fight:currency_upgrader",
+    "yumis_dungeon_and_fight:vanadium_ore",
+    "yumis_dungeon_and_fight:molybdenum_ore",
+    "yumis_dungeon_and_fight:zirconium_ore",
+    "yumis_dungeon_and_fight:mithril_ore",
+    "yumis_dungeon_and_fight:adamantite_ore",
+    "yumis_dungeon_and_fight:orichalcum_ore",
+    "yumis_dungeon_and_fight:iridium_ore",
+    "yumis_dungeon_and_fight:niobium_tantalum_ore",
+    "yumis_dungeon_and_fight:water_pump",
+    "yumis_dungeon_and_fight:mineral_refinery",
+    "yumis_dungeon_and_fight:alchemical_reactor",
+    "yumis_dungeon_and_fight:fluid_crystal_t1",
+    "yumis_dungeon_and_fight:fluid_crystal_t2",
+    "yumis_dungeon_and_fight:fluid_crystal_t3",
+    "yumis_dungeon_and_fight:fluid_tank_t1",
+    "yumis_dungeon_and_fight:fluid_tank_t2",
+    "yumis_dungeon_and_fight:fluid_tank_t3",
+    "yumis_dungeon_and_fight:mana_accumulator_t1",
+    "yumis_dungeon_and_fight:mana_accumulator_t2",
+    "yumis_dungeon_and_fight:mana_accumulator_t3",
+    "yumis_dungeon_and_fight:mana_accumulator_t4"
   ]
 }

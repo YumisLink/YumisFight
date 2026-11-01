@@ -1,0 +1,24 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:crushed_zirconium",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:clay_ball",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:zircon_ceramic",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 200,
+  "energy": 3200
+}

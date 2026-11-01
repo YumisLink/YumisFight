@@ -17,21 +17,54 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.input.MouseButtonEvent;
 import com.mojang.serialization.JsonOps;
 import java.util.*;
 
 public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu> {
     public boolean lines;
     private final IndustrialProgress progress=new IndustrialProgress();
+    private record FluidGauge(String key,int tank,int x,int y,int width,int height){
+        boolean contains(double mx,double my){return mx>=x&&mx<x+width&&my>=y&&my<y+height;}
+    }
+    private static final List<FluidGauge> REACTOR_GAUGES=List.of(new FluidGauge("fluid_in",0,88,68,23,70),new FluidGauge("fluid_in2",1,116,68,23,70),new FluidGauge("fluid_out",2,144,68,23,70));
+    private static final List<FluidGauge> PROCESS_GAUGES=List.of(new FluidGauge("fluid_in",0,96,68,28,70),new FluidGauge("fluid_out",1,139,68,28,70));
+    private static final List<FluidGauge> MINER_GAUGES=List.of(new FluidGauge("fluid_in",0,116,68,28,70));
+    private static final List<FluidGauge> PUMP_GAUGES=List.of(new FluidGauge("fluid_out",1,116,68,28,70));
+    private static final List<FluidGauge> STORAGE_GAUGES=List.of(new FluidGauge("fluid_out",0,16,62,32,70));
+    private static final List<FluidGauge> FUEL_GAUGES=List.of(new FluidGauge("fluid_in",0,16,62,28,70));
+    private int pendingDrainTank=-1;
+    private long pendingDrainClick;
+    private List<FluidGauge> fluidGauges(){
+        var kind=menu.machine.device();
+        if(kind.has(DeviceType.Capability.DUAL_FLUID))return REACTOR_GAUGES;
+        if(kind.has(DeviceType.Capability.FLUID_STORAGE))return STORAGE_GAUGES;
+        if(kind.has(DeviceType.Capability.PUMP))return PUMP_GAUGES;
+        if(kind.has(DeviceType.Capability.MINING))return MINER_GAUGES;
+        if(kind.has(DeviceType.Capability.FLUID_FUEL))return FUEL_GAUGES;
+        return kind.has(DeviceType.Capability.FLUID_PROCESSING)?PROCESS_GAUGES:List.of();
+    }
     @Override protected void containerTick(){super.containerTick();progress.tick(menu.info);}
 
     public IndustrialScreen(IndustrialMenu menu,Inventory inventory,Component title){super(menu,inventory,title,256,238,ThemeDomain.MACHINE);inventoryLabelY=141;}
     @Override protected void init(){
-        progress.tick(menu.info);super.init();var kind=menu.machine.device();int x=8;
-        if(!kind.has(DeviceType.Capability.STORAGE_NETWORK)){button("开关",x,25,32,0);x+=35;}
+        pendingDrainTank=-1;progress.tick(menu.info);super.init();var kind=menu.machine.device();int x=8;
+        if(kind.processing()||kind.generator()||kind.functional()||kind.currencyUpgrader()){button("开关",x,25,32,0);x+=35;}
         if(kind.selectedRecipe()||kind.randomCurrency()){final int at=x;addRenderableWidget(Button.builder(Component.literal(kind.randomCurrency()?"概率":"配方"),b->minecraft.gui.pushScreenLayer(kind.randomCurrency()?new Currency(this):new Recipes(this))).bounds(leftPos+at,topPos+25,34,18).build(IndustrialUi.IndustrialButton::new));x+=37;}
         if(kind.needsStructure()){final int at=x;addRenderableWidget(Button.builder(Component.literal("结构"),b->minecraft.gui.pushScreenLayer(new Structure(this))).bounds(leftPos+at,topPos+25,34,18).build(IndustrialUi.IndustrialButton::new));x+=37;}
         button("连线",x,25,34,3);
+    }
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubleClick){
+        if(event.button()==0)for(var gauge:fluidGauges())if(gauge.contains(event.x()-leftPos,event.y()-topPos)){
+            if(event.hasControlDown()){
+                long now=System.nanoTime();
+                if(pendingDrainTank==gauge.tank()&&now-pendingDrainClick<=500_000_000L){
+                    pendingDrainTank=-1;minecraft.gameMode.handleInventoryButtonClick(menu.containerId,70+gauge.tank());
+                }else{pendingDrainTank=gauge.tank();pendingDrainClick=now;}
+            }else pendingDrainTank=-1;
+            return true;
+        }
+        pendingDrainTank=-1;return super.mouseClicked(event,doubleClick);
     }
     private Button button(String text,int x,int y,int w,int id){return addRenderableWidget(Button.builder(Component.literal(text),b->minecraft.gameMode.handleInventoryButtonClick(menu.containerId,id)).bounds(leftPos+x,topPos+y,w,18).build(IndustrialUi.IndustrialButton::new));}
     private String text(String key,String fallback){return menu.info.has(key)?menu.info.get(key).getAsString():fallback;}
@@ -41,11 +74,10 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         for(var slot:menu.slots)if(slot.isActive()){int x=leftPos+slot.x,y=topPos+slot.y;IndustrialUi.slot(g,x,y);}
         double progress=menu.machine.device().selectedRecipe()?this.progress.value(alpha):menu.info.has("progress")?menu.info.get("progress").getAsDouble():0;if(menu.machine.device().processing()){IndustrialUi.card(g,leftPos+87,topPos+57,(leftPos+174)-(leftPos+87),(topPos+65)-(topPos+57));g.fill(leftPos+88,topPos+58,leftPos+88+(int)(85*Math.clamp(progress,0,1)),topPos+64,UiTheme.ACCENT);}
         if(menu.info.has("preview")){ItemStack preview=ItemStack.OPTIONAL_CODEC.parse(minecraft.player.registryAccess().createSerializationContext(JsonOps.INSTANCE),menu.info.get("preview")).result().orElse(ItemStack.EMPTY);g.item(preview,leftPos+16,topPos+93);if(mx>=leftPos+14&&mx<=leftPos+34&&my>=topPos+91&&my<=topPos+111)g.setComponentTooltipForNextFrame(UiFonts.font(),Screen.getTooltipFromItem(minecraft,preview),mx,my,preview);}
-        if(menu.machine.device().has(DeviceType.Capability.FLUID_PROCESSING)){fluidGauge(g,"fluid_in",leftPos+96,topPos+85,28,23,mx,my);fluidGauge(g,"fluid_out",leftPos+139,topPos+85,28,23,mx,my);}
-        else if(menu.machine.device().has(DeviceType.Capability.FLUID_FUEL))fluidGauge(g,"fluid_in",leftPos+16,topPos+73,28,35,mx,my);
+        for(var gauge:fluidGauges())fluidGauge(g,gauge.key(),leftPos+gauge.x(),topPos+gauge.y(),gauge.width(),gauge.height(),mx,my);
         g.text(UiFonts.font(),"?",leftPos+242,topPos+8,UiTheme.ACCENT,false);
         if(mx>=leftPos+238&&mx<=leftPos+254&&my>=topPos+4&&my<=topPos+22){
-            List<Component> help=new ArrayList<>();if(menu.info.has("help"))for(var line:menu.info.getAsJsonArray("help"))help.add(Component.literal(line.getAsString()));else help.add(Component.literal("正在读取设备规则"));help.add(Component.literal("权杖：Shift右键空气切换供能/连网/传送模式。"));
+            List<Component> help=new ArrayList<>();if(menu.info.has("help"))for(var line:menu.info.getAsJsonArray("help"))help.add(Component.literal(line.getAsString()));else help.add(Component.literal("正在读取设备规则"));help.add(Component.literal("权杖：Shift右键空气切换供能、连网、物品或液体模式。"));
             if(menu.machine.device().generator()){help.add(Component.literal("额定产能："+number("power")+" 点/秒；满网继续消耗。"));help.add(Component.literal("燃料余时："+seconds(number("fuel"))+"；缺少流体暂停。"));}
             if(menu.machine.device().has(DeviceType.Capability.STORAGE_NETWORK)){help.add(Component.literal("覆盖半径 "+number("radius")+" 格，三维直线距离。"));help.add(Component.literal(text("member_change","")));}
             if(menu.machine.device().has(DeviceType.Capability.LOGISTICS))help.add(Component.literal("目标："+text("target","未绑定")));
@@ -54,15 +86,26 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     }
     @Override protected void extractLabels(GuiGraphicsExtractor g,int mx,int my){
         g.text(UiFonts.font(),text("name",title.getString()),8,8,UiTheme.TEXT,false);
-        var kind=menu.machine.device();boolean connected=menu.info.has("connected")&&menu.info.get("connected").getAsBoolean();g.text(UiFonts.font(),kind.has(DeviceType.Capability.STORAGE_NETWORK)?(number("network_capacity")>0?"● 信标就绪":"○ 信标未就绪"):connected?"● 信标有效":"○ 未连接",88,46,connected||kind.has(DeviceType.Capability.STORAGE_NETWORK)&&number("network_capacity")>0?UiTheme.SUCCESS:UiTheme.MUTED,false);
-        if(kind.processing()){double shown=kind.selectedRecipe()?progress.value(0):menu.info.has("progress")?menu.info.get("progress").getAsDouble():0;g.text(UiFonts.font(),String.format(Locale.ROOT,"%.1f%%",shown*100),112,72,UiTheme.TEXT,false);}
+        var kind=menu.machine.device();var gauges=fluidGauges();boolean centralGauges=!gauges.isEmpty()&&gauges.getFirst().x()>=88;
+        boolean connected=menu.info.has("connected")&&menu.info.get("connected").getAsBoolean();g.text(UiFonts.font(),kind.has(DeviceType.Capability.STORAGE_NETWORK)?(number("network_capacity")>0?"● 信标就绪":"○ 信标未就绪"):connected?"● 信标有效":"○ 未连接",88,46,connected||kind.has(DeviceType.Capability.STORAGE_NETWORK)&&number("network_capacity")>0?UiTheme.SUCCESS:UiTheme.MUTED,false);
+        if(kind.processing()){double shown=kind.selectedRecipe()?progress.value(0):menu.info.has("progress")?menu.info.get("progress").getAsDouble():0;g.text(UiFonts.font(),String.format(Locale.ROOT,"%.1f%%",shown*100),centralGauges?8:112,centralGauges?124:72,UiTheme.TEXT,false);}
         else if(kind.generator()){g.text(UiFonts.font(),"产能 "+number("power")+" 点/秒",88,63,UiTheme.MUTED,false);g.text(UiFonts.font(),"燃料余时 "+seconds(number("fuel")),88,81,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.STORAGE_NETWORK)){g.text(UiFonts.font(),"核心储能 "+number("energy"),16,64,UiTheme.MUTED,false);g.text(UiFonts.font(),"覆盖半径 "+number("radius")+" 格",16,79,UiTheme.MUTED,false);}
+        else if(kind.has(DeviceType.Capability.ENERGY_STORAGE)){g.text(UiFonts.font(),"本机 "+number("energy")+" / "+number("storage_capacity"),16,68,UiTheme.TEXT,false);g.text(UiFonts.font(),"接网增加容量；断网保留余额",16,87,UiTheme.MUTED,false);}
+        else if(kind.has(DeviceType.Capability.FLUID_STORAGE)){g.text(UiFonts.font(),"一罐一种液体 · "+number("fluid_capacity")+" mB",56,66,UiTheme.TEXT,false);g.text(UiFonts.font(),"原地升级保留；拆除清空",56,84,UiTheme.MUTED,false);}
+        else if(kind.has(DeviceType.Capability.PUMP)){g.text(UiFonts.font(),"相邻水源",16,65,UiTheme.MUTED,false);g.text(UiFonts.font(),"底面出液",16,81,UiTheme.MUTED,false);}
         else if(kind.currencyUpgrader()){g.text(UiFonts.font(),"4 → 1",104,61,UiTheme.GOLD,false);g.text(UiFonts.font(),"50%",108,73,UiTheme.ACCENT,false);}
-        else {g.text(UiFonts.font(),kind.has(DeviceType.Capability.LOGISTICS)?"权杖绑定接收容器":"成熟作物自动入下方箱",16,65,UiTheme.MUTED,false);}
-        g.text(UiFonts.font(),font.plainSubstrByWidth(text("status","读取设备状态"),240),8,111,UiTheme.GOLD,false);
+        else {g.text(UiFonts.font(),kind.has(DeviceType.Capability.LOGISTICS)?"权杖绑定接收容器":kind.has(DeviceType.Capability.FLUID_LOGISTICS)?"权杖绑定源出口和目标入口":"成熟作物自动入下方箱",16,65,UiTheme.MUTED,false);}
+        int statusX=!gauges.isEmpty()&&!centralGauges?56:8,statusWidth=centralGauges?76:248-statusX;
+        g.text(UiFonts.font(),font.plainSubstrByWidth(text("status","读取设备状态"),statusWidth),statusX,111,UiTheme.GOLD,false);
         String line=kind.currencyUpgrader()?"缓存 "+number("energy")+" / "+number("upgrade_capacity"):kind.processing()?number("paid")+" / "+number("total_energy"):"网络 "+number("network_energy")+" / "+number("network_capacity");
-        g.text(UiFonts.font(),line,8,124,UiTheme.MUTED,false);g.text(UiFonts.font(),"玩家背包",47,141,UiTheme.MUTED,false);
+        if(centralGauges){
+            g.text(UiFonts.font(),font.plainSubstrByWidth((kind.processing()?"付 ":"存 ")+number(kind.processing()?"paid":"network_energy"),64),184,111,UiTheme.MUTED,false);
+            g.text(UiFonts.font(),font.plainSubstrByWidth((kind.processing()?"需 ":"容 ")+number(kind.processing()?"total_energy":"network_capacity"),64),184,124,UiTheme.MUTED,false);
+            if(mx>=leftPos+184&&mx<leftPos+248&&my>=topPos+111&&my<topPos+137)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(Component.literal(line)),mx,my);
+        }else g.text(UiFonts.font(),line,statusX,124,UiTheme.MUTED,false);
+        if(mx>=leftPos+statusX&&mx<leftPos+statusX+statusWidth&&my>=topPos+111&&my<topPos+122)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(Component.literal(text("status","读取设备状态"))),mx,my);
+        g.text(UiFonts.font(),"玩家背包",47,141,UiTheme.MUTED,false);
         if(menu.machine.device().has(DeviceType.Capability.STORAGE_NETWORK))g.text(UiFonts.font(),"发能 "+number("generated")+"  消耗 "+number("consumed")+"  溢出 "+number("overflow"),8,94,UiTheme.MUTED,false);
     }
     private static String seconds(long ticks){return String.format(Locale.ROOT,"%.1f 秒",ticks/20.0);}
@@ -81,13 +124,13 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
             g.disableScissor();
         }
         g.fill(x+3,y+3,x+4,y+h-3,0x66ffffff);for(int mark=y+7;mark<y+h-3;mark+=6)g.fill(x+w-7,mark,x+w-2,mark+1,0x99505050);
-        if(mx>=x&&mx<x+w&&my>=y&&my<y+h)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(fluidTitle,Component.literal(amount+" / "+capacity+" mB")),mx,my);
+        if(mx>=x&&mx<x+w&&my>=y&&my<y+h)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(fluidTitle,Component.literal(amount+" / "+capacity+" mB"),Component.literal("按住ctrl 双击排出所有液体。")),mx,my);
     }
     private static final class Recipes extends ThemedScreen {
         private final IndustrialScreen parent;private int page;
         Recipes(IndustrialScreen p){super(Component.literal("选择加工配方"),ThemeDomain.MACHINE);parent=p;}
         @Override protected void init(){controls();}
-        private void controls(){clearWidgets();JsonArray list=parent.menu.info.has("recipes")?parent.menu.info.getAsJsonArray("recipes"):new JsonArray();int x=(width-290)/2,y=(height-230)/2;for(int i=0;i<8&&page*8+i<list.size();i++){int index=page*8+i;JsonObject recipe=list.get(index).getAsJsonObject();boolean allowed=recipe.get("tier").getAsInt()<=parent.menu.machine.tier();String name=recipe.get("name").getAsString()+" · "+recipe.get("energy").getAsLong()+"点"+(allowed?"":" · 需要"+recipe.get("tier").getAsInt()+"级");Button b=Button.builder(Component.literal(name),button->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,100+index);onClose();}).bounds(x,y+28+i*22,290,20).build(IndustrialUi.IndustrialButton::new);b.active=allowed;b.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(recipe.get("ingredients").getAsString()+"\n基准时间 "+recipe.get("ticks").getAsInt()+" tick；总耗能 "+recipe.get("energy").getAsLong()+" 点；最低 "+recipe.get("tier").getAsInt()+" 级")));addRenderableWidget(b);}addRenderableWidget(Button.builder(Component.literal("上一页"),b->{page=Math.max(0,page-1);controls();}).bounds(x,y+210,80,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal("取消选择"),b->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,4);onClose();}).bounds(x+105,y+210,80,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal("下一页"),b->{page=Math.min(Math.max(0,(list.size()-1)/8),page+1);controls();}).bounds(x+210,y+210,80,20).build(IndustrialUi.IndustrialButton::new));}
+        private void controls(){clearWidgets();JsonArray list=parent.menu.info.has("recipes")?parent.menu.info.getAsJsonArray("recipes"):new JsonArray();int x=(width-290)/2,y=(height-230)/2;for(int i=0;i<8&&page*8+i<list.size();i++){int index=page*8+i;JsonObject recipe=list.get(index).getAsJsonObject();boolean allowed=recipe.get("tier").getAsInt()<=parent.menu.machine.tier();String name=recipe.get("name").getAsString()+" · "+recipe.get("energy").getAsLong()+"点"+(allowed?"":" · 需要"+recipe.get("tier").getAsInt()+"级");Button b=Button.builder(Component.literal(name),button->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,100+index);onClose();}).bounds(x,y+28+i*22,290,20).build(IndustrialUi.IndustrialButton::new);b.active=allowed;b.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(recipe.get("ingredients").getAsString()+"\n基准时间 "+recipe.get("ticks").getAsInt()+" tick；总耗能 "+recipe.get("energy").getAsLong()+" 点；最低 "+recipe.get("tier").getAsInt()+" 级")));addRenderableWidget(b);}addRenderableWidget(Button.builder(Component.literal("上一页"),b->{page=Math.max(0,page-1);controls();}).bounds(x,y+210,80,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal(parent.menu.machine.device().has(DeviceType.Capability.REQUIRE_RECIPE)?"取消选择":"自动匹配"),b->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,4);onClose();}).bounds(x+105,y+210,80,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal("下一页"),b->{page=Math.min(Math.max(0,(list.size()-1)/8),page+1);controls();}).bounds(x+210,y+210,80,20).build(IndustrialUi.IndustrialButton::new));}
         @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float a){g.fill(0,0,width,height,UiTheme.OVERLAY);int x=(width-300)/2,y=(height-240)/2;IndustrialUi.panel(g,x,y,(x+300)-(x),(y+240)-(y));g.text(UiFonts.font(),"选择配方 · 当前批次完成后切换",x+10,y+10,UiTheme.TEXT,false);super.drawContents(g,mx,my,a);}
         @Override public boolean isPauseScreen(){return false;}
         @Override public void onClose(){minecraft.gui.popScreenLayer();}

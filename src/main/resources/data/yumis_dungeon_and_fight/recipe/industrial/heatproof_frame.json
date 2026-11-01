@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ABB",
+    "BBC",
+    "C  "
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:reinforced_frame",
+    "B": "yumis_dungeon_and_fight:tzm_alloy",
+    "C": "yumis_dungeon_and_fight:zircon_ceramic"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:heatproof_frame",
+    "count": 1
+  }
+}

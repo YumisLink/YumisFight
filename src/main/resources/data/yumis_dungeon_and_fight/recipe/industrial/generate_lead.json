@@ -1,12 +1,15 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mineral_generator",
-  "minimum_tier": 2,
+  "minimum_tier": 1,
   "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:raw_lead",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
   "ticks": 400,
-  "energy": 6400,
-  "result": {
-    "id": "yumis_dungeon_and_fight:raw_lead",
-    "count": 1
-  }
+  "energy": 6400
 }

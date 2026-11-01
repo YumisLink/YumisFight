@@ -11,7 +11,9 @@ public record Fraction(BigInteger numerator,BigInteger denominator) implements C
     public Fraction add(Fraction b){return new Fraction(numerator.multiply(b.denominator).add(b.numerator.multiply(denominator)),denominator.multiply(b.denominator));}
     public Fraction subtract(Fraction b){return new Fraction(numerator.multiply(b.denominator).subtract(b.numerator.multiply(denominator)),denominator.multiply(b.denominator));}
     public Fraction multiply(long b){return new Fraction(numerator.multiply(BigInteger.valueOf(b)),denominator);}
+    public Fraction multiply(Fraction b){return new Fraction(numerator.multiply(b.numerator),denominator.multiply(b.denominator));}
     public Fraction divide(long b){return new Fraction(numerator,denominator.multiply(BigInteger.valueOf(b)));}
+    public Fraction divide(Fraction b){return new Fraction(numerator.multiply(b.denominator),denominator.multiply(b.numerator));}
     public Fraction min(Fraction b){return compareTo(b)<=0?this:b;}
     public long ceil(){return numerator.add(denominator.subtract(BigInteger.ONE)).divide(denominator).longValueExact();}
     public double value(){return numerator.doubleValue()/denominator.doubleValue();}

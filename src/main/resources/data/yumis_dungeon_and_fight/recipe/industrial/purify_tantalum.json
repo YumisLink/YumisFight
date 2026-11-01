@@ -1,0 +1,29 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_refinery",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:tantalum_ingot",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:high_purity_tantalum_ingot",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:alkahest",
+      "amount": 1000
+    }
+  ],
+  "ticks": 400,
+  "energy": 25600,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:spent_solvent",
+    "amount": 1000
+  }
+}

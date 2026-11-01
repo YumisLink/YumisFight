@@ -3,10 +3,13 @@
   "machine": "mineral_generator",
   "minimum_tier": 2,
   "ingredients": [],
+  "results": [
+    {
+      "id": "minecraft:diamond",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
   "ticks": 1200,
-  "energy": 51200,
-  "result": {
-    "id": "minecraft:diamond",
-    "count": 1
-  }
+  "energy": 51240
 }

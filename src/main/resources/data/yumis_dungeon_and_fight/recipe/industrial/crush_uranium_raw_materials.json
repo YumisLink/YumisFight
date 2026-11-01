@@ -10,8 +10,10 @@
   ],
   "ticks": 100,
   "energy": 100,
-  "result": {
-    "id": "yumis_dungeon_and_fight:crushed_uranium",
-    "count": 2
-  }
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:crushed_uranium",
+      "count": 2
+    }
+  ]
 }

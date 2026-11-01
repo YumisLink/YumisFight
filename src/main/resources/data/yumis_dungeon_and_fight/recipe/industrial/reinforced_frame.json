@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ABB",
+    "BB "
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:basic_frame",
+    "B": "yumis_dungeon_and_fight:vanadium_steel"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:reinforced_frame",
+    "count": 1
+  }
+}

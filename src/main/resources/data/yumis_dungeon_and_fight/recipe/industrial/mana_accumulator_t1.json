@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ABB",
+    "BBC",
+    "CCC"
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:basic_frame",
+    "B": "minecraft:copper_ingot",
+    "C": "yumis_dungeon_and_fight:energy_crystal_1"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:mana_accumulator_t1",
+    "count": 1
+  }
+}

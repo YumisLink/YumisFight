@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ABC"
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:prospector_t1",
+    "B": "yumis_dungeon_and_fight:industrial_upgrade_2",
+    "C": "yumis_dungeon_and_fight:mana_component"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:prospector_t2",
+    "count": 1
+  }
+}

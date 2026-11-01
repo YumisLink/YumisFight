@@ -1,0 +1,20 @@
+{
+  "type": "yumis_dungeon_and_fight:machine_upgrade",
+  "category": "misc",
+  "pattern": [
+    "ABC",
+    "CDE",
+    "EEE"
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:mana_accumulator_t3",
+    "B": "yumis_dungeon_and_fight:precision_frame",
+    "C": "yumis_dungeon_and_fight:mana_superconductor",
+    "D": "yumis_dungeon_and_fight:superconducting_control",
+    "E": "yumis_dungeon_and_fight:energy_crystal_5"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:mana_accumulator_t4",
+    "count": 1
+  }
+}

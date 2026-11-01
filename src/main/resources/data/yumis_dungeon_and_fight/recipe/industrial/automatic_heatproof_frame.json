@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:reinforced_frame",
+      "count": 1
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:tzm_alloy",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:zircon_ceramic",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:heatproof_frame",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 300,
+  "energy": 6400
+}

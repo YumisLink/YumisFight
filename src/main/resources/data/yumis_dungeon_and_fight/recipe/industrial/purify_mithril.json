@@ -1,0 +1,25 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_refinery",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:mithril_ingot",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:high_purity_mithril_ingot",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:shimmer",
+      "amount": 250
+    }
+  ],
+  "ticks": 400,
+  "energy": 25600
+}

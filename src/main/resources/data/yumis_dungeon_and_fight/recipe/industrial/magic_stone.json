@@ -18,8 +18,10 @@
   ],
   "ticks": 800,
   "energy": 819200,
-  "result": {
-    "id": "yumis_dungeon_and_fight:industrial_magic_stone",
-    "count": 4
-  }
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:industrial_magic_stone",
+      "count": 4
+    }
+  ]
 }

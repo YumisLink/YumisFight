@@ -96,6 +96,78 @@
       "maxSize": 6,
       "chance": 1,
       "attempts": 1
+    },
+    "titanium_overworld": {
+      "minY": -48,
+      "maxY": 16,
+      "minSize": 3,
+      "maxSize": 6,
+      "chance": 2,
+      "attempts": 1
+    },
+    "orichalcum": {
+      "minY": -16,
+      "maxY": 64,
+      "minSize": 4,
+      "maxSize": 8,
+      "chance": 1,
+      "attempts": 1
+    },
+    "vanadium": {
+      "minY": -32,
+      "maxY": 32,
+      "minSize": 3,
+      "maxSize": 6,
+      "chance": 2,
+      "attempts": 1
+    },
+    "molybdenum": {
+      "minY": -48,
+      "maxY": 16,
+      "minSize": 3,
+      "maxSize": 5,
+      "chance": 3,
+      "attempts": 1
+    },
+    "zirconium": {
+      "minY": -32,
+      "maxY": 32,
+      "minSize": 3,
+      "maxSize": 6,
+      "chance": 3,
+      "attempts": 1
+    },
+    "mithril": {
+      "minY": -48,
+      "maxY": 0,
+      "minSize": 2,
+      "maxSize": 5,
+      "chance": 4,
+      "attempts": 1
+    },
+    "niobium_tantalum": {
+      "minY": -64,
+      "maxY": -16,
+      "minSize": 2,
+      "maxSize": 4,
+      "chance": 5,
+      "attempts": 1
+    },
+    "adamantite": {
+      "minY": -64,
+      "maxY": -32,
+      "minSize": 2,
+      "maxSize": 4,
+      "chance": 8,
+      "attempts": 1
+    },
+    "iridium": {
+      "minY": -64,
+      "maxY": -40,
+      "minSize": 1,
+      "maxSize": 3,
+      "chance": 16,
+      "attempts": 1
     }
   },
   "generators": {
@@ -145,5 +217,187 @@
     "ARTIFACT": 15.0,
     "LEGENDARY": 7.0,
     "EPIC": 3.0
+  },
+  "tankCapacities": [
+    64000,
+    256000,
+    1024000
+  ],
+  "accumulatorCapacities": [
+    100000,
+    1000000,
+    100000000,
+    1000000000
+  ],
+  "scanTicks": 40,
+  "scanCooldown": 100,
+  "miningWaterRate": 100,
+  "miningCoolantRate": 40,
+  "pumpAmount": 1000,
+  "pumpInterval": 20,
+  "pumpEnergy": 100,
+  "fluidTransferAmounts": [
+    1000,
+    4000,
+    16000
+  ],
+  "fluidTransferEnergyPerBucket": [
+    20,
+    40,
+    80
+  ],
+  "minerals": {
+    "copper": {
+      "tier": 1,
+      "chance": 35,
+      "ticks": 300,
+      "power": 80,
+      "item": "minecraft:raw_copper",
+      "count": 1
+    },
+    "coal": {
+      "tier": 1,
+      "chance": 30,
+      "ticks": 400,
+      "power": 2000,
+      "item": "minecraft:coal",
+      "count": 1
+    },
+    "iron": {
+      "tier": 1,
+      "chance": 15,
+      "ticks": 400,
+      "power": 80,
+      "item": "minecraft:raw_iron",
+      "count": 1
+    },
+    "lead": {
+      "tier": 1,
+      "chance": 12,
+      "ticks": 400,
+      "power": 320,
+      "item": "yumis_dungeon_and_fight:raw_lead",
+      "count": 1
+    },
+    "orichalcum": {
+      "tier": 1,
+      "chance": 12,
+      "ticks": 500,
+      "power": 400,
+      "item": "yumis_dungeon_and_fight:raw_orichalcum",
+      "count": 1
+    },
+    "gold": {
+      "tier": 2,
+      "chance": 8,
+      "ticks": 600,
+      "power": 426,
+      "item": "minecraft:raw_gold",
+      "count": 1
+    },
+    "redstone": {
+      "tier": 2,
+      "chance": 12,
+      "ticks": 400,
+      "power": 640,
+      "item": "minecraft:redstone",
+      "count": 4
+    },
+    "lapis": {
+      "tier": 2,
+      "chance": 10,
+      "ticks": 400,
+      "power": 640,
+      "item": "minecraft:lapis_lazuli",
+      "count": 4
+    },
+    "diamond": {
+      "tier": 2,
+      "chance": 4,
+      "ticks": 1200,
+      "power": 854,
+      "item": "minecraft:diamond",
+      "count": 1
+    },
+    "vanadium": {
+      "tier": 2,
+      "chance": 10,
+      "ticks": 600,
+      "power": 800,
+      "item": "yumis_dungeon_and_fight:raw_vanadium",
+      "count": 1
+    },
+    "magic": {
+      "tier": 2,
+      "chance": 10,
+      "ticks": 800,
+      "power": 1200,
+      "item": "yumis_dungeon_and_fight:energy_crystal_3",
+      "count": 2
+    },
+    "titanium": {
+      "tier": 3,
+      "chance": 6,
+      "ticks": 1200,
+      "power": 2134,
+      "item": "yumis_dungeon_and_fight:raw_titanium",
+      "count": 1
+    },
+    "molybdenum": {
+      "tier": 3,
+      "chance": 8,
+      "ticks": 1000,
+      "power": 2000,
+      "item": "yumis_dungeon_and_fight:raw_molybdenum",
+      "count": 1
+    },
+    "zirconium": {
+      "tier": 3,
+      "chance": 8,
+      "ticks": 1000,
+      "power": 1800,
+      "item": "yumis_dungeon_and_fight:raw_zirconium",
+      "count": 1
+    },
+    "mithril": {
+      "tier": 3,
+      "chance": 5,
+      "ticks": 1200,
+      "power": 3200,
+      "item": "yumis_dungeon_and_fight:raw_mithril",
+      "count": 1
+    },
+    "niobium_tantalum": {
+      "tier": 4,
+      "chance": 3,
+      "ticks": 1600,
+      "power": 6400,
+      "item": "yumis_dungeon_and_fight:raw_niobium_tantalum",
+      "count": 1
+    },
+    "adamantite": {
+      "tier": 4,
+      "chance": 2,
+      "ticks": 2000,
+      "power": 12800,
+      "item": "yumis_dungeon_and_fight:raw_adamantite",
+      "count": 1
+    },
+    "uranium": {
+      "tier": 4,
+      "chance": 2,
+      "ticks": 2000,
+      "power": 10800,
+      "item": "yumis_dungeon_and_fight:raw_uranium",
+      "count": 1
+    },
+    "iridium": {
+      "tier": 5,
+      "chance": 1,
+      "ticks": 2400,
+      "power": 25600,
+      "item": "yumis_dungeon_and_fight:raw_iridium",
+      "count": 1
+    }
   }
 }

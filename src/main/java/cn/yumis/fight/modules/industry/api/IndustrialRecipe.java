@@ -14,9 +14,9 @@ import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 import java.util.*;
 
 /** Standard data-pack recipe; counts are independent of the standard Ingredient predicate. */
-public record IndustrialRecipe(String machine,int minimumTier,List<Need> ingredients,Optional<ItemStackTemplate> output,int ticks,long energy,Optional<SizedFluidIngredient> fluidInput,Optional<FluidStackTemplate> fluidOutput) implements Recipe<IndustrialRecipe.Input> {
-    public IndustrialRecipe(String machine,int tier,List<Need> ingredients,ItemStack result,int ticks,long energy,Optional<SizedFluidIngredient> input,FluidStack fluidResult){this(machine,tier,ingredients,result.isEmpty()?Optional.empty():Optional.of(ItemStackTemplate.fromNonEmptyStack(result)),ticks,energy,input,fluidResult.isEmpty()?Optional.empty():Optional.of(FluidStackTemplate.fromNonEmptyStack(fluidResult)));}
-    public ItemStack result(){return output.map(ItemStackTemplate::create).orElse(ItemStack.EMPTY);}
+public record IndustrialRecipe(String machine,int minimumTier,List<Need> ingredients,List<ItemStackTemplate> outputs,int ticks,long energy,List<SizedFluidIngredient> fluidInputs,Optional<FluidStackTemplate> fluidOutput) implements Recipe<IndustrialRecipe.Input> {
+    public IndustrialRecipe {ingredients=List.copyOf(ingredients);outputs=List.copyOf(outputs);fluidInputs=List.copyOf(fluidInputs);if(outputs.size()>2||fluidInputs.size()>2)throw new IllegalArgumentException("工业配方最多两种固体产物和两路入液");}
+    public List<ItemStack> results(){return outputs.stream().map(ItemStackTemplate::create).toList();}
     public FluidStack fluidResult(){return fluidOutput.map(FluidStackTemplate::create).orElse(FluidStack.EMPTY);}
     public record Need(Ingredient ingredient,int count){
         public static final Codec<Need> CODEC=RecordCodecBuilder.create(i->i.group(Ingredient.CODEC.fieldOf("ingredient").forGetter(Need::ingredient),Codec.intRange(1,4096).optionalFieldOf("count",1).forGetter(Need::count)).apply(i,Need::new));
@@ -27,9 +27,9 @@ public record IndustrialRecipe(String machine,int minimumTier,List<Need> ingredi
     }
     public static final MapCodec<IndustrialRecipe> CODEC=RecordCodecBuilder.mapCodec(i->i.group(
         Codec.STRING.fieldOf("machine").forGetter(IndustrialRecipe::machine),Codec.intRange(1,5).optionalFieldOf("minimum_tier",1).forGetter(IndustrialRecipe::minimumTier),
-        Need.CODEC.listOf().optionalFieldOf("ingredients",List.of()).forGetter(IndustrialRecipe::ingredients),ItemStackTemplate.CODEC.optionalFieldOf("result").forGetter(IndustrialRecipe::output),
+        Need.CODEC.listOf().optionalFieldOf("ingredients",List.of()).forGetter(IndustrialRecipe::ingredients),ItemStackTemplate.CODEC.listOf().optionalFieldOf("results",List.of()).forGetter(IndustrialRecipe::outputs),
         Codec.intRange(1,Integer.MAX_VALUE).fieldOf("ticks").forGetter(IndustrialRecipe::ticks),Codec.LONG.validate(n->n>=0?com.mojang.serialization.DataResult.success(n):com.mojang.serialization.DataResult.error(()->"魔能不能为负")).fieldOf("energy").forGetter(IndustrialRecipe::energy),
-        SizedFluidIngredient.CODEC.optionalFieldOf("fluid_input").forGetter(IndustrialRecipe::fluidInput),FluidStackTemplate.CODEC.optionalFieldOf("fluid_result").forGetter(IndustrialRecipe::fluidOutput)
+        SizedFluidIngredient.CODEC.listOf().optionalFieldOf("fluid_inputs",List.of()).forGetter(IndustrialRecipe::fluidInputs),FluidStackTemplate.CODEC.optionalFieldOf("fluid_result").forGetter(IndustrialRecipe::fluidOutput)
     ).apply(i,IndustrialRecipe::new));
     @Override public boolean matches(Input input,Level level){return takePlan(input.items)!=null;}
     /** Integral max-flow avoids greedy matching bugs with overlapping item tags. */
@@ -43,7 +43,7 @@ public record IndustrialRecipe(String machine,int minimumTier,List<Need> ingredi
         }
         int[] plan=new int[m];for(int j=0;j<m;j++)plan[j]=cap[sink][1+n+j];return plan;
     }
-    @Override public ItemStack assemble(Input input){return result();}
+    @Override public ItemStack assemble(Input input){return outputs.isEmpty()?ItemStack.EMPTY:outputs.getFirst().create();}
     @Override public boolean showNotification(){return false;}
     @Override public boolean isSpecial(){return true;}
     @Override public String group(){return "";}

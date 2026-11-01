@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:niobium_titanium_alloy",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_mithril_ingot",
+      "count": 3
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_tantalum_ingot",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:mithril_niobium_alloy",
+      "count": 8
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 800,
+  "energy": 409600
+}

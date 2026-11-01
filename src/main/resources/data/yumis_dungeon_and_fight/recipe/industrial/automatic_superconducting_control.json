@@ -1,0 +1,32 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:control_component",
+      "count": 1
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:mana_superconductor",
+      "count": 1
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:spacetime_ingot",
+      "count": 2
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:energy_crystal_5",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:superconducting_control",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 600,
+  "energy": 409600
+}

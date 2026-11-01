@@ -3,10 +3,13 @@
   "machine": "mineral_generator",
   "minimum_tier": 1,
   "ingredients": [],
+  "results": [
+    {
+      "id": "minecraft:coal",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
   "ticks": 400,
-  "energy": 40000,
-  "result": {
-    "id": "minecraft:coal",
-    "count": 1
-  }
+  "energy": 40000
 }

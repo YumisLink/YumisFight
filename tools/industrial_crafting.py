@@ -65,6 +65,9 @@ def generate():
         lang[f'item.{NS}.rtg_core'] = 'RTG核心'
         write(path, lang)
     print('Industrial crafting: 44 devices, five components, two cores and tier-five crystal.')
+    # The expansion owns mineral-machine upgrades; never restore their cheaper old ring.
+    from industrial_expansion import content
+    content()
 
 if __name__ == '__main__':
     generate()

@@ -1,0 +1,24 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:vanadium_steel",
+      "count": 6
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:molybdenum_ingot",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:molybdenum_vanadium_steel",
+      "count": 8
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 400,
+  "energy": 12800
+}

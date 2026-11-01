@@ -1,0 +1,15 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 2,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:raw_vanadium",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 600,
+  "energy": 24000
+}

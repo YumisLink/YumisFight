@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "AAB",
+    "BCC",
+    "CCD"
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:orichalcum_ingot",
+    "B": "minecraft:copper_ingot",
+    "C": "minecraft:redstone",
+    "D": "yumis_dungeon_and_fight:energy_crystal_1"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:mana_component",
+    "count": 2
+  }
+}

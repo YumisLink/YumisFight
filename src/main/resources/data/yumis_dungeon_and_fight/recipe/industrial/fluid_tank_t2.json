@@ -1,0 +1,18 @@
+{
+  "type": "yumis_dungeon_and_fight:machine_upgrade",
+  "category": "misc",
+  "pattern": [
+    "ABB",
+    "BBC",
+    "CCC"
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:fluid_tank_t1",
+    "B": "yumis_dungeon_and_fight:vanadium_steel",
+    "C": "yumis_dungeon_and_fight:zircon_ceramic"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:fluid_tank_t2",
+    "count": 1
+  }
+}

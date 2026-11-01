@@ -1,0 +1,32 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "alchemical_reactor",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:sulfide",
+      "count": 2
+    },
+    {
+      "ingredient": "minecraft:coal",
+      "count": 2
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:crushed_vanadium",
+      "count": 1
+    }
+  ],
+  "results": [],
+  "fluid_inputs": [
+    {
+      "ingredient": "minecraft:water",
+      "amount": 1000
+    }
+  ],
+  "ticks": 200,
+  "energy": 6400,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:blazing_fluid",
+    "amount": 1000
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ABC",
+    "CDD",
+    "DDE"
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:prospector_t3",
+    "B": "yumis_dungeon_and_fight:industrial_upgrade_4",
+    "C": "yumis_dungeon_and_fight:mana_component",
+    "D": "yumis_dungeon_and_fight:tzm_alloy",
+    "E": "minecraft:glass"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:prospector_t4",
+    "count": 1
+  }
+}

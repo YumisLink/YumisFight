@@ -1,0 +1,32 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "alchemical_reactor",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:zircon_ceramic",
+      "count": 2
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_niobium_ingot",
+      "count": 1
+    }
+  ],
+  "results": [],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:coolant",
+      "amount": 1000
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:shimmer",
+      "amount": 250
+    }
+  ],
+  "ticks": 500,
+  "energy": 204800,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:penduliquid",
+    "amount": 1000
+  }
+}

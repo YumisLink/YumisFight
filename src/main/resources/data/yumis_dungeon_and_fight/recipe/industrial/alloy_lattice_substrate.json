@@ -1,0 +1,33 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 4,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:zircon_ceramic",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_tantalum_ingot",
+      "count": 2
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:energy_crystal_4",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:lattice_substrate",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:shimmer",
+      "amount": 500
+    }
+  ],
+  "ticks": 1000,
+  "energy": 3276800
+}

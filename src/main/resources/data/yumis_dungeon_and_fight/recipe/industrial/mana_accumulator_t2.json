@@ -1,0 +1,19 @@
+{
+  "type": "yumis_dungeon_and_fight:machine_upgrade",
+  "category": "misc",
+  "pattern": [
+    "ABC",
+    "CCD",
+    "DDD"
+  ],
+  "key": {
+    "A": "yumis_dungeon_and_fight:mana_accumulator_t1",
+    "B": "yumis_dungeon_and_fight:reinforced_frame",
+    "C": "yumis_dungeon_and_fight:vanadium_steel",
+    "D": "yumis_dungeon_and_fight:energy_crystal_2"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:mana_accumulator_t2",
+    "count": 1
+  }
+}
