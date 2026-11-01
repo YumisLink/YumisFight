@@ -23,6 +23,11 @@ import java.util.*;
 /** Composition of narrow module ports. No gameplay decisions belong here. */
 public final class RuntimeAssembly {
     private RuntimeAssembly(){}
+    public static RewardPorts.Players rewardPlayers(ServerApplication runtime){return new RewardPorts.Players(){
+        public UUID session(ServerPlayer p){return runtime.session(p).id;}public Progress progress(ServerPlayer p){return runtime.session(p).progress;}public void progress(ServerPlayer p,Progress next){runtime.session(p).progress=next;}
+        public Stats stats(ServerPlayer p){return cn.yumis.fight.modules.skills.api.SkillPreview.currentStats(runtime.stats(p),runtime.session(p).resources,System.currentTimeMillis());}
+        public void profile(ServerPlayer p){runtime.profile(p);}public void message(ServerPlayer p,String text){runtime.message(p,text);}
+    };}
     public static cn.yumis.fight.modules.dungeons.application.TargetService targetService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.TargetService(runtime.journal,runtime.random,()->runtime.worldDifficulty,id->runtime.dungeons.byId(id));}
     public static cn.yumis.fight.modules.inventory.application.InventoryTransactions.CurrencyAction currencyAction(ServerApplication runtime){return (p,menu,slot,button,input)->runtime.equipmentApplication.versionlessCurrencyClick(p,menu,slot,button,input);}
 

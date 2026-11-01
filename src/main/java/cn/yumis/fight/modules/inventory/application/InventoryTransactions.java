@@ -138,6 +138,13 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         extra.bagPage=Math.clamp(snapshot.bagPage,0,Math.max(0,(extra.bagLimit()+8)/9-1));
         for(int i=0;i<snapshot.bag.size();i++)extra.bag.setItem(i,decode(p,snapshot.bag.get(i)));
     }
+    /** Only a login boundary may turn a saved cursor into player storage. Never replay this on receipt retries. */
+    public void restoreCursorAtLogin(ServerPlayer player){
+        Snapshot snapshot=journal.get("inventory/"+player.getUUID(),Snapshot.class,null);
+        if(snapshot==null||snapshot.cursor()==null||decode(player,snapshot.cursor()).isEmpty())return;
+        Map<String,JsonElement> changes=new HashMap<>();JsonObject intent=new JsonObject();intent.addProperty("loginCursor",snapshot.operation());
+        transact(player,"login-cursor/"+snapshot.operation(),intent,()->{ItemStack cursor=decode(player,snapshot.cursor());player.containerMenu.setCarried(ItemStack.EMPTY);stash(player,cursor,changes);},changes);
+    }
     public String clientStorageState(ServerPlayer p){
         var extra=MenuHooks.extra(p);JsonObject value=new JsonObject();value.addProperty("bagSchema",extra.bagSchema);value.addProperty("bagTier",extra.bagTier);value.addProperty("bagPage",extra.bagPage);return value.toString();
     }
@@ -232,15 +239,16 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
     }
     public void click(ServerPlayer p,AbstractContainerMenu menu,int slot,int button,ContainerInput input){
         try{
+            var claim=menu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu reward?reward.claim(p,slot,input):null;
             JsonObject j=new JsonObject();
             j.addProperty("menu",menu.containerId);
             j.addProperty("slot",slot);
             j.addProperty("button",button);
             j.addProperty("input",input.name());
             transact(p,UUID.randomUUID().toString(),j,()->{
-                if(!currencyAction.apply(p,menu,slot,button,input))menu.clicked(slot,button,input,p);
+                if(claim!=null)claim.take().run();else if(!currencyAction.apply(p,menu,slot,button,input))menu.clicked(slot,button,input,p);
             }
-            ,Map.of());
+            ,claim==null?Map.of():claim.edits());
             profile.accept(p);
         }
         catch(RuntimeException e){

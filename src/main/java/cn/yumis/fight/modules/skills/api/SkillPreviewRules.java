@@ -14,6 +14,7 @@ public final class SkillPreviewRules {
     private static final Map<SkillDefinition,Supplement> SUPPLEMENTS=new LinkedHashMap<>();
     static {
         for(String id:List.of(MageSkills.STAR,MageSkills.FANG,MageSkills.JACK,MageSkills.HERDER))register(MageSkills.skill(id),new Definition(p->1,false,false,!id.equals(MageSkills.FANG),id.equals(MageSkills.JACK)?1:-1));
+        for(String id:SummonerSkills.ALL)register(SkillCatalog.require(id),new Definition(p->id.equals(SummonerSkills.MASTERY)||id.equals(SummonerSkills.FRENZY)?0:1,false,false,true,-1));
         register(SkillCatalog.BLINK,new Definition(p->0,false,false,true,-1));
         register(SkillCatalog.GHOST,new Definition(p->1,false,false,true,3));
         register(SkillCatalog.TRIPLE,new Definition(p->(int)p.get("slashes",1),false,true,false,-1));

@@ -67,7 +67,7 @@ public final class TargetService {
                 t.elite=mob.elite();
                 var d=dungeons.apply(t.instance);
                 if(d!=null){
-                    t.partySize=d.roster.size();
+                    t.partySize=d.treasure==null?d.roster.size():d.treasure.partySize;
                     t.difficulty=d.difficulty;
                 }
             }

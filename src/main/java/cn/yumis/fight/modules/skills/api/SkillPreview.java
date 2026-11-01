@@ -38,6 +38,7 @@ public final class SkillPreview {
     private static Damage damage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,boolean passive,boolean append,int[] elements,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.eyeDamage(stats,skill);
         boolean magic=CareerRules.magic(skill,progress);
+        elements=SummonerSkills.elements(stats,elements);
         boolean allowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(effects,elements);elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(effects,elements);
         double mastery=mastery(progress,stats);
         var low=CombatRules.panel(stats,magic,elements,coefficient,!passive,false);
@@ -56,8 +57,13 @@ public final class SkillPreview {
         if(skill.id.equals(CareerSkills.CRESCENT))coefficient/=3;
         Damage hit=count==0?new Damage(0,0):damage(progress,stats,skill,coefficient,false,effects);
         if(skill.id.equals(MageSkills.HERDER)){
-            var inherited=HerderRules.inherit(stats);var melee=damage(progress,inherited,skill,parameters.get("damage",0),false,effects);var stone=damage(progress,inherited,skill,parameters.get("stoneDamage",0),false,effects);Damage total=new Damage(0,0);
-            for(var action:MageSkills.attacks(parameters.rank(),120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus(action.stone()?stone:melee);
+            var inherited=SummonerSkills.inherit(stats,SummonKind.HERDER,SkillLearning.effective(stats,progress,SkillCatalog.require(SummonerSkills.MASTERY)));var melee=damage(progress,inherited,skill,parameters.get("damage",0),false,effects);var stone=damage(progress,inherited,skill,parameters.get("stoneDamage",0),false,effects);Damage total=new Damage(0,0);
+            for(var action:SummonMoves.cues(SummonKind.HERDER,parameters.rank(),120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus((action.stone()?stone:melee).times(action.share()));
+            hit=total;
+        }
+        if(SummonerSkills.contains(skill.id)&&!SummonerSkills.kinds(skill.id).isEmpty()){
+            Damage total=new Damage(0,0);int masteryRank=SkillLearning.effective(stats,progress,SkillCatalog.require(SummonerSkills.MASTERY));
+            for(var kind:SummonerSkills.kinds(skill.id)){var inherited=SummonerSkills.inherit(stats,kind,masteryRank);double speed=Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100);for(var action:SummonMoves.cues(kind,parameters.rank(),120000,speed)){inherited.modifiers.put("summonElement",(double)SummonMoves.require(action.move()).element());total=total.plus(damage(progress,inherited,skill,parameters.get("damage",0)*action.share(),false,effects));}}
             hit=total;
         }
         Damage finisher=pattern!=null&&pattern.finisher()>0?damage(progress,stats,skill,pattern.finisher(),false,effects):definition.finisher()?damage(progress,stats,skill,parameters.get("finisher",0),false,effects):new Damage(0,0);

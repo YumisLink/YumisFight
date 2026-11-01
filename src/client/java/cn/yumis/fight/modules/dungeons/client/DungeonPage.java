@@ -12,7 +12,7 @@ public final class DungeonPage {
     private static final List<String> ART=List.of("goblin_camp","dragon_tower","castle_palace","gbl_church","behemoth_forbidden","dark_city","skasa","moonlight_tavern","hamelin","pursuit","sea_train","time_rift","mysterious_awareness","grandi","central_park");
     private DungeonPage(){}
     public static void render(PlayerPageSurface page,Dungeon current,boolean preferredSync,Consumer<Join> join,Runnable leave,Consumer<String> message){
-        if(current!=null){page.line("当前："+DungeonCatalog.current().dungeon(current.dungeon).name()+" · "+current.difficulty.title());page.line("波次 "+(current.wave+1)+" / 7 · "+current.status);page.rowButton("离开地下城",leave);page.gap();}
+        if(current!=null){if(current.treasure!=null){var t=current.treasure;page.line(t.region==0?"哥布林王国 · 野外守宝战斗":"藏宝秘境 · 第"+t.region+" / 5区 · "+(t.theme.equals("palace")?"黄金王宫":t.theme.equals("tower")?"龙人之塔":"格兰之森"));page.line("Lv."+(t.baseLevel+Math.max(0,t.region-1)*2)+" · 地狱 · "+(t.cleared?"已清场":"第"+(current.wave+1)+"波"));}else{page.line("当前："+DungeonCatalog.current().dungeon(current.dungeon).name()+" · "+current.difficulty.title());page.line("波次 "+(current.wave+1)+" / 7 · "+current.status);}page.rowButton("离开地下城",leave);page.gap();}
         int cell=(page.contentWidth()-24)/2,base=page.cursor(),pictureHeight=Math.max(42,(cell-13)/2),height=pictureHeight+43,index=0;
         for(var definition:DungeonCatalog.current().dungeons){
             int x=(index%2)*cell,y=base+(index/2)*(height+6),w=cell-5;index++;

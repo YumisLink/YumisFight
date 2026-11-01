@@ -72,6 +72,9 @@ public final class VerificationDriver {
             status.add("stats",JSON.toJsonTree(ClientSession.INSTANCE.stats));
             status.addProperty("gold",ClientSession.INSTANCE.gold.balance);status.add("goldFeedback",JSON.toJsonTree(ClientSession.INSTANCE.gold.gains(now)));
             status.add("damageMeter",ClientSession.INSTANCE.damageMeter.deepCopy());
+            status.add("trainingMeter",ClientSession.INSTANCE.trainingMeter.deepCopy());
+            status.add("summonArmy",JSON.toJsonTree(cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.army));
+            status.addProperty("summonFrenzyUntil",cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.frenzyUntil);
             status.add("jei",jeiInspection.deepCopy());status.addProperty("industrialBeams",IndustrialVisuals.beams().size());status.addProperty("industrialBeamRemaining",IndustrialVisuals.remaining());
             if(ClientSession.INSTANCE.profile.has("stats"))status.add("serverStats",ClientSession.INSTANCE.profile.get("stats"));
             status.addProperty("font",UiFonts.currentName());
@@ -264,6 +267,7 @@ public final class VerificationDriver {
             case "drag"->{if(mc.gui.screen()!=null){var first=new MouseButtonEvent(j.get("x").getAsDouble(),j.get("y").getAsDouble(),new MouseButtonInfo(0,0));var last=new MouseButtonEvent(j.get("toX").getAsDouble(),j.get("toY").getAsDouble(),new MouseButtonInfo(0,0));mc.gui.screen().mouseClicked(first,false);mc.gui.screen().mouseDragged(last,last.x()-first.x(),last.y()-first.y());mc.gui.screen().mouseReleased(last);}}
             case "attack"->SkillController.INSTANCE.attack();
             case "skill"->SkillController.INSTANCE.press(j.get("slot").getAsInt());
+            case "renewSummons"->cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.renewSummons();
             case "release"->SkillController.INSTANCE.release(j.get("slot").getAsInt());
             case "scale"->{
                 mc.options.guiScale().set(j.get("value").getAsInt());

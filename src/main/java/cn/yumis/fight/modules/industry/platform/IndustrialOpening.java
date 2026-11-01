@@ -21,7 +21,7 @@ public final class IndustrialOpening {
         String token=UUID.randomUUID().toString();var world=IndustrialWorld.get(player.level());
         JsonObject snapshot=new JsonObject();snapshot.add("info",world.info(machine));JsonArray slots=new JsonArray();
         var codec=player.registryAccess().createSerializationContext(JsonOps.INSTANCE);
-        for(int i=0;i<15;i++)slots.add(ItemStack.OPTIONAL_CODEC.encodeStart(codec,machine.getItem(i)).getOrThrow());
+        for(int i=0;i<machine.getContainerSize();i++)slots.add(ItemStack.OPTIONAL_CODEC.encodeStart(codec,machine.getItem(i)).getOrThrow());
         // addStandardInventorySlots sends the main inventory before the hotbar.
         for(int i=9;i<36;i++)slots.add(ItemStack.OPTIONAL_CODEC.encodeStart(codec,player.getInventory().getItem(i)).getOrThrow());
         for(int i=0;i<9;i++)slots.add(ItemStack.OPTIONAL_CODEC.encodeStart(codec,player.getInventory().getItem(i)).getOrThrow());

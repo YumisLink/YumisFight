@@ -146,7 +146,7 @@ public final class VerificationChecks {
         Affix fixed=new Affix("fixed_shield",Stat.SHIELD,5,false);fixed.fixed=true;gear.affixes.add(fixed);
         Gem gem=new Gem();gem.name="锁定保留宝石";gear.gems.add(gem);
         clear();
-        mutate(()->{player.getInventory().setItem(0,EquipmentItems.gear(gear));player.inventoryMenu.setCarried(ItemRegistry.item("fracturing_orb",2));});
+        mutate(()->{player.getInventory().setItem(0,EquipmentItems.gear(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(gear)));player.inventoryMenu.setCarried(ItemRegistry.item("fracturing_orb",2));});
         JsonObject fracture=currency(0,null);
         runtime.equipmentApplication.currencyRequest(player,fracture);
         Gear first=EquipmentItems.gear(player.getInventory().getItem(0));
@@ -176,7 +176,7 @@ public final class VerificationChecks {
         Gear changed=EquipmentItems.gear(player.getInventory().getItem(0));
         check(changed.instance.equals(eligible.instance)&&changed.revision==eligible.revision+1&&changed.affixes.size()==eligible.affixes.size()
             &&player.inventoryMenu.getCarried().getCount()==1,"chaos_preserves_identity_count_and_consumes_one");
-        for(int i=0;i<eligible.affixes.size();i++)if(i!=replace)check(JSON.toJson(eligible.affixes.get(i)).equals(JSON.toJson(changed.affixes.get(i))),"chaos_preserves_other_affix_"+i);
+        for(int i=0;i<eligible.affixes.size();i++)if(i!=replace)check(JSON.toJsonTree(eligible.affixes.get(i)).equals(JSON.toJsonTree(changed.affixes.get(i))),"chaos_preserves_other_affix_"+i);
         check(JSON.toJson(eligible.gems).equals(JSON.toJson(changed.gems)),"chaos_preserves_embedded_gems");
         runtime.equipmentApplication.currencyRequest(player,chaos);
         check(player.inventoryMenu.getCarried().getCount()==1&&JSON.toJson(changed).equals(JSON.toJson(EquipmentItems.gear(player.getInventory().getItem(0)))),"duplicate_chaos_returns_same_result_without_reroll");
@@ -273,7 +273,7 @@ public final class VerificationChecks {
             embedded.name="保留样本";
             epic.gems.add(embedded);
             UUID identity=epic.instance;
-            String special=JSON.toJson(epic.affixes.stream().filter(a->!a.base).toList());
+            JsonElement special=JSON.toJsonTree(epic.affixes.stream().filter(a->!a.base).toList());
             mutate(()->{
                 player.getInventory().setItem(0,EquipmentItems.gear(epic));player.inventoryMenu.setCarried(ItemRegistry.item("epic_upgrade_stone",2));
             }
@@ -281,7 +281,7 @@ public final class VerificationChecks {
             JsonObject upgrade=currency(0,null);
             runtime.equipmentApplication.currencyRequest(player,upgrade);
             Gear upgraded=EquipmentItems.gear(player.getInventory().getItem(0));
-            check(upgraded.level==80&&upgraded.instance.equals(identity)&&upgraded.gems.getFirst().name.equals("保留样本")&&special.equals(JSON.toJson(upgraded.affixes.stream().filter(a->!a.base).toList())),"upgrade_clamp_identity_specials_and_gems");
+            check(upgraded.level==80&&upgraded.instance.equals(identity)&&upgraded.gems.getFirst().name.equals("保留样本")&&special.equals(JSON.toJsonTree(upgraded.affixes.stream().filter(a->!a.base).toList())),"upgrade_clamp_identity_specials_and_gems");
             runtime.equipmentApplication.currencyRequest(player,upgrade);
             check(player.inventoryMenu.getCarried().getCount()==1,"duplicate_upgrade_returns_original_result");
             rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"level80_upgrade_rejected");
@@ -412,9 +412,10 @@ public final class VerificationChecks {
     private void basicCycleChecks(){
         player.closeContainer();clear();mutate(()->player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.LIGHTSABER,Rarity.COMMON,1,new Random(1)))));runtime.session(player).progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER);
         BasicAttackService cycles=cn.yumis.fight.bootstrap.RuntimeAssembly.basicAttackService(runtime);JsonObject start=new JsonObject();start.addProperty("id",UUID.randomUUID().toString());cycles.start(player,start);
-        rejects(()->cycles.start(player,start),"server_rejects_replayed_basic_start");
-        mutate(()->player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.GREATSWORD,Rarity.COMMON,1,new Random(1)))));JsonObject switched=new JsonObject();switched.addProperty("id",UUID.randomUUID().toString());rejects(()->cycles.start(player,switched),"server_weapon_switch_does_not_reset_basic_cooldown");
-        JsonObject hit=new JsonObject();hit.addProperty("basicCycle",start.get("id").getAsString());hit.addProperty("basicSlash",0);hit.addProperty("target",UUID.randomUUID().toString());cycles.validate(player,hit);cycles.committed(hit);rejects(()->cycles.validate(player,hit),"server_rejects_duplicate_basic_target_with_new_operation");
+        JsonObject replay=new JsonObject();replay.addProperty("basicCycle",start.get("id").getAsString());var snapshot=cycles.sourceStats(player,replay);cycles.start(player,start);
+        check(snapshot!=null&&cycles.sourceStats(player,replay)==snapshot,"server_replayed_basic_start_keeps_original_snapshot");
+        mutate(()->player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.GREATSWORD,Rarity.COMMON,1,new Random(1)))));JsonObject switched=new JsonObject();switched.addProperty("id",UUID.randomUUID().toString());cycles.start(player,switched);JsonObject switchedSource=new JsonObject();switchedSource.addProperty("basicCycle",switched.get("id").getAsString());check(cycles.sourceStats(player,switchedSource)==null,"server_weapon_switch_does_not_reset_basic_cooldown");
+        JsonObject hit=new JsonObject();hit.addProperty("basicCycle",start.get("id").getAsString());hit.addProperty("basicSlash",0);hit.addProperty("target",UUID.randomUUID().toString());cycles.validate(player,hit);cycles.committed(hit);cycles.start(player,start);rejects(()->cycles.validate(player,hit),"server_rejects_duplicate_basic_target_with_new_operation");
         var movement=player.getDeltaMovement();player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);player.knockback(.4,1,0,player.damageSources().generic(),0);check(Math.abs(Math.abs(player.getDeltaMovement().x)-.04)<.0001,"melee_knockback_retains_ten_percent_once");player.setDeltaMovement(movement);
     }
     private void openFabricator(net.minecraft.core.BlockPos pos){
@@ -450,7 +451,7 @@ public final class VerificationChecks {
         Gear gear=EquipmentRules.create(Slot.HEAD,Weapon.KATANA,Rarity.COMMON,78,ArmorType.LIGHT,JewelryType.UNTYPED,new Random(0));gear.rarity=Rarity.LEGENDARY;
         Affix locked=new Affix("percent_evasion",Stat.EVASION,EquipmentAffixes.percentBaseline(78,Stat.EVASION)*1.1,false);locked.operation="PERCENT";locked.baseline=locked.value/1.1;locked.roll=1.1;locked.locked=true;gear.affixes.add(locked);
         gear.sockets=1;Gem gem=new Gem();gem.name="升级保留宝石";gear.gems.add(gem);
-        mutate(()->{player.getInventory().setItem(0,EquipmentItems.gear(gear));player.inventoryMenu.setCarried(ItemRegistry.item("upgrade_stone",2));});
+        mutate(()->{player.getInventory().setItem(0,EquipmentItems.gear(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(gear)));player.inventoryMenu.setCarried(ItemRegistry.item("upgrade_stone",2));});
         JsonObject upgrade=currency(0,null);runtime.equipmentApplication.currencyRequest(player,upgrade);
         Gear raised=EquipmentItems.gear(player.getInventory().getItem(0));Affix grown=raised.affixes.stream().filter(a->a.id.equals("percent_evasion")).findFirst().orElseThrow();
         check(raised.level==80&&raised.instance.equals(gear.instance)&&raised.armorType==ArmorType.LIGHT&&grown.locked&&Math.abs(grown.value-1.375)<1e-9&&raised.gems.getFirst().name.equals(gem.name),"upgrade_stone_grows_locked_numbers_and_preserves_identity");

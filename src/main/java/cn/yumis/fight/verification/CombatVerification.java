@@ -55,7 +55,7 @@ public final class CombatVerification {
             fixtures.forEach(Entity::discard);fixtures.clear();target=second=attacker=null;projectile=null;
             for(int x=74;x<95;x++)for(int z=74;z<98;z++)level.setBlockAndUpdate(new BlockPos(x,99,z),Blocks.STONE.defaultBlockState());
             player.teleportTo(level,80.5,100,80.5,Set.of(),0,0,true);
-            player.setGameMode(GameType.SURVIVAL);player.stopUsingItem();player.removeAllEffects();player.setDeltaMovement(0,0,0);player.setArrowCount(0);
+            player.setGameMode(GameType.SURVIVAL);player.stopUsingItem();player.removeAllEffects();player.setDeltaMovement(0,0,0);player.setArrowCount(0);player.invulnerableTime=0;
             for(EquipmentSlot slot:EquipmentSlot.values())if(slot!=EquipmentSlot.BODY&&slot!=EquipmentSlot.SADDLE)player.setItemSlot(slot,ItemStack.EMPTY);
             MenuHooks.extra(player).clearContent();
             session.progress.level=80;session.resources.training=false;session.resources.controlEpoch++;session.resources.shield=0;
@@ -134,7 +134,6 @@ public final class CombatVerification {
                     arrow.setPos(80.5,101,83);arrow.setDeltaMovement(0,0,-1.2);projectile=arrow;spawn(level,arrow);
                 }else{
                     float before=player.getHealth();
-                    player.invulnerableTime=20;
                     accepted=player.hurtServer(level,player.damageSources().mobAttack(attacker),3);
                     if(action.equals("rapid"))accepted&=player.hurtServer(level,player.damageSources().mobAttack(attacker),3);
                     if(before!=player.getHealth())throw new IllegalStateException("Vanilla health was deducted before the RPG report");

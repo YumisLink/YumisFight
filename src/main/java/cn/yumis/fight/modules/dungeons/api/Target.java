@@ -30,9 +30,9 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public double maximumHealth(int playerLevel,boolean sync){return health(level(playerLevel,sync));}
     /** Ratio between the same enemy's synchronized and original maximum health. */
     public static double healthProjection(int originalLevel,int viewerLevel,boolean sync){
-        int original=Math.clamp(originalLevel,1,CharacterRules.MAX_LEVEL);
+        int original=Math.max(originalLevel,1);
         int projected=sync?Math.max(original,Math.clamp(viewerLevel,1,CharacterRules.MAX_LEVEL)):original;
-        return HEALTH_GROWTH[projected-1]/HEALTH_GROWTH[original-1];
+        return growth(projected)/growth(original);
     }
     public String power(){return elitePower;}
     public boolean rewardsEligible(){return !noRewards;}
@@ -61,10 +61,11 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
             default->50;
         }
         ;
-        double growth=HEALTH_GROWTH[level-1];
+        double growth=growth(level);
         return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1);
     }
     public double attack(int level){
         return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1);
     }
+    private static double growth(int level){if(level<1)throw new IllegalArgumentException("敌人等级无效");return level<=HEALTH_GROWTH.length?HEALTH_GROWTH[level-1]:HEALTH_GROWTH[HEALTH_GROWTH.length-1]*Math.pow(1.08,level-HEALTH_GROWTH.length);}
 }

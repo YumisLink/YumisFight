@@ -3,6 +3,7 @@ package cn.yumis.fight.modules.skills.client;
 import cn.yumis.fight.modules.skills.api.client.SkillsClient;
 import cn.yumis.fight.modules.skills.api.client.SkillController;
 import cn.yumis.fight.modules.skills.api.*;
+import java.util.List;
 import cn.yumis.fight.modules.character.api.JobCatalog;
 import cn.yumis.fight.modules.presentation.api.client.*;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -11,7 +12,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 public final class CareerHud {
     private CareerHud(){}
     public static void render(GuiGraphicsExtractor g,int center,int y){
-        double charge=SkillController.INSTANCE.basicCharge();if(charge>=0){g.fill(center-42,y-7,center+42,y-2,UiTheme.HUD_PANEL);g.fill(center-42,y-7,center-42+(int)(84*charge),y-2,UiTheme.HUD_GOLD);}
         var state=SkillsClient.current();var v=CareerClient.INSTANCE.view;long now=state.serverNow();String text="";int color=0xffc38be5;
         if(state.progress().hasJob(JobCatalog.SOUL_BENDER)&&v.field!=null)text="鬼阵 Lv."+v.field.rank+" · "+cn.yumis.fight.modules.skills.api.CareerSkills.ghosts(v.field.rank)+"鬼  "+seconds(v.field.expires-now)+"秒";
         if(state.progress().hasJob(JobCatalog.BERSERKER)){text=v.frenzy?"血之狂暴 · "+(state.predicted(state.own())<=.4?"低血强化20%":state.predicted(state.own())<=.7?"低血强化10%":"双刀开启"):"双刀关闭";color=0xffee7d88;}
@@ -20,6 +20,7 @@ public final class CareerHud {
     public static void renderGauge(GuiGraphicsExtractor g,int width,int height,long now){
         var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;int x=(int)(width*.8),y=Math.max(24,(int)(height*.2));
         if(state.own().dead)return;
+        if(state.progress().hasJob(JobCatalog.SUMMONER)){summons(g,width,height,state.serverNow());return;}
         if(OracleRules.rank(state.stats(),state.progress())>0)y=oracle(g,x,y,state.serverNow());
         long overdrive=state.resources().buffs.getOrDefault(SkillCatalog.OVERDRIVE.id,0L)-now;
         if(overdrive>0){timer(g,SkillCatalog.OVERDRIVE,x,y,overdrive,30000,0xfff6d16d);y+=68;}
@@ -38,6 +39,25 @@ public final class CareerHud {
             int remaining=(int)cast.parameters.get("slashes",3)-cast.segment;
             if(remaining>0)badge(g,cast.skill,x,y,remaining,(now-cast.stageStart)*cast.speed<SkillPresentation.segmentDelay(cast.skill));
         }
+    }
+    private static void summons(GuiGraphicsExtractor g,int width,int height,long now){
+        var army=MageClient.INSTANCE;var font=UiFonts.font();var rows=new java.util.ArrayList<String>();
+        for(String id:List.of(MageSkills.HERDER,SummonerSkills.SPIRITS,SummonerSkills.LOUISE,SummonerSkills.SANDOR,SummonerSkills.KING,SummonerSkills.KASIJAS))
+            if(army.army.values().stream().anyMatch(j->j.get("skill").getAsString().equals(id)&&j.get("until").getAsLong()>now))rows.add(id);
+        if(army.frenzyUntil>now)rows.add(SummonerSkills.FRENZY);if(rows.isEmpty())return;
+        int panel=rows.stream().map(SkillCatalog::require).mapToInt(s->font.width(s.title)+36).max().orElse(144);
+        float scale=Math.min(1,Math.min((height-96f)/(rows.size()*32),(width-16f)/panel));
+        g.pose().pushMatrix();g.pose().translate(width-8,24);g.pose().scale(scale,scale);g.pose().translate(-panel,0);
+        for(int i=0;i<rows.size();i++){
+            String id=rows.get(i);var skill=SkillCatalog.require(id);int y=i*32;
+            var entries=army.army.values().stream().filter(j->j.get("skill").getAsString().equals(id)&&j.get("until").getAsLong()>now).toList();
+            long left=id.equals(SummonerSkills.FRENZY)?army.frenzyUntil-now:entries.stream().mapToLong(j->j.get("until").getAsLong()).min().orElse(now)-now;
+            long duration=id.equals(SummonerSkills.KASIJAS)||id.equals(SummonerSkills.FRENZY)?20000:120000;
+            g.fill(0,y,panel,y+30,UiTheme.HUD_PANEL);g.blit(net.minecraft.resources.Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/gui/skills/"+skill.icon()+".png"),2,y+3,26,y+27,0,1,0,1);
+            g.text(font,skill.title,30,y+3,UiTheme.HUD_TEXT,true);g.text(font,"剩余 "+seconds(left)+" 秒"+(id.equals(SummonerSkills.SPIRITS)?" · "+entries.size()+" / 4":""),30,y+15,UiTheme.HUD_MUTED,true);
+            g.fill(30,y+27,30+(int)((panel-32)*Math.clamp(left/(double)duration,0,1)),y+29,id.equals(SummonerSkills.FRENZY)?0xffee7d88:0xff92d49b);
+        }
+        g.pose().popMatrix();
     }
     private static int oracle(GuiGraphicsExtractor g,int x,int y,long now){
         var state=SkillsClient.current();var o=CareerClient.INSTANCE.view.oracle;var font=UiFonts.font();

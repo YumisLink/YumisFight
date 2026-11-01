@@ -156,6 +156,7 @@ public final class ServerEvents {
             .then(Commands.literal("combat").then(Commands.argument("case",StringArgumentType.word()).executes(c->{try{return CombatVerification.run(ServerApplication.get(),c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"case"));}catch(Exception failure){throw new IllegalStateException(failure);}})))
             .then(Commands.literal("economy").executes(c->{try{return EconomyVerification.run(ServerApplication.get(),c.getSource().getPlayerOrException());}catch(Exception failure){throw new IllegalStateException(failure);}}).then(Commands.literal("fixture").executes(c->{try{return EconomyVerification.fixture(ServerApplication.get(),c.getSource().getPlayerOrException());}catch(Exception failure){throw new IllegalStateException(failure);}}))));
         root.then(dev);
+        cn.yumis.fight.modules.economy.application.ChestService.commands(root,()->ServerApplication.get().chests);
         e.getDispatcher().register(root);
     }
     private static String itemNamespace(){return cn.yumis.fight.platform.ItemData.NS+":";}

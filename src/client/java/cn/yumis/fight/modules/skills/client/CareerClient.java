@@ -19,6 +19,10 @@ public final class CareerClient {
     private static final Gson JSON=new Gson();
     public static final CareerClient INSTANCE=new CareerClient();
     public CareerState view=new CareerState();
+    private final ArrayDeque<String> renewQueue=new ArrayDeque<>();private long renewAfter;
+    public void renewSummons(){if(!state().progress().hasJob(JobCatalog.SUMMONER)||waiting())return;renewQueue.clear();for(String id:SummonerSkills.RENEW)if(SkillLearning.effective(state().stats(),state().progress(),SkillCatalog.require(id))>0)renewQueue.add(id);nextRenew();}
+    public void tickRenew(){if(ClientUi.now()>=renewAfter)nextRenew();}
+    private void nextRenew(){if(waiting()||renewQueue.isEmpty())return;String id=renewQueue.remove();request(SkillCatalog.require(id),-1);renewAfter=ClientUi.now()+600;}
     private final Map<String,Long> pending=new HashMap<>();
     private final Map<String,Integer> pendingSlots=new HashMap<>();
     private final Set<String> released=new HashSet<>();
@@ -45,7 +49,7 @@ public final class CareerClient {
     private static final class FlameBolt {SkillCast source;Vec3 origin,position,direction;double remaining,range;long next,started;String id;int sequence;}
     private CareerClient(){}
     private SkillsClient state(){return SkillsClient.current();}
-    public void clear(){asura.clear();OracleClient.INSTANCE.clear();for(var source:sources.values()){SkillController.INSTANCE.stopVisual(source);TrainingCombat.release(source.id,"persistent");TrainingCombat.actionFinished(source.id);}for(var orb:orbs){orbVisual(orb,"CANCEL");TrainingCombat.release(orb.source.id,"orb");}for(var wave:waves)TrainingCombat.release(wave.source.id,"wave");for(var bolt:bolts)TrainingCombat.release(bolt.source.id,bolt.id);for(var mark:flames.values()){attachmentVisual(mark,"CANCEL");TrainingCombat.release(mark.source.id,"flame/"+mark.target.getUUID());}for(var ball:fireBalls)TrainingCombat.release(ball.source.id,"fire");fireBalls.clear();orbClocks.clear();pending.clear();pendingSlots.clear();released.clear();sources.clear();fieldTicks.clear();freezes.clear();flames.clear();orbs.clear();waves.clear();bolts.clear();view=new CareerState();}
+    public void clear(){renewQueue.clear();asura.clear();OracleClient.INSTANCE.clear();for(var source:sources.values()){SkillController.INSTANCE.stopVisual(source);TrainingCombat.release(source.id,"persistent");TrainingCombat.actionFinished(source.id);}for(var orb:orbs){orbVisual(orb,"CANCEL");TrainingCombat.release(orb.source.id,"orb");}for(var wave:waves)TrainingCombat.release(wave.source.id,"wave");for(var bolt:bolts)TrainingCombat.release(bolt.source.id,bolt.id);for(var mark:flames.values()){attachmentVisual(mark,"CANCEL");TrainingCombat.release(mark.source.id,"flame/"+mark.target.getUUID());}for(var ball:fireBalls)TrainingCombat.release(ball.source.id,"fire");fireBalls.clear();orbClocks.clear();pending.clear();pendingSlots.clear();released.clear();sources.clear();fieldTicks.clear();freezes.clear();flames.clear();orbs.clear();waves.clear();bolts.clear();view=new CareerState();}
     public void receive(JsonObject data){
         CareerState next=JSON.fromJson(data,CareerState.class);
         if(!state().session().equals(next.session)||next.generation!=state().own().generation)return;
@@ -65,7 +69,7 @@ public final class CareerClient {
     public void request(SkillDefinition skill,int slot){
         if(waiting())return;var p=Minecraft.getInstance().player;if(p==null)return;
         int rank=SkillLearning.effective(state().stats(),state().progress(),skill);if(rank<=0||skill.passive())return;
-        state().upload();JsonObject j=new JsonObject();String id=UUID.randomUUID().toString();j.addProperty("id",id);j.addProperty("skill",skill.id);j.addProperty("slot",slot);j.addProperty("session",state().session());j.addProperty("generation",state().own().generation);pending.put(id,ClientUi.now());pendingSlots.put(id,slot);state().send(CareerSkills.contains(skill.id)?"careerCast":"skillCast",j);
+        state().upload();JsonObject j=new JsonObject();String id=UUID.randomUUID().toString();j.addProperty("id",id);j.addProperty("skill",skill.id);j.addProperty("slot",slot);if(slot==-1)j.addProperty("renew",true);j.addProperty("session",state().session());j.addProperty("generation",state().own().generation);pending.put(id,ClientUi.now());pendingSlots.put(id,slot);state().send(CareerSkills.contains(skill.id)?"careerCast":"skillCast",j);
     }
     public void started(JsonObject ack){
         String id=ack.get("id").getAsString();if(!pending.containsKey(id))return;pending.remove(id);pendingSlots.remove(id);boolean wasReleased=released.remove(id);

@@ -16,6 +16,7 @@ public final class SkillsPage {
     public static void render(PlayerPageSurface page,Progress progress,Stats stats,Consumer<String> learn,Consumer<String> unlearn,Runnable reset){
         if(cn.yumis.fight.modules.character.api.client.CareerControls.selection(page,progress))return;
         page.cursor(page.cursor()+10);
+        if(progress.hasJob(cn.yumis.fight.modules.character.api.JobCatalog.SUMMONER)){page.rowButton("一键续召",()->CareerClient.INSTANCE.renewSummons());page.rowButton("切换跟随 / 自动攻击",()->{var ui=cn.yumis.fight.modules.presentation.api.client.ClientUi.current();ui.send("summonFollow",ui.operation("summonFollow"));});}
         page.line("剩余SP："+progress.sp+"    装备可提高有效等级",UiTheme.GOLD);
         if(!page.hasSidebar())page.line("职业减伤："+Math.round((1-cn.yumis.fight.modules.character.api.JobCatalog.style(progress.jobId()).damageTaken())*100)+"%");
         page.line("点击图标绑定；右键退1级，Shift右键退5级并返还SP。",UiTheme.MUTED);

@@ -41,7 +41,9 @@ public class DungeonService {
     private final MinecraftServer server;
     private final DungeonPorts.Players playerAccess;
     private final DungeonPorts.Targets targets;
-    private final DungeonPorts.Rewards rewards;
+    final DungeonPorts.Rewards rewards;
+    public TreasureHuntService treasure;
+    public void installTreasure(cn.yumis.fight.modules.inventory.api.InventoryOperations inventory,cn.yumis.fight.modules.dungeons.api.TreasurePorts rewards,Random random){treasure=new TreasureHuntService(this,journal,server,playerAccess,targets,inventory,rewards,random);}
     private final DungeonPorts.Meter meter;
     private final Function<UUID,Team> team;
     private final Runnable refresh;
@@ -70,15 +72,16 @@ public class DungeonService {
     public Dungeon current(UUID p){
         for(String key:journal.keys("instance/")){
             Dungeon d=journal.get(key,Dungeon.class,null);
-            if(d!=null&&!d.status.equals("CLOSED")&&d.roster.contains(p)&&!d.withdrawn.contains(p))return d;
+            if(d!=null&&!d.status.equals("CLOSED")&&!(d.treasure!=null&&d.treasure.region==0&&d.treasure.cleared)&&d.roster.contains(p)&&!d.withdrawn.contains(p))return d;
         }
         return null;
     }
     public boolean participant(ServerPlayer p,String id){
         Dungeon d=byId(id);
+        if(d!=null&&d.treasure!=null&&treasure!=null)return treasure.inside(d,p);
         return d!=null&&!d.status.equals("CLOSED")&&d.roster.contains(p.getUUID())&&!d.withdrawn.contains(p.getUUID());
     }
-    private ServerLevel level(){
+    ServerLevel level(){
         ServerLevel l=server.getLevel(DIMENSION);
         if(l==null)throw new IllegalArgumentException("地下城维度尚未加载");
         return l;
@@ -95,6 +98,7 @@ public class DungeonService {
         }
         ServerLevel l=server.getLevel(DIMENSION);
         if(l!=null)for(Entity e:l.getAllEntities())if(e instanceof DungeonEnemy||e instanceof CageEntity)e.discard();
+        for(ServerLevel world:server.getAllLevels())for(Entity e:world.getAllEntities())if(e instanceof DungeonEnemy mob){Dungeon d=byId(mob.instance());if(d==null||d.status.equals("CLOSED"))e.discard();}
     }
     public void request(ServerPlayer p,JsonObject j)throws Exception{
         String kind=j.get("kind").getAsString();
@@ -115,7 +119,7 @@ public class DungeonService {
         boolean created=false;
         for(String recordKey:journal.keys("instance/")){
             Dungeon candidate=journal.get(recordKey,Dungeon.class,null);
-            if(candidate!=null&&candidate.dungeon.equals(id)&&candidate.difficulty==difficulty&&candidate.status.equals("RUNNING")){
+            if(candidate!=null&&candidate.treasure==null&&candidate.dungeon.equals(id)&&candidate.difficulty==difficulty&&candidate.status.equals("RUNNING")){
                 d=candidate;
                 break;
             }
@@ -171,6 +175,7 @@ public class DungeonService {
     }
     public void leave(ServerPlayer p,boolean teleport)throws Exception{
         Dungeon d=current(p.getUUID());
+        if(d!=null&&d.treasure!=null){treasure.leave(d,p,teleport);return;}
         if(d==null){
             ReturnPoint stored=journal.get("return/"+p.getUUID(),ReturnPoint.class,null);
             if(stored!=null&&p.level().dimension()==DIMENSION)back(p,stored);
@@ -204,13 +209,14 @@ public class DungeonService {
     }
     public void respawn(ServerPlayer p){
         Dungeon d=current(p.getUUID());
-        if(d!=null)teleport(p,level(),d.cell*512+.5,80,2.5);
+        if(d!=null&&d.treasure!=null&&d.treasure.region==0){teleport(p,server.overworld(),d.treasure.mapX+.5,d.treasure.mapY,d.treasure.mapZ+.5);}
+        else if(d!=null)teleport(p,level(),d.cell*512+.5,80,d.treasure==null?2.5:-23);
         else{
             ReturnPoint point=journal.get("return/"+p.getUUID(),ReturnPoint.class,null);
             if(point!=null&&p.level().dimension()==DIMENSION)back(p,point);
         }
     }
-    private ReturnPoint point(ServerPlayer p){
+    ReturnPoint point(ServerPlayer p){
         ReturnPoint point=new ReturnPoint();
         point.dimension=p.level().dimension().identifier().toString();
         point.x=p.getX();
@@ -220,18 +226,19 @@ public class DungeonService {
         point.pitch=p.getXRot();
         return point;
     }
-    private void back(ServerPlayer p,ReturnPoint point){
+    void back(ServerPlayer p,ReturnPoint point){
         ServerLevel l=server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(point.dimension)));
         if(l==null)l=server.overworld();
         teleport(p,l,point.x,Math.max(l.getMinY()+1,point.y),point.z);
         p.setYRot(point.yaw);
         p.setXRot(point.pitch);
     }
-    private void teleport(ServerPlayer p,ServerLevel l,double x,double y,double z){
+    void teleport(ServerPlayer p,ServerLevel l,double x,double y,double z){
         p.teleportTo(l,x,y,z,Set.of(),p.getYRot(),p.getXRot(),true);
     }
-    private void forceArena(Dungeon d,boolean forced){
+    void forceArena(Dungeon d,boolean forced){
         int ox=d.cell*512;
+        if(d.treasure!=null){if(d.treasure.region==0)return;for(int x=Math.floorDiv(ox-44,16);x<=Math.floorDiv(ox+44,16);x++)for(int z=-3;z<=2;z++){level().setChunkForced(x,z,forced);if(forced)level().getChunk(x,z);}return;}
         int minimumZ=d.dungeon.equals("goblin_camp")?-5:-18;
         int maximumZ=d.dungeon.equals("goblin_camp")?146:36;
         for(int x=Math.floorDiv(ox-23,16);x<=Math.floorDiv(ox+23,16);x++)
@@ -240,7 +247,7 @@ public class DungeonService {
             if(forced)level().getChunk(x,z);
         }
     }
-    private int freeCell(){Set<Integer> occupied=new HashSet<>();for(String key:journal.keys("instance/")){Dungeon d=journal.get(key,Dungeon.class,null);if(d!=null&&!d.status.equals("CLOSED"))occupied.add(d.cell);}int cell=DungeonCatalog.current().dungeons.stream().mapToInt(DungeonCatalog.DungeonDef::cell).max().orElse(-1)+1;while(occupied.contains(cell))cell++;return cell;}
+    int freeCell(){Set<Integer> occupied=new HashSet<>();for(String key:journal.keys("instance/")){Dungeon d=journal.get(key,Dungeon.class,null);if(d!=null&&!d.status.equals("CLOSED"))occupied.add(d.cell);}int cell=DungeonCatalog.current().dungeons.stream().mapToInt(DungeonCatalog.DungeonDef::cell).max().orElse(-1)+1;while(occupied.contains(cell))cell++;return cell;}
     private void ensureArena(DungeonCatalog.DungeonDef def,int cell)throws Exception{
         String key="arenaCell/"+cell;String layout=def.id()+"/YDNF_LAYOUT_2";
         if(journal.get(key,String.class,"").equals(layout))return;
@@ -270,15 +277,16 @@ public class DungeonService {
         if(d.dungeon.equals("goblin_camp"))GoblinCamp.gate(level(),origin,stage,open);
         else DragonTower.gate(level(),origin,stage,open);
     }
-    private DungeonEnemy spawn(Dungeon d,String type,boolean elite,boolean boss,double x,double y,double z){
-        DungeonEnemy e=new DungeonEnemy(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.get(type).get(),level());
+    DungeonEnemy spawn(Dungeon d,String type,boolean elite,boolean boss,double x,double y,double z){
+        ServerLevel world=d.treasure==null?level():treasure.world(d);
+        DungeonEnemy e=new DungeonEnemy(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.get(type).get(),world);
         e.getPersistentData().putString("ydnf_instance",d.id.toString());
-        e.getPersistentData().putInt("ydnf_level",d.dungeon.equals("goblin_camp")?10:15);
+        e.getPersistentData().putInt("ydnf_level",d.treasure==null?(d.dungeon.equals("goblin_camp")?10:15):d.treasure.baseLevel+Math.max(0,d.treasure.region-1)*2);
         e.getPersistentData().putBoolean("ydnf_elite",elite);
         e.getPersistentData().putBoolean("ydnf_boss",boss);
         e.setPos(x,y,z);
         e.setCustomName(cn.yumis.fight.modules.presentation.api.ModText.of(switch(type){
-            case "goblin_shaman"->"落雷凯诺";case "lucas"->"鲁卡斯";case "goblin_captain"->"哥布林队长";case "goblin_thrower"->"投石哥布林";case "blue_wyvern"->"蓝翼龙";case "blue_dragonman"->"蓝龙人";case "dragonman"->"龙人";case "wyvern"->"翼龙";default->"哥布林";
+            case "golden_king"->"黄金之王";case "goblin_shaman"->"落雷凯诺";case "lucas"->"鲁卡斯";case "goblin_captain"->"哥布林队长";case "goblin_thrower"->"投石哥布林";case "blue_wyvern"->"蓝翼龙";case "blue_dragonman"->"蓝龙人";case "dragonman"->"龙人";case "wyvern"->"翼龙";default->"哥布林";
         }
         ));
         if(boss||type.equals("goblin_thrower")||type.contains("wyvern"))e.scripted();
@@ -286,7 +294,7 @@ public class DungeonService {
             e.setNoGravity(true);
             e.getPersistentData().putDouble("ydnf_flightFloor",y);
         }
-        if(!level().addFreshEntity(e))throw new IllegalStateException("副本敌人生成失败："+type);
+        if(!world.addFreshEntity(e))throw new IllegalStateException("副本敌人生成失败："+type);
         d.enemies.add(e.getUUID());
         targets.target(e);
         return e;
@@ -341,7 +349,7 @@ public class DungeonService {
             long now=System.currentTimeMillis();
             for(String key:journal.keys("instance/")){
                 Dungeon d=journal.get(key,Dungeon.class,null);
-                if(d==null||!d.status.equals("RUNNING"))continue;
+                if(d==null||d.treasure!=null||!d.status.equals("RUNNING"))continue;
                 List<ServerPlayer> players=server.getPlayerList().getPlayers().stream().filter(p->participant(p,d.id.toString())&&p.level().dimension()==DIMENSION).toList();
                 if(players.isEmpty()){
                     close(d);
@@ -407,7 +415,7 @@ public class DungeonService {
             server.sendSystemMessage(cn.yumis.fight.modules.presentation.api.ModText.of("副本处理失败："+failure.getMessage()));
         }
     }
-    private void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> players,long now)throws Exception{
+    void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> players,long now)throws Exception{
         ServerPlayer p=players.stream().filter(Entity::isAlive).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
         if(p==null)return;
         String type=net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath();
@@ -429,11 +437,11 @@ public class DungeonService {
                 if(release!=null&&now>=release){
                     stones.remove(e.getUUID());
                     e.setAggressive(false);
-                    var stone=new net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball(level(),e,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COBBLESTONE));
+                    var stone=new net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball(e.level(),e,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COBBLESTONE));
                     stone.setItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COBBLESTONE));
                     Vec3 aim=p.getEyePosition().subtract(e.getEyePosition()).normalize();
                     stone.shoot(aim.x,aim.y+.08,aim.z,1.1f,0);
-                    level().addFreshEntity(stone);
+                    e.level().addFreshEntity(stone);
                 }
                 else if(release==null&&distance<12&&ready(e,"stone",now)){
                     cooldowns.put(e.getUUID()+"/stone",now+2000);
@@ -535,7 +543,7 @@ public class DungeonService {
             cages.put(cage.id,cage);
         }
     }
-    private void broadcast(String instance,String action,Object value){
+    void broadcast(String instance,String action,Object value){
         for(ServerPlayer p:server.getPlayerList().getPlayers())if(participant(p,instance))cn.yumis.fight.network.Network.send(p,action,value);
     }
     private void discharge(Cage cage){
@@ -581,6 +589,7 @@ public class DungeonService {
         }
     }
     public void died(UUID boss){
+        if(treasure!=null)treasure.died(boss);
         cancelBoss(boss);
         for(Entity e:level().getAllEntities())if(e instanceof DungeonEnemy mob&&mob.getPersistentData().getStringOr("ydnf_parent","").equals(boss.toString())){
             cancelBoss(e.getUUID());
@@ -610,6 +619,7 @@ public class DungeonService {
         }
     }
     private void close(Dungeon d)throws Exception{
+        if(d.treasure!=null&&treasure!=null){treasure.finish(d,"本次挖宝探索已结束。");return;}
         d.status="CLOSED";
         journal.put("instance/"+d.id,d);
         clearCell(d.cell);

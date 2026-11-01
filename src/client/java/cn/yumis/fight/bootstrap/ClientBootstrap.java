@@ -59,6 +59,7 @@ public final class ClientBootstrap {
         Network.CLIENT=ClientSession.INSTANCE::accept;
         if(Boolean.getBoolean("ydnf.verify"))cn.yumis.fight.modules.skills.api.client.SkillDiagnostics.attack=(weapon,value)->{cn.yumis.fight.verification.FeedbackProbe.weapon=weapon;cn.yumis.fight.verification.FeedbackProbe.attack=value;};
         Effects.VFX.register();
+        cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.register();
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         ClientSettings.load();
         UiTheme.load();
@@ -70,7 +71,7 @@ public final class ClientBootstrap {
             id->cn.yumis.fight.modules.dungeons.api.DungeonCatalog.current().dungeons.stream().filter(d->d.materials().contains(id)).map(d->"来源："+d.name()+(d.available()?"":"（尚未开放）")).toList(),
             ()->Boolean.getBoolean("ydnf.verify")&&VerificationDriver.tooltipShift);
         bus.addListener((RegisterKeyMappingsEvent e)->{
-            e.registerCategory(cn.yumis.fight.modules.presentation.api.client.MenuInput.CATEGORY);e.register(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.LEAP);for(var key:cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS)e.register(key);
+            e.registerCategory(cn.yumis.fight.modules.presentation.api.client.MenuInput.CATEGORY);e.register(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.LEAP);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.RENEW);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.FOLLOW);for(var key:cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS)e.register(key);
         }
         );
         bus.addListener((RegisterSelectItemModelPropertyEvent e)->{
@@ -80,11 +81,12 @@ public final class ClientBootstrap {
         bus.addListener((RegisterMenuScreensEvent e)->{e.register(cn.yumis.fight.modules.equipment.api.EquipmentContentTypes.FABRICATOR_MENU.get(),FabricatorScreen::new);e.register(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_MENU.get(),IndustrialScreen::new);e.register(cn.yumis.fight.modules.industry.platform.IndustrialContent.STORAGE_MENU.get(),DimensionalScreen::new);});
         bus.addListener((RegisterFluidModelsEvent e)->e.register(new net.minecraft.client.renderer.block.FluidModel.Unbaked(new net.minecraft.client.resources.model.sprite.Material(Identifier.withDefaultNamespace("block/water_still")),new net.minecraft.client.resources.model.sprite.Material(Identifier.withDefaultNamespace("block/water_flow")),null,net.neoforged.neoforge.client.fluid.FluidTintSources.constant(0xff70cbd2)),cn.yumis.fight.modules.industry.platform.IndustrialContent.COOLANT,cn.yumis.fight.modules.industry.platform.IndustrialContent.FLOWING_COOLANT));
         bus.addListener((EntityRenderersEvent.RegisterRenderers e)->{
-            e.registerEntityRenderer(cn.yumis.fight.modules.skills.api.SkillContentTypes.HERDER.get(),cn.yumis.fight.modules.skills.client.HerderRenderer::new);
+            for(var entry:cn.yumis.fight.modules.skills.api.SkillContentTypes.SUMMONS.entrySet())e.registerEntityRenderer(entry.getValue().get(),c->new cn.yumis.fight.modules.skills.client.SummonRenderer(c,entry.getKey()));
             e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.TRAINING_SANDBAG.get(),cn.yumis.fight.modules.dungeons.client.TrainingSandbagRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_BE.get(),IndustrialRenderer::new);
             e.registerEntityRenderer(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.CAGE.get(),CageRenderer::new);for(var type:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.entrySet()){
-                if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),GoblinRenderer::new);
+                if(type.getKey().equals("golden_king"))e.registerEntityRenderer(type.getValue().get(),cn.yumis.fight.modules.dungeons.client.GoldenKingRenderer::new);
+                else if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),GoblinRenderer::new);
                 else{
                     int role=java.util.List.of("dragonman","blue_dragonman","wyvern","blue_wyvern","lucas").indexOf(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new DragonRenderer(context,role));
                 }
@@ -103,6 +105,8 @@ public final class ClientBootstrap {
                     ClientSession.INSTANCE.upload();mc.gui.setScreen(new FightScreen());
                 }
             }
+            while(cn.yumis.fight.modules.skills.api.client.SkillInputs.RENEW.consumeClick())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.renewSummons();
+            while(cn.yumis.fight.modules.skills.api.client.SkillInputs.FOLLOW.consumeClick())cn.yumis.fight.modules.presentation.api.client.ClientUi.current().send("summonFollow",cn.yumis.fight.modules.presentation.api.client.ClientUi.current().operation("summonFollow"));
             for(var key:cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS)while(key.consumeClick()){
             }
             ;

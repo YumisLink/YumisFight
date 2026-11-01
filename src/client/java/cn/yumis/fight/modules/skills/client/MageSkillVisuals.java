@@ -7,12 +7,13 @@ import java.util.*;
 /** Native three-dimensional meshes; projectiles use the synchronized source trajectory. */
 final class MageSkillVisuals {
     private MageSkillVisuals(){}
-    static void install(){for(String id:List.of(MageSkills.STAR,MageSkills.FANG,MageSkills.JACK,MageSkills.HERDER))SkillVisualRegistry.register(id,new SkillVisualRegistry.Handler(){
+    static void install(){for(String id:java.util.stream.Stream.concat(List.of(MageSkills.STAR,MageSkills.FANG,MageSkills.JACK,MageSkills.HERDER).stream(),SummonerSkills.ALL.stream()).toList())SkillVisualRegistry.register(id,new SkillVisualRegistry.Handler(){
         @Override public long defaultDuration(){return 1500;}
         @Override public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long time,List<Quad> quads,Vec3 camera){draw(id,track,age,time,quads);}
-        @Override public void animate(SkillVfx.Track track,net.minecraft.world.entity.player.Player player,net.minecraft.client.renderer.entity.state.EntityRenderState state,long time){if(!id.equals(MageSkills.HERDER)&&state instanceof net.minecraft.client.renderer.entity.state.HumanoidRenderState humanoid)humanoid.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;}
+        @Override public void animate(SkillVfx.Track track,net.minecraft.world.entity.player.Player player,net.minecraft.client.renderer.entity.state.EntityRenderState state,long time){if(!id.equals(MageSkills.HERDER)&&!SummonerSkills.contains(id)&&state instanceof net.minecraft.client.renderer.entity.state.HumanoidRenderState humanoid)humanoid.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;}
     });}
     private static void draw(String id,SkillVfx.Track t,long age,long time,List<Quad> out){
+        if(SummonMoveVisuals.draw(t,time,out))return;
         Vec3 p=SkillVfx.vector(t.last.position()),direction=SkillVfx.vector(t.last.direction()).normalize();boolean finished=t.last.phase()==SkillVisualEvent.Phase.FINISH;
         if(id.equals(MageSkills.STAR)){if(!finished)star(out,p,direction,.28,0xa7eaff,Math.PI/4,Math.max(0,time-t.start.startedAt())*Math.PI/250d);else cube(out,p,.15,0xe3ffff,150);}
         else if(id.equals(MageSkills.JACK)){

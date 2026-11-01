@@ -1,0 +1,15 @@
+{
+  "_说明": "稳定ID注册宝箱；箱阶1至10。装备数=equipmentBase+箱阶*equipmentPerTier，通货抽取次数同理，每抽1个，允许重复。固定奖励fixed全部给予；special按权重抽specialRolls次。重载命令/reload。未设计装备池保持空，不得擅自投放。",
+  "chests": {
+    "treasure": {"name":"藏宝图之%s宝箱","enabled":true,"equipmentBase":3,"equipmentPerTier":2,"currencyBase":3,"currencyPerTier":1,"fixed":[],"special":[],"specialRolls":0},
+    "goblin_kingdom": {"name":"哥布林王国的宝箱","enabled":true,"equipmentBase":0,"equipmentPerTier":0,"currencyBase":0,"currencyPerTier":0,"fixed":[{"item":"colorless_crystal","count":10,"weight":1}],"special":[],"specialRolls":0}
+  },
+  "bossPools": {
+    "goblin_camp":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "dragon_tower":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "treasure_forest":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "treasure_tower":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "treasure_palace":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]}
+  },
+  "todo":["深渊派对挑战函用途尚未设计","哥布林王国宝箱后续掉落尚未设计，目前只有10个无色小晶块","挖宝专属史诗/神话装备、词条、套装、模型和投放概率等待用户设计","其他特殊道具尚未设计"]
+}

@@ -168,7 +168,6 @@ public final class SkillController {
     private SecondSlash secondSlash;
     private record GreatCharge(Stats stats,String weapon,long generation,String dimension,long start){}
     private GreatCharge greatCharge;
-    public double basicCharge(){return greatCharge==null?-1:Math.clamp((cn.yumis.fight.modules.presentation.api.client.ClientUi.now()-greatCharge.start)/800d,0,1);}
     private record BasicRequest(String weapon,long generation,String dimension,long sent,Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot equipment){}
     private final Map<String,BasicRequest> pendingBasics=new HashMap<>();
     public void attack(){
@@ -411,7 +410,7 @@ public final class SkillController {
         int level=target.level(state().progress().level,state().encounterSync());
         boolean magic=nativeContext==null&&(basic?WeaponTraits.basic(stats.weaponType).magic():cn.yumis.fight.modules.skills.api.CareerRules.magic(skill,state().progress()));
         var equipment=hitSource!=null&&hitSource.equipment!=null?hitSource.equipment:hitEquipment!=null?hitEquipment:state().resources().equipment;
-        int[] elements=cn.yumis.fight.modules.skills.api.SkillPreviewRules.elements(skill);
+        int[] elements=cn.yumis.fight.modules.skills.api.SummonerSkills.elements(stats,cn.yumis.fight.modules.skills.api.SkillPreviewRules.elements(skill));
         boolean dot=hitSource!=null&&hitSource.dot;
         if(dot){stats=stats.copy();stats.modifiers.put("crit",0d);}
         if(hitSource!=null&&hitSource.elementOverride>=-1)elements=hitSource.elementOverride<0?new int[0]:new int[]{hitSource.elementOverride};
@@ -819,7 +818,7 @@ public final class SkillController {
                     if(!invulnerable()&&!p.getAbilities().invulnerable&&!p.isSpectator()&&!CombatRules.evades(state().stats().get(Stat.EVASION),random::nextDouble)){
                         Target boss=JSON.fromJson(j.get("boss"),Target.class);
                         int level=boss.level(state().progress().level,state().encounterSync());
-                        JsonObject feedback=new JsonObject();feedback.addProperty("feedbackEntity",boss.id.toString());
+                        JsonObject feedback=new JsonObject();feedback.addProperty("feedbackEntity",boss.id.toString());if(j.has("treasureHit"))feedback.addProperty("treasureAction",entry.getKey());
                         ownDamage(monsterDamage(boss.attack(level)*j.get("coefficient").getAsDouble(),j.get("magic").getAsBoolean(),j.get("light").getAsBoolean(),level)*NativeEquipmentRules.receivedMultiplier(p,"bossAction",false,false,false)/snapshot().get(Stat.HEALTH),feedback);
                     }
                 }

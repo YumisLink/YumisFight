@@ -1,0 +1,356 @@
+[
+ {
+  "id": "club",
+  "duration": 300,
+  "contacts": [
+   180
+  ],
+  "shape": "melee",
+  "element": -1,
+  "range": 2,
+  "width": 1,
+  "pierces": 1
+ },
+ {
+  "id": "heavy",
+  "duration": 300,
+  "contacts": [
+   210
+  ],
+  "shape": "melee",
+  "element": -1,
+  "range": 2,
+  "width": 1,
+  "pierces": 1
+ },
+ {
+  "id": "stone",
+  "duration": 300,
+  "contacts": [
+   180
+  ],
+  "shape": "projectile",
+  "element": -1,
+  "range": 16,
+  "width": 0.3,
+  "pierces": 1,
+  "velocity": 16
+ },
+ {
+  "id": "triple_throw",
+  "duration": 600,
+  "contacts": [
+   160,
+   360,
+   560
+  ],
+  "shape": "projectile",
+  "element": -1,
+  "range": 16,
+  "width": 0.3,
+  "pierces": 1,
+  "velocity": 16
+ },
+ {
+  "id": "bomb",
+  "duration": 600,
+  "contacts": [
+   220
+  ],
+  "shape": "projectile",
+  "element": -1,
+  "range": 16,
+  "width": 0.35,
+  "radius": 2,
+  "pierces": 1,
+  "velocity": 12
+ },
+ {
+  "id": "staff",
+  "duration": 900,
+  "contacts": [
+   480
+  ],
+  "shape": "melee",
+  "element": -1,
+  "range": 2,
+  "width": 1,
+  "pierces": 1
+ },
+ {
+  "id": "ice_needle",
+  "duration": 1000,
+  "contacts": [
+   480
+  ],
+  "shape": "projectile",
+  "element": 2,
+  "range": 16,
+  "width": 0.2,
+  "pierces": 3,
+  "velocity": 18,
+  "slow": true
+ },
+ {
+  "id": "fireball",
+  "duration": 1000,
+  "contacts": [
+   480
+  ],
+  "shape": "projectile",
+  "element": 1,
+  "range": 16,
+  "width": 0.4,
+  "radius": 1.5,
+  "pierces": 1,
+  "velocity": 14
+ },
+ {
+  "id": "ice_pillar",
+  "duration": 1200,
+  "contacts": [
+   680
+  ],
+  "shape": "area",
+  "element": 2,
+  "range": 16,
+  "width": 1,
+  "radius": 1.5,
+  "pierces": 128
+ },
+ {
+  "id": "meteor",
+  "duration": 1800,
+  "contacts": [
+   880
+  ],
+  "shape": "meteor",
+  "element": 1,
+  "range": 16,
+  "width": 0.7,
+  "radius": 3,
+  "pierces": 1,
+  "velocity": 10
+ },
+ {
+  "id": "draw_slash",
+  "duration": 600,
+  "contacts": [
+   260
+  ],
+  "shape": "line",
+  "element": -1,
+  "range": 3,
+  "width": 2,
+  "pierces": 128
+ },
+ {
+  "id": "wide_slash",
+  "duration": 700,
+  "contacts": [
+   320
+  ],
+  "shape": "line",
+  "element": -1,
+  "range": 3,
+  "width": 3,
+  "pierces": 128
+ },
+ {
+  "id": "dash_slash",
+  "duration": 800,
+  "contacts": [
+   380
+  ],
+  "shape": "dash",
+  "element": -1,
+  "range": 6,
+  "width": 3,
+  "pierces": 128
+ },
+ {
+  "id": "ghost_dance",
+  "duration": 900,
+  "contacts": [
+   160,
+   330,
+   500,
+   720
+  ],
+  "shape": "line",
+  "element": -1,
+  "range": 10,
+  "width": 4,
+  "pierces": 128
+ },
+ {
+  "id": "falling_swords",
+  "duration": 500,
+  "contacts": [
+   340
+  ],
+  "shape": "line",
+  "element": -1,
+  "range": 10,
+  "width": 4,
+  "pierces": 128
+ },
+ {
+  "id": "flame_double",
+  "duration": 900,
+  "contacts": [
+   320,
+   540
+  ],
+  "shape": "melee",
+  "element": 1,
+  "range": 2,
+  "width": 1,
+  "pierces": 1
+ },
+ {
+  "id": "ice_touch",
+  "duration": 800,
+  "contacts": [
+   400
+  ],
+  "shape": "melee",
+  "element": 2,
+  "range": 2,
+  "width": 1,
+  "pierces": 1
+ },
+ {
+  "id": "water_bolt",
+  "duration": 1000,
+  "contacts": [
+   480
+  ],
+  "shape": "projectile",
+  "element": 2,
+  "range": 14,
+  "width": 0.3,
+  "pierces": 1,
+  "velocity": 14
+ },
+ {
+  "id": "light_contact",
+  "duration": 650,
+  "contacts": [
+   300
+  ],
+  "shape": "melee",
+  "element": 0,
+  "range": 2,
+  "width": 1,
+  "pierces": 1
+ },
+ {
+  "id": "shadow_claw",
+  "duration": 650,
+  "contacts": [
+   220,
+   380
+  ],
+  "shape": "melee",
+  "element": 3,
+  "range": 2.5,
+  "width": 1,
+  "pierces": 1
+ },
+ {
+  "id": "sword_swing",
+  "duration": 900,
+  "contacts": [
+   480
+  ],
+  "shape": "cone",
+  "element": -1,
+  "range": 3,
+  "width": 2,
+  "pierces": 128
+ },
+ {
+  "id": "sword_thrust",
+  "duration": 900,
+  "contacts": [
+   450
+  ],
+  "shape": "line",
+  "element": -1,
+  "range": 3,
+  "width": 1,
+  "pierces": 128
+ },
+ {
+  "id": "sword_force",
+  "duration": 1200,
+  "contacts": [
+   600
+  ],
+  "shape": "projectile",
+  "element": -1,
+  "range": 3,
+  "width": 0.4,
+  "pierces": 128,
+  "velocity": 14
+ },
+ {
+  "id": "element_touch",
+  "duration": 1000,
+  "contacts": [
+   480
+  ],
+  "shape": "melee",
+  "element": 0,
+  "range": 2,
+  "width": 1,
+  "pierces": 1
+ },
+ {
+  "id": "king_wave",
+  "duration": 1100,
+  "contacts": [
+   540
+  ],
+  "shape": "projectile",
+  "element": 0,
+  "range": 16,
+  "width": 0.7,
+  "pierces": 3,
+  "velocity": 14
+ },
+ {
+  "id": "king_lightning",
+  "duration": 1500,
+  "contacts": [
+   400,
+   540,
+   680,
+   820,
+   960,
+   1100,
+   1240
+  ],
+  "shape": "area",
+  "element": 0,
+  "range": 16,
+  "width": 1,
+  "radius": 1.5,
+  "pierces": 128
+ },
+ {
+  "id": "king_laser",
+  "duration": 1800,
+  "contacts": [
+   900,
+   1060,
+   1220
+  ],
+  "shape": "beam",
+  "element": 0,
+  "range": 16,
+  "width": 1,
+  "pierces": 3
+ }
+]

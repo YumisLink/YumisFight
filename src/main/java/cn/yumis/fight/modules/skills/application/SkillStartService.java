@@ -50,7 +50,8 @@ public final class SkillStartService implements CombatPorts.SkillEffects {
             SkillDefinition skill=SkillCatalog.require(request.get("skill").getAsString());if(skill.passive()||CareerSkills.contains(skill.id))throw new IllegalArgumentException("无效的技能入口");
             instructionInput.accept(p,request);
             Progress player=progress.apply(p);Stats equipment=stats.apply(p);EquipmentEffects.Snapshot effects=session.resources.equipment;int rank=SkillLearning.effective(equipment,player,skill),slot=request.get("slot").getAsInt();
-            if(rank<=0||slot<0||slot>=player.slots.length||!player.slots[slot].equals(skill.id)&&!instructionBinding.test(p,request))throw new IllegalArgumentException("技能来源或绑定已改变");
+            boolean renewal=request.has("renew")&&request.get("renew").getAsBoolean()&&player.hasJob(cn.yumis.fight.modules.character.api.JobCatalog.SUMMONER)&&SummonerSkills.RENEW.contains(skill.id);
+            if(rank<=0||!renewal&&(slot<0||slot>=player.slots.length||!player.slots[slot].equals(skill.id)&&!instructionBinding.test(p,request)))throw new IllegalArgumentException("技能来源或绑定已改变");
             if(!skill.weaponAllowed(player,equipment))throw new IllegalArgumentException("主手需要本职业可用武器");
             Gear hand=EquipmentItems.gear(p.getMainHandItem());if(!skill.equipmentGranted&&(hand==null||hand.slot!=Slot.WEAPON||!hand.valid(player,EquipmentEligibility.allowance(p))))throw new IllegalArgumentException("需要可用武器");
             long now=System.currentTimeMillis();if(!session.resources.training&&session.resources.cooldowns.getOrDefault(skill.id,0L)>now)throw new IllegalArgumentException("技能冷却中");

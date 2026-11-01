@@ -33,6 +33,7 @@ public final class SkillVfx {
         int soundPhase=-1;
         double speed=1;
         Motion motion;
+        String summonMove="";
     }
     private record Motion(Vec3 origin,Vec3 direction,double velocity,double range,long started,long millis,boolean ground,int targetEntity,UUID target,double arcHeight){}
 
@@ -127,6 +128,11 @@ public final class SkillVfx {
         track.motion=new Motion(origin,direction,velocity,range,started,millis,value.has("ground")&&value.get("ground").getAsBoolean(),targetEntity,target,arc);
         if(value.has("released")&&value.get("released").getAsBoolean())track.released=true;
     }
+    /** Skill-owned semantic tag; it is independent of character weapon presentation. */
+    public void summonMove(UUID cast,int sequence,String move){
+        Track track=tracks.get(cast);if(track==null||track.sequence!=sequence||move==null||move.length()>32)return;
+        if(cn.yumis.fight.modules.skills.api.SummonMoves.find(move.replace("_flight","").replace("_impact",""))!=null)track.summonMove=move;
+    }
     private SkillVisualEvent sample(Track track,long time){
         Motion motion=track.motion;if(motion==null||track.last.phase()==SkillVisualEvent.Phase.FINISH)return track.last;var mc=Minecraft.getInstance();long at=track.terminal>0?Math.min(time,track.terminal):time;
         Vec3 p=motion.origin;
@@ -198,7 +204,7 @@ public final class SkillVfx {
         if(context.levelState().cameraRenderState==null)return;
         long before=System.nanoTime(),time=now();
         Vec3 camera=context.levelState().cameraRenderState.pos;
-        List<Quad> quads=new ArrayList<>();
+        List<Quad> quads=new ArrayList<>();SummonAmbientVisuals.extract(quads);
         CareerSkillVisuals.actors(quads,SkillsClient.current().serverNow());
         for(Track t:tracks.values()){
             var event=t.start;

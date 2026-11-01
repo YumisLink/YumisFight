@@ -14,7 +14,8 @@ import java.util.*;
 public final class MageClient {
     public static final MageClient INSTANCE=new MageClient();
     private static final Gson JSON=new Gson();
-    public long summonUntil;
+    public long summonUntil,frenzyUntil;
+    public final Map<String,JsonObject> army=new LinkedHashMap<>();
     public int summonRank;
     public SkillPreview.Damage summonedMelee,summonedStone,summonedTriple;
     private String session="";private long generation=-1;
@@ -22,8 +23,8 @@ public final class MageClient {
     private final Set<String> roots=new HashSet<>();private final Random random=new Random();
     private MageClient(){}
     private boolean valid(JsonObject j){var state=SkillsClient.current();if(!session.equals(state.session())||generation!=state.own().generation){clear();session=state.session();generation=state.own().generation;}return j.get("session").getAsString().equals(state.session())&&j.get("generation").getAsLong()==state.own().generation&&!state.own().dead;}
-    public void clear(){for(String root:roots){TrainingCombat.release(root,"mage");TrainingCombat.actionFinished(root);}for(var j:pending)TrainingCombat.release(j.get("source").getAsString(),j.get("id").getAsString());pending.clear();received.clear();roots.clear();summonUntil=0;summonRank=0;summonedMelee=summonedStone=summonedTriple=null;}
-    public void state(JsonObject j){if(!valid(j))return;summonUntil=j.get("until").getAsLong();if(j.has("damage")){summonRank=j.get("rank").getAsInt();var damage=j.getAsJsonObject("damage");summonedMelee=JSON.fromJson(damage.get("melee"),SkillPreview.Damage.class);summonedStone=JSON.fromJson(damage.get("stone"),SkillPreview.Damage.class);summonedTriple=JSON.fromJson(damage.get("triple"),SkillPreview.Damage.class);}if(summonUntil==0){summonRank=0;summonedMelee=summonedStone=summonedTriple=null;String source=j.get("source").getAsString();TrainingCombat.release(source,"mage");TrainingCombat.actionFinished(source);roots.remove(source);}}
+    public void clear(){for(String root:roots){TrainingCombat.release(root,"mage");TrainingCombat.actionFinished(root);}for(var j:pending)TrainingCombat.release(j.get("source").getAsString(),j.get("id").getAsString());army.clear();frenzyUntil=0;pending.clear();received.clear();roots.clear();summonUntil=0;summonRank=0;summonedMelee=summonedStone=summonedTriple=null;}
+    public void state(JsonObject j){if(!valid(j))return;if(j.has("kind")){String kind=j.get("kind").getAsString();if(kind.equals("FRENZY")){frenzyUntil=j.get("until").getAsLong();return;}if(j.get("until").getAsLong()>0)army.put(kind,j);else army.remove(kind);if(!kind.equals("HERDER")){if(j.get("until").getAsLong()==0){String source=j.get("source").getAsString();TrainingCombat.release(source,"mage");TrainingCombat.actionFinished(source);roots.remove(source);}return;}}summonUntil=j.get("until").getAsLong();if(j.has("damage")){summonRank=j.get("rank").getAsInt();var damage=j.getAsJsonObject("damage");summonedMelee=JSON.fromJson(damage.get("melee"),SkillPreview.Damage.class);summonedStone=JSON.fromJson(damage.get("stone"),SkillPreview.Damage.class);summonedTriple=JSON.fromJson(damage.get("triple"),SkillPreview.Damage.class);}if(summonUntil==0){summonRank=0;summonedMelee=summonedStone=summonedTriple=null;String source=j.get("source").getAsString();TrainingCombat.release(source,"mage");TrainingCombat.actionFinished(source);roots.remove(source);}}
     public void attack(JsonObject j){
         if(!valid(j)||!received.add(j.get("id").getAsString()))return;if(received.size()>4096)received.clear();pending.add(j);
         String source=j.get("source").getAsString();if(roots.add(source))TrainingCombat.begin(source,SkillCatalog.require(j.get("skill").getAsString()).title);
@@ -33,10 +34,10 @@ public final class MageClient {
     public static boolean decorate(SkillCast source,JsonObject extra){if(source==null||source.mageAttack.isBlank())return false;extra.addProperty("mageAttack",source.mageAttack);extra.addProperty("mageSource",source.id);return true;}
     public void incoming(JsonObject j){
         if(!valid(j))return;Stats stats=JSON.fromJson(j.get("stats"),Stats.class);
-        double damage=j.has("environmentFraction")?stats.get(Stat.HEALTH)*j.get("environmentFraction").getAsDouble():HerderRules.incoming(stats,j.get("points").getAsDouble(),j.get("magic").getAsBoolean(),j.get("element").getAsInt(),j.get("attackerLevel").getAsInt(),j.get("ownerLevel").getAsInt(),j.get("protection").getAsDouble());
+        double damage=j.has("environmentFraction")?stats.get(Stat.HEALTH)*j.get("environmentFraction").getAsDouble():SummonRules.incoming(stats,j.get("points").getAsDouble(),j.get("magic").getAsBoolean(),j.get("element").getAsInt(),j.get("attackerLevel").getAsInt(),j.get("ownerLevel").getAsInt(),j.get("protection").getAsDouble());
         boolean dodge=j.get("direct").getAsBoolean()&&CombatRules.evades(stats.get(Stat.EVASION),random::nextDouble);var request=ClientUi.current().operation("herderReceive");request.add("root",j.get("root"));request.add("source",j.get("source"));request.addProperty("damage",dodge?0:damage);request.addProperty("dodge",dodge);ClientUi.current().send("herderReceive",request);
     }
-    public void tick(SkillBehaviors.Context context){
+    public void tick(SkillBehaviors.Context context){CareerClient.INSTANCE.tickRenew();
         var state=SkillsClient.current();var mc=Minecraft.getInstance();if(!session.equals(state.session())||generation!=state.own().generation){clear();session=state.session();generation=state.own().generation;}
         if(state.own().dead){clear();return;}if(mc.level==null)return;
         for(var j:new ArrayList<>(pending)){

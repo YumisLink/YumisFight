@@ -55,6 +55,7 @@ public class LootService implements InventoryDrops {
         public String owner="",session="",dimension="",instance="";
         public double x,y,z;
         public boolean nativeToss;
+        public boolean durableChest;
         public double dx,dy,dz;
         public String thrower="";
         public long pickupAt;
@@ -110,6 +111,7 @@ public class LootService implements InventoryDrops {
     }
     private void create(ServerPlayer p,ItemStack stack,Vec3 pos,String instance,boolean privateLoot)throws Exception{
         Drop d=new Drop();
+        d.durableChest=cn.yumis.fight.platform.ItemData.own(stack)&&cn.yumis.fight.platform.ItemData.id(stack).equals("treasure_chest");if(d.durableChest)d.expires=Long.MAX_VALUE;
         if(privateLoot){
             d.owner=p.getStringUUID();
             d.session=players.session(p).toString();
@@ -126,6 +128,12 @@ public class LootService implements InventoryDrops {
     public void death(ServerPlayer killer,LivingEntity entity,Target target)throws Exception{
         if(target.noRewards)return;
         boolean instance=!target.instance.isEmpty(),boss=!target.kind.equals("NORMAL");
+        if(instance&&boss){
+            var encounter=encounters.byId(target.instance);
+            if(encounter!=null){String poolId=encounter.treasure==null?encounter.dungeon:"treasure_"+encounter.treasure.theme;var pool=cn.yumis.fight.modules.economy.api.ChestDefinitions.current().bossPools.get(poolId);
+                if(pool!=null&&random.nextDouble()<pool.chance()){var special=cn.yumis.fight.modules.economy.api.ChestDefinitions.draw(pool.entries(),random);if(special!=null)create(killer,ChestService.item(special),entity.position(),target.instance,false);}
+            }
+        }
         List<ServerPlayer> candidates=instance?server.getPlayerList().getPlayers().stream().filter(p->p.level()==entity.level()&&p.distanceToSqr(entity)<=4096&&encounters.participant(p,target.instance)).toList():List.of(killer);
         for(ServerPlayer p:candidates){
             Progress progress=copy(players.progress(p),Progress.class);
@@ -168,7 +176,10 @@ public class LootService implements InventoryDrops {
             for(String key:journal.keys("loot/")){
                 Drop d=journal.get(key,Drop.class,null);
                 if(d==null||!journal.get("lootEnd/"+d.id).isJsonNull())continue;
-                if(!d.owner.isEmpty()||d.expires<System.currentTimeMillis())journal.put("lootEnd/"+d.id,"expired-session");
+                if(d.durableChest){
+                    if(!d.instance.isEmpty()){var encounter=encounters.byId(d.instance);var point=encounter==null?null:encounter.returns.get(d.owner);if(point!=null){d.dimension=point.dimension;d.x=point.x;d.y=point.y+.3;d.z=point.z;d.instance="";journal.put("loot/"+d.id,d);}}
+                }
+                else if(!d.owner.isEmpty()||d.expires<System.currentTimeMillis())journal.put("lootEnd/"+d.id,"expired-session");
                 else recover.add(d);
             }
         }
@@ -203,6 +214,7 @@ public class LootService implements InventoryDrops {
             }
             else{
                 PrivateLoot e=new PrivateLoot(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),level);
+                e.setUUID(d.id);
                 e.initialize(d.id.toString(),d.owner,stack);
                 e.setPos(d.x,d.y,d.z);
                 level.addFreshEntity(e);
@@ -223,7 +235,7 @@ public class LootService implements InventoryDrops {
     public void validate(PrivateLoot e){
         Drop d=journal.get("loot/"+e.dropId,Drop.class,null);
         ServerPlayer p=d==null?null:server.getPlayerList().getPlayer(UUID.fromString(d.owner));
-        if(d==null||p==null||!players.session(p).toString().equals(d.session)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull()){
+        if(d==null||p==null||!d.durableChest&&!players.session(p).toString().equals(d.session)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull()){
             e.discard();
             return;
         }
@@ -231,7 +243,7 @@ public class LootService implements InventoryDrops {
     public void pickup(ServerPlayer p,PrivateLoot e){
         if(!p.getStringUUID().equals(e.owner())||inventory.get().locked(p.getUUID()))return;
         Drop d=journal.get("loot/"+e.dropId,Drop.class,null);
-        if(d==null||!players.session(p).toString().equals(d.session)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull())return;
+        if(d==null||!d.durableChest&&!players.session(p).toString().equals(d.session)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull())return;
         ItemStack stack=inventory.get().decode(p,d.item);
         if(accountPickup(p,d,stack)){if(!journal.get("lootEnd/"+e.dropId).isJsonNull())e.discard();return;}
         int room=0;
@@ -298,7 +310,7 @@ public class LootService implements InventoryDrops {
     public void endSession(ServerPlayer p)throws Exception{
         for(String key:journal.keys("loot/")){
             Drop d=journal.get(key,Drop.class,null);
-            if(d!=null&&d.owner.equals(p.getStringUUID())&&d.session.equals(players.session(p).toString()))journal.put("lootEnd/"+d.id,"session-ended");
+            if(d!=null&&!d.durableChest&&d.owner.equals(p.getStringUUID())&&d.session.equals(players.session(p).toString()))journal.put("lootEnd/"+d.id,"session-ended");
         }
     }
     public void nativeLeft(ItemEntity entity){
@@ -315,6 +327,8 @@ public class LootService implements InventoryDrops {
         }
     }
     public void tick(){
+        for(String key:journal.keys("loot/")){Drop d=journal.get(key,Drop.class,null);if(d==null||!d.durableChest||!journal.get("lootEnd/"+d.id).isJsonNull()||d.owner.isEmpty())continue;ServerPlayer p=server.getPlayerList().getPlayer(UUID.fromString(d.owner));if(p==null)continue;ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));if(level!=null&&level.getEntity(d.id)==null)publish.add(d);}
+        if(!publish.isEmpty())publish();
         if(System.currentTimeMillis()>=recoverAfter){
             for(int i=0;i<4&&!recover.isEmpty();i++){
                 Drop d=recover.removeFirst();

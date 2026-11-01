@@ -1,4 +1,8 @@
 {
+  "item.yumis_dungeon_and_fight.goblin_treasure_map": "哥布林王国藏宝图",
+  "item.yumis_dungeon_and_fight.treasure_chest": "藏宝图宝箱",
+  "item.yumis_dungeon_and_fight.abyss_invitation": "深渊派对挑战函",
+  "entity.yumis_dungeon_and_fight.golden_king": "黄金之王",
   "key.ydnf.cloud_leap": "梯云纵（跳跃键+C强力上跃）",
   "effect.yumis_dungeon_and_fight.cloud_step": "踏云护体",
   "key.categories.yumis_dungeon_and_fight.combat": "地下城与战斗",
@@ -175,5 +179,15 @@
   "entity.yumis_dungeon_and_fight.herder": "赫尔德",
   "item.yumis_dungeon_and_fight.profession_reset_ticket": "职业重置券",
   "item.yumis_dungeon_and_fight.career_reset_ticket": "转职重置券",
-  "block.yumis_dungeon_and_fight.currency_upgrader": "通货升级器"
+  "block.yumis_dungeon_and_fight.currency_upgrader": "通货升级器",
+  "key.ydnf.summon_renew": "召唤师：一键续召",
+  "key.ydnf.summon_follow": "召唤师：跟随 / 自动攻击",
+  "entity.yumis_dungeon_and_fight.adorean": "亚德炎",
+  "entity.yumis_dungeon_and_fight.naiad": "冰奈斯",
+  "entity.yumis_dungeon_and_fight.wisp": "雷沃斯",
+  "entity.yumis_dungeon_and_fight.stalker": "瑟冥特克",
+  "entity.yumis_dungeon_and_fight.louise": "路易丝",
+  "entity.yumis_dungeon_and_fight.sandor": "桑德尔",
+  "entity.yumis_dungeon_and_fight.echeverria": "伊伽贝拉",
+  "entity.yumis_dungeon_and_fight.kasijas": "卡西利亚斯"
 }

@@ -8,7 +8,7 @@ public final class MageSkills {
     private static final String NS="yumis_dungeon_and_fight:";
     public static final String STAR=NS+"magic_star",FANG=NS+"dragon_fang",JACK=NS+"jack_bomb",HERDER=NS+"herder";
     private MageSkills(){}
-    public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id);}
+    public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id)||SummonerSkills.contains(id);}
     public static SkillDefinition skill(String id){return SkillCatalog.require(id);}
     static void install(){
         add(STAR,"魔法星弹","MAGIC_CRAFT",1,.06,3,true,12,Map.of("pierces",3d));
@@ -35,6 +35,6 @@ public final class MageSkills {
     }
     static void balance(){
         for(String id:List.of(STAR,FANG,JACK))SkillBalance.register(skill(id),new SkillBalanceProfile(1,0,false,false,0,(s,r,c)->List.of(new SkillBalanceProfile.Hit(200,s.parameters(r).get("damage"),false))));
-        SkillBalance.register(skill(HERDER),new SkillBalanceProfile(1,120,false,false,0,(s,r,c)->attacks(r,120000,1).stream().map(a->new SkillBalanceProfile.Hit(a.at(),s.parameters(r).get(a.stone()?"stoneDamage":"damage"),false)).toList()));
+        SkillBalance.register(skill(HERDER),new SkillBalanceProfile(1,120,false,false,0,(s,r,c)->SummonMoves.cues(SummonKind.HERDER,r,120000,1).stream().map(a->new SkillBalanceProfile.Hit(a.at(),s.parameters(r).get(a.stone()?"stoneDamage":"damage")*a.share(),false)).toList()));
     }
 }
