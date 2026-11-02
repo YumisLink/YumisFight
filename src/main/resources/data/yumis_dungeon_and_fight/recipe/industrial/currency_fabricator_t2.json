@@ -2,14 +2,14 @@
   "type": "yumis_dungeon_and_fight:machine_upgrade",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    "ABC",
+    "D  "
   ],
   "key": {
-    "C": "yumis_dungeon_and_fight:energy_crystal_2",
-    "M": "#c:gems/diamond",
-    "X": "yumis_dungeon_and_fight:currency_fabricator_t1"
+    "A": "yumis_dungeon_and_fight:currency_fabricator_t1",
+    "B": "yumis_dungeon_and_fight:industrial_upgrade_2",
+    "C": "yumis_dungeon_and_fight:basic_frame",
+    "D": "yumis_dungeon_and_fight:mana_component"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:currency_fabricator_t2",

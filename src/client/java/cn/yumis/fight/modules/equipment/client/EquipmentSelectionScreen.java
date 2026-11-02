@@ -32,6 +32,7 @@ public final class EquipmentSelectionScreen extends ThemedScreen {
     private final int level;
     private final List<Entry> entries=new ArrayList<>();
     private int left,top,panelWidth,panelHeight,bodyTop,bodyHeight,columns,scroll,contentHeight;
+    private boolean dragging;private double grab;
     EquipmentSelectionScreen(FabricatorScreen parent,Slot slot,Weapon weapon,ArmorType armor,JewelryType jewelry,int level){
         super(Component.literal("选择制作装备"),ThemeDomain.MACHINE);this.parent=parent;this.selectedSlot=slot;this.selectedWeapon=weapon;this.selectedArmor=armor;this.selectedJewelry=jewelry;this.level=level;
     }
@@ -42,22 +43,21 @@ public final class EquipmentSelectionScreen extends ThemedScreen {
         columns=panelWidth>=360?3:panelWidth>=235?2:1;
         addRenderableWidget(Button.builder(UiFonts.decorate(Component.literal("返回")),b->onClose()).bounds(left+panelWidth-52,top+7,44,20).build(ThemedButton::new));
         for(var template:EquipmentTemplates.creative())add(template.slot,template.weapon,template.armorType,template.jewelryType);
-        contentHeight=((entries.size()+columns-1)/columns)*54;
+        contentHeight=((entries.size()+columns-1)/columns)*78;
         scroll=Math.clamp(scroll,0,Math.max(0,contentHeight-bodyHeight));position();
     }
     private void add(Slot slot,Weapon weapon,ArmorType armor,JewelryType jewelry){
         int index=entries.size(),row=index/columns,cell=(panelWidth-20)/columns;
         String name=slot==Slot.WEAPON?weapon.title():slot.armor()?armor.title()+slot.title():slot.jewelry()?jewelry.title()+slot.title():slot.title();
-        var button=Button.builder(UiFonts.decorate(Component.literal(name)),b->{parent.selectTemplate(slot,weapon,armor,jewelry);onClose();}).bounds(left+8+(index%columns)*cell,bodyTop+row*54-scroll,cell-5,48).build(ThemedButton::new);
-        ((ThemedButton)button).textInset=30;
-        button.active=EquipmentClient.current().progress().level>=slot.minimum();
-        ((ThemedButton)button).selected=slot==selectedSlot&&(slot!=Slot.WEAPON||weapon==selectedWeapon)&&armor==selectedArmor&&jewelry==selectedJewelry;
         int previewLevel=Math.max(slot.minimum(),Math.min(level,EquipmentClient.current().progress().level));
         ItemStack preview=EquipmentItems.gear(EquipmentRules.create(slot,weapon,Rarity.COMMON,previewLevel,armor,jewelry,new Random(0)));
+        var button=Button.builder(UiFonts.decorate(Component.literal(name)),b->{parent.selectTemplate(slot,weapon,armor,jewelry);onClose();}).bounds(left+8+(index%columns)*cell,bodyTop+row*78-scroll,cell-5,72).build(builder->new GridItemButton(builder,preview));
+        button.active=EquipmentClient.current().progress().level>=slot.minimum();
+        ((GridItemButton)button).selected=slot==selectedSlot&&(slot!=Slot.WEAPON||weapon==selectedWeapon)&&armor==selectedArmor&&jewelry==selectedJewelry;
         entries.add(new Entry(slot,weapon,preview,addRenderableWidget(button),row));
     }
     private void position(){
-        for(Entry e:entries){e.button.setY(bodyTop+e.row*54-scroll);e.button.visible=e.button.getY()>=bodyTop&&e.button.getY()+48<=bodyTop+bodyHeight;}
+        for(Entry e:entries){e.button.setY(bodyTop+e.row*78-scroll);e.button.visible=e.button.getY()>=bodyTop&&e.button.getY()+72<=bodyTop+bodyHeight;}
     }
     @Override protected void drawBackground(GuiGraphicsExtractor g,int x,int y,float delta){
         g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,left,top,(left+panelWidth)-(left),(top+panelHeight)-(top));
@@ -66,16 +66,19 @@ public final class EquipmentSelectionScreen extends ThemedScreen {
     @Override protected void drawContents(GuiGraphicsExtractor g,int x,int y,float delta){
         super.drawContents(g,x,y,delta);
         for(Entry e:entries)if(e.button.visible){
-            int bx=e.button.getX(),by=e.button.getY();g.item(e.preview,bx+7,by+8);
-            g.text(font,e.button.active?"普通 · Lv."+EquipmentItems.gear(e.preview).level:"Lv."+e.slot.minimum()+" 解锁",bx+7,by+34,e.button.active?UiTheme.MUTED:UiTheme.ERROR,false);
-            if(x>=bx&&x<bx+e.button.getWidth()&&y>=by&&y<by+48){
+            int bx=e.button.getX(),by=e.button.getY();
+            if(x>=bx&&x<bx+e.button.getWidth()&&y>=by&&y<by+72){
                 var lines=new ArrayList<>(Screen.getTooltipFromItem(minecraft,e.preview));
                 if(!e.button.active)lines.add(Component.literal("角色达到 Lv."+e.slot.minimum()+" 后可制作").withColor(UiTheme.ERROR));
                 g.setComponentTooltipForNextFrame(font,lines.stream().map(UiFonts::decorate).toList(),x,y,e.preview);
             }
         }
-        if(contentHeight>bodyHeight){int h=Math.max(12,bodyHeight*bodyHeight/contentHeight),ybar=bodyTop+(bodyHeight-h)*scroll/(contentHeight-bodyHeight);g.fill(left+panelWidth-5,ybar,left+panelWidth-2,ybar+h,UiTheme.ACCENT);}
+        if(contentHeight>bodyHeight){int h=Math.max(12,bodyHeight*bodyHeight/contentHeight),ybar=bodyTop+(bodyHeight-h)*scroll/(contentHeight-bodyHeight);UiTheme.scrollbar(g,left+panelWidth-12,bodyTop,bodyHeight,h,ybar-bodyTop);}
     }
+    private void drag(double y){int thumb=Math.max(12,bodyHeight*bodyHeight/Math.max(1,contentHeight));scroll=Math.clamp((int)Math.round((y-bodyTop-grab)*(contentHeight-bodyHeight)/Math.max(1,bodyHeight-thumb)),0,Math.max(0,contentHeight-bodyHeight));position();}
+    @Override public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event,boolean twice){if(event.button()==0&&contentHeight>bodyHeight&&event.x()>=left+panelWidth-14&&event.x()<=left+panelWidth&&event.y()>=bodyTop&&event.y()<=bodyTop+bodyHeight){int thumb=Math.max(12,bodyHeight*bodyHeight/contentHeight),at=bodyTop+(bodyHeight-thumb)*scroll/(contentHeight-bodyHeight);grab=event.y()>=at&&event.y()<at+thumb?event.y()-at:thumb/2d;dragging=true;drag(event.y());return true;}return super.mouseClicked(event,twice);}
+    @Override public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event,double dx,double dy){if(dragging){drag(event.y());return true;}return super.mouseDragged(event,dx,dy);}
+    @Override public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event){boolean old=dragging;dragging=false;return old||super.mouseReleased(event);}
     @Override public boolean mouseScrolled(double x,double y,double dx,double dy){scroll=Math.clamp(scroll-(int)(dy*54),0,Math.max(0,contentHeight-bodyHeight));position();return true;}
     @Override public void tick(){if(minecraft.player==null||minecraft.player.containerMenu!=parent.getMenu())minecraft.gui.setScreen(null);}
     @Override public void onClose(){minecraft.gui.popScreenLayer();}

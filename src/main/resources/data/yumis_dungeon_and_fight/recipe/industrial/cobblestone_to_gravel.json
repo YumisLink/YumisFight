@@ -1,0 +1,20 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_crusher",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "minecraft:cobblestone",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "minecraft:gravel",
+      "count": 1
+    }
+  ],
+  "ticks": 100,
+  "energy": 100,
+  "fluid_inputs": []
+}

@@ -35,10 +35,10 @@ public final class MythicDisplay {
     public static void text(GuiGraphicsExtractor graphics,Font font,FormattedCharSequence text,int x,int y,int baseColor,boolean shadow){
         if(!marked(text)){graphics.text(font,text,x,y,baseColor,shadow);return;}
         if(shadow){FormattedCharSequence shade=sink->text.accept((index,style,character)->{int source=marked(style)?GOLD:style.getColor()==null?baseColor:style.getColor().getValue();return sink.accept(index,unmark(style).withColor((source&0xfcfcfc)>>2),character);});graphics.text(font,shade,x+1,y+1,0xff000000|((baseColor&0xfcfcfc)>>2),false);}
-        int width=font.width(text)+8,height=Math.max(1,font.lineHeight);
-        for(int row=-3;row<height+4;row++){
+        int padding=Math.max(12,font.lineHeight*2),width=font.width(text)+padding,height=Math.max(1,font.lineHeight);
+        for(int row=-padding;row<height+padding;row++){
             int color=color(row/(double)Math.max(1,height-1));FormattedCharSequence stripe=sink->text.accept((index,style,character)->sink.accept(index,marked(style)?unmark(style).withColor(color&0xffffff):style,character));
-            graphics.enableScissor(x-4,y+row,x+width,y+row+1);
+            graphics.enableScissor(x-padding,y+row,x+width,y+row+1);
             try{graphics.text(font,stripe,x,y,baseColor,false);}finally{graphics.disableScissor();}
         }
     }

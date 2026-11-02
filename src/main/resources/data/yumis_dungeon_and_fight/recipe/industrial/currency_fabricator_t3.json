@@ -2,14 +2,14 @@
   "type": "yumis_dungeon_and_fight:machine_upgrade",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    "ABC",
+    "DD "
   ],
   "key": {
-    "C": "yumis_dungeon_and_fight:energy_crystal_3",
-    "M": "#c:ingots/titanium",
-    "X": "yumis_dungeon_and_fight:currency_fabricator_t2"
+    "A": "yumis_dungeon_and_fight:currency_fabricator_t2",
+    "B": "yumis_dungeon_and_fight:industrial_upgrade_3",
+    "C": "yumis_dungeon_and_fight:reinforced_frame",
+    "D": "yumis_dungeon_and_fight:mana_component"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:currency_fabricator_t3",

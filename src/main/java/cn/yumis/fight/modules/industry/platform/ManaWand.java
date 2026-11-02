@@ -1,7 +1,7 @@
 package cn.yumis.fight.modules.industry.platform;
-import cn.yumis.fight.modules.industry.api.IndustrialRules;
-import cn.yumis.fight.modules.industry.api.DeviceType;
 
+import cn.yumis.fight.modules.industry.api.*;
+import cn.yumis.fight.network.Network;
 import net.minecraft.core.*;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -14,44 +14,53 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.capabilities.Capabilities;
+import java.util.*;
 
+/** Two explicit interaction modes. Selection state belongs to the held wand, never to the world. */
 public final class ManaWand extends Item {
-    private static final String[] MODES={"设备供能：先选信标，再选设备","信标连网：依次选择两座信标，重复连接可断开","物品传送：先选容器接收面，再选传送水晶","液体供给：先选源出口，再选目标入口，最后点击供液水晶"};
-    public ManaWand(Properties p){super(p);}
+    public ManaWand(Properties properties){super(properties);}
+    public static CompoundTag data(ItemStack stack){return stack.getOrDefault(DataComponents.CUSTOM_DATA,CustomData.EMPTY).copyTag();}
+    private static void save(ItemStack stack,CompoundTag data){stack.set(DataComponents.CUSTOM_DATA,CustomData.of(data));}
+    private static CompoundTag reset(int mode){var next=new CompoundTag();next.putInt("wand_mode",mode);return next;}
     @Override public InteractionResult onItemUseFirst(ItemStack stack,UseOnContext context){return useOn(context);}
-    private CompoundTag data(ItemStack stack){return stack.getOrDefault(DataComponents.CUSTOM_DATA,CustomData.EMPTY).copyTag();}
-    @Override public InteractionResult use(Level level,Player p,InteractionHand hand){if(!level.isClientSide()&&p.isShiftKeyDown()){ItemStack stack=p.getItemInHand(hand);CompoundTag data=data(stack);int mode=(data.getIntOr("mode",0)+1)%MODES.length;data.putInt("mode",mode);data.remove("selected");data.remove("fluid_source");data.remove("fluid_target");stack.set(DataComponents.CUSTOM_DATA,CustomData.of(data));p.sendOverlayMessage(Component.literal(MODES[mode]));return InteractionResult.SUCCESS;}return InteractionResult.PASS;}
-    @Override public InteractionResult useOn(UseOnContext c){
-        Player player=c.getPlayer();if(player==null||!(c.getLevel() instanceof ServerLevel level))return InteractionResult.SUCCESS;if(!level.mayInteract(player,c.getClickedPos()))return InteractionResult.FAIL;
-        ItemStack stack=c.getItemInHand();CompoundTag data=data(stack);int mode=data.getIntOr("mode",0);var world=IndustrialWorld.get(level);var raw=level.getBlockEntity(WindGeneratorPartBlock.base(level,c.getClickedPos()));
-        try{
-            if(mode==3){bindFluid(c,data);stack.set(DataComponents.CUSTOM_DATA,CustomData.of(data));return InteractionResult.SUCCESS;}
-            if(raw instanceof MachineBlockEntity be){
-                if(player.isShiftKeyDown()){if(mode==2&&be.device().has(DeviceType.Capability.LOGISTICS))be.targetDimension="";else if(mode==0)be.beacon="";data.remove("selected");be.setChanged();player.sendOverlayMessage(Component.literal("已清除当前绑定"));}
-                else if(mode==0){if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)){data.putString("selected",be.identity.toString());data.putString("dimension",level.dimension().identifier().toString());player.sendOverlayMessage(Component.literal("已选信标，请点击设备"));}else{MachineBlockEntity core=world.loaded.get(data.getStringOr("selected",""));if(core==null)throw new IllegalArgumentException("请先选择已加载的有效信标");world.bind(core,be);player.sendOverlayMessage(Component.literal("设备供能绑定完成"));}}
-                else if(mode==1){if(!be.device().has(DeviceType.Capability.STORAGE_NETWORK))throw new IllegalArgumentException("此模式请选择信标");String selected=data.getStringOr("selected","");if(selected.isEmpty()){data.putString("selected",be.identity.toString());player.sendOverlayMessage(Component.literal("请选择第二座信标"));}else{MachineBlockEntity first=world.loaded.get(selected);if(first==null)throw new IllegalArgumentException("第一座信标未加载");world.link(first,be);data.remove("selected");player.sendOverlayMessage(Component.literal("信标连线已切换"));}}
-                else if(be.device().has(DeviceType.Capability.LOGISTICS)){String dimension=data.getStringOr("dimension","");if(!dimension.equals(level.dimension().identifier().toString())||!data.contains("target"))throw new IllegalArgumentException("请先选择同维度目标容器");BlockPos target=BlockPos.of(data.getLongOr("target",0));double range=IndustrialRules.current().transferRanges[be.tier()-1];if(be.tier()<3&&be.getBlockPos().distSqr(target)>range*range)throw new IllegalArgumentException("目标超出当前档次距离");be.targetDimension=dimension;be.targetPosition=target.asLong();be.targetFace=Direction.byName(data.getStringOr("face","up"));be.setChanged();player.sendOverlayMessage(Component.literal("传送目标已绑定："+target.toShortString()));}
-                else selectContainer(c,data,player);
-            }else if(mode==2)selectContainer(c,data,player);else throw new IllegalArgumentException(MODES[mode]);
-            stack.set(DataComponents.CUSTOM_DATA,CustomData.of(data));return InteractionResult.SUCCESS;
-        }catch(IllegalArgumentException error){player.sendOverlayMessage(Component.literal(error.getMessage()));return InteractionResult.FAIL;}
+    @Override public InteractionResult use(Level level,Player player,InteractionHand hand){
+        if(!level.isClientSide()){var stack=player.getItemInHand(hand);var state=data(stack);int mode=Math.floorMod(state.getIntOr("wand_mode",0),2);if(player.isShiftKeyDown())mode=1-mode;save(stack,reset(mode));player.sendOverlayMessage(Component.literal(player.isShiftKeyDown()?(mode==0?"移动":"联网"):"已取消当前选择"));}return InteractionResult.SUCCESS;
     }
-    private void selectContainer(UseOnContext c,CompoundTag data,Player p){if(c.getLevel().getCapability(Capabilities.Item.BLOCK,c.getClickedPos(),c.getClickedFace())==null)throw new IllegalArgumentException("此接收面没有标准物品接口");data.putString("dimension",c.getLevel().dimension().identifier().toString());data.putLong("target",c.getClickedPos().asLong());data.putString("face",c.getClickedFace().getName());p.sendOverlayMessage(Component.literal("已选目标容器，请点击传送水晶"));}
-    private void bindFluid(UseOnContext c,CompoundTag data){
-        var level=c.getLevel();var player=c.getPlayer();String dimension=level.dimension().identifier().toString();
-        if(level.getBlockEntity(c.getClickedPos()) instanceof MachineBlockEntity be&&be.device().has(DeviceType.Capability.FLUID_LOGISTICS)){
-            if(player.isShiftKeyDown()){be.sourceDimension=be.targetDimension="";data.remove("fluid_source");data.remove("fluid_target");be.setChanged();player.sendOverlayMessage(Component.literal("供液绑定已清除"));return;}
-            if(!dimension.equals(data.getStringOr("fluid_dimension",""))||!data.contains("fluid_source")||!data.contains("fluid_target"))throw new IllegalArgumentException(MODES[3]);
-            BlockPos source=BlockPos.of(data.getLongOr("fluid_source",0)),target=BlockPos.of(data.getLongOr("fluid_target",0));double range=IndustrialRules.current().transferRanges[be.tier()-1];
-            if(source.equals(target))throw new IllegalArgumentException("源与目标不能相同");
-            if(be.tier()<3&&(be.getBlockPos().distSqr(source)>range*range||be.getBlockPos().distSqr(target)>range*range))throw new IllegalArgumentException("源或目标超出供液范围");
-            be.sourceDimension=be.targetDimension=dimension;be.sourcePosition=source.asLong();be.targetPosition=target.asLong();be.sourceFace=Direction.byName(data.getStringOr("fluid_source_face","down"));be.targetFace=Direction.byName(data.getStringOr("fluid_target_face","up"));be.setChanged();data.remove("fluid_source");data.remove("fluid_target");player.sendOverlayMessage(Component.literal("供液源与目标已绑定"));return;
-        }
-        if(player.isShiftKeyDown()){data.remove("fluid_source");data.remove("fluid_target");player.sendOverlayMessage(Component.literal("已清除待绑定液体端口"));return;}
-        if(level.getCapability(Capabilities.Fluid.BLOCK,c.getClickedPos(),c.getClickedFace())==null)throw new IllegalArgumentException("此面没有标准液体接口");
-        if(!dimension.equals(data.getStringOr("fluid_dimension",""))){data.remove("fluid_source");data.remove("fluid_target");}
-        data.putString("fluid_dimension",dimension);
-        String key=data.contains("fluid_source")?"fluid_target":"fluid_source";data.putLong(key,c.getClickedPos().asLong());data.putString(key+"_face",c.getClickedFace().getName());
-        player.sendOverlayMessage(Component.literal(key.equals("fluid_source")?"已选源出口，请选择目标入口":"已选目标入口，请点击供液水晶"));
+    @Override public InteractionResult useOn(UseOnContext context){
+        var player=context.getPlayer();if(player==null||!(context.getLevel() instanceof ServerLevel level))return InteractionResult.SUCCESS;
+        if(!level.mayInteract(player,context.getClickedPos()))return InteractionResult.FAIL;var stack=context.getItemInHand();var state=data(stack);int mode=Math.floorMod(state.getIntOr("wand_mode",0),2);
+        String dimension=level.dimension().identifier().toString();if(!dimension.equals(state.getStringOr("dimension",dimension)))state=reset(mode);state.putString("dimension",dimension);
+        try{if(mode==0)move(context,state);else network(context,state);save(stack,state);return InteractionResult.SUCCESS;}
+        catch(IllegalArgumentException error){player.sendOverlayMessage(Component.literal(error.getMessage()));return InteractionResult.FAIL;}
     }
+    private static void move(UseOnContext context,CompoundTag state){
+        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var position=WindGeneratorPartBlock.base(level,context.getClickedPos());var raw=level.getBlockEntity(position);
+        if(raw instanceof MachineBlockEntity crystal&&(crystal.device().has(DeviceType.Capability.LOGISTICS)||crystal.device().has(DeviceType.Capability.FLUID_LOGISTICS))){state.putString("crystal",crystal.identity.toString());state.putLong("crystal_pos",position.asLong());state.remove("source");player.sendOverlayMessage(Component.literal("已绑定水晶，请选择来源容器（"+crystal.routes.size()+"/"+crystal.routeLimit()+"）"));return;}
+        var crystal=IndustrialWorld.get(level).loaded.get(state.getStringOr("crystal",""));if(crystal==null||crystal.getLevel()!=level)throw new IllegalArgumentException("请先右键绑定一个移物或供液水晶");
+        if(crystal.routes.size()>=crystal.routeLimit())throw new IllegalArgumentException("配对已满，请在水晶面板删除一对后再绑定");
+        boolean source=!state.contains("source"),fluid=crystal.device().has(DeviceType.Capability.FLUID_LOGISTICS);Direction face=raw instanceof MachineBlockEntity?(source?Direction.DOWN:Direction.UP):context.getClickedFace();
+        var fluidPort=fluid?level.getCapability(Capabilities.Fluid.BLOCK,position,face):null;var itemPort=fluid?null:level.getCapability(Capabilities.Item.BLOCK,position,face);boolean valid=fluid?fluidPort!=null&&fluidPort.size()>0:itemPort!=null&&itemPort.size()>0;if(!valid)throw new IllegalArgumentException(fluid?"此方块没有可用的液体端口":"此方块没有可用的物品端口");
+        double range=IndustrialRules.current().transferRanges[crystal.tier()-1];if(crystal.tier()<3&&crystal.getBlockPos().distSqr(position)>range*range)throw new IllegalArgumentException("容器超出水晶传输范围");
+        if(source){state.putLong("source",position.asLong());state.putString("source_face",face.getName());player.sendOverlayMessage(Component.literal("已选择来源，请右键目标容器"));return;}
+        BlockPos from=BlockPos.of(state.getLongOr("source",0));if(!level.hasChunkAt(from)||!level.mayInteract(player,from))throw new IllegalArgumentException("来源容器不可用");
+        if(CrystalTransfers.sameContainer(level,from,position))throw new IllegalArgumentException("来源和目标不能是同一容器");
+        var route=new CrystalRoute(level.dimension().identifier().toString(),from.asLong(),position.asLong(),Direction.byName(state.getStringOr("source_face","down")),face);
+        if(crystal.routes.stream().anyMatch(r->r.same(route)))throw new IllegalArgumentException("这对容器已经绑定");
+        crystal.routes.add(route);crystal.setChanged();state.remove("source");player.sendOverlayMessage(Component.literal("配对完成（"+crystal.routes.size()+"/"+crystal.routeLimit()+"），可继续选择下一对来源"));
+    }
+    private static void network(UseOnContext context,CompoundTag state){
+        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var raw=level.getBlockEntity(WindGeneratorPartBlock.base(level,context.getClickedPos()));if(!(raw instanceof MachineBlockEntity second))return;
+        var world=IndustrialWorld.get(level);String selected=state.getStringOr("first","");
+        if(selected.isEmpty()){state.putString("first",second.identity.toString());state.putLong("first_pos",second.getBlockPos().asLong());player.sendOverlayMessage(Component.literal("已选择方块，请选择信标或设备"));return;}
+        var first=world.loaded.get(selected);if(first==null||first.getLevel()!=level)throw new IllegalArgumentException("第一次选择的方块已卸载，请点击空气取消");
+        boolean a=first.device().has(DeviceType.Capability.STORAGE_NETWORK),b=second.device().has(DeviceType.Capability.STORAGE_NETWORK);
+        if(a&&b)world.link(first,second);else if(a!=b)world.bind(a?first:second,a?second:first);else return;
+        state.remove("first");state.remove("first_pos");Network.send((net.minecraft.server.level.ServerPlayer)player,"industrial_lines",world.connectionPreview(second));player.sendOverlayMessage(Component.literal("联网关系已更新"));
+    }
+    public static List<String> information(ItemStack stack){var state=data(stack);boolean network=state.getIntOr("wand_mode",0)==1;
+        var lines=new ArrayList<String>();lines.add("魔力传输权杖 · "+(network?"联网":"移动"));
+        lines.add(network?state.contains("first_pos")?"已选 "+BlockPos.of(state.getLongOr("first_pos",0)).toShortString()+" → 请选择下一方块":"依次选择两座信标，或信标与机器":!state.contains("crystal_pos")?"先右键水晶，再选择来源 → 目标":state.contains("source")?"来源 "+BlockPos.of(state.getLongOr("source",0)).toShortString()+" → 请选择目标":"水晶 "+BlockPos.of(state.getLongOr("crystal_pos",0)).toShortString()+" · 请选择来源");
+        lines.add("Shift右键空气切换 · 右键空气取消选择");return lines;
+    }
+    public static List<BlockPos> selections(ItemStack stack,String dimension){var state=data(stack);if(!dimension.equals(state.getStringOr("dimension","")))return List.of();var result=new ArrayList<BlockPos>();for(String key:List.of("crystal_pos","source","first_pos"))if(state.contains(key))result.add(BlockPos.of(state.getLongOr(key,0)));return result;}
 }

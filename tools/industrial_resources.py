@@ -78,11 +78,13 @@ for metal,title in metal_names.items():
     key='crushed_'+metal;items.append(key);names[f'item.{NS}.{key}']='粉碎'+title+'矿'
     for source in ['raw_materials','ores']:process(f'crush_{metal}_{source}','mana_crusher',['#c:'+source+'/'+metal],own(key),2,tier=3 if metal=='titanium' else 1)
     recipe('smelt_'+key,{'type':'minecraft:smelting','category':'misc','ingredient':own(key),'result':{'id':own(metal+'_ingot') if metal in ['lead','uranium','titanium'] else 'minecraft:'+metal+'_ingot','count':1},'experience':0.0,'cookingtime':200})
-process('sand','mana_crusher',['minecraft:cobblestone'],'minecraft:sand')
+process('stone_to_cobblestone','mana_crusher',['minecraft:stone'],'minecraft:cobblestone')
+process('cobblestone_to_gravel','mana_crusher',['minecraft:cobblestone'],'minecraft:gravel')
+process('sand','mana_crusher',['minecraft:gravel'],'minecraft:sand')
 for key,out,count,ticks,energy,tier in [
     ('coal','minecraft:coal',1,400,40000,1),('iron','minecraft:raw_iron',1,400,1600,1),('copper','minecraft:raw_copper',1,300,1200,1),('cobblestone','minecraft:cobblestone',1,100,100,1),
     ('diamond','minecraft:diamond',1,1200,51200,2),('redstone','minecraft:redstone',4,400,12800,2),('lapis','minecraft:lapis_lazuli',4,400,12800,2),('gold','minecraft:raw_gold',1,600,12800,2),('lead',own('raw_lead'),1,400,6400,2),('titanium',own('raw_titanium'),1,1200,128000,3)]:process('generate_'+key,'mineral_generator',[],out,count,ticks,energy,tier)
-for tier,ticks in enumerate([1200,600,300,150,75],1):process('currency_t'+str(tier),'currency_fabricator',[],ticks=ticks,energy=6400,tier=tier)
+for tier,ticks in enumerate([1200]*5,1):process('currency_t'+str(tier),'currency_fabricator',[],ticks=ticks,energy=6400,tier=tier)
 process('terra','mana_forge',[('#c:ingots/titanium',8),('#c:ingots/iron',4),('minecraft:amethyst_shard',4),'minecraft:ender_pearl'],own('terra_ingot'),8,1200,3276800,3)
 process('magic_stone','mana_forge',[('minecraft:obsidian',4),('minecraft:amethyst_shard',4),'minecraft:blaze_powder'],own('industrial_magic_stone'),4,800,819200,3)
 process('spacetime','mana_forge',[('#c:ingots/terra',8),('#c:ingots/titanium',4),(own('industrial_magic_stone'),4),'minecraft:ender_eye'],own('spacetime_ingot'),8,2400,209715200,4)
@@ -100,7 +102,7 @@ for tier in range(2,17):
     if tier in [7,8,10,12,14,16]:ingredients.append(('minecraft:amethyst_shard',4))
     process('storage_upgrade_'+str(tier),'storage_upgrade_'+str(tier),ingredients,ticks=1,energy=0)
 
-rules={'version':1,'beaconCapacity':1000,'beaconRadii':[3,5,9,18,32],'furnaceSpeeds':[4,16,32,64,128],'solarPeriods':[0,2000,10000,12000],'transferIntervals':[20,10,1],'transferAmounts':[8,64,64],'transferRanges':[24,128,2147483647],'transferEnergy':[100,200,400],'harvestSizes':[3,9,27],'harvestPeriod':500,'harvestEnergy':200,'harvestCrops':['minecraft:wheat','minecraft:carrots','minecraft:potatoes','minecraft:beetroots','minecraft:nether_wart'],'fluidCapacity':20000,'magicGrassChance':16,'crystalDropMin':2,'crystalDropMax':8,'highCrystalWeight':20,'leadWorldgen':True,'uraniumWorldgen':True,'titaniumWorldgen':True,'magicWorldgen':True,'ores':{},'generators':{}}
+rules={'version':2,'beaconCapacity':1000,'beaconRadii':[3,5,9,18,32],'furnaceSpeeds':[4,8,16,32,64],'processingLines':[1,1,2,8,16],'solarPeriods':[0,2000,10000,12000],'transferIntervals':[20,10,1],'transferAmounts':[8,64,64],'transferRanges':[24,128,2147483647],'transferEnergy':[100,1000,10000],'harvestSizes':[3,9,27],'harvestPeriod':500,'harvestEnergy':200,'harvestCrops':['minecraft:wheat','minecraft:carrots','minecraft:potatoes','minecraft:beetroots','minecraft:nether_wart'],'fluidCapacity':20000,'magicGrassChance':16,'crystalDropMin':2,'crystalDropMax':8,'highCrystalWeight':20,'leadWorldgen':True,'uraniumWorldgen':True,'titaniumWorldgen':True,'magicWorldgen':True,'ores':{},'generators':{}}
 for k,vals in {'magic':(-32,32,3,6,1),'lead':(-32,48,4,8,1),'uranium':(-64,0,2,4,4),'titanium':(0,80,3,6,1)}.items():rules['ores'][k]=dict(zip(['minY','maxY','minSize','maxSize','chance','attempts'],(*vals,1)))
 for k,power,ticks,fluid,rate in [('coal_generator',60,640,'',0),('turbine_generator',1080,640,'minecraft:water',1000),('thermal_generator',6400,640,own('coolant'),100),('nuclear_reactor',108000,16000,own('coolant'),1000),('rtg_generator',10800,160000,'',0)]:rules['generators'][k]={'fluidPerSecond':rate,'fluid':fluid}
 rules.update(windBaseHeight=60,windBasePower=50,windHeightStep=5,windPowerStep=1,solarDayPower=2,solarEdgePower=1,solarRainPower=1)

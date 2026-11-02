@@ -18,10 +18,10 @@ public final class ProspectorMenu extends AbstractContainerMenu {
     @Override public boolean clickMenuButton(Player player,int button){
         if(!(player instanceof ServerPlayer server)||!stillValid(player))return false;
         if(button==0){try{IndustrialDeposits.get(server.level()).start(server,tier);x=player.blockPosition().getX()>>4;z=player.blockPosition().getZ()>>4;}catch(IllegalArgumentException e){server.sendOverlayMessage(net.minecraft.network.chat.Component.literal(e.getMessage()));}}
-        else if(button==1)x-=9;else if(button==2)x+=9;else if(button==3)z-=9;else if(button==4)z+=9;
         else if(button==5){x=player.blockPosition().getX()>>4;z=player.blockPosition().getZ()>>4;}else return false;
         sync(server);return true;
     }
+    public void pan(ServerPlayer player,int centerX,int centerZ){if(!stillValid(player))return;x=Math.clamp(centerX,-1875000,1875000);z=Math.clamp(centerZ,-1875000,1875000);sync(player);}
     private void sync(ServerPlayer player){info=IndustrialDeposits.get(player.level()).map(player,x,z,tier);info.addProperty("menu",containerId);Network.send(player,"industrial_survey",info);}
     @Override public void broadcastChanges(){super.broadcastChanges();if(owner!=null&&++ticks%5==1)sync(owner);}
 }

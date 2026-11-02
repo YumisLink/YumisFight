@@ -15,7 +15,7 @@ public final class CareerHud {
         var state=SkillsClient.current();var v=CareerClient.INSTANCE.view;long now=state.serverNow();String text="";int color=0xffc38be5;
         if(state.progress().hasJob(JobCatalog.SOUL_BENDER)&&v.field!=null)text="鬼阵 Lv."+v.field.rank+" · "+cn.yumis.fight.modules.skills.api.CareerSkills.ghosts(v.field.rank)+"鬼  "+seconds(v.field.expires-now)+"秒";
         if(state.progress().hasJob(JobCatalog.BERSERKER)){text=v.frenzy?"血之狂暴 · "+(state.predicted(state.own())<=.4?"低血强化20%":state.predicted(state.own())<=.7?"低血强化10%":"双刀开启"):"双刀关闭";color=0xffee7d88;}
-        if(text.isBlank())return;var font=UiFonts.font();int width=font.width(text)+12;g.fill(center-width/2,y,center+width/2,y+14,UiTheme.HUD_PANEL);g.text(font,text,center-width/2+6,y+3,color,true);
+        if(text.isBlank())return;var font=UiFonts.font();int width=font.width(text)+12;UiTheme.hud(g,center-width/2,y,(center+width/2)-(center-width/2),(y+14)-(y));g.text(font,text,center-width/2+6,y+3,color,true);
     }
     public static void renderGauge(GuiGraphicsExtractor g,int width,int height,long now){
         var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;int x=(int)(width*.8),y=Math.max(24,(int)(height*.2));
@@ -53,7 +53,7 @@ public final class CareerHud {
             var entries=army.army.values().stream().filter(j->j.get("skill").getAsString().equals(id)&&j.get("until").getAsLong()>now).toList();
             long left=id.equals(SummonerSkills.FRENZY)?army.frenzyUntil-now:entries.stream().mapToLong(j->j.get("until").getAsLong()).min().orElse(now)-now;
             long duration=id.equals(SummonerSkills.KASIJAS)||id.equals(SummonerSkills.FRENZY)?20000:120000;
-            g.fill(0,y,panel,y+30,UiTheme.HUD_PANEL);g.blit(net.minecraft.resources.Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/gui/skills/"+skill.icon()+".png"),2,y+3,26,y+27,0,1,0,1);
+            UiTheme.hud(g,0,y,(panel)-(0),(y+30)-(y));g.blit(net.minecraft.resources.Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/gui/skills/"+skill.icon()+".png"),2,y+3,26,y+27,0,1,0,1);
             g.text(font,skill.title,30,y+3,UiTheme.HUD_TEXT,true);g.text(font,"剩余 "+seconds(left)+" 秒"+(id.equals(SummonerSkills.SPIRITS)?" · "+entries.size()+" / 4":""),30,y+15,UiTheme.HUD_MUTED,true);
             g.fill(30,y+27,30+(int)((panel-32)*Math.clamp(left/(double)duration,0,1)),y+29,id.equals(SummonerSkills.FRENZY)?0xffee7d88:0xff92d49b);
         }
@@ -71,7 +71,7 @@ public final class CareerHud {
         if(o.karma>0){oracleBadge(g,"oracle_karma","业",o.karma+" / 5  "+seconds(o.karmaUntil-now)+"秒",x,y,false);y+=62;}return y;
     }
     private static void oracleBadge(GuiGraphicsExtractor g,String icon,String title,String value,int x,int y,boolean glow){
-        var font=UiFonts.font();if(glow){g.fill(x-19,y-19,x+19,y+19,0xffd8b459);g.fill(x-17,y-17,x+17,y+17,UiTheme.HUD_PANEL);}
+        var font=UiFonts.font();if(glow){g.fill(x-19,y-19,x+19,y+19,0xffd8b459);UiTheme.hud(g,x-17,y-17,(x+17)-(x-17),(y+17)-(y-17));}
         g.blit(net.minecraft.resources.Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/gui/skills/"+icon+".png"),x-16,y-16,x+16,y+16,0,1,0,1);
         g.text(font,title,x-font.width(title)/2,y+20,glow?UiTheme.HUD_GOLD:UiTheme.HUD_TEXT,true);g.text(font,value,x-font.width(value)/2,y+33,UiTheme.HUD_MUTED,true);
     }
@@ -85,7 +85,7 @@ public final class CareerHud {
         String title=skill.title;g.text(font,title,x-font.width(title)/2,y+19,UiTheme.HUD_TEXT,true);
     }
     private static void timer(GuiGraphicsExtractor g,SkillDefinition skill,int x,int y,long left,long duration,int color){
-        badge(g,skill,x,y,(int)seconds(left),false);g.fill(x-24,y+34,x+24,y+38,UiTheme.HUD_PANEL);g.fill(x-24,y+34,x-24+(int)(48*Math.clamp(left/(double)duration,0,1)),y+38,color);var font=UiFonts.font();g.text(font,"剩余秒",x-font.width("剩余秒")/2,y+43,UiTheme.HUD_MUTED,true);
+        badge(g,skill,x,y,(int)seconds(left),false);UiTheme.hud(g,x-24,y+34,(x+24)-(x-24),(y+38)-(y+34));g.fill(x-24,y+34,x-24+(int)(48*Math.clamp(left/(double)duration,0,1)),y+38,color);var font=UiFonts.font();g.text(font,"剩余秒",x-font.width("剩余秒")/2,y+43,UiTheme.HUD_MUTED,true);
     }
     private static long seconds(long millis){return Math.max(0,(millis+999)/1000);}
 }

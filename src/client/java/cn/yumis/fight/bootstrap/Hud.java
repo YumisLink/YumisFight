@@ -30,7 +30,7 @@ public final class Hud {
     private Hud(){
     }
     private static void bar(GuiGraphicsExtractor g,int x,int y,int width,int height,double q,int color){
-        g.fill(x,y,x+width,y+height,UiTheme.HUD_PANEL);
+        UiTheme.hud(g,x,y,width,height);
         g.fill(x+1,y+1,x+1+(int)((width-2)*Math.clamp(q,0,1)),y+height-1,color);
     }
     private static String amount(double value){
@@ -51,20 +51,23 @@ public final class Hud {
         double health=s.predicted(s.own);
         var currentStats=SkillController.INSTANCE.snapshot();
         int extra=(mc.player.isUnderWater()||mc.player.getAirSupply()<mc.player.getMaxAirSupply()?10:0)+(mc.player.isPassenger()?10:0),mpY=height-51-extra;
+        if(!mc.player.isCreative()){
         bar(g,center-91,height-39,81,10,health,SkillController.INSTANCE.invulnerable()?0xFFF0C34F:0xCCBC4859);
         g.text(font,amount(health*currentStats.get(Stat.HEALTH))+" / "+amount(currentStats.get(Stat.HEALTH)),center-88,height-38,UiTheme.HUD_TEXT,true);
         bar(g,center+10,mpY,81,10,s.resources.training?1:s.resources.mp/Math.max(1,currentStats.get(Stat.MP)),0xCC416FA7);
         g.text(font,s.resources.training?"MP ∞":"MP "+amount(s.resources.mp)+" / "+amount(currentStats.get(Stat.MP)),center+13,mpY+1,UiTheme.HUD_TEXT,true);
+        }
         if(currentStats.get(Stat.SHIELD)>0){
             bar(g,center-91,mpY,81,10,s.resources.shield/currentStats.get(Stat.SHIELD),0xCC417F8C);
             g.text(font,"盾 "+amount(s.resources.shield),center-88,mpY+1,UiTheme.HUD_TEXT,true);
         }
         if(!(mc.gui.screen() instanceof ChatScreen)){
-            int modifier=ClientBootstrap.layer(),group=Math.max(0,modifier),cell=Math.min(21,(width-20)/8),start=center-cell*4,y=mpY-35;
-            cn.yumis.fight.modules.skills.client.CareerHud.render(g,center,y-28);
+            int modifier=ClientBootstrap.layer(),group=Math.max(0,modifier),cell=Math.min(21,(width-20)/8),start=6,y=height-66;
+            if((!mc.player.isCreative()||currentStats.get(Stat.SHIELD)>0)&&start+cell*8>center-91)y=Math.min(y,mpY-36);
+            cn.yumis.fight.modules.skills.client.CareerHud.render(g,start+cell*4,y-28);
             for(int i=0;i<8;i++){
                 int x=start+i*cell;
-                g.fill(x,y,x+cell-1,y+32,UiTheme.HUD_PANEL);
+                UiTheme.hud(g,x,y,cell-1,32);
                 String key=cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS[i].getTranslatedKeyMessage().getString();
                 g.text(font,font.plainSubstrByWidth(key,cell-3),x+2,y+2,UiTheme.HUD_MUTED,true);
                 String binding=s.progress.slots[group*8+i];
@@ -72,7 +75,7 @@ public final class Hud {
                     SkillDefinition skill=SkillCatalog.require(binding);
                     int icon=cell-3,iconX=x+1,iconY=y+12;
                     g.blit(ClientBootstrap.id("textures/gui/skills/"+skill.icon()+".png"),iconX,iconY,iconX+icon,iconY+icon,0,1,0,1);
-                    long remaining=s.resources.cooldowns.getOrDefault(binding,0L)-now;
+                    long remaining=mc.player.isCreative()?0:s.resources.cooldowns.getOrDefault(binding,0L)-now;
                     if(remaining>0){
                         g.fill(iconX,iconY,iconX+icon,iconY+icon,0x90101010);
                         String cooldown=Integer.toString((int)Math.ceil(remaining/1000d));g.text(font,cooldown,iconX+(icon-font.width(cooldown))/2,iconY+(icon-8)/2,UiTheme.HUD_GOLD,true);
@@ -84,11 +87,11 @@ public final class Hud {
                 "普通","Ctrl","Alt"
             }
             [group],start,y-11,UiTheme.HUD_MUTED,false);
-            int available=center-98;
+            int available=Math.max(54,Math.min(cell*8,width-12));
             if(available>=48){
                 int xpWidth=Math.min(160,available-6),xpY=height-29;
                 String label="Lv."+s.progress.level+(s.progress.level==80?" MAX":" "+s.progress.experience+"/"+nextExperience(s.progress.level));
-                g.fill(6,xpY,6+xpWidth,xpY+18,UiTheme.HUD_PANEL);
+                UiTheme.hud(g,6,xpY,xpWidth,18);
                 g.text(font,font.plainSubstrByWidth(label,xpWidth-8),10,xpY+3,UiTheme.HUD_GOLD,false);
                 bar(g,9,xpY+13,xpWidth-6,3,s.progress.level==80?1:s.progress.experience/(double)nextExperience(s.progress.level),UiTheme.HUD_GOLD);
             }
@@ -126,7 +129,7 @@ public final class Hud {
         g.text(font,title,x+3,y,UiTheme.HUD_GOLD,false);y+=13;
         for(var value:rows){
             var row=value.getAsJsonObject();String damage=damageAmount(row.get("damage").getAsDouble()),dps=damageAmount(row.get("dps").getAsDouble())+"/s",share=String.format(java.util.Locale.ROOT,"%.1f%%",row.get("share").getAsDouble()*100);boolean narrow=font.width(damage+"  "+dps)>w-8;int height=narrow?41:29;
-            if(y+height>g.guiHeight()-100)break;g.fill(x,y,x+w,y+height,UiTheme.HUD_PANEL);g.fill(x,y,x+(int)(w*row.get("bar").getAsDouble()),y+height,UiTheme.DAMAGE_BAR);
+            if(y+height>g.guiHeight()-100)break;UiTheme.hud(g,x,y,w,height);g.fill(x,y,x+(int)(w*row.get("bar").getAsDouble()),y+height,UiTheme.DAMAGE_BAR);
             g.text(font,font.plainSubstrByWidth(row.get("name").getAsString(),Math.max(12,w-font.width(share)-14)),x+3,y+3,UiTheme.HUD_TEXT,true);g.text(font,share,x+w-font.width(share)-3,y+3,UiTheme.HUD_TEXT,true);
             g.text(font,damage,x+3,y+16,UiTheme.HUD_TEXT,true);g.text(font,dps,narrow?x+3:x+w-font.width(dps)-3,y+(narrow?28:16),UiTheme.HUD_TEXT,true);y+=height+2;
         }
@@ -135,7 +138,7 @@ public final class Hud {
         var font=UiFonts.font();String text="金币 "+String.format(java.util.Locale.ROOT,"%,d",state.gold.balance);
         int w=font.width(text)+12,x=g.guiWidth()-w-6,y=g.guiHeight()-23;
         if(x<g.guiWidth()/2+95)y-=35;
-        g.fill(x,y,x+w,y+17,UiTheme.HUD_PANEL);g.text(font,text,x+6,y+4,UiTheme.HUD_GOLD,true);
+        UiTheme.hud(g,x,y,w,17);g.text(font,text,x+6,y+4,UiTheme.HUD_GOLD,true);
         long now=ClientSession.now();int lane=0;
         for(var gain:state.gold.gains(now)){
             double t=Math.clamp((now-gain.started())/450d,0,1),ease=t*t;String label="+"+gain.amount();
@@ -154,13 +157,14 @@ public final class Hud {
         g.pose().pushMatrix();
         g.pose().translate(x,6);
         g.pose().scale((float)scale,(float)scale);
-        g.fill(0,0,184,42,0xff101010);
+        UiTheme.surface(g,0,0,184,42,5,0xff101010,0xff8b919c);
         g.text(UiFonts.font(),e.getName().getString()+" Lv."+level,5,4,t.elite?0xffffce7d:0xffecf1f5);
         g.text(UiFonts.font(),t.difficulty.title()+" · "+(t.kind.equals("BOSS")?"Boss":t.elite?"精英":"普通")+(t.elitePower.isEmpty()?"":" · "+switch(t.elitePower){case "strong"->"强壮";case "rage"->"狂暴";case "armor"->"坚韧";case "elemental"->"元素守护";default->"";}),5,16,0xffaab8ce);
         bar(g,5,29,174,9,q,t.kind.equals("BOSS")?0xffdfb545:0xffbe485a);
         g.text(UiFonts.font(),cn.yumis.fight.modules.presentation.api.client.NumberText.number(q*maximum)+" / "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(maximum),8,29,0xffffffff);
         g.pose().popMatrix();
     }
+    public static void creativeFrames(ScreenEvent.Render.Post event){if(!(event.getScreen() instanceof CreativeModeInventoryScreen screen))return;var graphics=event.getGuiGraphics();for(var slot:screen.getMenu().slots){var stack=slot.getItem();if(stack.isEmpty()||!ItemData.own(stack))continue;var rarity=ItemRarity.rarity(stack);if(rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC)continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(rarity==Rarity.MYTHIC)cn.yumis.fight.modules.equipment.api.client.MythicDisplay.frame(graphics,x,y,16,16);else {int color=0xff000000|rarity.color();graphics.fill(x,y,x+16,y+1,color);graphics.fill(x,y+15,x+16,y+16,color);graphics.fill(x,y,x+1,y+16,color);graphics.fill(x+15,y,x+16,y+16,color);}}}
     public static void equipment(ScreenEvent.Render.Background event){
         if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;
         for(var slot:screen.getMenu().slots){

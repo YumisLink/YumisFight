@@ -4,22 +4,21 @@ import java.util.*;
 
 /** Stable device IDs composed from capabilities. Registration occurs before block registration. */
 public final class DeviceType {
-    public enum Capability {PROCESSING,GENERATION,LOGISTICS,FLUID_LOGISTICS,HARVEST,STORAGE_NETWORK,ENERGY_STORAGE,FLUID_STORAGE,PUMP,MINING,DUAL_FLUID,GRID_ONLY,STRUCTURE,SELECT_RECIPE,REQUIRE_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE}
+    public enum Capability {PROCESSING,PARALLEL,GENERATION,LOGISTICS,FLUID_LOGISTICS,HARVEST,STORAGE_NETWORK,ENERGY_STORAGE,FLUID_STORAGE,PUMP,MINING,DUAL_FLUID,GRID_ONLY,STRUCTURE,SELECT_RECIPE,REQUIRE_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE}
     public enum Speed {TIER_EXPONENTIAL,FURNACE_TABLE,MINING_LINEAR,FIXED}
     public enum Output {RECIPE,CURRENCY}
     private static final Map<String,DeviceType> TYPES=new LinkedHashMap<>();
     public final String id;
     public final boolean graded;
-    public final MachineSlots slots;
     private final int inputs,minimumTier,maximumTier;
     private final Set<Capability> capabilities;
     private final Speed speed;
     private final Output output;
-    public static final DeviceType CRUSHER=processor("mana_crusher",3,Speed.TIER_EXPONENTIAL,Output.RECIPE),
-        FURNACE=processor("mana_furnace",3,Speed.FURNACE_TABLE,Output.RECIPE,Capability.SMELTING),
+    public static final DeviceType CRUSHER=processor("mana_crusher",3,Speed.TIER_EXPONENTIAL,Output.RECIPE,Capability.PARALLEL),
+        FURNACE=processor("mana_furnace",3,Speed.FURNACE_TABLE,Output.RECIPE,Capability.SMELTING,Capability.PARALLEL),
         MINER=processor("mineral_generator",0,Speed.MINING_LINEAR,Output.RECIPE,Capability.SELECT_RECIPE,Capability.REQUIRE_RECIPE,Capability.MINING,Capability.FLUID_PROCESSING),
-        CURRENCY=processor("currency_fabricator",0,Speed.FIXED,Output.CURRENCY,Capability.EXACT_RECIPE_TIER),
-        FORGE=processor("mana_forge",4,Speed.TIER_EXPONENTIAL,Output.RECIPE,Capability.STRUCTURE,Capability.SELECT_RECIPE,Capability.FLUID_PROCESSING),
+        CURRENCY=processor("currency_fabricator",0,Speed.TIER_EXPONENTIAL,Output.CURRENCY,Capability.EXACT_RECIPE_TIER,Capability.PARALLEL),
+        FORGE=processor("mana_forge",4,Speed.TIER_EXPONENTIAL,Output.RECIPE,Capability.STRUCTURE,Capability.FLUID_PROCESSING,Capability.PARALLEL),
         BEACON=register("mana_beacon",true,0,1,5,Set.of(Capability.STORAGE_NETWORK),Speed.FIXED,Output.RECIPE),
         COAL=generator("coal_generator",1,Capability.FUEL),SOLAR=generator("solar_collector",1,Capability.SOLAR),
         TURBINE=generator("turbine_generator",2,Capability.FUEL,Capability.FLUID_FUEL,Capability.ROTOR),WIND=generator("wind_generator",2,Capability.WIND),
@@ -28,13 +27,13 @@ public final class DeviceType {
         TRANSFER=register("transfer_crystal",false,0,1,3,Set.of(Capability.LOGISTICS),Speed.FIXED,Output.RECIPE),
         HARVEST=register("harvest_crystal",false,0,1,3,Set.of(Capability.HARVEST),Speed.FIXED,Output.RECIPE),
         CURRENCY_UPGRADER=register("currency_upgrader",false,9,1,1,Set.of(Capability.CURRENCY_UPGRADE),Speed.FIXED,Output.RECIPE),
-        REFINERY=register("mineral_refinery",false,4,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.SELECT_RECIPE,Capability.REQUIRE_RECIPE,Capability.GRID_ONLY),Speed.FIXED,Output.RECIPE),
-        REACTOR=register("alchemical_reactor",false,4,3,3,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.DUAL_FLUID,Capability.SELECT_RECIPE,Capability.REQUIRE_RECIPE,Capability.GRID_ONLY),Speed.FIXED,Output.RECIPE),
+        REFINERY=register("mineral_refinery",false,4,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY),Speed.FIXED,Output.RECIPE),
+        REACTOR=register("alchemical_reactor",false,4,3,3,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.DUAL_FLUID,Capability.GRID_ONLY),Speed.FIXED,Output.RECIPE),
         PUMP=register("water_pump",false,0,1,1,Set.of(Capability.PUMP,Capability.FLUID_PROCESSING,Capability.GRID_ONLY),Speed.FIXED,Output.RECIPE),
         FLUID_TRANSFER=register("fluid_crystal",false,0,1,3,Set.of(Capability.FLUID_LOGISTICS,Capability.GRID_ONLY),Speed.FIXED,Output.RECIPE),
         TANK=register("fluid_tank",true,0,1,3,Set.of(Capability.FLUID_STORAGE),Speed.FIXED,Output.RECIPE),
         ACCUMULATOR=register("mana_accumulator",true,0,1,4,Set.of(Capability.ENERGY_STORAGE),Speed.FIXED,Output.RECIPE);
-    private DeviceType(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){this.id=id;this.graded=graded;this.inputs=inputs;this.minimumTier=minimumTier;this.maximumTier=maximumTier;this.capabilities=Set.copyOf(capabilities);this.speed=speed;this.output=output;this.slots=capabilities.contains(Capability.CURRENCY_UPGRADE)?MachineSlots.currencyUpgrade():MachineSlots.ordinary(inputs);}
+    private DeviceType(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){this.id=id;this.graded=graded;this.inputs=inputs;this.minimumTier=minimumTier;this.maximumTier=maximumTier;this.capabilities=Set.copyOf(capabilities);this.speed=speed;this.output=output;}
     public static synchronized DeviceType register(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){
         if(id==null||!id.matches("[a-z][a-z0-9_]*")||inputs<0||inputs>9||minimumTier<1||maximumTier>5||minimumTier>maximumTier)throw new IllegalArgumentException("Invalid device: "+id);
         var value=new DeviceType(id,graded,inputs,minimumTier,maximumTier,capabilities,Objects.requireNonNull(speed),Objects.requireNonNull(output));
@@ -61,5 +60,8 @@ public final class DeviceType {
     public int fluidInputs(){return has(Capability.DUAL_FLUID)?2:1;}
     public int fluidOutput(){return has(Capability.FLUID_STORAGE)?0:fluidInputs();}
     public int fluidTanks(){return has(Capability.FLUID_STORAGE)?1:fluidInputs()+1;}
-    public int speed(int machineTier,int recipeTier,int[] furnaceSpeeds){return switch(speed){case FIXED->1;case MINING_LINEAR->machineTier;case FURNACE_TABLE->furnaceSpeeds[machineTier-1];case TIER_EXPONENTIAL->1<<(machineTier-recipeTier);};}
+    public int lineCount(int tier){return has(Capability.PARALLEL)?IndustrialRules.current().processingLines[tier-1]:1;}
+    public MachineSlots slots(int tier){return currencyUpgrader()?MachineSlots.currencyUpgrade():MachineSlots.ordinary(inputs,lineCount(tier),has(Capability.PARALLEL));}
+    public int maximumLines(){return has(Capability.PARALLEL)?MachineSlots.MAXIMUM_LINES:1;}
+    public int speed(int machineTier,int[] furnaceSpeeds){return switch(speed){case FIXED->1;case MINING_LINEAR->machineTier;case FURNACE_TABLE->furnaceSpeeds[machineTier-1];case TIER_EXPONENTIAL->1<<(machineTier-1);};}
 }

@@ -37,8 +37,8 @@ public final class EconomyService {
     public void purchase(ServerPlayer p,JsonObject j){
         if(replay(p,j))return;session(p,j);
         String product=j.has("product")?j.get("product").getAsString():"";
-        if(java.util.Set.of(cn.yumis.fight.modules.character.api.CharacterItems.PROFESSION_RESET,cn.yumis.fight.modules.character.api.CharacterItems.CAREER_RESET).contains(product)){
-            long cost=CurrencyRules.resetTicketPrice(product.equals(cn.yumis.fight.modules.character.api.CharacterItems.PROFESSION_RESET));
+        if(CurrencyRules.ticketPrice(product)>=0){
+            long cost=CurrencyRules.ticketPrice(product);
             if(points(p)<cost)throw new IllegalArgumentException("点券不足，需要"+cost+"点券");
             var item=cn.yumis.fight.platform.ItemRegistry.item(product,1);inventory.transact(p,j.get("operation").getAsString(),j,()->inventory.requireSpace(p,item),Map.of(CurrencyRules.POINTS.id()+"/"+p.getUUID(),new JsonPrimitive(points(p)-cost)));profile.accept(p);return;
         }

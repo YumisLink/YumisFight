@@ -22,12 +22,51 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import java.util.*;
 import static cn.yumis.fight.modules.presentation.api.client.NumberText.number;
 
 /** Rebuild while hovered so temporary buffs expire even when no profile packet arrives. */
 public final class SkillTooltip {
     private SkillTooltip(){}
+    private static Object hoveredScreen;
+    private static String hoveredSkill="";
+    private static long hoveredAt;
+    private static int hoveredX,hoveredY,scroll,maximumScroll;
+    private record Content(FormattedCharSequence title,List<FormattedCharSequence> body,int width,int rows,int step,int offset) implements TooltipComponent {}
+    private record Viewport(Content content) implements ClientTooltipComponent {
+        public int getWidth(Font font){return content.width();}
+        public int getHeight(Font font){return (content.rows()+1)*content.step()+12;}
+        public void extractText(GuiGraphicsExtractor graphics,Font font,int x,int y){
+            graphics.text(font,content.title(),x,y,0xffffffff,false);
+            for(int row=0;row<content.rows();row++){
+                int index=content.offset()+row;
+                if(index<content.body().size())graphics.text(font,content.body().get(index),x,y+(row+1)*content.step(),0xffffffff,false);
+            }
+            String guide="Shift＋滚轮查看 · "+(content.offset()+1)+"–"+Math.min(content.body().size(),content.offset()+content.rows())+"/"+content.body().size();
+            graphics.text(font,UiFonts.decorate(Component.literal(font.plainSubstrByWidth(guide,content.width()))),x,y+(content.rows()+1)*content.step()+2,UiTheme.tooltipColor(UiTheme.ACCENT),false);
+            int track=content.rows()*content.step(),thumb=Math.max(8,track*content.rows()/content.body().size());
+            int top=y+content.step(),offset=(track-thumb)*content.offset()/Math.max(1,content.body().size()-content.rows());
+            graphics.fill(x+content.width()-3,top,x+content.width()-1,top+track,0x80404c64);
+            graphics.fill(x+content.width()-3,top+offset,x+content.width()-1,top+offset+thumb,0xff94bfe8);
+        }
+    }
+    public static void register(IEventBus bus){
+        bus.addListener((RegisterClientTooltipComponentFactoriesEvent event)->event.register(Content.class,Viewport::new));
+        NeoForge.EVENT_BUS.addListener((ScreenEvent.MouseScrolled.Pre event)->{
+            if(event.getScreen()!=hoveredScreen||maximumScroll<=0||!Minecraft.getInstance().hasShiftDown()||net.minecraft.util.Util.getMillis()-hoveredAt>250||Math.abs(event.getMouseX()-hoveredX)>3||Math.abs(event.getMouseY()-hoveredY)>3||event.getScrollDeltaY()==0)return;
+            int steps=(int)Math.min(12,Math.ceil(Math.abs(event.getScrollDeltaY()))*3);
+            scroll=Math.clamp(scroll-(event.getScrollDeltaY()>0?steps:-steps),0,maximumScroll);
+            event.setCanceled(true);
+        });
+    }
     private static String amount(SkillPreview.Damage value){
         String low=cn.yumis.fight.modules.presentation.api.client.NumberText.damage(value.minimum()),high=cn.yumis.fight.modules.presentation.api.client.NumberText.damage(value.maximum());
         return low.equals(high)?low:low+"–"+high;
@@ -41,23 +80,26 @@ public final class SkillTooltip {
         if(CareerSkills.contains(skill.id)){var view=CareerClient.INSTANCE.view;parameters=CareerRules.resourceSnapshot(parameters,Math.max(1,view.brands),view.blood,view.field==null?0:view.field.rank,false);}
         var preview=SkillPreview.resolve(state.progress(),stats,skill,parameters,state.resources().equipment);
         List<Component> result=new ArrayList<>();
-        add(result,skill.title+" · "+(rank>0?"有效等级 "+rank:skill.equipmentGranted?"缺少有效装备来源":"未学习 · 1级预览"),UiTheme.GOLD);
-        if(!skill.equipmentGranted)add(result,"SP学习 "+state.progress().learned(skill.id)+"级 · 有效 "+rank+"级",UiTheme.TEXT);
+        add(result,skill.title,UiTheme.GOLD);
+        add(result,rank>0?"有效等级 "+rank:skill.equipmentGranted?"缺少有效装备来源":"未学习 · 1级预览",UiTheme.ACCENT);
+        if(!skill.equipmentGranted)add(result,"SP学习："+state.progress().learned(skill.id)+"级",UiTheme.TEXT);
         add(result,skill.equipmentGranted?"装备授予，无需SP；等级随有效来源装备变化":"学习等级 "+skill.unlock+(skill.advanced()?" · "+cn.yumis.fight.modules.character.api.JobCatalog.require(skill.requiredJob).title():"")+" · 每级 "+skill.sp+" SP",UiTheme.MUTED);
+        result.add(Component.empty());
         if(skill==SkillCatalog.MASTERY){
             double power=Math.pow(1.12,Math.max(1,rank)-1);
             add(result,"随当前武器生效（新增效果不随等级成长）：",UiTheme.TEXT);
-            add(result,"光剑普攻双击；巨剑90°横扫6格，间隔翻倍，松键出刀100%～250%。",UiTheme.TEXT);
+            add(result,"光剑：普攻双击。\n巨剑：90°横扫6格，间隔翻倍，松键出刀100%～250%。",UiTheme.TEXT);
             add(result,"三段斩：太刀/光剑7段，其余5段；光剑猛龙+1段。",UiTheme.TEXT);
             add(result,"太刀/光剑幻影20刀，持续1.25秒；拔刀追加固定20%光斩。",UiTheme.TEXT);
             add(result,"太刀：10%造成流血；流血目标5%触发 "+number(2*power)+"倍伤害。",UiTheme.TEXT);
             add(result,"光剑：20%造成感电；攻击感电目标追加光伤，随触发技能的基础伤害校准。",UiTheme.TEXT);
             add(result,"巨剑：技能伤害 +"+number(20*power)+"%。",UiTheme.TEXT);
-            add(result,"短剑：随机斩面；拔刀剑气宽高翻倍；普攻、三段斩、拔刀斩与剑舞追加 "+number(20*power)+"%系数剑气。",UiTheme.TEXT);
+            add(result,"短剑：追加剑气斩面随机，拔刀剑气宽高翻倍。\n普攻、三段斩、拔刀斩与剑舞追加 "+number(20*power)+"%系数剑气。",UiTheme.TEXT);
             add(result,"钝器：5%眩晕 "+number(.5*power)+"秒，精英和首领减半。",UiTheme.TEXT);
+            add(result,"巨剑蓄力：按住左键，基础0.8秒线性升至250%；长按保持，梯云纵保留蓄力。",UiTheme.MUTED);
         }else{
             var costs=cn.yumis.fight.modules.skills.api.SkillCosts.resolve(skill,Math.max(1,rank),stats,state.resources().equipment,CareerRules.magic(skill,state.progress()));
-            add(result,(costs.life()>0?"生命 "+number(costs.life()):"MP "+costs.mana())+" · 冷却 "+number(preview.cooldown())+"秒",UiTheme.TEXT);
+            if(!skill.passive())add(result,"消耗："+(costs.life()>0?"生命 "+number(costs.life()):"MP "+costs.mana())+" · 冷却 "+number(preview.cooldown())+"秒",UiTheme.TEXT);
             if(skill==SkillCatalog.OVERDRIVE){
                 add(result,"持续30秒，基础物理攻击 +"+number(15*Math.pow(1.12,Math.max(1,rank)-1))+"%。",UiTheme.TEXT);
             }else if(skill.id.equals(CareerSkills.FIELD)){
@@ -69,31 +111,47 @@ public final class SkillTooltip {
                 add(result,"下次召唤敲击："+amount(SkillPreview.damage(state.progress(),nextSummon,skill,parameters.get("damage",0),false,state.resources().equipment)),UiTheme.TEXT);
                 add(result,"下次召唤单石："+amount(SkillPreview.damage(state.progress(),nextSummon,skill,parameters.get("stoneDamage",0),false,state.resources().equipment)),UiTheme.TEXT);
                 add(result,"120秒近身参考合计："+amount(preview.total()),UiTheme.ACCENT);
-                var summon=MageClient.INSTANCE;if(summon.summonUntil>state.serverNow()&&summon.summonedMelee!=null){add(result,"在场赫尔德快照 · Lv."+summon.summonRank,UiTheme.GOLD);add(result,"敲击："+amount(summon.summonedMelee),UiTheme.TEXT);if(summon.summonRank>=5)add(result,"单石："+amount(summon.summonedStone),UiTheme.TEXT);if(summon.summonRank>=10)add(result,"三连："+amount(summon.summonedTriple),UiTheme.TEXT);}add(result,"上述面板为零防抗、非暴击；命中时再结算敌人属性。",UiTheme.MUTED);
+                var summon=MageClient.INSTANCE;if(summon.summonUntil>state.serverNow()&&summon.summonedMelee!=null){add(result,"在场赫尔德快照 · Lv."+summon.summonRank,UiTheme.GOLD);add(result,"敲击："+amount(summon.summonedMelee),UiTheme.TEXT);if(summon.summonRank>=5)add(result,"单石："+amount(summon.summonedStone),UiTheme.TEXT);if(summon.summonRank>=10)add(result,"三连："+amount(summon.summonedTriple),UiTheme.TEXT);}
             }else if(SummonerSkills.contains(skill.id)){
-                if(!SummonerSkills.kinds(skill.id).isEmpty())add(result,(skill.id.equals(SummonerSkills.KASIJAS)?"20秒完整参考：":"120秒完整参考：")+amount(preview.total()),UiTheme.ACCENT);
-                add(result,"零防抗、非暴击；含召唤时强化，不含临时狂化。",UiTheme.MUTED);
+                if(!SummonerSkills.kinds(skill.id).isEmpty()){
+                    add(result,(skill.id.equals(SummonerSkills.KASIJAS)?"20秒完整参考：":"120秒完整参考：")+amount(preview.total()),UiTheme.ACCENT);
+                    
+                }
                 for(var entry:MageClient.INSTANCE.army.values())if(entry.get("skill").getAsString().equals(skill.id)&&entry.get("until").getAsLong()>state.serverNow())add(result,SummonKind.valueOf(entry.get("kind").getAsString()).title+" · Lv."+entry.get("rank").getAsInt()+" · 生命 "+number(entry.get("health").getAsDouble())+" / "+number(entry.get("maximum").getAsDouble()),UiTheme.TEXT);
-            }else{
+            }else if(!skill.passive()){
                 add(result,"面板伤害："+amount(preview.hit())+" × "+preview.slashes()+"段",UiTheme.TEXT);
                 if(preview.finisher().maximum()>0){String label=cn.yumis.fight.modules.skills.api.SkillPreviewRules.finisherLabel(skill);add(result,(label==null?"终结伤害":label)+"："+amount(preview.finisher())+(label==null?" × 1段":""),UiTheme.TEXT);}
                 if(skill==SkillCatalog.GHOST){int soul=SkillLearning.effective(stats,state.progress(),SkillCatalog.require(CareerSkills.SOUL_SLASH));add(result,"满蓄力单段："+amount(SkillPreview.damage(state.progress(),stats,skill,(parameters.get("damage",0)*2+parameters.get("soulBonus",0))*parameters.get("ghostFieldMultiplier",1),false,state.resources().equipment)),UiTheme.TEXT);}
                 else {add(result,(skill.id.equals(CareerSkills.KALLA)?"终结三剑合计：":"主技能全段命中：")+amount(preview.total()),UiTheme.ACCENT);if(skill.id.equals(CareerSkills.CRESCENT))add(result,"满蓄力三段总计："+amount(preview.total().times(3)),UiTheme.TEXT);}
                 if(skill.id.equals(CareerSkills.KALLA))add(result,"冥炎每层每0.5秒："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("flameDot",0),3,state.resources().equipment)),UiTheme.TEXT);
                 if(preview.shortSwordWave().maximum()>0)add(result,"每次短剑追加剑气："+amount(preview.shortSwordWave()),UiTheme.TEXT);
-                add(result,"零防御、零抗性、非暴击；随机附伤显示区间。",UiTheme.MUTED);
+                
             }
+            if(!skill.passive())result.add(Component.empty());
             add(result,cn.yumis.fight.modules.skills.client.SkillDescriptions.describe(skill,new cn.yumis.fight.modules.skills.client.SkillDescriptions.Context(castSpeed,parameters,preview)),UiTheme.MUTED);
             if(skill.id.equals(CareerSkills.ORB)||skill.id.equals(CareerSkills.AGNI))add(result,"当前刻印 "+CareerClient.INSTANCE.view.brands+" / 5；零印时按1印预览，无法施放。",UiTheme.ACCENT);
             var content=CareerSkills.content(skill.id);if(content!=null&&content.hpCost()>0)add(result,"生命消耗：最大生命的"+number(content.hpCost()*100)+"%；不足支付时不施放。",UiTheme.TEXT);
         }
-        add(result,skill.passive()&&!skill.bindingProxy?"被动技能，无需绑定。":rank<=0?(skill.equipmentGranted?"缺少有效装备来源，保留原有绑定。":"学习后点击此行选择快捷槽。"):"点击此行选择快捷槽。",UiTheme.ACCENT);
+        add(result,skill.passive()&&!skill.bindingProxy?"被动技能，无需绑定。":rank<=0?(skill.equipmentGranted?"缺少有效装备来源，保留原有绑定。":"学习后点击图标选择快捷槽。"):"点击图标选择快捷槽。",UiTheme.ACCENT);
         return result;
     }
     private static void add(List<Component> lines,String text,int color){
-        lines.add(UiFonts.decorate(Component.literal(text).withColor(UiTheme.tooltipColor(color))));
+        for(String line:text.split("\\R"))lines.add(UiFonts.decorate(Component.literal(line).withColor(UiTheme.tooltipColor(color))));
     }
     public static void render(GuiGraphicsExtractor graphics,SkillDefinition skill,int mouseX,int mouseY){
-        graphics.setComponentTooltipForNextFrame(UiFonts.font(),lines(skill),mouseX,mouseY,ItemStack.EMPTY);
+        var font=UiFonts.font();
+        int width=Math.max(1,Math.min(360,graphics.guiWidth()-36));
+        var wrapped=lines(skill).stream().flatMap(line->font.splitIgnoringLanguage(line,width).stream()).toList();
+        long now=net.minecraft.util.Util.getMillis();Object screen=Minecraft.getInstance().gui.screen();
+        if(screen!=hoveredScreen||!skill.id.equals(hoveredSkill)||now-hoveredAt>250)scroll=0;
+        hoveredScreen=screen;hoveredSkill=skill.id;hoveredAt=now;hoveredX=mouseX;hoveredY=mouseY;
+        int step=font.lineHeight+2,rows=Math.max(1,(graphics.guiHeight()-step-36)/step);
+        maximumScroll=Math.max(0,wrapped.size()-1-rows);scroll=Math.clamp(scroll,0,maximumScroll);
+        if(maximumScroll==0){graphics.setComponentTooltipForNextFrame(font,wrapped,mouseX,mouseY,ItemStack.EMPTY);return;}
+        var title=net.minecraft.locale.Language.getInstance().getVisualOrder(wrapped.getFirst());
+        var body=wrapped.stream().skip(1).map(line->net.minecraft.locale.Language.getInstance().getVisualOrder(line)).toList();
+        int actualWidth=Math.max(body.stream().mapToInt(font::width).max().orElse(0),font.width(title))+10;
+        Content content=new Content(title,body,actualWidth,rows,step,scroll);
+        graphics.setTooltipForNextFrame(font,List.of(),Optional.of(content),ItemStack.EMPTY,mouseX,mouseY);
     }
 }

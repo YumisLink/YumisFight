@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CRC",
+    "MFM",
+    "CRC"
+  ],
+  "key": {
+    "C": "minecraft:copper_ingot",
+    "R": "minecraft:redstone",
+    "M": "yumis_dungeon_and_fight:mana_component",
+    "F": "yumis_dungeon_and_fight:basic_frame"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:speed_plugin",
+    "count": 1
+  }
+}

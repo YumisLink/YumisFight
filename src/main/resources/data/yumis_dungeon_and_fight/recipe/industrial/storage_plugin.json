@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "IGI",
+    "CMC",
+    "IGI"
+  ],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "G": "minecraft:glass",
+    "C": "minecraft:chest",
+    "M": "yumis_dungeon_and_fight:mana_component"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:storage_plugin",
+    "count": 1
+  }
+}

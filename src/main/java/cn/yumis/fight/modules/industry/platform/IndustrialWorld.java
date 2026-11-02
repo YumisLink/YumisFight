@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.industry.api.Fraction;
 import cn.yumis.fight.modules.industry.api.EnergyMath;
 import cn.yumis.fight.modules.industry.api.ChunkedStrings;
 import cn.yumis.fight.modules.industry.api.DeviceType;
+import cn.yumis.fight.modules.industry.api.MineralCatalog;
 
 
 import cn.yumis.fight.modules.industry.api.IndustrialPorts;
@@ -35,6 +36,14 @@ public final class IndustrialWorld extends SavedData {
 
     public static final SavedDataType<IndustrialWorld> TYPE=new SavedDataType<>(IndustrialContent.id("industrial_networks_modules_v2"),IndustrialWorld::new,ChunkedStrings.CODEC.xmap(IndustrialWorld::decode,IndustrialWorld::encode));
     public static final class Node {public String dimension;public long position;public Set<String> links=new LinkedHashSet<>();Node(String d,long p){dimension=d;position=p;}}
+    private static final class Spill {String dimension;long position,amount;JsonElement sample;Spill(String dimension,long position,long amount,JsonElement sample){this.dimension=dimension;this.position=position;this.amount=amount;this.sample=sample;}}
+    private final List<Spill> spills=new ArrayList<>();
+    public void queueSpill(ServerLevel level,BlockPos position,ItemResource resource,long amount){var ops=level.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE);spills.add(new Spill(level.dimension().identifier().toString(),position.asLong(),amount,ItemResource.CODEC.encodeStart(ops,resource).getOrThrow()));setDirty();}
+    private void releaseSpills(MinecraftServer server){int budget=16;for(var iterator=spills.iterator();iterator.hasNext()&&budget>0;){var spill=iterator.next();var level=server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(spill.dimension)));var position=BlockPos.of(spill.position);if(level==null||!level.hasChunkAt(position))continue;
+        int nearby=level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new net.minecraft.world.phys.AABB(position).inflate(4)).size();if(nearby>=128)continue;
+        var resource=ItemResource.CODEC.parse(level.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),spill.sample).getOrThrow();
+        while(spill.amount>0&&budget>0&&nearby++<128){int count=(int)Math.min(resource.getMaxStackSize(),spill.amount);Block.popResource(level,position,resource.toStack(count));spill.amount-=count;budget--;setDirty();}if(spill.amount==0)iterator.remove();
+    }}
     private final Map<String,Node> nodes=new LinkedHashMap<>();
     public final Map<String,MachineBlockEntity> loaded=new LinkedHashMap<>();
     private final Map<String,Map<Long,Set<MachineBlockEntity>>> chunks=new HashMap<>();
@@ -57,8 +66,8 @@ public final class IndustrialWorld extends SavedData {
     private record Reservation(String device,long credit){}
     public static final class Totals {public long generated,consumed,overflow,lastGenerated,lastConsumed,lastOverflow;public int ticks;void finish(){if(++ticks>=20){lastGenerated=generated;lastConsumed=consumed;lastOverflow=overflow;generated=consumed=overflow=0;ticks=0;}}}
     public static IndustrialWorld get(ServerLevel level){return level.getServer().overworld().getDataStorage().computeIfAbsent(TYPE);}
-    private static IndustrialWorld decode(String json){IndustrialWorld w=new IndustrialWorld();JsonObject root=JsonParser.parseString(json).getAsJsonObject();if(root.has("nodes"))for(var e:root.getAsJsonObject("nodes").entrySet())w.nodes.put(e.getKey(),JSON.fromJson(e.getValue(),Node.class));if(root.has("cursors"))for(var e:root.getAsJsonObject("cursors").entrySet())w.cursors.put(e.getKey(),e.getValue().getAsInt());return w;}
-    private String encode(){JsonObject root=new JsonObject();root.add("nodes",JSON.toJsonTree(nodes));root.add("cursors",JSON.toJsonTree(cursors));return root.toString();}
+    private static IndustrialWorld decode(String json){IndustrialWorld w=new IndustrialWorld();JsonObject root=JsonParser.parseString(json).getAsJsonObject();if(root.has("nodes"))for(var e:root.getAsJsonObject("nodes").entrySet())w.nodes.put(e.getKey(),JSON.fromJson(e.getValue(),Node.class));if(root.has("cursors"))for(var e:root.getAsJsonObject("cursors").entrySet())w.cursors.put(e.getKey(),e.getValue().getAsInt());if(root.has("spills"))for(var spill:root.getAsJsonArray("spills"))w.spills.add(JSON.fromJson(spill,Spill.class));return w;}
+    private String encode(){JsonObject root=new JsonObject();root.add("nodes",JSON.toJsonTree(nodes));root.add("cursors",JSON.toJsonTree(cursors));root.add("spills",JSON.toJsonTree(spills));return root.toString();}
     private String dimension(MachineBlockEntity be){return be.getLevel().dimension().identifier().toString();}
     public void register(MachineBlockEntity be){
         needsRecovery=true;
@@ -116,10 +125,14 @@ public final class IndustrialWorld extends SavedData {
             if(node!=null)for(String link:node.links){var other=loaded.get(link);if(other!=null&&other.getLevel()==selected.getLevel())add.accept(selected.getBlockPos(),other.getBlockPos());}
             for(var device:loaded.values())if(device.getLevel()==selected.getLevel()&&device.beacon.equals(selected.identity.toString())&&validBeacon(device)!=null)add.accept(selected.getBlockPos(),device.getBlockPos());
         }else {var core=validBeacon(selected);if(core!=null)add.accept(selected.getBlockPos(),core.getBlockPos());}
-        if(selected.device().has(DeviceType.Capability.LOGISTICS)&&selected.targetDimension.equals(dimension(selected))&&selected.getLevel().hasChunkAt(BlockPos.of(selected.targetPosition)))add.accept(selected.getBlockPos(),BlockPos.of(selected.targetPosition));
+        for(var route:selected.routes)if(route.dimension.equals(dimension(selected))){if(selected.getLevel().hasChunkAt(BlockPos.of(route.source)))add.accept(selected.getBlockPos(),BlockPos.of(route.source));if(selected.getLevel().hasChunkAt(BlockPos.of(route.target)))add.accept(selected.getBlockPos(),BlockPos.of(route.target));}
         packet.add("beams",beams);return packet;
     }
 
+    public JsonObject routePreview(MachineBlockEntity machine,CrystalRoute route,boolean target){
+        JsonObject packet=new JsonObject();packet.addProperty("dimension",dimension(machine));packet.addProperty("expires",System.currentTimeMillis()+10000);JsonArray beams=new JsonArray();long endpoint=target?route.target:route.source;
+        if(machine.getLevel().hasChunkAt(BlockPos.of(endpoint))){JsonObject beam=new JsonObject();beam.addProperty("from",machine.getBlockPos().asLong());beam.addProperty("to",endpoint);beams.add(beam);}packet.add("beams",beams);return packet;
+    }
     public static IndustrialRules readRules(MinecraftServer server)throws java.io.IOException {
         var resource=server.getResourceManager().getResource(IndustrialContent.id("rules/industrial.json"));
         if(resource.isPresent())try(var reader=resource.get().openAsReader()){return IndustrialRules.parse(JsonParser.parseReader(reader).toString());}
@@ -135,14 +148,15 @@ public final class IndustrialWorld extends SavedData {
         int count=deferred.size();for(int i=0;i<count;i++)deferred.removeFirst().run();
         if(needsRecovery&&IndustrialPorts.ready()){IndustrialPorts.recover();needsRecovery=false;}
         IndustrialDeposits.get(server.overworld()).tick(server);
+        releaseSpills(server);
         generation.beginTick();
         for(var be:new ArrayList<>(validations)){if(be.isRemoved())continue;boolean was=be.structureValid;be.structureValid=IndustrialStructures.missing(be).isEmpty();if(was!=be.structureValid)note(be,be.structureValid?"锻炉结构已完整":"锻炉结构不完整");}validations.clear();rebuild();
         Map<String,List<MachineBlockEntity>> cores=new LinkedHashMap<>(),devices=new LinkedHashMap<>();Map<String,Long> production=new HashMap<>();
         for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){
-            be.tickTime=Fraction.of(128);be.workThisTick=0;be.consumed=0;boolean connected=validBeacon(be)!=null;
+            for(var line:be.lanes())line.beginTick();be.consumed=0;boolean connected=validBeacon(be)!=null;
             if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))cores.computeIfAbsent(components.get(be.identity.toString()),k->new ArrayList<>()).add(be);
             if(be.device().generator()){long generated=generation.generate(be);be.generated=generated;if(connected)production.merge(components.get(be.beacon),generated,Math::addExact);else be.overflow=generated;}
-            else if(!be.device().has(DeviceType.Capability.STORAGE_NETWORK)){if(connected)devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);else if(be.device().processing()&&be.running&&(!be.device().needsStructure()||be.structureValid)){for(int round=0;round<128&&be.tickTime.positive();round++){IndustrialProcessing.prepare(be);if(be.batchRecipe.isEmpty())break;Fraction before=be.tickTime;long need=be.demand();be.advance(be.crystalSupply(need));if(before.equals(be.tickTime))break;}}}
+            else if(!be.device().has(DeviceType.Capability.STORAGE_NETWORK)){if(connected)devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);else if(be.device().processing()&&be.running&&(!be.device().needsStructure()||be.structureValid)){for(var line:be.lanes())while(line.tickTime.positive()){IndustrialProcessing.prepare(line);if(line.batchRecipe.isEmpty())break;Fraction before=line.tickTime;long need=line.demand();line.advance(be.crystalSupply(need));if(before.equals(line.tickTime))break;}}}
             IndustrialProcessing.output(be);
             if(be.currencyUpgrade!=null&&be.running)be.currencyUpgrade.charge(be.crystalSupply(be.currencyUpgrade.demand()));
         }
@@ -157,14 +171,14 @@ public final class IndustrialWorld extends SavedData {
         List<MachineBlockEntity> storage=new ArrayList<>(cores);
         for(var be:devices)if(be.device().has(DeviceType.Capability.ENERGY_STORAGE))storage.add(be);
         long stored=0,capacity=0;for(var node:storage){stored=Math.addExact(stored,node.energy);capacity=Math.addExact(capacity,node.storageCapacity());}long available=Math.addExact(stored,generated),used=0;
-        Reservation reservation=reservations.get(group);if(reservation!=null&&(!loaded.containsKey(reservation.device)||validBeacon(loaded.get(reservation.device))==null||!Objects.equals(components.get(loaded.get(reservation.device).beacon),group)))reservation=null;
+        Reservation reservation=reservations.get(group);if(reservation!=null&&(!loaded.containsKey(reservation.device)||!loaded.get(reservation.device).running||validBeacon(loaded.get(reservation.device))==null||!Objects.equals(components.get(loaded.get(reservation.device).beacon),group)))reservation=null;
         long held=reservation==null?0:reservation.credit;String owner=reservation==null?"":reservation.device;if(held>stored){held=0;owner="";}
-        List<IndustrialFunctions.FunctionJob> jobs=new ArrayList<>();for(var be:devices){if(be.device().functional())functions.prepare(be,jobs);else if(be.currencyUpgrade!=null&&be.running&&be.currencyUpgrade.demand()>0)jobs.add(new IndustrialFunctions.FunctionJob(be){long demand(){return be.currencyUpgrade.demand();}long run(long budget){long used=be.currencyUpgrade.charge(budget);done=true;return used;}});}
-        for(int round=0;round<128;round++){
-            List<MachineBlockEntity> processors=devices.stream().filter(b->b.device().processing()&&b.running&&(!b.device().needsStructure()||b.structureValid)&&b.tickTime.positive()).toList();for(var be:processors)IndustrialProcessing.prepare(be);
+        List<IndustrialFunctions.FunctionJob> jobs=new ArrayList<>();for(var be:devices){if(be.device().functional())functions.prepare(be,jobs);else if(be.currencyUpgrade!=null&&be.running&&be.currencyUpgrade.demand()>0)jobs.add(new IndustrialFunctions.FunctionJob(be){long demand(){return be.currencyUpgrade.demand();}long run(long budget){long used=be.currencyUpgrade.charge(budget);be.currencyUpgrade.finishPaid();done=!be.currencyUpgrade.pending();return used;}});}
+        while(true){
+            List<MachineLane> processors=devices.stream().filter(b->b.device().processing()&&b.running&&(!b.device().needsStructure()||b.structureValid)).flatMap(b->b.lanes().stream()).filter(line->line.tickTime.positive()).toList();for(var line:processors)IndustrialProcessing.prepare(line);
             long[] wants=new long[processors.size()+jobs.size()];for(int i=0;i<processors.size();i++)wants[i]=processors.get(i).demand();for(int i=0;i<jobs.size();i++)wants[processors.size()+i]=Math.max(0,jobs.get(i).demand()-(jobs.get(i).be.identity.toString().equals(owner)?held:0));
             var allocation=EnergyMath.allocate(Math.max(0,available-used-held),wants,cursors.getOrDefault(group,0));cursors.put(group,allocation.nextCursor());boolean progress=false;
-            for(int i=0;i<processors.size();i++){var be=processors.get(i);if(be.batchRecipe.isEmpty())continue;Fraction before=be.work;String previous=be.batchRecipe;long grant=allocation.grants()[i];long extra=be.crystalSupply(Math.max(0,wants[i]-grant));be.advance(grant+extra);used+=grant;if(grant+extra>0||!be.work.equals(before)||!be.batchRecipe.equals(previous))progress=true;}
+            for(int i=0;i<processors.size();i++){var be=processors.get(i);if(be.batchRecipe.isEmpty())continue;Fraction before=be.work;String previous=be.batchRecipe;long grant=allocation.grants()[i];long extra=be.machine.crystalSupply(Math.max(0,wants[i]-grant));be.advance(grant+extra);used+=grant;if(grant+extra>0||!be.work.equals(before)||!be.batchRecipe.equals(previous))progress=true;}
             for(int i=0;i<jobs.size();i++){IndustrialFunctions.FunctionJob job=jobs.get(i);String key=job.be.identity.toString();long credit=key.equals(owner)?held:0,grant=allocation.grants()[processors.size()+i];long spent=job.run(grant+credit);if(spent<0){if(key.equals(owner)){held=0;owner="";}job.done=true;progress=true;continue;}used+=spent;if(spent>0){progress=true;job.be.consumed+=spent;}
                 long rest=grant+credit-spent;if(rest>0&&!job.done&&(owner.isEmpty()||owner.equals(key))&&rest<=capacity){held=rest;owner=key;progress|=grant>0;}else if(key.equals(owner)){held=0;owner="";}
             }
@@ -176,16 +190,22 @@ public final class IndustrialWorld extends SavedData {
         Totals t=totals.computeIfAbsent(group,k->new Totals());t.generated+=generated;t.consumed+=used;t.overflow+=spill;t.finish();setDirty();
     }
 
+    private static String blockName(MachineBlockEntity machine,long position){var pos=BlockPos.of(position);return machine.getLevel().hasChunkAt(pos)?machine.getLevel().getBlockState(pos).getBlock().getName().getString():"未加载方块";}
     private final IndustrialFunctions functions=new IndustrialFunctions();
 
-    public JsonObject info(MachineBlockEntity be){return info(be,false);}
-    public JsonObject info(MachineBlockEntity be,boolean includeLines){
-        JsonObject j=new JsonObject();j.addProperty("name",be.getDisplayName().getString());j.addProperty("status",be.running?be.status:"已停止");j.addProperty("tier",be.tier());j.addProperty("kind",be.device().id);j.addProperty("running",be.running);j.addProperty("connected",validBeacon(be)!=null);j.addProperty("crystal",be.crystalRemaining);j.addProperty("energy",be.energy);j.addProperty("total_energy",be.batchEnergy);j.addProperty("paid",be.paid);j.addProperty("recipe",be.batchRecipe);j.addProperty("selected",be.selected);j.addProperty("progress",!be.batchDuration.positive()?0:be.work.divide(be.batchDuration).value());j.addProperty("fuel",be.fuelRemaining);j.addProperty("fluid_in",be.fluids.getAmountAsInt(0));j.addProperty("fluid_out",be.fluids.getAmountAsInt(be.device().fluidOutput()));j.addProperty("target",be.targetDimension.isEmpty()?"未绑定":be.targetDimension+" "+BlockPos.of(be.targetPosition).toShortString());
-        j.addProperty("batch_sequence",be.batchSequence);j.addProperty("server_tick",be.getLevel().getGameTime());
-        double duration=be.batchDuration.value();
-        j.addProperty("progress_rate",duration==0||!be.running||!be.canFinish()||be.batchRecipe.isEmpty()?0:be.workThisTick/duration);
+    public JsonObject info(MachineBlockEntity be,int viewedLine,boolean includeLines){
+        MachineLane line=be.lane(Math.clamp(viewedLine,0,be.lineCount()-1));
+        JsonObject j=new JsonObject();j.addProperty("name",be.getDisplayName().getString());j.addProperty("status",be.running?(be.device().processing()?line.status:be.status):"已停止");j.addProperty("tier",be.tier());j.addProperty("kind",be.device().id);j.addProperty("running",be.running);j.addProperty("connected",validBeacon(be)!=null);j.addProperty("crystal",be.crystalRemaining);j.addProperty("energy",be.energy);j.addProperty("total_energy",line.batchEnergy);j.addProperty("paid",line.paid);j.addProperty("recipe",line.batchRecipe);j.addProperty("selected",line.selected);j.addProperty("progress",!line.batchDuration.positive()?0:line.work.divide(line.batchDuration).value());j.addProperty("fuel",be.fuelRemaining);j.addProperty("fluid_in",be.fluids.getAmountAsLong(line.fluidTank(0)));j.addProperty("fluid_out",be.fluids.getAmountAsLong(line.fluidTank(be.device().fluidOutput())));j.addProperty("target",be.routes.isEmpty()?"未绑定":be.routes.size()+" 对容器");
+        if(be.currencyUpgrade!=null)j.addProperty("progress",be.currencyUpgrade.progress());
+        j.addProperty("line_count",be.lineCount());j.addProperty("line_index",line.index);j.addProperty("line_speed",be.device().speed(be.tier(),IndustrialRules.current().furnaceSpeeds));
+        JsonArray productionLines=new JsonArray();
+        for(var other:be.lanes()){JsonObject state=new JsonObject();state.addProperty("index",other.index);state.addProperty("status",other.displayStatus());state.addProperty("recipe",other.batchRecipe);state.addProperty("progress",other.batchDuration.positive()?other.work.divide(other.batchDuration).value():0);productionLines.add(state);}
+        j.add("production_lines",productionLines);
+        j.addProperty("batch_sequence",line.batchSequence);j.addProperty("server_tick",be.getLevel().getGameTime());
+        double duration=line.batchDuration.value();
+        j.addProperty("progress_rate",duration==0||!be.running||!line.canFinish()||line.batchRecipe.isEmpty()?0:line.workThisTick/duration);
         j.addProperty("fluid_capacity",be.fluidCapacity());j.addProperty("storage_capacity",be.storageCapacity());
-        for(int tank=0;tank<be.device().fluidTanks();tank++){var fluid=be.fluids.getResource(tank);String prefix=tank==be.device().fluidOutput()?"fluid_out":tank==0?"fluid_in":"fluid_in2";j.addProperty(prefix,be.fluids.getAmountAsInt(tank));j.addProperty(prefix+"_id",fluid.isEmpty()?"":BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());j.addProperty(prefix+"_name",fluid.isEmpty()?"空":fluid.toStack(1).getHoverName().getString());}
+        for(int tank=0;tank<be.device().fluidTanks();tank++){int actual=line.fluidTank(tank);var fluid=be.fluids.getResource(actual);String prefix=tank==be.device().fluidOutput()?"fluid_out":tank==0?"fluid_in":"fluid_in2";j.addProperty(prefix,be.fluids.getAmountAsLong(actual));j.addProperty(prefix+"_id",fluid.isEmpty()?"":BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());j.addProperty(prefix+"_name",fluid.isEmpty()?"空":fluid.toStack(1).getHoverName().getString());}
         MachineBlockEntity core=be.device().has(DeviceType.Capability.STORAGE_NETWORK)?be:validBeacon(be);if(core!=null){String group=components.get(core.identity.toString());long balance=0,capacity=0;for(var other:loaded.values())if(!other.isRemoved()&&(other.device().has(DeviceType.Capability.STORAGE_NETWORK)&&Objects.equals(components.get(other.identity.toString()),group)||other.device().has(DeviceType.Capability.ENERGY_STORAGE)&&validBeacon(other)!=null&&Objects.equals(components.get(other.beacon),group))){balance+=other.energy;capacity+=other.storageCapacity();}j.addProperty("network_energy",balance);j.addProperty("network_capacity",capacity);Totals t=totals.get(group);if(t!=null){j.addProperty("generated",t.lastGenerated);j.addProperty("consumed",t.lastConsumed);j.addProperty("overflow",t.lastOverflow);}j.addProperty("member_change",memberReasons.getOrDefault(core.identity.toString(),"网络成员已恢复"));j.addProperty("radius",core.radius());}
         JsonArray list=new JsonArray();for(var r:IndustrialProcessing.choices(be)){
             JsonObject entry=new JsonObject();entry.addProperty("id",r.id().identifier().toString());entry.addProperty("tier",r.value().minimumTier());entry.addProperty("ticks",r.value().ticks());entry.addProperty("energy",r.value().energy());
@@ -194,11 +214,14 @@ public final class IndustrialWorld extends SavedData {
             entry.addProperty("ingredients",ingredients);
             String result=r.value().results().stream().map(item->item.getHoverName().getString()+" ×"+item.getCount()).reduce((a,b)->a+" + "+b).orElse(r.value().fluidResult().isEmpty()?"随机通货":r.value().fluidResult().getHoverName().getString()+" "+r.value().fluidResult().getAmount()+" mB");
             if(be.device().has(DeviceType.Capability.MINING)){
-                String mineral=IndustrialProcessing.mineralId(r);int richness=IndustrialDeposits.get((ServerLevel)be.getLevel()).deposit((ServerLevel)be.getLevel(),be.getBlockPos().getX()>>4,be.getBlockPos().getZ()>>4).get(mineral);
-                result=net.minecraft.network.chat.Component.translatable("mineral."+IndustrialContent.NS+"."+mineral).getString()+" · "+(richness==35?"贫瘠":richness==135?"富有":"普通")+" "+richness+"%";
+                String mineral=IndustrialProcessing.mineralId(r);entry.addProperty("mineral_name",net.minecraft.network.chat.Component.translatable("mineral."+IndustrialContent.NS+"."+mineral).getString());int richness=MineralCatalog.universal(mineral)?100:IndustrialDeposits.get((ServerLevel)be.getLevel()).deposit((ServerLevel)be.getLevel(),be.getBlockPos().getX()>>4,be.getBlockPos().getZ()>>4).get(mineral);
+                result=net.minecraft.network.chat.Component.translatable("mineral."+IndustrialContent.NS+"."+mineral).getString()+" · "+(richness==35?"贫瘠":richness==135?"富集":"普通");
             }
-            String titleKey="recipe."+IndustrialContent.NS+"."+r.id().identifier().getPath().replace('/','.');String title=net.minecraft.network.chat.Component.translatable(titleKey).getString();if(!title.equals(titleKey))result=title+" → "+result;entry.addProperty("name",result);list.add(entry);
+            String titleKey="recipe."+IndustrialContent.NS+"."+r.id().identifier().getPath().replace('/','.');String title=net.minecraft.network.chat.Component.translatable(titleKey).getString();if(!title.equals(titleKey))result=title+" → "+result;entry.addProperty("name",result);var icons=r.value().results();ItemStack icon=icons.isEmpty()?r.value().fluidResult().isEmpty()?ItemStack.EMPTY:new ItemStack(r.value().fluidResult().getFluid().getBucket()):icons.getFirst().copyWithCount(1);entry.add("icon",ItemStack.OPTIONAL_CODEC.encodeStart(be.getLevel().registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),icon).getOrThrow());list.add(entry);
         }j.add("recipes",list);j.addProperty("show_lines",includeLines);JsonArray links=new JsonArray();if(includeLines&&be.device().has(DeviceType.Capability.STORAGE_NETWORK)&&nodes.containsKey(be.identity.toString())){for(String id:nodes.get(be.identity.toString()).links){Node n=nodes.get(id);if(n!=null)links.add(n.position);}for(var device:loaded.values())if(device.beacon.equals(be.identity.toString())&&validBeacon(device)!=null)links.add(device.getBlockPos().asLong());}else if(includeLines&&validBeacon(be)!=null)links.add(validBeacon(be).getBlockPos().asLong());if(includeLines)j.add("links",links);
-        return IndustrialDeviceInfo.enrich(be,j);
+        JsonArray counts=new JsonArray();for(int i=0;i<be.items.size();i++)counts.add(be.items.getAmountAsLong(i));j.add("slot_amounts",counts);
+        JsonArray routes=new JsonArray();for(var route:be.routes){JsonObject entry=new JsonObject();entry.addProperty("id",route.id);entry.addProperty("source",route.source);entry.addProperty("target",route.target);entry.addProperty("source_name",blockName(be,route.source));entry.addProperty("target_name",blockName(be,route.target));entry.addProperty("status",route.status);routes.add(entry);}j.add("routes",routes);j.addProperty("route_limit",be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS)?be.routeLimit():0);
+        j.addProperty("speed_multiplier",be.pluginSpeed().value());j.addProperty("energy_multiplier",be.energyMultiplier());j.addProperty("capacity_multiplier",be.capacityMultiplier());
+        return IndustrialDeviceInfo.enrich(be,line,j);
     }
 }

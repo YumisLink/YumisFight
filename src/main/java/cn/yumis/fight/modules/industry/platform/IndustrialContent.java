@@ -77,6 +77,7 @@ public final class IndustrialContent {
             }
         }
         for(int i=1;i<=10;i++)item("energy_crystal_"+i);
+        ALL_ITEMS.put("mana_storage_bag",ITEMS.registerItem("mana_storage_bag",ManaStorageBagItem::new,p->p.stacksTo(1)));
         for(int i=1;i<=5;i++)item("industrial_upgrade_"+i);
         for(String key:List.of("nuclear_core","rtg_core"))item(key);
         for(String metal:List.of("lead","uranium","titanium")){item("raw_"+metal);item(metal+"_ingot");block(metal+"_ore",p->new ResourceBlock(metal,p));block(metal+"_block",Block::new);}
@@ -100,6 +101,7 @@ public final class IndustrialContent {
         ALL_ITEMS.put("mana_wand",ITEMS.registerItem("mana_wand",ManaWand::new,p->p.stacksTo(1)));
         ALL_ITEMS.put("coolant_bucket",ITEMS.registerItem("coolant_bucket",p->new TankBucketItem(COOLANT,p),p->p.stacksTo(1).craftRemainder(Items.BUCKET)));
     }
+    static {for(var definition:cn.yumis.fight.modules.industry.api.MachinePlugins.all())item(definition.id());}
     private IndustrialContent(){}
     public static Identifier id(String key){return Identifier.fromNamespaceAndPath(NS,key);}
     private static BaseFlowingFluid.Properties coolantProperties(){return new BaseFlowingFluid.Properties(COOLANT_TYPE,COOLANT,FLOWING_COOLANT).bucket(()->ALL_ITEMS.get("coolant_bucket").get()).block(COOLANT_BLOCK);}
@@ -109,6 +111,7 @@ public final class IndustrialContent {
     public static Spec spec(DeviceType kind,int tier){return SPECS.get(kind.id+(kind.graded||kind.maximumTier()>kind.minimumTier()?"_t"+tier:""));}
     public static int crystalTier(ItemStack stack){var key=BuiltInRegistries.ITEM.getKey(stack.getItem());if(!key.getNamespace().equals(NS)||!key.getPath().startsWith("energy_crystal_"))return 0;try{return Integer.parseInt(key.getPath().substring(15));}catch(NumberFormatException bad){return 0;}}
     public static void register(IEventBus bus){
+        ManaStorageBagItem.registerIntake();
         IndustrialEvents.register();
         BLOCKS.register(bus);ITEMS.register(bus);BES.register(bus);MENUS.register(bus);TYPES.register(bus);SERIALIZERS.register(bus);FLUID_TYPES.register(bus);FLUIDS.register(bus);TABS.register(bus);IndustrialWorldgen.register(bus);
         bus.addListener((RegisterCapabilitiesEvent e)->{e.registerBlockEntity(Capabilities.Item.BLOCK,MACHINE_BE.get(),(be,side)->be.itemsFor(side));e.registerBlockEntity(Capabilities.Fluid.BLOCK,MACHINE_BE.get(),(be,side)->be.fluidsFor(side));});

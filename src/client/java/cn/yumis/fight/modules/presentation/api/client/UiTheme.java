@@ -90,15 +90,16 @@ public final class UiTheme {
     }
     public static int textInset(){return definition.textInset();}
     public static int tooltipColor(int color){return color==TEXT?TIP_TEXT:color==MUTED?TIP_MUTED:color==GOLD||color==ACCENT?TIP_TITLE:color;}
-    private static void frame(GuiGraphicsExtractor g,int x,int y,int w,int h,int fill,boolean inset){
-        if(w<=0||h<=0)return;check();g.fill(x,y,x+w,y+h,fill);
-        if(definition.style().equals("flat")){g.fill(x,y,x+w,y+1,BORDER);g.fill(x,y+h-1,x+w,y+h,BORDER);return;}
-        int size=Math.min(definition.border(),Math.min(w,h)/2),top=inset?SHADOW:LIGHT,bottom=inset?LIGHT:SHADOW;
-        g.fill(x,y,x+w,y+size,top);g.fill(x,y,x+size,y+h,top);g.fill(x,y+h-size,x+w,y+h,bottom);g.fill(x+w-size,y,x+w,y+h,bottom);
+    private static void roundedFill(GuiGraphicsExtractor g,int x,int y,int w,int h,int radius,int color){
+        if(w<=0||h<=0)return;int r=Math.min(radius,Math.min(w,h)/2);g.fill(x,y+r,x+w,y+h-r,color);
+        for(int i=0;i<r;i++){int inset=(int)Math.ceil(r-Math.sqrt(r*r-(r-i-.5)*(r-i-.5)));g.fill(x+inset,y+i,x+w-inset,y+i+1,color);g.fill(x+inset,y+h-i-1,x+w-inset,y+h-i,color);}
     }
-    public static void panel(GuiGraphicsExtractor g,int x,int y,int w,int h){g.fill(x-1,y-1,x+w+1,y+h+1,BORDER);frame(g,x,y,w,h,PANEL,false);}
-    public static void card(GuiGraphicsExtractor g,int x,int y,int w,int h){frame(g,x,y,w,h,CARD,true);}
-    public static void slot(GuiGraphicsExtractor g,int x,int y){g.fill(x-1,y-1,x+17,y+17,SLOT);g.fill(x-1,y-1,x+17,y,SLOT_SHADOW);g.fill(x-1,y-1,x,y+17,SLOT_SHADOW);g.fill(x,y+16,x+17,y+17,SLOT_LIGHT);g.fill(x+16,y,x+17,y+17,SLOT_LIGHT);}
-    public static void button(GuiGraphicsExtractor g,int x,int y,int w,int h,boolean active,boolean hover,boolean selected){frame(g,x,y,w,h,!active?DISABLED:selected?SELECTED:hover?HOVER:BUTTON,selected);}
-    public static void scrollbar(GuiGraphicsExtractor g,int x,int y,int h,int thumb,int offset){g.fill(x,y,x+10,y+h,SCROLL_TRACK);frame(g,x+1,y+offset,8,thumb,SCROLL_THUMB,false);}
+    public static void surface(GuiGraphicsExtractor g,int x,int y,int w,int h,int radius,int fill,int border){roundedFill(g,x,y,w,h,radius,border);roundedFill(g,x+1,y+1,w-2,h-2,Math.max(0,radius-1),fill);}
+    private static int edge(){return definition.style().equals("flat")?0xff70747d:BORDER;}
+    public static void panel(GuiGraphicsExtractor g,int x,int y,int w,int h){check();surface(g,x,y,w,h,6,PANEL,edge());}
+    public static void card(GuiGraphicsExtractor g,int x,int y,int w,int h){surface(g,x,y,w,h,4,CARD,edge());}
+    public static void hud(GuiGraphicsExtractor g,int x,int y,int w,int h){surface(g,x,y,w,h,5,HUD_PANEL,0xff9298a2);}
+    public static void slot(GuiGraphicsExtractor g,int x,int y){surface(g,x-1,y-1,18,18,3,SLOT,SLOT_LIGHT);}
+    public static void button(GuiGraphicsExtractor g,int x,int y,int w,int h,boolean active,boolean hover,boolean selected){surface(g,x,y,w,h,4,!active?DISABLED:selected?SELECTED:hover?HOVER:BUTTON,definition.style().equals("flat")?0xffa0a5af:LIGHT);}
+    public static void scrollbar(GuiGraphicsExtractor g,int x,int y,int h,int thumb,int offset){surface(g,x,y,10,h,4,SCROLL_TRACK,edge());surface(g,x+1,y+offset,8,thumb,3,SCROLL_THUMB,LIGHT);}
 }

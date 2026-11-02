@@ -8,14 +8,11 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 public final class CharacterContent {
     private CharacterContent(){}
-    public static void register(){for(String id:java.util.List.of(CharacterItems.PROFESSION_RESET,CharacterItems.CAREER_RESET))ItemRegistry.ALL.put(id,ItemRegistry.ITEMS.registerItem(id,p->new ResetTicket(p,id.equals(CharacterItems.PROFESSION_RESET))));}
-    private static final class ResetTicket extends Item {
-        private final boolean base;
-        ResetTicket(Properties properties,boolean base){super(properties);this.base=base;}
-        @Override public InteractionResult use(Level level,Player player,InteractionHand hand){
-            if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;
-            if(player instanceof ServerPlayer server)CharacterActions.reset(server,base);
-            return InteractionResult.SUCCESS;
-        }
+    public static void register(){
+        ticket(CharacterItems.PROFESSION_RESET,CharacterActions.Ticket.PROFESSION_RESET);ticket(CharacterItems.CAREER_RESET,CharacterActions.Ticket.CAREER_RESET);
+        ticket(CharacterItems.CAREER_UNLOCK,CharacterActions.Ticket.CAREER_UNLOCK);ticket(CharacterItems.AWAKENING,CharacterActions.Ticket.AWAKENING);
     }
+    private static void ticket(String id,CharacterActions.Ticket ticket){ItemRegistry.ALL.put(id,ItemRegistry.ITEMS.registerItem(id,properties->new Item(properties){
+        @Override public InteractionResult use(Level level,Player player,InteractionHand hand){if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;if(player instanceof ServerPlayer server)CharacterActions.use(server,ticket);return InteractionResult.SUCCESS;}
+    }));}
 }

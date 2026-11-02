@@ -131,7 +131,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             boolean terminal=skillId.equals(CareerSkills.KALLA)&&s.kallaUntil>now||skillId.equals(CareerSkills.EYE)&&s.eyeUntil>0||skillId.equals(CareerSkills.SWORD)&&s.bloodUntil>0||skillId.equals(CareerSkills.FRENZY)&&s.frenzy;
             int slot=request.has("slot")?request.get("slot").getAsInt():-1;
             if(!terminal&&(slot<0||slot>=player.slots.length||!player.slots[slot].equals(skillId)&&!oracle.binding(p,request)))throw new IllegalArgumentException("技能绑定已改变");
-            if(!terminal&&session.resources.cooldowns.getOrDefault(skillId,0L)>now&&!session.resources.training)throw new IllegalArgumentException("技能冷却中");
+            if(!terminal&&session.resources.cooldowns.getOrDefault(skillId,0L)>now&&!session.resources.training&&!p.isCreative())throw new IllegalArgumentException("技能冷却中");
             if((skillId.equals(CareerSkills.ORB)||skillId.equals(CareerSkills.AGNI))&&s.brands<1)throw new IllegalArgumentException("至少需要一枚波动刻印");
             var resources=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);var life=copy(session.life,Life.class);
             resources.equipment=session.resources.equipment;
@@ -177,7 +177,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             if(skillId.equals(CareerSkills.EYE)){next.eyeUntil=terminal?0:now+20000;next.eyeBonusMut=terminal?0:parameters.get("eyeBonusMut",.20);}
             if(skillId.equals(CareerSkills.SWORD)){next.bloodUntil=terminal?0:now+60000;next.blood=0;}
             if(CareerRules.producesBrand(skillId))next.brands=Math.min(5,next.brands+1);
-            if(!terminal&&!resources.training)resources.cooldowns.put(skillId,now+(long)(SkillCosts.resolve(skill,rank,resolved,resources.equipment,CareerRules.magic(skill,player)).cooldown()*1000));
+            if(!terminal&&!resources.training&&!p.isCreative())resources.cooldowns.put(skillId,now+(long)(SkillCosts.resolve(skill,rank,resolved,resources.equipment,CareerRules.magic(skill,player)).cooldown()*1000));
             resources.controlEpoch++;resources.recordedAt=now;
             Cast accepted=new Cast();accepted.id=id;accepted.skill=skillId;accepted.session=session.id.toString();accepted.generation=life.generation;accepted.dimension=next.dimension;accepted.instance=next.instance;accepted.started=now;accepted.expires=now+(long)((skillId.equals(CareerSkills.FIELD)?12:Math.max(parameters.get("duration",1),5))*1000)+5000;accepted.parameters=parameters;accepted.stats=resolved;accepted.equipment=resources.equipment;accepted.origin=origin;accepted.center=center;accepted.direction=direction;accepted.terminal=terminal;
             accepted.expires=oracle.expires(parameters,resolved,now,accepted.expires);

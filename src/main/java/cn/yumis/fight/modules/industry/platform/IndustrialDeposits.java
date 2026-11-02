@@ -28,7 +28,7 @@ public final class IndustrialDeposits extends SavedData {
         String key=Long.toString(ChunkPos.pack(x,z));var dimension=deposits.computeIfAbsent(level.dimension().identifier().toString(),id->new LinkedHashMap<>());
         var found=dimension.get(key);if(found!=null)return Collections.unmodifiableMap(found);
         var rolled=new LinkedHashMap<String,Integer>();
-        for(var entry:IndustrialRules.current().minerals.entrySet())if(level.getRandom().nextInt(100)<entry.getValue().chance()){
+        for(var entry:IndustrialRules.current().minerals.entrySet())if(!MineralCatalog.universal(entry.getKey())&&level.getRandom().nextInt(100)<entry.getValue().chance()){
             int richness=level.getRandom().nextInt(100);rolled.put(entry.getKey(),richness<50?100:richness<90?35:135);
         }
         dimension.put(key,rolled);setDirty();return Collections.unmodifiableMap(rolled);

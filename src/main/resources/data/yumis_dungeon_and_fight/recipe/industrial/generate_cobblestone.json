@@ -1,0 +1,15 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 1,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "minecraft:cobblestone",
+      "count": 1
+    }
+  ],
+  "ticks": 400,
+  "energy": 1600,
+  "fluid_inputs": []
+}

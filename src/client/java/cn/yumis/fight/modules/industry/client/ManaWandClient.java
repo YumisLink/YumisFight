@@ -1,0 +1,19 @@
+package cn.yumis.fight.modules.industry.client;
+
+import cn.yumis.fight.modules.industry.platform.*;
+import cn.yumis.fight.modules.presentation.api.client.*;
+import net.minecraft.client.*;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+
+public final class ManaWandClient {
+    private ManaWandClient(){}
+    public static ItemStack held(){var player=Minecraft.getInstance().player;if(player==null)return ItemStack.EMPTY;return player.getMainHandItem().getItem() instanceof ManaWand?player.getMainHandItem():player.getOffhandItem().getItem() instanceof ManaWand?player.getOffhandItem():ItemStack.EMPTY;}
+    public static void register(IEventBus bus){
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{var definition=MachineBlockEntity.pluginDefinition(event.getItemStack());if(definition!=null){event.getToolTip().add(net.minecraft.network.chat.Component.literal("背包堆叠64 · 机内每格最多 "+definition.installedStackLimit()+" · 逐件乘算"));event.getToolTip().add(net.minecraft.network.chat.Component.literal(definition.effect()==cn.yumis.fight.modules.industry.api.MachinePlugins.Effect.SPEED?"每件速度×1.5、单批耗能×2；发电机暂不适用":"每件输入／输出物品槽与液槽容量×2；超额储量未取出时不能拆卸"));}});
+        bus.addListener((RegisterGuiLayersEvent event)->event.registerAboveAll(IndustrialContent.id("mana_wand"),(graphics,delta)->{
+        var mc=Minecraft.getInstance();var stack=held();if(stack.isEmpty()||mc.gui.screen()!=null||mc.gui.hud.isHidden())return;var lines=ManaWand.information(stack);var font=UiFonts.font();int width=lines.stream().mapToInt(font::width).max().orElse(0)+16;float scale=Math.min(1f,(graphics.guiWidth()-16)/(float)width);
+        graphics.pose().pushMatrix();graphics.pose().translate((graphics.guiWidth()-width*scale)/2,Math.max(8,graphics.guiHeight()-166));graphics.pose().scale(scale,scale);UiTheme.hud(graphics,0,0,width,lines.size()*12+8);for(int i=0;i<lines.size();i++)graphics.text(font,lines.get(i),8,5+i*12,UiTheme.HUD_TEXT,true);graphics.pose().popMatrix();
+    }));}
+}

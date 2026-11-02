@@ -58,18 +58,22 @@ public final class IndustrialJeiPlugin implements IModPlugin {
     }
     @Override public void registerCategories(IRecipeCategoryRegistration registration){for(String key:MACHINES)registration.addRecipeCategories(new Category(key,registration.getJeiHelpers().getGuiHelper()));}
     @Override public void registerRecipes(IRecipeRegistration registration){
+        registration.addItemStackInfo(IndustrialContent.stack("storage_plugin",1),Component.literal("机器侧边箭头展开3格插件栏，每格最多8件。每件使物品输入／输出槽与液槽容量翻倍，逐件乘算；不可堆叠物仍为1。取出插件前须清空超额储量。"));
+        registration.addItemStackInfo(IndustrialContent.stack("speed_plugin",1),Component.literal("每件使速度×1.5、单批耗能×2，逐件乘算。背包堆叠64、机内每格8。适用加工、采矿、通货升级、抽水、收获与水晶运输，发电机暂不适用。"));
+        registration.addItemStackInfo(IndustrialContent.stack("mana_storage_bag",1),Component.literal("随身携带时，新获得的1至10阶魔能水晶自动转为魔能，满背包也可拾取。每升一阶所需魔能为前一阶的8倍，存取无损。\n手持Shift＋滚轮切换取出等级；右键取1个，Shift＋右键取64个，魔能或空间不足时整次取消。取出的水晶可留在背包使用。\n魔能跟随袋子保存，多袋按主手、副手、背包顺序收纳。4根线、4张皮革和1枚1阶水晶在工作台合成。"));
         var recipes=IndustrialRecipeCache.recipes.byType(IndustrialContent.RECIPE_TYPE.get());
         for(String key:MACHINES)registration.addRecipes(TYPES.get(key),recipes.stream().filter(h->group(h.value()).equals(key)).toList());
         for(var spec:IndustrialContent.SPECS.values())if(spec.device().graded||spec.device().functional())registration.addItemStackInfo(IndustrialContent.stack(spec.id(),1),Component.literal("手持对应升级材料右键，消耗该工作台升级配方中除前级设备外的材料；原地升级保留内容。工作台升级仅接受空设备，拆除会清空液体和余能。"));
         for(String key:List.of("solar_collector","wind_generator"))registration.addItemStackInfo(IndustrialContent.stack(key,1),Component.literal(key.equals("wind_generator")?"露天三格风机；最低高度 "+IndustrialRules.current().windBaseHeight+"，基础产能 "+IndustrialRules.current().windBasePower+" 点/秒。":"露天日曜设备；白天产能 "+IndustrialRules.current().solarDayPower+" 点/秒，夜间或雷暴停止。"));
         for(int tier=1;tier<=5;tier++){
-            registration.addItemStackInfo(IndustrialContent.stack("prospector_t"+tier,1),Component.literal("右键打开区块地图，Shift右键直接扫描。扫描"+(tier*2-1)+"×"+(tier*2-1)+"区块，耗时2秒，完成后冷却5秒，冷却与记录跟随玩家保存在当前世界。可移动，不耗魔能，不加载地形。"));
-            registration.addItemStackInfo(IndustrialContent.stack("mineral_generator_t"+tier,1),Component.literal("区块采矿机：矿藏各自独立抽取，允许空区块，首次扫描或放置后固定且无限。只显示本级可采矿物，9格产物满则暂停。速度"+tier+"倍，功率"+(tier*tier)+"倍；水×1.5、冷却液×2.5，工作时耗液。魔力矿每批2～8颗，80%为3阶、20%为4阶，开工锁定。"));
+            registration.addItemStackInfo(IndustrialContent.stack("prospector_t"+tier,1),Component.literal("右键直接扫描，Shift右键打开可拖动区块地图。扫描"+(tier*2-1)+"×"+(tier*2-1)+"区块，耗时2秒，完成后冷却5秒，冷却与记录跟随玩家保存在当前世界。可移动，不耗魔能，不加载地形。"));
+            registration.addItemStackInfo(IndustrialContent.stack("mineral_generator_t"+tier,1),Component.literal("采矿机：圆石在任意区块均可开采；其他矿藏各自独立抽取，首次判定后固定且无限，紫水晶二级开放。只显示本级可采矿物，9格产物满则暂停。速度"+tier+"倍，功率"+(tier*tier)+"倍；水×1.5、冷却液×2.5，工作时耗液。魔力矿每批2～8颗，80%为3阶、20%为4阶，开工锁定。"));
         }
+        for(var spec:IndustrialContent.SPECS.values())if(spec.device().has(cn.yumis.fight.modules.industry.api.DeviceType.Capability.PARALLEL))registration.addItemStackInfo(IndustrialContent.stack(spec.id(),1),Component.literal("本级解锁 "+spec.device().lineCount(spec.tier())+" 条独立产线；单线相对一级速度 "+(1<<(spec.tier()-1))+" 倍。每线独立输入、输出、进度及工艺液，界面点击产线切换；自动投料分配到可接收的产线。每份配方仍按实际消耗结算，通货每份6400魔能，各线独立抽取。"));
         for(int tier=1;tier<=4;tier++)registration.addItemStackInfo(IndustrialContent.stack("mana_accumulator_t"+tier,1),Component.literal("接入信标电网，增加 "+IndustrialRules.current().accumulatorCapacities[tier-1]+" 魔能容量，初始为空，不接受水晶充能，无额外充放速度限制。断网、卸载保留本节点余额；拆除清空；原地升级保留。"));
         for(int tier=1;tier<=3;tier++){
             registration.addItemStackInfo(IndustrialContent.stack("fluid_tank_t"+tier,1),Component.literal("一罐一种液体，可存 "+IndustrialRules.current().tankCapacities[tier-1]+" mB。三档均支持全部工艺液；原地升级保留，拆除清空。"));
-            registration.addItemStackInfo(IndustrialContent.stack("fluid_crystal_t"+tier,1),Component.literal("权杖切换液体模式，依次选择源出口、目标入口，再点击供液水晶。源与目标各距水晶"+(tier==3?"同维度不限距离":IndustrialRules.current().transferRanges[tier-1]+"格以内")+"；实际成功输送才收费，未加载、缺液、满罐或类型不匹配时暂停。"));
+            registration.addItemStackInfo(IndustrialContent.stack("fluid_crystal_t"+tier,1),Component.literal("权杖移动模式先绑定水晶，再选择来源容器和目标容器。源与目标各距水晶"+(tier==3?"同维度不限距离":IndustrialRules.current().transferRanges[tier-1]+"格以内")+"；各档支持1／3／16对并行，每对成功批量操作一次固定消耗"+IndustrialRules.current().fluidTransferOperationEnergy[tier-1]+"魔能，未满批同价。未加载、缺液、满罐或类型不匹配不收费。"));
         }
     }
     @Override public void registerRecipeCatalysts(IRecipeCatalystRegistration registration){

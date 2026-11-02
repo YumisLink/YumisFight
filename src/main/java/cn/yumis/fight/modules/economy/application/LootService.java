@@ -14,6 +14,8 @@ import cn.yumis.fight.modules.economy.api.LootOdds;
 import cn.yumis.fight.modules.economy.api.RewardPorts;
 import cn.yumis.fight.modules.inventory.api.InventoryOperations;
 import cn.yumis.fight.modules.inventory.api.InventoryDrops;
+import cn.yumis.fight.modules.inventory.api.InventoryIntake;
+import cn.yumis.fight.modules.inventory.api.InventoryPacking;
 import cn.yumis.fight.foundation.Journal;
 import net.minecraft.server.MinecraftServer;
 import java.util.function.Supplier;
@@ -35,13 +37,36 @@ public class LootService implements InventoryDrops {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
     private static <T>T copy(T value,Class<T> type){return JSON.fromJson(JSON.toJson(value),type);}
 
+    /** The entity UUID also identifies adopted native loot if a crash preceded its NBT save. */
+    private String nativeIdentity(ItemEntity entity){
+        String id=entity.getPersistentData().getStringOr("ydnf_drop","");
+        if(id.isEmpty()&&!journal.get("loot/"+entity.getUUID()).isJsonNull()){
+            id=entity.getUUID().toString();entity.getPersistentData().putString("ydnf_drop",id);
+        }
+        return id;
+    }
+
     public void nativePickup(net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent.Pre e){
-            if(!(e.getPlayer() instanceof ServerPlayer p)||e.canPickup().isFalse())return;String id=e.getItemEntity().getPersistentData().getStringOr("ydnf_drop","");if(id.isEmpty())return;e.setCanPickup(net.minecraft.util.TriState.FALSE);
+            if(!(e.getPlayer() instanceof ServerPlayer p)||e.canPickup().isFalse())return;
             // NeoForge fires Pre before vanilla checks the delay/target. Keep both checks before our transaction.
             if(e.getItemEntity().hasPickUpDelay()||e.getItemEntity().getTarget()!=null&&!p.getUUID().equals(e.getItemEntity().getTarget())||inventory.get().locked(p.getUUID()))return;
-            LootService.Drop drop=journal.get("loot/"+id,LootService.Drop.class,null);if(drop==null||!journal.get("lootEnd/"+id).isJsonNull())return;ItemStack actual=e.getItemEntity().getItem();if(accountPickup(p,drop,actual)){if(!journal.get("lootEnd/"+id).isJsonNull())e.getItemEntity().discard();return;}int room=0;for(int i=0;i<36;i++){
-                ItemStack s=p.getInventory().getItem(i);room+=s.isEmpty()?actual.getMaxStackSize():ItemStack.isSameItemSameComponents(s,actual)?Math.max(0,s.getMaxStackSize()-s.getCount()):0;
+            String id=nativeIdentity(e.getItemEntity());
+            if(id.isEmpty()){
+                // Receptacle pickups need a durable source even when vanilla would find no free slot.
+                if(InventoryIntake.capacity(p,e.getItemEntity().getItem())<=0)return;
+                try{
+                    var prepared=prepare(p,e.getItemEntity());
+                    journal.put(prepared.journalKey(),prepared.state());
+                    id=prepared.id().toString();e.getItemEntity().getPersistentData().putString("ydnf_drop",id);
+                }catch(Exception failure){e.setCanPickup(net.minecraft.util.TriState.FALSE);players.message(p,failure.getMessage());return;}
             }
+            e.setCanPickup(net.minecraft.util.TriState.FALSE);
+            LootService.Drop drop=journal.get("loot/"+id,LootService.Drop.class,null);
+            if(drop==null||drop.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+id).isJsonNull()){e.getItemEntity().discard();return;}
+            ItemStack actual=e.getItemEntity().getItem(),expected=inventory.get().decode(p,drop.item);
+            if(!ItemStack.isSameItemSameComponents(actual,expected))return;
+            if(actual.getCount()>expected.getCount()){actual=expected.copy();e.getItemEntity().setItem(actual);}
+            if(accountPickup(p,drop,actual)){if(!journal.get("lootEnd/"+id).isJsonNull())e.getItemEntity().discard();return;}int room=InventoryPacking.room(p,actual);
             int take=Math.min(room,actual.getCount());if(take<=0)return;ItemStack result=actual.copyWithCount(take),left=actual.copyWithCount(actual.getCount()-take);var next=copy(drop,LootService.Drop.class);next.item=inventory.get().encode(p,left);Map<String,JsonElement> edits=new HashMap<>();edits.put("loot/"+id,JSON.toJsonTree(next));if(left.isEmpty())edits.put("lootEnd/"+id,JSON.toJsonTree("picked"));JsonObject intent=new JsonObject();intent.addProperty("publicPickup",id);intent.addProperty("count",take);try{
                 inventory.get().transact(p,"public-pickup/"+UUID.randomUUID(),intent,()->inventory.get().requireSpace(p,result),edits);if(left.isEmpty())e.getItemEntity().discard();else e.getItemEntity().setItem(left);
                 var view=EquipmentItems.view(result);if(view!=null&&view.creativeTemplate())players.profile(p);
@@ -246,12 +271,7 @@ public class LootService implements InventoryDrops {
         if(d==null||!d.durableChest&&!players.session(p).toString().equals(d.session)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull())return;
         ItemStack stack=inventory.get().decode(p,d.item);
         if(accountPickup(p,d,stack)){if(!journal.get("lootEnd/"+e.dropId).isJsonNull())e.discard();return;}
-        int room=0;
-        for(int i=0;i<36;i++){
-            ItemStack s=p.getInventory().getItem(i);
-            if(s.isEmpty())room+=stack.getMaxStackSize();
-            else if(ItemStack.isSameItemSameComponents(s,stack))room+=Math.max(0,s.getMaxStackSize()-s.getCount());
-        }
+        int room=InventoryPacking.room(p,stack);
         int take=Math.min(room,stack.getCount());
         if(take<=0)return;
         ItemStack received=stack.copyWithCount(take);
@@ -314,7 +334,7 @@ public class LootService implements InventoryDrops {
         }
     }
     public void nativeLeft(ItemEntity entity){
-        String id=entity.getPersistentData().getStringOr("ydnf_drop","");
+        String id=nativeIdentity(entity);
         // Leaving the tracked entity set also occurs on chunk visibility changes with no removal reason.
         // Only actual destruction closes the durable drop; unloading must remain recoverable.
         var reason=entity.getRemovalReason();
@@ -353,12 +373,13 @@ public class LootService implements InventoryDrops {
             }
         }
         for(ServerLevel level:server.getAllLevels())for(Entity e:level.getAllEntities())if(e instanceof ItemEntity item){
-            String id=item.getPersistentData().getStringOr("ydnf_drop","");
+            String id=nativeIdentity(item);
             if(!id.isEmpty()){
                 Drop d=journal.get("loot/"+id,Drop.class,null);
                 if(d==null||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+id).isJsonNull())item.discard();
                 else{
                     int old=decode(d).getCount();
+                    if(item.getItem().getCount()>old)item.setItem(decode(d));
                     if(old!=item.getItem().getCount()||Math.abs(d.x-item.getX())>.5||Math.abs(d.y-item.getY())>.5||Math.abs(d.z-item.getZ())>.5||!d.dimension.equals(level.dimension().identifier().toString())){
                         d.item=ItemStack.OPTIONAL_CODEC.encodeStart(server.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),item.getItem()).getOrThrow();
                         d.x=item.getX();

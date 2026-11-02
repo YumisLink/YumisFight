@@ -10,6 +10,8 @@ public interface ClientPagePanel {
     void render(GuiGraphicsExtractor graphics,Region region,int mouseX,int mouseY,float delta);
     default void tick(){}
     default boolean mouseClicked(MouseButtonEvent event,boolean twice){return false;}
+    default boolean mouseDragged(MouseButtonEvent event,double dx,double dy){return false;}
+    default boolean mouseReleased(MouseButtonEvent event){return false;}
     default boolean mouseScrolled(double x,double y,double sx,double sy){return false;}
     default boolean keyPressed(KeyEvent event){return false;}
     default void close(){}

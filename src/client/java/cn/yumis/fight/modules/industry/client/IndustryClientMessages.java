@@ -18,6 +18,6 @@ public final class IndustryClientMessages {
         });
         router.register("industry","industrial_lines",(context,j)->{IndustrialVisuals.receive(j);});
         router.register("industry","industrial_survey",(context,j)->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof cn.yumis.fight.modules.industry.platform.ProspectorMenu menu&&menu.containerId==j.get("menu").getAsInt())menu.info=j;});
-        router.register("industry","industrial_ui",(context,j)->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof cn.yumis.fight.modules.industry.platform.IndustrialMenu menu&&menu.containerId==j.get("menu").getAsInt())menu.info=j;});
+        router.register("industry","industrial_ui",(context,j)->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof cn.yumis.fight.modules.industry.platform.IndustrialMenu menu&&menu.containerId==j.get("menu").getAsInt())menu.receiveInfo(j);});
     }
 }

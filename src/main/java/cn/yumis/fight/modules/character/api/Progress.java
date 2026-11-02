@@ -12,6 +12,8 @@ public class Progress {
     public boolean dungeonSync=true;
     public String job=JobCatalog.NONE;
     public Set<String> completedJobQuests=new LinkedHashSet<>();
+    public boolean jobChangeUnlocked(){return completedJobQuests!=null&&!completedJobQuests.isEmpty();}
+    public void unlockJobChange(){completedJobQuests.add("yumis_dungeon_and_fight:all_jobs");}
     /** Null distinguishes existing current-format profiles whose learned awakening is already owned. */
     public Boolean awakened;
     public boolean awakened(){return awakened!=null?awakened:learned(JobCatalog.style(jobId()).awakeningSkill())>0;}

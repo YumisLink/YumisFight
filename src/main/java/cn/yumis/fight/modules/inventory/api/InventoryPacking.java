@@ -7,6 +7,10 @@ public final class InventoryPacking {
     private InventoryPacking(){
     }
     public static int room(Player player,ItemStack incoming){
+        return (int)Math.min(Integer.MAX_VALUE,(long)rawRoom(player,incoming)+InventoryIntake.capacity(player,incoming));
+    }
+    /** Physical slots only, for explicitly withdrawn items that must stay available to use. */
+    public static int rawRoom(Player player,ItemStack incoming){
         int room=0;
         for(int i=0;i<36;i++){
             ItemStack existing=player.getInventory().getItem(i);
@@ -16,6 +20,10 @@ public final class InventoryPacking {
         return room;
     }
     public static void insert(Player player,ItemStack incoming){
+        InventoryIntake.receive(player,incoming);
+        insertRaw(player,incoming);
+    }
+    public static void insertRaw(Player player,ItemStack incoming){
         if(incoming.isEmpty())return;
         for(int i=0;i<36&&!incoming.isEmpty();i++){
             ItemStack existing=player.getInventory().getItem(i);

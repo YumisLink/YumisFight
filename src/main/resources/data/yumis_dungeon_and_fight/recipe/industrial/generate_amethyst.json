@@ -1,0 +1,15 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_generator",
+  "minimum_tier": 2,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "minecraft:amethyst_shard",
+      "count": 2
+    }
+  ],
+  "ticks": 400,
+  "energy": 6400,
+  "fluid_inputs": []
+}

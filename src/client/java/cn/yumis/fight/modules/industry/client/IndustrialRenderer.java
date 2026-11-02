@@ -42,7 +42,7 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
             if(!fluid.isEmpty()){
                 var model=Minecraft.getInstance().getModelManager().getFluidStateModelSet().get(fluid.getFluid().defaultFluidState());
                 state.fluidSprite=model.stillMaterial().sprite();state.fluidTint=model.fluidTintSource()==null?-1:model.fluidTintSource().colorAsStack(fluid);
-                state.fluidFill=Math.clamp((float)fluid.getAmount()/be.fluidCapacity(),0,1);
+                state.fluidFill=Math.clamp((float)((double)be.visibleTankAmount()/Math.max(1,be.visibleTankCapacity())),0,1);
                 state.fluidLight=LightCoordsUtil.pack(Math.max(LightCoordsUtil.block(state.lightCoords),fluid.getFluidType().getLightLevel(fluid)),LightCoordsUtil.sky(state.lightCoords));
             }
         }
@@ -50,7 +50,7 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
         state.iconVisible=be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS)||be.device().has(DeviceType.Capability.HARVEST);state.show=state.iconVisible||be.device().has(DeviceType.Capability.STORAGE_NETWORK);if(!state.show)return;
         double age=be.getLevel().getGameTime()+partial;state.angle=(float)((age%180)*2);state.bob=(float)Math.sin((age%200)*Math.PI/100)*.045f;
         items.updateForTopItem(state.gem,IndustrialContent.stack("energy_crystal_"+Math.min(10,be.tier()*2),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
-        if(state.iconVisible)items.updateForTopItem(state.icon,IndustrialContent.stack(be.spec().id(),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
+        if(state.iconVisible)items.updateForTopItem(state.icon,be.device().has(DeviceType.Capability.LOGISTICS)?new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE):be.device().has(DeviceType.Capability.FLUID_LOGISTICS)?new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WATER_BUCKET):IndustrialContent.stack(be.spec().id(),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
     }
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector nodes,CameraRenderState camera){
         if(state.fluidFill>0&&state.fluidSprite!=null)TankFluidMesh.submit(pose,nodes,state.fluidSprite,state.fluidTint,state.fluidFill,state.fluidLight);

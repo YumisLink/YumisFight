@@ -7,7 +7,7 @@ import java.util.*;
 public final class IndustrialRules {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
-    public static final int VERSION=1;
+    public static final int VERSION=2;
     private static final IndustrialRules DEFAULT=defaults();
     private static volatile java.util.function.Supplier<IndustrialRules> source;
     public static IndustrialRules current(){var read=source;return read==null?DEFAULT:read.get();}
@@ -15,12 +15,13 @@ public final class IndustrialRules {
     public int version=VERSION;
     public long beaconCapacity=1000;
     public int[] beaconRadii={3,5,9,18,32};
-    public int[] furnaceSpeeds={4,16,32,64,128};
+    public int[] furnaceSpeeds={4,8,16,32,64};
+    public int[] processingLines={1,1,2,8,16};
     public int windBaseHeight=60,windBasePower=50,windHeightStep=5,windPowerStep=1;
     public int solarDayPower=2,solarEdgePower=1,solarRainPower=1;
     public int[] solarPeriods={0,2000,10000,12000};
     public int[] transferIntervals={20,10,1},transferAmounts={8,64,64},transferRanges={24,128,Integer.MAX_VALUE};
-    public long[] transferEnergy={100,200,400};
+    public long[] transferEnergy={100,1000,10000};
     public int[] harvestSizes={3,9,27};
     public int harvestPeriod=500;
     public long harvestEnergy=200;
@@ -32,7 +33,7 @@ public final class IndustrialRules {
     public int pumpAmount=1000,pumpInterval=20;
     public long pumpEnergy=100;
     public int[] fluidTransferAmounts={1000,4000,16000};
-    public long[] fluidTransferEnergyPerBucket={20,40,80};
+    public long[] fluidTransferOperationEnergy={100,1000,10000};
     public Map<String,MineralCatalog.Mineral> minerals=MineralCatalog.defaults();
     public int magicGrassChance=16;
     public int crystalDropMin=2,crystalDropMax=8,highCrystalWeight=20;
@@ -66,9 +67,10 @@ public final class IndustrialRules {
         if(r==null||r.version!=VERSION||r.beaconCapacity<1||r.beaconRadii.length!=5||r.furnaceSpeeds.length!=5||r.solarPeriods.length!=4||r.transferIntervals.length!=3||r.transferAmounts.length!=3||r.transferRanges.length!=3||r.transferEnergy.length!=3||r.harvestSizes.length!=3||r.harvestPeriod<1||r.harvestEnergy<0||r.fluidCapacity<1000||r.magicGrassChance<1||r.crystalDropMin<1||r.crystalDropMax<r.crystalDropMin||r.highCrystalWeight<0||r.highCrystalWeight>100||r.windHeightStep<1||r.windBasePower<0||r.windPowerStep<0||r.solarDayPower<0||r.solarEdgePower<0||r.solarRainPower<0)throw new IllegalArgumentException("无效工业规则");
         for(int v:r.beaconRadii)positive(v);for(int v:r.furnaceSpeeds){positive(v);if(v>128||128%v!=0)throw new IllegalArgumentException("熔炉速度必须整除128");}for(int v:r.transferIntervals)positive(v);for(int v:r.transferAmounts)positive(v);for(int v:r.harvestSizes)positive(v);
         for(long v:r.transferEnergy)if(v<0)throw new IllegalArgumentException("负搬运费用");
-        if(r.tankCapacities.length!=3||r.accumulatorCapacities.length!=4||r.fluidTransferAmounts.length!=3||r.fluidTransferEnergyPerBucket.length!=3||r.scanTicks<1||r.scanCooldown<1||r.miningWaterRate<1||r.miningCoolantRate<1||r.pumpInterval<1||r.pumpAmount<1||r.pumpEnergy<0)throw new IllegalArgumentException("无效新增工业规则");
+        if(r.processingLines.length!=5||r.tankCapacities.length!=3||r.accumulatorCapacities.length!=4||r.fluidTransferAmounts.length!=3||r.fluidTransferOperationEnergy.length!=3||r.scanTicks<1||r.scanCooldown<1||r.miningWaterRate<1||r.miningCoolantRate<1||r.pumpInterval<1||r.pumpAmount<1||r.pumpEnergy<0)throw new IllegalArgumentException("无效新增工业规则");
+        int previous=1;for(int v:r.processingLines){if(v<previous||v>MachineSlots.MAXIMUM_LINES)throw new IllegalArgumentException("无效加工产线数");previous=v;}
         for(int v:r.tankCapacities)positive(v);for(long v:r.accumulatorCapacities)if(v<1)throw new IllegalArgumentException("无效蓄能容量");
-        for(int v:r.fluidTransferAmounts)positive(v);for(long v:r.fluidTransferEnergyPerBucket)if(v<0)throw new IllegalArgumentException("负供液费用");
+        for(int v:r.fluidTransferAmounts)positive(v);for(long v:r.fluidTransferOperationEnergy)if(v<0)throw new IllegalArgumentException("负供液费用");
         for(String id:MineralCatalog.defaults().keySet()){var m=r.minerals.get(id);if(m==null||m.tier()<1||m.tier()>5||m.chance()<1||m.chance()>100||m.ticks()<1||m.power()<1||m.count()<1)throw new IllegalArgumentException("无效矿藏规则 "+id);}
         for(var entry:defaults().generators.keySet()){
             Generator g=r.generators.get(entry);if(g==null||g.fluidPerSecond<0)throw new IllegalArgumentException("无效发电规则 "+entry);

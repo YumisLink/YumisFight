@@ -64,6 +64,7 @@ public final class EquipmentTooltip {
             case "exalted_stone"->"传说装备新增1条随机词条，最多6条";
             case "delezie_blood"->"不可逆腐化：加孔、等级−5～+5、刷新词条各自独立20%，可同时发生；之后仅可继续镶嵌宝石";
             case "divine_stone"->"重掷装备随机词条数值；保留类型、数量与元素";
+            case "stripping_stone"->"随机移除1条未锁定的可加工随机词条；不补词条，保留品质、基础属性与固有效果";
             case "chaos_stone"->"随机删除1条可删除词条并替换为新词条；同种效果不重复，总条数不变";
             case "fracturing_orb"->"锁定传说装备的1条未锁定随机词条；可反复使用，逐条锁定";
             case "socket_stone"->"新增1个宝石孔；武器/防具最多2孔，其他部位1孔";

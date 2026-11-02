@@ -3,6 +3,6 @@
   "machine": "currency_fabricator",
   "minimum_tier": 3,
   "ingredients": [],
-  "ticks": 300,
+  "ticks": 1200,
   "energy": 6400
 }

@@ -125,6 +125,9 @@ public final class EquipmentRules {
                 if(g.rarity!=Rarity.LEGENDARY||g.affixes.stream().filter(a->!a.base).count()>=6)throw new IllegalArgumentException("仅未满六条的传说装备可加工");
                 appendRandom(g,random);
             }
+            case "stripping_stone"->{
+                var eligible=g.affixes.stream().filter(EquipmentRules::replaceable).toList();if(eligible.isEmpty())throw new IllegalArgumentException("没有未锁定的可剥离词条");g.affixes.remove(eligible.get(random.nextInt(eligible.size())));
+            }
             case "chaos_stone"->{
                 if(g.rarity==Rarity.EPIC||g.rarity==Rarity.MYTHIC)throw new IllegalArgumentException("固定装备无法替换词条");
                 List<Affix> eligible=g.affixes.stream().filter(EquipmentRules::replaceable).toList();

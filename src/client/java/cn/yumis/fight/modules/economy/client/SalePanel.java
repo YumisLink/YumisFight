@@ -26,6 +26,7 @@ public final class SalePanel implements ClientPagePanel {
     private List<InventoryValue> observedInventory=List.of();
     private JsonObject quote;
     private Region region;
+    private boolean draggingScroll;private double scrollGrab;
     private String focused="",detailKey="";
     private boolean bag=SaleClient.bag(),requested,waiting,confirming,dismantling,layoutDirty=true;
     private long favoriteRevision=AffixFavorites.revision();
@@ -144,6 +145,7 @@ public final class SalePanel implements ClientPagePanel {
         if(region==null||!inside(event.x(),event.y(),region.x(),region.y(),region.width(),region.height()))return false;
         if(event.button()!=0)return true;double x=event.x(),y=event.y();int left=region.x()+6,top=region.y()+4,bottom=region.y()+region.height();
         if(waiting){if(ClientUi.now()-lastRequest>=10000&&inside(x,y,region.x()+region.width()-88,top,82,20))request();return true;}
+        if(maxScroll>0&&inside(x,y,gridLeft+cell*9-2,gridTop,14,gridBottom-gridTop)){int h=Math.max(20,gridBottom-gridTop),thumb=Math.max(10,h/(maxScroll+1)),at=gridTop+(h-thumb)*scroll/maxScroll;scrollGrab=y>=at&&y<at+thumb?y-at:thumb/2d;draggingScroll=true;drag(y);return true;}
         int toolWidth=region.width()>=330?76:Math.max(30,(region.width()-24)/4);
         if(inside(x,y,left,top+24,toolWidth,20)||inside(x,y,left+toolWidth+4,top+24,toolWidth,20)){boolean next=x>=left+toolWidth+4;if(dismantling!=next){dismantling=next;confirming=false;detailKey="";if(quote!=null)accept(quote);}return true;}
         if(inside(x,y,left,top,toolWidth,20)||inside(x,y,left+toolWidth+4,top,toolWidth,20)){bag=x>=left+toolWidth+4;SaleClient.bag(bag);scroll=0;layoutDirty=true;confirming=false;return true;}
@@ -155,6 +157,9 @@ public final class SalePanel implements ClientPagePanel {
         for(Cell slot:cells)if(inside(x,y,slot.x,slot.y,cell-2,cell-2)){select(slot.row.key);confirming=false;return true;}
         return true;
     }
+    private void drag(double y){int h=Math.max(20,gridBottom-gridTop),thumb=Math.max(10,h/(maxScroll+1));scroll=Math.clamp((int)Math.round((y-gridTop-scrollGrab)*maxScroll/Math.max(1,h-thumb)),0,maxScroll);layoutDirty=true;}
+    @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){if(!draggingScroll)return false;drag(event.y());return true;}
+    @Override public boolean mouseReleased(MouseButtonEvent event){boolean old=draggingScroll;draggingScroll=false;return old;}
     @Override public boolean mouseScrolled(double x,double y,double sx,double sy){
         if(region==null||!inside(x,y,region.x(),region.y(),region.width(),region.height()))return false;
         if(detailWidth>0&&x>=detailLeft)detailScroll=Math.max(0,detailScroll-(int)Math.signum(sy));else{int next=Math.clamp(scroll-(int)Math.signum(sy),0,maxScroll);if(next!=scroll){scroll=next;layoutDirty=true;}}return true;

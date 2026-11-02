@@ -61,6 +61,9 @@ public final class ClientBootstrap {
         Effects.VFX.register();
         cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.register();
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
+        cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
+        cn.yumis.fight.modules.industry.client.ManaWandClient.register(bus);
+        cn.yumis.fight.modules.skills.client.SkillTooltip.register(bus);
         ClientSettings.load();
         UiTheme.load();
         UiFonts.register(bus);
@@ -142,6 +145,7 @@ public final class ClientBootstrap {
             if(ItemData.own(e.getItemStack()))e.getToolTip().replaceAll(UiFonts::decorate);
         });
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Background e)->Hud.equipment(e));
+        NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Post e)->Hud.creativeFrames(e));
         NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre e)->{
             if(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.matches(e.getKeyEvent())&&e.getScreen() instanceof net.minecraft.client.gui.screens.inventory.ContainerScreen screen&&screen.getTitle().getString().equals("次元背包")){
                 ClientSession.INSTANCE.upload();Minecraft.getInstance().player.closeContainer();Minecraft.getInstance().gui.setScreen(new FightScreen());e.setCanceled(true);

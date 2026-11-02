@@ -19,18 +19,19 @@ public final class IndustrialOpening {
     public void prepare(ServerPlayer player,MachineBlockEntity machine){
         if(!machine.stillValid(player)||player.level().getBlockEntity(machine.getBlockPos())!=machine)return;
         String token=UUID.randomUUID().toString();var world=IndustrialWorld.get(player.level());
-        JsonObject snapshot=new JsonObject();snapshot.add("info",world.info(machine));JsonArray slots=new JsonArray();
+        JsonObject snapshot=new JsonObject();snapshot.add("info",world.info(machine,0,false));JsonArray slots=new JsonArray();
         var codec=player.registryAccess().createSerializationContext(JsonOps.INSTANCE);
-        for(int i=0;i<machine.getContainerSize();i++)slots.add(ItemStack.OPTIONAL_CODEC.encodeStart(codec,machine.getItem(i)).getOrThrow());
-        // addStandardInventorySlots sends the main inventory before the hotbar.
-        for(int i=9;i<36;i++)slots.add(ItemStack.OPTIONAL_CODEC.encodeStart(codec,player.getInventory().getItem(i)).getOrThrow());
-        for(int i=0;i<9;i++)slots.add(ItemStack.OPTIONAL_CODEC.encodeStart(codec,player.getInventory().getItem(i)).getOrThrow());
+        for(int i=0;i<machine.getContainerSize();i++){JsonObject cell=new JsonObject();cell.add("sample",ItemStack.OPTIONAL_CODEC.encodeStart(codec,machine.items.getResource(i).toStack(machine.items.getResource(i).isEmpty()?0:1)).getOrThrow());cell.addProperty("amount",machine.items.getAmountAsLong(i));slots.add(cell);}
+        for(int i=0;i<3;i++)slots.add(cell(codec,machine.plugins.getItem(i)));
+        for(int i=9;i<36;i++)slots.add(cell(codec,player.getInventory().getItem(i)));
+        for(int i=0;i<9;i++)slots.add(cell(codec,player.getInventory().getItem(i)));
         snapshot.add("slots",slots);String raw=snapshot.toString(),hash=digest(raw);List<String> parts=new ArrayList<>();
         for(int at=0;at<raw.length();){int end=Math.min(raw.length(),at+16000);if(end<raw.length()&&Character.isHighSurrogate(raw.charAt(end-1)))end--;parts.add(raw.substring(at,end));at=end;}
         if(parts.size()>1024){IndustrialPorts.message(player,"设备数据过大，无法打开");return;}
         pending.put(player.getUUID(),new Pending(token,machine,machine.spec().id(),IndustrialRules.current(),player.containerMenu,System.currentTimeMillis()+10000));
         for(int i=0;i<parts.size();i++){JsonObject part=new JsonObject();part.addProperty("token",token);part.addProperty("part",i);part.addProperty("count",parts.size());part.addProperty("hash",hash);part.addProperty("text",parts.get(i));Network.send(player,"industrial_prepare",part);}
     }
+    private static JsonObject cell(com.mojang.serialization.DynamicOps<com.google.gson.JsonElement> codec,ItemStack stack){JsonObject cell=new JsonObject();cell.add("sample",ItemStack.OPTIONAL_CODEC.encodeStart(codec,stack).getOrThrow());cell.addProperty("amount",stack.getCount());return cell;}
     public void ready(ServerPlayer player,JsonObject request){
         Pending open=pending.get(player.getUUID());if(open==null||!open.token.equals(request.get("token").getAsString()))return;
         pending.remove(player.getUUID());var machine=open.machine;

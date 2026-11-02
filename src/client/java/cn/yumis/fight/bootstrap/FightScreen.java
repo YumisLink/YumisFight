@@ -46,6 +46,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private final Map<AbstractWidget,Hover> widgetHovers=new LinkedHashMap<>();
     private final Map<String,Object> pageState=new HashMap<>();
     private int nextY;
+    private boolean draggingScroll;private double scrollGrab;
     private long themeRevision=UiTheme.revision;
     public FightScreen(){
         this(-1);
@@ -239,11 +240,15 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         }
         if(contentHeight>bodyHeight()){
             int bar=Math.max(12,bodyHeight()*bodyHeight()/contentHeight),y=bodyTop()+(bodyHeight()-bar)*scroll/Math.max(1,contentHeight-bodyHeight());
-            g.fill(left+panelWidth-6,y,left+panelWidth-3,y+bar,UiTheme.ACCENT);
+            UiTheme.scrollbar(g,left+panelWidth-12,bodyTop(),bodyHeight(),bar,y-bodyTop());
         }
         if(state.ready)Hud.gold(g,state);
     }
-    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;if(event.button()==1&&event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())for(var area:rightClicks){int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;if(event.x()>=x&&event.x()<x+area.width&&event.y()>=y&&event.y()<y+area.height){area.action.run();return true;}}return super.mouseClicked(event,twice);}
+    private void setScroll(int value){int old=scroll;scroll=Math.clamp(value,0,Math.max(0,contentHeight-bodyHeight()));for(AbstractWidget widget:body)widget.setY(widget.getY()+old-scroll);updateVisibility();}
+    private void dragScroll(double y){int thumb=Math.max(12,bodyHeight()*bodyHeight()/Math.max(1,contentHeight));setScroll((int)Math.round((y-bodyTop()-scrollGrab)*Math.max(0,contentHeight-bodyHeight())/Math.max(1,bodyHeight()-thumb)));}
+    @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){if(draggingScroll){dragScroll(event.y());return true;}if(customPanel!=null&&customPanel.mouseDragged(event,dx,dy))return true;return super.mouseDragged(event,dx,dy);}
+    @Override public boolean mouseReleased(MouseButtonEvent event){boolean was=draggingScroll;draggingScroll=false;if(customPanel!=null&&customPanel.mouseReleased(event))return true;return was||super.mouseReleased(event);}
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(customPanel==null&&event.button()==0&&contentHeight>bodyHeight()&&event.x()>=left+panelWidth-14&&event.x()<=left+panelWidth&&event.y()>=bodyTop()&&event.y()<=bodyTop()+bodyHeight()){int thumb=Math.max(12,bodyHeight()*bodyHeight()/contentHeight),at=bodyTop()+(bodyHeight()-thumb)*scroll/Math.max(1,contentHeight-bodyHeight());scrollGrab=event.y()>=at&&event.y()<at+thumb?event.y()-at:thumb/2d;draggingScroll=true;dragScroll(event.y());return true;}if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;if(event.button()==1&&event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())for(var area:rightClicks){int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;if(event.x()>=x&&event.x()<x+area.width&&event.y()>=y&&event.y()<y+area.height){area.action.run();return true;}}return super.mouseClicked(event,twice);}
     @Override public boolean mouseScrolled(double x,double y,double sx,double sy){
         if(customPanel!=null&&customPanel.mouseScrolled(x,y,sx,sy))return true;
         int old=scroll;

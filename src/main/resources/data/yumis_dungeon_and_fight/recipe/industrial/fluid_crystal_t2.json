@@ -4,14 +4,15 @@
   "pattern": [
     "ABC",
     "DDE",
-    "EEE"
+    "EEF"
   ],
   "key": {
     "A": "yumis_dungeon_and_fight:fluid_crystal_t1",
     "B": "yumis_dungeon_and_fight:industrial_upgrade_2",
     "C": "yumis_dungeon_and_fight:reinforced_frame",
     "D": "yumis_dungeon_and_fight:mana_component",
-    "E": "minecraft:glass"
+    "E": "minecraft:glass",
+    "F": "minecraft:ender_pearl"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:fluid_crystal_t2",

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "beaconCapacity": 1000,
   "beaconRadii": [
     3,
@@ -10,10 +10,10 @@
   ],
   "furnaceSpeeds": [
     4,
+    8,
     16,
     32,
-    64,
-    128
+    64
   ],
   "solarPeriods": [
     0,
@@ -38,8 +38,8 @@
   ],
   "transferEnergy": [
     100,
-    200,
-    400
+    1000,
+    10000
   ],
   "harvestSizes": [
     3,
@@ -209,7 +209,8 @@
     "upgrade_stone": 1,
     "fracturing_orb": 1,
     "socket_stone": 1,
-    "set_extraction_stone": 1
+    "set_extraction_stone": 1,
+    "stripping_stone": 1
   },
   "currencyRarityWeights": {
     "COMMON": 50.0,
@@ -240,11 +241,6 @@
     1000,
     4000,
     16000
-  ],
-  "fluidTransferEnergyPerBucket": [
-    20,
-    40,
-    80
   ],
   "minerals": {
     "copper": {
@@ -398,6 +394,34 @@
       "power": 25600,
       "item": "yumis_dungeon_and_fight:raw_iridium",
       "count": 1
+    },
+    "cobblestone": {
+      "tier": 1,
+      "chance": 100,
+      "ticks": 400,
+      "power": 80,
+      "item": "minecraft:cobblestone",
+      "count": 1
+    },
+    "amethyst": {
+      "tier": 2,
+      "chance": 15,
+      "ticks": 400,
+      "power": 320,
+      "item": "minecraft:amethyst_shard",
+      "count": 2
     }
-  }
+  },
+  "processingLines": [
+    1,
+    1,
+    2,
+    8,
+    16
+  ],
+  "fluidTransferOperationEnergy": [
+    100,
+    1000,
+    10000
+  ]
 }

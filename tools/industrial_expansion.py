@@ -40,6 +40,7 @@ def smelt(key,source,target):recipe(key,{'type':'minecraft:smelting','category':
 # Ore IDs are stable; molybdenite/zircon are the named mineral forms of Mo/Zr.
 METALS={'vanadium':('钒','8e98ad'),'molybdenum':('钼','6c83a2'),'zirconium':('锆','bd9276'),'mithril':('秘银','8de1da'),'adamantite':('精金','dc9d43'),'orichalcum':('山铜','d18367'),'iridium':('铱','d4d4f0')}
 MINERALS={
+ 'cobblestone':(1,100,400,80,'minecraft:cobblestone',1,'圆石'),'amethyst':(2,15,400,320,'minecraft:amethyst_shard',2,'紫水晶'),
  'copper':(1,35,300,80,'minecraft:raw_copper',1,'铜'), 'coal':(1,30,400,2000,'minecraft:coal',1,'煤'),
  'iron':(1,15,400,80,'minecraft:raw_iron',1,'铁'),'lead':(1,12,400,320,'raw_lead',1,'铅'),'orichalcum':(1,12,500,400,'raw_orichalcum',1,'山铜'),
  'gold':(2,8,600,426,'minecraft:raw_gold',1,'金'),'redstone':(2,12,400,640,'minecraft:redstone',4,'红石'),'lapis':(2,10,400,640,'minecraft:lapis_lazuli',4,'青金石'),
@@ -79,8 +80,10 @@ def content():
         if 'result' in d:d['results']=[d.pop('result')]
         if 'fluid_input' in d:d['fluid_inputs']=[d.pop('fluid_input')]
         write(p,d)
-    (RECIPES/'generate_cobblestone.json').unlink(missing_ok=True)
     for key,(tier,chance,ticks,power,item,count,title) in MINERALS.items():process('generate_'+key,'mineral_generator',outputs=[(item,count)],tier=tier,ticks=ticks,energy=math.ceil(power*ticks/20))
+    for key,source,target in [('stone_to_cobblestone','stone','cobblestone'),('cobblestone_to_gravel','cobblestone','gravel'),('sand','gravel','sand')]:
+        process(key,'mana_crusher',[(f'minecraft:{source}',1)],[(f'minecraft:{target}',1)],ticks=100,energy=100)
+    for tier in range(1,6):process('currency_t'+str(tier),'currency_fabricator',tier=tier,ticks=1200,energy=6400)
     process('pump_water','water_pump',fluids=(),fluid_out=('minecraft:water',1000),ticks=20,energy=100)
     for metal in [*METALS,'niobium_tantalum']:
         tag('item','ores/'+metal,[own(metal+'_ore')]);tag('item','raw_materials/'+metal,[own('raw_'+metal)])
@@ -122,6 +125,10 @@ def content():
         items=[(f'mineral_generator_t{tier-1}',1),(f'industrial_upgrade_{tier}',1),(['basic_frame','reinforced_frame','heatproof_frame','precision_frame'][tier-2],1),('mithril_mana_component' if tier==5 else 'mana_component',1)]
         if tier==5:items.append(('control_component',1))
         craft(f'mineral_generator_t{tier}',items,guard=True)
+    for tier in range(2,6):
+        items=[(f'currency_fabricator_t{tier-1}',1),(f'industrial_upgrade_{tier}',1),(['basic_frame','reinforced_frame','heatproof_frame','precision_frame'][tier-2],1)]
+        items+= [('mana_component',1 if tier==2 else 2)] if tier<=3 else [('mithril_mana_component',1 if tier==4 else 2),('control_component',1 if tier==4 else 2)]
+        craft(f'currency_fabricator_t{tier}',items,guard=True)
     craft('prospector_t1',[('minecraft:compass',1),('minecraft:copper_ingot',4),('energy_crystal_1',4)])
     for tier in range(2,6):
         items=[(f'prospector_t{tier-1}',1),(f'industrial_upgrade_{tier}',1)]
@@ -131,8 +138,8 @@ def content():
     craft('water_pump',[('basic_frame',1),('minecraft:copper_ingot',2),('minecraft:iron_ingot',2),('energy_crystal_1',2),('minecraft:piston',1),('minecraft:bucket',1)])
     craft('mineral_refinery',[('reinforced_frame',1),('mana_component',2),('vanadium_steel',4),('minecraft:bucket',1),('industrial_upgrade_2',1)])
     craft('alchemical_reactor',[('heatproof_frame',1),('mana_component',2),('molybdenum_vanadium_steel',4),('minecraft:bucket',1),('industrial_upgrade_3',1)])
-    craft('fluid_crystal_t1',[('mana_component',1),('minecraft:ender_pearl',1),('energy_crystal_1',4),('minecraft:copper_ingot',2),('minecraft:glass',1)])
-    craft('fluid_crystal_t2',[('fluid_crystal_t1',1),('industrial_upgrade_2',1),('reinforced_frame',1),('mana_component',2),('minecraft:glass',4)],guard=True)
+    craft('fluid_crystal_t1',[('energy_crystal_1',1),('minecraft:copper_ingot',2),('minecraft:glass',2),('minecraft:bucket',1)])
+    craft('fluid_crystal_t2',[('fluid_crystal_t1',1),('industrial_upgrade_2',1),('reinforced_frame',1),('mana_component',2),('minecraft:glass',3),('minecraft:ender_pearl',1)],guard=True)
     craft('fluid_crystal_t3',[('fluid_crystal_t2',1),('industrial_upgrade_5',1),('mithril_mana_component',2),('control_component',1),('zircon_ceramic',4)],guard=True)
     craft('fluid_tank_t1',[('minecraft:glass',4),('minecraft:iron_ingot',4),('minecraft:bucket',1)])
     craft('fluid_tank_t2',[('fluid_tank_t1',1),('vanadium_steel',4),('zircon_ceramic',4)],guard=True)
@@ -142,7 +149,8 @@ def content():
     craft('mana_accumulator_t3',[('mana_accumulator_t2',1),('heatproof_frame',1),('industrial_magic_stone',3),('energy_crystal_4',4)],guard=True)
     craft('mana_accumulator_t4',[('mana_accumulator_t3',1),('precision_frame',1),('mana_superconductor',2),('superconducting_control',1),('energy_crystal_5',4)],guard=True)
     p=DATA/'rules/industrial.json';rules=json.loads(p.read_text(encoding='utf-8'))
-    rules.update(tankCapacities=[64000,256000,1024000],accumulatorCapacities=[100000,1000000,100000000,1000000000],scanTicks=40,scanCooldown=100,miningWaterRate=100,miningCoolantRate=40,pumpAmount=1000,pumpInterval=20,pumpEnergy=100,fluidTransferAmounts=[1000,4000,16000],fluidTransferEnergyPerBucket=[20,40,80])
+    rules.update(tankCapacities=[64000,256000,1024000],accumulatorCapacities=[100000,1000000,100000000,1000000000],scanTicks=40,scanCooldown=100,miningWaterRate=100,miningCoolantRate=40,pumpAmount=1000,pumpInterval=20,pumpEnergy=100,fluidTransferAmounts=[1000,4000,16000],fluidTransferOperationEnergy=[100,1000,10000],processingLines=[1,1,2,8,16],furnaceSpeeds=[4,8,16,32,64],transferEnergy=[100,1000,10000],version=2)
+    rules.pop('fluidTransferEnergyPerBucket',None)
     rules['minerals']={k:dict(zip(['tier','chance','ticks','power','item','count'],[v[0],v[1],v[2],v[3],own(v[4]),v[5]])) for k,v in MINERALS.items()}
     for key,v in ORE_RULES.items():
         rules['ores'][key]=dict(zip(['minY','maxY','minSize','maxSize','chance','attempts'],[*v,1]))
@@ -275,7 +283,7 @@ def assets():
     for i,farm in enumerate(farms):
         for stage,title in [('basic','基础制备'),('orichalcum','山铜活化'),('tzm','耐热精制')]:names[f'recipe.{NS}.industrial.alkahest_{stage}_{i}']=f'{title}·{farm}'
         names[f'recipe.{NS}.industrial.regenerate_alkahest_{i}']='溶剂再生·'+farm
-    for key,title in [('separate_raw_niobium_tantalum','粗矿水洗分离'),('separate_crushed_niobium_tantalum','粉碎矿水洗分离'),('separate_niobium_tantalum_solvent','铌钽溶剂分离'),('alloy_vanadium_steel','钒钢基础熔合'),('alloy_vanadium_steel_assisted','钒钢炽焰辅助')]:names[f'recipe.{NS}.industrial.{key}']=title
+    for key,title in [('separate_raw_niobium_tantalum','粗矿水洗分离'),('separate_crushed_niobium_tantalum','粉碎矿水洗分离'),('separate_niobium_tantalum_solvent','铌钽溶剂分离'),('alloy_vanadium_steel','钒钢基础熔合'),('alloy_vanadium_steel_assisted','钒钢炽焰辅助'),('stone_to_cobblestone','石头粉碎为圆石'),('cobblestone_to_gravel','圆石粉碎为砂砾'),('sand','砂砾粉碎为沙子')]:names[f'recipe.{NS}.industrial.{key}']=title
     for tier in range(1,6):names[f'block.{NS}.mineral_generator_t{tier}']=str(tier)+'级区块采矿机'
     for locale in ['zh_cn','en_us']:
         p=ASSETS/'lang'/(locale+'.json');d=json.loads(p.read_text(encoding='utf-8'));d.update(names);write(p,d)

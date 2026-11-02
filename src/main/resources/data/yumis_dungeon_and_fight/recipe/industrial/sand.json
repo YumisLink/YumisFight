@@ -4,16 +4,17 @@
   "minimum_tier": 1,
   "ingredients": [
     {
-      "ingredient": "minecraft:cobblestone",
+      "ingredient": "minecraft:gravel",
       "count": 1
     }
   ],
-  "ticks": 100,
-  "energy": 100,
   "results": [
     {
       "id": "minecraft:sand",
       "count": 1
     }
-  ]
+  ],
+  "ticks": 100,
+  "energy": 100,
+  "fluid_inputs": []
 }

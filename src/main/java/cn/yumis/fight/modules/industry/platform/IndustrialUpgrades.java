@@ -35,6 +35,7 @@ public final class IndustrialUpgrades {
             ItemStack crystal=machine.getItem(machine.slots().crystal());
             if(!crystal.isEmpty()&&!EnergyMath.accepts(machine.tier()+1,IndustrialContent.crystalTier(crystal))){inventory.requireSpace(player,crystal.copy());machine.setItem(machine.slots().crystal(),ItemStack.EMPTY);}
             player.level().setBlock(machine.getBlockPos(),machine.getBlockState().setValue(MachineBlock.TIER,machine.tier()+1),3);
+            machine.getLevel().invalidateCapabilities(machine.getBlockPos());
             machine.setChanged();IndustrialWorld.get(player.level()).changed(player.level(),machine.getBlockPos());
         },Map.of());
         if(machine.device().has(DeviceType.Capability.STORAGE_NETWORK))IndustrialWorld.get(player.level()).refreshCoverage(machine);

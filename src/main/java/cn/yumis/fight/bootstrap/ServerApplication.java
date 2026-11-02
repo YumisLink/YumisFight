@@ -212,7 +212,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install(CURRENT.dungeons.treasure::use);
             cn.yumis.fight.modules.economy.api.TreasureChestItem.opening(CURRENT.chests::open);
             cn.yumis.fight.modules.skills.api.SummonActions.install(CURRENT.mages);
-            cn.yumis.fight.modules.character.api.CharacterActions.install((p,base)->{try{get().progressService.offerReset(p,base);}catch(Exception error){get().message(p,error.getMessage());}});
+            cn.yumis.fight.modules.character.api.CharacterActions.install((p,base)->{try{get().progressService.useItem(p,base);}catch(Exception error){get().message(p,error.getMessage());}});
             Network.SERVER=CURRENT::handle;
             var runtime=CURRENT;cn.yumis.fight.modules.combat.api.NativeEffects.configure(entity->!runtime.bridge&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(entity));
         }
@@ -527,7 +527,10 @@ public final class ServerApplication {
         catch(Exception e){message(p,e.getMessage());}
     }
     private void registerCommands(){
+        cn.yumis.fight.modules.industry.platform.ManaStorageBagItem.register(commands,p->session(p).id.toString());
         commands.register("industry","industrialReady",(p,j)->IndustrialWorld.get(p.level()).opening.ready(p,j));
+        commands.register("industry","industrialRoute",(p,j)->{if(p.containerMenu instanceof cn.yumis.fight.modules.industry.platform.IndustrialMenu menu)menu.routeAction(p,j);});
+        commands.register("industry","prospectorPan",(p,j)->{if(p.containerMenu instanceof cn.yumis.fight.modules.industry.platform.ProspectorMenu menu&&menu.containerId==j.get("menu").getAsInt()&&menu.stillValid(p))menu.pan(p,j.get("x").getAsInt(),j.get("z").getAsInt());});
         careers.register(commands);skillStarts.register(commands);mages.register(commands);
         equipmentApplication.register(commands);economyService.register(commands);progressService.register(commands);inventoryApplication.register(commands);
         commands.register("presentation","hello",(p,j)->{if(j.get("protocol").getAsInt()!=cn.yumis.fight.architecture.ProtocolVersion.CURRENT||j.has("rules")&&j.get("rules").getAsInt()!=cn.yumis.fight.bootstrap.ApplicationRules.DATA_VERSION){p.connection.disconnect(ModText.of("模组协议或规则版本不一致"));return;}profile(p);});

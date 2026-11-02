@@ -38,6 +38,6 @@ public final class JobCatalog {
     public static synchronized void register(Definition job){if(DEFINITIONS.putIfAbsent(job.id(),job)!=null)throw new IllegalArgumentException("Duplicate job: "+job.id());}
     public static synchronized Definition require(String id){var job=DEFINITIONS.get(id);if(job==null)throw new IllegalArgumentException("未知职业");return job;}
     public static synchronized List<Definition> all(){return List.copyOf(DEFINITIONS.values());}
-    public static boolean canPromote(Progress player,String id){var job=require(id);return !job.prerequisite().isEmpty()&&player.hasJob(job.prerequisite())&&player.level>=job.minimumLevel()&&player.completedJobQuests.contains(job.prerequisite());}
+    public static boolean canPromote(Progress player,String id){var job=require(id);return !job.prerequisite().isEmpty()&&player.hasJob(job.prerequisite())&&player.level>=job.minimumLevel()&&player.jobChangeUnlocked();}
 }
 

@@ -2,16 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABC",
-    "CCC",
-    "DDE"
+    "ABB",
+    "CCD"
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:mana_component",
-    "B": "minecraft:ender_pearl",
-    "C": "yumis_dungeon_and_fight:energy_crystal_1",
-    "D": "minecraft:copper_ingot",
-    "E": "minecraft:glass"
+    "A": "yumis_dungeon_and_fight:energy_crystal_1",
+    "B": "minecraft:copper_ingot",
+    "C": "minecraft:glass",
+    "D": "minecraft:bucket"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:fluid_crystal_t1",

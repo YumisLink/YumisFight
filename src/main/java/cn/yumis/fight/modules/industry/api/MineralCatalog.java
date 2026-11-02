@@ -6,8 +6,10 @@ import java.util.*;
 public final class MineralCatalog {
     private MineralCatalog(){}
     public record Mineral(int tier,int chance,int ticks,long power,String item,int count){}
+    public static boolean universal(String id){return id.equals("cobblestone");}
     public static Map<String,Mineral> defaults(){
         var m=new LinkedHashMap<String,Mineral>();
+        add(m,"cobblestone",1,100,400,80,"minecraft:cobblestone",1);
         add(m,"copper",1,35,300,80,"minecraft:raw_copper",1);
         add(m,"coal",1,30,400,2000,"minecraft:coal",1);
         add(m,"iron",1,15,400,80,"minecraft:raw_iron",1);
@@ -19,6 +21,7 @@ public final class MineralCatalog {
         add(m,"diamond",2,4,1200,854,"minecraft:diamond",1);
         add(m,"vanadium",2,10,600,800,"vanadium",1);
         add(m,"magic",2,10,800,1200,"energy_crystal_3",2);
+        add(m,"amethyst",2,15,400,320,"minecraft:amethyst_shard",2);
         add(m,"titanium",3,6,1200,2134,"titanium",1);
         add(m,"molybdenum",3,8,1000,2000,"molybdenum",1);
         add(m,"zirconium",3,8,1000,1800,"zirconium",1);
