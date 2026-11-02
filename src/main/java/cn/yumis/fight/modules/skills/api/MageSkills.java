@@ -8,12 +8,14 @@ public final class MageSkills {
     private static final String NS="yumis_dungeon_and_fight:";
     public static final String STAR=NS+"magic_star",FANG=NS+"dragon_fang",JACK=NS+"jack_bomb",HERDER=NS+"herder";
     private MageSkills(){}
-    public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id)||SummonerSkills.contains(id);}
+    public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id)||SummonerSkills.contains(id)||SunMoonSkills.contains(id);}
     public static SkillDefinition skill(String id){return SkillCatalog.require(id);}
     static void install(){
         add(STAR,"魔法星弹","MAGIC_CRAFT",1,.06,3,true,12,Map.of("pierces",3d));
         add(FANG,"龙牙","MARTIAL",5,12d/156,5,false,5,Map.of("width",1.5));
         add(JACK,"杰克爆弹","ELEMENT",5,16d/156,8,true,12,Map.of("radius",3d));
+        skill(JACK).chantSeconds=.5;
+        skill(STAR).projectile=new SkillDefinition.Projectile(20,3,false,500,false);skill(JACK).projectile=new SkillDefinition.Projectile(15,1,true,600,false);
         add(HERDER,"契约召唤：赫尔德","SUMMON",10,45d/226,20,true,16,Map.of("summonDuration",120d,"meleeInterval",1.2,"stoneInterval",4d,"stoneGap",.2));
         skill(HERDER).damageParameter("stoneDamage",1.2);
     }

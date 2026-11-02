@@ -16,6 +16,7 @@ public final class SkillReductions {
         register(CareerSkills.KALLA,s->s.kallaUntil=0,r->{});
         register(CareerSkills.EYE,s->{s.eyeUntil=0;s.eyeBonusMut=0;},r->{});
         register(CareerSkills.SWORD,s->{s.bloodUntil=0;s.blood=0;},r->{});
+        for(String id:SunMoonSkills.ALL)register(id,s->s.sunMoon=new SunMoonState(),r->{});
     }
     private SkillReductions(){}
     public static void apply(String id,CareerState state,Runtime resources){var handler=HANDLERS.get(id);if(handler!=null){handler.state.accept(state);handler.resources.accept(resources);}}

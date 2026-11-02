@@ -78,7 +78,7 @@ public final class IndustrialProcessing {
     private static boolean fluidPlan(MachineLane line,IndustrialRecipe recipe,int[] plan,long[] used,int input){
         if(input==plan.length)return true;var need=recipe.fluidInputs().get(input);
         for(int local=0;local<used.length;local++){int tank=line.fluidTank(local);var resource=line.machine.fluids.getResource(tank);
-            if(resource.isEmpty()||line.machine.fluids.getAmountAsLong(tank)-used[local]<need.amount()||!need.ingredient().test(resource.toStack(1)))continue;
+            if(resource.isEmpty()||line.machine.fluids.availableAmount(tank)-used[local]<need.amount()||!need.ingredient().test(resource.toStack(1)))continue;
             used[local]+=need.amount();plan[input]=tank;if(fluidPlan(line,recipe,plan,used,input+1))return true;used[local]-=need.amount();
         }return false;
     }
@@ -104,17 +104,17 @@ public final class IndustrialProcessing {
             results=List.of(output);
         }
         energy=Math.multiplyExact(energy,be.energyMultiplier());duration=duration.divide(be.pluginSpeed());
-        line.batchResults=new ArrayList<>(results);line.batchFluid=recipe.fluidResult();
-        if(!line.canFinish()&&!be.device().randomCurrency()&&!mineral.equals("magic")){line.batchResults.clear();line.batchFluid=FluidStack.EMPTY;line.status="本线产物空间不足";return;}
-        boolean committed=false;
         try(var tx=Transaction.openRoot()){
+            int[] fluidSlots=fluidPlan(line,recipe);if(fluidSlots==null)return;
+            line.record(tx);line.batchResults=new ArrayList<>(results);line.batchFluid=recipe.fluidResult();line.progressive=true;
+            line.batchFluidInputs=new ArrayList<>();
+            for(int input=0;input<recipe.fluidInputs().size();input++){int tank=fluidSlots[input],amount=recipe.fluidInputs().get(input).amount();line.batchFluidInputs.add(new MachineLane.FluidInput(tank,be.fluids.getResource(tank).toStack(amount)));}
+            line.batchRecipe=id;line.batchEnergy=energy;line.batchDuration=duration;line.batchMiningFluid=cooling;line.batchFluidRate=rate;line.batchFluidPaid=0;line.work=Fraction.ZERO;line.paid=0;
             List<ItemStack> escrow=new ArrayList<>();
             for(int i=0;i<plan.length;i++)if(plan[i]>0){var resource=be.items.getResource(indices[i]);if(be.items.extract(indices[i],resource,plan[i],tx)!=plan[i])return;escrow.add(resource.toStack(plan[i]));}
-            int[] fluidSlots=fluidPlan(line,recipe);if(fluidSlots==null)return;
-            for(int input=0;input<recipe.fluidInputs().size();input++){int tank=fluidSlots[input],amount=recipe.fluidInputs().get(input).amount();if(be.fluids.extract(tank,be.fluids.getResource(tank),amount,tx)!=amount)return;}
-            tx.commit();line.batchInputs=escrow;committed=true;
-        }finally{if(!committed){line.batchResults.clear();line.batchFluid=FluidStack.EMPTY;}}
-        line.batchSequence++;line.batchRecipe=id;line.batchEnergy=energy;line.batchDuration=duration;line.batchMiningFluid=cooling;line.batchFluidRate=rate;line.batchFluidPaid=0;line.work=Fraction.ZERO;line.paid=0;line.roundRobin=(line.roundRobin+1)%Math.max(1,be.device().inputs());line.status="加工中";be.setChanged();
+            line.batchInputs=escrow;line.batchSequence++;line.roundRobin=(line.roundRobin+1)%Math.max(1,be.device().inputs());line.status="加工中";tx.commit();
+        }
+        be.setChanged();
     }
     public static void output(MachineBlockEntity be){
         if(!be.device().outputs())return;ServerLevel level=(ServerLevel)be.getLevel();BlockPos below=be.getBlockPos().below();if(!level.hasChunkAt(below))return;

@@ -95,7 +95,7 @@ public final class SkillController {
         return state().ready()&&g!=null&&g.slot()==Slot.WEAPON&&g.valid(state().progress(),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(Minecraft.getInstance().player));
     }
     public boolean locked(){
-        return cast!=null;
+        return cast!=null||cn.yumis.fight.modules.skills.client.ChantClient.active();
     }
     public boolean invulnerable(){
         return cast!=null&&(SkillPresentation.invulnerable(cast.skill)||cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.invulnerable(cast));
@@ -110,9 +110,10 @@ public final class SkillController {
         return snapshotCache.copy();
     }
     public void invalidateSnapshot(){snapshotCache=null;}
-    public void clearTransient(){cast=null;cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;secondSlash=null;pendingBasics.clear();waves.clear();staffBolts.clear();practiceBolts.clear();nativeLaunches.clear();bosses.clear();bossHit.clear();incomingRoots.clear();environment.clear();bleeds.clear();pendingBleeds.clear();deferred.clear();lastAttack=lastTick=lastRegen=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
+    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();cast=null;cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;secondSlash=null;pendingBasics.clear();waves.clear();staffBolts.clear();practiceBolts.clear();nativeLaunches.clear();bosses.clear();bossHit.clear();incomingRoots.clear();environment.clear();bleeds.clear();pendingBleeds.clear();deferred.clear();lastAttack=lastTick=lastRegen=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
     public boolean press(int slot){
         if(!state().ready())return false;
+        if(cn.yumis.fight.modules.skills.client.ChantClient.press(slot))return true;
         String initial=state().progress().slots[slot];
         if(cast==null&&SkillCatalog.contains(initial)&&!Minecraft.getInstance().player.isDeadOrDying()&&!Minecraft.getInstance().player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN))cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.prepareInput(SkillCatalog.require(initial));
         if(!validWeapon()&&(!SkillCatalog.contains(initial)||!SkillCatalog.require(initial).equipmentGranted))return false;
@@ -172,7 +173,7 @@ public final class SkillController {
     private final Map<String,BasicRequest> pendingBasics=new HashMap<>();
     public void attack(){
         var mc=Minecraft.getInstance();
-        if(!validWeapon()||cast!=null||pendingBasics.size()>=4||cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.waiting()||mc.player.isDeadOrDying()||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||cn.yumis.fight.modules.presentation.api.client.ClientUi.now()<lastAttack)return;
+        if(!validWeapon()||cast!=null||cn.yumis.fight.modules.skills.client.ChantClient.active()||pendingBasics.size()>=4||cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.waiting()||mc.player.isDeadOrDying()||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||cn.yumis.fight.modules.presentation.api.client.ClientUi.now()<lastAttack)return;
         Stats stats=snapshot();
         if(WeaponSkills.mastery(state().progress(),stats)&&stats.weaponType.equals("GREATSWORD")){if(greatCharge==null)greatCharge=new GreatCharge(stats,stats.weaponInstance,state().own().generation,mc.level.dimension().identifier().toString(),cn.yumis.fight.modules.presentation.api.client.ClientUi.now());return;}
         sendBasic(stats);
@@ -222,6 +223,7 @@ public final class SkillController {
         var mc=Minecraft.getInstance();
         if(!state().ready()||mc.player==null||mc.level==null)return;
         long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
+        cn.yumis.fight.modules.skills.client.ChantClient.tick();
         pendingBasics.values().removeIf(value->now-value.sent>5000);
         if(mc.isPaused()){
             lastTick=now;
@@ -250,7 +252,7 @@ public final class SkillController {
         tickPracticeProjectiles();TrainingCombat.tick();
         boolean out=now>=state().resources().combatUntil;
         if(!state().own().dead){
-            Stats recovery=snapshot();state().resources().mp=Math.min(recovery.get(Stat.MP),state().resources().mp+(1+.04*recovery.get(Stat.SPIRIT))*recovery.get(Stat.MANA_REGENERATION)*(out?3:1)*dt);
+            Stats recovery=snapshot();if(recovery.modifiers.getOrDefault("manaRecoveryBlocked",0d)<=0)state().resources().mp=Math.min(recovery.get(Stat.MP),state().resources().mp+(1+.04*recovery.get(Stat.SPIRIT))*recovery.get(Stat.MANA_REGENERATION)*(out?3:1)*dt);
             if(CombatTiming.shieldReady(state().resources(),now))state().resources().shield=Math.min(state().stats().get(Stat.SHIELD),state().resources().shield+.2*state().stats().get(Stat.SHIELD)*dt);
             if(out){
                 if(state().predicted(state().own())<1){
@@ -551,6 +553,7 @@ public final class SkillController {
         return h.lengthSqr()<.001?new Vec3(0,0,1):h.normalize();
     }
     public void cancel(boolean normal){
+        if(!normal)cn.yumis.fight.modules.skills.client.ChantClient.cancel();
         if(!normal){if(secondSlash!=null)TrainingCombat.actionFinished(secondSlash.cycle);secondSlash=null;}
         if(cast==null)return;
         TrainingCombat.actionFinished(cast.id);

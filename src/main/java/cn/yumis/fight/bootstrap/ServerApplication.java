@@ -185,8 +185,10 @@ public final class ServerApplication {
         skillStarts=new cn.yumis.fight.modules.skills.application.SkillStartService(journal,this::session,p->session(p).progress,this::stats,careers::castStats,careers::baseSucceeded,id->{var actor=server.getPlayerList().getPlayer(id);return inventory.locked(id)||actor!=null&&careers.inputLocked(actor);});
         mages=new cn.yumis.fight.modules.skills.application.MageSkillService(server,journal,this::session,p->session(p).progress,targets::resolve,visuals::receive,p->dungeons.current(p.getUUID())==null?session(p).progress.sync:dungeons.current(p.getUUID()).syncFor(p.getUUID()));
         skillStarts.lifecycle(mages::preflight,mages::accepted,mages::cancelAccepted);
+        mages.heartStates(careers::sunMoonState,careers::sunMoonState,careers::sync);
+        skillStarts.content(mages::castStats,mages::payment);
         skillStarts.instructions(careers::instructionBinding,careers::instructionStats,careers::instructionInput);
-        basicAttacks.inputLock(careers::inputLocked);
+        basicAttacks.inputLock(p->careers.inputLocked(p)||mages.chanting(p));
         basicAttacks.lifecycle(careers::basicStarted);
         progressService.transitions(new cn.yumis.fight.modules.character.api.JobTransitions(){
             private Change clean(ServerPlayer player,Change change){return new Change(change.writes(),()->{change.committed().run();mages.clear(player);});}

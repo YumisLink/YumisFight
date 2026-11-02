@@ -79,6 +79,7 @@ public final class CareerClient {
         runtime.mp=incoming.mp;runtime.controlEpoch=incoming.controlEpoch;runtime.recordedAt=now;
         runtime.equipmentBuffs=incoming.equipmentBuffs;for(var buff:runtime.equipmentBuffs.values())buff.expires+=offset;
         runtime.cooldowns.clear();incoming.cooldowns.forEach((key,value)->runtime.cooldowns.put(key,value+offset));
+        ChantClient.begin(ack);
         Life life=JSON.fromJson(ack.get("life"),Life.class);if(life.revision>=state().own().revision){state().own().q=life.q;state().own().revision=life.revision;}
         if(ack.has("instant")&&ack.get("instant").getAsBoolean()){Effects.spark(Minecraft.getInstance().player.position().add(0,1,0),0xb4f2ff);return;}
         SkillCast c=new SkillCast();c.id=id;c.skill=SkillCatalog.require(ack.get("skill").getAsString());c.slot=ack.get("slot").getAsInt();c.terminal=ack.get("terminal").getAsBoolean();

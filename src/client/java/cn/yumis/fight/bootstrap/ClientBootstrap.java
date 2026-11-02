@@ -180,6 +180,7 @@ public final class ClientBootstrap {
             if(action==GLFW.GLFW_PRESS){var state=ClientSession.INSTANCE;cn.yumis.fight.modules.combat.api.client.DamageAnalysis.toggle(state.resources.combatUntil,state.trainingMeter.has("id")&&!state.trainingMeter.get("completed").getAsBoolean());state.message("伤害分析："+(cn.yumis.fight.modules.combat.api.client.DamageAnalysis.recording()?"开始记录":"停止记录")+"；在角色页面查看结果");}
             return true;
         }
+        if(action==GLFW.GLFW_PRESS&&event.key()==GLFW.GLFW_KEY_ESCAPE&&cn.yumis.fight.modules.skills.client.ChantClient.active()){cn.yumis.fight.modules.skills.client.ChantClient.cancel();return true;}
         if(CloudMovement.key(event,action))return true;
         if(mc.player==null||!ClientSession.INSTANCE.ready||mc.gui.screen()!=null||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_F3))return false;
         for(int i=0;i<8;i++)if(cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS[i].matches(event)){

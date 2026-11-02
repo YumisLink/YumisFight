@@ -18,9 +18,11 @@ public final class CareerHud {
         if(text.isBlank())return;var font=UiFonts.font();int width=font.width(text)+12;UiTheme.hud(g,center-width/2,y,(center+width/2)-(center-width/2),(y+14)-(y));g.text(font,text,center-width/2+6,y+3,color,true);
     }
     public static void renderGauge(GuiGraphicsExtractor g,int width,int height,long now){
+        ChantClient.render(g,width,height);
         var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;int x=(int)(width*.8),y=Math.max(24,(int)(height*.2));
         if(state.own().dead)return;
         if(state.progress().hasJob(JobCatalog.SUMMONER)){summons(g,width,height,state.serverNow());return;}
+        if(state.progress().hasJob(JobCatalog.SUN_MOON))y=SunMoonHud.render(g,x,y,state.serverNow());
         if(OracleRules.rank(state.stats(),state.progress())>0)y=oracle(g,x,y,state.serverNow());
         long overdrive=state.resources().buffs.getOrDefault(SkillCatalog.OVERDRIVE.id,0L)-now;
         if(overdrive>0){timer(g,SkillCatalog.OVERDRIVE,x,y,overdrive,30000,0xfff6d16d);y+=68;}

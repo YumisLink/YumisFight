@@ -73,7 +73,7 @@ public final class SkillTooltip {
     }
     public static List<Component> lines(SkillDefinition skill){
         var state=SkillsClient.current();
-        var stats=SkillController.INSTANCE.snapshot();
+        var stats=cn.yumis.fight.modules.skills.api.SunMoonRules.forCast(SkillController.INSTANCE.snapshot(),skill);
         int rank=SkillLearning.effective(stats,state.progress(),skill);
         double castSpeed=Math.max(.01,stats.get(Stat.CAST_SPEED));
         var parameters=cn.yumis.fight.modules.skills.api.WeaponSkills.skill(SkillParameters.forCast(Minecraft.getInstance().player.getUUID(),skill,Math.max(1,rank),stats.parameters),state.progress(),stats);
@@ -82,8 +82,8 @@ public final class SkillTooltip {
         List<Component> result=new ArrayList<>();
         add(result,skill.title,UiTheme.GOLD);
         add(result,rank>0?"有效等级 "+rank:skill.equipmentGranted?"缺少有效装备来源":"未学习 · 1级预览",UiTheme.ACCENT);
-        if(!skill.equipmentGranted)add(result,"SP学习："+state.progress().learned(skill.id)+"级",UiTheme.TEXT);
-        add(result,skill.equipmentGranted?"装备授予，无需SP；等级随有效来源装备变化":"学习等级 "+skill.unlock+(skill.advanced()?" · "+cn.yumis.fight.modules.character.api.JobCatalog.require(skill.requiredJob).title():"")+" · 每级 "+skill.sp+" SP",UiTheme.MUTED);
+        if(!skill.equipmentGranted&&!skill.automaticByJob)add(result,"SP学习："+state.progress().learned(skill.id)+"级",UiTheme.TEXT);
+        add(result,skill.automaticByJob?"转职自动获得，无需SP，无需升级":skill.equipmentGranted?"装备授予，无需SP；等级随有效来源装备变化":"学习等级 "+skill.unlock+(skill.advanced()?" · "+cn.yumis.fight.modules.character.api.JobCatalog.require(skill.requiredJob).title():"")+" · 每级 "+skill.sp+" SP",UiTheme.MUTED);
         result.add(Component.empty());
         if(skill==SkillCatalog.MASTERY){
             double power=Math.pow(1.12,Math.max(1,rank)-1);

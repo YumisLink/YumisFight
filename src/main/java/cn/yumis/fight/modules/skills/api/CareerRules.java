@@ -22,7 +22,7 @@ public final class CareerRules {
         if(red>0){result.mut(Stat.STRENGTH,red);result.mut(Stat.INTELLIGENCE,red);}
         if(state.eyeUntil>now)result.modifiers.put("careerEyeBonus",state.eyeBonusMut);
         if(ownField)result.modifiers.put("ownGhostField",1d);
-        return OracleRules.current(result,progress,state.oracle,now);
+        return SunMoonRules.current(OracleRules.current(result,progress,state.oracle,now),progress,state.sunMoon);
     }
     public static Stats eyeDamage(Stats source,SkillDefinition skill){
         if(skill==null||!Set.of(SkillCatalog.WAVE.id,CareerSkills.ICE,CareerSkills.FIRE).contains(skill.id))return source;

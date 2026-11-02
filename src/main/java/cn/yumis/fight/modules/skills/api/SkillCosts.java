@@ -7,7 +7,7 @@ public final class SkillCosts {
     public record Cost(int mana,double life,double cooldown){}
     private SkillCosts(){}
     public static Cost resolve(SkillDefinition skill,int rank,Stats stats,EquipmentEffects.Snapshot effects,boolean magic){
-        int original=skill.mp(rank);double recovery=stats.get(Stat.COOLDOWN_RECOVERY);if(recovery<=0)recovery=1;
+        int original=(int)Math.round(skill.mp(rank)*stats.modifiers.getOrDefault("skillManaMultiplier",1d));double recovery=stats.get(Stat.COOLDOWN_RECOVERY);if(recovery<=0)recovery=1;
         double cooldown=skill.cooldown(rank)/recovery/(1+stats.modifiers.getOrDefault("cooldownRecovery",0d));
         if(skill.basicSkill())cooldown*=1-stats.modifiers.getOrDefault("basicSkillCooldown",0d);
         if(magic)cooldown-=effects.magicCooldownReduction;

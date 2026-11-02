@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>YumisModSync</AssemblyName>
+    <Version>1.0.0</Version>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>embedded</DebugType>
+    <AssetsRoot Condition="'$(AssetsRoot)' == ''">$(TaskRoot)assets\</AssetsRoot>
+    <ProfilePath Condition="'$(ProfilePath)' == ''">$(TaskRoot)private\profile.json</ProfilePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(ProfilePath)" LogicalName="YumisModSync.Profile.json" />
+    <EmbeddedResource Include="$(AssetsRoot)PCL.exe" LogicalName="YumisModSync.PCL.exe" />
+    <EmbeddedResource Include="$(AssetsRoot)PCL-LICENCE.txt" LogicalName="YumisModSync.PCL-LICENCE.txt" />
+    <EmbeddedResource Include="server/commit-release.py" LogicalName="YumisModSync.CommitRelease.py" />
+  </ItemGroup>
+</Project>

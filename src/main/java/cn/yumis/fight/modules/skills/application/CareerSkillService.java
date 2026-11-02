@@ -91,7 +91,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             var other=entry.getValue();
             var actorPlayer=server.getPlayerList().getPlayer(entry.getKey());
             if(actorPlayer!=null&&actorPlayer.level()==p.level()&&actorPlayer.distanceToSqr(p)<=4096&&!sessions.apply(actorPlayer).life.dead){
-                var actor=new CareerState.Actor();actor.owner=actorPlayer.getStringUUID();actor.keiga=SkillLearning.effective(stats.apply(actorPlayer),progress.apply(actorPlayer),SkillCatalog.require(CareerSkills.KEIGA));actor.brands=other.brands;actor.blood=other.blood;actor.frenzy=other.frenzy;actor.kallaUntil=other.kallaUntil;actor.eyeUntil=other.eyeUntil;actor.bloodUntil=other.bloodUntil;view.actors.add(actor);
+                var actor=new CareerState.Actor();actor.owner=actorPlayer.getStringUUID();actor.keiga=SkillLearning.effective(stats.apply(actorPlayer),progress.apply(actorPlayer),SkillCatalog.require(CareerSkills.KEIGA));actor.brands=other.brands;actor.blood=other.blood;actor.frenzy=other.frenzy;actor.kallaUntil=other.kallaUntil;actor.eyeUntil=other.eyeUntil;actor.bloodUntil=other.bloodUntil;actor.sunMoonHeart=other.sunMoon.heart;actor.sunMoonStacks=other.sunMoon.stacks;view.actors.add(actor);
             }
             var f=other.field;
             if(f==null||f.expires<=now||!f.dimension.equals(view.dimension)||!f.instance.equals(view.instance))continue;
@@ -102,6 +102,8 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         return view;
     }
     public Stats currentStats(ServerPlayer p){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),sessions.apply(p).resources,now),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
+    public SunMoonState sunMoonState(ServerPlayer p){return state(p).sunMoon;}
+    public void sunMoonState(ServerPlayer p,SunMoonState value){state(p).sunMoon=value;}
     public boolean invulnerable(ServerPlayer p){state(p);return oracle.locked(p)||invulnerable.getOrDefault(p.getUUID(),0L)>System.currentTimeMillis();}
     public boolean frenzy(ServerPlayer p){return state(p).frenzy&&!sessions.apply(p).life.dead;}
     public void clear(ServerPlayer p){oracle.clear(p);reduced.remove(p.getUUID());states.remove(p.getUUID());sentViews.remove(p.getUUID());casts.remove(p.getUUID());lastBloodGain.remove(p.getUUID());orbHitClocks.remove(p.getUUID());invulnerable.remove(p.getUUID());for(var kind:List.of(Attributes.KNOCKBACK_RESISTANCE,Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)){var attribute=p.getAttribute(kind);if(attribute!=null)attribute.removeModifier(STEADFAST);}}
@@ -164,11 +166,8 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             origin=oracle.origin(parameters,origin);direction=oracle.direction(parameters,direction);center=origin;
             if(skillId.equals(CareerSkills.SWORD)&&terminal)center=origin.add(direction.scale(StormChoreography.CENTER_OFFSET));
             if(skillId.equals(CareerSkills.FIELD)){
-                var hit=p.level().clip(new ClipContext(p.getEyePosition(),p.getEyePosition().add(p.getLookAngle().scale(8)),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
-                Vec3 candidate=hit.getType()==HitResult.Type.MISS?origin.add(direction.scale(4)):hit.getLocation();
-                var floor=p.level().clip(new ClipContext(candidate.add(0,1.2,0),candidate.add(0,-3,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
-                if(floor.getType()==HitResult.Type.MISS||origin.distanceToSqr(floor.getLocation())>64)throw new IllegalArgumentException("8格内没有可放置鬼阵的地面");
-                center=floor.getLocation();var f=new CareerState.Field();f.id=id;f.owner=p.getStringUUID();f.rank=rank;f.x=center.x;f.y=center.y;f.z=center.z;f.dimension=next.dimension;f.instance=next.instance;f.expires=now+12000;next.field=f;
+                var aim=SkillTargeting.ground(p,8,CareerSkillService::projectileTarget);
+                center=aim.point();var f=new CareerState.Field();f.id=id;f.owner=p.getStringUUID();f.rank=rank;f.x=center.x;f.y=center.y;f.z=center.z;f.dimension=next.dimension;f.instance=next.instance;f.expires=now+12000;next.field=f;
             }
             if(skillId.equals(CareerSkills.BLACHE))next.field=null;
             if(skillId.equals(CareerSkills.ORB)||skillId.equals(CareerSkills.AGNI))next.brands=0;

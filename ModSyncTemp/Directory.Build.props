@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <TaskRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\temp\mod-sync\'))</TaskRoot>
+    <BaseIntermediateOutputPath>$(TaskRoot)obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(TaskRoot)build\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

@@ -35,6 +35,7 @@ public final class SkillPreview {
         return damage(progress,stats,skill,coefficient,true,false,new int[]{element},effects);
     }
     public static Damage passiveElementDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int element,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){return damage(progress,stats,skill,coefficient,true,false,new int[]{element},effects);}
+    public static Damage elementDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int element,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){return damage(progress,stats,skill,coefficient,false,true,new int[]{element},effects);}
     private static Damage damage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,boolean passive,boolean append,int[] elements,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.eyeDamage(stats,skill);
         boolean magic=CareerRules.magic(skill,progress);
@@ -48,7 +49,7 @@ public final class SkillPreview {
         return new Damage(minimum+(append?cn.yumis.fight.modules.combat.api.EquipmentDamage.append(minimum,stats,effects,0,new double[4]):0),maximum+(append?cn.yumis.fight.modules.combat.api.EquipmentDamage.append(maximum,stats,effects,0,new double[4]):0));
     }
     public static Preview resolve(Progress progress,Stats stats,SkillDefinition skill,SkillParameters.Snapshot parameters,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
-        stats=CareerRules.castDamage(stats,parameters);
+        stats=CareerRules.castDamage(SunMoonRules.forCast(stats,skill),parameters);
         int rank=SkillLearning.effective(stats,progress,skill);
         var definition=SkillPreviewRules.require(skill);
         int count=definition.hits().applyAsInt(parameters);
@@ -70,6 +71,8 @@ public final class SkillPreview {
         Damage wave=new Damage(0,0);
         if(stats.weaponType.equals("SHORTSWORD")&&mastery(progress,stats)>0&&definition.shortSwordWave())
             wave=damage(progress,stats,skill,parameters.get("damage",0)*.2*mastery(progress,stats),true,effects);
-        return new Preview(rank,count,hit,finisher,hit.times(count).plus(finisher).plus(SkillPreviewRules.supplement(skill,progress,stats,parameters,effects)),wave,skill.mp(Math.max(1,rank)),SkillCosts.resolve(skill,rank,stats,effects,CareerRules.magic(skill,progress)).cooldown(),parameters,effects);
+        Damage total=SkillPreviewRules.total(skill,progress,stats,parameters,effects);if(total==null)total=hit.times(count).plus(finisher).plus(SkillPreviewRules.supplement(skill,progress,stats,parameters,effects));
+        var cost=SkillCosts.resolve(skill,Math.max(1,rank),stats,effects,CareerRules.magic(skill,progress));
+        return new Preview(rank,count,hit,finisher,total,wave,cost.mana(),cost.cooldown(),parameters,effects);
     }
 }

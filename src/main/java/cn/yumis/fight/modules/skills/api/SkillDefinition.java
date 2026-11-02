@@ -9,6 +9,13 @@ public final class SkillDefinition {
     public final int unlock,sp;
     public final double mpRatio,cooldown,coefficient;
     public boolean equipmentGranted,magicTag,bindingProxy;
+    public boolean automaticByJob;
+    public boolean groundTargeted;
+    public double chantSeconds;
+    public enum Aspect { NONE, SUN, MOON }
+    public Aspect aspect=Aspect.NONE;
+    public record Projectile(double speed,int pierces,boolean explodes,long impactMillis,boolean boundingBoxBlast){}
+    public Projectile projectile;
     public Boolean magicDamage;
     public String baseJob=cn.yumis.fight.modules.character.api.JobCatalog.BASE;
     public double cooldownPerRank;

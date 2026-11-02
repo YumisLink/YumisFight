@@ -9,12 +9,14 @@ import java.util.Arrays;
 public final class SkillLearning {
     private SkillLearning(){}
     public static int effective(Stats stats,Progress progress,SkillDefinition skill){
+        if(skill.automaticByJob)return skill.available(progress)&&progress.level>=skill.unlock?1:0;
         int learned=progress.learned(skill.id),granted=stats.ranks.getOrDefault("grant/"+skill.id,0);
         if(!skill.available(progress)||granted<=0&&learned==0)return 0;
         int rank=Math.max(learned,granted)+stats.ranks.getOrDefault(skill.family,0);
         return rank+(CareerRules.magic(skill,progress)?stats.ranks.getOrDefault("tag/magic",0):0);
     }
     public static int learn(Progress progress,SkillDefinition skill,int count){
+        if(skill.automaticByJob)throw new IllegalArgumentException("转职自动获得，无需学习或升级");
         if(skill.equipmentGranted)throw new IllegalArgumentException("装备授予技能无需SP，不能永久学习");
         if(!skill.available(progress))throw new IllegalArgumentException("尚未获得该职业或觉醒资格");
         if(count!=1&&count!=5)throw new IllegalArgumentException("加点数量必须为1或5");
@@ -28,6 +30,7 @@ public final class SkillLearning {
         Arrays.fill(progress.slots,"");
     }
     public static int unlearn(Progress progress,Stats stats,SkillDefinition skill,int count){
+        if(skill.automaticByJob)throw new IllegalArgumentException("职业固有能力不能退级");
         if(skill.equipmentGranted)throw new IllegalArgumentException("装备授予等级不能退还SP");
         if(count!=1&&count!=5)throw new IllegalArgumentException("退级数量必须为1或5");
         int amount=Math.min(count,progress.learned(skill.id));if(amount<=0)throw new IllegalArgumentException("该技能没有可退还的学习等级");

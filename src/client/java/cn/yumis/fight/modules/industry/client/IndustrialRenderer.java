@@ -29,6 +29,7 @@ import java.util.WeakHashMap;
 public final class IndustrialRenderer implements BlockEntityRenderer<MachineBlockEntity,IndustrialRenderer.State> {
     private final ItemModelResolver items;
     private final Map<MachineBlockEntity,RotorMotion> rotors=new WeakHashMap<>();
+    private final Map<MachineBlockEntity,IndustrialFluidDisplay.Scalar> liquidLevels=new WeakHashMap<>();
     public static final class State extends BlockEntityRenderState {final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();boolean show,iconVisible,wind,turbine;float angle,bob,rotorAngle,fluidFill;int fluidTint,fluidLight;TextureAtlasSprite fluidSprite;Direction facing;}
     public IndustrialRenderer(BlockEntityRendererProvider.Context context){items=context.itemModelResolver();}
     @Override public State createRenderState(){return new State();}
@@ -42,7 +43,8 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
             if(!fluid.isEmpty()){
                 var model=Minecraft.getInstance().getModelManager().getFluidStateModelSet().get(fluid.getFluid().defaultFluidState());
                 state.fluidSprite=model.stillMaterial().sprite();state.fluidTint=model.fluidTintSource()==null?-1:model.fluidTintSource().colorAsStack(fluid);
-                state.fluidFill=Math.clamp((float)((double)be.visibleTankAmount()/Math.max(1,be.visibleTankCapacity())),0,1);
+                double displayed=liquidLevels.computeIfAbsent(be,k->new IndustrialFluidDisplay.Scalar()).sample(be.visibleTankAmount(),net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());
+                state.fluidFill=Math.clamp((float)(displayed/Math.max(1,be.visibleTankCapacity())),0,1);
                 state.fluidLight=LightCoordsUtil.pack(Math.max(LightCoordsUtil.block(state.lightCoords),fluid.getFluidType().getLightLevel(fluid)),LightCoordsUtil.sky(state.lightCoords));
             }
         }

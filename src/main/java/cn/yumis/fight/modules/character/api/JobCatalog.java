@@ -4,6 +4,7 @@ import java.util.*;
 /** 转职内容注册表。新增职业只添加定义和本模块任务处理。 */
 public final class JobCatalog {
     public static final String SUMMONER="yumis_dungeon_and_fight:summoner";
+    public static final String SUN_MOON="yumis_dungeon_and_fight:sun_moon_mage";
     public static final String NONE="yumis_dungeon_and_fight:unselected", MAGE="yumis_dungeon_and_fight:mage", BASE="yumis_dungeon_and_fight:ghost_swordsman", SWORDMASTER="yumis_dungeon_and_fight:swordmaster",
         ORACLE="yumis_dungeon_and_fight:oracle_executor", SOUL_BENDER="yumis_dungeon_and_fight:soul_bender", ASURA="yumis_dungeon_and_fight:asura", BERSERKER="yumis_dungeon_and_fight:berserker";
     public record CombatStyle(boolean magic,double damageTaken,String awakening,String awakeningSkill){}
@@ -16,6 +17,7 @@ public final class JobCatalog {
         register(new Definition(BASE,"鬼剑士","",1));
         register(new Definition(MAGE,"魔法师","",1));
         register(new Definition(SUMMONER,"召唤师",MAGE,20));STYLES.put(SUMMONER,new CombatStyle(true,.65,"月之女皇","yumis_dungeon_and_fight:kasijas"));
+        register(new Definition(SUN_MOON,"日月魔法师",MAGE,20));STYLES.put(SUN_MOON,new CombatStyle(true,.65,"日月魔法师","yumis_dungeon_and_fight:paradox"));
         STYLES.put(MAGE,new CombatStyle(true,.65,"",""));
         STYLES.put(BASE,new CombatStyle(false,.65,"",""));
         WEAPONS.put(BASE,Set.of("KATANA","LIGHTSABER","SHORTSWORD","GREATSWORD","BLUNT"));WEAPONS.put(MAGE,Set.of("STAFF","CLUB"));

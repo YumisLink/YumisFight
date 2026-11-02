@@ -37,6 +37,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public final List<CrystalRoute> routes=new ArrayList<>();
     public int routeCursor;
     public Fraction functionTime=Fraction.ZERO;public long functionCredit,functionCost;
+    final IndustrialFluidWork.Cycle pumpCycle=new IndustrialFluidWork.Cycle();
     public final net.minecraft.world.SimpleContainer plugins=new net.minecraft.world.SimpleContainer(3){
         @Override public int getMaxStackSize(){return 64;}
         @Override public boolean canPlaceItem(int slot,ItemStack stack){return pluginAllowed(stack);}
@@ -50,8 +51,11 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public long fuelEnergy,currentPower;public String fuelFluid="";
     public int fluidRemainder,powerRemainder,harvestCursor;
     public long generated,consumed,overflow;
+    public boolean workedThisTick;
     private FluidStack visibleTankFluid=FluidStack.EMPTY;
     private long visibleTankAmount,visibleTankCapacity;
+    private boolean tankDisplayDirty;
+    private long lastTankDisplay=Long.MIN_VALUE;
     public long visibleTankAmount(){return level instanceof ServerLevel?fluids.getAmountAsLong(0):visibleTankAmount;}
     public long visibleTankCapacity(){return level instanceof ServerLevel?fluidCapacity():visibleTankCapacity;}
     public final InventoryStore items=new InventoryStore();
@@ -82,7 +86,14 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         FluidStore(){super(fluidTankCount(),FluidResource.EMPTY,FluidResource.OPTIONAL_CODEC);}
         public long getCapacityAsLong(int slot,FluidResource resource){return fluidCapacity();}
         public boolean isValid(int slot,FluidResource resource){return acceptsTank(slot,resource);}
-        protected void changed(int slot){MachineBlockEntity.this.setChanged();if(device().has(DeviceType.Capability.FLUID_STORAGE)&&level instanceof ServerLevel server)server.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),net.minecraft.world.level.block.Block.UPDATE_CLIENTS);}
+        public long reservedAmount(int slot){long n=0;for(var line:productionLines)n+=line.reservedFluid(slot);return n;}
+        public long availableAmount(int slot){return Math.max(0,getAmountAsLong(slot)-reservedAmount(slot));}
+        @Override public int extract(int slot,FluidResource resource,int amount,TransactionContext tx){return super.extract(slot,resource,(int)Math.min(amount,availableAmount(slot)),tx);}
+        int extractReserved(MachineLane owner,int slot,FluidResource resource,int amount,TransactionContext tx){
+            if(owner.machine!=MachineBlockEntity.this||slot/device().fluidTanks()!=owner.index||amount<0||amount>owner.reservedFluid(slot))return 0;
+            return super.extract(slot,resource,amount,tx);
+        }
+        protected void changed(int slot){MachineBlockEntity.this.setChanged();if(device().has(DeviceType.Capability.FLUID_STORAGE))tankDisplayDirty=true;}
         public void empty(int slot){set(slot,FluidResource.EMPTY,0);}
     }
     private boolean acceptsTank(int tank,FluidResource resource){
@@ -90,16 +101,17 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(device().has(DeviceType.Capability.FLUID_STORAGE))return true;
         int line=tank/device().fluidTanks();if(line>=lineCount())return false;
         tank%=device().fluidTanks();
-        if(device().has(DeviceType.Capability.DUAL_FLUID)&&tank<device().fluidInputs()&&fluids!=null&&fluids.getResource(fluidTank(line,tank)).isEmpty()){
+        if(automationRecipeId(line).isEmpty()&&device().has(DeviceType.Capability.DUAL_FLUID)&&tank<device().fluidInputs()&&fluids!=null&&fluids.getResource(fluidTank(line,tank)).isEmpty()){
             for(int other=0;other<device().fluidInputs();other++)if(other!=tank&&fluids.getResource(fluidTank(line,other)).equals(resource))return false;
         }
         if(tank==device().fluidOutput())return device().processing()||device().has(DeviceType.Capability.PUMP);
         if(device().has(DeviceType.Capability.MINING))return tank==0&&(IndustrialFluids.matches(resource,"minecraft:water")||IndustrialFluids.matches(resource,IndustrialContent.NS+":coolant"));
         if(device().processing()&&level instanceof ServerLevel server){
+            String selected=automationRecipeId(line);if(selected.isEmpty()&&device().has(DeviceType.Capability.REQUIRE_RECIPE))return false;
             for(var holder:IndustrialProcessing.recipes(server,device())){
                 var r=holder.value();
-                String selected=device().has(DeviceType.Capability.MINING)?lane(line).selected:"";
                 if(r.minimumTier()>tier()||!selected.isEmpty()&&!selected.equals(holder.id().identifier().toString()))continue;
+                if(!selected.isEmpty())return tank<r.fluidInputs().size()&&r.fluidInputs().get(tank).ingredient().test(resource.toStack(1));
                 if(r.fluidInputs().stream().anyMatch(input->input.ingredient().test(resource.toStack(1))))return true;
             }
             return false;
@@ -120,6 +132,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public IndustrialContent.Spec spec(){return IndustrialContent.spec(device(),tier());}
     /** Client display uses only the native tank update, never an inventory/batch snapshot. */
     public FluidStack visibleTankFluid(){return level instanceof ServerLevel?fluids.getResource(0).toStack(fluids.getResource(0).isEmpty()?0:1):visibleTankFluid;}
+    public void syncTankDisplay(){if(tankDisplayDirty&&level instanceof ServerLevel server&&(lastTankDisplay==Long.MIN_VALUE||server.getGameTime()-lastTankDisplay>=5)){lastTankDisplay=server.getGameTime();tankDisplayDirty=false;server.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),net.minecraft.world.level.block.Block.UPDATE_CLIENTS);}}
     @Override public net.minecraft.nbt.CompoundTag getUpdateTag(HolderLookup.Provider registries){
         var out=TagValueOutput.createWithContext(net.minecraft.util.ProblemReporter.DISCARDING,registries);
         if(device().has(DeviceType.Capability.FLUID_STORAGE))out.store("tank_display",FluidStack.OPTIONAL_CODEC,fluids.getResource(0).toStack(fluids.getResource(0).isEmpty()?0:1));
@@ -137,7 +150,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public ResourceHandler<ItemResource> itemsFor(Direction side){
         var layout=slots();int[] indices=side==null?java.util.stream.IntStream.range(0,layout.size()).toArray():getSlotsForFace(side);
         boolean balance=device().has(DeviceType.Capability.PARALLEL)&&side!=Direction.DOWN&&side!=getBlockState().getValue(MachineBlock.FACING).getOpposite();
-        return new FilteredHandler<>(items,indices,(i,r)->side!=Direction.DOWN&&canPlaceItem(i,r.toStack(1))&&acceptsAutomationInput(i,r.toStack(1)),(i,r)->slots().output(i)&&device().outputs()||i==layout.crystal()||i==layout.fuel(),balance?this::inputLoad:null,lineCount());
+        return new FilteredHandler<>(items,indices,(i,r)->side!=Direction.DOWN&&canPlaceItem(i,r.toStack(1))&&acceptsAutomationItem(i,r.toStack(1)),(i,r)->slots().output(i)&&device().outputs()||i==layout.crystal()||i==layout.fuel(),balance?this::inputLoad:null,lineCount());
     }
     private long inputLoad(int slot){
         int line=slots().lineOf(slot);if(line<0)return Long.MAX_VALUE;
@@ -149,10 +162,19 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(side==getBlockState().getValue(MachineBlock.FACING).getOpposite())return new int[]{device().generator()?layout.fuel():layout.crystal()};
         return java.util.Arrays.stream(layout.inputSlots()).boxed().sorted(java.util.Comparator.comparingLong(this::inputLoad)).mapToInt(Integer::intValue).toArray();
     }
-    @Override public boolean canPlaceItemThroughFace(int slot,ItemStack stack,Direction side){return side!=Direction.DOWN&&canPlaceItem(slot,stack)&&acceptsAutomationInput(slot,stack);}
+    @Override public boolean canPlaceItemThroughFace(int slot,ItemStack stack,Direction side){return side!=Direction.DOWN&&canPlaceItem(slot,stack)&&acceptsAutomationItem(slot,stack);}
     @Override public boolean canTakeItemThroughFace(int slot,ItemStack stack,Direction side){return side==Direction.DOWN?slots().output(slot)&&device().outputs():slot==slots().crystal()||slot==slots().fuel();}
-    private boolean acceptsAutomationInput(int slot,ItemStack stack){
-        if(!slots().input(slot)||device().currencyUpgrader()||device().has(DeviceType.Capability.SMELTING)||!(level instanceof ServerLevel server))return true;
+    private String automationRecipeId(int line){
+        if(!device().selectedRecipe())return "";var state=lane(line);String id=state.queued.isEmpty()?state.selected:state.queued;return id.equals("@auto")?"":id;
+    }
+    private boolean acceptsAutomationItem(int slot,ItemStack stack){
+        if(!(level instanceof ServerLevel server))return true;
+        var layout=slots();
+        if(slot==layout.fuel()&&device().has(DeviceType.Capability.FUEL))return server.recipeAccess().recipeMap().byType(IndustrialContent.RECIPE_TYPE.get()).stream().filter(h->h.value().machine().equals("fuel_"+device().id)).flatMap(h->h.value().ingredients().stream()).anyMatch(n->n.ingredient().test(stack));
+        if(!layout.input(slot)||device().currencyUpgrader()||device().has(DeviceType.Capability.SMELTING))return true;
+        String selected=automationRecipeId(layout.lineOf(slot));
+        if(!selected.isEmpty())return IndustrialProcessing.recipes(server,device()).stream().filter(h->h.value().minimumTier()<=tier()&&h.id().identifier().toString().equals(selected)).anyMatch(h->{int input=layout.offset(slot);return input<h.value().ingredients().size()&&h.value().ingredients().get(input).ingredient().test(stack);});
+        if(device().has(DeviceType.Capability.REQUIRE_RECIPE))return false;
         return IndustrialProcessing.recipes(server,device()).stream().filter(h->h.value().minimumTier()<=tier()).flatMap(h->h.value().ingredients().stream()).anyMatch(n->n.ingredient().test(stack));
     }
     public ResourceHandler<FluidResource> fluidsFor(Direction side){
@@ -192,7 +214,8 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         }
         for(int i=0;i<3;i++){var stack=plugins.getItem(i);if(!stack.isEmpty())drops.add(stack.copy());}plugins.clearContent();
         if(currencyUpgrade!=null)drops.addAll(currencyUpgrade.breakContents());
-        for(var line:productionLines){if(!line.batchRecipe.isEmpty())for(ItemStack stack:line.batchInputs)if(!stack.isEmpty())drops.add(stack.copy());line.clearBatch();line.selected=line.queued="";}
+        pumpCycle.clear();functionCredit=0;
+        for(var line:productionLines){if(!line.batchRecipe.isEmpty())drops.addAll(line.refundableInputs());line.clearBatch();line.selected=line.queued="";}
         energy=crystalRemaining=0;fuelRemaining=fuelTotal=0;beacon="";routes.clear();
         for(int i=0;i<fluidTankCount();i++)fluids.empty(i);
         return drops;
@@ -202,6 +225,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         out.store("plugins",ItemStack.OPTIONAL_CODEC.listOf(),java.util.stream.IntStream.range(0,3).mapToObj(plugins::getItem).toList());out.store("routes",CrystalRoute.CODEC.listOf(),routes);out.putInt("route_cursor",routeCursor);out.putString("function_time",functionTime.toString());out.putLong("function_credit",functionCredit);out.putLong("function_cost",functionCost);
         items.serialize(out.child("inventory"));fluids.serialize(out.child("fluids"));out.putString("identity",identity.toString());out.putString("beacon",beacon);out.putLong("energy",energy);out.putLong("crystal",crystalRemaining);out.putBoolean("running",running);
         for(var line:productionLines)line.save(out.child("line_"+line.index));
+        pumpCycle.save(out.child("pump_cycle"));
         out.putInt("fuel_total",fuelTotal);out.putInt("fuel_remaining",fuelRemaining);out.putLong("fuel_energy",fuelEnergy);out.putInt("fuel_fluid_rate",fuelFluidRate);out.putString("fuel_fluid",fuelFluid);out.putInt("fluid_remainder",fluidRemainder);out.putInt("power_remainder",powerRemainder);out.putInt("harvest_cursor",harvestCursor);
     }
     @Override protected void loadAdditional(ValueInput in){
@@ -213,6 +237,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         restoringPlugins=true;try{for(int i=0;i<3;i++)plugins.setItem(i,i<installed.size()?installed.get(i):ItemStack.EMPTY);}finally{restoringPlugins=false;}
         routes.clear();routes.addAll(in.read("routes",CrystalRoute.CODEC.listOf()).orElse(List.of()));routeCursor=in.getIntOr("route_cursor",0);functionTime=Fraction.parse(in.getStringOr("function_time","0/1"));functionCredit=in.getLongOr("function_credit",0);functionCost=in.getLongOr("function_cost",0);
         for(var line:productionLines)line.load(in.childOrEmpty("line_"+line.index));
+        pumpCycle.load(in.childOrEmpty("pump_cycle"));
         fuelTotal=in.getIntOr("fuel_total",0);fuelRemaining=in.getIntOr("fuel_remaining",0);fuelEnergy=in.getLongOr("fuel_energy",0);fuelFluidRate=in.getIntOr("fuel_fluid_rate",0);fuelFluid=in.getStringOr("fuel_fluid","");fluidRemainder=in.getIntOr("fluid_remainder",0);powerRemainder=in.getIntOr("power_remainder",0);harvestCursor=in.getIntOr("harvest_cursor",0);
         if(currencyUpgrade!=null)currencyUpgrade.load(in);
     }

@@ -13,6 +13,7 @@ public class SkillCast {
         public String weapon,id,dimension;
         public String mageAttack="",visualWeapon="",eyeGear="";
         public double sweepDegrees;
+        public double mageCoefficient;
         public boolean passiveDamage,suppressEquipment;
         public Vec3 origin,direction,center;
         public long start,stageStart,window;

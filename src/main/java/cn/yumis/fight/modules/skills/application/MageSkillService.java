@@ -34,6 +34,43 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private final Map<String,Incoming> incoming=new HashMap<>();private final List<Flight> flights=new ArrayList<>();private final List<Scheduled> scheduled=new ArrayList<>();
     private final List<Pulse> pulses=new ArrayList<>();
     private final List<SummonFlight> summonFlights=new ArrayList<>();
+    private final Map<UUID,Source> chants=new HashMap<>();
+    private final Map<String,Function<Source,Runnable>> spellHandlers=new HashMap<>();
+    private final List<LongConsumer> contentTicks=new ArrayList<>();
+    private final List<Consumer<UUID>> contentClears=new ArrayList<>();
+    private final Set<String> resetOnReduction=new HashSet<>();
+    private Function<ServerPlayer,SunMoonState> heartState=p->new SunMoonState();
+    private BiConsumer<ServerPlayer,SunMoonState> heartStateWriter=(p,s)->{};
+    private Consumer<ServerPlayer> heartSync=p->{};
+    public void heartStates(Function<ServerPlayer,SunMoonState> read,BiConsumer<ServerPlayer,SunMoonState> write,Consumer<ServerPlayer> sync){heartState=read;heartStateWriter=write;heartSync=sync;}
+    void spell(String id,Function<Source,Runnable> release){spellHandlers.put(id,release);resetOnReduction.add(id);}
+    void contentLifecycle(LongConsumer tick,Consumer<UUID> clear){contentTicks.add(tick);contentClears.add(clear);}
+    public Stats castStats(ServerPlayer p,SkillDefinition skill,Stats source){return SunMoonRules.forCast(source,skill);}
+    public SkillStartService.Payment payment(ServerPlayer p,SkillDefinition skill,Stats stats,JsonObject ack){
+        if(skill.chantSeconds>0)ack.addProperty("chantUntil",ack.get("serverNow").getAsLong()+Math.max(1,Math.round(skill.chantSeconds*1000/Math.max(.01,stats.get(Stat.CAST_SPEED)))));
+        if(!SunMoonSkills.contains(skill.id))return SkillStartService.Payment.NONE;
+        SunMoonState before=heartState.apply(p).copy(),next=SunMoonRules.paid(before,skill,stats);String key="skillState/sunmoon/"+p.getUUID()+"/"+sessions.apply(p).id;
+        return new SkillStartService.Payment(Map.of(key,JSON.toJsonTree(next)),Map.of(key,JSON.toJsonTree(before)),()->{heartStateWriter.accept(p,next);heartSync.accept(p);},()->{heartStateWriter.accept(p,before);heartSync.accept(p);});
+    }
+    public boolean chanting(ServerPlayer p){return chants.containsKey(p.getUUID());}
+    public void cancelChant(ServerPlayer p,String id){var source=chants.get(p.getUUID());if(source==null||!id.isEmpty()&&!source.castId.equals(id))return;chants.remove(p.getUUID());source.cancelled=true;sources.remove(source.id);ChantRules.movement(p,false);chantEnded(p,source);}
+    private void chantEnded(ServerPlayer p,Source source){Network.send(p,"chantState",Map.of("id",source.castId,"session",source.session,"generation",source.generation,"active",false,"serverNow",System.currentTimeMillis()));}
+    private void released(Source source){
+        if(!SunMoonSkills.contains(source.skill.id))return;var p=owner(source);String key="skillRelease/"+p.getUUID()+"/"+source.session+"/"+source.id;if(!journal.get(key).isJsonNull())return;
+        boolean awakened=SkillLearning.effective(source.stats,progress.apply(p),SkillCatalog.require(SunMoonSkills.PARADOX))>0;
+        SunMoonState next=SunMoonRules.released(heartState.apply(p),source.skill,awakened);try{journal.transaction(Map.of(key,JSON.toJsonTree(next),"skillState/sunmoon/"+p.getUUID()+"/"+source.session,JSON.toJsonTree(next)));}catch(java.io.IOException failure){throw new IllegalStateException("日月状态提交失败",failure);}heartStateWriter.accept(p,next);heartSync.accept(p);
+    }
+    private void tickChants(long now){
+        for(var source:new ArrayList<>(chants.values())){var p=owner(source);if(p==null){chants.remove(source.owner);source.cancelled=true;continue;}
+            var hand=cn.yumis.fight.modules.equipment.api.EquipmentItems.gear(p.getMainHandItem());
+            if(!valid(source)||p.hasEffect(CombatContentTypes.STUN)||hand==null||!hand.instance.toString().equals(source.weapon)||!hand.valid(progress.apply(p),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(p))||progress.apply(p).level<source.skill.unlock||SkillLearning.effective(source.stats,progress.apply(p),source.skill)<=0){cancelChant(p,source.id);continue;}
+            if(now<source.chantUntil)continue;chants.remove(p.getUUID());ChantRules.movement(p,false);chantEnded(p,source);
+            try{release(p,source);}catch(RuntimeException failure){source.cancelled=true;sources.remove(source.id);p.sendOverlayMessage(net.minecraft.network.chat.Component.literal(Objects.toString(failure.getMessage(),"施放失败")));}
+        }
+    }
+    long targetGeneration(LivingEntity target){return targets.apply(target).life.generation;}
+    boolean targetAlive(LivingEntity target){return target.isAlive()&&!targets.apply(target).life.dead;}
+    void finished(Source source){var p=owner(source);if(p!=null)Network.send(p,"mageSourceEnd",Map.of("source",source.id));}
     private record Pulse(Source source,SummonMoves.Move move,UUID target,long targetGeneration,Vec3 origin,Vec3 aim,Stats stats,long due){}
     private static final class SummonFlight {Pulse pulse;String id;Vec3 from,to,position;long start,duration;double arc,progress;int hits;final Set<UUID> struck=new HashSet<>();}
     private record Slow(LivingEntity target,Source source,long until){}
@@ -43,24 +80,26 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private record Frenzy(String cast,String session,long generation,String dimension,long until,double power){}
     private final Map<UUID,Frenzy> frenzy=new HashMap<>();private final Set<UUID> following=new HashSet<>();
     private final Map<SummonedCreature,Long> retiring=new HashMap<>();
-    private static final class Source {
+    static final class Source {
         String id,session,dimension,instance;UUID owner;long generation,expires,started,busy,lastHurt,lastTick,lastSync;int rank,level,stuck,actionIndex;SummonKind kind;String castId;long guardUntil;List<SummonMoves.Cue> cues=List.of();
         SkillDefinition skill;SkillParameters.Snapshot parameters;Stats stats,meleeStats,stoneStats;EquipmentEffects.Snapshot effects;Vec3 origin,direction,previous;SummonedCreature entity;
         double health,shield,maximum,maximumShield;SkillPreview.Damage meleeDamage,stoneDamage,tripleDamage;
         final Map<String,Long> environment=new HashMap<>();
         boolean summon(){return kind!=null;}
         boolean naturalEnd;
+        String job="",weapon="";long chantUntil;boolean cancelled;
     }
-    private static final class Attack {String id;Source source;UUID target;long generation,created,expires;Stats stats;double coefficient;boolean consumed,slow;Vec3 point;}
+    private static final class Attack {String id;Source source;UUID target;long generation,created,expires;Stats stats;double coefficient;int element=-2;boolean consumed,slow;Vec3 point;}
     private record Incoming(String id,Source source,long occurred,long expires,double damage,boolean direct){}
     private record Scheduled(Source source,long due){}
     private static final class Flight {Source source;String visual;Vec3 origin,end,position;long start;double duration;int hits,sequence;final Set<UUID> struck=new HashSet<>();}
-    public MageSkillService(MinecraftServer server,Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<ServerPlayer,Progress> progress,Function<LivingEntity,Target> targets,BiConsumer<ServerPlayer,JsonObject> visuals,Predicate<ServerPlayer> encounterSync){this.server=server;this.journal=journal;this.sessions=sessions;this.progress=progress;this.targets=targets;this.visuals=visuals;this.encounterSync=encounterSync;}
-    public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("skills","herderReceive",this::receive);router.register("skills","summonFollow",(p,j)->{if(!progress.apply(p).hasJob(JobCatalog.SUMMONER))throw new IllegalArgumentException("需要召唤师职业");if(!following.add(p.getUUID()))following.remove(p.getUUID());});}
-    private ServerPlayer owner(Source source){return server.getPlayerList().getPlayer(source.owner);}
-    private boolean valid(Source source){var p=owner(source);if(p==null||source.expires<System.currentTimeMillis()||p.isDeadOrDying()||source.summon()&&(source.entity==null||source.entity.isRemoved()))return false;var s=sessions.apply(p);return !s.life.dead&&s.id.toString().equals(source.session)&&s.life.generation==source.generation&&s.life.instance.equals(source.instance)&&p.level().dimension().identifier().toString().equals(source.dimension);}
+    public MageSkillService(MinecraftServer server,Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<ServerPlayer,Progress> progress,Function<LivingEntity,Target> targets,BiConsumer<ServerPlayer,JsonObject> visuals,Predicate<ServerPlayer> encounterSync){this.server=server;this.journal=journal;this.sessions=sessions;this.progress=progress;this.targets=targets;this.visuals=visuals;this.encounterSync=encounterSync;SunMoonSpellService.install(this);}
+    public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("skills","herderReceive",this::receive);router.register("skills","chantCancel",(p,j)->{if(j.has("session")&&j.get("session").getAsString().equals(sessions.apply(p).id.toString()))cancelChant(p,j.get("id").getAsString());});router.register("skills","summonFollow",(p,j)->{if(!progress.apply(p).hasJob(JobCatalog.SUMMONER))throw new IllegalArgumentException("需要召唤师职业");if(!following.add(p.getUUID()))following.remove(p.getUUID());});}
+    ServerPlayer owner(Source source){return server.getPlayerList().getPlayer(source.owner);}
+    boolean valid(Source source){var p=owner(source);if(source.cancelled||p==null||source.expires<System.currentTimeMillis()||p.isDeadOrDying()||source.summon()&&(source.entity==null||source.entity.isRemoved()))return false;var s=sessions.apply(p);return !s.life.dead&&s.id.toString().equals(source.session)&&s.life.generation==source.generation&&s.life.instance.equals(source.instance)&&progress.apply(p).jobId().equals(source.job)&&p.level().dimension().identifier().toString().equals(source.dimension);}
     private static boolean enemy(LivingEntity e){return e.isAlive()&&(e instanceof Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon);}
-    private static boolean eligible(ServerPlayer owner,LivingEntity e){return enemy(e)&&(!(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag)||!bag.timed()||bag.ownedBy(owner)&&!bag.finished());}
+    static boolean eligible(ServerPlayer owner,LivingEntity e){return enemy(e)&&(!(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag)||!bag.timed()||bag.ownedBy(owner)&&!bag.finished());}
+    static Vec3 closest(LivingEntity target,Vec3 point){var box=target.getBoundingBox();return new Vec3(Math.clamp(point.x,box.minX,box.maxX),Math.clamp(point.y,box.minY,box.maxY),Math.clamp(point.z,box.minZ,box.maxZ));}
     private static Vec3 vector(JsonArray a){return new Vec3(a.get(0).getAsDouble(),a.get(1).getAsDouble(),a.get(2).getAsDouble());}
     private static boolean sight(ServerPlayer p,Vec3 from,Vec3 to){return p.level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p)).getType()==HitResult.Type.MISS;}
     private static Vec3 safe(ServerPlayer p,SummonedCreature entity,int slot,List<Vec3> reserved){
@@ -68,11 +107,12 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         throw new IllegalArgumentException("附近没有足够的安全召唤空间");
     }
     public void preflight(ServerPlayer p,SkillDefinition skill){
+        cancelChant(p,"");
         var list=new ArrayList<SummonedCreature>();var reserved=new ArrayList<Vec3>();for(var k:SummonerSkills.kinds(skill.id)){var entity=new SummonedCreature(SkillContentTypes.SUMMONS.get(k).get(),p.level());var point=safe(p,entity,list.size(),reserved);entity.setPos(point);reserved.add(point);list.add(entity);}if(!list.isEmpty())prepared.put(p.getUUID(),list);
     }
     private Source source(ServerPlayer p,JsonObject ack){
-        Source s=new Source();s.id=s.castId=ack.get("id").getAsString();s.owner=p.getUUID();s.session=ack.get("session").getAsString();s.generation=ack.get("generation").getAsLong();s.dimension=p.level().dimension().identifier().toString();s.instance=sessions.apply(p).life.instance;s.skill=SkillCatalog.require(ack.get("skill").getAsString());s.rank=ack.get("rank").getAsInt();s.level=progress.apply(p).level;s.started=System.currentTimeMillis();s.expires=s.started+20000;
-        var values=new LinkedHashMap<String,Double>();ack.getAsJsonObject("parameters").entrySet().forEach(e->values.put(e.getKey(),e.getValue().getAsDouble()));s.parameters=new SkillParameters.Snapshot(s.skill,s.rank,values);s.stats=JSON.fromJson(ack.get("stats"),Stats.class);s.stats.modifiers.put("sourceLevel",(double)s.level);s.effects=JSON.fromJson(ack.get("equipmentEffects"),EquipmentEffects.Snapshot.class);s.origin=vector(ack.getAsJsonArray("origin"));s.direction=vector(ack.getAsJsonArray("direction"));return s;
+        Source s=new Source();s.id=s.castId=ack.get("id").getAsString();s.owner=p.getUUID();s.session=ack.get("session").getAsString();s.generation=ack.get("generation").getAsLong();s.dimension=p.level().dimension().identifier().toString();s.instance=sessions.apply(p).life.instance;s.skill=SkillCatalog.require(ack.get("skill").getAsString());s.rank=ack.get("rank").getAsInt();s.level=progress.apply(p).level;s.started=System.currentTimeMillis();s.expires=Math.max(s.started,ack.has("chantUntil")?ack.get("chantUntil").getAsLong():s.started)+20000;s.job=progress.apply(p).jobId();
+        var values=new LinkedHashMap<String,Double>();ack.getAsJsonObject("parameters").entrySet().forEach(e->values.put(e.getKey(),e.getValue().getAsDouble()));s.parameters=new SkillParameters.Snapshot(s.skill,s.rank,values);s.stats=JSON.fromJson(ack.get("stats"),Stats.class);s.stats.modifiers.put("sourceLevel",(double)s.level);s.weapon=s.stats.weaponInstance;s.effects=JSON.fromJson(ack.get("equipmentEffects"),EquipmentEffects.Snapshot.class);s.origin=vector(ack.getAsJsonArray("origin"));s.direction=vector(ack.getAsJsonArray("direction"));return s;
     }
     public void accepted(ServerPlayer p,JsonObject ack){
         var skill=SkillCatalog.require(ack.get("skill").getAsString());if(!MageSkills.contains(skill.id))return;ack.addProperty("instant",true);
@@ -90,27 +130,37 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
             for(var s:created){for(var old:new ArrayList<>(summons.values()))if(old.owner.equals(p.getUUID())&&old.kind==s.kind)remove(old);sources.put(s.id,s);summons.put(s.entity.getUUID(),s);sendState(s);}return;
         }
         Source source=source(p,ack);sources.put(source.id,source);
+        source.chantUntil=ack.has("chantUntil")?ack.get("chantUntil").getAsLong():0;
+        if(source.chantUntil>System.currentTimeMillis()){chants.put(p.getUUID(),source);ChantRules.movement(p,true);return;}
+        try{release(p,source);}catch(IllegalArgumentException failure){source.cancelled=true;sources.remove(source.id);p.sendOverlayMessage(net.minecraft.network.chat.Component.literal(failure.getMessage()));}
+    }
+    private void release(ServerPlayer p,Source source){
+        var skill=source.skill;source.origin=p.getEyePosition();source.direction=p.getLookAngle().normalize();source.started=System.currentTimeMillis();
+        var handler=spellHandlers.get(skill.id);if(handler!=null){Runnable publish=handler.apply(source);released(source);publish.run();return;}
         if(skill.id.equals(MageSkills.FANG)){source.direction=new Vec3(source.direction.x,0,source.direction.z).normalize();source.origin=p.position().add(0,.8,0);scheduled.add(new Scheduled(source,source.started+Math.max(1,(long)(200/Math.max(.01,source.stats.get(Stat.CAST_SPEED))))));visual(source,source.id,"START",source.origin,source.direction,600,0,null);}
-        else {Vec3 destination=source.origin.add(source.direction.scale(12));var spawn=ProjectileSpawn.inWorld(p,source.origin,source.direction,12,.15,e->eligible(p,e));source.origin=spawn.position();launch(source,source.origin,destination);}
+        else startProjectile(source);
     }
     private double frenzy(Source s){var f=frenzy.get(s.owner);return f!=null&&f.session.equals(s.session)&&f.generation==s.generation&&f.dimension.equals(s.dimension)&&f.until>System.currentTimeMillis()?f.power:0;}
     private void buffState(ServerPlayer p,long until){var j=new JsonObject();j.addProperty("session",sessions.apply(p).id.toString());j.addProperty("generation",sessions.apply(p).life.generation);j.addProperty("kind","FRENZY");j.addProperty("until",until);Network.send(p,"herderState",j);}
+    void startProjectile(Source source){var p=owner(source);double range=source.parameters.get("range",12);Vec3 destination=source.origin.add(source.direction.scale(range));var spawn=ProjectileSpawn.inWorld(p,source.origin,source.direction,range,.15,e->eligible(p,e));source.origin=spawn.position();launch(source,source.origin,destination);}
     private void launch(Source source,Vec3 from,Vec3 destination){
-        Flight flight=new Flight();flight.source=source;flight.visual=source.id;flight.origin=flight.position=from;flight.end=destination;flight.start=System.currentTimeMillis();flight.duration=Math.max(1,from.distanceTo(destination)/(source.skill.id.equals(MageSkills.STAR)?20:15)*1000);flights.add(flight);
-        JsonObject motion=new JsonObject();motion.addProperty("range",from.distanceTo(destination));motion.addProperty("millis",(long)Math.ceil(flight.duration));motion.addProperty("velocity",from.distanceTo(destination)/flight.duration*1000);motion.addProperty("arcHeight",source.skill.id.equals(MageSkills.STAR)||source.skill.id.equals(MageSkills.JACK)?0:1.5);
-        visual(source,flight.visual,"START",from,destination.subtract(from).normalize(),(long)Math.ceil(flight.duration)+500,0,motion);
+        Flight flight=new Flight();flight.source=source;flight.visual=source.id;flight.origin=flight.position=from;flight.end=destination;flight.start=System.currentTimeMillis();flight.duration=Math.max(1,from.distanceTo(destination)/source.skill.projectile.speed()*1000);flights.add(flight);
+        JsonObject motion=new JsonObject();motion.addProperty("range",from.distanceTo(destination));motion.addProperty("millis",(long)Math.ceil(flight.duration));motion.addProperty("velocity",from.distanceTo(destination)/flight.duration*1000);motion.addProperty("arcHeight",0);
+        visual(source,flight.visual,"START",from,destination.subtract(from).normalize(),(long)Math.ceil(flight.duration)+flight.source.skill.projectile.impactMillis(),0,motion);
     }
-    private void visual(Source source,String id,String phase,Vec3 point,Vec3 direction,long duration,int sequence,JsonObject motion){
-        var p=owner(source);if(p==null)return;long now=System.currentTimeMillis();var j=new JsonObject();j.addProperty("caster",p.getStringUUID());j.addProperty("session",source.session);j.addProperty("generation",source.generation);j.addProperty("dimension",source.dimension);j.addProperty("instance",source.instance);j.addProperty("id",id);j.addProperty("kind",source.skill.id);j.addProperty("phase",phase);j.addProperty("sequence",sequence);j.addProperty("seed",id.hashCode());j.addProperty("startedAt",now);j.addProperty("at",now);j.addProperty("serverNow",now);j.addProperty("duration",duration);j.addProperty("cosmeticOnly",true);j.addProperty("color",source.skill.id.equals(MageSkills.JACK)?0xff973c:0xbcefff);for(String axis:List.of("x","y","z")){double value=axis.equals("x")?point.x:axis.equals("y")?point.y:point.z;j.addProperty(axis,value);j.addProperty("p"+axis,value);j.addProperty("d"+axis,axis.equals("x")?direction.x:axis.equals("y")?direction.y:direction.z);}if(motion!=null)j.add("motion",motion);visuals.accept(p,j);Network.send(p,"visual",j);
+    void visual(Source source,String id,String phase,Vec3 point,Vec3 direction,long duration,int sequence,JsonObject motion){
+        var p=owner(source);if(p==null)return;long now=System.currentTimeMillis();var j=new JsonObject();j.addProperty("caster",p.getStringUUID());j.addProperty("session",source.session);j.addProperty("generation",source.generation);j.addProperty("dimension",source.dimension);j.addProperty("instance",source.instance);j.addProperty("id",id);j.addProperty("kind",source.skill.id);j.addProperty("phase",phase);j.addProperty("sequence",sequence);j.addProperty("seed",id.hashCode());j.addProperty("startedAt",now);j.addProperty("at",now);j.addProperty("serverNow",now);j.addProperty("duration",duration);j.addProperty("cosmeticOnly",true);j.addProperty("color",SkillPresentation.color(source.skill,false));for(String axis:List.of("x","y","z")){double value=axis.equals("x")?point.x:axis.equals("y")?point.y:point.z;j.addProperty(axis,value);j.addProperty("p"+axis,value);j.addProperty("d"+axis,axis.equals("x")?direction.x:axis.equals("y")?direction.y:direction.z);}if(motion!=null)j.add("motion",motion);visuals.accept(p,j);Network.send(p,"visual",j);
     }
     private void issue(Source source,LivingEntity target,Vec3 point){issue(source,target,point,null,false);}
-    private void issue(Source source,LivingEntity target,Vec3 point,Stats baked,boolean slow){
+    private void issue(Source source,LivingEntity target,Vec3 point,Stats baked,boolean slow){issue(source,target,point,baked,slow,source.summon()?1:source.parameters.get("damage",0),-2);}
+    void issue(Source source,LivingEntity target,Vec3 point,Stats baked,boolean slow,double coefficient,int element){
         if(!valid(source))return;var p=owner(source);if(!eligible(p,target))return;Target targetState=targets.apply(target);if(targetState.life.dead)return;
-        var attack=new Attack();attack.id=UUID.randomUUID().toString();attack.source=source;attack.target=target.getUUID();attack.generation=targetState.life.generation;attack.created=System.currentTimeMillis();attack.slow=slow;attack.expires=attack.created+5000;attack.point=point;attack.stats=baked!=null?baked.copy():source.stats.copy();attack.coefficient=source.summon()?1:source.parameters.get("damage",0);attacks.put(attack.id,attack);
-        JsonObject j=new JsonObject();j.addProperty("id",attack.id);j.addProperty("source",source.id);j.addProperty("session",source.session);j.addProperty("generation",source.generation);j.addProperty("skill",source.skill.id);j.addProperty("rank",source.rank);j.addProperty("target",target.getStringUUID());j.addProperty("entity",target.getId());j.addProperty("targetGeneration",attack.generation);j.addProperty("coefficient",attack.coefficient);j.addProperty("expires",attack.expires);j.addProperty("sourceExpires",source.expires);j.addProperty("summon",source.summon());j.add("stats",JSON.toJsonTree(attack.stats));j.add("effects",JSON.toJsonTree(source.effects));j.add("parameters",JSON.toJsonTree(source.parameters.values()));Network.send(p,"mageAttack",j);
+        var attack=new Attack();attack.id=UUID.randomUUID().toString();attack.source=source;attack.target=target.getUUID();attack.generation=targetState.life.generation;attack.created=System.currentTimeMillis();attack.slow=slow;attack.expires=attack.created+5000;attack.point=point;attack.stats=baked!=null?baked.copy():source.stats.copy();attack.coefficient=coefficient;attack.element=element;attacks.put(attack.id,attack);
+        JsonObject j=new JsonObject();j.addProperty("id",attack.id);j.addProperty("source",source.id);j.addProperty("session",source.session);j.addProperty("generation",source.generation);j.addProperty("skill",source.skill.id);j.addProperty("rank",source.rank);j.addProperty("target",target.getStringUUID());j.addProperty("entity",target.getId());j.addProperty("targetGeneration",attack.generation);j.addProperty("coefficient",attack.coefficient);j.addProperty("element",attack.element);j.addProperty("expires",attack.expires);j.addProperty("sourceExpires",source.expires);j.addProperty("summon",source.summon());j.add("stats",JSON.toJsonTree(attack.stats));j.add("effects",JSON.toJsonTree(source.effects));j.add("parameters",JSON.toJsonTree(source.parameters.values()));Network.send(p,"mageAttack",j);
     }
     public void tick(){
         long now=System.currentTimeMillis();
+        tickChants(now);for(var tick:contentTicks)tick.accept(now);
         tickSummonEffects(now);
         retiring.entrySet().removeIf(e->e.getKey().isRemoved());
         for(var job:new ArrayList<>(scheduled))if(job.due<=now){
@@ -119,12 +169,12 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
             Network.send(p,"mageSourceEnd",Map.of("source",s.id));
         }
         for(var flight:new ArrayList<>(flights)){
-            Source s=flight.source;if(!valid(s)){flights.remove(flight);continue;}var p=owner(s);double u=Math.clamp((now-flight.start)/(double)flight.duration,0,1);Vec3 next=flight.origin.lerp(flight.end,u);
+            Source s=flight.source;if(!valid(s)){visual(s,flight.visual,"CANCEL",flight.position,s.direction,(long)Math.ceil(flight.duration)+s.skill.projectile.impactMillis(),++flight.sequence,null);flights.remove(flight);continue;}var p=owner(s);double u=Math.clamp((now-flight.start)/(double)flight.duration,0,1);Vec3 next=flight.origin.lerp(flight.end,u);
             var wall=p.level().clip(new ClipContext(flight.position,next,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));Vec3 end=wall.getType()==HitResult.Type.MISS?next:wall.getLocation();Vec3 from=flight.position;
             var collided=p.level().getEntitiesOfClass(LivingEntity.class,new AABB(from,end).inflate(.25),e->eligible(p,e)&&!flight.struck.contains(e.getUUID())&&SkillGeometry.intersects(e.getBoundingBox().inflate(.15),from,end)).stream().sorted(Comparator.comparingDouble(e->e.distanceToSqr(from))).toList();boolean done=false;
-            for(var target:collided){flight.struck.add(target.getUUID());flight.position=target.getBoundingBox().inflate(.15).clip(from,end).orElse(from);if(s.skill.id.equals(MageSkills.JACK)){done=true;break;}issue(s,target,flight.position);if(++flight.hits>=(3)){done=true;break;}}
+            for(var target:collided){flight.struck.add(target.getUUID());flight.position=target.getBoundingBox().inflate(.15).clip(from,end).orElse(from);if(s.skill.projectile.explodes()){done=true;break;}issue(s,target,flight.position);if(++flight.hits>=s.skill.projectile.pierces()){done=true;break;}}
             if(!done)flight.position=end;
-            if(done||wall.getType()!=HitResult.Type.MISS||u>=1){if(s.skill.id.equals(MageSkills.JACK))for(var target:p.level().getEntitiesOfClass(LivingEntity.class,new AABB(flight.position,flight.position).inflate(3),e->eligible(p,e)))if(target.getBoundingBox().getCenter().distanceToSqr(flight.position)<=9&&sight(p,flight.position.add(0,.1,0),target.getBoundingBox().getCenter()))issue(s,target,flight.position);visual(s,flight.visual,"FINISH",flight.position,s.direction,(long)Math.ceil(flight.duration)+500,++flight.sequence,null);flights.remove(flight);if(!s.summon())Network.send(p,"mageSourceEnd",Map.of("source",s.id));}
+            if(done||wall.getType()!=HitResult.Type.MISS||u>=1){if(s.skill.projectile.explodes())for(var target:p.level().getEntitiesOfClass(LivingEntity.class,new AABB(flight.position,flight.position).inflate(s.parameters.get("radius",3)),e->eligible(p,e))){Vec3 contact=s.skill.projectile.boundingBoxBlast()?closest(target,flight.position):target.getBoundingBox().getCenter();if(contact.distanceToSqr(flight.position)<=Math.pow(s.parameters.get("radius",3),2)&&sight(p,flight.position.add(0,.1,0),contact))issue(s,target,flight.position);}visual(s,flight.visual,"FINISH",flight.position,s.direction,(long)Math.ceil(flight.duration)+flight.source.skill.projectile.impactMillis(),++flight.sequence,null);flights.remove(flight);if(!s.summon())Network.send(p,"mageSourceEnd",Map.of("source",s.id));}
         }
         for(var source:new ArrayList<>(summons.values()))if(!valid(source)||source.entity==null||source.entity.isRemoved()){if(source.entity!=null&&!source.entity.isRemoved()&&now>=source.expires)depart(source);else remove(source);}
         for(var entry:new ArrayList<>(frenzy.entrySet())){var p=server.getPlayerList().getPlayer(entry.getKey());var f=entry.getValue();if(p==null||p.isDeadOrDying()||f.until<now||!sessions.apply(p).id.toString().equals(f.session)||sessions.apply(p).life.generation!=f.generation||!p.level().dimension().identifier().toString().equals(f.dimension)){frenzy.remove(entry.getKey());if(p!=null)buffState(p,0);}}
@@ -245,9 +295,9 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     }
     private void entityFeedback(Source s){s.entity.project(s.health/s.maximum,s.maximumShield>0?s.shield/s.maximumShield:0);}
     private void sendState(Source s){var p=owner(s);if(p!=null){var view=JSON.toJsonTree(Map.of("session",s.session,"generation",s.generation,"source",s.id,"until",s.expires,"health",s.health,"maximum",s.maximum,"shield",s.shield,"maximumShield",s.maximumShield)).getAsJsonObject();view.addProperty("kind",s.kind.name());view.addProperty("skill",s.skill.id);view.addProperty("rank",s.rank);view.add("damage",JSON.toJsonTree(Map.of("melee",s.meleeDamage,"stone",s.stoneDamage,"triple",s.tripleDamage)));Network.send(p,"herderState",view);}}
-    public void clear(ServerPlayer p){prepared.remove(p.getUUID());clear(p.getUUID());}
-    public void reduced(ServerPlayer p,String skill){if(skill.equals(SummonerSkills.MASTERY)){clear(p);return;}if(skill.equals(SummonerSkills.FRENZY)){frenzy.remove(p.getUUID());buffState(p,0);}for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(p.getUUID())&&s.skill.id.equals(skill))remove(s);}
-    public void cancelAccepted(ServerPlayer p,String id){for(var s:new ArrayList<>(sources.values()))if(id.equals(s.castId)){if(s.summon())remove(s);else sources.remove(s.id);}var f=frenzy.get(p.getUUID());if(f!=null&&f.cast.equals(id)){frenzy.remove(p.getUUID());buffState(p,0);}prepared.remove(p.getUUID());}
+    public void clear(ServerPlayer p){cancelChant(p,"");ChantRules.movement(p,false);prepared.remove(p.getUUID());for(var clear:contentClears)clear.accept(p.getUUID());for(var s:new ArrayList<>(sources.values()))if(s.owner.equals(p.getUUID())&&!s.summon()){s.cancelled=true;sources.remove(s.id);}clear(p.getUUID());}
+    public void reduced(ServerPlayer p,String skill){if(resetOnReduction.contains(skill)){cancelChant(p,"");for(var clear:contentClears)clear.accept(p.getUUID());for(var source:new ArrayList<>(sources.values()))if(source.owner.equals(p.getUUID())&&spellHandlers.containsKey(source.skill.id))source.cancelled=true;}if(skill.equals(SummonerSkills.MASTERY)){clear(p);return;}if(skill.equals(SummonerSkills.FRENZY)){frenzy.remove(p.getUUID());buffState(p,0);}for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(p.getUUID())&&s.skill.id.equals(skill))remove(s);}
+    public void cancelAccepted(ServerPlayer p,String id){cancelChant(p,id);for(var s:new ArrayList<>(sources.values()))if(id.equals(s.castId)){if(s.summon())remove(s);else sources.remove(s.id);}var f=frenzy.get(p.getUUID());if(f!=null&&f.cast.equals(id)){frenzy.remove(p.getUUID());buffState(p,0);}prepared.remove(p.getUUID());}
     private void retire(Source s){retiring.put(s.entity,System.currentTimeMillis()+1800);s.entity.play("death",1200);s.entity.getNavigation().stop();remove(s);}
     private void depart(Source s){s.naturalEnd=true;retiring.put(s.entity,System.currentTimeMillis()+800);s.entity.play("retreat",800);s.entity.getNavigation().stop();remove(s);}
     private void clear(UUID owner){for(var slow:new ArrayList<>(slows.values()))if(slow.source.owner.equals(owner)){removeSlow(slow);slows.remove(slow.target.getUUID());}for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(owner))remove(s);frenzy.remove(owner);following.remove(owner);for(var e:new ArrayList<>(retiring.keySet()))if(owner.equals(e.owner)){retiring.remove(e);e.discard();}var p=server.getPlayerList().getPlayer(owner);if(p!=null)buffState(p,0);}
@@ -262,8 +312,10 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     @Override public EquipmentEffects.Snapshot sourceEffects(ServerPlayer p,JsonObject j){Attack a=attack(p,j);return a==null?null:a.source.effects;}
     @Override public boolean direct(ServerPlayer p,JsonObject j){Attack a=attack(p,j);return a==null||!a.source.summon();}
     @Override public long occurredAt(ServerPlayer p,JsonObject j){Attack a=attack(p,j);return a==null?-1:a.created;}
+    @Override public void reconcile(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime previous,cn.yumis.fight.modules.combat.api.Runtime incoming){var state=heartState.apply(p);if(state.heart==1&&state.stacks>0)incoming.mp=Math.min(previous.mp,incoming.mp);}
     @Override public void validate(ServerPlayer p,LivingEntity target,JsonObject j){
         if(!j.has("mageAttack"))return;Attack a=attack(p,j);if(a==null||a.consumed||a.created>System.currentTimeMillis()||a.expires<System.currentTimeMillis()||!receiptSourceValid(a)||!a.target.equals(target.getUUID())||a.generation!=j.get("generation").getAsLong()||!a.source.id.equals(j.get("mageSource").getAsString()))throw new IllegalArgumentException("魔法师攻击来源、目标或阶段已失效");
+        if(!j.has("mageElement")||j.get("mageElement").getAsInt()!=a.element||!j.has("mageCoefficient")||!Double.isFinite(j.get("mageCoefficient").getAsDouble())||Math.abs(j.get("mageCoefficient").getAsDouble()-a.coefficient)>Math.max(1e-10,Math.abs(a.coefficient)*1e-10))throw new IllegalArgumentException("魔法攻击段的元素或系数不匹配");
     }
     @Override public CombatPorts.Commit prepare(ServerPlayer p,LivingEntity target,JsonObject j,Receipt receipt,Life actor){
         Attack a=attack(p,j);if(!receipt.accepted())return CombatPorts.Commit.NONE;

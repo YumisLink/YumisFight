@@ -16,6 +16,7 @@ final class CrystalTransfers {
     private CrystalTransfers(){}
     static long product(long a,long b){return b!=0&&a>Long.MAX_VALUE/b?Long.MAX_VALUE:a*b;}
     static IndustrialFunctions.FunctionJob prepare(MachineBlockEntity be){
+        if(be.device().has(DeviceType.Capability.FLUID_LOGISTICS))return FluidCrystalTransfers.prepare(be);
         var rules=IndustrialRules.current();int tier=be.tier()-1;
         for(var route:be.routes){
             if(route.quota>0)continue;
@@ -43,7 +44,12 @@ final class CrystalTransfers {
         };
     }
     static boolean sameContainer(ServerLevel level,BlockPos a,BlockPos b){var state=level.getBlockState(a);return a.equals(b)||state.getBlock() instanceof ChestBlock&&state.getValue(ChestBlock.TYPE)!=ChestType.SINGLE&&a.relative(ChestBlock.getConnectedDirection(state)).equals(b);}
-    private static boolean valid(MachineBlockEntity be,CrystalRoute route){
+    static Direction portFace(ServerLevel level,BlockPos position,Direction clicked,boolean source,boolean fluid){
+        if(!(level.getBlockEntity(position) instanceof MachineBlockEntity machine))return clicked;
+        if(source)return Direction.DOWN;
+        return !fluid&&machine.device().has(DeviceType.Capability.FUEL)?machine.getBlockState().getValue(MachineBlock.FACING).getOpposite():Direction.UP;
+    }
+    static boolean valid(MachineBlockEntity be,CrystalRoute route){
         var level=(ServerLevel)be.getLevel();BlockPos from=BlockPos.of(route.source),to=BlockPos.of(route.target);
         if(!route.dimension.equals(level.dimension().identifier().toString())){route.status="不在同一维度";return false;}
         if(!level.hasChunkAt(from)||!level.hasChunkAt(to)){route.status="端点区块未加载";return false;}
@@ -52,7 +58,8 @@ final class CrystalTransfers {
     }
     private static <R extends Resource> long transfer(MachineBlockEntity be,CrystalRoute route,long offered,net.neoforged.neoforge.capabilities.BlockCapability<ResourceHandler<R>,Direction> capability,int limit){
         var level=(ServerLevel)be.getLevel();var from=BlockPos.of(route.source);var to=BlockPos.of(route.target);
-        Direction sourceFace=level.getBlockEntity(from) instanceof MachineBlockEntity?Direction.DOWN:route.sourceFace,targetFace=level.getBlockEntity(to) instanceof MachineBlockEntity?Direction.UP:route.targetFace;
+        boolean fluid=be.device().has(DeviceType.Capability.FLUID_LOGISTICS);
+        Direction sourceFace=portFace(level,from,route.sourceFace,true,fluid),targetFace=portFace(level,to,route.targetFace,false,fluid);
         ResourceHandler<R> source=level.getCapability(capability,from,sourceFace),target=level.getCapability(capability,to,targetFace);
         if(source==null||target==null||source==target){route.status="端口不可用";route.quota=0;return 0;}
         long available=Math.addExact(route.credit,offered),batches=Math.min(route.quota,available/route.cost);
@@ -63,7 +70,7 @@ final class CrystalTransfers {
         route.credit=Math.max(0,route.credit-spent);route.quota-=completed;route.cursor=(route.cursor+1)%Math.max(1,source.size());route.status="已移动 "+moved+(be.device().has(DeviceType.Capability.LOGISTICS)?" 件":" mB");
         if(moved<product(batches,limit))route.quota=0;return newPayment;
     }
-    private static <R extends Resource> long move(ResourceHandler<R> source,ResourceHandler<R> target,long limit,int cursor,net.neoforged.neoforge.transfer.transaction.TransactionContext tx){
+    static <R extends Resource> long move(ResourceHandler<R> source,ResourceHandler<R> target,long limit,int cursor,net.neoforged.neoforge.transfer.transaction.TransactionContext tx){
         long moved=0;for(int i=0;i<source.size()&&moved<limit;i++){int index=Math.floorMod(i+cursor,source.size());R resource=source.getResource(index);if(resource.isEmpty())continue;
             long remaining=Math.min(limit-moved,source.getAmountAsLong(index));while(remaining>0){int n=(int)Math.min(Integer.MAX_VALUE,remaining),accepted=target.insert(resource,n,tx);if(accepted==0)break;if(source.extract(index,resource,accepted,tx)!=accepted)throw new IllegalStateException("运输源库存已变化");moved+=accepted;remaining-=accepted;if(accepted<n)break;}
         }return moved;

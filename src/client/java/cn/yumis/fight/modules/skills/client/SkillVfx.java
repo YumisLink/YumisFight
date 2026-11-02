@@ -34,8 +34,10 @@ public final class SkillVfx {
         double speed=1;
         Motion motion;
         String summonMove="";
+        Vec3 followedPoint;
+        boolean followedTargetLost;
     }
-    private record Motion(Vec3 origin,Vec3 direction,double velocity,double range,long started,long millis,boolean ground,int targetEntity,UUID target,double arcHeight){}
+    private record Motion(Vec3 origin,Vec3 direction,double velocity,double range,long started,long millis,boolean ground,int targetEntity,UUID target,double arcHeight,boolean targetFeet){}
 
     private final Map<UUID,Track> tracks=new LinkedHashMap<>();
     private final Map<UUID,Long> closed=new LinkedHashMap<>();
@@ -125,7 +127,7 @@ public final class SkillVfx {
         Vec3 direction=value.has("dx")?new Vec3(value.get("dx").getAsDouble(),value.get("dy").getAsDouble(),value.get("dz").getAsDouble()):vector(event.direction());
         long started=value.has("at")?value.get("at").getAsLong():event.at();
         if(!Double.isFinite(origin.x)||!Double.isFinite(origin.y)||!Double.isFinite(origin.z)||!Double.isFinite(direction.x)||!Double.isFinite(direction.y)||!Double.isFinite(direction.z))return;
-        track.motion=new Motion(origin,direction,velocity,range,started,millis,value.has("ground")&&value.get("ground").getAsBoolean(),targetEntity,target,arc);
+        track.motion=new Motion(origin,direction,velocity,range,started,millis,value.has("ground")&&value.get("ground").getAsBoolean(),targetEntity,target,arc,value.has("targetFeet")&&value.get("targetFeet").getAsBoolean());track.followedPoint=origin;track.followedTargetLost=false;
         if(value.has("released")&&value.get("released").getAsBoolean())track.released=true;
     }
     /** Skill-owned semantic tag; it is independent of character weapon presentation. */
@@ -136,7 +138,7 @@ public final class SkillVfx {
     private SkillVisualEvent sample(Track track,long time){
         Motion motion=track.motion;if(motion==null||track.last.phase()==SkillVisualEvent.Phase.FINISH)return track.last;var mc=Minecraft.getInstance();long at=track.terminal>0?Math.min(time,track.terminal):time;
         Vec3 p=motion.origin;
-        if(motion.target!=null&&mc.level!=null){var entity=mc.level.getEntity(motion.targetEntity);if(entity!=null&&entity.getUUID().equals(motion.target))p=entity.getBoundingBox().getCenter();}
+        if(motion.target!=null&&mc.level!=null){var entity=mc.level.getEntity(motion.targetEntity);if(motion.targetFeet){if(!track.followedTargetLost&&entity!=null&&entity.isAlive()&&entity.getUUID().equals(motion.target))track.followedPoint=entity.getPosition(mc.getDeltaTracker().getGameTimeDeltaPartialTick(false));else track.followedTargetLost=true;p=track.followedPoint;}else if(entity!=null&&entity.getUUID().equals(motion.target))p=entity.getBoundingBox().getCenter();}
         else{
             double elapsed=Math.max(0,at-motion.started),distance=motion.velocity*Math.min(motion.millis>0?motion.millis:40000,elapsed)/1000d;p=p.add(motion.direction.scale(Math.min(motion.range,distance)));if(motion.arcHeight>0&&motion.millis>0){double u=Math.clamp(elapsed/motion.millis,0,1);p=p.add(0,4*motion.arcHeight*u*(1-u),0);}
             if(mc.level!=null&&mc.player!=null){
@@ -206,6 +208,7 @@ public final class SkillVfx {
         Vec3 camera=context.levelState().cameraRenderState.pos;
         List<Quad> quads=new ArrayList<>();SummonAmbientVisuals.extract(quads);
         CareerSkillVisuals.actors(quads,SkillsClient.current().serverNow());
+        SunMoonSkillVisuals.actors(quads,SkillsClient.current().serverNow());
         for(Track t:tracks.values()){
             var event=t.start;
             if(mc.level==null||mc.level.getPlayerByUUID(event.caster())==null)continue;

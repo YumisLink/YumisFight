@@ -25,6 +25,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     public boolean lines;
     private Button linePicker;
     private final IndustrialProgress progress=new IndustrialProgress();
+    private final IndustrialFluidDisplay fluidDisplay=new IndustrialFluidDisplay();
     private record FluidGauge(String key,int tank,int x,int y,int width,int height){
         boolean contains(double mx,double my){return mx>=x&&mx<x+width&&my>=y&&my<y+height;}
     }
@@ -73,7 +74,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     }
     private Button button(String text,int x,int y,int w,int id){return addRenderableWidget(Button.builder(Component.literal(text),b->minecraft.gameMode.handleInventoryButtonClick(menu.containerId,id)).bounds(leftPos+x,topPos+y,w,18).build(IndustrialUi.IndustrialButton::new));}
     private String text(String key,String fallback){return menu.info.has(key)?menu.info.get(key).getAsString():fallback;}
-    private long number(String key){return menu.info.has(key)?menu.info.get(key).getAsLong():0;}
+    private long number(String key){return Set.of("fluid_in","fluid_in2","fluid_out").contains(key)?fluidDisplay.amount(menu.info,key):menu.info.has(key)?menu.info.get(key).getAsLong():0;}
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float alpha){
         g.fill(0,0,width,height,UiTheme.OVERLAY);IndustrialUi.panel(g,leftPos,topPos,256,imageHeight);if(menu.showPlugins){UiTheme.panel(g,leftPos+272,topPos+33,40,104);g.text(UiFonts.font(),"插件",leftPos+279,topPos+39,UiTheme.TEXT,false);}
         for(var slot:menu.slots)if(slot.isActive()){int x=leftPos+slot.x,y=topPos+slot.y;IndustrialUi.slot(g,x,y);}
@@ -130,7 +131,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
             g.disableScissor();
         }
         g.fill(x+3,y+3,x+4,y+h-3,0x66ffffff);for(int mark=y+7;mark<y+h-3;mark+=6)g.fill(x+w-7,mark,x+w-2,mark+1,0x99505050);
-        if(mx>=x&&mx<x+w&&my>=y&&my<y+h)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(fluidTitle,Component.literal(amount+" / "+capacity+" mB"),Component.literal("按住ctrl 双击排出所有液体。")),mx,my);
+        if(mx>=x&&mx<x+w&&my>=y&&my<y+h)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(fluidTitle,Component.literal(amount+" / "+capacity+" mB"),Component.literal("批次预留 "+number(key+"_reserved")+" mB"),Component.literal("Ctrl双击排出未预留液体。")),mx,my);
     }
     private static final class ProductionLines extends ThemedScreen {
         private final IndustrialScreen parent;
@@ -168,7 +169,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     }
     private static final class Recipes extends ThemedScreen {
         private final IndustrialScreen parent;private int page;
-        Recipes(IndustrialScreen parent){super(Component.literal("选择开采矿物"),ThemeDomain.MACHINE);this.parent=parent;}
+        Recipes(IndustrialScreen parent){super(Component.literal(parent.menu.machine.device().has(DeviceType.Capability.MINING)?"选择开采矿物":"选择加工工艺"),ThemeDomain.MACHINE);this.parent=parent;}
         @Override protected void init(){controls();}
         private void controls(){
             clearWidgets();var list=parent.menu.info.has("recipes")?parent.menu.info.getAsJsonArray("recipes"):new JsonArray();int columns=Math.max(1,Math.min(5,(width-32)/70)),rows=Math.max(1,Math.min(3,(height-90)/62)),perPage=columns*rows,w=columns*70,x=(width-w)/2,y=(height-(rows*62+62))/2;
@@ -177,9 +178,10 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
                 var tile=Button.builder(Component.literal(recipe.has("mineral_name")?recipe.get("mineral_name").getAsString():recipe.get("name").getAsString()),b->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,100+index);onClose();}).bounds(x+(i%columns)*70,y+25+(i/columns)*62,66,58).build(builder->new GridItemButton(builder,icon));
                 tile.active=recipe.get("tier").getAsInt()<=parent.menu.machine.tier();tile.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(recipe.get("name").getAsString()+"\n"+recipe.get("ingredients").getAsString()+"\n基准时间 "+recipe.get("ticks").getAsInt()+" tick · 耗能 "+recipe.get("energy").getAsLong()+" · 最低"+recipe.get("tier").getAsInt()+"级")));addRenderableWidget(tile);
             }
-            int footer=y+rows*62+30;addRenderableWidget(Button.builder(Component.literal("上一页"),b->{page--;controls();}).bounds(x,footer,66,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal("停止开采"),b->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,4);onClose();}).bounds(x+(w-70)/2,footer,70,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal("下一页"),b->{page++;controls();}).bounds(x+w-66,footer,66,20).build(IndustrialUi.IndustrialButton::new));
+            String reset=parent.menu.machine.device().has(DeviceType.Capability.MINING)?"停止开采":parent.menu.machine.device().has(DeviceType.Capability.REQUIRE_RECIPE)?"取消工艺":"自动匹配";
+            int footer=y+rows*62+30;addRenderableWidget(Button.builder(Component.literal("上一页"),b->{page--;controls();}).bounds(x,footer,66,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal(reset),b->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,4);onClose();}).bounds(x+(w-70)/2,footer,70,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal("下一页"),b->{page++;controls();}).bounds(x+w-66,footer,66,20).build(IndustrialUi.IndustrialButton::new));
         }
-        @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,10,8,width-20,height-16);g.text(UiFonts.font(),"选择矿物 · 当前批次完成后切换",22,15,UiTheme.TEXT,false);}
+        @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,10,8,width-20,height-16);g.text(UiFonts.font(),(parent.menu.machine.device().has(DeviceType.Capability.MINING)?"选择矿物":"选择工艺")+" · 当前批次完成后切换",22,15,UiTheme.TEXT,false);}
         @Override public boolean isPauseScreen(){return false;}@Override public void onClose(){minecraft.gui.popScreenLayer();}
     }
     private static final class Routes extends ThemedScreen {

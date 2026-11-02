@@ -32,8 +32,8 @@ public final class SkillsPage {
             page.icon("textures/gui/skills/"+skill.icon()+".png",x+(w-26)/2,y+7,26);
             String title=cn.yumis.fight.modules.presentation.api.client.UiFonts.font().plainSubstrByWidth(skill.title,Math.max(1,w-10));
             page.text(title,x+5,y+38,UiTheme.TEXT);
-            page.text(skill.equipmentGranted?"装备授予":progress.learned(skill.id)+"级",x+5,y+53,UiTheme.MUTED);
-            var buy=page.button(skill.equipmentGranted?"装备授予":skill.unlock>=50&&!progress.awakened()?"未觉醒":"学习",x+4,y+76,w-8,()->learn.accept(skill.id));buy.active=!skill.equipmentGranted&&skill.available(progress);
+            page.text(skill.automaticByJob?"职业固有":skill.equipmentGranted?"装备授予":progress.learned(skill.id)+"级",x+5,y+53,UiTheme.MUTED);
+            var buy=page.button(skill.automaticByJob?"自动获得":skill.equipmentGranted?"装备授予":skill.unlock>=50&&!progress.awakened()?"未觉醒":"学习",x+4,y+76,w-8,()->learn.accept(skill.id));buy.active=!skill.automaticByJob&&!skill.equipmentGranted&&skill.available(progress);
             page.hover(x,y,w,102,(g,mx,my)->SkillTooltip.render(g,skill,mx,my));
             page.rightClick(x,y,w,102,()->{if(!skill.equipmentGranted&&cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress().learned(skill.id)>0)unlearn.accept(skill.id);});
         }

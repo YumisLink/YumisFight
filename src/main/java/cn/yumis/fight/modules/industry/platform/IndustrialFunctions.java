@@ -37,7 +37,7 @@ public final class IndustrialFunctions {
         if(be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS)){jobs.add(CrystalTransfers.prepare(be));return;}
         FunctionJob pending=pendingFunctions.get(be.identity.toString());if(pending!=null&&!pending.done){jobs.add(pending);return;}
         FunctionJob job=null;var rules=IndustrialRules.current();
-        if(be.device().has(DeviceType.Capability.PUMP)){job=IndustrialFluidWork.pump(be);if(job!=null)job=payment(job);}
+        if(be.device().has(DeviceType.Capability.PUMP)){job=IndustrialFluidWork.pump(be);}
         else {
             int width=rules.harvestSizes[be.tier()-1],area=width*width;
             be.functionTime=be.functionTime.add(be.pluginSpeed().multiply(area).divide(rules.harvestPeriod));

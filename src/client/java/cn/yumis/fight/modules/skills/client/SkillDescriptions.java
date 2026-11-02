@@ -13,7 +13,7 @@ public final class SkillDescriptions {
     static {
         register(MageSkills.STAR,c->"魔道系 · 星弹沿瞄准方向飞行12格。\n命中：最多3个敌人，每个敌人结算一次；遇墙停止。");
         register(MageSkills.FANG,c->"体术系 · 物理伤害，人物不位移。\n范围：向前5格、宽1.5格突刺，范围内敌人各命中一次。");
-        register(MageSkills.JACK,c->"元素系 · 南瓜火球沿准星方向直线飞行，最远12格。\n爆炸：碰撞即爆炸，造成半径3格火属性伤害。");
+        register(MageSkills.JACK,c->"元素系 · 基础咏唱0.5秒，期间移速为正常的20%；取消不退起手费。\n南瓜火球沿准星方向直线飞行，最远12格。\n爆炸：碰撞即爆炸，造成半径3格火属性伤害。");
         register(MageSkills.HERDER,c->"召唤：持续120秒，最多1只。\n成长：5级解锁投石，10级解锁三连投石，包含装备加级。\n投弹：每第三轮投掷改为投弹，沿用该轮总伤害。\n继承：200%生命及双防，150%四抗及闪避值。\n属性在召唤时保存，重新召唤才更新。");
         register(SkillCatalog.BLINK.id,c->"位移：向水平前方至多5格闪现，不能穿墙。\n没有可站立的安全落点时，不消耗资源、不进入冷却。");
         register(SkillCatalog.GHOST.id,c->"蓄力：按住"+number(1/c.castSpeed())+"秒达到双倍系数，松开释放。\n满蓄力后，最多继续持有"+number(2/c.castSpeed())+"秒。");
@@ -27,7 +27,7 @@ public final class SkillDescriptions {
         register(SkillCatalog.DANCE.id,c->"斩击："+number(c.parameters().get("duration",1.25)/c.castSpeed())+"秒内完成全部斩击。\n终结：发出穿透剑气。");
         register(SkillCatalog.STORM.id,c->"持续："+number(c.parameters().get("duration",8))+"秒剑阵，包含斩击及终结。\n防护：全程免伤。");
     }
-    static {CareerSkillDescriptions.install();
+    static {CareerSkillDescriptions.install();SunMoonDescriptions.install();
         register(SummonerSkills.SPIRITS,c->"召唤：火、冰、光、暗精灵各1只，持续120秒，共享等级。\n招式：火焰近身二连；冰系近攻与远程水弹；变形放电；暗影近身爪击。\n伤害：四只各占总伤害的25%，无额外控制或治疗。\n重召完整替换四只，空间不足不扣费。");
         register(SummonerSkills.MASTERY,c->"召唤伤害提升"+(10+2*(c.parameters().rank()-1))+"%。\n召唤生命与双防提升"+(20+4*(c.parameters().rank()-1))+"%。\n属性在召唤时固定，重新召唤才更新。");
         register(SummonerSkills.LOUISE,c->"召唤：持续120秒，悬浮移动，继承150%生命及双防。\n招式：每2秒依次使用冰针、火球、寒冰柱、陨石。\n近身时以杖击替代火球；陨石半径3格。\n冰针：减速20%，持续1.5秒，不冰冻。");

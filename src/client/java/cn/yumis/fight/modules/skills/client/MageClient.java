@@ -31,7 +31,7 @@ public final class MageClient {
         long now=ClientUi.now();TrainingCombat.hold(source,"mage",now+Math.max(0,j.get("sourceExpires").getAsLong()-SkillsClient.current().serverNow()));TrainingCombat.hold(source,j.get("id").getAsString(),now+6000);
     }
     public void end(JsonObject j){String source=j.get("source").getAsString();TrainingCombat.release(source,"mage");TrainingCombat.actionFinished(source);roots.remove(source);}
-    public static boolean decorate(SkillCast source,JsonObject extra){if(source==null||source.mageAttack.isBlank())return false;extra.addProperty("mageAttack",source.mageAttack);extra.addProperty("mageSource",source.id);return true;}
+    public static boolean decorate(SkillCast source,JsonObject extra){if(source==null||source.mageAttack.isBlank())return false;extra.addProperty("mageAttack",source.mageAttack);extra.addProperty("mageSource",source.id);extra.addProperty("mageElement",source.elementOverride);extra.addProperty("mageCoefficient",source.mageCoefficient);return true;}
     public void incoming(JsonObject j){
         if(!valid(j))return;Stats stats=JSON.fromJson(j.get("stats"),Stats.class);
         double damage=j.has("environmentFraction")?stats.get(Stat.HEALTH)*j.get("environmentFraction").getAsDouble():SummonRules.incoming(stats,j.get("points").getAsDouble(),j.get("magic").getAsBoolean(),j.get("element").getAsInt(),j.get("attackerLevel").getAsInt(),j.get("ownerLevel").getAsInt(),j.get("protection").getAsDouble());
@@ -45,7 +45,7 @@ public final class MageClient {
             if(!valid(j)||state.serverNow()>j.get("expires").getAsLong()){pending.remove(j);TrainingCombat.release(source,id);continue;}
             var entity=mc.level.getEntity(j.get("entity").getAsInt());if(!(entity instanceof LivingEntity target)||!target.getStringUUID().equals(j.get("target").getAsString()))continue;
             var targetState=state.context(target);if(targetState==null)continue;if(targetState.life.generation!=j.get("targetGeneration").getAsLong()){pending.remove(j);TrainingCombat.release(source,id);continue;}
-            var cast=new SkillCast();cast.id=source;cast.mageAttack=id;cast.skill=SkillCatalog.require(j.get("skill").getAsString());cast.stats=JSON.fromJson(j.get("stats"),Stats.class);cast.equipment=JSON.fromJson(j.get("effects"),EquipmentEffects.Snapshot.class);var values=new LinkedHashMap<String,Double>();j.getAsJsonObject("parameters").entrySet().forEach(e->values.put(e.getKey(),e.getValue().getAsDouble()));cast.parameters=new SkillParameters.Snapshot(cast.skill,j.get("rank").getAsInt(),values);cast.origin=cast.center=target.position();cast.direction=mc.player.getLookAngle();
+            var cast=new SkillCast();cast.id=source;cast.mageAttack=id;cast.skill=SkillCatalog.require(j.get("skill").getAsString());cast.stats=JSON.fromJson(j.get("stats"),Stats.class);cast.equipment=JSON.fromJson(j.get("effects"),EquipmentEffects.Snapshot.class);var values=new LinkedHashMap<String,Double>();j.getAsJsonObject("parameters").entrySet().forEach(e->values.put(e.getKey(),e.getValue().getAsDouble()));cast.parameters=new SkillParameters.Snapshot(cast.skill,j.get("rank").getAsInt(),values);cast.origin=cast.center=target.position();cast.direction=mc.player.getLookAngle();cast.elementOverride=j.has("element")?j.get("element").getAsInt():-2;cast.mageCoefficient=j.get("coefficient").getAsDouble();
             if(context.hit(cast,target,j.get("coefficient").getAsDouble())){pending.remove(j);TrainingCombat.release(source,id);}
         }
     }

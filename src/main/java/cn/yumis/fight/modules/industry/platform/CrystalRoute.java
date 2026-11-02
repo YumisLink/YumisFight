@@ -7,13 +7,18 @@ import net.minecraft.core.Direction;
 
 /** One independently scheduled, same-dimension source/destination pair. */
 public final class CrystalRoute {
+    public record FluidWindow(Fraction duration,Fraction elapsed,long limit,long moved,boolean paid) {
+        public static final FluidWindow EMPTY=new FluidWindow(Fraction.ZERO,Fraction.ZERO,0,0,false);
+        public static final Codec<FluidWindow> CODEC=RecordCodecBuilder.create(i->i.group(Codec.STRING.fieldOf("duration").forGetter(w->w.duration.toString()),Codec.STRING.fieldOf("elapsed").forGetter(w->w.elapsed.toString()),Codec.LONG.fieldOf("limit").forGetter(FluidWindow::limit),Codec.LONG.fieldOf("moved").forGetter(FluidWindow::moved),Codec.BOOL.fieldOf("paid").forGetter(FluidWindow::paid)).apply(i,(d,e,l,m,p)->new FluidWindow(Fraction.parse(d),Fraction.parse(e),l,m,p)));
+    }
     public static final Codec<CrystalRoute> CODEC=RecordCodecBuilder.create(i->i.group(
         Codec.STRING.fieldOf("id").forGetter(r->r.id),Codec.STRING.fieldOf("dimension").forGetter(r->r.dimension),Codec.LONG.fieldOf("source").forGetter(r->r.source),Codec.LONG.fieldOf("target").forGetter(r->r.target),
         Direction.CODEC.fieldOf("source_face").forGetter(r->r.sourceFace),Direction.CODEC.fieldOf("target_face").forGetter(r->r.targetFace),
-        Codec.STRING.optionalFieldOf("time","0/1").forGetter(r->r.time.toString()),Codec.INT.optionalFieldOf("cursor",0).forGetter(r->r.cursor),Codec.LONG.optionalFieldOf("credit",0L).forGetter(r->r.credit),Codec.LONG.optionalFieldOf("cost",0L).forGetter(r->r.cost),Codec.LONG.optionalFieldOf("quota",0L).forGetter(r->r.quota)
-    ).apply(i,(id,d,s,t,sf,tf,time,cursor,credit,cost,quota)->{var r=new CrystalRoute(id,d,s,t,sf,tf);r.time=Fraction.parse(time);r.cursor=cursor;r.credit=credit;r.cost=cost;r.quota=quota;return r;}));
+        Codec.STRING.optionalFieldOf("time","0/1").forGetter(r->r.time.toString()),Codec.INT.optionalFieldOf("cursor",0).forGetter(r->r.cursor),Codec.LONG.optionalFieldOf("credit",0L).forGetter(r->r.credit),Codec.LONG.optionalFieldOf("cost",0L).forGetter(r->r.cost),Codec.LONG.optionalFieldOf("quota",0L).forGetter(r->r.quota),FluidWindow.CODEC.optionalFieldOf("fluid_window",FluidWindow.EMPTY).forGetter(r->r.fluidWindow)
+    ).apply(i,(id,d,s,t,sf,tf,time,cursor,credit,cost,quota,window)->{var r=new CrystalRoute(id,d,s,t,sf,tf);r.time=Fraction.parse(time);r.cursor=cursor;r.credit=credit;r.cost=cost;r.quota=quota;r.fluidWindow=window;return r;}));
     public final String id,dimension;public final long source,target;public final Direction sourceFace,targetFace;
     public long credit,cost,quota;
+    public FluidWindow fluidWindow=FluidWindow.EMPTY;
     public Fraction time=Fraction.ZERO;public int cursor;public String status="等待运输";
     public CrystalRoute(String dimension,long source,long target,Direction sourceFace,Direction targetFace){this(java.util.UUID.randomUUID().toString(),dimension,source,target,sourceFace,targetFace);}
     private CrystalRoute(String id,String dimension,long source,long target,Direction sourceFace,Direction targetFace){this.id=id;this.dimension=dimension;this.source=source;this.target=target;this.sourceFace=sourceFace;this.targetFace=targetFace;}
