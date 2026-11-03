@@ -106,7 +106,6 @@ public final class CombatApplication {
             if(entity instanceof Player&&entity!=p)throw new IllegalArgumentException("PVP已关闭");
             if(heal&&entity!=p)throw new IllegalArgumentException("仅支持本人恢复");
             CombatTarget target=entity==p?null:targets.apply(entity);
-            if(target!=null&&target.training()&&!target.networkTraining())return;
             Life life=entity==p?copy(s.life,Life.class):target.life();
             double hitMaximum=target==null||equipmentProgress==null?0:target.maximumHealth(equipmentProgress.apply(p).level,equipmentSync.test(p));
             if(!j.has("dimension")||!j.get("dimension").getAsString().equals(p.level().dimension().identifier().toString()))throw new IllegalArgumentException("维度已改变");
@@ -132,8 +131,8 @@ public final class CombatApplication {
             basicAttacks.validate(p,j);
             skills.validate(p,entity,j);
             long eventTime=nativeHit?nativeHits.occurredAt(j):j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
-            if(!nativeHit&&target!=null&&target.networkTraining()){long issued=skills.occurredAt(p,j);if(issued>=0)eventTime=issued;}
-            if(target!=null&&target.networkTraining()){
+            if(!nativeHit&&target!=null&&target.training()){long issued=skills.occurredAt(p,j);if(issued>=0)eventTime=issued;}
+            if(target!=null&&target.training()){
                 if(training==null||heal)throw new IllegalArgumentException("训练会话不可用");
                 training.validate(p,target,eventTime);
             }
@@ -157,7 +156,7 @@ public final class CombatApplication {
                 var clock=timing.get();ack.addProperty("combatDelayMillis",clock.delayMillis());
                 if(entity==p)CombatTiming.taken(s.resources,eventTime,clock);else CombatTiming.dealt(s.resources,eventTime,clock);
                 journal.put("resources/"+p.getUUID(),s.resources);
-                if(target!=null&&target.networkTraining())training.record(p,target,receipt.actual(),eventTime);
+                if(target!=null&&target.training())training.record(p,target,receipt.actual(),eventTime);
                 else damageMeter.record(p,target,receipt.actual(),eventTime);
             }
             ack.addProperty("combatUntil",s.resources.combatUntil);

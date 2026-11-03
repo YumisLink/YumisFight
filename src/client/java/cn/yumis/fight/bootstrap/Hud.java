@@ -50,16 +50,22 @@ public final class Hud {
         long now=ClientSession.now();
         double health=s.predicted(s.own);
         var currentStats=SkillController.INSTANCE.snapshot();
-        int extra=(mc.player.isUnderWater()||mc.player.getAirSupply()<mc.player.getMaxAirSupply()?10:0)+(mc.player.isPassenger()?10:0),mpY=height-51-extra;
+        var resource=cn.yumis.fight.modules.skills.api.client.PrimaryResource.current();
+        int extra=(mc.player.isUnderWater()||mc.player.getAirSupply()<mc.player.getMaxAirSupply()?10:0)+(mc.player.isPassenger()?10:0),resourceY=height-51-extra;
         if(!mc.player.isCreative()){
         bar(g,center-91,height-39,81,10,health,SkillController.INSTANCE.invulnerable()?0xFFF0C34F:0xCCBC4859);
         g.text(font,amount(health*currentStats.get(Stat.HEALTH))+" / "+amount(currentStats.get(Stat.HEALTH)),center-88,height-38,UiTheme.HUD_TEXT,true);
-        bar(g,center+10,mpY,81,10,s.resources.training?1:s.resources.mp/Math.max(1,currentStats.get(Stat.MP)),0xCC416FA7);
-        g.text(font,s.resources.training?"MP ∞":"MP "+amount(s.resources.mp)+" / "+amount(currentStats.get(Stat.MP)),center+13,mpY+1,UiTheme.HUD_TEXT,true);
+        }
+        if(resource!=null){
+            bar(g,center+10,resourceY,81,10,resource.current()/Math.max(1,resource.maximum()),0xCC000000|resource.color());
+            g.text(font,resource.title()+" "+amount(resource.current())+" / "+amount(resource.maximum()),center+13,resourceY+1,UiTheme.HUD_TEXT,true);
+        }else if(!mc.player.isCreative()){
+            bar(g,center+10,resourceY,81,10,s.resources.training?1:s.resources.mp/Math.max(1,currentStats.get(Stat.MP)),0xCC416FA7);
+            g.text(font,s.resources.training?"MP ∞":"MP "+amount(s.resources.mp)+" / "+amount(currentStats.get(Stat.MP)),center+13,resourceY+1,UiTheme.HUD_TEXT,true);
         }
         if(currentStats.get(Stat.SHIELD)>0){
-            bar(g,center-91,mpY,81,10,s.resources.shield/currentStats.get(Stat.SHIELD),0xCC417F8C);
-            g.text(font,"盾 "+amount(s.resources.shield),center-88,mpY+1,UiTheme.HUD_TEXT,true);
+            bar(g,center-91,resourceY,81,10,s.resources.shield/currentStats.get(Stat.SHIELD),0xCC417F8C);
+            g.text(font,"盾 "+amount(s.resources.shield),center-88,resourceY+1,UiTheme.HUD_TEXT,true);
         }
         if(!(mc.gui.screen() instanceof ChatScreen)){
             int modifier=ClientBootstrap.layer(),group=Math.max(0,modifier),cell=Math.min(25,(width-20)/8),square=cell-3,start=(width-(cell*8-3))/2,y=height-94-extra;
@@ -98,9 +104,7 @@ public final class Hud {
         }
         if(mc.gui.screen()!=null)return;
         g.nextStratum();
-        var numbers=new java.util.ArrayList<>(s.prediction.numbers());
-        numbers.addAll(cn.yumis.fight.modules.skills.api.client.TrainingCombat.numbers());
-        cn.yumis.fight.modules.combat.client.DamageNumbers.render(g,mc,now,s.dimension,numbers);
+        cn.yumis.fight.modules.combat.client.DamageNumbers.render(g,mc,now,s.dimension,s.prediction.numbers());
         cn.yumis.fight.modules.skills.client.CareerHud.renderGauge(g,width,height,now);
         if(mc.hitResult instanceof EntityHitResult hit){
             var entity=hit.getEntity();

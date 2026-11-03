@@ -44,7 +44,7 @@ public final class CombatPorts {
         default void publish(){}
     }
     @FunctionalInterface public interface Recorder {void record(ServerPlayer player,CombatTarget target,double fraction,long time)throws Exception;}
-    /** Timed practice participates in the existing hit transaction. */
+    /** All practice hits use the existing transaction; only timed sessions record a damage meter. */
     public interface Training {
         void validate(ServerPlayer player,CombatTarget target,long occurredAt);
         void record(ServerPlayer player,CombatTarget target,double fraction,long occurredAt)throws Exception;

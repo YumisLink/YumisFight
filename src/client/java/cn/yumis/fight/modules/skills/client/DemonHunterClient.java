@@ -16,6 +16,11 @@ public final class DemonHunterClient {
     private static JsonObject motion;private static long last;private static boolean previousGravity;
     private DemonHunterClient(){}
     private static SkillsClient state(){return SkillsClient.current();}
+    public static void registerResource(){
+        cn.yumis.fight.modules.skills.api.client.PrimaryResource.register(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER,
+            ()->new cn.yumis.fight.modules.skills.api.client.PrimaryResource.View("怒气",CareerClient.INSTANCE.view.demonHunter.fury,DemonHunterRules.MAX_FURY,DemonHunterRules.COLOR,
+                List.of("命中产生怒气，技能按各自说明消耗怒气。","脱战后每秒减少10点；怒气上限100，不受魔力与魔力恢复属性影响。")));
+    }
     public static boolean active(){return motion!=null;}
     public static boolean blocksMovement(){return motion!=null&&!skill().equals(DemonHunterSkills.CHAOS);}
     public static boolean invulnerable(){return motion!=null&&(skill().equals(DemonHunterSkills.DANCE)||skill().equals(DemonHunterSkills.META)||motion.get("phase").getAsString().equals("COMBO"));}
@@ -48,7 +53,7 @@ public final class DemonHunterClient {
     }
     public static int hud(GuiGraphicsExtractor g,int x,int y){
         if(!state().progress().hasJob(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER))return y;
-        x=Math.clamp(x,80,g.guiWidth()-78);var s=CareerClient.INSTANCE.view.demonHunter;long now=state().serverNow();var font=UiFonts.font();UiTheme.hud(g,x-76,y-4,148,35);g.text(font,"怒气  "+s.fury+" / 100",x-69,y,0xffb3fa76,true);g.fill(x-69,y+17,x+61,y+22,0xff243522);g.fill(x-69,y+17,x-69+(int)(130*s.fury/100d),y+22,0xff86d438);y+=40;
+        x=Math.clamp(x,80,g.guiWidth()-78);var s=CareerClient.INSTANCE.view.demonHunter;long now=state().serverNow();var font=UiFonts.font();
         if(s.auraUntil>now){g.text(font,"献祭光环 "+NumberText.number((s.auraUntil-now)/1000d)+"秒",x-69,y,0xffb3fa76,true);y+=18;}
         if(s.metamorphosisUntil>now){g.text(font,"恶魔变形 "+NumberText.number((s.metamorphosisUntil-now)/1000d)+"秒",x-69,y,0xffd5ff9c,true);y+=18;}
         if(motion!=null&&skill().equals(DemonHunterSkills.BEAM)){g.text(font,"眼棱 "+NumberText.number(Math.max(0,5000-(now-motion.get("at").getAsLong()))/1000d)+"秒",x-69,y,0xffceff83,true);y+=18;}return y;

@@ -8,6 +8,7 @@ public final class SkillsClientMessages {
     private SkillsClientMessages(){}
     public static void register(cn.yumis.fight.architecture.CommandRouter<Void,JsonObject> router){
         CoronaBlur.register();
+        DemonHunterClient.registerResource();
         router.register("skills","demonMotion",(context,j)->DemonHunterClient.receive(j));
         router.register("skills","chantState",(context,j)->ChantClient.state(j));
         router.register("skills","mageAttack",(context,j)->MageClient.INSTANCE.attack(j));

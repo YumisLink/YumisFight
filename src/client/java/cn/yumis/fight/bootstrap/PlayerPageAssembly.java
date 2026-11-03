@@ -40,8 +40,13 @@ public final class PlayerPageAssembly {
     private static CharacterPage.Value value(String name,String value){return new CharacterPage.Value(name,value,(g,x,y)->g.setComponentTooltipForNextFrame(UiFonts.font(),cn.yumis.fight.modules.skills.client.CombatAttributeTooltip.lines(name),x,y));}
     private static CharacterPage.View characterView(){
         var state=ClientSession.INSTANCE;var stats=cn.yumis.fight.modules.skills.api.client.SkillController.INSTANCE.snapshot();List<CharacterPage.Allocation> allocated=new ArrayList<>();List<CharacterPage.Value> values=new ArrayList<>();
+        var resource=cn.yumis.fight.modules.skills.api.client.PrimaryResource.current();
         for(Stat stat:List.of(Stat.STRENGTH,Stat.INTELLIGENCE,Stat.SPIRIT))allocated.add(new CharacterPage.Allocation(stat.name().toLowerCase(Locale.ROOT),value(AttributeLabels.statName(stat),AffixText.integer(stats.get(stat)))));
-        for(Stat stat:Stat.values())if(stat!=Stat.STRENGTH&&stat!=Stat.INTELLIGENCE&&stat!=Stat.SPIRIT)values.add(value(AttributeLabels.statName(stat),AffixText.integer(stats.get(stat)*(stat==Stat.MOVEMENT_SPEED||stat==Stat.CAST_SPEED||stat==Stat.MANA_REGENERATION||stat==Stat.COOLDOWN_RECOVERY||stat==Stat.EXPERIENCE_GAIN?100:1))+(stat==Stat.ATTACK_SPEED||stat==Stat.MOVEMENT_SPEED||stat==Stat.CAST_SPEED||stat==Stat.MANA_REGENERATION||stat==Stat.COOLDOWN_RECOVERY||stat==Stat.EXPERIENCE_GAIN?"%":"")));
+        for(Stat stat:Stat.values()){
+            if(resource!=null&&stat==Stat.MP){
+                values.add(new CharacterPage.Value(resource.title(),AffixText.integer(resource.current())+" / "+AffixText.integer(resource.maximum()),(g,x,y)->g.setComponentTooltipForNextFrame(UiFonts.font(),resource.help().stream().map(net.minecraft.network.chat.Component::literal).map(UiFonts::decorate).toList(),x,y)));
+            }else if(stat!=Stat.STRENGTH&&stat!=Stat.INTELLIGENCE&&stat!=Stat.SPIRIT&&(resource==null||stat!=Stat.MANA_REGENERATION))values.add(value(AttributeLabels.statName(stat),AffixText.integer(stats.get(stat)*(stat==Stat.MOVEMENT_SPEED||stat==Stat.CAST_SPEED||stat==Stat.MANA_REGENERATION||stat==Stat.COOLDOWN_RECOVERY||stat==Stat.EXPERIENCE_GAIN?100:1))+(stat==Stat.ATTACK_SPEED||stat==Stat.MOVEMENT_SPEED||stat==Stat.CAST_SPEED||stat==Stat.MANA_REGENERATION||stat==Stat.COOLDOWN_RECOVERY||stat==Stat.EXPERIENCE_GAIN?"%":"")));
+        }
         values.add(value("吸血率",AffixText.integer(cn.yumis.fight.modules.combat.api.EquipmentDamage.lifeSteal(stats.get(Stat.LIFE_STEAL))*100)+"%"));
         values.add(value("闪避率",AffixText.integer(CombatRules.evasionChance(stats.get(Stat.EVASION))*100)+"%"));values.add(value("暴击率",AffixText.integer(stats.modifiers.getOrDefault("crit",0d)*100)+"%"));values.add(value("伤害提升",AffixText.integer(stats.modifiers.getOrDefault("final",0d)*100)+"%"));
         values.add(value("物理面板攻击",AffixText.integer(stats.panel(false))));values.add(value("魔法面板攻击",AffixText.integer(stats.panel(true))));

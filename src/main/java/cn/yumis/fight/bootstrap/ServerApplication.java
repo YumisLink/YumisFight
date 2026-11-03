@@ -536,7 +536,7 @@ public final class ServerApplication {
         Network.send(p,"message",Map.of("text",message==null?"操作失败":message));
     }
     public void context(ServerPlayer p,LivingEntity e){
-        if(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag&&(!bag.timed()||!bag.ownedBy(p)))return;
+        if(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag&&bag.timed()&&!bag.ownedBy(p))return;
         Target t=targets.resolve(e);
         Network.send(p,"context",t);
         for(String key:journal.keys("ailments/"+t.id+"/")){

@@ -10,8 +10,7 @@ public final class CombatPrediction {
         CombatSettings combatSettings();
         Life target(UUID id); net.minecraft.world.phys.Vec3 position(UUID id);
         default boolean consumesHealth(UUID id){return true;}
-        default boolean training(UUID id){return false;}
-        default boolean networkTraining(UUID id){return false;}
+        default DamageAnalysis.Kind damageKind(UUID id){return DamageAnalysis.Kind.COMBAT;}
         void send(String action,JsonObject packet); void message(String text); void reported(JsonObject packet);
     }
     private final State state;
@@ -43,6 +42,7 @@ public final class CombatPrediction {
         public int color;
         public final boolean critical;
         public final DamageAnalysis.Ticket analysis;
+        public final DamageNumber preview;
         public net.minecraft.world.phys.Vec3 point;
         Pending(JsonObject r,String a,double max,int color,boolean critical,DamageAnalysis.Source source){
             report=r;
@@ -51,10 +51,13 @@ public final class CombatPrediction {
             this.color=color;
             this.critical=critical;
             timing=state.combatSettings();
-            analysis=!a.equals("heal")?DamageAnalysis.submit(source,state.networkTraining(UUID.fromString(r.get("target").getAsString()))?DamageAnalysis.Kind.TIMED_TRAINING:DamageAnalysis.Kind.COMBAT,now(),state.combatSettings()):null;
+            var kind=state.damageKind(UUID.fromString(r.get("target").getAsString()));
+            analysis=!a.equals("heal")?DamageAnalysis.submit(source,kind,now(),state.combatSettings()):null;
             sent=now();
             occurredAt=sent;
             point=state.position(UUID.fromString(r.get("target").getAsString()));
+            preview=kind==DamageAnalysis.Kind.TRAINING&&a.equals("damage")?new DamageNumber(r.get("fraction").getAsDouble()*max,now()+DamageNumber.LIFETIME_MILLIS,color,point,r.get("dimension").getAsString(),UUID.fromString(r.get("target").getAsString()),critical):null;
+            if(preview!=null){if(numbers.size()>=96)numbers.removeFirst();numbers.add(preview);}
         }
     }
     public double predicted(Life life){
@@ -64,7 +67,6 @@ public final class CombatPrediction {
         return q;
     }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){
-        if(state.training(life.target))return;
         boolean outcomeOnly=!heal&&fraction==0&&extras!=null&&extras.has("outcome")&&(extras.has("nativeRoot")||extras.has("feedbackEntity"));
         if(!state.ready()||life.dead||fraction<0||fraction==0&&!outcomeOnly||!Double.isFinite(fraction))return;
         JsonObject j=new JsonObject();
@@ -110,6 +112,7 @@ public final class CombatPrediction {
         Receipt r=JSON.fromJson(j.get("receipt"),Receipt.class);
         if(p==null){var saved=analysisPending.remove(j.get("operation").getAsLong());if(saved!=null&&r.accepted()){if(saved.output&&r.actual()>0)DamageAnalysis.accepted(analysisTicket(saved.ticket,j),r.actual()*saved.maximum);else if(!saved.output&&(saved.taken||r.actual()>0))DamageAnalysis.combat(analysisTicket(saved.ticket,j));}return;}
         if(!r.accepted()){
+            if(p.preview!=null)numbers.remove(p.preview);
             refreshDamageClocks();
             if(!r.reason().isEmpty())state.message(r.reason());
             return;
@@ -129,8 +132,7 @@ public final class CombatPrediction {
         }
         if(r.actual()>0&&p.action.equals("damage")&&!id.equals(state.own().target)){
             DamageAnalysis.accepted(analysisTicket(p.analysis,j),r.actual()*p.maximum);
-            if(numbers.size()>=96)numbers.removeFirst();
-            numbers.add(new DamageNumber(r.actual()*p.maximum,now()+DamageNumber.LIFETIME_MILLIS,p.color,p.point,p.report.get("dimension").getAsString(),id,p.critical));
+            if(p.preview==null){if(numbers.size()>=96)numbers.removeFirst();numbers.add(new DamageNumber(r.actual()*p.maximum,now()+DamageNumber.LIFETIME_MILLIS,p.color,p.point,p.report.get("dimension").getAsString(),id,p.critical));}
         }
     }
     private static DamageAnalysis.Ticket analysisTicket(DamageAnalysis.Ticket ticket,JsonObject ack){return ticket==null?null:new DamageAnalysis.Ticket(ticket.round(),ticket.source(),ticket.kind(),ticket.occurredAt(),ack.get("combatDelayMillis").getAsLong());}

@@ -83,8 +83,6 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         double scale=original>0?Math.clamp((original-container.getBlockedDamage())/original,0,1):0;
         // Never let vanilla consume health or absorption; hurtServer's local hit result is retained.
         event.setNewDamage(0);
-        // A practice hit has no root, WAL entry, client request or authoritative hit side effect.
-        if(!(victim instanceof ServerPlayer)&&targets.apply(victim).training()&&!targets.apply(victim).networkTraining()){container.setShouldCauseSideEffects(false);return;}
         if(scale<=0)return;
         DamageSource source=event.getSource();
         ServerPlayer owner=victim instanceof ServerPlayer player?player:source.getEntity() instanceof ServerPlayer player?player:null;

@@ -115,7 +115,7 @@ public final class CareerClient {
         j.addProperty("x",orb.position.x);j.addProperty("y",orb.position.y);j.addProperty("z",orb.position.z);j.addProperty("px",orb.position.x);j.addProperty("py",orb.position.y);j.addProperty("pz",orb.position.z);j.addProperty("dx",orb.source.direction.x);j.addProperty("dy",orb.source.direction.y);j.addProperty("dz",orb.source.direction.z);
         JsonObject motion=SkillController.motion(orb.target==null?orb.remaining:0,orb.target==null?orb.remaining/8*1000:0,false);
         if(orb.target!=null){motion.addProperty("target",orb.target.getStringUUID());motion.addProperty("targetEntity",orb.target.getId());}j.add("motion",motion);Effects.receive(j);
-        if(orb.target!=null&&TrainingCombat.context(orb.target)!=null){j=j.deepCopy();j.getAsJsonObject("motion").remove("target");j.getAsJsonObject("motion").remove("targetEntity");}state().send("visual",j);
+        state().send("visual",j);
     }
     public void wave(SkillCast c,SkillBehaviors.Context context){
         if(c.skill.id.equals(CareerSkills.FIRE)){FireBall ball=new FireBall();ball.source=c;ball.path=FireWavePath.from(c.parameters);ball.position=ball.path.origin();ball.next=ClientUi.now()+50;fireBalls.add(ball);c.center=ball.position;TrainingCombat.hold(c.id,"fire",ClientUi.now()+5000);context.visual(c,"RELEASE");return;}
@@ -140,7 +140,7 @@ public final class CareerClient {
     private void attachmentVisual(Flame mark,String phase){
         var p=Minecraft.getInstance().player;if(p==null)return;Vec3 at=mark.target.getBoundingBox().getCenter();JsonObject j=new JsonObject();j.addProperty("caster",p.getStringUUID());j.addProperty("session",state().session());j.addProperty("generation",state().own().generation);j.addProperty("id",mark.visualId);j.addProperty("kind",CareerSkills.KALLA);j.addProperty("phase",phase);j.addProperty("sequence",mark.sequence++);j.addProperty("seed",mark.visualId.hashCode());j.addProperty("startedAt",state().serverNow()-(ClientUi.now()-mark.started));j.addProperty("at",state().serverNow());j.addProperty("duration",Math.min(40000,mark.expires-mark.started));j.addProperty("cosmeticOnly",true);j.addProperty("terminal",true);j.addProperty("charge",mark.stacks/3d);j.addProperty("color",0x772daa);j.addProperty("x",at.x);j.addProperty("y",at.y);j.addProperty("z",at.z);j.addProperty("px",at.x);j.addProperty("py",at.y);j.addProperty("pz",at.z);j.addProperty("dx",0);j.addProperty("dy",0);j.addProperty("dz",1);
         var motion=SkillController.motion(0,0,false);motion.addProperty("target",mark.target.getStringUUID());motion.addProperty("targetEntity",mark.target.getId());j.add("motion",motion);Effects.receive(j);
-        if(TrainingCombat.context(mark.target)!=null){j=j.deepCopy();j.getAsJsonObject("motion").remove("target");j.getAsJsonObject("motion").remove("targetEntity");}state().send("visual",j);
+        state().send("visual",j);
     }
     public Vec3 firstTarget(SkillCast c,double length,double width){var p=Minecraft.getInstance().player;LivingEntity closest=null;double min=length+1;for(var e:SkillController.INSTANCE.targets(new AABB(c.origin,c.origin.add(c.direction.scale(length))).inflate(width/2,2,width/2))){Vec3 delta=e.position().subtract(c.origin);double forward=delta.dot(c.direction);if(forward>=0&&forward<min&&SkillController.INSTANCE.sight(c.origin.add(0,1,0),e.getBoundingBox().getCenter())){closest=e;min=forward;}}return closest==null?c.origin.add(c.direction.scale(length)):closest.position();}
     public void tick(SkillBehaviors.Context context){

@@ -37,7 +37,6 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public String power(){return elitePower;}
     public boolean rewardsEligible(){return !noRewards;}
     public boolean training(){return kind.equals("TRAINING");}
-    @Override public boolean networkTraining(){return training()&&timedTraining;}
     public boolean consumesHealth(){return !training();}
     @Override public cn.yumis.fight.modules.combat.api.Receipt receive(double fraction,boolean heal){
         if(!training())return cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);

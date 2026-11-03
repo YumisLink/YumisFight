@@ -39,8 +39,8 @@ public final class TargetService {
     public TargetService(Journal journal,Random random,java.util.function.Supplier<Difficulty> difficulty,java.util.function.Function<String,Dungeon> dungeons){this.journal=journal;this.random=random;this.difficulty=difficulty;this.dungeons=dungeons;}
     public Target resolve(LivingEntity e){
         if(e instanceof TrainingSandbag bag){
-            Target practice=bag.timed()?journal.get("target/"+e.getUUID(),Target.class,null):null;
-            if(practice==null){practice=new Target();practice.id=e.getUUID();practice.kind="TRAINING";practice.noRewards=true;practice.timedTraining=bag.timed();practice.originalLevel=1;practice.dimension=e.level().dimension().identifier().toString();practice.life.target=practice.id;practice.life.dimension=practice.dimension;if(bag.timed())try{journal.put("target/"+e.getUUID(),practice);}catch(Exception failure){throw new IllegalStateException(failure);}}
+            Target practice=journal.get("target/"+e.getUUID(),Target.class,null);
+            if(practice==null){practice=new Target();practice.id=e.getUUID();practice.kind="TRAINING";practice.noRewards=true;practice.timedTraining=bag.timed();practice.originalLevel=1;practice.dimension=e.level().dimension().identifier().toString();practice.life.target=practice.id;practice.life.dimension=practice.dimension;try{journal.put("target/"+e.getUUID(),practice);}catch(Exception failure){throw new IllegalStateException(failure);}}
             practice.entityId=e.getId();return practice;
         }
         Target t=journal.get("target/"+e.getUUID(),Target.class,null);

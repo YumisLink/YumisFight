@@ -43,10 +43,8 @@ public final class SkillController {
     private cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot hitEquipment;
     private JsonObject projectileContext;
     private String trainingRoot="";
-    private final Map<UUID,NativePracticeBolt> practiceBolts=new HashMap<>();
     private final Map<UUID,NativeLaunchSnapshot> nativeLaunches=new LinkedHashMap<>();
     private record NativeLaunchSnapshot(Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects,String item,long expires){}
-    private record NativePracticeBolt(Vec3 point,NativeLaunchSnapshot launch,boolean hit){}
     private final cn.yumis.fight.modules.skills.client.StaffBolts staffBolts=new cn.yumis.fight.modules.skills.client.StaffBolts();
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
@@ -110,7 +108,7 @@ public final class SkillController {
         return snapshotCache.copy();
     }
     public void invalidateSnapshot(){snapshotCache=null;}
-    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();cast=null;cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;secondSlash=null;pendingBasics.clear();waves.clear();staffBolts.clear();practiceBolts.clear();nativeLaunches.clear();bosses.clear();bossHit.clear();incomingRoots.clear();environment.clear();bleeds.clear();pendingBleeds.clear();deferred.clear();lastAttack=lastTick=lastRegen=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
+    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();cast=null;cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;secondSlash=null;pendingBasics.clear();waves.clear();staffBolts.clear();nativeLaunches.clear();bosses.clear();bossHit.clear();incomingRoots.clear();environment.clear();bleeds.clear();pendingBleeds.clear();deferred.clear();lastAttack=lastTick=lastRegen=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
     public boolean press(int slot){
         if(!state().ready())return false;
         if(cn.yumis.fight.modules.skills.client.ChantClient.press(slot))return true;
@@ -251,7 +249,7 @@ public final class SkillController {
         cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.tick(skillContext);
         for(Wave w:new ArrayList<>(waves))advance(w);
         staffBolts.tick(state(),this::projectileBasicHit);
-        tickPracticeProjectiles();TrainingCombat.tick();
+        nativeLaunches.values().removeIf(launch->launch.expires<now);TrainingCombat.tick();
         boolean out=now>=state().resources().combatUntil;
         if(!state().own().dead){
             Stats recovery=snapshot();if(recovery.modifiers.getOrDefault("manaRecoveryBlocked",0d)<=0)state().resources().mp=Math.min(recovery.get(Stat.MP),state().resources().mp+(1+.04*recovery.get(Stat.SPIRIT))*recovery.get(Stat.MANA_REGENERATION)*(out?3:1)*dt);
@@ -402,9 +400,8 @@ public final class SkillController {
         }
         Target target=state().context(entity);
         if(target==null)return false;
-        if(!target.training()||target.networkTraining())return resolveHit(entity,target,stats,skill,coefficient,basic,passive,knockback,center,nativeContext,"");
+        if(!target.training()||target.timedTraining)return resolveHit(entity,target,stats,skill,coefficient,basic,passive,knockback,center,nativeContext,"");
         String root=hitSource!=null?hitSource.id:!trainingRoot.isEmpty()?trainingRoot:!basicCycle.isEmpty()?basicCycle:"native/"+entity.getUUID()+"/"+cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
-        if(!TrainingCombat.accepts(root))return true;
         try{return resolveHit(entity,target,stats,skill,coefficient,basic,passive,knockback,center,nativeContext,root);}
         catch(RuntimeException failure){TrainingCombat.failed(root,skill==null?"普通攻击":skill.title,failure);return true;}
     }
@@ -453,7 +450,7 @@ public final class SkillController {
         long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
         if(!passive&&rank>0){
             double g=Math.pow(1.12,rank-1);
-            JsonObject ailment=target.training()&&!target.networkTraining()?TrainingCombat.ailment(entity.getStringUUID(),"BLEED"):state().ailment(entity.getStringUUID(),"BLEED");
+            JsonObject ailment=state().ailment(entity.getStringUUID(),"BLEED");
             if(stats.weaponType.equals("KATANA")){
                 if(ailment!=null&&ailment.get("expires").getAsLong()>state().serverNow()&&random.nextDouble()<.05){
                     damage*=2*g;
@@ -470,7 +467,7 @@ public final class SkillController {
                 }
             }
             if(stats.weaponType.equals("LIGHTSABER")){
-                JsonObject shock=target.training()&&!target.networkTraining()?TrainingCombat.ailment(entity.getStringUUID(),"SHOCK"):state().ailment(entity.getStringUUID(),"SHOCK");
+                JsonObject shock=state().ailment(entity.getStringUUID(),"SHOCK");
                 if(shock!=null&&shock.get("expires").getAsLong()>state().serverNow()&&cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,new int[]{0})){double sourceScale=hitSource!=null&&hitSource.parameters!=null?hitSource.parameters.get("balanceScale",1):stats.modifiers.getOrDefault("basicDamageScale",1d);double added=(10+2*state().progress().level)*g*sourceScale*1000/(1000+Math.max(0,defense))*Math.max(0,1+stats.get(Stat.LIGHT)/120);if(skill!=null)added*=stats.modifiers.getOrDefault("allSkillAttackProduct",1d);damage+=added;components[1]+=added;}
                 if(random.nextDouble()<.2){
                     JsonObject a=new JsonObject();
@@ -502,8 +499,8 @@ public final class SkillController {
         if(!dot&&(hitSource==null||!hitSource.suppressEquipment)){double appended=cn.yumis.fight.modules.combat.api.EquipmentDamage.append(damage,stats,equipment,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist);damage+=appended;components[2]+=appended;}
         if(projectileContext!=null)projectileContext.entrySet().forEach(entry->extra.add(entry.getKey(),entry.getValue()));
         if(extra.has("ailment")){var ailment=extra.getAsJsonObject("ailment");if(ailment.has("effect"))cn.yumis.fight.modules.combat.api.client.DamageAnalysis.rememberEffect(ailment.get("effect").getAsString(),analysisSource,ailment.get("durationTicks").getAsLong()*50);}
-        if(target.training()&&!target.networkTraining()){
-            TrainingCombat.hit(practiceRoot,skill==null?"普通攻击":skill.title,target,components,parts.critical(),extra);
+        if(target.training()&&!target.timedTraining){
+            TrainingCombat.report(practiceRoot,skill==null?"普通攻击":skill.title,target,components,damage,color,parts.critical(),extra);
             if(hitSource==null&&trainingRoot.isEmpty()&&basicCycle.isEmpty())TrainingCombat.actionFinished(practiceRoot);
             return true;
         }
@@ -514,32 +511,11 @@ public final class SkillController {
         var previous=hitEquipment;String oldCycle=basicCycle;int oldSlash=basicSlash;hitEquipment=effects;basicCycle=cycle;basicSlash=index;projectileContext=new JsonObject();JsonArray position=new JsonArray();position.add(point.x);position.add(point.y);position.add(point.z);projectileContext.add("projectilePoint",position);
         try{return hit(entity,stats,null,1,true,false,0,null);}finally{hitEquipment=previous;basicCycle=oldCycle;basicSlash=oldSlash;projectileContext=null;}
     }
-    /** Native projectiles keep vanilla authority; practice collision arithmetic has no network receipt. */
+    /** Native projectiles retain their launch snapshot for normal and practice hit receipts alike. */
     public void nativeLaunch(JsonObject message){
         var mc=Minecraft.getInstance();if(!state().ready()||mc.level==null||!state().session().equals(message.get("session").getAsString())||state().own().generation!=message.get("generation").getAsLong()||!mc.level.dimension().identifier().toString().equals(message.get("dimension").getAsString()))return;
         UUID id=UUID.fromString(message.get("id").getAsString());Stats stats=JSON.fromJson(message.get("stats"),Stats.class);var effects=JSON.fromJson(message.get("equipmentEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);
         nativeLaunches.putIfAbsent(id,new NativeLaunchSnapshot(stats,effects,message.get("item").getAsString(),cn.yumis.fight.modules.presentation.api.client.ClientUi.now()+300000));while(nativeLaunches.size()>4096)nativeLaunches.remove(nativeLaunches.keySet().iterator().next());
-    }
-    private void tickPracticeProjectiles(){
-        var mc=Minecraft.getInstance();Set<UUID> present=new HashSet<>();
-        long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();nativeLaunches.values().removeIf(launch->launch.expires<now);
-        var bags=mc.level.getEntitiesOfClass(cn.yumis.fight.modules.dungeons.api.TrainingSandbag.class,mc.player.getBoundingBox().inflate(128),bag->!bag.timed());
-        if(bags.isEmpty()){practiceBolts.clear();return;}
-        for(var entity:mc.level.entitiesForRendering()){
-            if(!(entity instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow)||arrow.getOwner()!=mc.player)continue;
-            UUID id=arrow.getUUID();present.add(id);NativePracticeBolt previous=practiceBolts.get(id);if(previous!=null&&previous.hit)continue;
-            NativeLaunchSnapshot launch=previous==null?nativeLaunches.get(id):previous.launch;if(launch==null)continue;
-            Stats stats=launch.stats;String item=launch.item;Vec3 to=arrow.position().add(arrow.getDeltaMovement()),from=previous==null?arrow.position():previous.point;
-            var wall=mc.level.clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,mc.player));double first=wall.getType()==HitResult.Type.MISS?Double.POSITIVE_INFINITY:from.distanceToSqr(wall.getLocation());
-            for(var other:enemies(new AABB(from,to).inflate(.2)))if(!(other instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag)||bag.timed()){var collision=other.getBoundingBox().inflate(.15).clip(from,to);if(collision.isPresent())first=Math.min(first,from.distanceToSqr(collision.get()));}
-            LivingEntity victim=null;for(var bag:bags){var collision=bag.getBoundingBox().inflate(.15).clip(from,to);if(collision.isPresent()&&from.distanceToSqr(collision.get())<first){first=from.distanceToSqr(collision.get());victim=bag;}}
-            if(victim!=null){String root="projectile/"+id;TrainingCombat.begin(root,"普通攻击");String old=trainingRoot;trainingRoot=root;JsonObject context=new JsonObject();context.addProperty("nativeScale",1);context.addProperty("nativeRoot","");double coefficient=item.endsWith("_spear")?Math.max(.5,arrow.getDeltaMovement().subtract(victim.getDeltaMovement()).length()*3):Set.of("bow","crossbow").contains(item)?Math.clamp(arrow.getDeltaMovement().length()/3,0,1):1;
-                var oldEquipment=hitEquipment;hitEquipment=launch.effects;
-                try{hit(victim,stats,null,coefficient,false,true,0,null,context);}finally{hitEquipment=oldEquipment;trainingRoot=old;TrainingCombat.actionFinished(root);}
-                practiceBolts.put(id,new NativePracticeBolt(arrow.position(),launch,true));
-            }else practiceBolts.put(id,new NativePracticeBolt(arrow.position(),launch,false));
-        }
-        practiceBolts.keySet().removeIf(id->{if(present.contains(id))return false;nativeLaunches.remove(id);return true;});
     }
     private double mastery(Stats stats){
         return SkillPreview.mastery(state().progress(),stats);
@@ -834,14 +810,16 @@ public final class SkillController {
     }
     /** A queued refresh precedes subsequent DOT reports on the same connection. Wait for its actual outcome. */
     public void reported(JsonObject packet){
+        TrainingCombat.reported(packet);
         if(!state().ready()||!packet.has("ailment")||packet.get("heal").getAsBoolean()||packet.get("fraction").getAsDouble()<=0)return;
         JsonObject change=packet.getAsJsonObject("ailment");if(!change.get("kind").getAsString().equals("BLEED"))return;
         if(!state().session().equals(packet.get("session").getAsString())||state().own().generation!=packet.get("sourceGeneration").getAsLong())return;
         UUID target=UUID.fromString(packet.get("target").getAsString());Target known=state().targets().get(target);
-        if(target.equals(state().own().target)||known==null||known.training()&&!known.networkTraining()||TrainingCombat.isTraining(target))return;
+        if(target.equals(state().own().target)||known==null)return;
         pendingBleeds.put(packet.get("operation").getAsLong(),new BleedRefresh(state().session(),state().own().generation,target,packet.get("generation").getAsLong(),packet.get("basis").getAsLong(),change.get("effect").getAsString()));
     }
     public void ack(JsonObject packet){
+        TrainingCombat.ack(packet);
         BleedRefresh pending=pendingBleeds.get(packet.get("operation").getAsLong());if(pending==null)return;
         if(!pending.session.equals(packet.get("session").getAsString())||!pending.session.equals(state().session())||pending.sourceGeneration!=state().own().generation)return;
         if(packet.has("target")&&!pending.target.toString().equals(packet.get("target").getAsString())||packet.has("generation")&&pending.generation!=packet.get("generation").getAsLong()||packet.has("ownerLife")&&pending.sourceGeneration!=packet.getAsJsonObject("ownerLife").get("generation").getAsLong())return;
@@ -889,7 +867,8 @@ public final class SkillController {
                 extra.add("effect",change.get("effect"));
                 cn.yumis.fight.modules.combat.api.client.DamageAnalysis.attach(extra,cn.yumis.fight.modules.combat.api.client.DamageAnalysis.effect(change.get("effect").getAsString()));
                 extra.addProperty("index",b.index);
-                if(!target.training()||target.networkTraining())state().report(target.life,change.get("fraction").getAsDouble(),false,target.health(target.level(state().progress().level,state().encounterSync())),0xe05360,false,extra);
+                if(target.training()&&!target.timedTraining)TrainingCombat.bleed(target,j,extra);
+                else state().report(target.life,change.get("fraction").getAsDouble(),false,target.health(target.level(state().progress().level,state().encounterSync())),0xe05360,false,extra);
                 bleeds.put(entry.getKey(),new Bleed(j,now+1000,b.index+1));
             }
         }

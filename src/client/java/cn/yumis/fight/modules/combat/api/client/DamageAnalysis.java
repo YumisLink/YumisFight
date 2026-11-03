@@ -65,7 +65,6 @@ public final class DamageAnalysis {
         Row old=ROWS.get(ticket.source.id);
         ROWS.put(ticket.source.id,new Row(ticket.source,(old==null?0:old.damage)+damage,(old==null?0:old.hits)+1));
     }
-    public static void training(Source source,double damage,cn.yumis.fight.modules.combat.api.CombatSettings settings){accepted(submit(source,Kind.TRAINING,now(),settings),damage);}
     public static View view(){
         var rows=new ArrayList<>(ROWS.values());rows.sort(Comparator.comparingDouble(Row::damage).reversed().thenComparing(row->row.source.id));
         long until=recording?now():stopped;double seconds=INTERVALS.stream().mapToLong(span->Math.max(0,Math.min(until,span[1])-span[0])).sum()/1000d;

@@ -85,6 +85,7 @@ public final class TrainingService implements TrainingActions.Handler,CombatPort
         try{cleanup(bag.getUUID());send(p);}catch(Exception error){message.accept(p,"取消测试失败："+error.getMessage());}
     }
     @Override public void validate(ServerPlayer p,CombatTarget target,long occurredAt){
+        if(p.level().getEntity(target.id()) instanceof TrainingSandbag bag&&!bag.timed())return;
         Slot slot=slots.get(target.id());Run run=load(target.id());long now=System.currentTimeMillis();
         if(slot==null||run==null||!run.owner.equals(p.getUUID())||!run.session.equals(sessions.apply(p).id.toString())||run.generation!=sessions.apply(p).life.generation||!run.dimension.equals(p.level().dimension().identifier().toString())||inDungeon.test(p)||occurredAt>now)throw new IllegalArgumentException("沙袋测试会话已失效");
         long event=Math.max(run.created,occurredAt);

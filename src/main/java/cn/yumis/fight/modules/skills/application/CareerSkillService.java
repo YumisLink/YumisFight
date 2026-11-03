@@ -350,7 +350,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             if(s.kallaUntil<=now)s.kallaUntil=0;
             if(s.eyeUntil>now){
                 double radius=casts.getOrDefault(p.getUUID(),Map.of()).values().stream().filter(c->c.skill.equals(CareerSkills.EYE)&&!c.terminal).max(Comparator.comparingLong(c->c.started)).map(c->c.parameters.get("range",16)).orElse(16d);
-                for(var enemy:p.level().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(radius,4,radius),e->e.isAlive()&&!(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag)&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon))){
+                for(var enemy:p.level().getEntitiesOfClass(LivingEntity.class,p.getBoundingBox().inflate(radius,4,radius),e->MageSkillService.eligible(p,e))){
                     if(enemy.position().subtract(p.position()).horizontalDistanceSqr()>radius*radius||Math.abs(enemy.getY()-p.getY())>4)continue;
                     var block=p.level().clip(new ClipContext(p.getEyePosition(),enemy.getBoundingBox().getCenter(),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
                     if(block.getType()==HitResult.Type.MISS)enemy.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.BLINDNESS,20,0,false,true));
