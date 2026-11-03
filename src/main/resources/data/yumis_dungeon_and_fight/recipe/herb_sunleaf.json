@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["SD"],
+  "key": {"S": "minecraft:wheat_seeds", "D": "minecraft:dandelion"},
+  "result": {"id": "yumis_dungeon_and_fight:herb_sunleaf", "count": 1}
+}

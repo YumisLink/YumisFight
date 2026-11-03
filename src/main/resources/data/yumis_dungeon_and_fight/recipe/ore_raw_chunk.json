@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["RF"],
+  "key": {"R": "minecraft:raw_iron", "F": "minecraft:flint"},
+  "result": {"id": "yumis_dungeon_and_fight:ore_raw_chunk", "count": 2}
+}

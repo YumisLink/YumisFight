@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["HB"],
+  "key": {"H": "yumis_dungeon_and_fight:herb_sunleaf", "B": "minecraft:bowl"},
+  "result": {"id": "yumis_dungeon_and_fight:dish_herb_soup", "count": 1}
+}

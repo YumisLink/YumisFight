@@ -6,6 +6,8 @@ import java.math.BigInteger;
 /** professions模块拥有的数据合同；仅接收当前存档代际。 */
 public class Profession {
     public BigInteger experience=BigInteger.ZERO,coins=BigInteger.ZERO;
+    /** 满级后写入的称号；旧存档没有该字段，读到时为空串。 */
+    public String title="";
     public int level(){
         return professionLevel(experience);
     }

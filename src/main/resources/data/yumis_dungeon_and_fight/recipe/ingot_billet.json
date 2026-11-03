@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["IC"],
+  "key": {"I": "minecraft:iron_ingot", "C": "minecraft:coal"},
+  "result": {"id": "yumis_dungeon_and_fight:ingot_billet", "count": 1}
+}

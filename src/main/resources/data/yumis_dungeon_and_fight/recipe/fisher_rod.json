@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["  S", " ST", "S T"],
+  "key": {"S": "minecraft:stick", "T": "minecraft:string"},
+  "result": {"id": "yumis_dungeon_and_fight:fisher_rod", "count": 1}
+}

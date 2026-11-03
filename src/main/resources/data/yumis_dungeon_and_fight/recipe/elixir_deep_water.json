@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["PB"],
+  "key": {"P": "yumis_dungeon_and_fight:catch_pearl", "B": "minecraft:glass_bottle"},
+  "result": {"id": "yumis_dungeon_and_fight:elixir_deep_water", "count": 1}
+}

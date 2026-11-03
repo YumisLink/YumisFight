@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:campfire_cooking",
+  "category": "food",
+  "ingredient": "yumis_dungeon_and_fight:catch_riverfish",
+  "result": {"id": "yumis_dungeon_and_fight:dish_grilled_fish", "count": 1},
+  "experience": 0.35,
+  "cookingtime": 600
+}

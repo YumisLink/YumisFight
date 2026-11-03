@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["MB"],
+  "key": {"M": "yumis_dungeon_and_fight:herb_moonroot", "B": "minecraft:glass_bottle"},
+  "result": {"id": "yumis_dungeon_and_fight:elixir_minor_heal", "count": 1}
+}

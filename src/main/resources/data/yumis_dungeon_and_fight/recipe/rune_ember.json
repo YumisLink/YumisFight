@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["RB"],
+  "key": {"R": "yumis_dungeon_and_fight:rune_blank", "B": "minecraft:blaze_powder"},
+  "result": {"id": "yumis_dungeon_and_fight:rune_ember", "count": 1}
+}

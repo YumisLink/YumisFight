@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["ABC", "DRE", "FGH"],
+  "key": {
+    "A": "yumis_dungeon_and_fight:fish_legendary",
+    "B": "yumis_dungeon_and_fight:fish_time_bream",
+    "C": "yumis_dungeon_and_fight:fish_storm_mackerel",
+    "D": "yumis_dungeon_and_fight:fish_crystal_catfish",
+    "R": "yumis_dungeon_and_fight:tidal_rod",
+    "E": "yumis_dungeon_and_fight:fish_crystal_fin",
+    "F": "yumis_dungeon_and_fight:fish_star_ray",
+    "G": "yumis_dungeon_and_fight:fish_moon_snowfish",
+    "H": "minecraft:blaze_rod"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:styx_rod", "count": 1}
+}

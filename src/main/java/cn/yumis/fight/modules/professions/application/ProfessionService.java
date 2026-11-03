@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.professions.application;
 import cn.yumis.fight.modules.professions.api.ProfessionCatalog;
+import cn.yumis.fight.modules.professions.api.ProfessionBonuses;
 import cn.yumis.fight.modules.professions.api.Profession;
 import cn.yumis.fight.modules.professions.api.*;
 import cn.yumis.fight.foundation.Journal;
@@ -19,10 +20,15 @@ public final class ProfessionService {
             JsonElement intent=JSON.toJsonTree(Map.of("profession",id,"xp",xp,"administrator",administrator));
             JsonElement previous=journal.get(key);
             if(!previous.isJsonNull()){if(!previous.equals(intent))throw new IllegalArgumentException("副职业奖励操作号冲突");return;}
-            Profession next=get(player,id);next.award(xp,administrator);
+            Profession next=get(player,id);next.award(xp,administrator);grantTitle(next,id);
             try{journal.transaction(Map.of("profession/"+player+"/"+id,JSON.toJsonTree(next),key,intent));}catch(java.io.IOException failure){throw new IllegalStateException(failure);}
         }
     }
-    public Map<String,Object> snapshot(UUID player){Map<String,Object> all=new LinkedHashMap<>();for(var definition:ProfessionCatalog.all()){Profession p=get(player,definition.id());all.put(definition.id(),Map.of("level",p.level(),"experience",p.experience.toString(),"coins",p.coins.toString()));}return Collections.unmodifiableMap(all);}
+    /** 满级称号只写一次；重复触发不覆盖已有称号，也不改经验与币。 */
+    private static void grantTitle(Profession profession,String id){
+        if(profession.title!=null&&!profession.title.isBlank())return;
+        if(profession.level()<ProfessionBonuses.MAX_LEVEL)return;
+        profession.title=ProfessionCatalog.require(id).name()+"大师";
+    }
+    public Map<String,Object> snapshot(UUID player){Map<String,Object> all=new LinkedHashMap<>();for(var definition:ProfessionCatalog.all()){Profession p=get(player,definition.id());all.put(definition.id(),Map.of("level",p.level(),"experience",p.experience.toString(),"coins",p.coins.toString(),"title",p.title==null?"":p.title));}return Collections.unmodifiableMap(all);}
 }
-

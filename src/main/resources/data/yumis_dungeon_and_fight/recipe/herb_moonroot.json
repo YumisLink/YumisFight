@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["SB"],
+  "key": {"S": "minecraft:wheat_seeds", "B": "minecraft:blue_orchid"},
+  "result": {"id": "yumis_dungeon_and_fight:herb_moonroot", "count": 1}
+}

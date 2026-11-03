@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["T"],
+  "key": {"T": "yumis_dungeon_and_fight:hide_tanned"},
+  "result": {"id": "minecraft:leather", "count": 1}
+}

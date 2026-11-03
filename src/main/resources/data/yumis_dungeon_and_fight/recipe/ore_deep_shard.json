@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["DF"],
+  "key": {"D": "minecraft:cobbled_deepslate", "F": "minecraft:flint"},
+  "result": {"id": "yumis_dungeon_and_fight:ore_deep_shard", "count": 1}
+}

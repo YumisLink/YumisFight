@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["PP"],
+  "key": {"P": "minecraft:paper"},
+  "result": {"id": "yumis_dungeon_and_fight:rune_blank", "count": 1}
+}

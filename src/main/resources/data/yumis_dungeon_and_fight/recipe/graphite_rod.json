@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["ABC", "DRE", "FGH"],
+  "key": {
+    "A": "yumis_dungeon_and_fight:fish_rare",
+    "B": "yumis_dungeon_and_fight:fish_eel_electric",
+    "C": "yumis_dungeon_and_fight:fish_squid_winter",
+    "D": "yumis_dungeon_and_fight:fish_mutant",
+    "R": "yumis_dungeon_and_fight:lucky_rod",
+    "E": "yumis_dungeon_and_fight:fish_angelfish_spore",
+    "F": "yumis_dungeon_and_fight:fish_goldscale",
+    "G": "yumis_dungeon_and_fight:fish_glacier_salmon",
+    "H": "minecraft:diamond"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:graphite_rod", "count": 1}
+}

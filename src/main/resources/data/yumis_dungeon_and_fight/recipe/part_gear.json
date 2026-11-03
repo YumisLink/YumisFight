@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["BI"],
+  "key": {"B": "yumis_dungeon_and_fight:ingot_billet", "I": "minecraft:iron_ingot"},
+  "result": {"id": "yumis_dungeon_and_fight:part_gear", "count": 1}
+}

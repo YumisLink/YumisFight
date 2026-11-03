@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["TI"],
+  "key": {"T": "yumis_dungeon_and_fight:hide_tanned", "I": "minecraft:iron_ingot"},
+  "result": {"id": "yumis_dungeon_and_fight:hide_reinforced", "count": 1}
+}

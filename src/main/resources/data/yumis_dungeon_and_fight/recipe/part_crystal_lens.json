@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["GP"],
+  "key": {"G": "minecraft:glass", "P": "yumis_dungeon_and_fight:catch_pearl"},
+  "result": {"id": "yumis_dungeon_and_fight:part_crystal_lens", "count": 1}
+}

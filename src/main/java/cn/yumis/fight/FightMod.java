@@ -32,6 +32,7 @@ public final class FightMod {
         });
         cn.yumis.fight.modules.inventory.api.SlotAccess.currencyPolicy(stack->!stack.isEmpty()&&cn.yumis.fight.platform.ItemData.own(stack)&&cn.yumis.fight.modules.economy.api.CurrencyRules.find(cn.yumis.fight.platform.ItemData.id(stack))!=null);
         cn.yumis.fight.modules.equipment.platform.EquipmentContent.register();
+        cn.yumis.fight.modules.professions.platform.ProfessionContent.register();
         cn.yumis.fight.modules.economy.platform.CurrencyContent.register();
         cn.yumis.fight.modules.economy.platform.ChestContent.register();
         cn.yumis.fight.modules.character.platform.CharacterContent.register();

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["ABC", "DR ", "EFG"],
+  "key": {
+    "A": "yumis_dungeon_and_fight:fish_ghost_bream",
+    "B": "yumis_dungeon_and_fight:fish_ghost_eel",
+    "C": "yumis_dungeon_and_fight:fish_abyss_catfish",
+    "D": "yumis_dungeon_and_fight:fish_abyss_trout",
+    "R": "yumis_dungeon_and_fight:styx_rod",
+    "E": "yumis_dungeon_and_fight:fish_dragon_ray",
+    "F": "yumis_dungeon_and_fight:fish_icefin",
+    "G": "minecraft:nether_star"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:farer_rod", "count": 1}
+}
