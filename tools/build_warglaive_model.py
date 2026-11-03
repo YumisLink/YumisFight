@@ -2,6 +2,7 @@
 
 Run: blender --background --factory-startup --python tools/build_warglaive_model.py
 Silhouette reference: https://worldofwarcraft.blizzard.com/en-us/news/19940945
+Grip reference: https://worldofwarcraft.blizzard.com/en-us/news/20353390/prepare-to-bring-illidan-home-today
 The mesh, palette and icons are authored here; no downloaded model or texture is shipped.
 """
 import json
@@ -216,15 +217,43 @@ lines += ['f '+' '.join('%s/%s/%s' % item for item in face) for face in faces]
 (ASSETS / ('models/weapons/'+IDENT+'.obj')).write_text('\n'.join(lines)+'\n', encoding='utf-8')
 (ASSETS / ('models/weapons/'+IDENT+'.mtl')).write_text('newmtl atlas\nKd 1 1 1\nKa 0 0 0\nd 1\nmap_Kd #atlas\n', encoding='utf-8')
 
+def held_transform(rotation, scale, anchor):
+    # Exported grip centre relative to the OBJ's (.5, .5, .5) display pivot.
+    # ItemTransform applies rotationXYZ (Rz first), then the hand layer applies
+    # its own basis. Offset the actual rear grip, not the central shield.
+    x, y, z = (value * scale for value in (0, -.02, -.125))
+    rx, ry, rz = map(math.radians, rotation)
+    x, y = math.cos(rz)*x-math.sin(rz)*y, math.sin(rz)*x+math.cos(rz)*y
+    x, z = math.cos(ry)*x+math.sin(ry)*z, -math.sin(ry)*x+math.cos(ry)*z
+    y, z = math.cos(rx)*y-math.sin(rx)*z, math.sin(rx)*y+math.cos(rx)*z
+    return {'rotation': rotation,
+            'translation': [round(16*(target-value), 6) for target, value in zip(anchor, (x, y, z))],
+            'scale': [scale]*3}
+
+
+HELD_TRANSFORMS = {
+    # Span fore/aft across the fist; grip along the forearm, shield facing out.
+    # The standard hand layer pivot is at the fingertips/front of the fist.
+    'thirdperson': held_transform([0, 90, 90], .7, (0, -.125, .125)),
+    # Keep the same grip with a slight viewing angle and space ahead of the camera.
+    'firstperson': held_transform([0, 70, -10], .6, (0, 0, -.18)),
+}
+
 for band in (10, 20, 30, 40, 50):
     path = ASSETS / ('models/item/standard/warglaive_%s_base.json' % band)
     previous = json.loads(path.read_text(encoding='utf-8'))
+    display = previous['display']
+    for view, transform in HELD_TRANSFORMS.items():
+        # Minecraft mirrors left-hand translation X and rotation Y/Z itself.
+        # Both JSON contexts must use the same values to avoid a second flip.
+        for hand in ('righthand', 'lefthand'):
+            display[view+'_'+hand] = transform
     model = {'loader': 'neoforge:obj', 'model': NS+':models/weapons/'+IDENT+'.obj',
              'automatic_culling': False, 'shade_quads': True, 'flip_v': True,
              'ambientocclusion': False, 'gui_light': 'front',
              'textures': {'atlas': NS+':item/weapon3d/warglaive_silver',
                           'particle': NS+':item/standard/warglaive_%s_base' % band},
-             'display': previous['display']}
+             'display': display}
     path.write_text(json.dumps(model, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
 
 

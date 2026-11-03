@@ -15,8 +15,8 @@
   "dark": {
     "style": "flat",
     "colors": {
-      "OVERLAY": "#A4000000", "PANEL": "#CC101010", "CARD": "#A51A1A1A",
-      "BUTTON": "#B0292929", "HOVER": "#CC3B3B3B", "SELECTED": "#CC383838", "DISABLED": "#88202020",
+      "OVERLAY": "#A4000000", "PANEL": "#D9080808", "CARD": "#B3101010",
+      "BUTTON": "#BF1B1B1B", "HOVER": "#D92B2B2B", "SELECTED": "#D9252525", "DISABLED": "#88202020",
       "TEXT": "#E9EBEE", "MUTED": "#B9C0C7", "ACCENT": "#80C6EF", "GOLD": "#EBC36D",
       "ERROR": "#FF8181", "SUCCESS": "#92C88B", "NUMERIC": "#71ACFF",
       "BORDER": "#FF101010", "LIGHT": "#FF575757", "SHADOW": "#FF101010",

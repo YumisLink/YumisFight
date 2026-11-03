@@ -14,7 +14,7 @@ public final class DemonHunterRules {
         result.modifiers.merge("allSkillAttackProduct",1.30,(a,b)->a*b);result.modifiers.merge("lifeStealRateAdd",.10,Double::sum);result.modifiers.put("demonTransformed",1d);return result;
     }
     public static Stats current(Stats source,Progress progress,DemonHunterState state,long now){
-        if(!progress.hasJob(JobCatalog.DEMON_HUNTER))return source;
+        if(!progress.baseJob().equals(JobCatalog.DEMON_HUNTER))return source;
         var result=source.copy();if(result.weaponType.equals("WARGLAIVE")){result.modifiers.put("basicSlashes",2d);result.modifiers.put("basicStrikeCoefficient",.5);result.modifiers.put("basicDark",1d);}
         return state.metamorphosisUntil>now?transformed(result):result;
     }

@@ -5,7 +5,7 @@ import cn.yumis.fight.modules.skills.api.*;
 final class DemonHunterDescriptions {
     private DemonHunterDescriptions(){}
     static void install(){
-        SkillDescriptions.register(DemonHunterSkills.CHAOS,c->"暗属性物理 · 前方3格、宽3格，两次等伤斩击。\n基础间隔0.15秒，受释放速度影响；不位移，可同时命中多个敌人。");
+        SkillDescriptions.register(DemonHunterSkills.CHAOS,c->"暗属性物理 · 前方3格、宽3格，主手与副手先后各斩一次，两刀等伤。\n基础间隔0.15秒，受释放速度影响；不位移，可同时命中多个敌人。");
         SkillDescriptions.register(DemonHunterSkills.GLAIVE,c->"暗属性物理 · 沿起手准星投出战刃，速度20格/秒，最远16格。\n首个敌人承受一次伤害并产生20怒气；遇墙停止，不反弹、不消耗装备。");
         SkillDescriptions.register(DemonHunterSkills.SIGHT,c->"永久夜视I，不耗怒气，不占快捷栏。\n最多学习1级；退级或重置只清除职业夜视，其他来源夜视保留。");
         SkillDescriptions.register(DemonHunterSkills.AURA,c->"暗属性魔法持续伤害 · 半径4格，跟随本人6秒，每秒一次，共6次。\n每次脉冲命中至少一个敌人产生5怒气，多目标不重复产怒。\n可移动并使用其他技能；不独立暴击、不触发装备附伤或吸血。");

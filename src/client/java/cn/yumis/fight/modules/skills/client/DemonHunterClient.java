@@ -52,7 +52,7 @@ public final class DemonHunterClient {
         p.setDeltaMovement(Vec3.ZERO);p.fallDistance=0;
     }
     public static int hud(GuiGraphicsExtractor g,int x,int y){
-        if(!state().progress().hasJob(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER))return y;
+        if(!state().progress().baseJob().equals(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER))return y;
         x=Math.clamp(x,80,g.guiWidth()-78);var s=CareerClient.INSTANCE.view.demonHunter;long now=state().serverNow();var font=UiFonts.font();
         if(s.auraUntil>now){g.text(font,"献祭光环 "+NumberText.number((s.auraUntil-now)/1000d)+"秒",x-69,y,0xffb3fa76,true);y+=18;}
         if(s.metamorphosisUntil>now){g.text(font,"恶魔变形 "+NumberText.number((s.metamorphosisUntil-now)/1000d)+"秒",x-69,y,0xffd5ff9c,true);y+=18;}

@@ -1,9 +1,15 @@
 package cn.yumis.fight.modules.skills.client;
 
 import cn.yumis.fight.modules.skills.api.*;
+import cn.yumis.fight.modules.skills.api.client.BasicAttackVisuals;
+import cn.yumis.fight.modules.equipment.api.*;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
 import cn.yumis.fight.modules.presentation.api.client.EffectParticles;
 import net.minecraft.client.*;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.sounds.*;
 import net.minecraft.world.phys.*;
 import java.util.*;
 import static cn.yumis.fight.modules.skills.client.SkillVfx.vector;
@@ -12,7 +18,16 @@ import static cn.yumis.fight.modules.skills.client.SkillVfx.vector;
 final class DemonHunterVisuals {
     private static final int GREEN=0x87ec39,PALE=0xd6ff90;
     private DemonHunterVisuals(){}
-    static void install(){for(String id:DemonHunterSkills.ALL)SkillVisualRegistry.register(id,new Handler(id));}
+    static void install(){
+        for(String id:DemonHunterSkills.ALL)SkillVisualRegistry.register(id,new Handler(id));
+        SkillVisualRegistry.register(DemonHunterSkills.BASIC_ATTACK,new Handler(DemonHunterSkills.BASIC_ATTACK));
+        BasicAttackVisuals.register("WARGLAIVE",(visual,slash,interval)->{
+            visual.addProperty("kind",DemonHunterSkills.BASIC_ATTACK);
+            visual.addProperty("sequence",slash);
+            visual.addProperty("duration",Math.max(1,(long)Math.ceil(interval/2)));
+        });
+    }
+    private record Swing(InteractionHand hand,float progress){}
     private static final class Handler implements SkillVisualRegistry.Handler {
         private final String id;Handler(String id){this.id=id;}
         public int defaultColor(){return GREEN;}
@@ -21,16 +36,44 @@ final class DemonHunterVisuals {
         public boolean blocksTurning(){return cinematic();}
         public boolean blocksHotbar(){return cinematic()||id.equals(DemonHunterSkills.META)||id.equals(DemonHunterSkills.HUNT);}
         public CameraType cameraType(SkillVfx.Track t,long time){return CameraType.THIRD_PERSON_BACK;}
-        public void animate(SkillVfx.Track t,net.minecraft.world.entity.player.Player player,net.minecraft.client.renderer.entity.state.EntityRenderState raw,long time){if(!(raw instanceof net.minecraft.client.renderer.entity.state.AvatarRenderState s)||!id.equals(DemonHunterSkills.DANCE))return;s.walkAnimationSpeed=0;s.attackTime=(float)((time-t.start.startedAt())%350/350d);s.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;s.leftArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;}
-        public void play(SkillVisualEvent e){if(e.phase()==SkillVisualEvent.Phase.FINISH&&(id.equals(DemonHunterSkills.DANCE)||id.equals(DemonHunterSkills.META))){Vec3 p=vector(e.position());for(int i=0;i<28;i++){double angle=i*Math.PI/14;EffectParticles.dust(p.add(Math.cos(angle)*(1+i%3),.1+(i%4)*.1,Math.sin(angle)*(1+i%3)),0xa9a18b,.8f);}}}
+        private Swing swing(SkillVfx.Track t,Player player,long time){
+            if(!id.equals(DemonHunterSkills.BASIC_ATTACK)&&!id.equals(DemonHunterSkills.CHAOS))return null;
+            var gear=EquipmentItems.view(player.getMainHandItem());
+            if(!player.isAlive()||!player.getOffhandItem().isEmpty()||gear==null||gear.weapon()!=Weapon.WARGLAIVE||t.start.phase()!=SkillVisualEvent.Phase.START)return null;
+            double elapsed=time-t.start.startedAt(),length=t.start.duration();
+            if(elapsed<0||elapsed>=length)return null;
+            int slash=t.start.sequence();
+            if(id.equals(DemonHunterSkills.CHAOS)){length/=2;slash=(int)(elapsed/length);elapsed-=slash*length;}
+            return new Swing((slash&1)==0?InteractionHand.MAIN_HAND:InteractionHand.OFF_HAND,(float)Math.clamp(elapsed/length,0,1));
+        }
+        public Float handAttack(SkillVfx.Track t,Player player,InteractionHand hand,long time){var swing=swing(t,player,time);return swing==null?null:swing.hand()==hand?swing.progress():0f;}
+        public void animate(SkillVfx.Track t,Player player,net.minecraft.client.renderer.entity.state.EntityRenderState raw,long time){
+            if(!(raw instanceof net.minecraft.client.renderer.entity.state.AvatarRenderState s))return;
+            var swing=swing(t,player,time);
+            if(swing!=null){s.attackTime=swing.progress();s.attackArm=swing.hand()==InteractionHand.MAIN_HAND?player.getMainArm():player.getMainArm().getOpposite();}
+            else if(id.equals(DemonHunterSkills.DANCE)){s.walkAnimationSpeed=0;s.attackTime=(float)((time-t.start.startedAt())%350/350d);}
+            else return;
+            s.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;s.leftArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;
+        }
+        public void play(SkillVisualEvent e){
+            if(id.equals(DemonHunterSkills.BASIC_ATTACK)&&e.phase()==SkillVisualEvent.Phase.START){var mc=Minecraft.getInstance();Vec3 p=vector(e.position());if(mc.level!=null)mc.level.playLocalSound(p.x,p.y,p.z,SoundEvents.PLAYER_ATTACK_SWEEP,SoundSource.PLAYERS,.65f,1.15f,false);}
+            if(e.phase()==SkillVisualEvent.Phase.FINISH&&(id.equals(DemonHunterSkills.DANCE)||id.equals(DemonHunterSkills.META))){Vec3 p=vector(e.position());for(int i=0;i<28;i++){double angle=i*Math.PI/14;EffectParticles.dust(p.add(Math.cos(angle)*(1+i%3),.1+(i%4)*.1,Math.sin(angle)*(1+i%3)),0xa9a18b,.8f);}}
+        }
         public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track t,long age,long time,List<Quad> q,Vec3 camera){
             var mc=Minecraft.getInstance();var actor=mc.level==null?null:mc.level.getPlayerByUUID(t.start.caster());Vec3 p=vector(t.last.position()),d=vector(t.last.direction()).normalize();
+            if(id.equals(DemonHunterSkills.BASIC_ATTACK)){
+                if(age<0||age>=t.start.duration())return;
+                Vec3 side=new Vec3(-d.z,0,d.x);if(side.lengthSqr()<.01)side=new Vec3(1,0,0);
+                int sign=((t.start.sequence()&1)==0?1:-1)*(actor!=null&&actor.getMainArm()==HumanoidArm.LEFT?-1:1);
+                crescent(q,p.add(0,1,0),side.normalize().scale(sign),new Vec3(0,1,0),1.6,.15,t.start.color(),(int)(220*(1-age/(double)t.start.duration())));return;
+            }
             if(id.equals(DemonHunterSkills.BEAM)){if(actor==null||age>5000)return;Vec3 from=actor.getEyePosition(),dir=actor.getLookAngle().normalize(),end=from.add(dir.scale(16));var hit=mc.level.clip(new net.minecraft.world.level.ClipContext(from,end,net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,actor));if(hit.getType()!=HitResult.Type.MISS)end=hit.getLocation();beam(q,from,end,.5,GREEN,90);beam(q,from,end,.18,PALE,230);return;}
             if(id.equals(DemonHunterSkills.GLAIVE)){Vec3 right=new Vec3(-d.z,0,d.x);double a=age/70d;Vec3 u=right.scale(Math.cos(a)).add(0,Math.sin(a),0),v=right.scale(-Math.sin(a)).add(0,Math.cos(a),0);crescent(q,p,u,v,.65,.12,GREEN,230);crescent(q,p,u.scale(-1),v,.65,.12,PALE,230);return;}
             if(id.equals(DemonHunterSkills.META)&&actor!=null&&!t.released){Vec3 center=PlayerVisualAnchor.position(actor);for(int i=0;i<6;i++){double a=time/200d+i*Math.PI/3;Vec3 mote=center.add(Math.cos(a)*.7,.3+(i*.3+time/700d)%1.7,Math.sin(a)*.7);beam(q,mote,mote.add(0,.18,0),.05,PALE,190);}}
             if(id.equals(DemonHunterSkills.DANCE)){Vec3 center=vector(t.start.origin());ring(q,center.add(0,.04,0),3,.08,GREEN,170);for(int i=0;i<12;i++){double a=i*Math.PI/6;beam(q,center.add(Math.cos(a)*2.75,.05,Math.sin(a)*2.75),center.add(Math.cos(a)*3,.05,Math.sin(a)*3),.025,PALE,180);}}
             if(id.equals(DemonHunterSkills.RUSH)||id.equals(DemonHunterSkills.HUNT)){if(actor!=null){Vec3 here=actor.position().add(0,.8,0);beam(q,here,here.subtract(actor.getLookAngle().scale(2.5)),.22,GREEN,100);}}
             for(var flash:t.flashes){long n=time-flash.at();if(n<0||n>450||flash.phase()==SkillVisualEvent.Phase.START)continue;double fade=1-n/450d;Vec3 c=vector(flash.position()),forward=vector(flash.direction()).normalize(),side=new Vec3(-forward.z,0,forward.x);if(side.lengthSqr()<.01)side=new Vec3(1,0,0);
+                if(id.equals(DemonHunterSkills.CHAOS))side=side.scale(((flash.sequence()&1)==1?1:-1)*(actor!=null&&actor.getMainArm()==HumanoidArm.LEFT?-1:1));
                 if(flash.phase()==SkillVisualEvent.Phase.FINISH){ring(q,c.add(0,.08,0),Math.min(id.equals(DemonHunterSkills.DANCE)?3:4,.3+n/65d),.2,GREEN,(int)(220*fade));}
                 else crescent(q,c.add(0,1,0),side,new Vec3(0,1,0),id.equals(DemonHunterSkills.DANCE)?3:1.6,.15,GREEN,(int)(220*fade));
             }

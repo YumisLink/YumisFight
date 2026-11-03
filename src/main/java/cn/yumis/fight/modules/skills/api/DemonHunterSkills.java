@@ -7,10 +7,12 @@ import java.util.*;
 public final class DemonHunterSkills {
     private static final String NS="yumis_dungeon_and_fight:";
     public static final String CHAOS=NS+"chaos_strike",GLAIVE=NS+"throw_glaive",SIGHT=NS+"demon_sight",AURA=NS+"immolation_aura",BEAM=NS+"eye_beam",RUSH=NS+"fel_rush",DANCE=NS+"blade_dance",HUNT=NS+"the_hunt",META=NS+"metamorphosis";
+    public static final String BASIC_ATTACK=NS+"warglaive_attack";
     public static final List<String> ALL=List.of(CHAOS,GLAIVE,SIGHT,AURA,BEAM,RUSH,DANCE,HUNT,META);
     private DemonHunterSkills(){}
     public static boolean contains(String id){return ALL.contains(id);}
     static void install(){
+        SkillVisualRules.register(BASIC_ATTACK,new SkillVisualRules.Policy(false,"","",false));
         add(CHAOS,"混乱打击",false,1,15,1,1,false,Map.of("range",3d,"width",3d,"slashes",2d,"interval",.15,"duration",.3));
         var glaive=add(GLAIVE,"利刃投掷",false,5,15,8,1,false,Map.of("range",16d,"slashes",1d,"duration",.8));glaive.projectile=new SkillDefinition.Projectile(20,1,false,250,false);
         var sight=add(SIGHT,"恶魔视觉",false,10,15,0,0,false,Map.of("slashes",0d));sight.maximumLearnedRank=1;sight.attackTypeRanks=false;

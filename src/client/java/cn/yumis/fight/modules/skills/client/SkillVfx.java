@@ -247,4 +247,12 @@ public final class SkillVfx {
 
     public CameraPose camera(){var track=tracks.get(cameraCast);return track==null?null:SkillVisualRegistry.handler(track.start.skill()).camera(track,now());}
     public void animate(Player player,EntityRenderState state){for(var track:tracks.values())if(track.start.caster().equals(player.getUUID()))SkillVisualRegistry.handler(track.start.skill()).animate(track,player,state,now());}
+    public float handAttack(Player player,net.minecraft.world.InteractionHand hand,float nativeAttack){
+        long time=now();float attack=nativeAttack;
+        for(var track:tracks.values())if(track.start.caster().equals(player.getUUID())){
+            Float value=SkillVisualRegistry.handler(track.start.skill()).handAttack(track,player,hand,time);
+            if(value!=null)attack=value;
+        }
+        return attack;
+    }
 }

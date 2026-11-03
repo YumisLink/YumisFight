@@ -70,7 +70,7 @@ public final class DemonHunterService implements CombatPorts.SkillEffects {
             actions.put(source.id,a);if(gravity(a))DemonHunterMotion.begin(p);
             if(source.skill.id.equals(DemonHunterSkills.HUNT))protection(p,true);
             motion(a,source.skill.id.equals(DemonHunterSkills.BEAM)?"BEAM":source.skill.id.equals(DemonHunterSkills.HUNT)?"CHARGE":source.skill.id.equals(DemonHunterSkills.AURA)?"AURA":"START",a.from,a.to,a.start,(long)a.duration,a.arc);
-            mage.visual(source,source.id,"START",a.center,source.direction,(long)Math.ceil(a.duration)+600,0,null);
+            mage.visual(source,source.id,"START",a.center,source.direction,(long)Math.ceil(a.duration)+(source.skill.id.equals(DemonHunterSkills.CHAOS)?0:600),0,null);
         };
     }
     private static boolean floor(ServerPlayer p,Vec3 point){return p.level().clip(new ClipContext(point.add(0,.04,0),point.add(0,-.12,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p)).getType()!=HitResult.Type.MISS;}
@@ -115,7 +115,7 @@ public final class DemonHunterService implements CombatPorts.SkillEffects {
         if(elapsed>=a.duration){area(a,a.center,3,a.source.parameters.get("finisher",0),"strike","");mage.visual(a.source,a.source.id,"FINISH",p.position(),Vec3.ZERO,Math.round(a.duration)+600,++a.sequence,null);finish(a,false);}
     }
     private void tick(long now){
-        for(var p:server.getPlayerList().getPlayers())if(progress.apply(p).hasJob(JobCatalog.DEMON_HUNTER)){var before=read.apply(p);var next=before.copy();boolean changed=false;long until=sessions.apply(p).resources.combatUntil;
+        for(var p:server.getPlayerList().getPlayers())if(progress.apply(p).baseJob().equals(JobCatalog.DEMON_HUNTER)){var before=read.apply(p);var next=before.copy();boolean changed=false;long until=sessions.apply(p).resources.combatUntil;
             if(now<until)next.decayAt=until;else if(next.fury>0){long due=Math.max(until,next.decayAt);if(due==0)due=now;if(now>=due){int ticks=1+(int)((now-due)/1000);next.fury=Math.max(0,next.fury-10*ticks);next.decayAt=due+1000L*ticks;changed=true;}}
             if(next.auraUntil>0&&next.auraUntil<=now){next.auraUntil=0;next.auraCast="";changed=true;}if(next.metamorphosisUntil>0&&next.metamorphosisUntil<=now){next.metamorphosisUntil=0;next.metamorphosisCast="";changed=true;}
             if(changed)save(p,next);else if(next.decayAt!=before.decayAt)write.accept(p,next);
@@ -146,7 +146,7 @@ public final class DemonHunterService implements CombatPorts.SkillEffects {
     private void clear(UUID owner){for(var a:new ArrayList<>(actions.values()))if(a.source.owner.equals(owner))finish(a,true);aimed.remove(owner);}
     public void cancelled(ServerPlayer p,String id){var a=actions.get(id);if(a!=null)finish(a,true);aimed.remove(p.getUUID());}
     @Override public CombatPorts.Commit prepare(ServerPlayer p,LivingEntity target,JsonObject report,Receipt receipt,Life actor){
-        if(!receipt.accepted()||receipt.actual()<=0||target==p||actor.dead||!progress.apply(p).hasJob(JobCatalog.DEMON_HUNTER))return CombatPorts.Commit.NONE;
+        if(!receipt.accepted()||receipt.actual()<=0||target==p||actor.dead||!progress.apply(p).baseJob().equals(JobCatalog.DEMON_HUNTER))return CombatPorts.Commit.NONE;
         String token="";int gain=0;var contact=mage.contact(p,report);var basicStats=basics.sourceStats(p,report);
         if(report.has("basicCycle")&&report.has("basicSlash")&&!report.has("sourceCast")&&!report.has("mageAttack")&&basicStats!=null&&basicStats.weaponType.equals("WARGLAIVE")){token="basic/"+report.get("basicCycle").getAsString();gain=10;}
         else if(contact!=null&&contact.skill().equals(DemonHunterSkills.GLAIVE)){token="glaive/"+contact.cast();gain=20;}
