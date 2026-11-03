@@ -15,7 +15,6 @@ public final class SkillsPage {
     private SkillsPage(){}
     public static void render(PlayerPageSurface page,Progress progress,Stats stats,Consumer<String> learn,Consumer<String> unlearn,Runnable reset){
         if(cn.yumis.fight.modules.character.api.client.CareerControls.selection(page,progress))return;
-        page.cursor(page.cursor()+10);
         if(progress.hasJob(cn.yumis.fight.modules.character.api.JobCatalog.SUMMONER)){page.rowButton("一键续召",()->CareerClient.INSTANCE.renewSummons());page.rowButton("切换跟随 / 自动攻击",()->{var ui=cn.yumis.fight.modules.presentation.api.client.ClientUi.current();ui.send("summonFollow",ui.operation("summonFollow"));});}
         page.line("剩余SP："+progress.sp+"    装备可提高有效等级",UiTheme.GOLD);
         if(!page.hasSidebar())page.line("职业减伤："+Math.round((1-cn.yumis.fight.modules.character.api.JobCatalog.style(progress.jobId()).damageTaken())*100)+"%");
@@ -30,10 +29,11 @@ public final class SkillsPage {
             page.card(x,y,w,102);
             var row=page.button("",x+3,y+3,w-6,()->{var state=cn.yumis.fight.modules.skills.api.client.SkillsClient.current();if(SkillLearning.canBind(state.stats(),state.progress(),skill))Minecraft.getInstance().gui.pushScreenLayer(new SkillBindingScreen(skill));});row.setHeight(66);
             page.icon("textures/gui/skills/"+skill.icon()+".png",x+(w-26)/2,y+7,26);
-            String title=cn.yumis.fight.modules.presentation.api.client.UiFonts.font().plainSubstrByWidth(skill.title,Math.max(1,w-10));
+            String title=cn.yumis.fight.modules.presentation.api.client.UiFonts.font().plainSubstrByWidth(cn.yumis.fight.modules.skills.api.DemonHunterRules.title(skill,cn.yumis.fight.modules.skills.api.client.SkillController.INSTANCE.snapshot()),Math.max(1,w-10));
             page.text(title,x+5,y+38,UiTheme.TEXT);
-            page.text(skill.automaticByJob?"职业固有":skill.equipmentGranted?"装备授予":progress.learned(skill.id)+"级",x+5,y+53,UiTheme.MUTED);
-            var buy=page.button(skill.automaticByJob?"自动获得":skill.equipmentGranted?"装备授予":skill.unlock>=50&&!progress.awakened()?"未觉醒":"学习",x+4,y+76,w-8,()->learn.accept(skill.id));buy.active=!skill.automaticByJob&&!skill.equipmentGranted&&skill.available(progress);
+            page.text(skill.equipmentGranted?"装备授予":SkillLearning.baseRank(progress,skill)+"级"+(skill.automaticByJob?" · 固有1级":""),x+5,y+53,UiTheme.MUTED);
+            boolean full=SkillLearning.baseRank(progress,skill)>=skill.limit(progress.level,progress.jobId());
+            var buy=page.button(skill.equipmentGranted?"装备授予":progress.level<skill.unlock?"未解锁":skill.unlock>=50&&!progress.awakened()?"未觉醒":full?"已达学习上限":"学习",x+4,y+76,w-8,()->learn.accept(skill.id));buy.active=!skill.equipmentGranted&&skill.available(progress)&&!full;
             page.hover(x,y,w,102,(g,mx,my)->SkillTooltip.render(g,skill,mx,my));
             page.rightClick(x,y,w,102,()->{if(!skill.equipmentGranted&&cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress().learned(skill.id)>0)unlearn.accept(skill.id);});
         }

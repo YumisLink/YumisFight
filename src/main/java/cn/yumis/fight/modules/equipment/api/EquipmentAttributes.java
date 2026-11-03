@@ -38,7 +38,7 @@ public final class EquipmentAttributes {
                 s.weaponInstance=g.instance.toString();
                 s.weaponType=g.weapon.name();
                 s.add(Stat.ATTACK_SPEED,WeaponTraits.speed(s.weaponType));
-                if(g.weapon==Weapon.STAFF)ratios.merge(Stat.CAST_SPEED,-.2,Double::sum);
+                double castSpeed=WeaponTraits.castSpeed(s.weaponType);if(castSpeed!=0)ratios.merge(Stat.CAST_SPEED,castSpeed,Double::sum);
             }
             EquipmentDefinitions.SetDefinition set=EquipmentDefinitions.current().sets.get(g.set);
             if(set!=null&&(set.group().equals("armor")&&g.slot.armor()||set.group().equals("jewelry")&&g.slot.jewelry()))sets.merge(g.set,1,Integer::sum);

@@ -80,10 +80,11 @@ public final class SkillTooltip {
         if(CareerSkills.contains(skill.id)){var view=CareerClient.INSTANCE.view;parameters=CareerRules.resourceSnapshot(parameters,Math.max(1,view.brands),view.blood,view.field==null?0:view.field.rank,false);}
         var preview=SkillPreview.resolve(state.progress(),stats,skill,parameters,state.resources().equipment);
         List<Component> result=new ArrayList<>();
-        add(result,skill.title,UiTheme.GOLD);
+        add(result,cn.yumis.fight.modules.skills.api.DemonHunterRules.title(skill,stats),UiTheme.GOLD);
         add(result,rank>0?"有效等级 "+rank:skill.equipmentGranted?"缺少有效装备来源":"未学习 · 1级预览",UiTheme.ACCENT);
-        if(!skill.equipmentGranted&&!skill.automaticByJob)add(result,"SP学习："+state.progress().learned(skill.id)+"级",UiTheme.TEXT);
-        add(result,skill.automaticByJob?"转职自动获得，无需SP，无需升级":skill.equipmentGranted?"装备授予，无需SP；等级随有效来源装备变化":"学习等级 "+skill.unlock+(skill.advanced()?" · "+cn.yumis.fight.modules.character.api.JobCatalog.require(skill.requiredJob).title():"")+" · 每级 "+skill.sp+" SP",UiTheme.MUTED);
+        if(!skill.equipmentGranted)add(result,(skill.automaticByJob?"职业自带1级 · ":"")+"SP学习："+state.progress().learned(skill.id)+"级",UiTheme.TEXT);
+        add(result,skill.automaticByJob?"转职自动获得1级，继续升级每级消耗"+skill.sp+" SP":skill.equipmentGranted?"装备授予，无需SP；等级随有效来源装备变化":"学习等级 "+skill.unlock+(skill.advanced()?" · "+cn.yumis.fight.modules.character.api.JobCatalog.require(skill.requiredJob).title():"")+" · 每级 "+skill.sp+" SP",UiTheme.MUTED);
+        if(skill.maximumLearnedRank<Integer.MAX_VALUE)add(result,"最多可学习"+skill.maximumLearnedRank+"级，装备仍可提高有效等级",UiTheme.MUTED);
         result.add(Component.empty());
         if(skill==SkillCatalog.MASTERY){
             double power=Math.pow(1.12,Math.max(1,rank)-1);
@@ -99,7 +100,7 @@ public final class SkillTooltip {
             add(result,"巨剑蓄力：按住左键，基础0.8秒线性升至250%；长按保持，梯云纵保留蓄力。",UiTheme.MUTED);
         }else{
             var costs=cn.yumis.fight.modules.skills.api.SkillCosts.resolve(skill,Math.max(1,rank),stats,state.resources().equipment,CareerRules.magic(skill,state.progress()));
-            if(!skill.passive())add(result,"消耗："+(costs.life()>0?"生命 "+number(costs.life()):"MP "+costs.mana())+" · 冷却 "+number(preview.cooldown())+"秒",UiTheme.TEXT);
+            if(!skill.passive())add(result,"消耗："+(cn.yumis.fight.modules.skills.api.DemonHunterSkills.contains(skill.id)?"怒气 "+cn.yumis.fight.modules.skills.api.DemonHunterRules.cost(skill.id):costs.life()>0?"生命 "+number(costs.life()):"MP "+costs.mana())+" · 冷却 "+number(preview.cooldown())+"秒",UiTheme.TEXT);
             if(skill==SkillCatalog.OVERDRIVE){
                 add(result,"持续30秒，基础物理攻击 +"+number(15*Math.pow(1.12,Math.max(1,rank)-1))+"%。",UiTheme.TEXT);
             }else if(skill.id.equals(CareerSkills.FIELD)){

@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.equipment.api;
 import cn.yumis.fight.modules.affixes.api.AffixDefinitions;
 import cn.yumis.fight.modules.attributes.api.Stat;
+import cn.yumis.fight.modules.character.api.JobCatalog;
 
 import static cn.yumis.fight.modules.equipment.api.EquipmentCurves.defenses;
 import cn.yumis.fight.modules.affixes.api.AttackSpeedRoll;
@@ -15,6 +16,17 @@ public final class EquipmentAffixes {
     public static boolean sixJewelry(Slot s){return s.jewelry()||s==Slot.SUB_EQUIPMENT||s==Slot.MAGIC_STONE||s==Slot.EARRING;}
     public static boolean elementFlat(Slot s){return s==Slot.WEAPON||s.jewelry()||s==Slot.SUB_EQUIPMENT||s==Slot.MAGIC_STONE;}
     public static boolean evasionArmor(Gear g){return g.slot.armor()&&(EquipmentTemplates.armor(g)==ArmorType.LEATHER||EquipmentTemplates.armor(g)==ArmorType.LIGHT);}
+    /** Generation only: existing affixes retain their effects regardless of the current drop pool. */
+    public static boolean skillFamilyAllowed(Gear g,String family){
+        if(g.slot!=Slot.WEAPON)return false;
+        return switch(family){
+            case "SWORD","GHOST","WAVE","BLOOD"->JobCatalog.weapons(JobCatalog.BASE).contains(g.weapon.name());
+            case "SUN_MOON","SUMMON","ELEMENT"->JobCatalog.weapons(JobCatalog.MAGE).contains(g.weapon.name());
+            case "HAVOC","DEVOURER","VENGEANCE"->g.weapon==Weapon.WARGLAIVE;
+            case "MAGIC","PHYSICAL","PASSIVE"->true;
+            default->false;
+        };
+    }
     public static double base(Gear g,Stat s){return g.affixes.stream().filter(a->a.base&&a.operation.equals("FLAT")&&a.stat.equals(s.name())).mapToDouble(a->a.value).sum();}
     public static boolean flatAllowed(Gear g,Stat s){
         Slot slot=g.slot;

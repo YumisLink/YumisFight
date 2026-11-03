@@ -16,7 +16,7 @@ final class SunMoonSpellService {
         MageSkillService.Source source;String visual;Vec3 point;UUID target;long targetGeneration,start,next;int index,sequence;
     }
     private SunMoonSpellService(MageSkillService mage){this.mage=mage;}
-    static void install(MageSkillService mage){var service=new SunMoonSpellService(mage);for(String id:SunMoonSkills.ALL)if(!id.equals(SunMoonSkills.CYCLE))mage.spell(id,service::release);mage.contentLifecycle(service::tick,service::clear);}
+    static void install(MageSkillService mage){var service=new SunMoonSpellService(mage);for(String id:SunMoonSkills.ALL)if(!id.equals(SunMoonSkills.CYCLE)){mage.spell(id,service::release);mage.reduction(id,p->{service.clear(p.getUUID());mage.cancelContent(p,SunMoonSkills.ALL);});}mage.contentLifecycle(service::tick,service::clear);}
     private Runnable release(MageSkillService.Source source){
         var p=mage.owner(source);String id=source.skill.id;
         if(id.equals(SunMoonSkills.MOON))return ()->mage.startProjectile(source);

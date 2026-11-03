@@ -11,11 +11,12 @@ public final class SunMoonSkills {
     private SunMoonSkills(){}
     public static boolean contains(String id){return ALL.contains(id);}
     static void install(){
-        var cycle=add(CYCLE,"日月流转",20,30,0,0,0,0,0,SkillDefinition.Aspect.NONE,true);cycle.automaticByJob=true;
+        var cycle=add(CYCLE,"日月流转",20,30,0,0,0,0,0,SkillDefinition.Aspect.NONE,true);cycle.automaticByJob=true;cycle.attackTypeRanks=false;
         add(MOON,"月流",20,30,20,0,1,3,1,SkillDefinition.Aspect.MOON,false);
         SkillCatalog.require(MOON).projectile=new SkillDefinition.Projectile(16,1,true,2000,true);
         add(SUN,"日炎",25,40,40,0,1.8,3,1,SkillDefinition.Aspect.SUN,false);
         add(REFLUX,"月辰回流",30,50,0,30,0,0,0,SkillDefinition.Aspect.MOON,false);
+        SkillCatalog.require(REFLUX).maximumLearnedRank=1;
         add(FLARE,"烈日爆炎",35,50,120,0,2.5,4,1,SkillDefinition.Aspect.SUN,false);
         add(CORONA,"日冕",40,60,60,0,1.8,4,1,SkillDefinition.Aspect.SUN,false);
         add(STARFALL,"月见星辉",45,80,40,0,2.5,4,8,SkillDefinition.Aspect.MOON,false);

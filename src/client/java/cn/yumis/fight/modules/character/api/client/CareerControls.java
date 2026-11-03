@@ -10,23 +10,32 @@ public final class CareerControls {
     private static void choose(String kind,String id){var ui=ClientUi.current();ui.upload();var request=ui.operation(kind);request.addProperty("job",id);ui.send("progress",request);}
     public static boolean selection(PlayerPageSurface page,Progress player){
         if(player.selected())return false;
-        page.line("选择基础职业",UiTheme.GOLD);page.line("选定后需使用职业重置券更换，首次选择赠送对应1级武器。",UiTheme.MUTED);
-        int y=page.cursor()+8,w=(page.contentWidth()-18)/2,index=0;
-        for(String id:java.util.List.of(JobCatalog.BASE,JobCatalog.MAGE)){int x=index++*(w+8);var job=JobCatalog.require(id);page.card(x,y,w,112);page.icon("textures/gui/jobs/"+(id.equals(JobCatalog.MAGE)?"mage":"ghost_swordsman")+".png",x+(w-40)/2,y+8,40);page.text(job.title(),x+8,y+56,UiTheme.GOLD);page.button("选择",x+8,y+78,w-16,()->confirm(page,"选择"+job.title()+"？","基础职业仅可通过职业重置券重选。",()->choose("chooseJob",id)));}
-        page.cursor(y+122);return true;
+        page.line("选择基础职业",UiTheme.GOLD);page.line(player.starterGranted?"新配置不重复赠送武器；基础职业和转职选定后不可更换。":"首次选择赠送对应1级武器；基础职业和转职选定后不可更换。",UiTheme.MUTED);
+        int columns=page.contentWidth()>=400?3:page.contentWidth()>=260?2:1,base=page.cursor()+8,w=(page.contentWidth()-24)/columns-8,index=0;
+        for(var job:JobCatalog.all()){
+            if(!JobCatalog.basic(job.id()))continue;
+            String id=job.id();int x=(index%columns)*(w+8),y=base+(index/columns)*122;index++;
+            String icon=id.equals(JobCatalog.DEMON_HUNTER)?"textures/gui/skills/metamorphosis.png":"textures/gui/jobs/"+(id.equals(JobCatalog.MAGE)?"mage":"ghost_swordsman")+".png";
+            page.card(x,y,w,112);page.icon(icon,x+(w-40)/2,y+8,40);page.text(job.title(),x+8,y+56,UiTheme.GOLD);
+            page.button("选择",x+8,y+78,w-16,()->confirm(page,"选择"+job.title()+"？","这套配置的基础职业选定后不可更换；职业重置券用于新增配置。",()->choose("chooseJob",id)));
+        }
+        page.cursor(base+((index+columns-1)/columns)*122);return true;
     }
     public static void footer(PlayerPageSurface page,Progress player){
         page.gap();page.line("当前职业："+JobCatalog.require(player.jobId()).title(),UiTheme.GOLD);
-        if(player.awakened())page.line("觉醒："+JobCatalog.style(player.jobId()).awakening(),UiTheme.ACCENT);
+        if(player.awakened())page.line("觉醒资格：全角色已解锁；对应觉醒技能仍需50级自行学习。",UiTheme.ACCENT);
         else if(!JobCatalog.basic(player.jobId()))page.line("50级可使用一次性觉醒券，获得资格后自行学习觉醒技能。",UiTheme.MUTED);
         if(JobCatalog.basic(player.jobId())){
             boolean marked=player.jobChangeUnlocked();page.line(marked?"通用转职资格：已解锁":"通用转职资格：未解锁",UiTheme.MUTED);
-            if(marked&&player.level>=20){for(var job:JobCatalog.all())if(job.prerequisite().equals(player.baseJob()))page.rowButton("转职为"+job.title(),()->confirm(page,"转职为"+job.title()+"？","需副本外脱战，且所有技能冷却结束。",()->choose("promote",job.id())));}
+            if(marked&&player.level>=20){for(var job:JobCatalog.all())if(job.prerequisite().equals(player.baseJob())){boolean occupied=CareerProfilesClient.occupied(job.id());var button=page.button((occupied?"已有配置：":"转职为")+job.title(),0,page.cursor(),page.contentWidth()-24,()->confirm(page,"转职为"+job.title()+"？","转职选定后不可更换；需副本外脱战且所有技能冷却结束。",()->choose("promote",job.id())));button.active=!occupied;page.cursor(page.cursor()+24);}}
             else if(player.level<20)page.line("20级解锁转职。",UiTheme.MUTED);
         }
     }
     public static void register(cn.yumis.fight.architecture.CommandRouter<Void,com.google.gson.JsonObject> router){
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{var stack=event.getItemStack();if(!cn.yumis.fight.platform.ItemData.own(stack))return;String id=cn.yumis.fight.platform.ItemData.id(stack);if(id.equals(CharacterItems.CAREER_UNLOCK))event.getToolTip().add(Component.literal("20级可用，无职业前置；永久解锁所有职业的转职资格，已有资格不消耗。"));if(id.equals(CharacterItems.AWAKENING))event.getToolTip().add(Component.literal("50级可用，无职业前置；永久保留觉醒标记，重置职业与转职不会清除；不自动学习技能。"));});
-        router.register("character","careerResetConfirm",(ignored,j)->{boolean base=j.get("base").getAsBoolean();var mc=Minecraft.getInstance();var parent=mc.gui.screen();mc.gui.setScreen(new ThemedConfirmScreen(yes->{mc.gui.setScreen(parent);if(yes){var ui=ClientUi.current();ui.upload();var request=ui.operation(base?"resetProfession":"resetCareer");request.addProperty("token",j.get("token").getAsString());ui.send("progress",request);}},Component.literal(base?"使用职业重置券？":"使用转职重置券？"),Component.literal(base?"退回未选基础职业，返还全部技能SP；保留任务标记，保留觉醒。":"退回基础职业，返还转职技能SP；保留基础技能和任务标记，保留觉醒。"),ThemeDomain.MENU));});
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{var stack=event.getItemStack();if(!cn.yumis.fight.platform.ItemData.own(stack))return;String id=cn.yumis.fight.platform.ItemData.id(stack);if(id.equals(CharacterItems.PROFESSION_RESET))event.getToolTip().add(Component.literal("当前配置至少20级且已转职时，消耗后新增20级配置；容量8，原配置保留，新配置不赠送武器。"));if(id.equals(CharacterItems.LEVEL_ONE)||id.equals(CharacterItems.LEVEL_TEN)||id.equals(CharacterItems.LEVEL_MAX))event.getToolTip().add(Component.literal((id.equals(CharacterItems.LEVEL_MAX)?"直升当前满级（"+CharacterRules.MAX_LEVEL+"级），等级上限开放后自动跟随。":id.equals(CharacterItems.LEVEL_TEN)?"当前配置提升10级，最多升至满级，消耗整张券。":"当前配置提升1级，最多升至满级。")+"经验清零，正常补发属性点和SP；满级不消耗。需副本、训练外脱战，无施法且全部冷却结束。"));if(id.equals(CharacterItems.CAREER_UNLOCK))event.getToolTip().add(Component.literal("20级可用，无职业前置；永久解锁所有职业的转职资格，已有资格不消耗。"));if(id.equals(CharacterItems.AWAKENING))event.getToolTip().add(Component.literal("50级可用，无职业前置；全角色配置共享觉醒资格；每套仍需50级自行学习觉醒技能。"));});
+        router.register("character","characterTicketConfirm",(ignored,j)->{
+            var mc=Minecraft.getInstance();var parent=mc.gui.screen();String kind=j.get("kind").getAsString();
+            mc.gui.setScreen(new ThemedConfirmScreen(yes->{mc.gui.setScreen(parent);if(yes){var ui=ClientUi.current();ui.upload();var request=ui.operation(kind);request.add("token",j.get("token"));request.add("profileId",j.get("profileId"));request.add("profileRevision",j.get("profileRevision"));ui.send("progress",request);}},Component.literal(kind.equals("createProfile")?"创建20级职业配置？":"使用升级券？"),Component.literal(j.get("text").getAsString()),ThemeDomain.MENU));
+        });
     }
 }

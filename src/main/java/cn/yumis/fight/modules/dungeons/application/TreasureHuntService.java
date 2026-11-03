@@ -178,7 +178,7 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
                 BlockHitResult block=world(d).clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,raw));boolean landed=block.getType()!=HitResult.Type.MISS;if(landed)to=block.getLocation();
                 for(ServerPlayer p:present(d))if(p.isAlive()&&!w.struck.contains(p.getUUID())&&(p.getBoundingBox().inflate(.2).contains(from)||p.getBoundingBox().inflate(.2).clip(from,to).isPresent())){w.struck.add(p.getUUID());issueHit(w,p,from,to,false,now);}
                 w.distance+=from.distanceTo(to);w.position(to);if(landed){w.phase="LAND";w.landed=now;}else if(w.distance>=GoldenWeapon.RANGE){removeWeapon(w);continue;}sendWeapon(w,false);
-            }else if(now-w.landed>=GoldenWeapon.FUSE){for(ServerPlayer p:present(d))issueHit(w,p,w.position(),w.position(),true,now);world(d).sendParticles(net.minecraft.core.particles.ParticleTypes.EXPLOSION_EMITTER,w.x,w.y,w.z,1,0,0,0,0);removeWeapon(w);}
+            }else if(now-w.landed>=GoldenWeapon.FUSE){for(ServerPlayer p:present(d))issueHit(w,p,w.position(),w.position(),true,now);w.phase="EXPLODE";removeWeapon(w);}
         }
     }
     private void issueHit(GoldenWeapon w,ServerPlayer p,Vec3 from,Vec3 to,boolean explosion,long now){

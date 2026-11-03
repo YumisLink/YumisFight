@@ -16,11 +16,111 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/named/willy_staff"
         }
+      },
+      {
+        "when": "staff_10_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/staff_10_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/staff_10_base"
+          }
+        }
+      },
+      {
+        "when": "staff_20_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/staff_20_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/staff_20_base"
+          }
+        }
+      },
+      {
+        "when": "staff_30_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/staff_30_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/staff_30_base"
+          }
+        }
+      },
+      {
+        "when": "staff_40_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/staff_40_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/staff_40_base"
+          }
+        }
+      },
+      {
+        "when": "staff_50_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/staff_50_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/staff_50_base"
+          }
+        }
       }
     ],
     "fallback": {
       "type": "minecraft:model",
-      "model": "yumis_dungeon_and_fight:item/named/willy_staff"
+      "model": "yumis_dungeon_and_fight:item/standard/staff_10_base"
     }
   }
 }

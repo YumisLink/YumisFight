@@ -9,11 +9,111 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/named/niwu"
         }
+      },
+      {
+        "when": "club_10_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/club_10_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/club_10_base"
+          }
+        }
+      },
+      {
+        "when": "club_20_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/club_20_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/club_20_base"
+          }
+        }
+      },
+      {
+        "when": "club_30_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/club_30_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/club_30_base"
+          }
+        }
+      },
+      {
+        "when": "club_40_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/club_40_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/club_40_base"
+          }
+        }
+      },
+      {
+        "when": "club_50_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/club_50_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/club_50_base"
+          }
+        }
       }
     ],
     "fallback": {
       "type": "minecraft:model",
-      "model": "yumis_dungeon_and_fight:item/named/niwu"
+      "model": "yumis_dungeon_and_fight:item/standard/club_10_base"
     }
   }
 }

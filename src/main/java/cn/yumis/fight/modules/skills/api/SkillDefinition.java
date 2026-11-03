@@ -10,6 +10,9 @@ public final class SkillDefinition {
     public final double mpRatio,cooldown,coefficient;
     public boolean equipmentGranted,magicTag,bindingProxy;
     public boolean automaticByJob;
+    /** Family and passive rank sources remain independent of magic/physical rank sources. */
+    public boolean attackTypeRanks=true;
+    public int maximumLearnedRank=Integer.MAX_VALUE;
     public boolean groundTargeted;
     public double chantSeconds;
     public enum Aspect { NONE, SUN, MOON }
@@ -34,7 +37,7 @@ public final class SkillDefinition {
     public boolean advanced(){return !requiredJob.isEmpty();}
     public boolean available(cn.yumis.fight.modules.character.api.Progress progress){return equipmentGranted||progress.selected()&&(advanced()?progress.hasJob(requiredJob):progress.baseJob().equals(baseJob))&&(unlock<50||progress.awakened());}
     public boolean weaponAllowed(cn.yumis.fight.modules.character.api.Progress progress,cn.yumis.fight.modules.attributes.api.Stats stats){return equipmentGranted||stats.weaponValid&&cn.yumis.fight.modules.character.api.JobCatalog.weapons(progress.jobId()).contains(stats.weaponType);}
-    public int limit(int level,String job){return level<unlock||(advanced()?!requiredJob.equals(job):!cn.yumis.fight.modules.character.api.JobCatalog.base(job).equals(baseJob))?0:1+(level-unlock)/5;}
+    public int limit(int level,String job){return level<unlock||(advanced()?!requiredJob.equals(job):!cn.yumis.fight.modules.character.api.JobCatalog.base(job).equals(baseJob))?0:Math.min(maximumLearnedRank,1+(level-unlock)/5);}
     public int mp(int rank){return rank<=0?0:(int)Math.round((100+14*(unlock-1))*mpRatio*Math.pow(1.08,rank-1));}
     public String icon(){return id.substring(id.indexOf(':')+1);}
     public SkillDefinition damageParameter(String key,double value){if(!Double.isFinite(value)||value<0)throw new IllegalArgumentException("Invalid damage parameter");parameters.put(key,value);damageParameters.add(key);return this;}

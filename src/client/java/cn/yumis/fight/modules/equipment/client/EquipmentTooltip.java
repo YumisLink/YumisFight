@@ -208,7 +208,7 @@ public final class EquipmentTooltip {
         if(!valid)out.add(text("等级或职业条件不足，装备属性不生效",0xff7272));
         boolean weapon=g.slot==Slot.WEAPON;
         boolean baseValues=shift();
-        if(weapon&&g.weapon==Weapon.STAFF)out.add(text("技能释放速度 −20% · 12格无元素魔法弹",0x9aa9be));
+        if(weapon){double cast=WeaponTraits.castSpeed(g.weapon.name());if(cast!=0)out.add(text("技能释放速度 "+AffixText.signed(cast*100)+"%",0x9aa9be));if(WeaponTraits.basic(g.weapon.name()).projectileSpeed()>0)out.add(text("12格无元素魔法弹",0x9aa9be));if(g.weapon==Weapon.WARGLAIVE)out.add(text("恶魔猎手专用 · 使用时副手须为空 · 单件双刃",0x9acf80));if(g.weapon==Weapon.BROOM)out.add(text("需要扫把精通；该资格尚未开放",0xffb875));}
         if(weapon&&!baseValues)addWeaponAttributes(out,g);
         else{
             if(g.affixes.stream().anyMatch(a->a.base))separator(out,"基础属性");

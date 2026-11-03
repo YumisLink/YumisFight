@@ -55,12 +55,12 @@ public final class SkillBalance {
         SkillCatalog.all();
         for(var skill:PROFILES.keySet()){
             var jobs=skill.advanced()?List.of(skill.requiredJob):JobCatalog.all().stream().filter(j->JobCatalog.base(j.id()).equals(skill.baseJob)).map(JobCatalog.Definition::id).toList();
-            for(String job:jobs)for(String weapon:List.of("KATANA","LIGHTSABER","SHORTSWORD","BLUNT","GREATSWORD","STAFF","CLUB")){
+            for(String job:jobs)for(String weapon:cn.yumis.fight.modules.equipment.api.Weapon.standard().stream().map(Enum::name).toList()){
                 double factor=scale(skill,context(job,weapon),rules.baseWeightDps())*unlockMultiplier(skill.unlock);if(!(factor>0)||!Double.isFinite(factor))throw new IllegalArgumentException("技能基数超出可计算范围");
                 for(String key:skill.damageParameters())if(!Double.isFinite(skill.parameters(rank(skill)).getOrDefault(key,0d)*factor))throw new IllegalArgumentException("技能倍率超出可计算范围");
             }
         }
-        for(String job:STYLES.keySet())for(String weapon:List.of("KATANA","LIGHTSABER","SHORTSWORD","BLUNT","GREATSWORD"))for(boolean frenzy:List.of(false,true)){
+        for(String job:STYLES.keySet())for(String weapon:cn.yumis.fight.modules.equipment.api.Weapon.standard().stream().map(Enum::name).toList())for(boolean frenzy:List.of(false,true)){
             double factor=basicFactor(context(job,weapon),frenzy,rules.baseWeightDps())*unlockMultiplier(1);if(!(factor>0)||!Double.isFinite(factor))throw new IllegalArgumentException("普攻基数超出可计算范围");
         }
         PARAMETERS.forEach((skill,processor)->{var values=skill.parameters(rank(skill));processor.accept(values);if(values.values().stream().anyMatch(value->!Double.isFinite(value)))throw new IllegalArgumentException("技能派生参数无效");});

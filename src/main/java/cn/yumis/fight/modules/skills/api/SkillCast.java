@@ -24,6 +24,7 @@ public class SkillCast {
         public boolean charging,release,finisher;
         public double speed=1,moved;
         public int hitIndex,elementOverride=-2;
+        public String damagePhase="";
         public boolean dot,terminal;
         public double controlSeconds;
         public Set<UUID> hit=new HashSet<>();

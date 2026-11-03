@@ -158,11 +158,12 @@ public final class IndustrialWorld extends SavedData {
             if(be.device().generator()){long generated=generation.generate(be);be.generated=generated;if(connected)production.merge(components.get(be.beacon),generated,Math::addExact);else be.overflow=generated;}
             else if(!be.device().has(DeviceType.Capability.STORAGE_NETWORK)){if(connected)devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);else if(be.device().processing()&&be.running&&(!be.device().needsStructure()||be.structureValid)){for(var line:be.lanes())while(line.tickTime.positive()){IndustrialProcessing.prepare(line);if(line.batchRecipe.isEmpty())break;Fraction before=line.tickTime;long need=line.demand();long local=be.crystalSupply(need);long accepted=line.advance(local);be.crystalRemaining+=local-accepted;if(before.equals(line.tickTime))break;}}}
             IndustrialProcessing.output(be);
+            IndustrialFluidWork.outputAdjacent(be);
             if(be.currencyUpgrade!=null&&be.running)be.currencyUpgrade.charge(be.crystalSupply(be.currencyUpgrade.demand()));
         }
         for(var entry:cores.entrySet())settle(entry.getKey(),entry.getValue(),devices.getOrDefault(entry.getKey(),List.of()),production.getOrDefault(entry.getKey(),0L));
         for(var be:new ArrayList<>(upgradeActive)){if(be.isRemoved()){upgradeActive.remove(be);continue;}if(be.currencyUpgrade.due()){upgradeActive.remove(be);be.currencyUpgrade.process();}}
-        for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){visual(be,be.device().has(DeviceType.Capability.STORAGE_NETWORK)?!be.isRemoved():validBeacon(be)!=null);IndustrialProcessing.output(be);}
+        for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){visual(be,be.device().has(DeviceType.Capability.STORAGE_NETWORK)?!be.isRemoved():validBeacon(be)!=null);IndustrialProcessing.output(be);IndustrialFluidWork.outputAdjacent(be);}
     }
     private void visual(MachineBlockEntity be,boolean connected){BlockState state=be.getBlockState();boolean active=be.device().generator()?be.currentPower>0:be.workedThisTick||be.consumed>0;if(state.getValue(MachineBlock.CONNECTED)!=connected||state.getValue(MachineBlock.ACTIVE)!=active)be.getLevel().setBlock(be.getBlockPos(),state.setValue(MachineBlock.CONNECTED,connected).setValue(MachineBlock.ACTIVE,active),2);be.syncTankDisplay();}
 

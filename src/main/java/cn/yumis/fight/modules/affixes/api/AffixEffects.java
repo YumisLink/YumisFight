@@ -26,7 +26,7 @@ public final class AffixEffects {
         registerCharacter("SKILL_FAMILY",(a,id,s)->s.family(a.family,a.rank));
         registerCharacter("CHARACTER_PERCENT",(a,id,s)->stat(a).ifPresent(k->s.percent(k,a.value)));
         registerCharacter("MODIFIER",(a,id,s)->s.modifier(a.id,a.value,false));
-        registerCharacter("SKILL_ATTACK",(a,id,s)->s.modifier("skillProduct",1+a.value,true));
+        registerCharacter("SKILL_ATTACK",(a,id,s)->s.modifier("allSkillAttackProduct",1+a.value,true));
         registerCharacter("SKILL_PARAMETER",(a,id,s)->s.parameter(id+"/"+a.id,a.skill,a.parameter,a.value,a.roll));
     }
     private AffixEffects(){}

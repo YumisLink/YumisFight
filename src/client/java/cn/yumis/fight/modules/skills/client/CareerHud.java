@@ -21,6 +21,7 @@ public final class CareerHud {
         ChantClient.render(g,width,height);
         var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;int x=(int)(width*.8),y=Math.max(24,(int)(height*.2));
         if(state.own().dead)return;
+        y=DemonHunterClient.hud(g,x,y);
         if(state.progress().hasJob(JobCatalog.SUMMONER)){summons(g,width,height,state.serverNow());return;}
         if(state.progress().hasJob(JobCatalog.SUN_MOON))y=SunMoonHud.render(g,x,y,state.serverNow());
         if(OracleRules.rank(state.stats(),state.progress())>0)y=oracle(g,x,y,state.serverNow());

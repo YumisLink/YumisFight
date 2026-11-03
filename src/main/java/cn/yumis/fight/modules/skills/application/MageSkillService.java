@@ -38,12 +38,14 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private final Map<String,Function<Source,Runnable>> spellHandlers=new HashMap<>();
     private final List<LongConsumer> contentTicks=new ArrayList<>();
     private final List<Consumer<UUID>> contentClears=new ArrayList<>();
-    private final Set<String> resetOnReduction=new HashSet<>();
+    private final Map<String,Consumer<ServerPlayer>> reductions=new HashMap<>();
     private Function<ServerPlayer,SunMoonState> heartState=p->new SunMoonState();
     private BiConsumer<ServerPlayer,SunMoonState> heartStateWriter=(p,s)->{};
     private Consumer<ServerPlayer> heartSync=p->{};
     public void heartStates(Function<ServerPlayer,SunMoonState> read,BiConsumer<ServerPlayer,SunMoonState> write,Consumer<ServerPlayer> sync){heartState=read;heartStateWriter=write;heartSync=sync;}
-    void spell(String id,Function<Source,Runnable> release){spellHandlers.put(id,release);resetOnReduction.add(id);}
+    void spell(String id,Function<Source,Runnable> release){spellHandlers.put(id,release);}
+    void reduction(String id,Consumer<ServerPlayer> handler){if(reductions.putIfAbsent(id,handler)!=null)throw new IllegalArgumentException("Duplicate content reduction");}
+    void cancelContent(ServerPlayer p,Collection<String> ids){var chant=chants.get(p.getUUID());if(chant!=null&&ids.contains(chant.skill.id))cancelChant(p,chant.id);for(var s:new ArrayList<>(sources.values()))if(s.owner.equals(p.getUUID())&&ids.contains(s.skill.id)){s.cancelled=true;sources.remove(s.id);finished(s);}}
     void contentLifecycle(LongConsumer tick,Consumer<UUID> clear){contentTicks.add(tick);contentClears.add(clear);}
     public Stats castStats(ServerPlayer p,SkillDefinition skill,Stats source){return SunMoonRules.forCast(source,skill);}
     public SkillStartService.Payment payment(ServerPlayer p,SkillDefinition skill,Stats stats,JsonObject ack){
@@ -58,7 +60,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private void released(Source source){
         if(!SunMoonSkills.contains(source.skill.id))return;var p=owner(source);String key="skillRelease/"+p.getUUID()+"/"+source.session+"/"+source.id;if(!journal.get(key).isJsonNull())return;
         boolean awakened=SkillLearning.effective(source.stats,progress.apply(p),SkillCatalog.require(SunMoonSkills.PARADOX))>0;
-        SunMoonState next=SunMoonRules.released(heartState.apply(p),source.skill,awakened);try{journal.transaction(Map.of(key,JSON.toJsonTree(next),"skillState/sunmoon/"+p.getUUID()+"/"+source.session,JSON.toJsonTree(next)));}catch(java.io.IOException failure){throw new IllegalStateException("日月状态提交失败",failure);}heartStateWriter.accept(p,next);heartSync.accept(p);
+        SunMoonState next=SunMoonRules.released(heartState.apply(p),source.skill,source.rank,awakened);try{journal.transaction(Map.of(key,JSON.toJsonTree(next),"skillState/sunmoon/"+p.getUUID()+"/"+source.session,JSON.toJsonTree(next)));}catch(java.io.IOException failure){throw new IllegalStateException("日月状态提交失败",failure);}heartStateWriter.accept(p,next);heartSync.accept(p);
     }
     private void tickChants(long now){
         for(var source:new ArrayList<>(chants.values())){var p=owner(source);if(p==null){chants.remove(source.owner);source.cancelled=true;continue;}
@@ -89,7 +91,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         boolean naturalEnd;
         String job="",weapon="";long chantUntil;boolean cancelled;
     }
-    private static final class Attack {String id;Source source;UUID target;long generation,created,expires;Stats stats;double coefficient;int element=-2;boolean consumed,slow;Vec3 point;}
+    private static final class Attack {String id;Source source;UUID target;long generation,created,expires;Stats stats;double coefficient;int element=-2;boolean consumed,slow;String phase="",gainGroup="";Vec3 point;}
     private record Incoming(String id,Source source,long occurred,long expires,double damage,boolean direct){}
     private record Scheduled(Source source,long due){}
     private static final class Flight {Source source;String visual;Vec3 origin,end,position;long start;double duration;int hits,sequence;final Set<UUID> struck=new HashSet<>();}
@@ -107,6 +109,8 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         throw new IllegalArgumentException("附近没有足够的安全召唤空间");
     }
     public void preflight(ServerPlayer p,SkillDefinition skill){
+        var chant=chants.get(p.getUUID());if(chant!=null&&chant.skill.id.equals(skill.id))throw new IllegalArgumentException("该技能正在咏唱，继续施法");
+        var heart=heartState.apply(p);String unavailable=SunMoonRules.unavailableReason(skill,heart.heart,heart.stacks);if(!unavailable.isEmpty())throw new IllegalArgumentException(unavailable);
         cancelChant(p,"");
         var list=new ArrayList<SummonedCreature>();var reserved=new ArrayList<Vec3>();for(var k:SummonerSkills.kinds(skill.id)){var entity=new SummonedCreature(SkillContentTypes.SUMMONS.get(k).get(),p.level());var point=safe(p,entity,list.size(),reserved);entity.setPos(point);reserved.add(point);list.add(entity);}if(!list.isEmpty())prepared.put(p.getUUID(),list);
     }
@@ -115,7 +119,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         var values=new LinkedHashMap<String,Double>();ack.getAsJsonObject("parameters").entrySet().forEach(e->values.put(e.getKey(),e.getValue().getAsDouble()));s.parameters=new SkillParameters.Snapshot(s.skill,s.rank,values);s.stats=JSON.fromJson(ack.get("stats"),Stats.class);s.stats.modifiers.put("sourceLevel",(double)s.level);s.weapon=s.stats.weaponInstance;s.effects=JSON.fromJson(ack.get("equipmentEffects"),EquipmentEffects.Snapshot.class);s.origin=vector(ack.getAsJsonArray("origin"));s.direction=vector(ack.getAsJsonArray("direction"));return s;
     }
     public void accepted(ServerPlayer p,JsonObject ack){
-        var skill=SkillCatalog.require(ack.get("skill").getAsString());if(!MageSkills.contains(skill.id))return;ack.addProperty("instant",true);
+        var skill=SkillCatalog.require(ack.get("skill").getAsString());if(!MageSkills.contains(skill.id)&&!spellHandlers.containsKey(skill.id))return;ack.addProperty("instant",true);
         if(skill.id.equals(SummonerSkills.FRENZY)){var s=source(p,ack);frenzy.put(p.getUUID(),new Frenzy(s.id,s.session,s.generation,s.dimension,s.started+20000,.20+.03*(s.rank-1)));buffState(p,s.started+20000);return;}
         var kinds=SummonerSkills.kinds(skill.id);
         if(!kinds.isEmpty()){
@@ -154,9 +158,13 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private void issue(Source source,LivingEntity target,Vec3 point){issue(source,target,point,null,false);}
     private void issue(Source source,LivingEntity target,Vec3 point,Stats baked,boolean slow){issue(source,target,point,baked,slow,source.summon()?1:source.parameters.get("damage",0),-2);}
     void issue(Source source,LivingEntity target,Vec3 point,Stats baked,boolean slow,double coefficient,int element){
+        issuePhase(source,target,point,baked,slow,coefficient,element,"","");
+    }
+    void issuePhase(Source source,LivingEntity target,Vec3 point,Stats baked,boolean slow,double coefficient,int element,String phase,String gainGroup){
+        if(!phase.isEmpty())SkillDamagePhases.require(source.skill,phase);
         if(!valid(source))return;var p=owner(source);if(!eligible(p,target))return;Target targetState=targets.apply(target);if(targetState.life.dead)return;
-        var attack=new Attack();attack.id=UUID.randomUUID().toString();attack.source=source;attack.target=target.getUUID();attack.generation=targetState.life.generation;attack.created=System.currentTimeMillis();attack.slow=slow;attack.expires=attack.created+5000;attack.point=point;attack.stats=baked!=null?baked.copy():source.stats.copy();attack.coefficient=coefficient;attack.element=element;attacks.put(attack.id,attack);
-        JsonObject j=new JsonObject();j.addProperty("id",attack.id);j.addProperty("source",source.id);j.addProperty("session",source.session);j.addProperty("generation",source.generation);j.addProperty("skill",source.skill.id);j.addProperty("rank",source.rank);j.addProperty("target",target.getStringUUID());j.addProperty("entity",target.getId());j.addProperty("targetGeneration",attack.generation);j.addProperty("coefficient",attack.coefficient);j.addProperty("element",attack.element);j.addProperty("expires",attack.expires);j.addProperty("sourceExpires",source.expires);j.addProperty("summon",source.summon());j.add("stats",JSON.toJsonTree(attack.stats));j.add("effects",JSON.toJsonTree(source.effects));j.add("parameters",JSON.toJsonTree(source.parameters.values()));Network.send(p,"mageAttack",j);
+        var attack=new Attack();attack.id=UUID.randomUUID().toString();attack.source=source;attack.target=target.getUUID();attack.generation=targetState.life.generation;attack.created=System.currentTimeMillis();attack.slow=slow;attack.expires=attack.created+5000;attack.point=point;attack.stats=baked!=null?baked.copy():source.stats.copy();attack.coefficient=coefficient;attack.element=element;attack.phase=phase;attack.gainGroup=gainGroup;attacks.put(attack.id,attack);
+        JsonObject j=new JsonObject();j.addProperty("id",attack.id);j.addProperty("source",source.id);j.addProperty("session",source.session);j.addProperty("generation",source.generation);j.addProperty("skill",source.skill.id);j.addProperty("rank",source.rank);j.addProperty("target",target.getStringUUID());j.addProperty("entity",target.getId());j.addProperty("targetGeneration",attack.generation);j.addProperty("coefficient",attack.coefficient);j.addProperty("element",attack.element);j.addProperty("expires",attack.expires);j.addProperty("sourceExpires",source.expires);j.addProperty("summon",source.summon());j.addProperty("damagePhase",phase);j.add("stats",JSON.toJsonTree(attack.stats));j.add("effects",JSON.toJsonTree(source.effects));j.add("parameters",JSON.toJsonTree(source.parameters.values()));Network.send(p,"mageAttack",j);
     }
     public void tick(){
         long now=System.currentTimeMillis();
@@ -296,7 +304,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private void entityFeedback(Source s){s.entity.project(s.health/s.maximum,s.maximumShield>0?s.shield/s.maximumShield:0);}
     private void sendState(Source s){var p=owner(s);if(p!=null){var view=JSON.toJsonTree(Map.of("session",s.session,"generation",s.generation,"source",s.id,"until",s.expires,"health",s.health,"maximum",s.maximum,"shield",s.shield,"maximumShield",s.maximumShield)).getAsJsonObject();view.addProperty("kind",s.kind.name());view.addProperty("skill",s.skill.id);view.addProperty("rank",s.rank);view.add("damage",JSON.toJsonTree(Map.of("melee",s.meleeDamage,"stone",s.stoneDamage,"triple",s.tripleDamage)));Network.send(p,"herderState",view);}}
     public void clear(ServerPlayer p){cancelChant(p,"");ChantRules.movement(p,false);prepared.remove(p.getUUID());for(var clear:contentClears)clear.accept(p.getUUID());for(var s:new ArrayList<>(sources.values()))if(s.owner.equals(p.getUUID())&&!s.summon()){s.cancelled=true;sources.remove(s.id);}clear(p.getUUID());}
-    public void reduced(ServerPlayer p,String skill){if(resetOnReduction.contains(skill)){cancelChant(p,"");for(var clear:contentClears)clear.accept(p.getUUID());for(var source:new ArrayList<>(sources.values()))if(source.owner.equals(p.getUUID())&&spellHandlers.containsKey(source.skill.id))source.cancelled=true;}if(skill.equals(SummonerSkills.MASTERY)){clear(p);return;}if(skill.equals(SummonerSkills.FRENZY)){frenzy.remove(p.getUUID());buffState(p,0);}for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(p.getUUID())&&s.skill.id.equals(skill))remove(s);}
+    public void reduced(ServerPlayer p,String skill){var reduction=reductions.get(skill);if(reduction!=null)reduction.accept(p);if(skill.equals(SummonerSkills.MASTERY)){clear(p);return;}if(skill.equals(SummonerSkills.FRENZY)){frenzy.remove(p.getUUID());buffState(p,0);}for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(p.getUUID())&&s.skill.id.equals(skill))remove(s);}
     public void cancelAccepted(ServerPlayer p,String id){cancelChant(p,id);for(var s:new ArrayList<>(sources.values()))if(id.equals(s.castId)){if(s.summon())remove(s);else sources.remove(s.id);}var f=frenzy.get(p.getUUID());if(f!=null&&f.cast.equals(id)){frenzy.remove(p.getUUID());buffState(p,0);}prepared.remove(p.getUUID());}
     private void retire(Source s){retiring.put(s.entity,System.currentTimeMillis()+1800);s.entity.play("death",1200);s.entity.getNavigation().stop();remove(s);}
     private void depart(Source s){s.naturalEnd=true;retiring.put(s.entity,System.currentTimeMillis()+800);s.entity.play("retreat",800);s.entity.getNavigation().stop();remove(s);}
@@ -306,15 +314,18 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     /** Natural expiry stops new attacks; a contact already issued keeps its existing bounded receipt window. */
     private boolean receiptSourceValid(Attack a){
         if(valid(a.source))return true;if(!a.source.naturalEnd)return false;var p=owner(a.source);if(p==null||p.isDeadOrDying())return false;var session=sessions.apply(p);
-        return !session.life.dead&&session.id.toString().equals(a.source.session)&&session.life.generation==a.source.generation&&session.life.instance.equals(a.source.instance)&&p.level().dimension().identifier().toString().equals(a.source.dimension);
+        return !session.life.dead&&session.id.toString().equals(a.source.session)&&session.life.generation==a.source.generation&&session.life.instance.equals(a.source.instance)&&progress.apply(p).jobId().equals(a.source.job)&&p.level().dimension().identifier().toString().equals(a.source.dimension);
     }
+    public record Contact(String cast,String skill,String group){}
+    public Contact contact(ServerPlayer p,JsonObject report){var a=attack(p,report);return a==null?null:new Contact(a.source.castId,a.source.skill.id,a.gainGroup);}
     @Override public Stats sourceStats(ServerPlayer p,JsonObject j){Attack a=attack(p,j);return a==null?null:a.stats;}
     @Override public EquipmentEffects.Snapshot sourceEffects(ServerPlayer p,JsonObject j){Attack a=attack(p,j);return a==null?null:a.source.effects;}
-    @Override public boolean direct(ServerPlayer p,JsonObject j){Attack a=attack(p,j);return a==null||!a.source.summon();}
+    @Override public boolean direct(ServerPlayer p,JsonObject j){Attack a=attack(p,j);return a==null||!a.source.summon()&&(a.phase.isEmpty()||!SkillDamagePhases.require(a.source.skill,a.phase).dot());}
     @Override public long occurredAt(ServerPlayer p,JsonObject j){Attack a=attack(p,j);return a==null?-1:a.created;}
     @Override public void reconcile(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime previous,cn.yumis.fight.modules.combat.api.Runtime incoming){var state=heartState.apply(p);if(state.heart==1&&state.stacks>0)incoming.mp=Math.min(previous.mp,incoming.mp);}
     @Override public void validate(ServerPlayer p,LivingEntity target,JsonObject j){
         if(!j.has("mageAttack"))return;Attack a=attack(p,j);if(a==null||a.consumed||a.created>System.currentTimeMillis()||a.expires<System.currentTimeMillis()||!receiptSourceValid(a)||!a.target.equals(target.getUUID())||a.generation!=j.get("generation").getAsLong()||!a.source.id.equals(j.get("mageSource").getAsString()))throw new IllegalArgumentException("魔法师攻击来源、目标或阶段已失效");
+        if(!Objects.equals(a.phase,j.has("damagePhase")?j.get("damagePhase").getAsString():""))throw new IllegalArgumentException("技能伤害类型凭据不匹配");
         if(!j.has("mageElement")||j.get("mageElement").getAsInt()!=a.element||!j.has("mageCoefficient")||!Double.isFinite(j.get("mageCoefficient").getAsDouble())||Math.abs(j.get("mageCoefficient").getAsDouble()-a.coefficient)>Math.max(1e-10,Math.abs(a.coefficient)*1e-10))throw new IllegalArgumentException("魔法攻击段的元素或系数不匹配");
     }
     @Override public CombatPorts.Commit prepare(ServerPlayer p,LivingEntity target,JsonObject j,Receipt receipt,Life actor){

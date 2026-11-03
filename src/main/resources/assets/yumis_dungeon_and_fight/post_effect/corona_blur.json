@@ -1,19 +1,47 @@
 {
   "targets": {
-    "swap": {}
+    "original": {},
+    "horizontal": {},
+    "blurred": {}
   },
   "passes": [
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "minecraft:post/blit",
+      "inputs": [
+        {
+          "sampler_name": "In",
+          "target": "minecraft:main",
+          "bilinear": false
+        }
+      ],
+      "output": "original",
+      "uniforms": {
+        "BlitConfig": [
+          {
+            "name": "ColorModulate",
+            "type": "vec4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          }
+        ]
+      }
+    },
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "minecraft:post/box_blur",
       "inputs": [
         {
           "sampler_name": "In",
-          "target": "minecraft:main",
+          "target": "original",
           "bilinear": true
         }
       ],
-      "output": "swap",
+      "output": "horizontal",
       "uniforms": {
         "BlurConfig": [
           {
@@ -38,11 +66,11 @@
       "inputs": [
         {
           "sampler_name": "In",
-          "target": "swap",
+          "target": "horizontal",
           "bilinear": true
         }
       ],
-      "output": "minecraft:main",
+      "output": "blurred",
       "uniforms": {
         "BlurConfig": [
           {
@@ -60,6 +88,23 @@
           }
         ]
       }
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "yumis_dungeon_and_fight:post/corona_periphery",
+      "inputs": [
+        {
+          "sampler_name": "Original",
+          "target": "original",
+          "bilinear": false
+        },
+        {
+          "sampler_name": "Blurred",
+          "target": "blurred",
+          "bilinear": true
+        }
+      ],
+      "output": "minecraft:main"
     }
   ]
 }

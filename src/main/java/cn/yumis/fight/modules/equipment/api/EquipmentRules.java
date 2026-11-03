@@ -17,6 +17,7 @@ public final class EquipmentRules {
     }
     public static Gear create(Slot slot,Weapon weapon,Rarity rarity,int level,ArmorType armorType,JewelryType jewelryType,Random random){
         if(!Weapon.standard().contains(weapon)&&slot==Slot.WEAPON)throw new IllegalArgumentException("请使用已设计的具名武器模板");
+        if(slot==Slot.WEAPON&&Set.of(Weapon.STAFF,Weapon.CLUB,Weapon.WAND,Weapon.BROOM,Weapon.WARGLAIVE,Weapon.SPEAR).contains(weapon)&&(rarity==Rarity.EPIC||rarity==Rarity.MYTHIC))throw new IllegalArgumentException("此武器的史诗、神话版本待设计，尚未投放");
         if(level<slot.minimum()||level>80||rarity==Rarity.MYTHIC&&slot.armor())throw new IllegalArgumentException("装备模板未开放");
         Gear g=new Gear();
         g.slot=slot;
@@ -96,6 +97,7 @@ public final class EquipmentRules {
             public double budget(){return EquipmentRules.budget(g.level);}
             public List<Affix> affixes(){return g.affixes;}
             public List<cn.yumis.fight.modules.affixes.api.AffixDefinition> candidates(boolean percent,boolean duplicates){return EquipmentAffixes.candidates(g,percent,duplicates);}
+            public boolean skillFamilyAllowed(String family){return EquipmentAffixes.skillFamilyAllowed(g,family);}
             public double baseline(Affix affix){return EquipmentAffixes.baseline(g,affix);}
         };
     }

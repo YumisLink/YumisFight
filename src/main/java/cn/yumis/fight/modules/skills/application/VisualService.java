@@ -58,6 +58,11 @@ public class VisualService {
         long now=System.currentTimeMillis();
         for(Active cast:active.values())if(cast.owner.equals(caster.getUUID())&&cast.expires>now){JsonObject replay=new JsonObject();JsonArray events=new JsonArray();for(JsonObject event:cast.history){JsonObject copy=event.deepCopy();copy.addProperty("serverNow",now);events.add(copy);}replay.add("replay",events);Network.send(observer,"visual",replay);}
     }
+    public void clear(ServerPlayer player){
+        for(var pair:new ArrayList<>(active.entrySet()))if(pair.getValue().owner.equals(player.getUUID())){
+            var cancel=pair.getValue().data.deepCopy();cancel.addProperty("phase","CANCEL");cancel.addProperty("terminal",true);receive(player,cancel);
+        }
+    }
     public boolean movementLocked(ServerPlayer player){
         var session=sessions.apply(player);long now=System.currentTimeMillis();
         return active.values().stream().anyMatch(a->a.owner.equals(player.getUUID())&&a.session.equals(session.id.toString())&&a.generation==session.life.generation&&a.expires>now&&!(a.data.has("cosmeticOnly")&&a.data.get("cosmeticOnly").getAsBoolean())&&!cn.yumis.fight.modules.skills.api.CareerSkills.persistent(a.data.get("kind").getAsString()));

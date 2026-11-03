@@ -16,8 +16,8 @@ public final class CharacterPage {
     private CharacterPage(){}
     public static void render(PlayerPageSurface page,View view,Consumer<String> allocate,Runnable reset,Consumer<Boolean> sync){
         var p=view.progress();
-        page.line(JobCatalog.require(p.jobId()).title()+"  Lv."+p.level+" / 80",UiTheme.GOLD);
-        page.line("战斗经验 "+p.experience+" / "+(p.level==80?"MAX":CharacterRules.nextExperience(p.level))+"    自由点 "+p.free());
+        page.line(JobCatalog.require(p.jobId()).title()+"  Lv."+p.level+" / "+CharacterRules.MAX_LEVEL,UiTheme.GOLD);
+        page.line("战斗经验 "+p.experience+" / "+(p.level>=CharacterRules.MAX_LEVEL?"MAX":CharacterRules.nextExperience(p.level))+"    自由点 "+p.free());
         page.line("按住 Shift 点击 +1：最多加5点。",UiTheme.MUTED);
         page.line(view.fighting()?"战斗中":"已脱战");page.gap();
         for(var allocation:view.allocations()){

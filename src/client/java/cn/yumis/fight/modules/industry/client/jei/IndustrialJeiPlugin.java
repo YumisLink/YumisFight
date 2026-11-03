@@ -60,6 +60,7 @@ public final class IndustrialJeiPlugin implements IModPlugin {
     @Override public void registerRecipes(IRecipeRegistration registration){
         registration.addItemStackInfo(IndustrialContent.stack("storage_plugin",1),Component.literal("机器侧边箭头展开3格插件栏，每格最多8件。每件使物品输入／输出槽与液槽容量翻倍，逐件乘算；不可堆叠物仍为1。取出插件前须清空超额储量。"));
         registration.addItemStackInfo(IndustrialContent.stack("speed_plugin",1),Component.literal("每件使速度×1.5、单批耗能×2，逐件乘算。背包堆叠64、机内每格8。适用加工、采矿、通货升级、抽水、收获与水晶运输，发电机暂不适用。"));
+        registration.addItemStackInfo(IndustrialContent.stack("water_pump",1),Component.literal("接网且相邻任一面有水源时抽水，不移除水源。出水缓存自动供给六面相邻设备的入液口，紧贴涡轮任一面即可直接供水；满罐时保留余水。远距离送水仍可使用供液水晶。"));
         registration.addItemStackInfo(IndustrialContent.stack("mana_storage_bag",1),Component.literal("随身携带时，新获得的1至10阶魔能水晶自动转为魔能，满背包也可拾取。每升一阶所需魔能为前一阶的8倍，存取无损。\n手持Shift＋滚轮切换取出等级；右键取1个，Shift＋右键取64个，魔能或空间不足时整次取消。取出的水晶可留在背包使用。\n魔能跟随袋子保存，多袋按主手、副手、背包顺序收纳。4根线、4张皮革和1枚1阶水晶在工作台合成。"));
         var recipes=IndustrialRecipeCache.recipes.byType(IndustrialContent.RECIPE_TYPE.get());
         for(String key:MACHINES)registration.addRecipes(TYPES.get(key),recipes.stream().filter(h->group(h.value()).equals(key)).toList());
@@ -86,10 +87,10 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         @Override public void setRecipe(IRecipeLayoutBuilder builder,RecipeHolder<IndustrialRecipe> holder,IFocusGroup focuses){
             IndustrialRecipe recipe=holder.value();
             for(int i=0;i<recipe.ingredients().size();i++){var need=recipe.ingredients().get(i);builder.addInputSlot(2+(i%3)*18,18+(i/3)*18).setStandardSlotBackground().addItemStacks(need.ingredient().items().map(h->new ItemStack(h.value(),need.count())).toList());}
-            for(int i=0;i<recipe.fluidInputs().size();i++){var need=recipe.fluidInputs().get(i);var slot=builder.addInputSlot(62+i*20,18).setStandardSlotBackground().setFluidRenderer(need.amount(),false,16,34);BuiltInRegistries.FLUID.stream().filter(f->need.ingredient().test(new FluidStack(f,need.amount()))).forEach(f->slot.add(f,need.amount()));}
+            for(int i=0;i<recipe.fluidInputs().size();i++){var need=recipe.fluidInputs().get(i);var slot=builder.addInputSlot(62+i*20,18).setStandardSlotBackground().setFluidRenderer(need.amount(),false,16,16);BuiltInRegistries.FLUID.stream().filter(f->need.ingredient().test(new FluidStack(f,need.amount()))).forEach(f->slot.add(f,need.amount()));}
             for(int i=0;i<recipe.results().size();i++)builder.addOutputSlot(124+i*18,18).setOutputSlotBackground().add(recipe.results().get(i));
-            if(!recipe.fluidResult().isEmpty()){var fluid=recipe.fluidResult();builder.addOutputSlot(142,40).setStandardSlotBackground().setFluidRenderer(fluid.getAmount(),false,16,34).add(fluid.getFluid(),fluid.getAmount(),fluid.getComponentsPatch());}
-            if(key.startsWith("fuel_")){var rule=IndustrialRules.current().generators.get(key.substring(5));if(rule!=null&&!rule.fluid().isEmpty()&&rule.fluidPerSecond()>0){long total=(long)rule.fluidPerSecond()*recipe.ticks()/20;var slot=builder.addInputSlot(62,18).setStandardSlotBackground().setFluidRenderer(Math.max(1,total),false,16,34);BuiltInRegistries.FLUID.stream().filter(f->cn.yumis.fight.modules.industry.platform.IndustrialFluids.matches(FluidResource.of(f),rule.fluid())).forEach(f->slot.add(f,total));}}
+            if(!recipe.fluidResult().isEmpty()){var fluid=recipe.fluidResult();builder.addOutputSlot(142,40).setStandardSlotBackground().setFluidRenderer(fluid.getAmount(),false,16,16).add(fluid.getFluid(),fluid.getAmount(),fluid.getComponentsPatch());}
+            if(key.startsWith("fuel_")){var rule=IndustrialRules.current().generators.get(key.substring(5));if(rule!=null&&!rule.fluid().isEmpty()&&rule.fluidPerSecond()>0){long total=(long)rule.fluidPerSecond()*recipe.ticks()/20;var slot=builder.addInputSlot(62,18).setStandardSlotBackground().setFluidRenderer(Math.max(1,total),false,16,16);BuiltInRegistries.FLUID.stream().filter(f->cn.yumis.fight.modules.industry.platform.IndustrialFluids.matches(FluidResource.of(f),rule.fluid())).forEach(f->slot.add(f,total));}}
             if(key.equals("currency_fabricator")){
                 double[] probabilities=CurrencyRules.factoryProbabilities(IndustrialRules.current().currencyRarityWeights,IndustrialRules.current().currencyItemWeights);int index=0;
                 for(int i=0;i<probabilities.length;i++)if(probabilities[i]>0){double chance=probabilities[i];builder.addOutputSlot(80+(index%5)*18,18+(index/5)*18).setStandardSlotBackground().add(ItemRegistry.item(CurrencyRules.ALL.get(i).id(),1)).addRichTooltipCallback((slot,tooltip)->tooltip.add(Component.literal(String.format(Locale.ROOT,"每轮随机1枚 · %.2f%%",chance*100))));index++;}
@@ -97,9 +98,15 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         }
         @Override public void draw(RecipeHolder<IndustrialRecipe> holder,IRecipeSlotsView slots,GuiGraphicsExtractor graphics,double mouseX,double mouseY){
             var recipe=holder.value();var font=Minecraft.getInstance().font;
-            graphics.text(font,key.equals("storage_upgrade")?"背包 "+recipe.machine().substring("storage_upgrade_".length())+" 档":"最低 "+recipe.minimumTier()+" 级",2,80,0xff444444,false);
-            graphics.text(font,String.format(Locale.ROOT,"基准 %.2f 秒",recipe.ticks()/20.0),2,93,0xff444444,false);
-            graphics.text(font,(key.startsWith("fuel_")?"总产能 ":"总耗能 ")+recipe.energy()+" 点",2,106,0xff444444,false);
+            if(key.startsWith("fuel_")){
+                graphics.text(font,String.format(Locale.ROOT,"%.2f 魔能/秒",recipe.energy()*20.0/recipe.ticks()),2,80,0xff444444,false);
+                graphics.text(font,String.format(Locale.ROOT,"持续 %.2f 秒",recipe.ticks()/20.0),2,93,0xff444444,false);
+                graphics.text(font,"总魔能 "+recipe.energy(),2,106,0xff444444,false);
+            }else{
+                graphics.text(font,key.equals("storage_upgrade")?"背包 "+recipe.machine().substring("storage_upgrade_".length())+" 档":"最低 "+recipe.minimumTier()+" 级",2,80,0xff444444,false);
+                graphics.text(font,String.format(Locale.ROOT,"基准 %.2f 秒",recipe.ticks()/20.0),2,93,0xff444444,false);
+                graphics.text(font,"总耗能 "+recipe.energy()+" 点",2,106,0xff444444,false);
+            }
             graphics.text(font,key.equals("currency_fabricator")?"随机1枚":key.equals("storage_upgrade")?"界面升级":"→",key.equals("currency_fabricator")?82:91,59,0xff168789,false);
         }
     }

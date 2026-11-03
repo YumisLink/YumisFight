@@ -35,28 +35,33 @@ public final class SkillPreview {
         return damage(progress,stats,skill,coefficient,true,false,new int[]{element},effects);
     }
     public static Damage passiveElementDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int element,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){return damage(progress,stats,skill,coefficient,true,false,new int[]{element},effects);}
+    public static Damage phaseDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,String phase,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
+        var type=SkillDamagePhases.require(skill,phase);var copy=stats.copy();copy.modifiers.put("previewPhaseMagic",type.magic()?1d:0d);if(type.dot())copy.modifiers.put("crit",0d);
+        return damage(progress,copy,skill,coefficient,type.dot(),!type.dot(),SkillPreviewRules.elements(skill),effects);
+    }
     public static Damage elementDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int element,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){return damage(progress,stats,skill,coefficient,false,true,new int[]{element},effects);}
     private static Damage damage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,boolean passive,boolean append,int[] elements,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.eyeDamage(stats,skill);
-        boolean magic=CareerRules.magic(skill,progress);
+        boolean magic=stats.modifiers.containsKey("previewPhaseMagic")?stats.modifiers.get("previewPhaseMagic")>0:CareerRules.magic(skill,progress);
         elements=SummonerSkills.elements(stats,elements);
         boolean allowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(effects,elements);elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(effects,elements);
         double mastery=mastery(progress,stats);
         var low=CombatRules.panel(stats,magic,elements,coefficient,!passive,false);
         var high=CombatRules.panel(stats,magic,elements,coefficient,!passive,true);
         if(!allowed){low=low.withMain(0);high=high.withMain(0);}
-        double minimum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(low,stats,skill!=null&&skill.basicSkill(),mastery,false,passive,1).total(),maximum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(high,stats,skill!=null&&skill.basicSkill(),mastery,false,passive,1).total();
+        double minimum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(low,stats,skill,mastery,false,passive,1).total(),maximum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(high,stats,skill,mastery,false,passive,1).total();
         return new Damage(minimum+(append?cn.yumis.fight.modules.combat.api.EquipmentDamage.append(minimum,stats,effects,0,new double[4]):0),maximum+(append?cn.yumis.fight.modules.combat.api.EquipmentDamage.append(maximum,stats,effects,0,new double[4]):0));
     }
     public static Preview resolve(Progress progress,Stats stats,SkillDefinition skill,SkillParameters.Snapshot parameters,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.castDamage(SunMoonRules.forCast(stats,skill),parameters);
+        stats=SkillPreviewRules.castStats(skill,stats);
         int rank=SkillLearning.effective(stats,progress,skill);
         var definition=SkillPreviewRules.require(skill);
         int count=definition.hits().applyAsInt(parameters);
         double coefficient=parameters.get("previewDamage",parameters.get("damage",0));
         var pattern=SkillPreviewRules.pattern(skill,parameters);if(pattern!=null){count=pattern.hits();coefficient=pattern.coefficient();}
         if(skill.id.equals(CareerSkills.CRESCENT))coefficient/=3;
-        Damage hit=count==0?new Damage(0,0):damage(progress,stats,skill,coefficient,false,effects);
+        Damage hit=count==0?new Damage(0,0):SkillPreviewRules.hitPhase(skill)!=null?phaseDamage(progress,stats,skill,coefficient,SkillPreviewRules.hitPhase(skill),effects):damage(progress,stats,skill,coefficient,false,effects);
         if(skill.id.equals(MageSkills.HERDER)){
             var inherited=SummonerSkills.inherit(stats,SummonKind.HERDER,SkillLearning.effective(stats,progress,SkillCatalog.require(SummonerSkills.MASTERY)));var melee=damage(progress,inherited,skill,parameters.get("damage",0),false,effects);var stone=damage(progress,inherited,skill,parameters.get("stoneDamage",0),false,effects);Damage total=new Damage(0,0);
             for(var action:SummonMoves.cues(SummonKind.HERDER,parameters.rank(),120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus((action.stone()?stone:melee).times(action.share()));
@@ -68,6 +73,7 @@ public final class SkillPreview {
             hit=total;
         }
         Damage finisher=pattern!=null&&pattern.finisher()>0?damage(progress,stats,skill,pattern.finisher(),false,effects):definition.finisher()?damage(progress,stats,skill,parameters.get("finisher",0),false,effects):new Damage(0,0);
+        if(SkillPreviewRules.finisherPhase(skill)!=null)finisher=phaseDamage(progress,stats,skill,parameters.get("finisher",0),SkillPreviewRules.finisherPhase(skill),effects);
         Damage wave=new Damage(0,0);
         if(stats.weaponType.equals("SHORTSWORD")&&mastery(progress,stats)>0&&definition.shortSwordWave())
             wave=damage(progress,stats,skill,parameters.get("damage",0)*.2*mastery(progress,stats),true,effects);

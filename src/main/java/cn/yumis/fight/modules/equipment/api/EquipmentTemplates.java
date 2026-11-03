@@ -7,7 +7,8 @@ import java.util.*;
 public final class EquipmentTemplates {
     private static final Map<String,java.util.function.Function<Random,Gear>> STARTERS=Map.of(
         cn.yumis.fight.modules.character.api.JobCatalog.BASE,r->EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,1,r),
-        cn.yumis.fight.modules.character.api.JobCatalog.MAGE,r->NamedEquipment.create("named/starter_staff",r));
+        cn.yumis.fight.modules.character.api.JobCatalog.MAGE,r->NamedEquipment.create("named/starter_staff",r),
+        cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER,r->EquipmentRules.create(Slot.WEAPON,Weapon.WARGLAIVE,Rarity.COMMON,1,r));
     public static Gear starter(String baseJob,Random random){var factory=STARTERS.get(baseJob);if(factory==null)throw new IllegalArgumentException("未登记初始武器");return factory.apply(random);}
     private EquipmentTemplates(){}
     public static ArmorType armor(Gear g){return g.armorType==null?ArmorType.UNTYPED:g.armorType;}

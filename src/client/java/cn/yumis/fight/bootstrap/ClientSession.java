@@ -93,6 +93,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         return now()+serverOffset;
     }
     public void send(String action,JsonObject value){
+        if(ready)cn.yumis.fight.modules.character.api.client.CareerProfilesClient.context(value);
         if(value.has("operation")&&value.has("runtime")){
             long operation=value.get("operation").getAsLong();
             reportedCheckpoints.computeIfAbsent(operation,id->new ReportCheckpoint(cn.yumis.fight.modules.combat.api.RuntimeCheckpoint.capture(resources),own.generation,now()));
@@ -108,6 +109,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         j.addProperty("kind",kind);
         j.addProperty("rulesRevision",EquipmentDefinitions.current().revision);
         j.addProperty("operation",UUID.randomUUID().toString());
+        cn.yumis.fight.modules.character.api.client.CareerProfilesClient.context(j);
         return j;
     }
     public void progress(String kind,String key,Object value){
@@ -117,6 +119,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         send("progress",j);
     }
     public void clear(){
+        cn.yumis.fight.modules.character.api.client.CareerProfilesClient.clear();
         cn.yumis.fight.modules.party.client.PartyInvitations.clear();combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
         cn.yumis.fight.modules.combat.api.client.DamageAnalysis.clear();
         gold.clear();viewSync.clear();checkpoint=null;checkpointGeneration=-1;reportedCheckpoints.clear();pendingRuntime=null;pendingRuntimeState=null;runtimeSequence=0;minimumRuntimeIssuedAt=0;lastResourceServerTime=lastClockArrival=Long.MIN_VALUE;definitionRetries=0;
@@ -223,6 +226,7 @@ if(j.has("target")&&j.has("kind")){
         ApplicationModules.validateCommands(messages);messages.seal();
     }
     private void applyProfile(JsonObject j){
+                if(!j.has("careerProfiles")||!j.getAsJsonObject("careerProfiles").has("schema")||j.getAsJsonObject("careerProfiles").get("schema").getAsInt()!=1){message("职业配置版本不一致，请同时更新客户端和服务端");return;}
                 if(Minecraft.getInstance().getSingleplayerServer()!=null&&ServerApplication.ready()&&!ServerApplication.get().definitionKey().equals(j.get("definitionsKey").getAsString()))return;
                 if(j.get("protocol").getAsInt()!=cn.yumis.fight.architecture.ProtocolVersion.CURRENT||j.get("rules").getAsInt()!=cn.yumis.fight.bootstrap.ApplicationRules.DATA_VERSION){
                     message("模组协议或规则版本不一致");
@@ -236,8 +240,10 @@ if(j.has("target")&&j.has("kind")){
                 long serverNow=j.get("serverNow").getAsLong();
                 long receivedAt=j.get("_receivedAt").getAsLong();
                 boolean same=incoming.equals(session);
+                if(same&&j.getAsJsonObject("careerProfiles").get("revision").getAsLong()<cn.yumis.fight.modules.character.api.client.CareerProfilesClient.revision())return;
                 if(same&&life.generation<own.generation)return;
                 boolean newerLife=!same||life.generation>own.generation;
+                boolean changingProfile=same&&!cn.yumis.fight.modules.character.api.client.CareerProfilesClient.active().equals(j.getAsJsonObject("careerProfiles").get("activeId").getAsString());
                 boolean freshResources=newerLife||runtime.controlEpoch>=resources.controlEpoch&&serverNow>=lastResourceServerTime;
                 boolean reset=newerLife||freshResources&&runtime.controlEpoch>resources.controlEpoch;
                 if(receivedAt>=lastClockArrival){serverOffset=serverNow-receivedAt;lastClockArrival=receivedAt;}
@@ -245,7 +251,7 @@ if(j.has("target")&&j.has("kind")){
                 if(reset){
                     SkillController.INSTANCE.cancel(false);
                     SkillController.INSTANCE.clearTransient();reportedCheckpoints.clear();
-                    ailments.clear();
+                    if(!changingProfile||newerLife||!life.dimension.equals(own.dimension))ailments.clear();
                     resources=runtime;
                     translate(resources,receivedAt-serverNow);
                     prediction.reset(!incoming.equals(session));
@@ -254,6 +260,8 @@ if(j.has("target")&&j.has("kind")){
                 session=incoming;
                 profile=j;
                 progress=JSON.fromJson(j.get("progress"),Progress.class);
+                boolean selectedProfileChanged=cn.yumis.fight.modules.character.api.client.CareerProfilesClient.receive(j.getAsJsonObject("careerProfiles"));
+                if(selectedProfileChanged){cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.clear();cn.yumis.fight.modules.skills.client.DemonHunterClient.clear();}
                 combatSettings=JSON.fromJson(j.get("combatSettings"),cn.yumis.fight.modules.combat.api.CombatSettings.class);
                 if(freshResources)stats=JSON.fromJson(j.get("stats"),Stats.class);
                 if(freshResources&&j.has("equipmentEffects"))resources.equipment=JSON.fromJson(j.get("equipmentEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);
@@ -281,7 +289,8 @@ if(j.has("target")&&j.has("kind")){
                 if(j.has("movement"))CloudMovement.receive(j.getAsJsonObject("movement"));
                 CloudMovement.screen(Minecraft.getInstance().gui.screen()!=null);
                 cn.yumis.fight.modules.inventory.client.InventoryClientMessages.applyEquipment(j.get("equipmentState").getAsString());
-                if(Minecraft.getInstance().gui.screen() instanceof FightScreen screen)screen.refresh();
+                if(selectedProfileChanged&&!progress.selected())Minecraft.getInstance().gui.setScreen(new FightScreen("skills"));
+                else if(Minecraft.getInstance().gui.screen() instanceof FightScreen screen)screen.refresh();
     }
     private void translate(cn.yumis.fight.modules.combat.api.Runtime r,long delta){
         r.combatUntil+=delta;

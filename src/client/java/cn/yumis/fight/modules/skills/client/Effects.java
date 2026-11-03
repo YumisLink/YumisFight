@@ -50,11 +50,11 @@ public final class Effects {
     public static void warning(Vec3 center,double radius,int color){
         for(int i=0;i<40;i++){
             double a=i*Math.PI/20;
-            cn.yumis.fight.modules.presentation.api.client.Particles.dust(center.add(Math.cos(a)*radius,.06,Math.sin(a)*radius),color,.5f);
+            cn.yumis.fight.modules.presentation.api.client.EffectParticles.dust(center.add(Math.cos(a)*radius,.06,Math.sin(a)*radius),color,.5f);
         }
     }
     public static void spark(Vec3 point,int color){
-        cn.yumis.fight.modules.presentation.api.client.Particles.dust(point,color,.7f);
+        cn.yumis.fight.modules.presentation.api.client.EffectParticles.dust(point,color,.7f);
     }
 
 }

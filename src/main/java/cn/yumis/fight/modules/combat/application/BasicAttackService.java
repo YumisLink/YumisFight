@@ -21,6 +21,8 @@ public class BasicAttackService implements cn.yumis.fight.modules.combat.api.Com
     public cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot sourceEffects(ServerPlayer player,JsonObject report){var c=report.has("basicCycle")?cycles.get(report.get("basicCycle").getAsString()):null;return c==null?null:c.effects;}
     private final Map<UUID,Double> next=new HashMap<>();
     private final Map<String,Cycle> cycles=new HashMap<>();
+    private final Set<String> invalidated=new HashSet<>();
+    public void invalidate(ServerPlayer player){for(var e:cycles.entrySet())if(e.getValue().player.equals(player.getUUID()))invalidated.add(e.getKey());}
     private final java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.combat.api.CombatSession> sessions;
     private final java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.character.api.Progress> progress;
     private final java.util.function.Function<ServerPlayer,BasicAttackProfile> profile;
@@ -31,7 +33,7 @@ public class BasicAttackService implements cn.yumis.fight.modules.combat.api.Com
     private void startChecked(ServerPlayer player,JsonObject j){
         var session=sessions.apply(player);long now=System.currentTimeMillis();
         String id=j.get("id").getAsString();
-        if(cycles.containsKey(id)){var previous=cycles.get(id);if(previous.player.equals(player.getUUID())&&previous.session.equals(session.id.toString())){accepted(player,id,previous);return;}throw new IllegalArgumentException("普攻周期已使用");}
+        if(cycles.containsKey(id)){var previous=cycles.get(id);if(!invalidated.contains(id)&&previous.player.equals(player.getUUID())&&previous.session.equals(session.id.toString())){accepted(player,id,previous);return;}throw new IllegalArgumentException("普攻周期已使用或配置已切换");}
         if(inputLock.test(player))throw new IllegalArgumentException("当前演出期间不能普通攻击");
         var gear=EquipmentItems.gear(player.getMainHandItem());
         if(gear==null||gear.slot!=Slot.WEAPON||!gear.valid(progress.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player))||session.life.dead||player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN))throw new IllegalArgumentException("当前不能普通攻击");
@@ -44,11 +46,13 @@ public class BasicAttackService implements cn.yumis.fight.modules.combat.api.Com
         if(profile.projectileSpeed()>0){var spawn=cn.yumis.fight.modules.combat.api.ProjectileSpawn.inWorld(player,origin,direction,range,.15,entity->entity.isAlive()&&(entity instanceof net.minecraft.world.entity.monster.Enemy||entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon));origin=spawn.position();range=spawn.remainingRange();content.add("staffProjectile",cn.yumis.fight.modules.combat.api.ProjectileSpawn.snapshot(spawn,direction,now));}
         cycles.put(id,new Cycle(player.getUUID(),session.id.toString(),session.life.generation,now,interval,slashes,attack.damageScale(),content,new HashSet<>(),origin,direction,range,profile.projectileSpeed(),sourceStats==null?null:sourceStats.apply(player),sourceEffects==null?null:sourceEffects.apply(player)));
         cycles.entrySet().removeIf(e->now-e.getValue().start>30000);
+        invalidated.retainAll(cycles.keySet());
         accepted(player,id,cycles.get(id));
     }
     private void accepted(ServerPlayer player,String id,Cycle cycle){JsonObject ack=new JsonObject();ack.addProperty("id",id);ack.addProperty("session",cycle.session);ack.addProperty("generation",cycle.generation);ack.addProperty("serverNow",cycle.start);ack.addProperty("interval",cycle.interval);ack.addProperty("slashes",cycle.slashes);ack.addProperty("damageScale",cycle.damageScale);ack.add("content",cycle.content);cn.yumis.fight.network.Network.send(player,"basicStarted",ack);}
     public void validate(ServerPlayer player,JsonObject j){
         if(!j.has("basicCycle"))return;
+        if(invalidated.contains(j.get("basicCycle").getAsString()))throw new IllegalArgumentException("普通攻击所属配置已切换");
         Cycle c=cycles.get(j.get("basicCycle").getAsString());var s=sessions.apply(player);
         int slash=j.get("basicSlash").getAsInt();long now=System.currentTimeMillis();
         if(c==null||!c.player.equals(player.getUUID())||!c.session.equals(s.id.toString())||c.generation!=s.life.generation||slash<0||slash>=c.slashes||now+50<c.start+slash*c.interval/2||now>c.start+c.interval+2000||c.hits.contains(slash+"/"+j.get("target").getAsString()))throw new IllegalArgumentException("普通攻击周期无效");

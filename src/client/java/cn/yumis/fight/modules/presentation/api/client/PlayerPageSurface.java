@@ -6,6 +6,8 @@ import java.util.function.Supplier;
 /** Small page rendering port; pages own their data and command callbacks. */
 public interface PlayerPageSurface {
     record Navigation(String id,String title){}
+    record SidebarRow(String title,String detail,boolean selected,Runnable select,Runnable rename){}
+    void sidebarRows(String title,java.util.List<SidebarRow> rows);
     @FunctionalInterface interface Hover {void render(GuiGraphicsExtractor graphics,int mouseX,int mouseY);}
     void line(String text);
     void line(String text,int color);

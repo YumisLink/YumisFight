@@ -181,7 +181,8 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(device().has(DeviceType.Capability.FLUID_STORAGE))return fluids;
         if(!device().has(DeviceType.Capability.FLUID_PROCESSING)&&!device().has(DeviceType.Capability.FLUID_FUEL))return null;
         int output=device().fluidOutput(),stride=device().fluidTanks();
-        int[] indices=java.util.stream.IntStream.range(0,lineCount()*stride).filter(i->side==null||(side==Direction.DOWN?i%stride==output:i%stride<device().fluidInputs())).toArray();
+        boolean inputSide=side!=Direction.DOWN||device().has(DeviceType.Capability.FLUID_INPUT_ALL_SIDES);
+        int[] indices=java.util.stream.IntStream.range(0,lineCount()*stride).filter(i->side==null||(inputSide?i%stride<device().fluidInputs():i%stride==output)).toArray();
         return new FilteredHandler<>(fluids,indices,(i,r)->i%stride<output&&fluids.isValid(i,r),(i,r)->i%stride==output,device().has(DeviceType.Capability.PARALLEL)&&side!=Direction.DOWN?i->fluids.getAmountAsLong(i):null,lineCount());
     }
     @Override public int getContainerSize(){return slots().size();}

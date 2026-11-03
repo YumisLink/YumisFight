@@ -16,6 +16,8 @@ public final class SkillReductions {
         register(CareerSkills.KALLA,s->s.kallaUntil=0,r->{});
         register(CareerSkills.EYE,s->{s.eyeUntil=0;s.eyeBonusMut=0;},r->{});
         register(CareerSkills.SWORD,s->{s.bloodUntil=0;s.blood=0;},r->{});
+        register(DemonHunterSkills.AURA,s->{s.demonHunter.auraUntil=0;s.demonHunter.auraCast="";},r->{});
+        register(DemonHunterSkills.META,s->{s.demonHunter.metamorphosisUntil=0;s.demonHunter.metamorphosisCast="";},r->{});
         for(String id:SunMoonSkills.ALL)register(id,s->s.sunMoon=new SunMoonState(),r->{});
     }
     private SkillReductions(){}

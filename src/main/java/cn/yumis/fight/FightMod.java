@@ -54,6 +54,7 @@ public final class FightMod {
         cn.yumis.fight.modules.economy.api.RewardContentTypes.register(bus);
         cn.yumis.fight.modules.combat.api.CombatContentTypes.register(bus);
         cn.yumis.fight.modules.skills.api.SkillContentTypes.register(bus);
+        cn.yumis.fight.modules.presentation.api.EffectParticleTypes.register(bus);
         ItemRegistry.ITEMS.register(bus);
         CreativeCatalog.TABS.register(bus);
         bus.addListener(Network::register);

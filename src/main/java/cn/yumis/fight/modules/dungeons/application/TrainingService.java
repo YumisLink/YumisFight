@@ -46,6 +46,7 @@ public final class TrainingService implements TrainingActions.Handler,CombatPort
         this.server=server;this.journal=journal;this.sessions=sessions;this.inDungeon=inDungeon;this.context=context;this.message=message;
     }
     private Run load(UUID id){return journal.get(PREFIX+id,Run.class,null);}
+    public boolean active(UUID player){return active.containsKey(player);}
     private boolean permitted(ServerPlayer p){return !p.isDeadOrDying()&&!sessions.apply(p).life.dead&&!inDungeon.test(p)&&!p.level().dimension().equals(DungeonService.DIMENSION);}
     public void start(ServerPlayer p,JsonObject request)throws Exception{
         int seconds=request.get("seconds").getAsInt();String session=request.get("session").getAsString(),dimension=request.get("dimension").getAsString();

@@ -9,6 +9,13 @@ public final class SkillPreviewRules {
     private static final Map<SkillDefinition,Definition> DEFINITIONS=new LinkedHashMap<>();
     public record Pattern(int hits,double coefficient,double finisher){}
     private static final Map<SkillDefinition,java.util.function.Function<SkillParameters.Snapshot,Pattern>> PATTERNS=new LinkedHashMap<>();
+    private static final Map<SkillDefinition,java.util.function.UnaryOperator<cn.yumis.fight.modules.attributes.api.Stats>> CAST_STATS=new LinkedHashMap<>();
+    public static void castStats(SkillDefinition skill,java.util.function.UnaryOperator<cn.yumis.fight.modules.attributes.api.Stats> resolver){CAST_STATS.put(skill,resolver);}
+    public static cn.yumis.fight.modules.attributes.api.Stats castStats(SkillDefinition skill,cn.yumis.fight.modules.attributes.api.Stats stats){var resolver=CAST_STATS.get(skill);return resolver==null?stats:resolver.apply(stats);}
+    private static final Map<SkillDefinition,String> HIT_PHASES=new LinkedHashMap<>(),FINISHER_PHASES=new LinkedHashMap<>();
+    public static void phases(SkillDefinition skill,String hit,String finisher){if(!hit.isEmpty())HIT_PHASES.put(skill,hit);if(!finisher.isEmpty())FINISHER_PHASES.put(skill,finisher);}
+    public static String hitPhase(SkillDefinition skill){return HIT_PHASES.get(skill);}
+    public static String finisherPhase(SkillDefinition skill){return FINISHER_PHASES.get(skill);}
     private static final Map<SkillDefinition,String> FINISHER_LABELS=new LinkedHashMap<>();
     @FunctionalInterface public interface Supplement {SkillPreview.Damage resolve(cn.yumis.fight.modules.character.api.Progress progress,cn.yumis.fight.modules.attributes.api.Stats stats,SkillParameters.Snapshot parameters,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects);}
     private static final Map<SkillDefinition,Supplement> SUPPLEMENTS=new LinkedHashMap<>();
@@ -28,7 +35,7 @@ public final class SkillPreviewRules {
         register(SkillCatalog.DANCE,new Definition(p->SkillSchedule.dance(p).slashes(),true,true,false,-1));
         register(SkillCatalog.STORM,new Definition(p->(int)p.get("slashes",1),true,false,false,-1));
         SUPPLEMENTS.put(SkillCatalog.DRAW,(progress,stats,parameters,effects)->SkillPreview.mastery(progress,stats)>0&&Set.of("LIGHTSABER","KATANA").contains(stats.weaponType)?SkillPreview.passiveElementDamage(progress,stats,SkillCatalog.DRAW,parameters.get("damage",0)*.2,0,effects):new SkillPreview.Damage(0,0));
-        SunMoonSkills.previews();
+        SunMoonSkills.previews();DemonHunterSkills.previews();
     }
     private SkillPreviewRules(){}
     public static void total(SkillDefinition skill,Supplement resolver){if(TOTALS.putIfAbsent(skill,resolver)!=null)throw new IllegalArgumentException("Duplicate total preview");}

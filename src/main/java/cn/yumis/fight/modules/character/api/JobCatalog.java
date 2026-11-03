@@ -3,6 +3,7 @@ import cn.yumis.fight.architecture.StableId;
 import java.util.*;
 /** 转职内容注册表。新增职业只添加定义和本模块任务处理。 */
 public final class JobCatalog {
+    public static final String DEMON_HUNTER="yumis_dungeon_and_fight:demon_hunter",HAVOC="yumis_dungeon_and_fight:havoc";
     public static final String SUMMONER="yumis_dungeon_and_fight:summoner";
     public static final String SUN_MOON="yumis_dungeon_and_fight:sun_moon_mage";
     public static final String NONE="yumis_dungeon_and_fight:unselected", MAGE="yumis_dungeon_and_fight:mage", BASE="yumis_dungeon_and_fight:ghost_swordsman", SWORDMASTER="yumis_dungeon_and_fight:swordmaster",
@@ -10,17 +11,22 @@ public final class JobCatalog {
     public record CombatStyle(boolean magic,double damageTaken,String awakening,String awakeningSkill){}
     private static final Map<String,CombatStyle> STYLES=new LinkedHashMap<>();
     private static final Map<String,Set<String>> WEAPONS=new LinkedHashMap<>();
+    private static final Map<String,java.util.function.Predicate<Progress>> QUALIFICATIONS=new LinkedHashMap<>();
     public record Definition(String id,String title,String prerequisite,int minimumLevel){public Definition{new StableId(id);if(minimumLevel<1)throw new IllegalArgumentException("Invalid job");}}
     private static final Map<String,Definition> DEFINITIONS=new LinkedHashMap<>();
     static{
         register(new Definition(NONE,"未选择职业","",1));
         register(new Definition(BASE,"鬼剑士","",1));
         register(new Definition(MAGE,"魔法师","",1));
+        register(new Definition(DEMON_HUNTER,"恶魔猎手","",1));STYLES.put(DEMON_HUNTER,new CombatStyle(false,.65,"",""));
+        register(new Definition(HAVOC,"浩劫",DEMON_HUNTER,20));STYLES.put(HAVOC,new CombatStyle(false,.35,"浩劫","yumis_dungeon_and_fight:metamorphosis"));
+        WEAPONS.put(DEMON_HUNTER,Set.of("WARGLAIVE"));
+        QUALIFICATIONS.put("WARGLAIVE",p->p.selected()&&base(p.jobId()).equals(DEMON_HUNTER));QUALIFICATIONS.put("BROOM",p->false);QUALIFICATIONS.put("LIGHTSABER",p->p.hasJob(SWORDMASTER)||p.hasJob(ORACLE)&&p.learned("yumis_dungeon_and_fight:oracle_will")>0);
         register(new Definition(SUMMONER,"召唤师",MAGE,20));STYLES.put(SUMMONER,new CombatStyle(true,.65,"月之女皇","yumis_dungeon_and_fight:kasijas"));
         register(new Definition(SUN_MOON,"日月魔法师",MAGE,20));STYLES.put(SUN_MOON,new CombatStyle(true,.65,"日月魔法师","yumis_dungeon_and_fight:paradox"));
         STYLES.put(MAGE,new CombatStyle(true,.65,"",""));
         STYLES.put(BASE,new CombatStyle(false,.65,"",""));
-        WEAPONS.put(BASE,Set.of("KATANA","LIGHTSABER","SHORTSWORD","GREATSWORD","BLUNT"));WEAPONS.put(MAGE,Set.of("STAFF","CLUB"));
+        WEAPONS.put(BASE,Set.of("KATANA","LIGHTSABER","SHORTSWORD","GREATSWORD","BLUNT"));WEAPONS.put(MAGE,Set.of("STAFF","WAND","CLUB","BROOM","SPEAR"));
         add(ORACLE,"神谕代行者",false,.35,"神谕代行者","furioso_replica");
         add(SWORDMASTER,"剑魂",false,.35,"剑圣","storm");
         add(SOUL_BENDER,"鬼泣",true,.50,"弑魂","blache");
@@ -33,7 +39,7 @@ public final class JobCatalog {
         STYLES.put(id,new CombatStyle(magic,taken,awakening,"yumis_dungeon_and_fight:"+awakeningSkill));
     }
     public static CombatStyle style(String id){require(id);return STYLES.getOrDefault(id,new CombatStyle(false,.65,"",""));}
-    public static boolean weaponQualified(Progress progress,String type){return !type.equals("LIGHTSABER")||progress.hasJob(SWORDMASTER)||progress.hasJob(ORACLE)&&progress.learned("yumis_dungeon_and_fight:oracle_will")>0;}
+    public static boolean weaponQualified(Progress progress,String type){var qualification=QUALIFICATIONS.get(type);return qualification==null||qualification.test(progress);}
     public static boolean basic(String id){return !id.equals(NONE)&&require(id).prerequisite().isEmpty();}
     public static Set<String> weapons(String id){return WEAPONS.getOrDefault(base(id),Set.of());}
     public static String base(String id){var job=require(id);return job.prerequisite().isEmpty()?id:base(job.prerequisite());}

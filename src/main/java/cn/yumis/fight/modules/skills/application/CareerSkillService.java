@@ -91,7 +91,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             var other=entry.getValue();
             var actorPlayer=server.getPlayerList().getPlayer(entry.getKey());
             if(actorPlayer!=null&&actorPlayer.level()==p.level()&&actorPlayer.distanceToSqr(p)<=4096&&!sessions.apply(actorPlayer).life.dead){
-                var actor=new CareerState.Actor();actor.owner=actorPlayer.getStringUUID();actor.keiga=SkillLearning.effective(stats.apply(actorPlayer),progress.apply(actorPlayer),SkillCatalog.require(CareerSkills.KEIGA));actor.brands=other.brands;actor.blood=other.blood;actor.frenzy=other.frenzy;actor.kallaUntil=other.kallaUntil;actor.eyeUntil=other.eyeUntil;actor.bloodUntil=other.bloodUntil;actor.sunMoonHeart=other.sunMoon.heart;actor.sunMoonStacks=other.sunMoon.stacks;view.actors.add(actor);
+                var actor=new CareerState.Actor();actor.owner=actorPlayer.getStringUUID();actor.keiga=SkillLearning.effective(stats.apply(actorPlayer),progress.apply(actorPlayer),SkillCatalog.require(CareerSkills.KEIGA));actor.brands=other.brands;actor.blood=other.blood;actor.frenzy=other.frenzy;actor.kallaUntil=other.kallaUntil;actor.eyeUntil=other.eyeUntil;actor.bloodUntil=other.bloodUntil;actor.sunMoonHeart=other.sunMoon.heart;actor.sunMoonStacks=other.sunMoon.stacks;actor.metamorphosisUntil=other.demonHunter.metamorphosisUntil;actor.auraUntil=other.demonHunter.auraUntil;view.actors.add(actor);
             }
             var f=other.field;
             if(f==null||f.expires<=now||!f.dimension.equals(view.dimension)||!f.instance.equals(view.instance))continue;
@@ -102,6 +102,8 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         return view;
     }
     public Stats currentStats(ServerPlayer p){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),sessions.apply(p).resources,now),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
+    public DemonHunterState demonState(ServerPlayer p){return state(p).demonHunter;}
+    public void demonState(ServerPlayer p,DemonHunterState value){state(p).demonHunter=value;}
     public SunMoonState sunMoonState(ServerPlayer p){return state(p).sunMoon;}
     public void sunMoonState(ServerPlayer p,SunMoonState value){state(p).sunMoon=value;}
     public boolean invulnerable(ServerPlayer p){state(p);return oracle.locked(p)||invulnerable.getOrDefault(p.getUUID(),0L)>System.currentTimeMillis();}
@@ -306,14 +308,29 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
     }
     @Override public Change prepare(ServerPlayer p,Progress next,String destination){
         var session=sessions.apply(p);long now=System.currentTimeMillis();
-        if(!session.life.instance.isEmpty())throw new IllegalArgumentException("请先退出副本再重转");
-        if(session.resources.cooldowns.values().stream().anyMatch(until->until>now))throw new IllegalArgumentException("所有技能冷却结束后才可重转");
-        SkillLearning.refundCareer(next);return clear(p,next);
+        if(!session.life.instance.isEmpty())throw new IllegalArgumentException("请先退出副本再转职");
+        if(session.resources.cooldowns.values().stream().anyMatch(until->until>now))throw new IllegalArgumentException("所有技能冷却结束后才可转职");
+        return clear(p,next);
     }
     @Override public Change clear(ServerPlayer p,Progress next){
         var session=sessions.apply(p);var resources=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);resources.controlEpoch++;
         resources.buffs.remove("yumis_dungeon_and_fight:overdrive");resources.absorption.remove("overdrivePower");
+        resources.absorptionUntil.remove("overdrivePower");
         return new Change(Map.of("resources/"+p.getUUID(),JSON.toJsonTree(resources)),()->{session.resources=resources;clear(p);send(p);});
+    }
+    @Override public Change switchProfile(ServerPlayer p,Progress next){
+        var session=sessions.apply(p);long now=System.currentTimeMillis();
+        var resources=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);
+        var life=copy(session.life,cn.yumis.fight.modules.combat.api.Life.class);
+        double health=life.q*Math.max(1,SkillPreview.currentStats(stats.apply(p),session.resources,now).get(cn.yumis.fight.modules.attributes.api.Stat.HEALTH));
+        SkillReductions.resources(SkillCatalog.OVERDRIVE.id,resources);resources.controlEpoch++;resources.recordedAt=now;
+        resources.equipment=cn.yumis.fight.modules.equipment.api.EquipmentStats.effects(p,next);
+        cn.yumis.fight.modules.combat.api.EquipmentBuffs.prune(resources,resources.equipment,now,false);
+        var target=SkillPreview.currentStats(cn.yumis.fight.modules.equipment.api.EquipmentStats.build(p,next),resources,now);
+        life.q=Math.clamp(health/Math.max(1,target.get(cn.yumis.fight.modules.attributes.api.Stat.HEALTH)),0,1);life.revision++;
+        resources.mp=Math.clamp(resources.mp,0,target.get(cn.yumis.fight.modules.attributes.api.Stat.MP));
+        resources.shield=Math.clamp(resources.shield,0,target.get(cn.yumis.fight.modules.attributes.api.Stat.SHIELD));
+        return new Change(Map.of("resources/"+p.getUUID(),JSON.toJsonTree(resources),"life/"+p.getUUID(),JSON.toJsonTree(life)),()->{session.resources=resources;session.life=life;clear(p);send(p);});
     }
     @Override public Change reduceSkill(ServerPlayer p,Progress next,String skillId){
         var session=sessions.apply(p);var state=copy(state(p),CareerState.class);var resources=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);

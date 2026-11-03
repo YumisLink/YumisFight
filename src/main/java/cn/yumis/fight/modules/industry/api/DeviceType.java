@@ -4,7 +4,7 @@ import java.util.*;
 
 /** Stable device IDs composed from capabilities. Registration occurs before block registration. */
 public final class DeviceType {
-    public enum Capability {PROCESSING,PARALLEL,GENERATION,LOGISTICS,FLUID_LOGISTICS,HARVEST,STORAGE_NETWORK,ENERGY_STORAGE,FLUID_STORAGE,PUMP,MINING,DUAL_FLUID,GRID_ONLY,STRUCTURE,SELECT_RECIPE,REQUIRE_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE}
+    public enum Capability {PROCESSING,PARALLEL,GENERATION,LOGISTICS,FLUID_LOGISTICS,HARVEST,STORAGE_NETWORK,ENERGY_STORAGE,FLUID_STORAGE,PUMP,MINING,DUAL_FLUID,GRID_ONLY,STRUCTURE,SELECT_RECIPE,REQUIRE_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE,FLUID_INPUT_ALL_SIDES}
     public enum Speed {TIER_EXPONENTIAL,FURNACE_TABLE,MINING_LINEAR,FIXED}
     public enum Output {RECIPE,CURRENCY}
     private static final Map<String,DeviceType> TYPES=new LinkedHashMap<>();
@@ -21,7 +21,7 @@ public final class DeviceType {
         FORGE=processor("mana_forge",4,Speed.TIER_EXPONENTIAL,Output.RECIPE,Capability.STRUCTURE,Capability.FLUID_PROCESSING,Capability.PARALLEL,Capability.SELECT_RECIPE),
         BEACON=register("mana_beacon",true,0,1,5,Set.of(Capability.STORAGE_NETWORK),Speed.FIXED,Output.RECIPE),
         COAL=generator("coal_generator",1,Capability.FUEL),SOLAR=generator("solar_collector",1,Capability.SOLAR),
-        TURBINE=generator("turbine_generator",2,Capability.FUEL,Capability.FLUID_FUEL,Capability.ROTOR),WIND=generator("wind_generator",2,Capability.WIND),
+        TURBINE=generator("turbine_generator",2,Capability.FUEL,Capability.FLUID_FUEL,Capability.ROTOR,Capability.FLUID_INPUT_ALL_SIDES),WIND=generator("wind_generator",2,Capability.WIND),
         THERMAL=generator("thermal_generator",3,Capability.FUEL,Capability.FLUID_FUEL),NUCLEAR=generator("nuclear_reactor",4,Capability.FUEL,Capability.FLUID_FUEL),RTG=generator("rtg_generator",5,Capability.FUEL),
         MIXER=register("coolant_mixer",false,1,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING),Speed.FIXED,Output.RECIPE),
         TRANSFER=register("transfer_crystal",false,0,1,3,Set.of(Capability.LOGISTICS),Speed.FIXED,Output.RECIPE),

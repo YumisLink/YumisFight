@@ -58,6 +58,9 @@
     "StormInputMixin",
     "InputAccessor",
     "AvatarRendererMixin",
-    "ContainerScreenSizeAccessor"
+    "ContainerScreenSizeAccessor",
+    "DemonInputMixin",
+    "DemonVisionMixin",
+    "WarglaiveHandMixin"
   ]
 }

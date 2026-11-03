@@ -16,6 +16,7 @@ public final class SettingsPage {
             }
             case "combat"->{
                 page.line("战斗显示",UiTheme.GOLD);page.gap();
+                page.rowButton("第一人称近身特效淡化："+(ClientSettings.nearEffectFade?"开":"关"),()->{ClientSettings.nearEffectFade=!ClientSettings.nearEffectFade;ClientSettings.save();page.rebuild();});
                 page.rowButton("本人伤害数字倍率："+ClientSettings.damageScale,()->{ClientSettings.damageScale=ClientSettings.damageScale==1?2:ClientSettings.damageScale==2?4:1;ClientSettings.save();page.rebuild();});
                 page.rowButton("目标框位置："+ClientSettings.targetPosition,()->{ClientSettings.targetPosition=ClientSettings.targetPosition.equals("top_center")?"top_left":"top_center";ClientSettings.save();page.rebuild();});
                 page.rowButton("目标框倍率："+ClientSettings.targetScale,()->{double value=ClientSettings.targetScale==1?1.5:ClientSettings.targetScale==1.5?2:1;if(180*value>page.windowWidth()-16){message.accept("当前窗口无法容纳该倍率");return;}ClientSettings.targetScale=value;ClientSettings.save();page.rebuild();});

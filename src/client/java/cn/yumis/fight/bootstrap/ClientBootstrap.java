@@ -55,10 +55,13 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.api.TrainingActions.client(cn.yumis.fight.modules.dungeons.client.TrainingInput::use);
         cn.yumis.fight.bootstrap.PlayerPageAssembly.register();
         cn.yumis.fight.modules.presentation.api.client.MenuInput.navigation(page->Minecraft.getInstance().gui.setScreen(new FightScreen(page)));
+        cn.yumis.fight.modules.presentation.client.InventoryMenuButton.register();
         IndustrialRecipeCache.register();
         Network.CLIENT=ClientSession.INSTANCE::accept;
         if(Boolean.getBoolean("ydnf.verify"))cn.yumis.fight.modules.skills.api.client.SkillDiagnostics.attack=(weapon,value)->{cn.yumis.fight.verification.FeedbackProbe.weapon=weapon;cn.yumis.fight.verification.FeedbackProbe.attack=value;};
         Effects.VFX.register();
+        cn.yumis.fight.modules.presentation.api.client.NearEffectRendering.register(bus);
+        cn.yumis.fight.modules.presentation.api.client.EffectParticles.register(bus);
         cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.register();
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
@@ -145,7 +148,7 @@ public final class ClientBootstrap {
             if(ItemData.own(e.getItemStack()))e.getToolTip().replaceAll(UiFonts::decorate);
         });
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Background e)->Hud.equipment(e));
-        NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Post e)->Hud.creativeFrames(e));
+        NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Foreground e)->Hud.creativeFrames(e));
         NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre e)->{
             if(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.matches(e.getKeyEvent())&&e.getScreen() instanceof net.minecraft.client.gui.screens.inventory.ContainerScreen screen&&screen.getTitle().getString().equals("次元背包")){
                 ClientSession.INSTANCE.upload();Minecraft.getInstance().player.closeContainer();Minecraft.getInstance().gui.setScreen(new FightScreen());e.setCanceled(true);
@@ -180,6 +183,7 @@ public final class ClientBootstrap {
             if(action==GLFW.GLFW_PRESS){var state=ClientSession.INSTANCE;cn.yumis.fight.modules.combat.api.client.DamageAnalysis.toggle(state.resources.combatUntil,state.trainingMeter.has("id")&&!state.trainingMeter.get("completed").getAsBoolean());state.message("伤害分析："+(cn.yumis.fight.modules.combat.api.client.DamageAnalysis.recording()?"开始记录":"停止记录")+"；在角色页面查看结果");}
             return true;
         }
+        if(action==GLFW.GLFW_PRESS&&event.key()==GLFW.GLFW_KEY_ESCAPE&&cn.yumis.fight.modules.skills.client.DemonHunterClient.cancelChannel())return true;
         if(action==GLFW.GLFW_PRESS&&event.key()==GLFW.GLFW_KEY_ESCAPE&&cn.yumis.fight.modules.skills.client.ChantClient.active()){cn.yumis.fight.modules.skills.client.ChantClient.cancel();return true;}
         if(CloudMovement.key(event,action))return true;
         if(mc.player==null||!ClientSession.INSTANCE.ready||mc.gui.screen()!=null||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_F3))return false;

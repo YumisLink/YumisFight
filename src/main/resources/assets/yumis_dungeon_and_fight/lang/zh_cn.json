@@ -179,7 +179,9 @@
   "entity.yumis_dungeon_and_fight.training_sandbag": "训练沙袋",
   "entity.yumis_dungeon_and_fight.herder": "赫尔德",
   "item.yumis_dungeon_and_fight.profession_reset_ticket": "职业重置券",
-  "item.yumis_dungeon_and_fight.career_reset_ticket": "转职重置券",
+  "item.yumis_dungeon_and_fight.level_one_ticket": "1级升级券",
+  "item.yumis_dungeon_and_fight.level_ten_ticket": "10级升级券",
+  "item.yumis_dungeon_and_fight.level_max_ticket": "满级升级券",
   "block.yumis_dungeon_and_fight.currency_upgrader": "通货升级器",
   "key.ydnf.summon_renew": "召唤师：一键续召",
   "key.ydnf.summon_follow": "召唤师：跟随 / 自动攻击",
@@ -341,5 +343,9 @@
   "item.yumis_dungeon_and_fight.speed_plugin": "速度插件",
   "item.yumis_dungeon_and_fight.career_unlock_ticket": "一次性转职解锁券",
   "item.yumis_dungeon_and_fight.awakening_ticket": "一次性觉醒券",
-  "item.yumis_dungeon_and_fight.stripping_stone": "剥离石"
+  "item.yumis_dungeon_and_fight.stripping_stone": "剥离石",
+  "item.yumis_dungeon_and_fight.wand": "魔杖",
+  "item.yumis_dungeon_and_fight.broom": "扫把",
+  "item.yumis_dungeon_and_fight.warglaive": "战刃",
+  "item.yumis_dungeon_and_fight.spear": "矛"
 }

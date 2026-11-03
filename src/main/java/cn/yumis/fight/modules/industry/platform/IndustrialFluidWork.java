@@ -5,12 +5,28 @@ import net.minecraft.core.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.storage.*;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 
-/** Pump output and charging advance together, with an exact persisted production cycle. */
+/** Exact pump production and transaction-backed output to adjacent fluid inputs. */
 final class IndustrialFluidWork {
     private IndustrialFluidWork(){}
+    static void outputAdjacent(MachineBlockEntity be){
+        if(!be.device().has(DeviceType.Capability.PUMP)||!(be.getLevel() instanceof ServerLevel level))return;
+        if(be.fluids.availableAmount(be.device().fluidOutput())<=0)return;
+        var source=be.fluidsFor(Direction.DOWN);var directions=Direction.values();
+        int first=Math.floorMod(level.getGameTime(),directions.length);
+        for(int i=0;i<directions.length;i++){
+            if(be.fluids.availableAmount(be.device().fluidOutput())<=0)break;
+            var side=directions[(first+i)%directions.length];var position=be.getBlockPos().relative(side);
+            if(!level.hasChunkAt(position))continue;
+            var target=level.getCapability(Capabilities.Fluid.BLOCK,position,side.getOpposite());if(target==null||target==source)continue;
+            try(var tx=Transaction.openRoot()){
+                if(CrystalTransfers.move(source,target,Long.MAX_VALUE,0,tx)>0)tx.commit();
+            }
+        }
+    }
     static final class Cycle {
         Fraction duration=Fraction.ZERO,work=Fraction.ZERO;
         long energy,paid,amount;

@@ -34,6 +34,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 public class LootService implements InventoryDrops {
+    private final cn.yumis.fight.modules.character.api.CharacterPersistence characters;
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
     private static <T>T copy(T value,Class<T> type){return JSON.fromJson(JSON.toJson(value),type);}
 
@@ -113,7 +114,8 @@ public class LootService implements InventoryDrops {
         publish.addAll(drops);
         publish();
     }
-    public LootService(Journal journal,MinecraftServer server,Supplier<InventoryOperations> inventory,RewardPorts.Players players,RewardPorts.Encounters encounters,RewardPorts.Balance balance,Random random){
+    public LootService(Journal journal,cn.yumis.fight.modules.character.api.CharacterPersistence characters,MinecraftServer server,Supplier<InventoryOperations> inventory,RewardPorts.Players players,RewardPorts.Encounters encounters,RewardPorts.Balance balance,Random random){
+        this.characters=characters;
         this.journal=journal;this.server=server;this.inventory=inventory;this.players=players;this.encounters=encounters;this.balance=balance;this.random=random;
     }
     @Override public InventoryDrops.Prepared prepare(ServerPlayer player,ItemEntity projection){
@@ -168,7 +170,7 @@ public class LootService implements InventoryDrops {
             progress.grant(xp);
             long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,balance.settings().killGoldMultiplier());
             if(gold>0){long balance=Math.addExact(this.balance.gold(p),gold),revision=Math.incrementExact(this.balance.revision(p));journal.put("gold/"+p.getUUID(),balance);journal.put("goldRevision/"+p.getUUID(),revision);goldGains.add(new GoldGain(p.getUUID(),gold,balance,revision));}
-            journal.put("player/"+p.getUUID(),progress);
+            for(var write:characters.writes(p.getUUID(),progress).entrySet())journal.put(write.getKey(),write.getValue());
             progressChanged.add(p.getUUID());
             int count=boss?3:random.nextDouble()<(target.elite?.45:.05)?1:0;
             for(int i=0;i<count;i++){
@@ -178,7 +180,7 @@ public class LootService implements InventoryDrops {
                 double group=random.nextDouble();
                 Slot slot=rarity==Rarity.MYTHIC?(group<.5?Slot.WEAPON:eligible.get(random.nextInt(eligible.size()))):group<.2?Slot.WEAPON:group<.6?Slot.values()[1+random.nextInt(4)]:eligible.get(random.nextInt(eligible.size()));
                 if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;
-                Gear gear=EquipmentTemplates.createStandard(slot,Weapon.values()[random.nextInt(5)],rarity,Math.clamp(level,1,80),random);
+                Gear gear=EquipmentTemplates.createStandard(slot,Weapon.standard().get(random.nextInt(Weapon.standard().size())),rarity,Math.clamp(level,1,80),random);
                 gear.source=target.life.target+"/"+target.life.generation;
                 create(p,EquipmentItems.gear(gear),entity.position(),target.instance,instance);
             }
@@ -249,7 +251,7 @@ public class LootService implements InventoryDrops {
         for(UUID id:progressChanged){
             ServerPlayer p=server.getPlayerList().getPlayer(id);
             if(p!=null){
-                players.progress(p,journal.get("player/"+p.getUUID(),Progress.class,players.progress(p)));
+                players.progress(p,characters.read(p.getUUID()));
                 players.profile(p);
             }
         }

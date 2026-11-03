@@ -36,6 +36,7 @@ public final class SkillDescriptions {
         register(SummonerSkills.FRENZY,c->"增益：20秒内，召唤伤害提升"+(20+3*(c.parameters().rank()-1))+"%。\n生效范围：期间新召出的召唤兽也会获得增益。\n已有召唤兽的装备属性保持召唤时记录。");
         register(SummonerSkills.KASIJAS,c->"召唤：持续20秒，继承400%生命与250%双防。\n攻击：固定18次拔刀，第5、10、15次改为突进斩。\n终结：18.6秒自动千鬼杀，19.5秒退场落剑，两者共用原终结总伤害。\n攻击段数不随攻速增加。");
     }
+    static {DemonHunterDescriptions.install();}
     private SkillDescriptions(){}
     public static void register(String id,java.util.function.Function<Context,String> description){if(DESCRIPTIONS.putIfAbsent(id,description)!=null)throw new IllegalArgumentException("Duplicate skill description: "+id);}
     public static String describe(SkillDefinition skill,Context context){return DESCRIPTIONS.getOrDefault(skill.id,c->"").apply(context);}

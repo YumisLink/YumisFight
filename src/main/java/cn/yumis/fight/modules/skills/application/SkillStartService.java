@@ -36,13 +36,14 @@ public final class SkillStartService implements CombatPorts.SkillEffects {
     private BiConsumer<ServerPlayer,JsonObject> accepted=(p,j)->{};
     private BiConsumer<ServerPlayer,String> cancelled=(p,id)->{};
     public void lifecycle(BiConsumer<ServerPlayer,SkillDefinition> before,BiConsumer<ServerPlayer,JsonObject> after,BiConsumer<ServerPlayer,String> aborted){preflight=Objects.requireNonNull(before);accepted=Objects.requireNonNull(after);cancelled=Objects.requireNonNull(aborted);}
-    public record Payment(Map<String,JsonElement> writes,Map<String,JsonElement> rollback,Runnable committed,Runnable cancelled){public static final Payment NONE=new Payment(Map.of(),Map.of(),()->{},()->{});}
+    public record Payment(Map<String,JsonElement> writes,Map<String,JsonElement> rollback,Runnable committed,Runnable cancelled){public static final Payment NONE=new Payment(Map.of(),Map.of(),()->{},()->{});public static Payment combine(Payment... parts){var writes=new LinkedHashMap<String,JsonElement>();var rollback=new LinkedHashMap<String,JsonElement>();for(var p:parts){for(var e:p.writes.entrySet())if(writes.putIfAbsent(e.getKey(),e.getValue())!=null)throw new IllegalArgumentException("重复技能事务状态");rollback.putAll(p.rollback);}return new Payment(writes,rollback,()->{for(var p:parts)p.committed.run();},()->{for(var p:parts)p.cancelled.run();});}}
     @FunctionalInterface public interface PaymentPreparation {Payment prepare(ServerPlayer player,SkillDefinition skill,Stats stats,JsonObject acknowledgement);}
     private CastPreparation contentStats=(p,s,source)->source;
     private PaymentPreparation contentPayment=(p,s,stats,ack)->Payment.NONE;
     public void content(CastPreparation preparation,PaymentPreparation payment){contentStats=Objects.requireNonNull(preparation);contentPayment=Objects.requireNonNull(payment);}
     public SkillStartService(Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<ServerPlayer,Progress> progress,Function<ServerPlayer,Stats> stats,BiFunction<ServerPlayer,cn.yumis.fight.modules.combat.api.Runtime,Stats> castStats,Success success,Predicate<UUID> locked){this.journal=journal;this.sessions=sessions;this.progress=progress;this.stats=stats;this.castStats=castStats;this.success=success;this.locked=locked;}
     public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("skills","skillCast",this::start);}
+    public void clear(ServerPlayer p){casts.remove(p.getUUID());}
     public Accepted source(ServerPlayer p,String id){return casts.getOrDefault(p.getUUID(),Map.of()).get(id);}
     @Override public Stats sourceStats(ServerPlayer p,JsonObject report){var accepted=report.has("sourceCast")?source(p,report.get("sourceCast").getAsString()):null;return accepted==null?null:accepted.stats;}
     @Override public EquipmentEffects.Snapshot sourceEffects(ServerPlayer p,JsonObject report){var accepted=report.has("sourceCast")?source(p,report.get("sourceCast").getAsString()):null;return accepted==null?null:accepted.effects;}

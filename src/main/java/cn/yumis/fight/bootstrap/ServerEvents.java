@@ -130,7 +130,7 @@ public final class ServerEvents {
         }
         ))))));
         var dev=Commands.literal("dev").requires(s->s.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
-        dev.then(Commands.literal("level").then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("level",IntegerArgumentType.integer(1,80)).executes(c->{
+        dev.then(Commands.literal("level").then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("level",IntegerArgumentType.integer(1,cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL)).executes(c->{
             ServerPlayer p=EntityArgument.getPlayer(c,"player");var r=ServerApplication.get();Progress pr=r.session(p).progress;int level=IntegerArgumentType.getInteger(c,"level");while(pr.level<level)pr.grant(nextExperience(pr.level));r.savePlayer(p);r.profile(p);r.message(p,"开发测试：角色等级已提高");return 1;
         }
         ))));

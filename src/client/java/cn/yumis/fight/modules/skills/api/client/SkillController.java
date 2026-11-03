@@ -98,7 +98,7 @@ public final class SkillController {
         return cast!=null||cn.yumis.fight.modules.skills.client.ChantClient.active();
     }
     public boolean invulnerable(){
-        return cast!=null&&(SkillPresentation.invulnerable(cast.skill)||cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.invulnerable(cast));
+        return cn.yumis.fight.modules.skills.client.DemonHunterClient.invulnerable()||cast!=null&&(SkillPresentation.invulnerable(cast.skill)||cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.invulnerable(cast));
     }
     public Stats snapshot(){
         var mc=Minecraft.getInstance();long tick=mc.player==null?-1:mc.player.tickCount;var resources=state().resources();var career=cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.view;
@@ -205,8 +205,9 @@ public final class SkillController {
         if(WeaponTraits.basic(stats.weaponType).projectileSpeed()>0){staffBolts.fire(state(),stats,equipment,cycle,index,content);p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);return;}
         basicCycle=cycle;basicSlash=index;
         boolean mastery=WeaponSkills.mastery(state().progress(),stats),great=mastery&&stats.weaponType.equals("GREATSWORD");
-        Vec3 from=p.getEyePosition(),direction=horizontal(p.getLookAngle());double reach=great?6:WeaponTraits.sword(stats.weaponType)?4.5:3;
+        Vec3 from=p.getEyePosition(),direction=horizontal(p.getLookAngle());double reach=great?6:WeaponTraits.basic(stats.weaponType).range();
         double coefficient=stats.modifiers.getOrDefault("careerFrenzy",0d)>0?.65:great?stats.modifiers.getOrDefault("greatCharge",1d):mastery&&stats.weaponType.equals("LIGHTSABER")?.75:1;
+        coefficient*=stats.modifiers.getOrDefault("basicStrikeCoefficient",1d);
         if(great){
             for(LivingEntity e:enemies(p.getBoundingBox().inflate(reach,1,reach))){Vec3 delta=e.getBoundingBox().getCenter().subtract(from);if(delta.horizontalDistanceSqr()<=reach*reach&&Math.abs(delta.y)<=2&&horizontal(delta).dot(direction)>=Math.cos(Math.PI/4)&&visible(from,e.getBoundingBox().getCenter()))hit(e,stats,null,coefficient,true,false,.4,null);}
         }else{
@@ -214,12 +215,13 @@ public final class SkillController {
             for(LivingEntity e:enemies(new AABB(from,end).inflate(1))){var intersection=e.getBoundingBox().inflate(.2).clip(from,end);if(intersection.isPresent()&&visible(from,intersection.get())&&from.distanceToSqr(intersection.get())<distance){closest=e;distance=from.distanceToSqr(intersection.get());}}
             if(closest!=null){hit(closest,stats,null,coefficient,true,false,.4,null);if(mastery&&stats.weaponType.equals("BLUNT")){Vec3 center=closest.position().add(0,1,0);for(LivingEntity e:enemies(closest.getBoundingBox().inflate(2)))if(e!=closest&&e.position().distanceToSqr(closest.position())<=4&&visible(center,e.getBoundingBox().getCenter()))hit(e,stats,null,1,true,false,.4,null);}}
         }
-        p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+        p.swing(stats.weaponType.equals("WARGLAIVE")&&index>0?net.minecraft.world.InteractionHand.OFF_HAND:net.minecraft.world.InteractionHand.MAIN_HAND);
         JsonObject visual=visualEnvelope(UUID.nameUUIDFromBytes((cycle+"/"+index).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString(),"ATTACK","START",cn.yumis.fight.modules.presentation.api.client.ClientUi.now(),p.position(),p.position(),p.getLookAngle(),0);visual.addProperty("color",cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basicColor(stats));visual.addProperty("duration",Math.max(650,(long)(interval/(mastery&&stats.weaponType.equals("LIGHTSABER")?2:1))));visual.addProperty("cosmeticOnly",true);visual.addProperty("reach",reach);visual.addProperty("sweep",great);visual.addProperty("horizontalScale",great?1:WeaponTraits.sword(stats.weaponType)?1.5:1);Effects.receive(visual);state().send("visual",visual);
         if(stats.weaponType.equals("SHORTSWORD")&&mastery)wave(p.position().add(0,.8,0),direction,8,3,2,stats,null,.2*mastery(stats)*stats.modifiers.getOrDefault("basicDamageScale",1d),true,false);
         }finally{hitEquipment=previousEquipment;basicCycle="";}
     }
     public void tick(){
+        cn.yumis.fight.modules.skills.client.DemonHunterClient.tick();
         var mc=Minecraft.getInstance();
         if(!state().ready()||mc.player==null||mc.level==null)return;
         long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
@@ -413,9 +415,11 @@ public final class SkillController {
         boolean magic=nativeContext==null&&(basic?WeaponTraits.basic(stats.weaponType).magic():cn.yumis.fight.modules.skills.api.CareerRules.magic(skill,state().progress()));
         var equipment=hitSource!=null&&hitSource.equipment!=null?hitSource.equipment:hitEquipment!=null?hitEquipment:state().resources().equipment;
         int[] elements=cn.yumis.fight.modules.skills.api.SummonerSkills.elements(stats,cn.yumis.fight.modules.skills.api.SkillPreviewRules.elements(skill));
-        boolean dot=hitSource!=null&&hitSource.dot;
+        if(hitSource!=null&&!hitSource.damagePhase.isEmpty())magic=cn.yumis.fight.modules.skills.api.SkillDamagePhases.require(skill,hitSource.damagePhase).magic();
+        boolean dot=hitSource!=null&&(hitSource.dot||!hitSource.damagePhase.isEmpty()&&cn.yumis.fight.modules.skills.api.SkillDamagePhases.require(skill,hitSource.damagePhase).dot());
         if(dot){stats=stats.copy();stats.modifiers.put("crit",0d);}
         if(hitSource!=null&&hitSource.elementOverride>=-1)elements=hitSource.elementOverride<0?new int[0]:new int[]{hitSource.elementOverride};
+        if(nativeContext==null&&basic&&stats.modifiers.getOrDefault("basicDark",0d)>0)elements=new int[]{3};
         if(nativeContext==null&&basic&&SkillLearning.effective(stats,state().progress(),SkillCatalog.require(cn.yumis.fight.modules.skills.api.CareerSkills.KEIGA))>0)elements=new int[]{3};
         double n=level-1;
         double defense=target.defense(level,magic);
@@ -426,7 +430,7 @@ public final class SkillController {
         CombatRules.Damage parts=CombatRules.calculate(stats,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,basic&&!passive?stats.modifiers.getOrDefault("basicDamageScale",1d):coefficient*(nativeContext!=null?stats.modifiers.getOrDefault("basicDamageScale",1d):1),!passive&&!dot,random);
         if(!mainAllowed)parts=parts.withMain(0);
         if(basic&&!passive)parts=parts.scaled(coefficient);
-        var resolved=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(parts,stats,skill!=null&&skill.basicSkill(),mastery(stats),basic,passive,advantage(stats.modifiers.getOrDefault("sourceLevel",(double)state().progress().level).intValue(),level));
+        var resolved=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(parts,stats,skill,mastery(stats),basic,passive,advantage(stats.modifiers.getOrDefault("sourceLevel",(double)state().progress().level).intValue(),level));
         double damage=resolved.total();
         double main=resolved.main();
         double[] components=resolved.components();
@@ -467,7 +471,7 @@ public final class SkillController {
             }
             if(stats.weaponType.equals("LIGHTSABER")){
                 JsonObject shock=target.training()&&!target.networkTraining()?TrainingCombat.ailment(entity.getStringUUID(),"SHOCK"):state().ailment(entity.getStringUUID(),"SHOCK");
-                if(shock!=null&&shock.get("expires").getAsLong()>state().serverNow()&&cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,new int[]{0})){double sourceScale=hitSource!=null&&hitSource.parameters!=null?hitSource.parameters.get("balanceScale",1):stats.modifiers.getOrDefault("basicDamageScale",1d);double added=(10+2*state().progress().level)*g*sourceScale*1000/(1000+Math.max(0,defense))*Math.max(0,1+stats.get(Stat.LIGHT)/120);damage+=added;components[1]+=added;}
+                if(shock!=null&&shock.get("expires").getAsLong()>state().serverNow()&&cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,new int[]{0})){double sourceScale=hitSource!=null&&hitSource.parameters!=null?hitSource.parameters.get("balanceScale",1):stats.modifiers.getOrDefault("basicDamageScale",1d);double added=(10+2*state().progress().level)*g*sourceScale*1000/(1000+Math.max(0,defense))*Math.max(0,1+stats.get(Stat.LIGHT)/120);if(skill!=null)added*=stats.modifiers.getOrDefault("allSkillAttackProduct",1d);damage+=added;components[1]+=added;}
                 if(random.nextDouble()<.2){
                     JsonObject a=new JsonObject();
                     a.addProperty("kind","SHOCK");

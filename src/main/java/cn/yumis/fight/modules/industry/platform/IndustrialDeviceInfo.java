@@ -33,6 +33,8 @@ public final class IndustrialDeviceInfo {
         if(be.device().has(DeviceType.Capability.MINING)){help.add("矿藏首次判定后不重抽，储量无限；圆石不参与抽签，在任何区块均可开采，固定普通丰度。");help.add("本区块 "+(be.getBlockPos().getX()>>4)+", "+(be.getBlockPos().getZ()>>4)+"；只显示本机等级可识别的矿物。");help.add("速度 "+be.tier()+"00%，功率 "+(be.tier()*be.tier())+"倍；丰度影响速度，不改变每秒功率。");help.add("水总速度×1.5，冷却液×2.5，互斥；工作时随等级耗液，当前批次锁定冷却类型。9格产物满则暂停。紫水晶为二级矿藏。");}
         if(be.device().has(DeviceType.Capability.ENERGY_STORAGE)){help.add("接网增加 "+be.storageCapacity()+" 魔能容量，余能存入本节点；无额外充放速度限制，不接收水晶充能。");help.add("断网、卸载保存本节点余额，拆除清空；原地升级保留余额。");be.status=IndustrialWorld.get((ServerLevel)be.getLevel()).validBeacon(be)==null?"未接网，已保留本节点余额":"已接网，共享电网存量";}
         if(be.device().has(DeviceType.Capability.FLUID_STORAGE))help.add("一罐一种液体，容量 "+be.fluidCapacity()+" mB。拆除清空；手持下一档材料右键原地升级可保留存量。");
+        if(be.device().has(DeviceType.Capability.PUMP))help.add("接网且相邻任一面有水源时抽水；出水缓存自动供给六面相邻设备的入液口，紧贴涡轮任一面即可直接供水。逐tick轮换优先方向，目标满罐时保留余水；已有缓存停机或断网后仍可输出。");
+        if(be.device().has(DeviceType.Capability.FLUID_INPUT_ALL_SIDES))help.add("六面均为入液口，可接收本机所需流体；抽水机紧贴任一面即可自动供水。");
         if(be.device().has(DeviceType.Capability.FLUID_LOGISTICS)){int t=be.tier()-1;help.add("每次最多 "+IndustrialRules.current().fluidTransferAmounts[t]+" mB，成功操作一次 "+IndustrialRules.current().fluidTransferOperationEnergy[t]+" 点；未满批同样收费。");help.add("权杖移动模式先绑定水晶，再选择来源和目标容器；每次成功批量操作固定收费，未加载、空源或满罐不收费。");}
         if(be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS))help.add("本档支持 "+be.routeLimit()+" 对来源与目标并行；配对面板可删除，并点击端点坐标显示光束。");
         help.add("侧边箭头展开3格插件，每格按插件定义限制数量；每件独立生效，收起仍有效。");

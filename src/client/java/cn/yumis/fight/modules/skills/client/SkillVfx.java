@@ -6,6 +6,8 @@ import cn.yumis.fight.modules.skills.api.SkillVisualEvent;
 
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
+import cn.yumis.fight.modules.presentation.api.client.NearEffectRendering;
+import cn.yumis.fight.modules.presentation.api.client.EffectModels;
 import net.minecraft.client.*;
 import net.minecraft.client.renderer.entity.state.*;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
@@ -68,7 +70,7 @@ public final class SkillVfx {
     }
     public record Sword(ItemStackRenderState model,Vec3 position,float yaw,GhostSwordsmanWeaponVisuals.Inclination inclination){
     }
-    private record Frame(List<Quad> quads,List<Sword> swords){
+    private record Frame(List<Quad> quads,List<Sword> swords,boolean nearFade){
     }
     public record LevelRenderContext(net.minecraft.client.renderer.state.level.LevelRenderState levelState,List<Sword> swords){
     }
@@ -208,7 +210,7 @@ public final class SkillVfx {
         Vec3 camera=context.levelState().cameraRenderState.pos;
         List<Quad> quads=new ArrayList<>();SummonAmbientVisuals.extract(quads);
         CareerSkillVisuals.actors(quads,SkillsClient.current().serverNow());
-        SunMoonSkillVisuals.actors(quads,SkillsClient.current().serverNow());
+        SunMoonSkillVisuals.actors(quads,SkillsClient.current().serverNow());DemonHunterVisuals.actors(quads,SkillsClient.current().serverNow());
         for(Track t:tracks.values()){
             var event=t.start;
             if(mc.level==null||mc.level.getPlayerByUUID(event.caster())==null)continue;
@@ -218,7 +220,7 @@ public final class SkillVfx {
             var last=t.last;t.last=sample(t,time);
             try{SkillVisualRegistry.handler(event.skill()).render(context,t,age,time,quads,camera);CareerSkillVisuals.transformed(t,age,quads);}finally{t.last=last;}
         }
-        context.levelState().setRenderData(FRAME,new Frame(List.copyOf(quads),List.copyOf(context.swords())));
+        context.levelState().setRenderData(FRAME,new Frame(List.copyOf(quads),List.copyOf(context.swords()),NearEffectRendering.enabled(levelEvent.getCamera())));
         geometryFrames++;
         geometryNanos+=System.nanoTime()-before;
         renderedQuads+=quads.size();
@@ -237,10 +239,10 @@ public final class SkillVfx {
             pose.mulPose(new org.joml.Quaternionf().rotationAxis((float)Math.toRadians(inclination.degrees()),(float)Math.cos(azimuth),0,(float)Math.sin(azimuth)));
             pose.mulPose(Axis.ZP.rotationDegrees(180));
             pose.scale(1.2f,1.2f,1.2f);
-            sword.model().submit(pose,event.getSubmitNodeCollector(),0xF000F0,OverlayTexture.NO_OVERLAY,0);
+            EffectModels.submit(sword.model(),pose,event.getSubmitNodeCollector(),0xF000F0,OverlayTexture.NO_OVERLAY,frame.nearFade());
             pose.popPose();
         }
-        WorldQuads.submit(event,frame.quads());
+        WorldQuads.submit(event,frame.quads(),frame.nearFade());
     }
 
     public CameraPose camera(){var track=tracks.get(cameraCast);return track==null?null:SkillVisualRegistry.handler(track.start.skill()).camera(track,now());}

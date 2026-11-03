@@ -38,7 +38,7 @@ public final class ChestService {
         for(int i=0,n=def.equipmentBase()+tier*def.equipmentPerTier();i<n;i++){
             Rarity rarity=LootOdds.rarity(cn.yumis.fight.modules.dungeons.api.Difficulty.NORMAL,true,false,luck,random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;
             List<Slot> eligible=new ArrayList<>();for(var slot:Slot.values())if(slot.minimum()<=level)eligible.add(slot);
-            Slot slot=eligible.get(random.nextInt(eligible.size()));var gear=EquipmentTemplates.createStandard(slot,Weapon.values()[random.nextInt(5)],rarity,level,random);gear.source="treasure_chest/"+data.get("id").getAsString();result.add(EquipmentItems.gear(gear));
+            Slot slot=eligible.get(random.nextInt(eligible.size()));var gear=EquipmentTemplates.createStandard(slot,Weapon.standard().get(random.nextInt(Weapon.standard().size())),rarity,level,random);gear.source="treasure_chest/"+data.get("id").getAsString();result.add(EquipmentItems.gear(gear));
         }
         for(int i=0,n=def.currencyBase()+tier*def.currencyPerTier();i<n;i++)result.add(ItemRegistry.item(CurrencyRules.rollGuaranteed(luck,random).id(),1));
         for(var entry:def.fixed())add(result,entry);

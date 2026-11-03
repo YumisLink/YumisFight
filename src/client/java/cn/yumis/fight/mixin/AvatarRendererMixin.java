@@ -12,6 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class AvatarRendererMixin {
     @Inject(method="extractEntity",at=@At("RETURN"))
     private void ydnf$choreography(Entity entity,float delta,CallbackInfoReturnable<EntityRenderState> ci){
-        if(entity instanceof Player player)Effects.VFX.animate(player,ci.getReturnValue());
+        if(entity instanceof Player player){Effects.VFX.animate(player,ci.getReturnValue());cn.yumis.fight.modules.equipment.client.WarglaiveVisuals.extract(player,ci.getReturnValue());}
     }
 }

@@ -14,9 +14,8 @@ public class Progress {
     public Set<String> completedJobQuests=new LinkedHashSet<>();
     public boolean jobChangeUnlocked(){return completedJobQuests!=null&&!completedJobQuests.isEmpty();}
     public void unlockJobChange(){completedJobQuests.add("yumis_dungeon_and_fight:all_jobs");}
-    /** Null distinguishes existing current-format profiles whose learned awakening is already owned. */
-    public Boolean awakened;
-    public boolean awakened(){return awakened!=null?awakened:learned(JobCatalog.style(jobId()).awakeningSkill())>0;}
+    public boolean awakened;
+    public boolean awakened(){return awakened;}
     public String baseJob(){return JobCatalog.base(jobId());}
     public boolean selected(){return !hasJob(JobCatalog.NONE);}
     public String jobId(){return job==null||job.isBlank()?JobCatalog.NONE:job;}
@@ -40,12 +39,19 @@ public class Progress {
     public void grant(long amount){
         if(amount<0)throw new IllegalArgumentException("经验不可为负");
         experience=Math.addExact(experience,amount);
-        while(level<80&&experience>=nextExperience(level)){
+        while(level<CharacterRules.MAX_LEVEL&&experience>=nextExperience(level)){
             experience-=nextExperience(level);
             level++;
             sp+=level<20?15:level<30?25:level<40?40:65;
         }
-        if(level==80)experience=0;
+        if(level==CharacterRules.MAX_LEVEL)experience=0;
+    }
+
+    /** Exact level growth preserves spent SP and allocations; tickets clear the experience bar. */
+    public void gainLevels(int amount){
+        if(amount<=0||level>=CharacterRules.MAX_LEVEL)throw new IllegalArgumentException("已经满级或升级数量无效");
+        int target=(int)Math.min(CharacterRules.MAX_LEVEL,(long)level+amount);
+        sp=Math.addExact(sp,CharacterRules.spAt(target)-CharacterRules.spAt(level));level=target;experience=0;
     }
 
     public int allocate(String stat,int count){

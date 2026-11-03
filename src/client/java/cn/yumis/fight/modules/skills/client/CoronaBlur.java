@@ -21,10 +21,13 @@ final class CoronaBlur {
     private static boolean registered;private static volatile long until;private static String dimension="";
     private CoronaBlur(){}
     static void register(){if(registered)return;registered=true;NeoForge.EVENT_BUS.addListener(CoronaBlur::extract);NeoForge.EVENT_BUS.addListener(CoronaBlur::render);}
-    static void flash(Vec3 point){var mc=Minecraft.getInstance();if(mc.level!=null)blasts.add(new Blast(point,ClientUi.now(),mc.level.dimension().identifier().toString()));}
+    static void flash(Vec3 point){var mc=Minecraft.getInstance();if(mc.level!=null&&mc.options.getCameraType().isFirstPerson())blasts.add(new Blast(point,ClientUi.now(),mc.level.dimension().identifier().toString()));}
     static void clear(){until=0;blasts.clear();dimension="";}
     private static void extract(ExtractLevelRenderStateEvent event){
         long now=ClientUi.now();var mc=Minecraft.getInstance();String world=event.getLevel().dimension().identifier().toString();Vec3 eye=event.getCamera().position();
+        if(event.getCamera().isDetached()||!mc.options.getCameraType().isFirstPerson()){
+            clear();event.getRenderState().setRenderData(FRAME,false);return;
+        }
         for(Blast blast;(blast=blasts.poll())!=null;){
             if(now-blast.at>250||!world.equals(blast.dimension)||mc.player==null||eye.distanceToSqr(blast.point)>1024||!event.getFrustum().isVisible(new AABB(blast.point,blast.point).inflate(2)))continue;
             if(event.getLevel().clip(new ClipContext(eye,blast.point,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,mc.player)).getType()!=HitResult.Type.MISS)continue;
@@ -34,6 +37,8 @@ final class CoronaBlur {
     }
     private static void render(RenderLevelStageEvent.AfterLevel event){
         if(!Boolean.TRUE.equals(event.getLevelRenderState().getRenderData(FRAME)))return;
-        var mc=Minecraft.getInstance();var chain=mc.getShaderManager().getPostChain(EFFECT,LevelTargetBundle.MAIN_TARGETS);if(chain!=null)chain.process(mc.gameRenderer.mainRenderTarget(),GraphicsResourceAllocator.UNPOOLED);
+        var mc=Minecraft.getInstance();
+        if(!mc.options.getCameraType().isFirstPerson()||mc.gameRenderer.mainCamera().isDetached()){clear();return;}
+        var chain=mc.getShaderManager().getPostChain(EFFECT,LevelTargetBundle.MAIN_TARGETS);if(chain!=null)chain.process(mc.gameRenderer.mainRenderTarget(),GraphicsResourceAllocator.UNPOOLED);
     }
 }

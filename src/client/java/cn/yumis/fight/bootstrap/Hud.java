@@ -62,18 +62,18 @@ public final class Hud {
             g.text(font,"盾 "+amount(s.resources.shield),center-88,mpY+1,UiTheme.HUD_TEXT,true);
         }
         if(!(mc.gui.screen() instanceof ChatScreen)){
-            int modifier=ClientBootstrap.layer(),group=Math.max(0,modifier),cell=Math.min(21,(width-20)/8),start=6,y=height-66;
-            if((!mc.player.isCreative()||currentStats.get(Stat.SHIELD)>0)&&start+cell*8>center-91)y=Math.min(y,mpY-36);
-            cn.yumis.fight.modules.skills.client.CareerHud.render(g,start+cell*4,y-28);
+            int modifier=ClientBootstrap.layer(),group=Math.max(0,modifier),cell=Math.min(25,(width-20)/8),square=cell-3,start=(width-(cell*8-3))/2,y=height-94-extra;
+            cn.yumis.fight.modules.skills.client.CareerHud.render(g,center,y-40);
             for(int i=0;i<8;i++){
                 int x=start+i*cell;
-                UiTheme.hud(g,x,y,cell-1,32);
+                UiTheme.hud(g,x,y,square,square);
                 String key=cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS[i].getTranslatedKeyMessage().getString();
-                g.text(font,font.plainSubstrByWidth(key,cell-3),x+2,y+2,UiTheme.HUD_MUTED,true);
+                key=font.plainSubstrByWidth(key,cell-2);
+                g.text(font,key,x+(square-font.width(key))/2,y-10,UiTheme.HUD_MUTED,true);
                 String binding=s.progress.slots[group*8+i];
                 if(!binding.isEmpty()&&SkillCatalog.contains(binding)){
                     SkillDefinition skill=SkillCatalog.require(binding);
-                    int icon=cell-3,iconX=x+1,iconY=y+12;
+                    int icon=square-2,iconX=x+1,iconY=y+1;
                     g.blit(ClientBootstrap.id("textures/gui/skills/"+skill.icon()+".png"),iconX,iconY,iconX+icon,iconY+icon,0,1,0,1);
                     long remaining=mc.player.isCreative()?0:s.resources.cooldowns.getOrDefault(binding,0L)-now;
                     if(remaining>0){
@@ -81,19 +81,19 @@ public final class Hud {
                         String cooldown=Integer.toString((int)Math.ceil(remaining/1000d));g.text(font,cooldown,iconX+(icon-font.width(cooldown))/2,iconY+(icon-8)/2,UiTheme.HUD_GOLD,true);
                     }
                 }
-                if(modifier<0)g.fill(x,y,x+cell-1,y+32,0x99101010);
+                if(modifier<0)g.fill(x,y,x+square,y+square,0x99101010);
             }
             g.text(font,modifier<0?"多修饰键 · 已禁用":new String[]{
                 "普通","Ctrl","Alt"
             }
-            [group],start,y-11,UiTheme.HUD_MUTED,false);
+            [group],start,y-24,UiTheme.HUD_MUTED,false);
             int available=Math.max(54,Math.min(cell*8,width-12));
             if(available>=48){
                 int xpWidth=Math.min(160,available-6),xpY=height-29;
-                String label="Lv."+s.progress.level+(s.progress.level==80?" MAX":" "+s.progress.experience+"/"+nextExperience(s.progress.level));
+                String label="Lv."+s.progress.level+(s.progress.level>=cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL?" MAX":" "+s.progress.experience+"/"+nextExperience(s.progress.level));
                 UiTheme.hud(g,6,xpY,xpWidth,18);
                 g.text(font,font.plainSubstrByWidth(label,xpWidth-8),10,xpY+3,UiTheme.HUD_GOLD,false);
-                bar(g,9,xpY+13,xpWidth-6,3,s.progress.level==80?1:s.progress.experience/(double)nextExperience(s.progress.level),UiTheme.HUD_GOLD);
+                bar(g,9,xpY+13,xpWidth-6,3,s.progress.level>=cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL?1:s.progress.experience/(double)nextExperience(s.progress.level),UiTheme.HUD_GOLD);
             }
         }
         if(mc.gui.screen()!=null)return;
@@ -164,7 +164,8 @@ public final class Hud {
         g.text(UiFonts.font(),cn.yumis.fight.modules.presentation.api.client.NumberText.number(q*maximum)+" / "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(maximum),8,29,0xffffffff);
         g.pose().popMatrix();
     }
-    public static void creativeFrames(ScreenEvent.Render.Post event){if(!(event.getScreen() instanceof CreativeModeInventoryScreen screen))return;var graphics=event.getGuiGraphics();for(var slot:screen.getMenu().slots){var stack=slot.getItem();if(stack.isEmpty()||!ItemData.own(stack))continue;var rarity=ItemRarity.rarity(stack);if(rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC)continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(rarity==Rarity.MYTHIC)cn.yumis.fight.modules.equipment.api.client.MythicDisplay.frame(graphics,x,y,16,16);else {int color=0xff000000|rarity.color();graphics.fill(x,y,x+16,y+1,color);graphics.fill(x,y+15,x+16,y+16,color);graphics.fill(x,y,x+1,y+16,color);graphics.fill(x+15,y,x+16,y+16,color);}}}
+    /** Foreground precedes deferred tooltips; Post would cover their text and background. */
+    public static void creativeFrames(ScreenEvent.Render.Foreground event){if(!(event.getScreen() instanceof CreativeModeInventoryScreen screen))return;var graphics=event.getGuiGraphics();for(var slot:screen.getMenu().slots){if(!slot.isActive())continue;var stack=slot.getItem();if(stack.isEmpty()||!ItemData.own(stack))continue;var rarity=ItemRarity.rarity(stack);if(rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC)continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;if(rarity==Rarity.MYTHIC)cn.yumis.fight.modules.equipment.api.client.MythicDisplay.frame(graphics,x,y,16,16);else {int color=0xff000000|rarity.color();graphics.fill(x,y,x+16,y+1,color);graphics.fill(x,y+15,x+16,y+16,color);graphics.fill(x,y,x+1,y+16,color);graphics.fill(x+15,y,x+16,y+16,color);}}}
     public static void equipment(ScreenEvent.Render.Background event){
         if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;
         for(var slot:screen.getMenu().slots){

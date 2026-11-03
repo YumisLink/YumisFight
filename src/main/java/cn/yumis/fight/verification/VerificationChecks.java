@@ -188,7 +188,8 @@ public final class VerificationChecks {
         Progress originalProgress=copy(session.progress,Progress.class);
         cn.yumis.fight.modules.combat.api.Runtime originalResources=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);
         Map<String,JsonElement> originals=new HashMap<>();
-        for(String key:List.of("player/"+player.getUUID(),"resources/"+player.getUUID(),"slotBonus/"+player.getUUID(),"equipmentWaiting/"+player.getUUID(),"profession/"+player.getUUID()+"/craftsman"))originals.put(key,runtime.journal.get(key));
+        for(String key:runtime.characters.writes(player.getUUID(),originalProgress,runtime.characters.profiles(player.getUUID())).keySet())originals.put(key,runtime.journal.get(key));
+        for(String key:List.of("resources/"+player.getUUID(),"slotBonus/"+player.getUUID(),"equipmentWaiting/"+player.getUUID(),"profession/"+player.getUUID()+"/craftsman"))originals.put(key,runtime.journal.get(key));
         var pos=player.blockPosition().east();
         var block=player.level().getBlockState(pos);
         Throwable failure=null;

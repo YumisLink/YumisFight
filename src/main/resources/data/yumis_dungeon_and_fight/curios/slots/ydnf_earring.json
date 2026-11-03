@@ -1,1 +1,1 @@
-{"size":1,"order":150,"entities":["minecraft:player"],"validators":["curios:tag"],"drop_rule":"always_keep"}
+{"size":1,"order":150,"icon":"yumis_dungeon_and_fight:slot/empty_earring_slot","entities":["minecraft:player"],"validators":["curios:tag"],"drop_rule":"always_keep"}

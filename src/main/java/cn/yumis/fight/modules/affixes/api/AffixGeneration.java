@@ -8,6 +8,7 @@ public final class AffixGeneration {
     public interface Item {
         boolean weapon(); int level(); double budget(); List<Affix> affixes();
         List<AffixDefinition> candidates(boolean percent,boolean duplicates);
+        boolean skillFamilyAllowed(String family);
         double baseline(Affix affix);
     }
     public record Context(Item item,boolean duplicates){}
@@ -23,8 +24,8 @@ public final class AffixGeneration {
             return AffixDefinitions.current().affixes.values().stream().filter(d->d.active()&&d.group().equals("random")&&d.operation().equals("EXTRA")&&(c.duplicates||c.item.affixes().stream().noneMatch(a->a.operation.equals("EXTRA")&&a.element==d.element()))).toList();
         },(c,d,roll,random)->{Affix a=instance(d);a.baseline=.1*c.item.budget();a.baselineMaximum=.2*c.item.budget();a.roll=roll;a.value=a.baseline*roll;a.maximum=a.baselineMaximum*roll;return a;}));
         register("skill_family",new Group(c->c.item.weapon()?15:0,c->{
-            if(!c.item.weapon())return List.of();
-            return AffixDefinitions.current().affixes.values().stream().filter(d->d.id().startsWith("family_")&&d.operation().equals("SKILL_FAMILY")&&d.active()&&(c.duplicates||c.item.affixes().stream().noneMatch(a->a.family.equals(d.id().substring(7).toUpperCase(Locale.ROOT))))).toList();
+            if(!c.item.weapon()||c.item.affixes().stream().anyMatch(a->a.operation.equals("SKILL_FAMILY")))return List.of();
+            return AffixDefinitions.current().affixes.values().stream().filter(d->d.id().startsWith("family_")&&d.operation().equals("SKILL_FAMILY")&&d.active()&&c.item.skillFamilyAllowed(d.id().substring(7).toUpperCase(Locale.ROOT))).toList();
         },(c,d,roll,random)->{Affix a=instance(d);a.family=d.id().substring(7).toUpperCase(Locale.ROOT);a.rank=1+random.nextInt(3);a.fixed=true;return a;}));
     }
     private AffixGeneration(){}

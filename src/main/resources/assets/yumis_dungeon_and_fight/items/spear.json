@@ -1,0 +1,112 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "spear_10_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/spear_10_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/spear_10_base"
+          }
+        }
+      },
+      {
+        "when": "spear_20_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/spear_20_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/spear_20_base"
+          }
+        }
+      },
+      {
+        "when": "spear_30_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/spear_30_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/spear_30_base"
+          }
+        }
+      },
+      {
+        "when": "spear_40_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/spear_40_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/spear_40_base"
+          }
+        }
+      },
+      {
+        "when": "spear_50_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/spear_50_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/spear_50_base"
+          }
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/standard/spear_10_base"
+    }
+  }
+}

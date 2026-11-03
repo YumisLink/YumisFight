@@ -67,8 +67,9 @@ public final class CareerClient {
     public void released(int slot){pendingSlots.forEach((id,value)->{if(value>=0&&value%8==slot)released.add(id);});}
     public boolean waiting(){return !pending.isEmpty();}
     public void request(SkillDefinition skill,int slot){
-        if(waiting())return;var p=Minecraft.getInstance().player;if(p==null)return;
+        if(waiting()||!DemonHunterClient.beforeRequest(skill))return;var p=Minecraft.getInstance().player;if(p==null)return;
         int rank=SkillLearning.effective(state().stats(),state().progress(),skill);if(rank<=0||skill.passive())return;
+        var heart=view.sunMoon;String unavailable=SunMoonRules.unavailableReason(skill,heart.heart,heart.stacks);if(!unavailable.isEmpty()){state().message(unavailable);return;}
         state().upload();JsonObject j=new JsonObject();String id=UUID.randomUUID().toString();j.addProperty("id",id);j.addProperty("skill",skill.id);j.addProperty("slot",slot);if(slot==-1)j.addProperty("renew",true);j.addProperty("session",state().session());j.addProperty("generation",state().own().generation);pending.put(id,ClientUi.now());pendingSlots.put(id,slot);state().send(CareerSkills.contains(skill.id)?"careerCast":"skillCast",j);
     }
     public void started(JsonObject ack){
@@ -92,7 +93,7 @@ public final class CareerClient {
     public boolean frenzy(){return view.frenzy&&state().progress().hasJob(JobCatalog.BERSERKER);}
     public boolean eye(){return view.eyeUntil>state().serverNow();}
     public int visualColor(Stats stats,int fallback){return stats.modifiers.getOrDefault("careerEye",0d)>0?CareerRules.EYE_COLOR:fallback;}
-    public int basicColor(Stats stats){if(stats.modifiers.getOrDefault("careerEye",0d)>0)return CareerRules.EYE_COLOR;if(stats.modifiers.getOrDefault("careerFrenzy",0d)>0)return 0xe63951;return SkillLearning.effective(stats,state().progress(),SkillCatalog.require(CareerSkills.KEIGA))>0?0x8e56d9:0xb4f2ff;}
+    public int basicColor(Stats stats){if(stats.modifiers.getOrDefault("basicDark",0d)>0)return DemonHunterRules.COLOR;if(stats.modifiers.getOrDefault("careerEye",0d)>0)return CareerRules.EYE_COLOR;if(stats.modifiers.getOrDefault("careerFrenzy",0d)>0)return 0xe63951;return SkillLearning.effective(stats,state().progress(),SkillCatalog.require(CareerSkills.KEIGA))>0?0x8e56d9:0xb4f2ff;}
     public boolean invulnerable(SkillCast c){if(c==null)return false;if(c.skill.id.equals(CareerSkills.PHANTOM))return (ClientUi.now()-c.start)*c.speed<=250;return c.terminal&&(c.skill.id.equals(CareerSkills.EYE)||c.skill.id.equals(CareerSkills.SWORD));}
     void eyeStarted(SkillCast cast,long now){
         for(var old:sources.values())if(!old.id.equals(cast.id)&&old.skill.id.equals(CareerSkills.EYE)&&!old.terminal)TrainingCombat.release(old.id,"persistent");

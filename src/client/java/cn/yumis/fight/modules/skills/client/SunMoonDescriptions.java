@@ -1,17 +1,18 @@
 package cn.yumis.fight.modules.skills.client;
 
 import cn.yumis.fight.modules.skills.api.*;
+import static cn.yumis.fight.modules.presentation.api.client.NumberText.number;
 
 final class SunMoonDescriptions {
     private SunMoonDescriptions(){}
     static void install(){
-        SkillDescriptions.register(SunMoonSkills.CYCLE,c->"转职自动获得，日/月心互斥，最多3层且无时限。\n日曜心：日技能伤害提升50%/130%/250%，费用增加100%/200%/300%；阻止非技能回魔。\n月弦心：回魔速度提升100%/1000%/10000%。\n反属性：施速提升30%/80%/200%，免原始费用；日→月伤害降低40%，月→日降低80%。\n成功放出后同属性加层，反属性清旧心后获新心；本次技能取起手旧状态。\n满层转心获得1悖论，上限1层；需已学会觉醒。\n调和最多3层，只在日技能原本需费时消耗1层免除费用。\n所有状态在死亡、离线、跨维度及职业技能重置时清除。");
-        SkillDescriptions.register(SunMoonSkills.MOON,c->"月属性 · 基础咏唱1秒，期间移速为正常的20%。\n飞弹最远16格，碰敌、碰墙或到达终点展开大月亮，半径3格冰伤。\n月亮在2秒内逐渐变暗；成功放出获得1月弦心。\n无冷却，取消不退起手费用。");
-        SkillDescriptions.register(SunMoonSkills.SUN,c->"日属性 · 基础咏唱1.8秒，结束时按当前准星选落点，敌人脚部优先。\n火球放出0.35秒后落地爆燃，半径3格，一次火伤，没有持续烧伤。\n成功放出获得1日曜心；无冷却。");
-        SkillDescriptions.register(SunMoonSkills.REFLUX,c->"瞬发 · 立即获得3月弦心，调和补满3层。\n满3日曜心转月同样可以触发悖论。\n不消耗原始费用，基础冷却30秒。");
-        SkillDescriptions.register(SunMoonSkills.FLARE,c->"日属性 · 基础咏唱2.5秒，结束时按当前准星取落点。\n半径4格火伤；同技能等级基础伤害为日炎2倍，基础费用为3倍。\n成功放出获得3日曜心；无冷却。");
-        SkillDescriptions.register(SunMoonSkills.CORONA,c->"日属性 · 基础咏唱1.8秒，结束时按当前准星取落点。\n生成直径4格火球，0.8秒内从上方1.5格缓升至2格后爆炸。\n爆炸半径4格，同等级基础伤害为日炎3倍，基础费用为1.5倍。\n32格内看见且无遮挡的玩家，含自己和队友，屏幕虚化0.8秒。\n成功放出获得1日曜心；无冷却。");
-        SkillDescriptions.register(SunMoonSkills.STARFALL,c->"月属性 · 基础咏唱2.5秒，结束时按当前准星取落点。\n半径4格月光，每0.25秒一段，2秒内共8段冰伤。\n同等级总伤害为月流2.2倍，各次施法独立，允许叠场。\n成功召出获得1月弦心，调和补满3层；无冷却。");
-        SkillDescriptions.register(SunMoonSkills.PARADOX,c->"瞬发 · 消耗1悖论，无原始费用、无冷却。\n可指定空地；准星命中敌人时爆心随其移动。\n红蓝光球带拖尾旋转下降0.6秒，半径1格依次造成冰、火两段伤害。\n两段各占50%，合计同等级日炎10倍，不受日曜心增伤。\n目标失效后在最后位置爆炸，不返层；不产生或转换心。");
+        SkillDescriptions.register(SunMoonSkills.CYCLE,c->"掌握日与月的力量，转职时自动学会1级，可继续消耗SP升级。\n日曜心和月弦心不能同时拥有，各最多3层，不会随时间消失。\n当前1、2、3层日曜心分别使日系技能伤害提高"+number(100*SunMoonRules.sunDamage(c.parameters().rank(),1))+"%、"+number(100*SunMoonRules.sunDamage(c.parameters().rank(),2))+"%、"+number(100*SunMoonRules.sunDamage(c.parameters().rank(),3))+"%。\n每升一级，三档增伤均在上一级基础上提高12%。可受被动技能加级影响，魔法技能加级不生效。\n日曜心也会增加消耗，并暂停技能以外的魔力回复；月弦心大幅提高魔力回复速度。\n切换到另一系技能时，施法更快且不消耗魔力，但伤害会降低。\n调和可让一次原本需要消耗的日系技能免费施放。\n学会悖论后，满3层心切换到另一种心时获得1层悖论。\n死亡、离线、跨维度或重置职业技能会清除这些状态。");
+        SkillDescriptions.register(SunMoonSkills.MOON,c->"发射一枚月光飞弹，碰到敌人、墙壁或飞到最远处时，展开一轮月亮，对周围敌人造成冰属性伤害。\n成功放出获得"+SunMoonRules.moonHearts(c.parameters().rank())+"层月弦心。技能达到5级时获得2层，10级时获得3层，装备加级也有效。\n基础咏唱1秒，飞行最远16格，伤害半径3格，无冷却。");
+        SkillDescriptions.register(SunMoonSkills.SUN,c->"在目标上方召唤一颗火球，随后落地爆炸，对周围敌人造成火属性伤害。\n成功放出获得1层日曜心。\n基础咏唱1.8秒，伤害半径3格，无冷却。");
+        SkillDescriptions.register(SunMoonSkills.REFLUX,c->"立即唤回月之力量，获得3层月弦心，并将调和补至至少"+SunMoonRules.refluxHarmony(c.parameters().rank())+"层。\n最多可学习1级。通过装备等方式达到5级、10级时，获得的调和各额外增加1层。\n满3层日曜心时使用也能触发已学会的悖论。\n无需咏唱，不消耗魔力，基础冷却30秒。");
+        SkillDescriptions.register(SunMoonSkills.FLARE,c->"在目标位置引发猛烈的烈日爆炎，对周围敌人造成大量火属性伤害。\n成功放出获得3层日曜心。\n基础咏唱2.5秒，伤害半径4格，无冷却。");
+        SkillDescriptions.register(SunMoonSkills.CORONA,c->"需要在拥有日曜心时才能释放。召唤一颗巨大的火球，在目标位置缓缓升起，随后爆炸，造成极高的火属性伤害。\n附近第一人称下直视火球且无遮挡的玩家，视野边缘会模糊0.8秒，包括自己和队友；中心仍然清晰。\n不会获得或消耗日曜心。\n基础咏唱1.8秒，火球升起0.8秒后爆炸，伤害半径4格，无冷却。");
+        SkillDescriptions.register(SunMoonSkills.STARFALL,c->"需要在拥有月弦心时才能释放。在目标位置唤下月光与星辉，持续对周围敌人造成冰属性伤害。\n成功放出后将调和补至至少3层，不会获得或消耗月弦心；多次施放的月光可以重叠。\n基础咏唱2.5秒，持续2秒，每0.25秒造成一次伤害，伤害半径4格，无冷却。");
+        SkillDescriptions.register(SunMoonSkills.PARADOX,c->"消耗1层悖论，召唤交缠的日月光球，旋转落下后接连爆发冰与火的力量，造成巨额伤害。\n可以瞄准空地；瞄准敌人时，光球会追随目标，目标消失后在最后的位置爆炸。\n不受日曜心增伤，不会获得或改变两种心。\n无需咏唱，光球下落0.6秒，伤害半径1格，不消耗魔力，无冷却。");
     }
 }

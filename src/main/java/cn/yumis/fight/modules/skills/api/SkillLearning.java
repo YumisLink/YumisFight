@@ -8,19 +8,25 @@ import java.util.Arrays;
 /** Skill-owned learning and binding rules; the caller persists the resulting character transaction. */
 public final class SkillLearning {
     private SkillLearning(){}
+    /** Automatically granted ranks are separate from purchased ranks, so resets refund only spent SP. */
+    public static int baseRank(Progress progress,SkillDefinition skill){
+        return progress.learned(skill.id)+(skill.automaticByJob&&skill.available(progress)&&progress.level>=skill.unlock?1:0);
+    }
     public static int effective(Stats stats,Progress progress,SkillDefinition skill){
-        if(skill.automaticByJob)return skill.available(progress)&&progress.level>=skill.unlock?1:0;
-        int learned=progress.learned(skill.id),granted=stats.ranks.getOrDefault("grant/"+skill.id,0);
+        int learned=baseRank(progress,skill),granted=stats.ranks.getOrDefault("grant/"+skill.id,0);
         if(!skill.available(progress)||granted<=0&&learned==0)return 0;
         int rank=Math.max(learned,granted)+stats.ranks.getOrDefault(skill.family,0);
-        return rank+(CareerRules.magic(skill,progress)?stats.ranks.getOrDefault("tag/magic",0):0);
+        if(SunMoonSkills.contains(skill.id))rank+=stats.ranks.getOrDefault("SUN_MOON",0);
+        if(skill.passive())rank+=stats.ranks.getOrDefault("PASSIVE",0);
+        if(!skill.attackTypeRanks)return rank;
+        boolean magic=CareerRules.magic(skill,progress);
+        return rank+stats.ranks.getOrDefault(magic?"MAGIC":"PHYSICAL",0)+(magic?stats.ranks.getOrDefault("tag/magic",0):0);
     }
     public static int learn(Progress progress,SkillDefinition skill,int count){
-        if(skill.automaticByJob)throw new IllegalArgumentException("转职自动获得，无需学习或升级");
         if(skill.equipmentGranted)throw new IllegalArgumentException("装备授予技能无需SP，不能永久学习");
         if(!skill.available(progress))throw new IllegalArgumentException("尚未获得该职业或觉醒资格");
         if(count!=1&&count!=5)throw new IllegalArgumentException("加点数量必须为1或5");
-        int amount=Math.min(count,Math.min(skill.limit(progress.level,progress.jobId())-progress.learned(skill.id),progress.sp/skill.sp));
+        int amount=Math.min(count,Math.min(skill.limit(progress.level,progress.jobId())-baseRank(progress,skill),progress.sp/skill.sp));
         if(amount<=0)throw new IllegalArgumentException("等级、职业或SP不足");
         progress.skills.put(skill.id,progress.learned(skill.id)+amount);progress.sp-=skill.sp*amount;return amount;
     }
@@ -30,7 +36,6 @@ public final class SkillLearning {
         Arrays.fill(progress.slots,"");
     }
     public static int unlearn(Progress progress,Stats stats,SkillDefinition skill,int count){
-        if(skill.automaticByJob)throw new IllegalArgumentException("职业固有能力不能退级");
         if(skill.equipmentGranted)throw new IllegalArgumentException("装备授予等级不能退还SP");
         if(count!=1&&count!=5)throw new IllegalArgumentException("退级数量必须为1或5");
         int amount=Math.min(count,progress.learned(skill.id));if(amount<=0)throw new IllegalArgumentException("该技能没有可退还的学习等级");
@@ -39,19 +44,12 @@ public final class SkillLearning {
         if(!canBind(stats,progress,skill))for(int i=0;i<progress.slots.length;i++)if(progress.slots[i].equals(skill.id))progress.slots[i]="";
         return amount;
     }
-    public static void refundCareer(Progress progress){
-        for(var skill:SkillCatalog.all())if(skill.advanced()){
-            progress.sp+=progress.learned(skill.id)*skill.sp;progress.skills.remove(skill.id);
-            for(int i=0;i<progress.slots.length;i++)if(progress.slots[i].equals(skill.id))progress.slots[i]="";
-        }
-    }
     public static boolean canBind(Stats stats,Progress progress,SkillDefinition skill){return (!skill.passive()||skill.bindingProxy)&&effective(stats,progress,skill)>0;}
     public static void apply(Progress progress,Stats stats,JsonObject request){
         switch(request.get("kind").getAsString()){
             case "learn"->learn(progress,SkillCatalog.require(request.get("skill").getAsString()),request.has("count")?request.get("count").getAsInt():1);
             case "unlearn"->unlearn(progress,stats,SkillCatalog.require(request.get("skill").getAsString()),request.get("count").getAsInt());
             case "resetSkills"->reset(progress);
-            case "refundCareer"->refundCareer(progress);
             case "bind"->{
                 int slot=request.get("slot").getAsInt();if(slot<0||slot>=progress.slots.length)throw new IllegalArgumentException("快捷槽无效");
                 String id=request.get("skill").getAsString();

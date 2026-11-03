@@ -8,6 +8,7 @@ import java.util.Map;
 public interface JobTransitions {
     Change prepare(ServerPlayer player,Progress next,String destination);
     Change reduceSkill(ServerPlayer player,Progress next,String skillId);
+    Change switchProfile(ServerPlayer player,Progress next);
     default Change clear(ServerPlayer player,Progress next){return new Change(Map.of(),()->{});}
     record Change(Map<String,JsonElement> writes,Runnable committed){}
 }

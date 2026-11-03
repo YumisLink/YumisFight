@@ -14,11 +14,9 @@ public final class EconomyClientMessages {
     private EconomyClientMessages(){}
     public static void register(CommandRouter<Void,JsonObject> router){
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Init.Post event)->{
-            if(event.getScreen() instanceof InventoryScreen||event.getScreen() instanceof AbstractContainerScreen<?> s&&s.getMenu() instanceof DimensionalMenu){
-                int x=Math.max(2,event.getScreen().width/2-88),y=Math.max(2,event.getScreen().height-25);
-                int width=92,height=20;
-                if(event.getScreen() instanceof AbstractContainerScreen<?> container&&container.getMenu() instanceof DimensionalMenu menu){x=container.getLeftPos()+76;y=container.getTopPos()+menu.rows*18+174-23;width=50;height=18;}
-                event.addListener(Button.builder(Component.literal("出售装备"),b->SaleClient.open(event.getScreen() instanceof AbstractContainerScreen<?> container&&container.getMenu() instanceof DimensionalMenu)).bounds(x,y,width,height).build(ThemedButton::new));
+            if(event.getScreen() instanceof AbstractContainerScreen<?> screen&&screen.getMenu() instanceof DimensionalMenu menu){
+                int x=screen.getLeftPos()+76,y=screen.getTopPos()+menu.rows*18+174-23;
+                event.addListener(Button.builder(Component.literal("出售装备"),b->SaleClient.open(true)).bounds(x,y,50,18).build(ThemedButton::new));
             }
         });
         router.register("economy","saleState",(context,j)->{

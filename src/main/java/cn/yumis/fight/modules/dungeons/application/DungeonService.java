@@ -34,6 +34,7 @@ import net.minecraft.world.level.block.*;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 public class DungeonService {
+    private final cn.yumis.fight.modules.character.api.CharacterPersistence characters;
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
     public static final ResourceKey<Level> DIMENSION=ResourceKey.create(Registries.DIMENSION,Identifier.fromNamespaceAndPath(ItemData.NS,"dungeon"));
@@ -62,7 +63,8 @@ public class DungeonService {
         List<CageEntity> entities=new ArrayList<>();
         Set<String> operations=new HashSet<>();
     }
-    public DungeonService(Journal journal,MinecraftServer server,DungeonPorts.Players players,DungeonPorts.Targets targets,DungeonPorts.Rewards rewards,DungeonPorts.Meter meter,Function<UUID,Team> team,Runnable refresh){
+    public DungeonService(Journal journal,cn.yumis.fight.modules.character.api.CharacterPersistence characters,MinecraftServer server,DungeonPorts.Players players,DungeonPorts.Targets targets,DungeonPorts.Rewards rewards,DungeonPorts.Meter meter,Function<UUID,Team> team,Runnable refresh){
+        this.characters=characters;
         this.journal=journal;this.server=server;this.playerAccess=players;this.targets=targets;this.rewards=rewards;this.meter=meter;this.team=team;this.refresh=refresh;
     }
     public Dungeon byId(String id){
@@ -145,7 +147,7 @@ public class DungeonService {
         var nextProgress=JSON.fromJson(JSON.toJson(playerAccess.progress(p)),cn.yumis.fight.modules.character.api.Progress.class);nextProgress.dungeonSync=j.get("sync").getAsBoolean();d.synchronization.put(p.getUUID(),nextProgress.dungeonSync);
         journal.begin();
         try{
-        journal.put("player/"+p.getUUID(),nextProgress);
+        for(var write:characters.writes(p.getUUID(),nextProgress).entrySet())journal.put(write.getKey(),write.getValue());
         journal.put(key,j);
         if(newcomer||returning)meter.join(d,p);
         journal.put("instance/"+d.id,d);

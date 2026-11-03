@@ -1,0 +1,112 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "yumis_dungeon_and_fight:katana_style",
+    "cases": [
+      {
+        "when": "wand_10_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/wand_10_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/wand_10_base"
+          }
+        }
+      },
+      {
+        "when": "wand_20_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/wand_20_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/wand_20_base"
+          }
+        }
+      },
+      {
+        "when": "wand_30_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/wand_30_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/wand_30_base"
+          }
+        }
+      },
+      {
+        "when": "wand_40_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/wand_40_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/wand_40_base"
+          }
+        }
+      },
+      {
+        "when": "wand_50_base",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:display_context",
+          "cases": [
+            {
+              "when": "gui",
+              "model": {
+                "type": "minecraft:model",
+                "model": "yumis_dungeon_and_fight:item/standard/icons/wand_50_base"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "yumis_dungeon_and_fight:item/standard/wand_50_base"
+          }
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/standard/wand_10_base"
+    }
+  }
+}
