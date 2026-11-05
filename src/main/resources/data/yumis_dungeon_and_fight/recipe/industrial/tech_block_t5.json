@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 4,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:adamantite_ingot",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:terra_ingot",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:uranium_ingot",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:tech_block_t5",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 400,
+  "energy": 25000
+}

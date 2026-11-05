@@ -2,13 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABC",
-    "C  "
+    " G ",
+    "MPM",
+    " S "
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:prospector_t2",
-    "B": "yumis_dungeon_and_fight:industrial_upgrade_3",
-    "C": "yumis_dungeon_and_fight:mana_component"
+    "G": "minecraft:glass",
+    "M": "yumis_dungeon_and_fight:mana_component",
+    "P": "yumis_dungeon_and_fight:prospector_t2",
+    "S": "yumis_dungeon_and_fight:machine_casing_t3"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:prospector_t3",

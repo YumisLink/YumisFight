@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MFM",
+    "CSC",
+    "MMM"
+  ],
+  "key": {
+    "M": "yumis_dungeon_and_fight:tzm_alloy",
+    "F": "minecraft:piston",
+    "C": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:machine_casing_t3"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:forming_assembler",
+    "count": 1
+  }
+}

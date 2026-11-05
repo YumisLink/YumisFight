@@ -2,14 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    "MFM",
+    "CSC",
+    "MMM"
   ],
   "key": {
-    "C": "yumis_dungeon_and_fight:energy_crystal_2",
-    "M": "#c:gems/diamond",
-    "X": "minecraft:lightning_rod"
+    "M": "yumis_dungeon_and_fight:vanadium_steel",
+    "F": "minecraft:lightning_rod",
+    "C": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:machine_casing_t2"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:wind_generator",

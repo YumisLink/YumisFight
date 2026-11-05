@@ -1,14 +1,14 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mana_forge",
-  "minimum_tier": 3,
+  "minimum_tier": 4,
   "ingredients": [
     {
-      "ingredient": "yumis_dungeon_and_fight:niobium_ingot",
-      "count": 1
+      "ingredient": "minecraft:redstone",
+      "count": 4
     },
     {
-      "ingredient": "yumis_dungeon_and_fight:tantalum_ingot",
+      "ingredient": "yumis_dungeon_and_fight:niobium_ingot",
       "count": 1
     },
     {
@@ -16,8 +16,8 @@
       "count": 2
     },
     {
-      "ingredient": "minecraft:redstone",
-      "count": 4
+      "ingredient": "yumis_dungeon_and_fight:tantalum_ingot",
+      "count": 1
     }
   ],
   "results": [
@@ -28,5 +28,5 @@
   ],
   "fluid_inputs": [],
   "ticks": 400,
-  "energy": 25600
+  "energy": 25000
 }

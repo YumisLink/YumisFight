@@ -2,15 +2,15 @@
   "type": "yumis_dungeon_and_fight:machine_upgrade",
   "category": "misc",
   "pattern": [
-    "ABC",
-    "CCD",
-    "DDD"
+    " C ",
+    "FMF",
+    " S "
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:mana_accumulator_t1",
-    "B": "yumis_dungeon_and_fight:reinforced_frame",
-    "C": "yumis_dungeon_and_fight:vanadium_steel",
-    "D": "yumis_dungeon_and_fight:energy_crystal_2"
+    "C": "yumis_dungeon_and_fight:machine_casing_t2",
+    "M": "yumis_dungeon_and_fight:mana_accumulator_t1",
+    "F": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:basic_frame"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:mana_accumulator_t2",

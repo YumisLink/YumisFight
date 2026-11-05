@@ -15,10 +15,9 @@ import net.neoforged.neoforge.transfer.item.*;
 import net.neoforged.neoforge.transfer.transaction.*;
 import java.util.*;
 
-/** Every line escrows its own inputs and snapshots its own result, energy and exact duration. */
+/** Per-line batch snapshots; fluid devices escrow inputs, solid-only devices deduct on completion. */
 public final class IndustrialProcessing {
     public static List<RecipeHolder<IndustrialRecipe>> recipes(ServerLevel level,DeviceType kind){
-        if(kind.has(DeviceType.Capability.SMELTING))return List.of();
         return level.recipeAccess().recipeMap().byType(IndustrialContent.RECIPE_TYPE.get()).stream()
             .filter(holder->holder.value().machine().equals(kind.id)).sorted(Comparator.comparing(holder->holder.id().identifier().toString())).toList();
     }
@@ -35,20 +34,23 @@ public final class IndustrialProcessing {
         if(!be.device().selectedRecipe()){line.selected="";line.queued="";}
         if(!be.running||!line.tickTime.positive()){line.status="已停止";return;}
         if(be.device().needsStructure()&&!be.structureValid){line.status="结构不完整：缺少 "+IndustrialStructures.missing(be).size()+" 处";return;}
-        if(!line.batchRecipe.isEmpty()){if(!line.canFinish())line.status="本线产物空间不足";return;}
+        if(!line.batchRecipe.isEmpty()){
+            if(line.deferredInputs&&!line.hasDeferredInputs()){line.cancelDeferred();return;}
+            if(!line.canFinish())line.status="本线产物空间不足";return;
+        }
         if(be.device().has(DeviceType.Capability.REQUIRE_RECIPE)&&line.selected.isEmpty()){
             line.status=be.device().has(DeviceType.Capability.MINING)?"请选择矿物；所有区块均可开采圆石":"请锁定加工工艺";return;
         }
         ServerLevel level=(ServerLevel)be.getLevel();
-        if(be.device().has(DeviceType.Capability.SMELTING)){prepareSmelting(line,level);return;}
         int count=be.device().inputs();List<ItemStack> input=new ArrayList<>();
         for(int i=0;i<count;i++)input.add(be.getItem(line.inputSlot((i+line.roundRobin)%count)));
         RecipeHolder<IndustrialRecipe> chosen=null;int[] plan=null;int bestRank=Integer.MAX_VALUE;
         for(var holder:choices(be)){
             var recipe=holder.value();
-            if(recipe.minimumTier()>be.tier()||be.device().exactRecipeTier()&&recipe.minimumTier()!=be.tier())continue;
+            if(recipe.minimumTier()>be.processingTier()||be.device().exactRecipeTier()&&recipe.minimumTier()!=be.tier())continue;
             if(be.device().selectedRecipe()&&!line.selected.isEmpty()&&!holder.id().identifier().toString().equals(line.selected))continue;
             int[] take=recipe.takePlan(input);
+            if(take!=null){int material=0;for(int i=0;i<take.length;i++)if(take[i]>0)material=Math.max(material,IndustrialTechnology.mineralTier(input.get(i)));if(material>=3&&material>be.processingTier())continue;}
             if(take!=null&&fluidInputFits(line,recipe)){
                 int rank=0;while(rank<take.length&&take[rank]==0)rank++;
                 boolean sameProduct=chosen!=null&&primary(chosen.value()).equals(primary(recipe));
@@ -56,7 +58,7 @@ public final class IndustrialProcessing {
                 if(chosen==null||sameProduct&&complexity<oldComplexity||(!sameProduct||complexity==oldComplexity)&&rank<bestRank){chosen=holder;plan=take;bestRank=rank;}
             }
         }
-        if(chosen==null){line.status="缺少本线原料、液体或可采矿物";return;}
+        if(chosen==null){if(be.device().has(DeviceType.Capability.SMELTING)){prepareSmelting(line,level);return;}line.status="缺少本线原料、液体或可采矿物";return;}
         int[] indices=new int[input.size()];for(int i=0;i<indices.length;i++)indices[i]=line.inputSlot((i+line.roundRobin)%count);
         start(line,chosen.id().identifier().toString(),chosen.value(),plan,indices,be.device().has(DeviceType.Capability.MINING)?mineralId(chosen):"");
     }
@@ -64,8 +66,10 @@ public final class IndustrialProcessing {
         var be=line.machine;
         for(int i=0;i<be.device().inputs();i++){
             int input=(i+line.roundRobin)%be.device().inputs(),slot=line.inputSlot(input);ItemStack stack=be.getItem(slot);if(stack.isEmpty())continue;
+            int materialTier=Math.max(1,IndustrialTechnology.itemTier(stack));if(materialTier>=3&&materialTier>be.processingTier())continue;
             var source=new SingleRecipeInput(stack);var holder=level.recipeAccess().getRecipeFor(RecipeType.SMELTING,source,level);if(holder.isEmpty())continue;var recipe=holder.get().value();
-            var batch=new IndustrialRecipe(be.device().id,1,List.of(new IndustrialRecipe.Need(Ingredient.of(stack.getItem()),1)),List.of(ItemStackTemplate.fromNonEmptyStack(recipe.assemble(source))),recipe.cookingTime(),100,List.of(),Optional.empty());
+            long energy=materialTier<3?50:Fraction.of(new long[]{0,0,0,750,7500,75000,750000}[materialTier]).multiply(recipe.cookingTime()).divide(20L*IndustrialRules.current().furnaceSpeeds[Math.min(5,materialTier)-1]).ceil();
+            var batch=new IndustrialRecipe(be.device().id,materialTier<3?1:materialTier,List.of(new IndustrialRecipe.Need(Ingredient.of(stack.getItem()),1)),List.of(ItemStackTemplate.fromNonEmptyStack(recipe.assemble(source))),recipe.cookingTime(),energy,List.of(),Optional.empty());
             start(line,"vanilla:"+holder.get().id().identifier(),batch,new int[]{1},new int[]{slot},"");line.roundRobin=(input+1)%be.device().inputs();return;
         }
         line.status="缺少普通熔炉可熔炼的原料";
@@ -98,7 +102,7 @@ public final class IndustrialProcessing {
                 if(IndustrialFluids.matches(fluid,"minecraft:water")){duration=duration.multiply(2).divide(3);cooling="minecraft:water";rate=IndustrialRules.current().miningWaterRate*be.tier();}
                 else if(IndustrialFluids.matches(fluid,IndustrialContent.NS+":coolant")){duration=duration.multiply(2).divide(5);cooling=IndustrialContent.NS+":coolant";rate=IndustrialRules.current().miningCoolantRate*be.tier();}
             }
-            energy=duration.multiply(Math.multiplyExact(rule.power(),(long)be.tier()*be.tier())).divide(2560).ceil();
+            energy=duration.multiply(rule.energy()).multiply(be.tier()).multiply(be.tier()).divide((long)rule.ticks()*128*rule.tier()).ceil();
             ItemStack output=new ItemStack(BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(rule.item())),rule.count());
             if(mineral.equals("magic")){var random=be.getLevel().getRandom();var rules=IndustrialRules.current();output=IndustrialContent.stack("energy_crystal_"+(random.nextInt(100)<rules.highCrystalWeight?4:3),rules.crystalDropMin+random.nextInt(rules.crystalDropMax-rules.crystalDropMin+1));}
             results=List.of(output);
@@ -106,15 +110,35 @@ public final class IndustrialProcessing {
         energy=Math.multiplyExact(energy,be.energyMultiplier());duration=duration.divide(be.pluginSpeed());
         try(var tx=Transaction.openRoot()){
             int[] fluidSlots=fluidPlan(line,recipe);if(fluidSlots==null)return;
-            line.record(tx);line.batchResults=new ArrayList<>(results);line.batchFluid=recipe.fluidResult();line.progressive=true;
+            line.record(tx);line.batchResults=new ArrayList<>(results);line.batchFluid=recipe.fluidResult();
+            line.progressive=be.device().has(DeviceType.Capability.FLUID_PROCESSING);
+            line.deferredInputs=!line.progressive;
             line.batchFluidInputs=new ArrayList<>();
             for(int input=0;input<recipe.fluidInputs().size();input++){int tank=fluidSlots[input],amount=recipe.fluidInputs().get(input).amount();line.batchFluidInputs.add(new MachineLane.FluidInput(tank,be.fluids.getResource(tank).toStack(amount)));}
             line.batchRecipe=id;line.batchEnergy=energy;line.batchDuration=duration;line.batchMiningFluid=cooling;line.batchFluidRate=rate;line.batchFluidPaid=0;line.work=Fraction.ZERO;line.paid=0;
             List<ItemStack> escrow=new ArrayList<>();
-            for(int i=0;i<plan.length;i++)if(plan[i]>0){var resource=be.items.getResource(indices[i]);if(be.items.extract(indices[i],resource,plan[i],tx)!=plan[i])return;escrow.add(resource.toStack(plan[i]));}
+            for(int i=0;i<plan.length;i++)if(plan[i]>0){var resource=be.items.getResource(indices[i]);if(!line.deferredInputs&&be.items.extract(indices[i],resource,plan[i],tx)!=plan[i])return;escrow.add(resource.toStack(plan[i]));}
             line.batchInputs=escrow;line.batchSequence++;line.roundRobin=(line.roundRobin+1)%Math.max(1,be.device().inputs());line.status="加工中";tx.commit();
         }
         be.setChanged();
+    }
+    /** Stable ingredient slots for automatic mode; input and recipe selection share the same catalog. */
+    static boolean acceptsAutomaticInput(MachineBlockEntity be,int slot,ItemStack stack){
+        int lineIndex=be.slots().lineOf(slot),local=be.slots().offset(slot);if(lineIndex<0)return false;
+        var candidates=recipes((ServerLevel)be.getLevel(),be.device()).stream().filter(h->h.value().minimumTier()<=be.processingTier()).toList();
+        for(var holder:candidates){var needs=holder.value().ingredients();if(local>=needs.size()||!needs.get(local).ingredient().test(stack))continue;
+            boolean fits=true;for(int i=0;i<be.device().inputs();i++){var existing=be.getItem(be.slots().inputStart(lineIndex)+i);if(!existing.isEmpty()&&(i>=needs.size()||!needs.get(i).ingredient().test(existing))){fits=false;break;}}
+            if(fits)return true;
+        }return false;
+    }
+    static boolean acceptsAutomaticFluid(MachineBlockEntity be,int line,int tank,net.neoforged.neoforge.transfer.fluid.FluidResource fluid){
+        for(var holder:recipes((ServerLevel)be.getLevel(),be.device())){
+            var recipe=holder.value();if(recipe.minimumTier()>be.processingTier()||tank>=recipe.fluidInputs().size()||!recipe.fluidInputs().get(tank).ingredient().test(fluid.toStack(1)))continue;
+            boolean fits=true;
+            for(int input=0;input<be.device().inputs();input++){var item=be.getItem(be.slots().inputStart(line)+input);if(!item.isEmpty()&&(input>=recipe.ingredients().size()||!recipe.ingredients().get(input).ingredient().test(item))){fits=false;break;}}
+            for(int input=0;input<be.device().fluidInputs()&&fits;input++){var existing=be.fluids.getResource(be.fluidTank(line,input));if(!existing.isEmpty()&&(input>=recipe.fluidInputs().size()||!recipe.fluidInputs().get(input).ingredient().test(existing.toStack(1))))fits=false;}
+            if(fits)return true;
+        }return false;
     }
     public static void output(MachineBlockEntity be){
         if(!be.device().outputs())return;ServerLevel level=(ServerLevel)be.getLevel();BlockPos below=be.getBlockPos().below();if(!level.hasChunkAt(below))return;

@@ -1,0 +1,33 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "alchemical_reactor",
+  "minimum_tier": 4,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:cooled_spent_fuel",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:curium_feed",
+      "count": 1
+    },
+    {
+      "id": "yumis_dungeon_and_fight:depleted_uranium",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:alkahest",
+      "amount": 1000
+    }
+  ],
+  "ticks": 400,
+  "energy": 250000,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:spent_solvent",
+    "amount": 1000
+  }
+}

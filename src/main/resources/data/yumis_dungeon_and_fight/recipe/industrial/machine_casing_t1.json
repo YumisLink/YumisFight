@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " F ",
+    " C ",
+    "   "
+  ],
+  "key": {
+    "F": "yumis_dungeon_and_fight:basic_frame",
+    "C": "yumis_dungeon_and_fight:industrial_upgrade_1"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:machine_casing_t1",
+    "count": 1
+  }
+}

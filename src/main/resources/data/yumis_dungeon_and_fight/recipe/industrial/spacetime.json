@@ -12,7 +12,7 @@
       "count": 4
     },
     {
-      "ingredient": "yumis_dungeon_and_fight:industrial_magic_stone",
+      "ingredient": "yumis_dungeon_and_fight:lattice_substrate",
       "count": 4
     },
     {
@@ -21,7 +21,7 @@
     }
   ],
   "ticks": 2400,
-  "energy": 209715200,
+  "energy": 1500000,
   "results": [
     {
       "id": "yumis_dungeon_and_fight:spacetime_ingot",

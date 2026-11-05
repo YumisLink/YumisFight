@@ -17,7 +17,21 @@ local tierStone={
  {"081328","101e3b","182c50","253c65","4c6287"},
  {"312b4d","382d50","413356","4b3b5d","684b6d"}
 }
-local gold={"8e6c30","b49c3b","dcc545","e2d35e","ede574","fffd9c"}
+local catalogFile=assert(io.open(root.."src/main/resources/assets/yumis_dungeon_and_fight/industry/technology.json","r"))
+local technologyCatalog=catalogFile:read("*a");catalogFile:close()
+local technologyPalettes={}
+for values in technologyCatalog:gmatch('"colors"%s*:%s*%[(.-)%]') do
+ local palette={};for color in values:gmatch('"(%x%x%x%x%x%x)"') do palette[#palette+1]=color end
+ technologyPalettes[#technologyPalettes+1]=palette
+end
+local function technologyTier(family,tier)
+ if family=="equipment_fabricator" then return 1 end
+ local entry=technologyCatalog:match('"'..family..'_t'..tier..'"%s*:%s*{(.-)}') or technologyCatalog:match('"'..family..'"%s*:%s*{(.-)}')
+ return entry and tonumber(entry:match('"technology"%s*:%s*(%d+)')) or tier
+end
+local function shadeTechnology(color,factor)
+ return string.format("%02x%02x%02x",math.min(255,math.floor(tonumber(color:sub(1,2),16)*factor+.5)),math.min(255,math.floor(tonumber(color:sub(3,4),16)*factor+.5)),math.min(255,math.floor(tonumber(color:sub(5,6),16)*factor+.5)))
+end
 local familyNames={"mana_crusher","mana_furnace","mineral_generator","currency_fabricator","mana_forge","mana_beacon","coal_generator","solar_collector","turbine_generator","wind_generator","thermal_generator","nuclear_reactor","rtg_generator","coolant_mixer","transfer_crystal","harvest_crystal","equipment_fabricator"}
 local coreColors={mana_furnace={"713344","b55a42","f2a565","ffe2a6"},coal_generator={"603244","a34e43","e49a63","f5d599"},thermal_generator={"494278","8e7dc5","c5b0ed","eee1ff"},nuclear_reactor={"385749","789e67","bbd88a","f0f5bb"},coolant_mixer={"34566d","6099bb","9bdbde","e8fcf3"},harvest_crystal={"375e54","6eaa83","b7dca4","f0f2c0"}}
 local defaultCore={"5d3a9a","8d6acc","a678f1","e2bfff"}
@@ -28,14 +42,16 @@ local glyphs={
  mana_forge={"#####","..#..",".###.","#####",".###."},mana_beacon={"..#..",".#.#.","#.#.#",".#.#.","..#.."},
  wind_generator={"..#..","..#..",".###.","#.#.#","..#.."},turbine_generator={"..##.","#.#..",".###.","..#.#",".##.."}}
 for _,family in ipairs(familyNames) do for tier=1,5 do for _,state in ipairs({"","_linked","_active"}) do
- local stone=tierStone[tier]
+ local palette=technologyPalettes[technologyTier(family,tier)]
+ local stone={shadeTechnology(palette[2],.15),shadeTechnology(palette[2],.23),shadeTechnology(palette[2],.34),shadeTechnology(palette[2],.50),shadeTechnology(palette[2],.70)}
+ local gold={palette[1],shadeTechnology(palette[2],.75),palette[2],shadeTechnology(palette[2],1.12),palette[3],palette[3]}
  begin(32);layer("02 / tier stone and white stripe inlay")
  for y=0,15 do for x=0,15 do local band=2+((math.floor(x/4)+math.floor(y/3))%3);px(x,y,stone[band]) end end
  line(0,0,15,0,stone[4]);line(0,1,0,15,stone[4]);line(1,15,15,15,stone[1]);line(15,1,15,15,stone[1])
  line(3,5,9,5,stone[1]);line(9,5,12,2,stone[1]);line(7,10,12,10,stone[5]);px(13,9,stone[5])
  if tier==1 then for y=2,13 do for x=2,13 do local stripe=(x+y)%12;if stripe==0 then px(x,y,"e5eaf0") elseif stripe==1 then px(x,y,"aebac7") end end end end
- -- Atlas quadrant 2: gold, quadrant 3: cut crystal, quadrant 4: small rune.
- layer("03 / warm gilded edges")
+ -- Atlas quadrant 2: technology metal, quadrant 3: functional crystal, quadrant 4: rune.
+ layer("03 / technology metal edges")
  for y=0,15 do for x=16,31 do px(x,y,gold[2+((x+math.floor(y/4))%3)]) end end
  line(16,0,31,0,gold[6]);line(16,1,16,15,gold[5]);line(17,15,31,15,gold[1]);line(31,1,31,15,gold[1])
  for _,p in ipairs({{19,3},{26,7},{22,12}}) do px(p[1],p[2],gold[6]);px(p[1]+1,p[2]+1,gold[1]) end

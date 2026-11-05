@@ -21,16 +21,19 @@ public final class CareerProfilesClient {
     public static void context(JsonObject request){if(view!=null&&!request.has("profileId")){request.addProperty("profileId",active());request.addProperty("profileRevision",revision());}}
     public static boolean occupied(String job){if(view==null)return false;for(var value:view.getAsJsonArray("entries"))if(value.getAsJsonObject().get("job").getAsString().equals(job))return true;return false;}
     private static void select(String id){var ui=ClientUi.current();ui.upload();var request=ui.operation("switchProfile");request.addProperty("target",id);ui.send("progress",request);}
+    private static void selectSlot(int slot){var ui=ClientUi.current();ui.upload();var request=ui.operation("openProfileSlot");request.addProperty("slot",slot);ui.send("progress",request);}
     public static void render(PlayerPageSurface page){
         if(view==null)return;
         var rows=new ArrayList<PlayerPageSurface.SidebarRow>();var entries=view.getAsJsonArray("entries");
         for(var value:entries){var row=value.getAsJsonObject();String id=row.get("id").getAsString(),name=row.get("name").getAsString();String detail=JobCatalog.require(row.get("job").getAsString()).title()+" Lv."+row.get("level").getAsInt();boolean current=id.equals(active());rows.add(new PlayerPageSurface.SidebarRow(name,detail,current,()->select(id),()->Minecraft.getInstance().gui.setScreen(new RenameScreen(page.screen(),id,name))));}
-        int capacity=view.get("capacity").getAsInt();for(int i=rows.size();i<capacity;i++)rows.add(new PlayerPageSurface.SidebarRow("未创建","使用职业重置券创建",false,null,null));
-        String title="职业配置 "+entries.size()+"/"+capacity;
+        int capacity=view.get("capacity").getAsInt();boolean unlocked=view.has("unlocked")&&view.get("unlocked").getAsBoolean();
+        if(unlocked){for(int i=rows.size();i<capacity;i++){int slot=i;rows.add(new PlayerPageSurface.SidebarRow("职业配置"+(i+1),"未选择职业 Lv.20",false,()->selectSlot(slot),null));}}
+        else rows.add(new PlayerPageSurface.SidebarRow("职业栏系统","20级转职后解锁",false,null,null));
+        String title=unlocked?"职业栏 "+capacity+"栏":"职业栏系统";
         if(page.hasSidebar())page.sidebarRows(title,List.copyOf(rows));
         else{
             page.line(title,UiTheme.GOLD);
-            for(var row:rows){int y=page.cursor();if(row.select()==null)page.line(row.title()+"："+row.detail(),UiTheme.MUTED);else{var button=page.button((row.selected()?"当前 · ":"")+row.title()+" · "+row.detail(),0,y,Math.max(80,page.contentWidth()-82),row.select());button.active=!row.selected();page.button("改名",page.contentWidth()-76,y,52,row.rename());page.cursor(y+24);}}
+            for(var row:rows){int y=page.cursor();if(row.select()==null)page.line(row.title()+"："+row.detail(),UiTheme.MUTED);else{var button=page.button((row.selected()?"当前 · ":"")+row.title()+" · "+row.detail(),0,y,Math.max(80,page.contentWidth()-82),row.select());button.active=!row.selected();if(row.rename()!=null)page.button("改名",page.contentWidth()-76,y,52,row.rename());page.cursor(y+24);}}
             page.gap();
         }
         page.line("切换需副本、训练外脱战，结束施法与全部技能冷却。",UiTheme.MUTED);

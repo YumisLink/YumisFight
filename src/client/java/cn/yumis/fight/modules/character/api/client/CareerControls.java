@@ -17,7 +17,7 @@ public final class CareerControls {
             String id=job.id();int x=(index%columns)*(w+8),y=base+(index/columns)*122;index++;
             String icon=id.equals(JobCatalog.DEMON_HUNTER)?"textures/gui/skills/metamorphosis.png":"textures/gui/jobs/"+(id.equals(JobCatalog.MAGE)?"mage":"ghost_swordsman")+".png";
             page.card(x,y,w,112);page.icon(icon,x+(w-40)/2,y+8,40);page.text(job.title(),x+8,y+56,UiTheme.GOLD);
-            page.button("选择",x+8,y+78,w-16,()->confirm(page,"选择"+job.title()+"？","这套配置的基础职业选定后不可更换；职业重置券用于新增配置。",()->choose("chooseJob",id)));
+            page.button("选择",x+8,y+78,w-16,()->confirm(page,"选择"+job.title()+"？","这套配置的基础职业选定后不可更换。",()->choose("chooseJob",id)));
         }
         page.cursor(base+((index+columns-1)/columns)*122);return true;
     }
@@ -32,10 +32,10 @@ public final class CareerControls {
         }
     }
     public static void register(cn.yumis.fight.architecture.CommandRouter<Void,com.google.gson.JsonObject> router){
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{var stack=event.getItemStack();if(!cn.yumis.fight.platform.ItemData.own(stack))return;String id=cn.yumis.fight.platform.ItemData.id(stack);if(id.equals(CharacterItems.PROFESSION_RESET))event.getToolTip().add(Component.literal("当前配置至少20级且已转职时，消耗后新增20级配置；容量8，原配置保留，新配置不赠送武器。"));if(id.equals(CharacterItems.LEVEL_ONE)||id.equals(CharacterItems.LEVEL_TEN)||id.equals(CharacterItems.LEVEL_MAX))event.getToolTip().add(Component.literal((id.equals(CharacterItems.LEVEL_MAX)?"直升当前满级（"+CharacterRules.MAX_LEVEL+"级），等级上限开放后自动跟随。":id.equals(CharacterItems.LEVEL_TEN)?"当前配置提升10级，最多升至满级，消耗整张券。":"当前配置提升1级，最多升至满级。")+"经验清零，正常补发属性点和SP；满级不消耗。需副本、训练外脱战，无施法且全部冷却结束。"));if(id.equals(CharacterItems.CAREER_UNLOCK))event.getToolTip().add(Component.literal("20级可用，无职业前置；永久解锁所有职业的转职资格，已有资格不消耗。"));if(id.equals(CharacterItems.AWAKENING))event.getToolTip().add(Component.literal("50级可用，无职业前置；全角色配置共享觉醒资格；每套仍需50级自行学习觉醒技能。"));});
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{var stack=event.getItemStack();if(!cn.yumis.fight.platform.ItemData.own(stack))return;String id=cn.yumis.fight.platform.ItemData.id(stack);if(id.equals(CharacterItems.PROFILE_EXPANSION))event.getToolTip().add(Component.literal("职业配置容量永久增加1；解锁后新增栏位可直接使用。需副本、训练外脱战，无施法且全部冷却结束。"));if(id.equals(CharacterItems.LEVEL_ONE)||id.equals(CharacterItems.LEVEL_TEN)||id.equals(CharacterItems.LEVEL_MAX))event.getToolTip().add(Component.literal((id.equals(CharacterItems.LEVEL_MAX)?"直升当前满级（"+CharacterRules.MAX_LEVEL+"级），等级上限开放后自动跟随。":id.equals(CharacterItems.LEVEL_TEN)?"当前配置提升10级，最多升至满级，消耗整张券。":"当前配置提升1级，最多升至满级。")+"经验清零，正常补发属性点和SP；满级不消耗。需副本、训练外脱战，无施法且全部冷却结束。"));if(id.equals(CharacterItems.CAREER_UNLOCK))event.getToolTip().add(Component.literal("20级可用，无职业前置；永久解锁所有职业的转职资格，已有资格不消耗。"));if(id.equals(CharacterItems.AWAKENING))event.getToolTip().add(Component.literal("50级可用，无职业前置；全角色配置共享觉醒资格；每套仍需50级自行学习觉醒技能。"));});
         router.register("character","characterTicketConfirm",(ignored,j)->{
             var mc=Minecraft.getInstance();var parent=mc.gui.screen();String kind=j.get("kind").getAsString();
-            mc.gui.setScreen(new ThemedConfirmScreen(yes->{mc.gui.setScreen(parent);if(yes){var ui=ClientUi.current();ui.upload();var request=ui.operation(kind);request.add("token",j.get("token"));request.add("profileId",j.get("profileId"));request.add("profileRevision",j.get("profileRevision"));ui.send("progress",request);}},Component.literal(kind.equals("createProfile")?"创建20级职业配置？":"使用升级券？"),Component.literal(j.get("text").getAsString()),ThemeDomain.MENU));
+            mc.gui.setScreen(new ThemedConfirmScreen(yes->{mc.gui.setScreen(parent);if(yes){var ui=ClientUi.current();ui.upload();var request=ui.operation(kind);request.add("token",j.get("token"));request.add("profileId",j.get("profileId"));request.add("profileRevision",j.get("profileRevision"));ui.send("progress",request);}},Component.literal(kind.equals("expandProfile")?"拓展职业配置容量？":"使用升级券？"),Component.literal(j.get("text").getAsString()),ThemeDomain.MENU));
         });
     }
 }

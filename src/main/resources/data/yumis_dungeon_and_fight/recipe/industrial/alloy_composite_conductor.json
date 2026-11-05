@@ -1,7 +1,7 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mana_forge",
-  "minimum_tier": 3,
+  "minimum_tier": 4,
   "ingredients": [
     {
       "ingredient": "yumis_dungeon_and_fight:mithril_niobium_alloy",
@@ -25,5 +25,5 @@
     }
   ],
   "ticks": 800,
-  "energy": 819200
+  "energy": 50000
 }

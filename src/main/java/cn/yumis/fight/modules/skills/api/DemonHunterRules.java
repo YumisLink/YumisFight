@@ -15,7 +15,7 @@ public final class DemonHunterRules {
     }
     public static Stats current(Stats source,Progress progress,DemonHunterState state,long now){
         if(!progress.baseJob().equals(JobCatalog.DEMON_HUNTER))return source;
-        var result=source.copy();if(result.weaponType.equals("WARGLAIVE")){result.modifiers.put("basicSlashes",2d);result.modifiers.put("basicStrikeCoefficient",.5);result.modifiers.put("basicDark",1d);}
+        var result=source.copy();if(result.weaponType.equals("WARGLAIVE")){result.modifiers.put("basicSlashes",2d);result.modifiers.put("basicStrikeCoefficient",.5);result.modifiers.put("basicContactOffset",.25);result.modifiers.put("basicDark",1d);}
         return state.metamorphosisUntil>now?transformed(result):result;
     }
     public static boolean sight(Stats stats,Progress progress){return SkillLearning.effective(stats,progress,SkillCatalog.require(DemonHunterSkills.SIGHT))>0;}

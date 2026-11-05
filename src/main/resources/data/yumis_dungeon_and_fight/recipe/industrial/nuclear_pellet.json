@@ -1,0 +1,20 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "forming_assembler",
+  "minimum_tier": 4,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:enriched_uranium",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:nuclear_pellet",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 200,
+  "energy": 75000
+}

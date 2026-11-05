@@ -22,6 +22,8 @@ public final class SkillVisualRegistry {
         default int defaultColor(){return SkillVisualEvent.CYAN;}
         default long finishedUntil(Track track,SkillVisualEvent event){return event.at()+500;}
         default void tick(Track track,long time){}
+        /** True when content consumes its own cosmetic motion snapshot. */
+        default boolean motion(Track track,com.google.gson.JsonObject motion){return false;}
         default void render(LevelRenderContext context,Track track,long age,long time,List<Quad> quads,Vec3 camera){}
         default void play(SkillVisualEvent event){}
         default void animate(Track track,Player player,EntityRenderState state,long time){}

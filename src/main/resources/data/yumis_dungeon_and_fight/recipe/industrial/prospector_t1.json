@@ -2,14 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "BBC",
-    "CCC"
+    " C ",
+    "MGM",
+    " C "
   ],
   "key": {
-    "A": "minecraft:compass",
-    "B": "minecraft:copper_ingot",
-    "C": "yumis_dungeon_and_fight:energy_crystal_1"
+    "C": "yumis_dungeon_and_fight:energy_crystal_1",
+    "M": "minecraft:copper_ingot",
+    "G": "minecraft:compass"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:prospector_t1",

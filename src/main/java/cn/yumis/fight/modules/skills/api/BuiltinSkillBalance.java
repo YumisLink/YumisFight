@@ -33,11 +33,11 @@ final class BuiltinSkillBalance {
         });
         add(SkillCatalog.STORM,10,(s,r,c)->{var p=s.parameters(r);double duration=p.get("duration");var out=new ArrayList<Hit>();for(int i=0;i<24;i++)out.add(hit(duration*.125+i*duration*.75/24,p.get("damage")));out.add(hit(duration*.9,p.get("finisher")));return out;});
         SkillBalance.register(SkillCatalog.require(CareerSkills.SOUL_SLASH),new SkillBalanceProfile(.5,6,false,false,0,(s,r,c)->List.of(hit(1,s.parameters(r).get("damage")))));
-        SkillBalance.register(SkillCatalog.require(CareerSkills.FIELD),new SkillBalanceProfile(2,0,false,false,0,(s,r,c)->{var out=new ArrayList<Hit>();var p=s.parameters(r);for(int i=1;i<=12;i++){if(r>=8)out.add(dot(i,p.get("iceDot")));if(r>=15)out.add(dot(i,p.get("darkDot")));}return out;}));
-        career(CareerSkills.TOMBSTONE,3,(s,r,c)->{var out=new ArrayList<Hit>();for(int i=1;i<=10;i++)out.add(hit(i*.2,s.parameters(r).get("damage")));return out;});
-        career(CareerSkills.PHANTOM,4,(s,r,c)->List.of(hit(.125,s.parameters(r).get("damage"))));
-        career(CareerSkills.KALLA,5,BuiltinSkillBalance::kalla);
-        SkillBalance.register(SkillCatalog.require(CareerSkills.BLACHE),new SkillBalanceProfile(10,0,true,true,CareerSkills.blacheMut(9),(s,r,c)->List.of(hit(1.2,s.parameters(r).get("damage")))));
+        SkillBalance.register(SkillCatalog.require(CareerSkills.FIELD),new SkillBalanceProfile(2.4,0,false,false,0,(s,r,c)->{var out=new ArrayList<Hit>();var p=s.parameters(r);for(int i=1;i<=12;i++){if(r>=8)out.add(dot(i,p.get("iceDot")));if(r>=15)out.add(dot(i,p.get("darkDot")));}return out;}));
+        career(CareerSkills.TOMBSTONE,3.6,(s,r,c)->{var out=new ArrayList<Hit>();for(int i=1;i<=10;i++)out.add(hit(i*.2,s.parameters(r).get("damage")));return out;});
+        career(CareerSkills.PHANTOM,4.8,(s,r,c)->List.of(hit(.125,s.parameters(r).get("damage"))));
+        career(CareerSkills.KALLA,6,BuiltinSkillBalance::kalla);
+        SkillBalance.register(SkillCatalog.require(CareerSkills.BLACHE),new SkillBalanceProfile(12,0,true,true,CareerSkills.blacheMut(9),(s,r,c)->List.of(hit(1.2,s.parameters(r).get("damage")))));
         career(CareerSkills.ORB,2,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();int count=CareerSkills.orbHits(3);double damage=(p.get("damage")+3*p.get("perBrandDamage"))/count;for(int i=1;i<=count;i++)out.add(hit(.15+i*.35,damage));return out;});
         career(CareerSkills.CRESCENT,2,(s,r,c)->{var out=new ArrayList<Hit>();for(int i=0;i<3;i++)out.add(hit(1.1+i*.05,s.parameters(r).get("damage")));return out;});
         career(CareerSkills.ICE,3,(s,r,c)->{var out=new ArrayList<Hit>();for(int i=0;i<3;i++)out.add(hit(.1+i*.2,s.parameters(r).get("damage")));return out;});
@@ -51,13 +51,8 @@ final class BuiltinSkillBalance {
         career(CareerSkills.ERUPTION,5,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();out.add(hit(.6,p.get("finisher")));for(int i=0;i<4;i++)out.add(hit(.6+i*.2,p.get("damage")));return out;});
         career(CareerSkills.SWORD,10,(s,r,c)->{var p=s.parameters(r);double total=p.get("damage")+15*p.get("perBloodDamage"),delay=14*Math.max(.5,SkillBalance.basicInterval(c,true));var out=new ArrayList<Hit>();out.add(hit(delay+.3,total*.3));for(int i=0;i<5;i++)out.add(hit(delay+.6+i*.3,total*.7/5));return out;});
         SkillBalance.registerParameters(SkillCatalog.require(CareerSkills.EYE),values->values.put("eyeBonusMut",eyeBonus()));
-        SkillBalance.registerVariant(SkillCatalog.GHOST,(input,progress,stats)->{
-            var values=new LinkedHashMap<>(input.values());var skill=SkillCatalog.require(CareerSkills.SOUL_SLASH);int rank=SkillLearning.effective(stats,progress,skill);
-            if(rank>0){values.put("soulBonus",SkillParameters.resolve(skill,rank,stats.parameters).get("damage",0));if(stats.modifiers.getOrDefault("ownGhostField",0d)>0)values.put("ghostFieldMultiplier",2/redMultiplier());}
-            return new SkillParameters.Snapshot(input.skill(),input.rank(),values);
-        });
     }
-    private static double redMultiplier(){return (1+133*1.18/100)/(1+133d/100);}
+    static double redMultiplier(){return (1+133*1.18/100)/(1+133d/100);}
     private static void styles(){
         SkillBalance.registerStyle(JobCatalog.NONE,new SkillBalanceStyle("KATANA",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));
         SkillBalance.registerStyle(JobCatalog.SUMMONER,new SkillBalanceStyle("STAFF",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));

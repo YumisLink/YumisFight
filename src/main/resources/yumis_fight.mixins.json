@@ -60,6 +60,7 @@
     "AvatarRendererMixin",
     "ContainerScreenSizeAccessor",
     "DemonInputMixin",
+    "DemonTravelMixin",
     "DemonVisionMixin",
     "WarglaiveHandMixin"
   ]

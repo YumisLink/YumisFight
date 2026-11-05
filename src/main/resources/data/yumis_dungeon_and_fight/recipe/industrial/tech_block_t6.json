@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:stellar_alloy",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:confinement_lattice",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:superconducting_control",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:tech_block_t6",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 400,
+  "energy": 125000
+}

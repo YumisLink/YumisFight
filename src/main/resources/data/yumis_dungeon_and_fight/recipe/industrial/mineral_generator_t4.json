@@ -2,14 +2,15 @@
   "type": "yumis_dungeon_and_fight:machine_upgrade",
   "category": "misc",
   "pattern": [
-    "ABC",
-    "D  "
+    " C ",
+    "FMF",
+    " S "
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:mineral_generator_t3",
-    "B": "yumis_dungeon_and_fight:industrial_upgrade_4",
-    "C": "yumis_dungeon_and_fight:heatproof_frame",
-    "D": "yumis_dungeon_and_fight:mana_component"
+    "C": "yumis_dungeon_and_fight:machine_casing_t4",
+    "M": "yumis_dungeon_and_fight:mineral_generator_t3",
+    "F": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:heatproof_frame"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:mineral_generator_t4",

@@ -26,10 +26,19 @@ public final class CareerProfiles {
         var source=JSON.toJsonTree(current).getAsJsonObject();for(String key:GROWTH)source.add(key,destination.growth.get(key).deepCopy());
         Progress next=JSON.fromJson(source,Progress.class);entries.get(activeId).growth=growth(current);destination.growth=null;activeId=target;revision=Math.addExact(revision,1);return next;
     }
-    public Progress create(Progress current){
-        if(entries.size()>=capacity)throw new IllegalArgumentException("职业配置已满，当前最多"+capacity+"套");
-        var next=new Progress();next.gainLevels(19);next.starterGranted=true;next.completedJobQuests=new LinkedHashSet<>(current.completedJobQuests);next.awakened=current.awakened;
-        entries.get(activeId).growth=growth(current);activeId=UUID.randomUUID().toString();entries.put(activeId,new Entry("职业配置"+(entries.size()+1),null));revision=Math.addExact(revision,1);return next;
+    public boolean unlocked(Progress current){
+        if(current.selected()&&!JobCatalog.basic(current.jobId()))return true;
+        for(var entry:entries.values())if(entry.growth!=null){String job=entry.growth.get("job").getAsString();if(!job.equals(JobCatalog.NONE)&&!JobCatalog.basic(job))return true;}
+        return false;
+    }
+    public void fillSlots(){
+        boolean added=false;
+        while(entries.size()<capacity){var next=new Progress();next.gainLevels(19);next.starterGranted=true;entries.put(UUID.randomUUID().toString(),new Entry("职业配置"+(entries.size()+1),growth(next)));added=true;}
+        if(added)revision=Math.addExact(revision,1);
+    }
+    public void expand(Progress current){
+        if(capacity==Integer.MAX_VALUE)throw new IllegalArgumentException("职业配置容量已达上限，未消耗券");
+        capacity++;revision=Math.addExact(revision,1);if(unlocked(current))fillSlots();
     }
     public boolean occupied(String job){return entries.values().stream().anyMatch(e->e.growth!=null&&e.growth.get("job").getAsString().equals(job));}
     public void requireCurrent(JsonObject request){if(!request.has("profileId")||!request.has("profileRevision")||!activeId.equals(request.get("profileId").getAsString())||revision!=request.get("profileRevision").getAsLong())throw new IllegalArgumentException("职业配置已切换，请刷新后操作");}
@@ -50,7 +59,7 @@ public final class CareerProfiles {
         JobCatalog.require(p.jobId());for(String slot:p.slots)if(slot==null)throw new IllegalStateException("技能配置存档不完整");
     }
     public JsonObject view(Progress active){
-        var result=new JsonObject();result.addProperty("schema",1);result.addProperty("activeId",activeId);result.addProperty("revision",revision);result.addProperty("capacity",capacity);var rows=new JsonArray();
+        var result=new JsonObject();result.addProperty("schema",1);result.addProperty("activeId",activeId);result.addProperty("revision",revision);result.addProperty("capacity",capacity);result.addProperty("unlocked",unlocked(active));var rows=new JsonArray();
         for(var pair:entries.entrySet()){var e=pair.getValue();boolean selected=pair.getKey().equals(activeId);var row=new JsonObject();row.addProperty("id",pair.getKey());row.addProperty("name",e.name);row.addProperty("level",selected?active.level:e.growth.get("level").getAsInt());row.addProperty("job",selected?active.jobId():e.growth.get("job").getAsString());rows.add(row);}result.add("entries",rows);return result;
     }
 }

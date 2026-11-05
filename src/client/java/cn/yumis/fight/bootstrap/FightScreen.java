@@ -270,7 +270,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
             g.text(font,shortSidebar(row.title(),sidebar-40),left+15,y+5,row.select()==null?UiTheme.MUTED:row.selected()?UiTheme.ACCENT:UiTheme.TEXT,false);
             g.text(font,shortSidebar(row.detail(),sidebar-24),left+15,y+18,UiTheme.MUTED,false);
             if(row.rename()!=null)g.text(font,"改",left+sidebar-15,y+5,UiTheme.MUTED,false);
-            if(insideSidebar(mx,my)&&my>=y&&my<y+31)g.setComponentTooltipForNextFrame(font,List.of(Component.literal(row.title()),Component.literal(row.detail()),Component.literal(row.select()==null?"当前配置至少20级且已转职后，使用职业重置券创建。":"左键切换 · 右键或点击“改”重命名")),mx,my);
+            if(insideSidebar(mx,my)&&my>=y&&my<y+31)g.setComponentTooltipForNextFrame(font,List.of(Component.literal(row.title()),Component.literal(row.detail()),Component.literal(row.select()==null?"20级转职后解锁职业栏。":"左键切换 · 右键或点击“改”重命名")),mx,my);
         }
         g.disableScissor();if(sidebarRows.size()*34>height){int thumb=Math.max(8,height*height/(sidebarRows.size()*34)),y=start+(height-thumb)*sidebarScroll/Math.max(1,sidebarRows.size()*34-height);g.fill(left+sidebar+4,y,left+sidebar+6,y+thumb,UiTheme.MUTED);}
     }

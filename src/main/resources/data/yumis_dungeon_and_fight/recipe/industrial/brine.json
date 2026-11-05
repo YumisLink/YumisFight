@@ -1,0 +1,19 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "thermal_distiller",
+  "minimum_tier": 2,
+  "ingredients": [],
+  "results": [],
+  "fluid_inputs": [
+    {
+      "ingredient": "minecraft:water",
+      "amount": 1000
+    }
+  ],
+  "ticks": 200,
+  "energy": 1000,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:brine",
+    "amount": 1000
+  }
+}

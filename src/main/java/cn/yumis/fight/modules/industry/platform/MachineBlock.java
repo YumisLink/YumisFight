@@ -11,6 +11,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.phys.shapes.*;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.*;
@@ -29,6 +31,12 @@ public final class MachineBlock extends BaseEntityBlock {
     @Override protected MapCodec<? extends BaseEntityBlock> codec(){return simpleCodec(p->new MachineBlock(initial,p));}
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block,BlockState> b){b.add(TIER,FACING,CONNECTED,ACTIVE);}
     @Override public BlockEntity newBlockEntity(BlockPos pos,BlockState state){return new MachineBlockEntity(pos,state);}
+    @Override protected VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){
+        // Minecraft initializes every tier state, including tiers this device does not define.
+        var spec=IndustrialContent.spec(initial.device(),state.getValue(TIER));
+        return IndustrialShapes.machine(spec!=null?spec:initial,state.getValue(FACING));
+    }
+    @Override protected VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return getShape(state,level,pos,context);}
     @Override public BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext c){
         if(initial.device().has(DeviceType.Capability.WIND)){if(c.getClickedPos().getY()+2>c.getLevel().getMaxY())return null;for(int i=1;i<=2;i++)if(!c.getLevel().getBlockState(c.getClickedPos().above(i)).canBeReplaced(c))return null;}
         return defaultBlockState().setValue(FACING,c.getHorizontalDirection().getOpposite());

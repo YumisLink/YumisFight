@@ -2,14 +2,15 @@
   "type": "yumis_dungeon_and_fight:machine_upgrade",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    " C ",
+    "FMF",
+    " S "
   ],
   "key": {
-    "C": "yumis_dungeon_and_fight:energy_crystal_2",
-    "M": "#c:gems/diamond",
-    "X": "yumis_dungeon_and_fight:harvest_crystal_t1"
+    "C": "yumis_dungeon_and_fight:machine_casing_t2",
+    "M": "yumis_dungeon_and_fight:harvest_crystal_t1",
+    "F": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:basic_frame"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:harvest_crystal_t2",

@@ -2,14 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABC",
-    "CD "
+    " S ",
+    "ACA",
+    " S "
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:control_component",
-    "B": "yumis_dungeon_and_fight:mana_superconductor",
-    "C": "yumis_dungeon_and_fight:spacetime_ingot",
-    "D": "yumis_dungeon_and_fight:energy_crystal_5"
+    "S": "yumis_dungeon_and_fight:spacetime_ingot",
+    "A": "yumis_dungeon_and_fight:mana_superconductor",
+    "C": "yumis_dungeon_and_fight:control_component"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:superconducting_control",

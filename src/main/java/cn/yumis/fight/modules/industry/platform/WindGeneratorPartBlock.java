@@ -18,8 +18,6 @@ import java.util.List;
 
 /** The two reserved upper cells of a wind generator; only the base owns inventory/energy. */
 public final class WindGeneratorPartBlock extends Block {
-    private static final VoxelShape MIDDLE_COLLISION=Shapes.or(Block.box(6,0,6,10,16,10),Block.box(5,2,5,11,3,11),Block.box(5,12,5,11,13,11));
-    private static final VoxelShape HEAD_COLLISION=Shapes.or(Block.box(6,0,6,10,11,10),Block.box(5,5,5,11,7,11),Block.box(4,11,4,12,13,12),Block.box(5,13,5,11,14,11),Block.box(7,14,7,9,16,9));
     public static final IntegerProperty PART=IntegerProperty.create("part",1,2);
     public static final EnumProperty<Direction> FACING=BlockStateProperties.HORIZONTAL_FACING;
     public WindGeneratorPartBlock(Properties properties){super(properties);registerDefaultState(stateDefinition.any().setValue(PART,1).setValue(FACING,Direction.NORTH));}
@@ -65,8 +63,8 @@ public final class WindGeneratorPartBlock extends Block {
         return super.playerWillDestroy(level,pos,state,player);
     }
     @Override protected List<ItemStack> getDrops(BlockState state,LootParams.Builder params){return List.of();}
-    @Override protected VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return state.getValue(PART)==1?Block.box(5,0,5,11,16,11):Block.box(0,0,3,16,16,13);}
-    @Override protected VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return state.getValue(PART)==1?MIDDLE_COLLISION:HEAD_COLLISION;}
+    @Override protected VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return IndustrialShapes.windPart(state.getValue(PART),state.getValue(FACING));}
+    @Override protected VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return getShape(state,level,pos,context);}
     @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){
         BlockPos base=base(level,pos);return level.getBlockState(base).useWithoutItem(level,player,new BlockHitResult(hit.getLocation(),hit.getDirection(),base,hit.isInside()));
     }

@@ -38,6 +38,7 @@ public final class FightMod {
         cn.yumis.fight.modules.character.platform.CharacterContent.register();
         cn.yumis.fight.bootstrap.ApplicationModules.REGISTRY.order();
         cn.yumis.fight.modules.industry.platform.IndustrialContent.register(bus);
+        bus.addListener(cn.yumis.fight.bootstrap.IndustrialItemDisplay::names);
         cn.yumis.fight.modules.inventory.api.InventoryMenuPorts.install(
             ()->cn.yumis.fight.modules.industry.platform.IndustrialContent.STORAGE_MENU.get(),
             (player,tier)->{
@@ -67,7 +68,10 @@ public final class FightMod {
         catch(Exception e){
             throw new IllegalStateException("无法扩大生命属性容量",e);
         }
-        NeoForge.EVENT_BUS.addListener((ServerStartedEvent e)->ServerApplication.start(e.getServer()));
+        NeoForge.EVENT_BUS.addListener((ServerStartedEvent e)->{
+            if(e.getServer() instanceof net.minecraft.server.dedicated.DedicatedServer dedicated&&!dedicated.allowFlight())dedicated.setAllowFlight(true);
+            ServerApplication.start(e.getServer());
+        });
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e)->ServerApplication.stop());
         ServerApplication.registerEvents();
     }

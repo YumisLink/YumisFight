@@ -120,6 +120,7 @@ public final class SkillVfx {
     /** Semantic motion parameters are sent once at release/segment/lock; frames never wait for trail packets. */
     public void motion(UUID cast,int sequence,com.google.gson.JsonObject value){
         Track track=tracks.get(cast);if(track==null||track.sequence!=sequence||value==null)return;
+        if(SkillVisualRegistry.handler(track.start.skill()).motion(track,value))return;
         var event=track.last;double velocity=value.has("velocity")?value.get("velocity").getAsDouble():0,range=value.has("range")?value.get("range").getAsDouble():0;
         long millis=value.has("millis")?value.get("millis").getAsLong():0;int targetEntity=value.has("targetEntity")?value.get("targetEntity").getAsInt():-1;
         UUID target=value.has("target")?UUID.fromString(value.get("target").getAsString()):null;
@@ -194,6 +195,7 @@ public final class SkillVfx {
         cameraCast=null;
         previousCamera=null;
     }
+    public void completeCamera(UUID cast){if(cast.equals(cameraCast))endCamera(true);}
     public void clear(){
         endCamera(false);
         tracks.clear();

@@ -65,7 +65,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.register();
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
-        cn.yumis.fight.modules.industry.client.ManaWandClient.register(bus);
+        cn.yumis.fight.modules.industry.client.ManaWandClient.register(bus,stack->{var rarity=IndustrialItemDisplay.rarity(stack);return rarity==null?null:rarity.color();});
         cn.yumis.fight.modules.skills.client.SkillTooltip.register(bus);
         ClientSettings.load();
         UiTheme.load();

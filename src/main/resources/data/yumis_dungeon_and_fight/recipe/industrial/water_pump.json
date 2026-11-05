@@ -2,17 +2,16 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "CCD",
-    "DEF"
+    " C ",
+    "GSG",
+    "MBM"
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:basic_frame",
-    "B": "minecraft:copper_ingot",
-    "C": "minecraft:iron_ingot",
-    "D": "yumis_dungeon_and_fight:energy_crystal_1",
-    "E": "minecraft:piston",
-    "F": "minecraft:bucket"
+    "C": "yumis_dungeon_and_fight:energy_crystal_1",
+    "G": "minecraft:glass",
+    "S": "yumis_dungeon_and_fight:machine_casing_t1",
+    "M": "minecraft:copper_ingot",
+    "B": "minecraft:piston"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:water_pump",

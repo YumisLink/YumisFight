@@ -2,12 +2,13 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "BB "
+    " S ",
+    "SFS",
+    " S "
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:basic_frame",
-    "B": "yumis_dungeon_and_fight:vanadium_steel"
+    "S": "yumis_dungeon_and_fight:vanadium_steel",
+    "F": "yumis_dungeon_and_fight:basic_frame"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:reinforced_frame",

@@ -2,13 +2,13 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "AAA",
-    "ABB",
-    "BB "
+    "ICI",
+    "C C",
+    "ICI"
   ],
   "key": {
-    "A": "minecraft:iron_ingot",
-    "B": "minecraft:copper_ingot"
+    "I": "minecraft:iron_ingot",
+    "C": "minecraft:copper_ingot"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:basic_frame",

@@ -1,15 +1,26 @@
 package cn.yumis.fight.modules.skills.api;
 
 import cn.yumis.fight.modules.character.api.JobCatalog;
+import cn.yumis.fight.modules.character.api.Progress;
 import java.util.*;
 
 /** Mage content and its reference choreography. Families are not random affix releases. */
 public final class MageSkills {
     private static final String NS="yumis_dungeon_and_fight:";
     public static final String STAR=NS+"magic_star",FANG=NS+"dragon_fang",JACK=NS+"jack_bomb",HERDER=NS+"herder";
+    private static final Map<String,Map<String,Double>> CAREER_SCALES=new LinkedHashMap<>();
     private MageSkills(){}
     public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id)||SummonerSkills.contains(id)||SunMoonSkills.contains(id);}
     public static SkillDefinition skill(String id){return SkillCatalog.require(id);}
+    static void careerScales(String job,double ordinary,double herder){
+        if(CAREER_SCALES.putIfAbsent(job,Map.of(STAR,ordinary,FANG,ordinary,JACK,ordinary,HERDER,herder))!=null)throw new IllegalArgumentException("Duplicate mage career scale: "+job);
+    }
+    private static SkillParameters.Snapshot careerDamage(SkillParameters.Snapshot input,Progress progress){
+        double scale=CAREER_SCALES.getOrDefault(progress.jobId(),Map.of()).getOrDefault(input.skill().id,1d);
+        if(scale==1)return input;
+        var values=new LinkedHashMap<>(input.values());for(String key:input.skill().damageParameters())values.computeIfPresent(key,(k,v)->v*scale);
+        return new SkillParameters.Snapshot(input.skill(),input.rank(),values);
+    }
     static void install(){
         add(STAR,"魔法星弹","MAGIC_CRAFT",1,.06,3,true,12,Map.of("pierces",3d));
         add(FANG,"龙牙","MARTIAL",5,12d/156,5,false,5,Map.of("width",1.5));
@@ -38,5 +49,6 @@ public final class MageSkills {
     static void balance(){
         for(String id:List.of(STAR,FANG,JACK))SkillBalance.register(skill(id),new SkillBalanceProfile(1,0,false,false,0,(s,r,c)->List.of(new SkillBalanceProfile.Hit(200,s.parameters(r).get("damage"),false))));
         SkillBalance.register(skill(HERDER),new SkillBalanceProfile(1,120,false,false,0,(s,r,c)->SummonMoves.cues(SummonKind.HERDER,r,120000,1).stream().map(a->new SkillBalanceProfile.Hit(a.at(),s.parameters(r).get(a.stone()?"stoneDamage":"damage")*a.share(),false)).toList()));
+        for(String id:List.of(STAR,FANG,JACK,HERDER))SkillBalance.registerVariant(skill(id),(input,progress,stats)->careerDamage(input,progress));
     }
 }

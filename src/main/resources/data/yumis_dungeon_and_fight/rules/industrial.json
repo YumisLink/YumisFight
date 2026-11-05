@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "beaconCapacity": 1000,
   "beaconRadii": [
     3,
@@ -37,9 +37,9 @@
     2147483647
   ],
   "transferEnergy": [
-    100,
-    1000,
-    10000
+    5,
+    25,
+    100
   ],
   "harvestSizes": [
     3,
@@ -47,7 +47,7 @@
     27
   ],
   "harvestPeriod": 500,
-  "harvestEnergy": 200,
+  "harvestEnergy": 20,
   "harvestCrops": [
     "minecraft:wheat",
     "minecraft:carrots",
@@ -184,12 +184,16 @@
       "fluid": "yumis_dungeon_and_fight:coolant"
     },
     "nuclear_reactor": {
-      "fluidPerSecond": 1000,
-      "fluid": "yumis_dungeon_and_fight:coolant"
+      "fluidPerSecond": 100000,
+      "fluid": "minecraft:water"
     },
     "rtg_generator": {
       "fluidPerSecond": 0,
       "fluid": ""
+    },
+    "artificial_star": {
+      "fluidPerSecond": 100000,
+      "fluid": "yumis_dungeon_and_fight:coolant"
     }
   },
   "windBaseHeight": 60,
@@ -236,7 +240,7 @@
   "miningCoolantRate": 40,
   "pumpAmount": 1000,
   "pumpInterval": 20,
-  "pumpEnergy": 100,
+  "pumpEnergy": 10,
   "fluidTransferAmounts": [
     1000,
     4000,
@@ -247,169 +251,169 @@
       "tier": 1,
       "chance": 35,
       "ticks": 300,
-      "power": 80,
       "item": "minecraft:raw_copper",
-      "count": 1
+      "count": 1,
+      "energy": 50
     },
     "coal": {
       "tier": 1,
       "chance": 30,
       "ticks": 400,
-      "power": 2000,
       "item": "minecraft:coal",
-      "count": 1
+      "count": 1,
+      "energy": 50
     },
     "iron": {
       "tier": 1,
       "chance": 15,
       "ticks": 400,
-      "power": 80,
       "item": "minecraft:raw_iron",
-      "count": 1
+      "count": 1,
+      "energy": 50
     },
     "lead": {
       "tier": 1,
       "chance": 12,
       "ticks": 400,
-      "power": 320,
       "item": "yumis_dungeon_and_fight:raw_lead",
-      "count": 1
+      "count": 1,
+      "energy": 80
     },
     "orichalcum": {
       "tier": 1,
       "chance": 12,
       "ticks": 500,
-      "power": 400,
       "item": "yumis_dungeon_and_fight:raw_orichalcum",
-      "count": 1
+      "count": 1,
+      "energy": 100
     },
     "gold": {
       "tier": 2,
       "chance": 8,
       "ticks": 600,
-      "power": 426,
       "item": "minecraft:raw_gold",
-      "count": 1
+      "count": 1,
+      "energy": 400
     },
     "redstone": {
       "tier": 2,
       "chance": 12,
       "ticks": 400,
-      "power": 640,
       "item": "minecraft:redstone",
-      "count": 4
+      "count": 4,
+      "energy": 512
     },
     "lapis": {
       "tier": 2,
       "chance": 10,
       "ticks": 400,
-      "power": 640,
       "item": "minecraft:lapis_lazuli",
-      "count": 4
+      "count": 4,
+      "energy": 512
     },
     "diamond": {
       "tier": 2,
       "chance": 4,
       "ticks": 1200,
-      "power": 854,
       "item": "minecraft:diamond",
-      "count": 1
+      "count": 1,
+      "energy": 1032
     },
     "vanadium": {
       "tier": 2,
       "chance": 10,
       "ticks": 600,
-      "power": 800,
       "item": "yumis_dungeon_and_fight:raw_vanadium",
-      "count": 1
+      "count": 1,
+      "energy": 800
     },
     "magic": {
       "tier": 2,
       "chance": 10,
       "ticks": 800,
-      "power": 1200,
       "item": "yumis_dungeon_and_fight:energy_crystal_3",
-      "count": 2
+      "count": 2,
+      "energy": 1440
     },
     "titanium": {
       "tier": 3,
       "chance": 6,
       "ticks": 1200,
-      "power": 2134,
       "item": "yumis_dungeon_and_fight:raw_titanium",
-      "count": 1
+      "count": 1,
+      "energy": 14418
     },
     "molybdenum": {
       "tier": 3,
       "chance": 8,
       "ticks": 1000,
-      "power": 2000,
       "item": "yumis_dungeon_and_fight:raw_molybdenum",
-      "count": 1
+      "count": 1,
+      "energy": 13500
     },
     "zirconium": {
       "tier": 3,
       "chance": 8,
       "ticks": 1000,
-      "power": 1800,
       "item": "yumis_dungeon_and_fight:raw_zirconium",
-      "count": 1
+      "count": 1,
+      "energy": 12150
     },
     "mithril": {
       "tier": 3,
       "chance": 5,
       "ticks": 1200,
-      "power": 3200,
       "item": "yumis_dungeon_and_fight:raw_mithril",
-      "count": 1
+      "count": 1,
+      "energy": 28800
     },
     "niobium_tantalum": {
       "tier": 4,
       "chance": 3,
       "ticks": 1600,
-      "power": 6400,
       "item": "yumis_dungeon_and_fight:raw_niobium_tantalum",
-      "count": 1
+      "count": 1,
+      "energy": 256000
     },
     "adamantite": {
       "tier": 4,
       "chance": 2,
       "ticks": 2000,
-      "power": 12800,
       "item": "yumis_dungeon_and_fight:raw_adamantite",
-      "count": 1
+      "count": 1,
+      "energy": 614400
     },
     "uranium": {
       "tier": 4,
       "chance": 2,
       "ticks": 2000,
-      "power": 10800,
       "item": "yumis_dungeon_and_fight:raw_uranium",
-      "count": 1
+      "count": 1,
+      "energy": 518400
     },
     "iridium": {
       "tier": 5,
       "chance": 1,
       "ticks": 2400,
-      "power": 25600,
       "item": "yumis_dungeon_and_fight:raw_iridium",
-      "count": 1
+      "count": 1,
+      "energy": 648000000
     },
     "cobblestone": {
       "tier": 1,
       "chance": 100,
       "ticks": 400,
-      "power": 80,
       "item": "minecraft:cobblestone",
-      "count": 1
+      "count": 1,
+      "energy": 1
     },
     "amethyst": {
       "tier": 2,
       "chance": 15,
       "ticks": 400,
-      "power": 320,
       "item": "minecraft:amethyst_shard",
-      "count": 2
+      "count": 2,
+      "energy": 400
     }
   },
   "processingLines": [
@@ -420,8 +424,8 @@
     16
   ],
   "fluidTransferOperationEnergy": [
-    100,
-    1000,
-    10000
+    5,
+    25,
+    100
   ]
 }

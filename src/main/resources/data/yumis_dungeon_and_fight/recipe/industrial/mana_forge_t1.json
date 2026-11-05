@@ -2,14 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    "MFM",
+    "CSC",
+    "MMM"
   ],
   "key": {
+    "M": "minecraft:copper_ingot",
+    "F": "minecraft:blast_furnace",
     "C": "yumis_dungeon_and_fight:energy_crystal_1",
-    "M": "#c:ingots/copper",
-    "X": "minecraft:blast_furnace"
+    "S": "yumis_dungeon_and_fight:machine_casing_t1"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:mana_forge_t1",

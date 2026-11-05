@@ -22,6 +22,6 @@ public final class WeaponSkills {
         }
         return AsuraRules.damage(SkillBalance.variant(new SkillParameters.Snapshot(input.skill(),input.rank(),values),p,s),p);
     }
-    public static BasicAttackProfile basicAttack(Progress progress,Stats stats){return new BasicAttackProfile(interval(progress,stats),Math.max((int)(double)stats.modifiers.getOrDefault("basicSlashes",1d),mastery(progress,stats)&&stats.weaponType.equals("LIGHTSABER")?2:1),SkillBalance.basicScale(progress.jobId(),stats.weaponType,stats.modifiers.getOrDefault("careerFrenzy",0d)>0));}
+    public static BasicAttackProfile basicAttack(Progress progress,Stats stats){return new BasicAttackProfile(interval(progress,stats),Math.max((int)(double)stats.modifiers.getOrDefault("basicSlashes",1d),mastery(progress,stats)&&stats.weaponType.equals("LIGHTSABER")?2:1),SkillBalance.basicScale(progress.jobId(),stats.weaponType,stats.modifiers.getOrDefault("careerFrenzy",0d)>0),stats.modifiers.getOrDefault("basicContactOffset",0d));}
     public static Stats basicSnapshot(Progress progress,Stats stats){var profile=basicAttack(progress,stats);Stats result=CareerRules.eyeDamage(stats,null).copy();result.modifiers.put("basicDamageScale",profile.damageScale());return result;}
 }

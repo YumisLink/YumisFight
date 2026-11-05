@@ -13,7 +13,7 @@ public final class CareerSkills {
     private static final Map<String,Content> CONTENT=new LinkedHashMap<>();
     private CareerSkills(){}
     static void install(){
-        AsuraRules.install();
+        AsuraRules.install();SoulBenderRules.install();
         add(KEIGA,"残影之凯贾",JobCatalog.SOUL_BENDER,"GHOST",20,0,0,0,true,3,0x8855cc,0,0,0,0,0,false,false,0);
         add(FIELD,"鬼神之阵",JobCatalog.SOUL_BENDER,"GHOST",20,.10,20,0,false,3,0x8b52be,5,1,0,1,12,false,false,0);
         add(SOUL_SLASH,"噬灵鬼斩",JobCatalog.SOUL_BENDER,"GHOST",25,0,0,2,true,3,0xb56ee8,3,0,0,0,0,false,false,0);

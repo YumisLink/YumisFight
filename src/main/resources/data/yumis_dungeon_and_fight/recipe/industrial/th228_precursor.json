@@ -1,0 +1,32 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:depleted_uranium",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_tantalum_ingot",
+      "count": 2
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_iridium_ingot",
+      "count": 1
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:zirconium_casing",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:th228_precursor",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 200,
+  "energy": 62500
+}

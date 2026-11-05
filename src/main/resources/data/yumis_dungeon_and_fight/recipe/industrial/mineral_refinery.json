@@ -2,16 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "CCC",
-    "CDE"
+    "MFM",
+    "CSC",
+    "MMM"
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:reinforced_frame",
-    "B": "yumis_dungeon_and_fight:mana_component",
-    "C": "yumis_dungeon_and_fight:vanadium_steel",
-    "D": "minecraft:bucket",
-    "E": "yumis_dungeon_and_fight:industrial_upgrade_2"
+    "M": "yumis_dungeon_and_fight:vanadium_steel",
+    "F": "minecraft:bucket",
+    "C": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:machine_casing_t2"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:mineral_refinery",

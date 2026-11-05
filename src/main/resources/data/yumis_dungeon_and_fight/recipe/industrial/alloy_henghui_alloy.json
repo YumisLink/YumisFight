@@ -1,7 +1,7 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mana_forge",
-  "minimum_tier": 4,
+  "minimum_tier": 5,
   "ingredients": [
     {
       "ingredient": "yumis_dungeon_and_fight:composite_conductor",
@@ -33,5 +33,5 @@
     }
   ],
   "ticks": 1200,
-  "energy": 6553600
+  "energy": 375000
 }

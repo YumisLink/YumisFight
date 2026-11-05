@@ -42,10 +42,8 @@ public final class ChantClient {
         if(!state.session().equals(session)||state.own().generation!=generation||state.own().dead||!state.progress().jobId().equals(job)||!mc.level.dimension().identifier().toString().equals(dimension)||!held.equals(weapon)||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||ClientUi.now()>until+3000)cancel();
     }
     public static void render(GuiGraphicsExtractor g,int width,int height){
-        if(!active()||skill==null)return;var player=Minecraft.getInstance().player;
-        int extra=player==null?0:(player.isUnderWater()||player.getAirSupply()<player.getMaxAirSupply()?10:0)+(player.isPassenger()?10:0);
-        int w=Math.min(170,width-16),x=(width-w)/2,y=Math.max(6,height-162-extra);double progress=Math.clamp((ClientUi.now()-start)/(double)Math.max(1,until-start),0,1);
-        UiTheme.hud(g,x,y,w,23);g.fill(x+4,y+17,x+w-4,y+20,0x80485870);g.fill(x+4,y+17,x+4+(int)((w-8)*progress),y+20,skill.aspect==SkillDefinition.Aspect.SUN?0xffffb35d:0xffb2ddff);
-        String label=skill.title+" · 咏唱 "+String.format(Locale.ROOT,"%.1f",Math.max(0,until-ClientUi.now())/1000d)+"秒";g.text(UiFonts.font(),label,x+(w-UiFonts.font().width(label))/2,y+4,UiTheme.HUD_TEXT,true);
+        if(!active()||skill==null)return;double progress=Math.clamp((ClientUi.now()-start)/(double)Math.max(1,until-start),0,1);
+        String label=skill.title+" · 咏唱 "+String.format(Locale.ROOT,"%.1f",Math.max(0,until-ClientUi.now())/1000d)+"秒";
+        SkillCastBar.render(g,width,height,label,progress,skill.aspect==SkillDefinition.Aspect.SUN?0xffffb35d:0xffb2ddff);
     }
 }

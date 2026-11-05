@@ -78,6 +78,22 @@
     "yumis_dungeon_and_fight:mana_accumulator_t1",
     "yumis_dungeon_and_fight:mana_accumulator_t2",
     "yumis_dungeon_and_fight:mana_accumulator_t3",
-    "yumis_dungeon_and_fight:mana_accumulator_t4"
+    "yumis_dungeon_and_fight:mana_accumulator_t4",
+    "yumis_dungeon_and_fight:machine_casing_t1",
+    "yumis_dungeon_and_fight:machine_casing_t2",
+    "yumis_dungeon_and_fight:tech_block_t2",
+    "yumis_dungeon_and_fight:machine_casing_t3",
+    "yumis_dungeon_and_fight:tech_block_t3",
+    "yumis_dungeon_and_fight:machine_casing_t4",
+    "yumis_dungeon_and_fight:tech_block_t4",
+    "yumis_dungeon_and_fight:machine_casing_t5",
+    "yumis_dungeon_and_fight:tech_block_t5",
+    "yumis_dungeon_and_fight:machine_casing_t6",
+    "yumis_dungeon_and_fight:tech_block_t6",
+    "yumis_dungeon_and_fight:isotopic_separator",
+    "yumis_dungeon_and_fight:isotope_activator",
+    "yumis_dungeon_and_fight:forming_assembler",
+    "yumis_dungeon_and_fight:thermal_distiller",
+    "yumis_dungeon_and_fight:artificial_star"
   ]
 }

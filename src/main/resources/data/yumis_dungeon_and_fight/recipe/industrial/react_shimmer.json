@@ -24,7 +24,7 @@
     }
   ],
   "ticks": 300,
-  "energy": 25600,
+  "energy": 15000,
   "fluid_result": {
     "id": "yumis_dungeon_and_fight:shimmer",
     "amount": 1000

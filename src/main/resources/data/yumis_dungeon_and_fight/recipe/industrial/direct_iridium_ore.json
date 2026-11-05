@@ -1,11 +1,19 @@
 {
-  "type": "minecraft:smelting",
-  "category": "misc",
-  "ingredient": "yumis_dungeon_and_fight:iridium_ore",
-  "result": {
-    "id": "yumis_dungeon_and_fight:iridium_ingot",
-    "count": 1
-  },
-  "experience": 0.2,
-  "cookingtime": 200
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_furnace",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:iridium_ore",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:iridium_ingot",
+      "count": 1
+    }
+  ],
+  "ticks": 200,
+  "energy": 11719
 }

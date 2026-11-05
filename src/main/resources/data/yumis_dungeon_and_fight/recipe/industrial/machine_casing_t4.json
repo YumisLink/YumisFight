@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " T ",
+    "FCF",
+    "   "
+  ],
+  "key": {
+    "T": "yumis_dungeon_and_fight:tech_block_t4",
+    "C": "yumis_dungeon_and_fight:industrial_upgrade_4",
+    "F": "yumis_dungeon_and_fight:heatproof_frame"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:machine_casing_t4",
+    "count": 1
+  }
+}

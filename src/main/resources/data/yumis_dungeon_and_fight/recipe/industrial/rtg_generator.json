@@ -2,14 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    "MFM",
+    "CSC",
+    "MMM"
   ],
   "key": {
-    "C": "yumis_dungeon_and_fight:energy_crystal_5",
-    "M": "#c:ingots/spacetime",
-    "X": "yumis_dungeon_and_fight:rtg_core"
+    "M": "yumis_dungeon_and_fight:henghui_alloy",
+    "F": "yumis_dungeon_and_fight:rtg_core",
+    "C": "yumis_dungeon_and_fight:mithril_mana_component",
+    "S": "yumis_dungeon_and_fight:machine_casing_t5"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:rtg_generator",

@@ -24,8 +24,8 @@ public final class SummonerSkills {
   var s=new SkillDefinition(id,title,"SUMMON",JobCatalog.SUMMONER,level,sp,mp/(100d+14*(level-1)),cd,weight>0?1:0,passive,Map.of("duration",id.equals(KASIJAS)?1d:.4,"slashes",1d,"range",16d,"summonDuration",id.equals(KASIJAS)?20d:120d));
   s.baseJob=JobCatalog.MAGE;s.magicDamage=true;s.magicTag=true;SkillCatalog.register(s);
  }
- static void balance(){for(String id:ALL){var skill=SkillCatalog.require(id);if(id.equals(MASTERY)||id.equals(FRENZY)){SkillBalance.nonDamage(skill);continue;}
-  double w=id.equals(SPIRITS)||id.equals(SANDOR)?2:id.equals(LOUISE)?3:id.equals(KING)?5:10;
+ static void balance(){MageSkills.careerScales(JobCatalog.SUMMONER,.6,.8);for(String id:ALL){var skill=SkillCatalog.require(id);if(id.equals(MASTERY)||id.equals(FRENZY)){SkillBalance.nonDamage(skill);continue;}
+  double w=(id.equals(SPIRITS)||id.equals(SANDOR)?2:id.equals(LOUISE)?3:id.equals(KING)?5:10)*(id.equals(KASIJAS)?.34:.8);
   SkillBalance.register(skill,new SkillBalanceProfile(w,120,false,false,0,(s,r,c)->{var hits=new ArrayList<SkillBalanceProfile.Hit>();for(var k:kinds(id))for(var a:SummonMoves.cues(k,r,120000,1))hits.add(new SkillBalanceProfile.Hit(a.at(),s.parameters(r).get("damage")*a.share(),false));return hits;}));
  }}
  public static Stats inherit(Stats player,SummonKind kind,int mastery){var s=player.copy();s.values.put(Stat.HEALTH,s.get(Stat.HEALTH)*kind.health);for(var stat:List.of(Stat.PHYSICAL_DEFENSE,Stat.MAGICAL_DEFENSE))s.values.put(stat,s.get(stat)*kind.defense);for(var stat:List.of(Stat.LIGHT_RESIST,Stat.FIRE_RESIST,Stat.ICE_RESIST,Stat.DARK_RESIST,Stat.EVASION))s.values.put(stat,s.get(stat)*kind.resist);s.values.put(Stat.SHIELD,s.get(Stat.SHIELD)*kind.shield);s.values.put(Stat.LIFE_STEAL,0d);if(mastery>0){for(var stat:List.of(Stat.HEALTH,Stat.PHYSICAL_DEFENSE,Stat.MAGICAL_DEFENSE))s.mut(stat,.20+.04*(mastery-1));s.modifier("final").mut+=.10+.02*(mastery-1);}return s;}

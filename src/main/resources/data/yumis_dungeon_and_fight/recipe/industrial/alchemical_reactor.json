@@ -2,16 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "CCC",
-    "CDE"
+    "MFM",
+    "CSC",
+    "MMM"
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:heatproof_frame",
-    "B": "yumis_dungeon_and_fight:mana_component",
-    "C": "yumis_dungeon_and_fight:molybdenum_vanadium_steel",
-    "D": "minecraft:bucket",
-    "E": "yumis_dungeon_and_fight:industrial_upgrade_3"
+    "M": "yumis_dungeon_and_fight:tzm_alloy",
+    "F": "minecraft:cauldron",
+    "C": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:machine_casing_t3"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:alchemical_reactor",

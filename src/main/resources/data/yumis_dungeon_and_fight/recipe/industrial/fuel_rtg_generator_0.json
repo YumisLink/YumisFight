@@ -4,10 +4,12 @@
   "minimum_tier": 1,
   "ingredients": [
     {
-      "ingredient": "#c:ingots/uranium",
+      "ingredient": "yumis_dungeon_and_fight:pu238_heat_source",
       "count": 1
     }
   ],
-  "ticks": 160000,
+  "results": [],
+  "fluid_inputs": [],
+  "ticks": 16000000,
   "energy": 86400000
 }

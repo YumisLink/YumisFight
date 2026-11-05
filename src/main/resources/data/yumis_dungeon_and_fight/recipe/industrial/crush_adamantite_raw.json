@@ -1,7 +1,7 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mana_crusher",
-  "minimum_tier": 1,
+  "minimum_tier": 4,
   "ingredients": [
     {
       "ingredient": "yumis_dungeon_and_fight:raw_adamantite",
@@ -16,5 +16,5 @@
   ],
   "fluid_inputs": [],
   "ticks": 100,
-  "energy": 200
+  "energy": 4688
 }

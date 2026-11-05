@@ -1,7 +1,7 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mana_crusher",
-  "minimum_tier": 1,
+  "minimum_tier": 4,
   "ingredients": [
     {
       "ingredient": "#c:raw_materials/uranium",
@@ -9,7 +9,7 @@
     }
   ],
   "ticks": 100,
-  "energy": 100,
+  "energy": 4688,
   "results": [
     {
       "id": "yumis_dungeon_and_fight:crushed_uranium",

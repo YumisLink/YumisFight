@@ -1,7 +1,7 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mana_forge",
-  "minimum_tier": 1,
+  "minimum_tier": 3,
   "ingredients": [
     {
       "ingredient": "yumis_dungeon_and_fight:crushed_zirconium",
@@ -20,5 +20,5 @@
   ],
   "fluid_inputs": [],
   "ticks": 200,
-  "energy": 3200
+  "energy": 2500
 }

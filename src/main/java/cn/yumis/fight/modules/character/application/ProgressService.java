@@ -38,22 +38,18 @@ public final class ProgressService {
     public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("character","progress",this::request);}
     public void useItem(ServerPlayer player,CharacterActions.Ticket ticket){
         var book=records.profiles(player.getUUID());var current=progressOf.apply(player);
-        String kind=switch(ticket){case PROFESSION_RESET->"createProfile";case CAREER_UNLOCK->"unlockCareer";case AWAKENING->"unlockAwakening";case LEVEL_ONE->"levelOne";case LEVEL_TEN->"levelTen";case LEVEL_MAX->"levelMax";};
-        String item=switch(ticket){case PROFESSION_RESET->CharacterItems.PROFESSION_RESET;case CAREER_UNLOCK->CharacterItems.CAREER_UNLOCK;case AWAKENING->CharacterItems.AWAKENING;case LEVEL_ONE->CharacterItems.LEVEL_ONE;case LEVEL_TEN->CharacterItems.LEVEL_TEN;case LEVEL_MAX->CharacterItems.LEVEL_MAX;};
+        String kind=switch(ticket){case CAREER_UNLOCK->"unlockCareer";case AWAKENING->"unlockAwakening";case PROFILE_EXPANSION->"expandProfile";case LEVEL_ONE->"levelOne";case LEVEL_TEN->"levelTen";case LEVEL_MAX->"levelMax";};
+        String item=switch(ticket){case CAREER_UNLOCK->CharacterItems.CAREER_UNLOCK;case AWAKENING->CharacterItems.AWAKENING;case PROFILE_EXPANSION->CharacterItems.PROFILE_EXPANSION;case LEVEL_ONE->CharacterItems.LEVEL_ONE;case LEVEL_TEN->CharacterItems.LEVEL_TEN;case LEVEL_MAX->CharacterItems.LEVEL_MAX;};
         var request=new JsonObject();request.addProperty("kind",kind);request.addProperty("operation",UUID.randomUUID().toString());request.addProperty("profileId",book.activeId);request.addProperty("profileRevision",book.revision);
         if(ticket==CharacterActions.Ticket.CAREER_UNLOCK||ticket==CharacterActions.Ticket.AWAKENING){request.addProperty("ticketSlot",player.getInventory().getSelectedSlot());request(player,request);return;}
         safe(player);
         String text;
-        if(ticket==CharacterActions.Ticket.PROFESSION_RESET){canCreate(current,book);text="消耗1张职业重置券，保留当前配置并创建20级新配置；新配置需自行选择职业，不赠送武器。";}
+        if(ticket==CharacterActions.Ticket.PROFILE_EXPANSION){if(book.capacity==Integer.MAX_VALUE)throw new IllegalArgumentException("职业配置容量已达上限，未消耗券");text="消耗1张职业栏拓展券，将职业配置容量从"+book.capacity+"增加至"+(book.capacity+1)+"；解锁后新栏位可直接使用。";}
         else {if(current.level>=CharacterRules.MAX_LEVEL)throw new IllegalArgumentException("当前配置已经满级，未消耗券");int target=target(kind,current.level);text="将「"+book.entries.get(book.activeId).name+"」从"+current.level+"级升至"+target+"级，经验清零；消耗整张券。";}
         String token=UUID.randomUUID().toString();offers.put(player.getUUID(),new Offer(token,player.getInventory().getSelectedSlot(),item,kind,book.activeId,book.revision,current.level,System.currentTimeMillis()+60000));
         request.addProperty("token",token);request.addProperty("text",text);Network.send(player,"characterTicketConfirm",request);
     }
     private static int target(String kind,int level){return kind.equals("levelMax")?CharacterRules.MAX_LEVEL:Math.min(CharacterRules.MAX_LEVEL,level+(kind.equals("levelTen")?10:1));}
-    private static void canCreate(Progress p,CareerProfiles book){
-        if(p.level<20||!p.selected()||JobCatalog.basic(p.jobId()))throw new IllegalArgumentException("当前配置需要至少20级且已转职，才能创建新配置");
-        if(book.entries.size()>=book.capacity)throw new IllegalArgumentException("职业配置已满，当前最多"+book.capacity+"套");
-    }
     private void safe(ServerPlayer p){
         if(inventory.locked(p.getUUID()))throw new IllegalArgumentException("库存正在处理");
         if(System.currentTimeMillis()<combatUntil.applyAsLong(p))throw new IllegalArgumentException("请在连续"+(combatDelay.getAsLong()/1000d)+"秒未造成或受到伤害后操作");
@@ -84,12 +80,13 @@ public final class ProgressService {
                 String id=j.get("job").getAsString();if(next.selected()||!JobCatalog.basic(id))throw new IllegalArgumentException("每套配置只能选择一次基础职业");
                 next.promote(id);if(!next.starterGranted){starter=Objects.requireNonNull(initial,"初始武器服务未装配").weapon(id);next.starterGranted=true;}
             }
-            case "promote"->{String id=j.get("job").getAsString();if(book.occupied(id))throw new IllegalArgumentException("已拥有该转职配置，请切换至已有配置");if(!JobCatalog.canPromote(next,id))throw new IllegalArgumentException("需要20级、对应基础职业和通用转职解锁资格");change=transitions.prepare(p,next,id);next.promote(id);}
+            case "promote"->{String id=j.get("job").getAsString();if(book.occupied(id))throw new IllegalArgumentException("已拥有该转职配置，请切换至已有配置");if(!JobCatalog.canPromote(next,id))throw new IllegalArgumentException("需要20级、对应基础职业和通用转职解锁资格");change=transitions.prepare(p,next,id);next.promote(id);book.fillSlots();}
             case "switchProfile"->{String target=j.get("target").getAsString();if(target.equals(book.activeId)){profile.accept(p);return;}safe(p);next=book.select(next,target);change=transitions.switchProfile(p,next);}
-            case "createProfile","levelOne","levelTen","levelMax"->{
+            case "openProfileSlot"->{safe(p);if(!book.unlocked(next))throw new IllegalArgumentException("职业栏需20级转职后解锁");int slot=j.get("slot").getAsInt();if(slot<book.entries.size()||slot>=book.capacity)throw new IllegalArgumentException("职业栏已变化，请刷新");book.fillSlots();String target=new ArrayList<>(book.entries.keySet()).get(slot);next=book.select(next,target);change=transitions.switchProfile(p,next);}
+            case "expandProfile","levelOne","levelTen","levelMax"->{
                 safe(p);offer=offers.get(p.getUUID());
                 if(offer==null||!offer.kind.equals(kind)||offer.expires<System.currentTimeMillis()||!offer.token.equals(j.get("token").getAsString())||!offer.profileId.equals(book.activeId)||offer.revision!=book.revision||offer.level!=next.level)throw new IllegalArgumentException("用券确认已过期，请重新使用券");
-                if(kind.equals("createProfile")){canCreate(next,book);next=book.create(next);change=transitions.switchProfile(p,next);}
+                if(kind.equals("expandProfile"))book.expand(next);
                 else next.gainLevels(target(kind,next.level)-next.level);
             }
             default->throw new IllegalArgumentException("未知进度操作");

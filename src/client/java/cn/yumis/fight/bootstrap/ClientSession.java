@@ -260,7 +260,7 @@ if(j.has("target")&&j.has("kind")){
                 profile=j;
                 progress=JSON.fromJson(j.get("progress"),Progress.class);
                 boolean selectedProfileChanged=cn.yumis.fight.modules.character.api.client.CareerProfilesClient.receive(j.getAsJsonObject("careerProfiles"));
-                if(selectedProfileChanged){cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.clear();cn.yumis.fight.modules.skills.client.DemonHunterClient.clear();}
+                if(selectedProfileChanged){Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP,1.0f));cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.clear();cn.yumis.fight.modules.skills.client.DemonHunterClient.clear();}
                 combatSettings=JSON.fromJson(j.get("combatSettings"),cn.yumis.fight.modules.combat.api.CombatSettings.class);
                 if(freshResources)stats=JSON.fromJson(j.get("stats"),Stats.class);
                 if(freshResources&&j.has("equipmentEffects"))resources.equipment=JSON.fromJson(j.get("equipmentEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);

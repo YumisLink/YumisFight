@@ -1,0 +1,24 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "isotopic_separator",
+  "minimum_tier": 4,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:converted_uranium",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:enriched_uranium",
+      "count": 1
+    },
+    {
+      "id": "yumis_dungeon_and_fight:depleted_uranium",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 400,
+  "energy": 250000
+}

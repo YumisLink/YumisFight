@@ -49,6 +49,19 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public String status="未连接信标";
     public int fuelTotal,fuelRemaining,fuelFluidRate;
     public long fuelEnergy,currentPower;public String fuelFluid="";
+    public List<ItemStack> fuelResults=new ArrayList<>();
+    public long ignitionPaid;
+    public boolean ignited;
+    public boolean structureLoaded=true;
+    private record GenerationState(int total,int remaining,long energy,String fluid,int rate,int fluidRemainder,int powerRemainder,List<ItemStack> results,long ignitionPaid,boolean ignited){}
+    private final net.neoforged.neoforge.transfer.transaction.SnapshotJournal<GenerationState> generationJournal=new net.neoforged.neoforge.transfer.transaction.SnapshotJournal<>(){
+        protected GenerationState createSnapshot(){return new GenerationState(fuelTotal,fuelRemaining,fuelEnergy,fuelFluid,fuelFluidRate,fluidRemainder,powerRemainder,new ArrayList<>(fuelResults),ignitionPaid,ignited);}
+        protected void revertToSnapshot(GenerationState s){fuelTotal=s.total;fuelRemaining=s.remaining;fuelEnergy=s.energy;fuelFluid=s.fluid;fuelFluidRate=s.rate;fluidRemainder=s.fluidRemainder;powerRemainder=s.powerRemainder;fuelResults=s.results;ignitionPaid=s.ignitionPaid;ignited=s.ignited;}
+        protected void onRootCommit(GenerationState previous){setChanged();}
+    };
+    void recordGeneration(net.neoforged.neoforge.transfer.transaction.TransactionContext tx){generationJournal.updateSnapshots(tx);}
+    public int processingTier(){return cn.yumis.fight.modules.industry.api.IndustrialTechnology.processing(spec().id());}
+    public int technologyTier(){return cn.yumis.fight.modules.industry.api.IndustrialTechnology.technology(spec().id());}
     public int fluidRemainder,powerRemainder,harvestCursor;
     public long generated,consumed,overflow;
     public boolean workedThisTick;
@@ -110,9 +123,9 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
             String selected=automationRecipeId(line);if(selected.isEmpty()&&device().has(DeviceType.Capability.REQUIRE_RECIPE))return false;
             for(var holder:IndustrialProcessing.recipes(server,device())){
                 var r=holder.value();
-                if(r.minimumTier()>tier()||!selected.isEmpty()&&!selected.equals(holder.id().identifier().toString()))continue;
+                if(r.minimumTier()>processingTier()||!selected.isEmpty()&&!selected.equals(holder.id().identifier().toString()))continue;
                 if(!selected.isEmpty())return tank<r.fluidInputs().size()&&r.fluidInputs().get(tank).ingredient().test(resource.toStack(1));
-                if(r.fluidInputs().stream().anyMatch(input->input.ingredient().test(resource.toStack(1))))return true;
+                if(IndustrialProcessing.acceptsAutomaticFluid(this,line,tank,resource))return true;
             }
             return false;
         }
@@ -171,11 +184,12 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(!(level instanceof ServerLevel server))return true;
         var layout=slots();
         if(slot==layout.fuel()&&device().has(DeviceType.Capability.FUEL))return server.recipeAccess().recipeMap().byType(IndustrialContent.RECIPE_TYPE.get()).stream().filter(h->h.value().machine().equals("fuel_"+device().id)).flatMap(h->h.value().ingredients().stream()).anyMatch(n->n.ingredient().test(stack));
+        if(device().has(DeviceType.Capability.IGNITION)&&layout.input(slot))return stack.is(IndustrialContent.ALL_ITEMS.get("fusion_ignition_core").get());
         if(!layout.input(slot)||device().currencyUpgrader()||device().has(DeviceType.Capability.SMELTING))return true;
         String selected=automationRecipeId(layout.lineOf(slot));
-        if(!selected.isEmpty())return IndustrialProcessing.recipes(server,device()).stream().filter(h->h.value().minimumTier()<=tier()&&h.id().identifier().toString().equals(selected)).anyMatch(h->{int input=layout.offset(slot);return input<h.value().ingredients().size()&&h.value().ingredients().get(input).ingredient().test(stack);});
+        if(!selected.isEmpty())return IndustrialProcessing.recipes(server,device()).stream().filter(h->h.value().minimumTier()<=processingTier()&&h.id().identifier().toString().equals(selected)).anyMatch(h->{int input=layout.offset(slot);return input<h.value().ingredients().size()&&h.value().ingredients().get(input).ingredient().test(stack);});
         if(device().has(DeviceType.Capability.REQUIRE_RECIPE))return false;
-        return IndustrialProcessing.recipes(server,device()).stream().filter(h->h.value().minimumTier()<=tier()).flatMap(h->h.value().ingredients().stream()).anyMatch(n->n.ingredient().test(stack));
+        return IndustrialProcessing.acceptsAutomaticInput(this,slot,stack);
     }
     public ResourceHandler<FluidResource> fluidsFor(Direction side){
         if(device().has(DeviceType.Capability.FLUID_STORAGE))return fluids;
@@ -197,6 +211,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(i==slots().crystal())return !device().has(DeviceType.Capability.GRID_ONLY)&&(device().currencyUpgrader()?IndustrialContent.crystalTier(s)>=1&&IndustrialContent.crystalTier(s)<=5:device().processing()&&EnergyMath.accepts(tier(),IndustrialContent.crystalTier(s)));
         if(i==slots().fuel())return device().has(DeviceType.Capability.FUEL);
         if(device().currencyUpgrader())return slots().input(i)&&cn.yumis.fight.modules.economy.api.CurrencyRules.upgradeTier(cn.yumis.fight.platform.ItemData.own(s)?cn.yumis.fight.platform.ItemData.id(s):"")>=0;
+        if(device().has(DeviceType.Capability.IGNITION)&&slots().input(i))return s.is(IndustrialContent.ALL_ITEMS.get("fusion_ignition_core").get());
         return slots().input(i)&&(IndustrialContent.crystalTier(s)==0||device()==DeviceType.FORGE||device()==DeviceType.REACTOR);
     }
     @Override public Component getDisplayName(){return Component.translatable(spec().title());}
@@ -217,7 +232,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(currencyUpgrade!=null)drops.addAll(currencyUpgrade.breakContents());
         pumpCycle.clear();functionCredit=0;
         for(var line:productionLines){if(!line.batchRecipe.isEmpty())drops.addAll(line.refundableInputs());line.clearBatch();line.selected=line.queued="";}
-        energy=crystalRemaining=0;fuelRemaining=fuelTotal=0;beacon="";routes.clear();
+        energy=crystalRemaining=ignitionPaid=0;fuelRemaining=fuelTotal=0;ignited=false;fuelResults.clear();beacon="";routes.clear();
         for(int i=0;i<fluidTankCount();i++)fluids.empty(i);
         return drops;
     }
@@ -227,6 +242,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         items.serialize(out.child("inventory"));fluids.serialize(out.child("fluids"));out.putString("identity",identity.toString());out.putString("beacon",beacon);out.putLong("energy",energy);out.putLong("crystal",crystalRemaining);out.putBoolean("running",running);
         for(var line:productionLines)line.save(out.child("line_"+line.index));
         pumpCycle.save(out.child("pump_cycle"));
+        out.store("fuel_results",ItemStack.CODEC.listOf(),fuelResults);out.putLong("ignition_paid",ignitionPaid);out.putBoolean("ignited",ignited);
         out.putInt("fuel_total",fuelTotal);out.putInt("fuel_remaining",fuelRemaining);out.putLong("fuel_energy",fuelEnergy);out.putInt("fuel_fluid_rate",fuelFluidRate);out.putString("fuel_fluid",fuelFluid);out.putInt("fluid_remainder",fluidRemainder);out.putInt("power_remainder",powerRemainder);out.putInt("harvest_cursor",harvestCursor);
     }
     @Override protected void loadAdditional(ValueInput in){
@@ -239,6 +255,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         routes.clear();routes.addAll(in.read("routes",CrystalRoute.CODEC.listOf()).orElse(List.of()));routeCursor=in.getIntOr("route_cursor",0);functionTime=Fraction.parse(in.getStringOr("function_time","0/1"));functionCredit=in.getLongOr("function_credit",0);functionCost=in.getLongOr("function_cost",0);
         for(var line:productionLines)line.load(in.childOrEmpty("line_"+line.index));
         pumpCycle.load(in.childOrEmpty("pump_cycle"));
+        fuelResults=new ArrayList<>(in.read("fuel_results",ItemStack.CODEC.listOf()).orElse(List.of()));ignitionPaid=in.getLongOr("ignition_paid",0);ignited=in.getBooleanOr("ignited",false);
         fuelTotal=in.getIntOr("fuel_total",0);fuelRemaining=in.getIntOr("fuel_remaining",0);fuelEnergy=in.getLongOr("fuel_energy",0);fuelFluidRate=in.getIntOr("fuel_fluid_rate",0);fuelFluid=in.getStringOr("fuel_fluid","");fluidRemainder=in.getIntOr("fluid_remainder",0);powerRemainder=in.getIntOr("power_remainder",0);harvestCursor=in.getIntOr("harvest_cursor",0);
         if(currencyUpgrade!=null)currencyUpgrade.load(in);
     }

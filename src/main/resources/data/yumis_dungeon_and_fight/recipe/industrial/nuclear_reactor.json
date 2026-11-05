@@ -2,14 +2,16 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    "TIT",
+    "CSC",
+    "TNT"
   ],
   "key": {
-    "C": "yumis_dungeon_and_fight:energy_crystal_4",
-    "M": "#c:ingots/terra",
-    "X": "yumis_dungeon_and_fight:nuclear_core"
+    "T": "yumis_dungeon_and_fight:tzm_alloy",
+    "I": "yumis_dungeon_and_fight:high_purity_iridium_ingot",
+    "C": "yumis_dungeon_and_fight:superconducting_control",
+    "S": "yumis_dungeon_and_fight:machine_casing_t5",
+    "N": "yumis_dungeon_and_fight:nuclear_core"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:nuclear_reactor",

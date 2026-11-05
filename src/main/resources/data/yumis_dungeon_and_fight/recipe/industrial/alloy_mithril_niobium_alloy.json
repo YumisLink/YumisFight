@@ -1,7 +1,7 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mana_forge",
-  "minimum_tier": 3,
+  "minimum_tier": 4,
   "ingredients": [
     {
       "ingredient": "yumis_dungeon_and_fight:niobium_titanium_alloy",
@@ -24,5 +24,5 @@
   ],
   "fluid_inputs": [],
   "ticks": 800,
-  "energy": 409600
+  "energy": 50000
 }

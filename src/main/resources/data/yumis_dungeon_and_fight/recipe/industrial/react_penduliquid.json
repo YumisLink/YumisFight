@@ -24,7 +24,7 @@
     }
   ],
   "ticks": 500,
-  "energy": 204800,
+  "energy": 312500,
   "fluid_result": {
     "id": "yumis_dungeon_and_fight:penduliquid",
     "amount": 1000

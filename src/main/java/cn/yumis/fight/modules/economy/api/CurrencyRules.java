@@ -9,7 +9,7 @@ public final class CurrencyRules {
     public record AccountCurrency(String id,String title){}
     public static final AccountCurrency POINTS=new AccountCurrency("points","点券");
     public static final AccountCurrency COLORLESS_CRYSTAL=new AccountCurrency("colorless_crystal","无色小晶块");
-    public static long ticketPrice(String id){return switch(id){case "profession_reset_ticket"->100;case "career_unlock_ticket"->500;case "awakening_ticket"->1000;default->-1;};}
+    public static long ticketPrice(String id){return switch(id){case "career_unlock_ticket"->500;case "awakening_ticket"->1000;default->-1;};}
     public record Currency(String id,Rarity rarity,boolean naturalDrop){}
     public record Tier(Rarity rarity,double baseWeight,List<Currency> currencies){}
     public static final double DROP_CHANCE=.05;

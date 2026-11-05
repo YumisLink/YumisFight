@@ -2,14 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    "MFM",
+    "CSC",
+    "MMM"
   ],
   "key": {
-    "C": "yumis_dungeon_and_fight:energy_crystal_2",
-    "M": "#c:gems/diamond",
-    "X": "minecraft:cauldron"
+    "M": "yumis_dungeon_and_fight:tzm_alloy",
+    "F": "minecraft:cauldron",
+    "C": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:machine_casing_t3"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:coolant_mixer",

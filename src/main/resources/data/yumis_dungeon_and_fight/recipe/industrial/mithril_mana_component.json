@@ -2,15 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "CCD",
-    "D  "
+    " L ",
+    "AMA",
+    " L "
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:mana_component",
-    "B": "yumis_dungeon_and_fight:mithril_niobium_alloy",
-    "C": "yumis_dungeon_and_fight:energy_crystal_3",
-    "D": "minecraft:lapis_lazuli"
+    "L": "minecraft:lapis_lazuli",
+    "A": "yumis_dungeon_and_fight:mithril_niobium_alloy",
+    "M": "yumis_dungeon_and_fight:mana_component"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:mithril_mana_component",

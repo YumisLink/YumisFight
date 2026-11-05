@@ -2,14 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "MXM",
-    "CMC"
+    "MFM",
+    "CSC",
+    "MMM"
   ],
   "key": {
+    "M": "minecraft:copper_ingot",
+    "F": "minecraft:daylight_detector",
     "C": "yumis_dungeon_and_fight:energy_crystal_1",
-    "M": "#c:ingots/copper",
-    "X": "minecraft:daylight_detector"
+    "S": "yumis_dungeon_and_fight:machine_casing_t1"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:solar_collector",

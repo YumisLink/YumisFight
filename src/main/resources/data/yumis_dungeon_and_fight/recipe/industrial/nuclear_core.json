@@ -2,11 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "LCL"
+    "LZL",
+    "CMC",
+    "LZL"
   ],
   "key": {
     "L": "#c:storage_blocks/lead",
-    "C": "minecraft:cauldron"
+    "Z": "yumis_dungeon_and_fight:zircon_ceramic",
+    "C": "yumis_dungeon_and_fight:control_component",
+    "M": "minecraft:cauldron"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:nuclear_core",

@@ -2,16 +2,17 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "CMC",
-    "M M",
-    "CMC"
+    " C ",
+    "IMI",
+    " C "
   ],
   "key": {
     "C": "yumis_dungeon_and_fight:energy_crystal_1",
-    "M": "#c:ingots/copper"
+    "I": "minecraft:iron_ingot",
+    "M": "minecraft:copper_ingot"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:industrial_upgrade_1",
-    "count": 1
+    "count": 2
   }
 }

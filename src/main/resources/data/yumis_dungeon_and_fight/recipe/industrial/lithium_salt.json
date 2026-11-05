@@ -1,0 +1,20 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "thermal_distiller",
+  "minimum_tier": 4,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:lithium_salt",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:brine",
+      "amount": 1000
+    }
+  ],
+  "ticks": 400,
+  "energy": 200000
+}

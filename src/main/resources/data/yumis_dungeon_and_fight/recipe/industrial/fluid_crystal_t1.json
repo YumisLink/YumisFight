@@ -2,14 +2,16 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "CCD"
+    " C ",
+    "GSG",
+    "MBM"
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:energy_crystal_1",
-    "B": "minecraft:copper_ingot",
-    "C": "minecraft:glass",
-    "D": "minecraft:bucket"
+    "C": "yumis_dungeon_and_fight:energy_crystal_1",
+    "G": "minecraft:glass",
+    "S": "yumis_dungeon_and_fight:machine_casing_t1",
+    "M": "minecraft:copper_ingot",
+    "B": "minecraft:bucket"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:fluid_crystal_t1",

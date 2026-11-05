@@ -2,14 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "BBC",
-    "C  "
+    "CSC",
+    "SFS",
+    "CSC"
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:heatproof_frame",
-    "B": "yumis_dungeon_and_fight:adamantite_titanium_alloy",
-    "C": "yumis_dungeon_and_fight:zircon_ceramic"
+    "C": "yumis_dungeon_and_fight:zircon_ceramic",
+    "S": "yumis_dungeon_and_fight:adamantite_titanium_alloy",
+    "F": "yumis_dungeon_and_fight:heatproof_frame"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:precision_frame",

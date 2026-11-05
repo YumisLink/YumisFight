@@ -4,7 +4,7 @@ import java.util.*;
 
 /** Stable device IDs composed from capabilities. Registration occurs before block registration. */
 public final class DeviceType {
-    public enum Capability {PROCESSING,PARALLEL,GENERATION,LOGISTICS,FLUID_LOGISTICS,HARVEST,STORAGE_NETWORK,ENERGY_STORAGE,FLUID_STORAGE,PUMP,MINING,DUAL_FLUID,GRID_ONLY,STRUCTURE,SELECT_RECIPE,REQUIRE_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE,FLUID_INPUT_ALL_SIDES}
+    public enum Capability {PROCESSING,PARALLEL,GENERATION,GENERATION_OUTPUT,IGNITION,LOGISTICS,FLUID_LOGISTICS,HARVEST,STORAGE_NETWORK,ENERGY_STORAGE,FLUID_STORAGE,PUMP,MINING,DUAL_FLUID,GRID_ONLY,STRUCTURE,SELECT_RECIPE,REQUIRE_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE,FLUID_INPUT_ALL_SIDES}
     public enum Speed {TIER_EXPONENTIAL,FURNACE_TABLE,MINING_LINEAR,FIXED}
     public enum Output {RECIPE,CURRENCY}
     private static final Map<String,DeviceType> TYPES=new LinkedHashMap<>();
@@ -22,17 +22,22 @@ public final class DeviceType {
         BEACON=register("mana_beacon",true,0,1,5,Set.of(Capability.STORAGE_NETWORK),Speed.FIXED,Output.RECIPE),
         COAL=generator("coal_generator",1,Capability.FUEL),SOLAR=generator("solar_collector",1,Capability.SOLAR),
         TURBINE=generator("turbine_generator",2,Capability.FUEL,Capability.FLUID_FUEL,Capability.ROTOR,Capability.FLUID_INPUT_ALL_SIDES),WIND=generator("wind_generator",2,Capability.WIND),
-        THERMAL=generator("thermal_generator",3,Capability.FUEL,Capability.FLUID_FUEL),NUCLEAR=generator("nuclear_reactor",4,Capability.FUEL,Capability.FLUID_FUEL),RTG=generator("rtg_generator",5,Capability.FUEL),
+        THERMAL=generator("thermal_generator",3,Capability.FUEL,Capability.FLUID_FUEL),NUCLEAR=generator("nuclear_reactor",4,Capability.FUEL,Capability.FLUID_FUEL,Capability.GENERATION_OUTPUT,Capability.FLUID_INPUT_ALL_SIDES),RTG=generator("rtg_generator",5,Capability.FUEL),
         MIXER=register("coolant_mixer",false,1,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING),Speed.FIXED,Output.RECIPE),
         TRANSFER=register("transfer_crystal",false,0,1,3,Set.of(Capability.LOGISTICS),Speed.FIXED,Output.RECIPE),
         HARVEST=register("harvest_crystal",false,0,1,3,Set.of(Capability.HARVEST),Speed.FIXED,Output.RECIPE),
         CURRENCY_UPGRADER=register("currency_upgrader",false,9,1,1,Set.of(Capability.CURRENCY_UPGRADE),Speed.FIXED,Output.RECIPE),
-        REFINERY=register("mineral_refinery",false,4,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE,Capability.REQUIRE_RECIPE),Speed.FIXED,Output.RECIPE),
-        REACTOR=register("alchemical_reactor",false,4,3,3,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.DUAL_FLUID,Capability.GRID_ONLY,Capability.SELECT_RECIPE,Capability.REQUIRE_RECIPE),Speed.FIXED,Output.RECIPE),
+        REFINERY=register("mineral_refinery",false,4,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
+        REACTOR=register("alchemical_reactor",false,4,3,3,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.DUAL_FLUID,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
         PUMP=register("water_pump",false,0,1,1,Set.of(Capability.PUMP,Capability.FLUID_PROCESSING,Capability.GRID_ONLY),Speed.FIXED,Output.RECIPE),
         FLUID_TRANSFER=register("fluid_crystal",false,0,1,3,Set.of(Capability.FLUID_LOGISTICS,Capability.GRID_ONLY),Speed.FIXED,Output.RECIPE),
         TANK=register("fluid_tank",true,0,1,3,Set.of(Capability.FLUID_STORAGE),Speed.FIXED,Output.RECIPE),
-        ACCUMULATOR=register("mana_accumulator",true,0,1,4,Set.of(Capability.ENERGY_STORAGE),Speed.FIXED,Output.RECIPE);
+        ACCUMULATOR=register("mana_accumulator",true,0,1,4,Set.of(Capability.ENERGY_STORAGE),Speed.FIXED,Output.RECIPE),
+        SEPARATOR=register("isotopic_separator",false,4,4,4,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
+        ACTIVATOR=register("isotope_activator",false,4,5,5,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
+        ASSEMBLER=register("forming_assembler",false,4,3,3,Set.of(Capability.PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
+        DISTILLER=register("thermal_distiller",false,4,3,3,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
+        STAR=register("artificial_star",false,1,5,5,Set.of(Capability.GENERATION,Capability.FUEL,Capability.FLUID_FUEL,Capability.FLUID_INPUT_ALL_SIDES,Capability.GENERATION_OUTPUT,Capability.IGNITION,Capability.STRUCTURE),Speed.FIXED,Output.RECIPE);
     private DeviceType(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){this.id=id;this.graded=graded;this.inputs=inputs;this.minimumTier=minimumTier;this.maximumTier=maximumTier;this.capabilities=Set.copyOf(capabilities);this.speed=speed;this.output=output;}
     public static synchronized DeviceType register(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){
         if(id==null||!id.matches("[a-z][a-z0-9_]*")||inputs<0||inputs>9||minimumTier<1||maximumTier>5||minimumTier>maximumTier)throw new IllegalArgumentException("Invalid device: "+id);
@@ -49,7 +54,7 @@ public final class DeviceType {
     public boolean functional(){return has(Capability.LOGISTICS)||has(Capability.FLUID_LOGISTICS)||has(Capability.HARVEST)||has(Capability.PUMP);}
     public boolean processing(){return has(Capability.PROCESSING);}
     public boolean currencyUpgrader(){return has(Capability.CURRENCY_UPGRADE);}
-    public boolean outputs(){return processing()||currencyUpgrader();}
+    public boolean outputs(){return processing()||currencyUpgrader()||has(Capability.GENERATION_OUTPUT);}
     public int inputs(){return inputs;}
     public int minimumTier(){return minimumTier;}
     public int maximumTier(){return maximumTier;}

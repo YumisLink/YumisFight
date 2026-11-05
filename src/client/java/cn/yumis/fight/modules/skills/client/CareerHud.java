@@ -87,7 +87,7 @@ public final class CareerHud {
         String value=Integer.toString(count);g.text(font,value,-font.width(value)/2,0,UiTheme.HUD_GOLD,true);g.pose().popMatrix();
         String title=skill.title;g.text(font,title,x-font.width(title)/2,y+19,UiTheme.HUD_TEXT,true);
     }
-    private static void timer(GuiGraphicsExtractor g,SkillDefinition skill,int x,int y,long left,long duration,int color){
+    static void timer(GuiGraphicsExtractor g,SkillDefinition skill,int x,int y,long left,long duration,int color){
         badge(g,skill,x,y,(int)seconds(left),false);UiTheme.hud(g,x-24,y+34,(x+24)-(x-24),(y+38)-(y+34));g.fill(x-24,y+34,x-24+(int)(48*Math.clamp(left/(double)duration,0,1)),y+38,color);var font=UiFonts.font();g.text(font,"剩余秒",x-font.width("剩余秒")/2,y+43,UiTheme.HUD_MUTED,true);
     }
     private static long seconds(long millis){return Math.max(0,(millis+999)/1000);}

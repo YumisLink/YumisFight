@@ -1,0 +1,33 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:lattice_substrate",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:high_purity_tantalum_ingot",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:stellar_alloy",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:confinement_lattice",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:penduliquid",
+      "amount": 1000
+    }
+  ],
+  "ticks": 1200,
+  "energy": 3750000
+}

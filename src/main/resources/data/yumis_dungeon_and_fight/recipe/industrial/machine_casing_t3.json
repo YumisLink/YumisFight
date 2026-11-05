@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " T ",
+    "FCF",
+    "   "
+  ],
+  "key": {
+    "T": "yumis_dungeon_and_fight:tech_block_t3",
+    "C": "yumis_dungeon_and_fight:industrial_upgrade_3",
+    "F": "yumis_dungeon_and_fight:reinforced_frame"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:machine_casing_t3",
+    "count": 1
+  }
+}

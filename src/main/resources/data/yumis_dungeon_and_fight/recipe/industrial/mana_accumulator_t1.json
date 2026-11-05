@@ -2,14 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ABB",
-    "BBC",
-    "CCC"
+    "MFM",
+    "CSC",
+    "MMM"
   ],
   "key": {
-    "A": "yumis_dungeon_and_fight:basic_frame",
-    "B": "minecraft:copper_ingot",
-    "C": "yumis_dungeon_and_fight:energy_crystal_1"
+    "M": "minecraft:copper_ingot",
+    "F": "minecraft:redstone_block",
+    "C": "yumis_dungeon_and_fight:energy_crystal_1",
+    "S": "yumis_dungeon_and_fight:machine_casing_t1"
   },
   "result": {
     "id": "yumis_dungeon_and_fight:mana_accumulator_t1",

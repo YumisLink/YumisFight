@@ -29,8 +29,8 @@ public final class CareerRules {
         double desired=source.modifiers.getOrDefault("careerEyeBonus",0d),applied=source.modifiers.getOrDefault("careerEyeApplied",0d);if(desired<=0||desired==applied)return source;
         Stats result=source.copy();result.modifier("final").mut+=desired-applied;result.modifiers.put("careerEye",1d);result.modifiers.put("careerEyeApplied",desired);return result;
     }
-    public static double monsterTaken(Progress progress,Stats stats){
-        double value=JobCatalog.style(progress.jobId()).damageTaken();
+    public static double monsterTaken(Progress progress,Stats stats,double careerDamageTaken){
+        double value=careerDamageTaken;
         if(SkillLearning.effective(stats,progress,SkillCatalog.require(CareerSkills.KEIGA))>0)value*=.9;
         return value;
     }

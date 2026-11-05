@@ -1,0 +1,29 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "isotopic_separator",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:cooled_th228",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:th228",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:alkahest",
+      "amount": 1000
+    }
+  ],
+  "ticks": 400,
+  "energy": 2000000,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:spent_solvent",
+    "amount": 1000
+  }
+}

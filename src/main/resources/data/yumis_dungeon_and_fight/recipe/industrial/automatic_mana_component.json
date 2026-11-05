@@ -4,16 +4,16 @@
   "minimum_tier": 1,
   "ingredients": [
     {
+      "ingredient": "minecraft:redstone",
+      "count": 4
+    },
+    {
       "ingredient": "yumis_dungeon_and_fight:orichalcum_ingot",
       "count": 2
     },
     {
       "ingredient": "minecraft:copper_ingot",
       "count": 2
-    },
-    {
-      "ingredient": "minecraft:redstone",
-      "count": 4
     }
   ],
   "results": [
@@ -24,5 +24,5 @@
   ],
   "fluid_inputs": [],
   "ticks": 200,
-  "energy": 1600
+  "energy": 100
 }

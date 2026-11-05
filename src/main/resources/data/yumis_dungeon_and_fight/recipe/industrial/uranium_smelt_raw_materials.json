@@ -1,10 +1,18 @@
 {
-  "type": "minecraft:smelting",
-  "category": "misc",
-  "ingredient": "#c:raw_materials/uranium",
-  "result": {
-    "id": "yumis_dungeon_and_fight:uranium_ingot"
-  },
-  "experience": 0.7,
-  "cookingtime": 200
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_furnace",
+  "minimum_tier": 4,
+  "ingredients": [
+    {
+      "ingredient": "#c:raw_materials/uranium",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:uranium_ingot"
+    }
+  ],
+  "ticks": 200,
+  "energy": 2344
 }

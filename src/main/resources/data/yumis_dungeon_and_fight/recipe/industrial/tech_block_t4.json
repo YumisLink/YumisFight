@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 3,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:tzm_alloy",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:mithril_ingot",
+      "count": 4
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:zircon_ceramic",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:tech_block_t4",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 400,
+  "energy": 5000
+}

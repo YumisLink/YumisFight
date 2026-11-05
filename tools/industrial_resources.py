@@ -1,4 +1,4 @@
-"""Generate the checked-in v1 recipes, tags, models and localized industrial catalog."""
+"""Generate the checked-in recipes, tags, models and localized industrial catalog."""
 from pathlib import Path
 import json,re
 
@@ -19,9 +19,18 @@ def need(item,count=1):return {'ingredient':item,'count':count}
 def process(name,machine,ingredients,out=None,count=1,ticks=100,energy=100,tier=1,**extra):
     value={'type':own('industrial'),'machine':machine,'minimum_tier':tier,'ingredients':[need(*x) if isinstance(x,tuple) else need(x) for x in ingredients],'ticks':ticks,'energy':energy,**extra}
     if out:value['results']=[result(out,count)]
-    if 'fluid_input' in value:value['fluid_inputs']=[value.pop('fluid_input')]
     recipe(name,value)
-def craft(name,ingredients,out,count=1):recipe(name,{'type':'minecraft:crafting_shapeless','category':'misc','ingredients':ingredients,'result':result(own(out),count)})
+def craft(name,ingredients,out,count=1):
+    if len(ingredients)==9 and len(set(ingredients))==1:
+        pattern=['XXX','XXX','XXX'];keys={'X':ingredients[0]}
+    elif len(ingredients)==1:
+        pattern=['X'];keys={'X':ingredients[0]}
+    elif name=='mana_wand':
+        pattern=['  C',' S ','S  '];keys={'C':own('energy_crystal_2'),'S':'minecraft:stick'}
+    elif name=='sulfide':
+        pattern=['LCS'];keys={'L':'#c:ingots/lead','C':'minecraft:coal','S':'#c:sands'}
+    else:raise ValueError('Explicit crafting layout required: '+name)
+    recipe(name,{'type':'minecraft:crafting_shaped','category':'misc','pattern':pattern,'key':keys,'result':result(own(out),count)})
 def tag(name,values,registry='item',namespace='c'):
     path=RES/'data'/namespace/'tags'/registry/f'{name}.json'
     existing=json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'replace':False,'values':[]}
@@ -37,7 +46,7 @@ devices={}
 for family,title in families.items():
     for tier in range(1,6):
         key=f'{family}_t{tier}';devices[key]=(family,tier);names[f'block.{NS}.{key}']=prefixes[tier-1]+title
-from industrial_crafting import EXTRAS as CRAFT_EXTRAS
+CRAFT_EXTRAS={'coal_generator':(1,'minecraft:smoker','燃煤'),'solar_collector':(1,'minecraft:daylight_detector','日曜'),'turbine_generator':(2,'minecraft:piston','涡轮'),'wind_generator':(2,'minecraft:lightning_rod','风能'),'thermal_generator':(3,'minecraft:blast_furnace','温差'),'nuclear_reactor':(4,NS+':nuclear_core','核能'),'rtg_generator':(5,NS+':rtg_core','RTG'),'coolant_mixer':(2,'minecraft:cauldron',None)}
 extras={key:((title+'魔能产生器') if title else '冷却液混合器',stage,[center]) for key,(stage,center,title) in CRAFT_EXTRAS.items()}
 for key,(title,tier,parts) in extras.items():devices[key]=(key,tier);names[f'block.{NS}.{key}']=title
 for family,title,component,third in [('transfer_crystal','物品传送水晶','ender_pearl','spacetime_ingot'),('harvest_crystal','作物收种水晶','wheat_seeds','terra_ingot')]:
@@ -81,17 +90,16 @@ for metal,title in metal_names.items():
 process('stone_to_cobblestone','mana_crusher',['minecraft:stone'],'minecraft:cobblestone')
 process('cobblestone_to_gravel','mana_crusher',['minecraft:cobblestone'],'minecraft:gravel')
 process('sand','mana_crusher',['minecraft:gravel'],'minecraft:sand')
-for key,out,count,ticks,energy,tier in [
-    ('coal','minecraft:coal',1,400,40000,1),('iron','minecraft:raw_iron',1,400,1600,1),('copper','minecraft:raw_copper',1,300,1200,1),('cobblestone','minecraft:cobblestone',1,100,100,1),
-    ('diamond','minecraft:diamond',1,1200,51200,2),('redstone','minecraft:redstone',4,400,12800,2),('lapis','minecraft:lapis_lazuli',4,400,12800,2),('gold','minecraft:raw_gold',1,600,12800,2),('lead',own('raw_lead'),1,400,6400,2),('titanium',own('raw_titanium'),1,1200,128000,3)]:process('generate_'+key,'mineral_generator',[],out,count,ticks,energy,tier)
-for tier,ticks in enumerate([1200]*5,1):process('currency_t'+str(tier),'currency_fabricator',[],ticks=ticks,energy=6400,tier=tier)
+for tier,ticks in enumerate([1200]*5,1):process('currency_t'+str(tier),'currency_fabricator',[],ticks=ticks,energy=600,tier=tier)
 process('terra','mana_forge',[('#c:ingots/titanium',8),('#c:ingots/iron',4),('minecraft:amethyst_shard',4),'minecraft:ender_pearl'],own('terra_ingot'),8,1200,3276800,3)
 process('magic_stone','mana_forge',[('minecraft:obsidian',4),('minecraft:amethyst_shard',4),'minecraft:blaze_powder'],own('industrial_magic_stone'),4,800,819200,3)
-process('spacetime','mana_forge',[('#c:ingots/terra',8),('#c:ingots/titanium',4),(own('industrial_magic_stone'),4),'minecraft:ender_eye'],own('spacetime_ingot'),8,2400,209715200,4)
-process('coolant','coolant_mixer',['minecraft:lapis_lazuli'],ticks=100,energy=1000,tier=2,fluid_input={'ingredient':'minecraft:water','amount':1000},fluid_result={'id':own('coolant'),'amount':1000})
+process('spacetime','mana_forge',[('#c:ingots/terra',8),('#c:ingots/titanium',4),(own('lattice_substrate'),4),'minecraft:ender_eye'],own('spacetime_ingot'),8,2400,209715200,4)
+process('coolant','coolant_mixer',['minecraft:lapis_lazuli'],ticks=100,energy=2500,tier=3,fluid_inputs=[{'ingredient':'minecraft:water','amount':1000}],fluid_result={'id':own('coolant'),'amount':1000})
 for machine,power,duration,fuels in [
-    ('coal_generator',60,640,['minecraft:coal','minecraft:charcoal']),('turbine_generator',1080,640,['minecraft:coal','minecraft:charcoal',own('sulfide')]),('thermal_generator',6400,640,[own('sulfide')]),('nuclear_reactor',108000,16000,['#c:ingots/uranium']),('rtg_generator',10800,160000,['#c:ingots/uranium'])]:
-    for i,fuel in enumerate(fuels):process(f'fuel_{machine}_{i}','fuel_'+machine,[fuel],ticks=duration,energy=power*duration//20)
+    ('coal_generator',60,640,['minecraft:coal','minecraft:charcoal']),('turbine_generator',1080,640,['minecraft:coal','minecraft:charcoal',own('sulfide')]),('thermal_generator',6400,640,[own('sulfide')])]:
+    for i,fuel in enumerate(fuels):
+        fuel_power=5400 if machine=='turbine_generator' and fuel==own('sulfide') else power
+        process(f'fuel_{machine}_{i}','fuel_'+machine,[fuel],ticks=duration,energy=fuel_power*duration//20)
     if machine in ['coal_generator','turbine_generator']:process(f'fuel_{machine}_block','fuel_'+machine,['minecraft:coal_block'],ticks=duration*9,energy=power*duration*9//20)
 
 capacities=[8,16,32,48,64,88,112,136,160,192,224,256,296,336,376,416]
@@ -102,9 +110,9 @@ for tier in range(2,17):
     if tier in [7,8,10,12,14,16]:ingredients.append(('minecraft:amethyst_shard',4))
     process('storage_upgrade_'+str(tier),'storage_upgrade_'+str(tier),ingredients,ticks=1,energy=0)
 
-rules={'version':2,'beaconCapacity':1000,'beaconRadii':[3,5,9,18,32],'furnaceSpeeds':[4,8,16,32,64],'processingLines':[1,1,2,8,16],'solarPeriods':[0,2000,10000,12000],'transferIntervals':[20,10,1],'transferAmounts':[8,64,64],'transferRanges':[24,128,2147483647],'transferEnergy':[100,1000,10000],'harvestSizes':[3,9,27],'harvestPeriod':500,'harvestEnergy':200,'harvestCrops':['minecraft:wheat','minecraft:carrots','minecraft:potatoes','minecraft:beetroots','minecraft:nether_wart'],'fluidCapacity':20000,'magicGrassChance':16,'crystalDropMin':2,'crystalDropMax':8,'highCrystalWeight':20,'leadWorldgen':True,'uraniumWorldgen':True,'titaniumWorldgen':True,'magicWorldgen':True,'ores':{},'generators':{}}
+rules={'version':3,'beaconCapacity':1000,'beaconRadii':[3,5,9,18,32],'furnaceSpeeds':[4,8,16,32,64],'processingLines':[1,1,2,8,16],'solarPeriods':[0,2000,10000,12000],'transferIntervals':[20,10,1],'transferAmounts':[8,64,64],'transferRanges':[24,128,2147483647],'transferEnergy':[5,25,100],'harvestSizes':[3,9,27],'harvestPeriod':500,'harvestEnergy':20,'harvestCrops':['minecraft:wheat','minecraft:carrots','minecraft:potatoes','minecraft:beetroots','minecraft:nether_wart'],'fluidCapacity':20000,'magicGrassChance':16,'crystalDropMin':2,'crystalDropMax':8,'highCrystalWeight':20,'leadWorldgen':True,'uraniumWorldgen':True,'titaniumWorldgen':True,'magicWorldgen':True,'ores':{},'generators':{}}
 for k,vals in {'magic':(-32,32,3,6,1),'lead':(-32,48,4,8,1),'uranium':(-64,0,2,4,4),'titanium':(0,80,3,6,1)}.items():rules['ores'][k]=dict(zip(['minY','maxY','minSize','maxSize','chance','attempts'],(*vals,1)))
-for k,power,ticks,fluid,rate in [('coal_generator',60,640,'',0),('turbine_generator',1080,640,'minecraft:water',1000),('thermal_generator',6400,640,own('coolant'),100),('nuclear_reactor',108000,16000,own('coolant'),1000),('rtg_generator',10800,160000,'',0)]:rules['generators'][k]={'fluidPerSecond':rate,'fluid':fluid}
+for k,power,ticks,fluid,rate in [('coal_generator',60,640,'',0),('turbine_generator',1080,640,'minecraft:water',1000),('thermal_generator',6400,640,own('coolant'),100),('nuclear_reactor',108000,16000,'minecraft:water',100000),('rtg_generator',108,16000000,'',0)]:rules['generators'][k]={'fluidPerSecond':rate,'fluid':fluid}
 rules.update(windBaseHeight=60,windBasePower=50,windHeightStep=5,windPowerStep=1,solarDayPower=2,solarEdgePower=1,solarRainPower=1)
 code=(ROOT/'src/main/java/cn/yumis/fight/modules/economy/api/CurrencyRules.java').read_text(encoding='utf-8')
 rules['currencyItemWeights']={name:1 for name,rarity in re.findall(r'new Currency\("([^"]+)",Rarity\.(\w+),true\)',code)}
@@ -152,10 +160,6 @@ from industrial_visual_models import generate as refresh_visual_models
 refresh_visual_models()
 from industrial_arcane_models import generate as refresh_arcane_models
 refresh_arcane_models()
-
-# Apply the single authoritative shaped catalog after legacy data generation.
-from industrial_crafting import generate as refresh_crafting
-refresh_crafting()
 
 from industrial_expansion import generate as refresh_expansion
 refresh_expansion()

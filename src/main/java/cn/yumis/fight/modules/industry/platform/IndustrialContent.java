@@ -49,7 +49,7 @@ public final class IndustrialContent {
     public static final DeferredHolder<Fluid,BaseFlowingFluid.Flowing> FLOWING_COOLANT=FLUIDS.register("flowing_coolant",()->new BaseFlowingFluid.Flowing(coolantProperties()));
     public static final DeferredBlock<LiquidBlock> COOLANT_BLOCK=BLOCKS.registerBlock("coolant",p->new LiquidBlock(COOLANT.get(),p),p->p.noCollision().strength(100).noLootTable().liquid().replaceable());
     public static final DeferredBlock<WindGeneratorPartBlock> WIND_PART=BLOCKS.registerBlock("wind_generator_part",WindGeneratorPartBlock::new,p->p.strength(3.5f).sound(SoundType.STONE).noOcclusion().pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK));
-    public static final DeferredHolder<CreativeModeTab,CreativeModeTab> TAB=TABS.register("industry",()->CreativeModeTab.builder().title(net.minecraft.network.chat.Component.literal("YD-工业")).icon(()->stack("mana_crusher_t1",1)).displayItems((p,out)->ALL_ITEMS.forEach((key,value)->{if(!key.matches("energy_crystal_(?:[6-9]|10)"))out.accept(value.get());})).build());
+    public static final DeferredHolder<CreativeModeTab,CreativeModeTab> TAB=TABS.register("industry",()->CreativeModeTab.builder().title(net.minecraft.network.chat.Component.literal("AYD-工业")).icon(()->stack("mana_crusher_t1",1)).displayItems((p,out)->ALL_ITEMS.forEach((key,value)->{if(!key.matches("energy_crystal_(?:[6-9]|10)"))out.accept(value.get());})).build());
     public static final Map<String,Liquid> LIQUIDS=new LinkedHashMap<>();
     public static final class Liquid {
         public final String id;public final int color;
@@ -98,6 +98,15 @@ public final class IndustrialContent {
         String[] liquids={"alkahest","blazing_fluid","ceruleum","shimmer","azoth","penduliquid","spent_solvent"};
         int[] colors={0xff963d63,0xffff722c,0xff38d8bb,0xffac93ef,0xff5a89e8,0xffb5e9ef,0xff62584b};
         for(int i=0;i<liquids.length;i++)LIQUIDS.put(liquids[i],new Liquid(liquids[i],colors[i]));
+        for(var entry:cn.yumis.fight.modules.industry.api.IndustrialTechnology.content().entrySet()){
+            String key=entry.getKey();var definition=entry.getValue().getAsJsonObject();
+            if(ALL_ITEMS.containsKey(key))continue;
+            switch(definition.get("kind").getAsString()){
+                case "block"->block(key,Block::new);
+                case "fluid"->LIQUIDS.put(key,new Liquid(key,0xff9abccd));
+                default->item(key);
+            }
+        }
         ALL_ITEMS.put("mana_wand",ITEMS.registerItem("mana_wand",ManaWand::new,p->p.stacksTo(1)));
         ALL_ITEMS.put("coolant_bucket",ITEMS.registerItem("coolant_bucket",p->new TankBucketItem(COOLANT,p),p->p.stacksTo(1).craftRemainder(Items.BUCKET)));
     }

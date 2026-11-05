@@ -35,10 +35,12 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     private static final List<FluidGauge> PUMP_GAUGES=List.of(new FluidGauge("fluid_out",1,116,68,28,70));
     private static final List<FluidGauge> STORAGE_GAUGES=List.of(new FluidGauge("fluid_out",0,16,62,32,70));
     private static final List<FluidGauge> FUEL_GAUGES=List.of(new FluidGauge("fluid_in",0,16,62,28,70));
+    private static final List<FluidGauge> IGNITION_GAUGES=List.of(new FluidGauge("fluid_in",0,139,68,28,70));
     private int pendingDrainTank=-1;
     private long pendingDrainClick;
     private List<FluidGauge> fluidGauges(){
         var kind=menu.machine.device();
+        if(kind.has(DeviceType.Capability.IGNITION))return IGNITION_GAUGES;
         if(kind.has(DeviceType.Capability.DUAL_FLUID))return REACTOR_GAUGES;
         if(kind.has(DeviceType.Capability.FLUID_STORAGE))return STORAGE_GAUGES;
         if(kind.has(DeviceType.Capability.PUMP))return PUMP_GAUGES;
@@ -78,7 +80,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float alpha){
         g.fill(0,0,width,height,UiTheme.OVERLAY);IndustrialUi.panel(g,leftPos,topPos,256,imageHeight);if(menu.showPlugins){UiTheme.panel(g,leftPos+272,topPos+33,40,104);g.text(UiFonts.font(),"插件",leftPos+279,topPos+39,UiTheme.TEXT,false);}
         for(var slot:menu.slots)if(slot.isActive()){int x=leftPos+slot.x,y=topPos+slot.y;IndustrialUi.slot(g,x,y);}
-        double progress=menu.machine.device().currencyUpgrader()&&menu.info.has("progress")?menu.info.get("progress").getAsDouble():this.progress.value(alpha);if(menu.machine.device().processing()||menu.machine.device().currencyUpgrader()){IndustrialUi.card(g,leftPos+87,topPos+57,(leftPos+174)-(leftPos+87),(topPos+65)-(topPos+57));g.fill(leftPos+88,topPos+58,leftPos+88+(int)(85*Math.clamp(progress,0,1)),topPos+64,UiTheme.ACCENT);}
+        double progress=(menu.machine.device().currencyUpgrader()||menu.machine.device().has(DeviceType.Capability.IGNITION))&&menu.info.has("progress")?menu.info.get("progress").getAsDouble():this.progress.value(alpha);if(menu.machine.device().processing()||menu.machine.device().currencyUpgrader()||menu.machine.device().has(DeviceType.Capability.IGNITION)){IndustrialUi.card(g,leftPos+87,topPos+57,(leftPos+174)-(leftPos+87),(topPos+65)-(topPos+57));g.fill(leftPos+88,topPos+58,leftPos+88+(int)(85*Math.clamp(progress,0,1)),topPos+64,UiTheme.ACCENT);}
         if(menu.info.has("preview")){ItemStack preview=ItemStack.OPTIONAL_CODEC.parse(minecraft.player.registryAccess().createSerializationContext(JsonOps.INSTANCE),menu.info.get("preview")).result().orElse(ItemStack.EMPTY);g.item(preview,leftPos+16,topPos+93);if(mx>=leftPos+14&&mx<=leftPos+34&&my>=topPos+91&&my<=topPos+111)g.setComponentTooltipForNextFrame(UiFonts.font(),Screen.getTooltipFromItem(minecraft,preview),mx,my,preview);}
         for(var gauge:fluidGauges())fluidGauge(g,gauge.key(),leftPos+gauge.x(),topPos+gauge.y(),gauge.width(),gauge.height(),mx,my);
         g.text(UiFonts.font(),"?",leftPos+242,topPos+8,UiTheme.ACCENT,false);
@@ -99,11 +101,12 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         var kind=menu.machine.device();var gauges=fluidGauges();boolean centralGauges=!gauges.isEmpty()&&gauges.getFirst().x()>=88;
         boolean connected=menu.info.has("connected")&&menu.info.get("connected").getAsBoolean();g.text(UiFonts.font(),kind.has(DeviceType.Capability.STORAGE_NETWORK)?(number("network_capacity")>0?"● 信标就绪":"○ 信标未就绪"):connected?"● 信标有效":"○ 未连接",88,46,connected||kind.has(DeviceType.Capability.STORAGE_NETWORK)&&number("network_capacity")>0?UiTheme.SUCCESS:UiTheme.MUTED,false);
         if(kind.processing()||kind.currencyUpgrader()){}
+        else if(kind.has(DeviceType.Capability.GENERATION_OUTPUT)){int labelX=kind.has(DeviceType.Capability.IGNITION)?16:56;g.text(UiFonts.font(),"产能 "+number("power")+"/秒",labelX,80,UiTheme.MUTED,false);g.text(UiFonts.font(),"燃料 "+seconds(number("fuel")),labelX,96,UiTheme.MUTED,false);}
         else if(kind.generator()){g.text(UiFonts.font(),"产能 "+number("power")+" 点/秒",88,63,UiTheme.MUTED,false);g.text(UiFonts.font(),"燃料余时 "+seconds(number("fuel")),88,81,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.STORAGE_NETWORK)){g.text(UiFonts.font(),"核心储能 "+number("energy"),16,64,UiTheme.MUTED,false);g.text(UiFonts.font(),"覆盖半径 "+number("radius")+" 格",16,79,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.ENERGY_STORAGE)){g.text(UiFonts.font(),"本机 "+number("energy")+" / "+number("storage_capacity"),16,68,UiTheme.TEXT,false);g.text(UiFonts.font(),"接网增加容量；断网保留余额",16,87,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.FLUID_STORAGE)){g.text(UiFonts.font(),"一罐一种液体 · "+number("fluid_capacity")+" mB",56,66,UiTheme.TEXT,false);g.text(UiFonts.font(),"原地升级保留；拆除清空",56,84,UiTheme.MUTED,false);}
-        else if(kind.has(DeviceType.Capability.PUMP)){g.text(UiFonts.font(),"相邻水源",16,65,UiTheme.MUTED,false);g.text(UiFonts.font(),"底面出液",16,81,UiTheme.MUTED,false);}
+        else if(kind.has(DeviceType.Capability.PUMP)){g.text(UiFonts.font(),"相邻水源",16,65,UiTheme.MUTED,false);g.text(UiFonts.font(),"六面供液",16,81,UiTheme.MUTED,false);}
         else {g.text(UiFonts.font(),kind.has(DeviceType.Capability.LOGISTICS)?"权杖绑定接收容器":kind.has(DeviceType.Capability.FLUID_LOGISTICS)?"权杖绑定源出口和目标入口":"成熟作物自动入下方箱",16,65,UiTheme.MUTED,false);}
         int statusX=!gauges.isEmpty()&&!centralGauges?56:8,statusWidth=centralGauges?76:248-statusX;
         g.text(UiFonts.font(),font.plainSubstrByWidth(text("status","读取设备状态"),statusWidth),statusX,111,UiTheme.GOLD,false);
@@ -131,7 +134,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
             g.disableScissor();
         }
         g.fill(x+3,y+3,x+4,y+h-3,0x66ffffff);for(int mark=y+7;mark<y+h-3;mark+=6)g.fill(x+w-7,mark,x+w-2,mark+1,0x99505050);
-        if(mx>=x&&mx<x+w&&my>=y&&my<y+h)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(fluidTitle,Component.literal(amount+" / "+capacity+" mB"),Component.literal("批次预留 "+number(key+"_reserved")+" mB"),Component.literal("Ctrl双击排出未预留液体。")),mx,my);
+        if(mx>=x&&mx<x+w&&my>=y&&my<y+h){var lines=new ArrayList<Component>();lines.add(fluidTitle);int tier=cn.yumis.fight.modules.industry.api.IndustrialTechnology.fluidTier(id);if(tier>0)lines.add(Component.literal("材料等级 · "+cn.yumis.fight.modules.industry.api.IndustrialTechnology.label(tier)));lines.add(Component.literal(amount+" / "+capacity+" mB"));lines.add(Component.literal("批次预留 "+number(key+"_reserved")+" mB"));lines.add(Component.literal("Ctrl双击排出未预留液体。"));g.setComponentTooltipForNextFrame(UiFonts.font(),lines,mx,my);}
     }
     private static final class ProductionLines extends ThemedScreen {
         private final IndustrialScreen parent;
@@ -176,7 +179,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
             page=Math.clamp(page,0,Math.max(0,(list.size()-1)/perPage));
             for(int i=0;i<perPage&&page*perPage+i<list.size();i++){int index=page*perPage+i;var recipe=list.get(index).getAsJsonObject();var icon=recipe.has("icon")?ItemStack.OPTIONAL_CODEC.parse(minecraft.player.registryAccess().createSerializationContext(JsonOps.INSTANCE),recipe.get("icon")).result().orElse(ItemStack.EMPTY):ItemStack.EMPTY;
                 var tile=Button.builder(Component.literal(recipe.has("mineral_name")?recipe.get("mineral_name").getAsString():recipe.get("name").getAsString()),b->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,100+index);onClose();}).bounds(x+(i%columns)*70,y+25+(i/columns)*62,66,58).build(builder->new GridItemButton(builder,icon));
-                tile.active=recipe.get("tier").getAsInt()<=parent.menu.machine.tier();tile.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(recipe.get("name").getAsString()+"\n"+recipe.get("ingredients").getAsString()+"\n基准时间 "+recipe.get("ticks").getAsInt()+" tick · 耗能 "+recipe.get("energy").getAsLong()+" · 最低"+recipe.get("tier").getAsInt()+"级")));addRenderableWidget(tile);
+                tile.active=recipe.get("tier").getAsInt()<=parent.menu.machine.processingTier();tile.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(recipe.get("name").getAsString()+"\n"+recipe.get("ingredients").getAsString()+"\n基准时间 "+String.format(Locale.ROOT,"%.2f 秒",recipe.get("seconds").getAsDouble())+" · 单批耗能 "+recipe.get("energy").getAsLong()+"\n最低工艺 T"+recipe.get("tier").getAsInt()+" · 能耗 T"+recipe.get("energy_tier").getAsInt())));addRenderableWidget(tile);
             }
             String reset=parent.menu.machine.device().has(DeviceType.Capability.MINING)?"停止开采":parent.menu.machine.device().has(DeviceType.Capability.REQUIRE_RECIPE)?"取消工艺":"自动匹配";
             int footer=y+rows*62+30;addRenderableWidget(Button.builder(Component.literal("上一页"),b->{page--;controls();}).bounds(x,footer,66,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal(reset),b->{minecraft.gameMode.handleInventoryButtonClick(parent.menu.containerId,4);onClose();}).bounds(x+(w-70)/2,footer,70,20).build(IndustrialUi.IndustrialButton::new));addRenderableWidget(Button.builder(Component.literal("下一页"),b->{page++;controls();}).bounds(x+w-66,footer,66,20).build(IndustrialUi.IndustrialButton::new));
@@ -202,13 +205,35 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         @Override public boolean isPauseScreen(){return false;}@Override public void onClose(){minecraft.gui.popScreenLayer();}
     }
     private static final class Structure extends ThemedScreen {
-        private final IndustrialScreen parent;Structure(IndustrialScreen p){super(Component.literal("结构搭建"),ThemeDomain.MACHINE);parent=p;}
-        @Override protected void init(){addRenderableWidget(Button.builder(Component.literal("返回"),b->onClose()).bounds((width+170)/2,(height-180)/2,50,20).build(IndustrialUi.IndustrialButton::new));}
+        private final IndustrialScreen parent;
+        private int layer;
+        Structure(IndustrialScreen parent){super(Component.literal("结构搭建"),ThemeDomain.MACHINE);this.parent=parent;}
+        private JsonObject definition(){return parent.menu.info.getAsJsonObject("structure");}
+        @Override protected void init(){
+            int left=(width-300)/2,top=(height-240)/2;
+            addRenderableWidget(Button.builder(Component.literal("上一层"),b->layer=Math.max(0,layer-1)).bounds(left+12,top+205,66,20).build(IndustrialUi.IndustrialButton::new));
+            addRenderableWidget(Button.builder(Component.literal("下一层"),b->layer=Math.min(definition().get("size").getAsInt()-1,layer+1)).bounds(left+82,top+205,66,20).build(IndustrialUi.IndustrialButton::new));
+            addRenderableWidget(Button.builder(Component.literal("返回"),b->onClose()).bounds(left+232,top+205,55,20).build(IndustrialUi.IndustrialButton::new));
+        }
         @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){
-            int left=(width-300)/2,top=(height-210)/2;g.fill(0,0,width,height,UiTheme.OVERLAY);IndustrialUi.panel(g,left,top,(left+300)-(left),(top+210)-(top));g.text(UiFonts.font(),"结构搭建 · "+parent.text("structure_material","读取材料"),left+12,top+15,UiTheme.TEXT,false);
-            var be=parent.menu.machine;Set<Long> missing=new HashSet<>();if(parent.menu.info.has("missing"))for(var p:parent.menu.info.getAsJsonArray("missing"))missing.add(p.getAsLong());BlockPos center=be.getBlockPos().relative(be.getBlockState().getValue(MachineBlock.FACING).getOpposite()).above();
-            for(int layer=0;layer<3;layer++){int x0=left+20+layer*92,y0=top+60;g.text(UiFonts.font(),new String[]{"底层","中层","顶层"}[layer],x0,y0-15,UiTheme.TEXT,false);for(int z=-1;z<=1;z++)for(int x=-1;x<=1;x++){BlockPos pos=center.offset(x,layer-1,z);boolean control=pos.equals(be.getBlockPos()),air=layer==1&&x==0&&z==0,bad=missing.contains(pos.asLong());int sx=x0+(x+1)*19,sy=y0+(z+1)*19;g.fill(sx,sy,sx+17,sy+17,control?UiTheme.GOLD:air?UiTheme.CARD:bad?UiTheme.ERROR:UiTheme.SUCCESS);g.text(UiFonts.font(),control?"控":air?"空":bad?"×":"✓",sx+4,sy+5,UiTheme.TEXT,false);if(mx>=sx&&mx<sx+17&&my>=sy&&my<sy+17)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(Component.literal(pos.toShortString()),Component.literal(control?"控制器":air?"中心留空":bad?"此处缺少正确材料":"材料正确")),mx,my);}}
-            g.text(UiFonts.font(),"控制器位于底层正面中央，中心留空。",left+12,top+145,UiTheme.TEXT,false);g.text(UiFonts.font(),"其余25处使用同级材料；下方可放输出容器。",left+12,top+163,UiTheme.MUTED,false);g.text(UiFonts.font(),"当前缺失 "+missing.size()+" 处",left+12,top+186,missing.isEmpty()?UiTheme.SUCCESS:UiTheme.ERROR,false);
+            int left=(width-300)/2,top=(height-240)/2;
+            g.fill(0,0,width,height,UiTheme.OVERLAY);IndustrialUi.panel(g,left,top,300,240);
+            if(!parent.menu.info.has("structure"))return;
+            var data=definition();int size=data.get("size").getAsInt();layer=Math.clamp(layer,0,size-1);
+            g.text(UiFonts.font(),"结构 · "+size+"×"+size+"×"+size+" · 第"+(layer+1)+"层",left+12,top+12,UiTheme.TEXT,false);
+            g.text(UiFonts.font(),parent.text("structure_material","机外壳"),left+12,top+28,UiTheme.TEXT,false);
+            Set<Long> missing=new HashSet<>();if(parent.menu.info.has("missing"))for(var value:parent.menu.info.getAsJsonArray("missing"))missing.add(value.getAsLong());
+            int cell=22,x0=left+(300-size*cell)/2,y0=top+48;
+            for(var value:data.getAsJsonArray("cells")){
+                var item=value.getAsJsonObject();if(item.get("y").getAsInt()!=layer)continue;
+                int x=x0+item.get("x").getAsInt()*cell,y=y0+item.get("z").getAsInt()*cell;
+                long position=item.get("position").getAsLong();boolean control=item.get("controller").getAsBoolean(),air=item.get("air").getAsBoolean(),bad=missing.contains(position);
+                g.fill(x,y,x+20,y+20,control?UiTheme.GOLD:air?UiTheme.CARD:bad?UiTheme.ERROR:UiTheme.SUCCESS);
+                g.text(UiFonts.font(),control?"控":air?"空":bad?"×":"✓",x+6,y+6,UiTheme.TEXT,false);
+                if(mx>=x&&mx<x+20&&my>=y&&my<y+20)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(Component.literal(BlockPos.of(position).toShortString()),Component.literal(control?"控制器":air?"内部留空":bad?"缺少正确机壳":"机壳正确")),mx,my);
+            }
+            g.text(UiFonts.font(),"控制器在底层正面中央，内部留空。",left+12,top+170,UiTheme.TEXT,false);
+            g.text(UiFonts.font(),"机壳 "+data.get("shell_count").getAsInt()+" · 缺失 "+missing.size()+" 处",left+12,top+187,missing.isEmpty()?UiTheme.SUCCESS:UiTheme.ERROR,false);
         }
         @Override public void onClose(){minecraft.gui.popScreenLayer();}
         @Override public boolean isPauseScreen(){return false;}

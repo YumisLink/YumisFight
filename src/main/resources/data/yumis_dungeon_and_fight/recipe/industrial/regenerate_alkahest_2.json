@@ -24,7 +24,7 @@
     }
   ],
   "ticks": 400,
-  "energy": 6400,
+  "energy": 25000,
   "fluid_result": {
     "id": "yumis_dungeon_and_fight:alkahest",
     "amount": 8000

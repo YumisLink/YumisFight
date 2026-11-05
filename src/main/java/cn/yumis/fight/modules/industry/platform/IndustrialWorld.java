@@ -93,7 +93,7 @@ public final class IndustrialWorld extends SavedData {
         List<MachineBlockEntity> found=new ArrayList<>();Map<Long,Set<MachineBlockEntity>> index=chunks.get(level.dimension().identifier().toString());if(index==null)return found;
         for(int x=(pos.getX()-range)>>4;x<=(pos.getX()+range)>>4;x++)for(int z=(pos.getZ()-range)>>4;z<=(pos.getZ()+range)>>4;z++){var list=index.get(net.minecraft.world.level.ChunkPos.pack(x,z));if(list!=null)for(var be:list)if(!be.isRemoved())found.add(be);}return found;
     }
-    public void changed(ServerLevel level,BlockPos pos){for(var be:nearby(level,pos,3))if((be.device().needsStructure())&&be.getBlockPos().distSqr(pos)<=18){validations.add(be);}}
+    public void changed(ServerLevel level,BlockPos pos){for(var be:nearby(level,pos,6))if(be.device().needsStructure()&&IndustrialStructures.contains(be,pos))validations.add(be);}
     public void chunkChanged(ServerLevel level){for(var be:loaded.values())if(be.getLevel()==level&&(be.device().needsStructure()))validations.add(be);}
     public void placed(MachineBlockEntity be){
         register(be);if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))refreshCoverage(be);else discover(be);
@@ -150,12 +150,12 @@ public final class IndustrialWorld extends SavedData {
         IndustrialDeposits.get(server.overworld()).tick(server);
         releaseSpills(server);
         generation.beginTick();
-        for(var be:new ArrayList<>(validations)){if(be.isRemoved())continue;boolean was=be.structureValid;be.structureValid=IndustrialStructures.missing(be).isEmpty();if(was!=be.structureValid)note(be,be.structureValid?"锻炉结构已完整":"锻炉结构不完整");}validations.clear();rebuild();
+        for(var be:new ArrayList<>(validations)){if(be.isRemoved())continue;boolean was=be.structureValid;be.structureLoaded=IndustrialStructures.loaded(be);be.structureValid=be.structureLoaded&&IndustrialStructures.missing(be).isEmpty();if(was!=be.structureValid)note(be,be.structureValid?"结构已完整":"结构不完整或区块未加载");}validations.clear();rebuild();
         Map<String,List<MachineBlockEntity>> cores=new LinkedHashMap<>(),devices=new LinkedHashMap<>();Map<String,Long> production=new HashMap<>();
         for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){
             for(var line:be.lanes())line.beginTick();be.consumed=0;be.workedThisTick=false;boolean connected=validBeacon(be)!=null;
             if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))cores.computeIfAbsent(components.get(be.identity.toString()),k->new ArrayList<>()).add(be);
-            if(be.device().generator()){long generated=generation.generate(be);be.generated=generated;if(connected)production.merge(components.get(be.beacon),generated,Math::addExact);else be.overflow=generated;}
+            if(be.device().generator()){long generated=generation.generate(be);be.generated=generated;if(connected)production.merge(components.get(be.beacon),generated,Math::addExact);else be.overflow=generated;if(connected&&be.device().has(DeviceType.Capability.IGNITION))devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);}
             else if(!be.device().has(DeviceType.Capability.STORAGE_NETWORK)){if(connected)devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);else if(be.device().processing()&&be.running&&(!be.device().needsStructure()||be.structureValid)){for(var line:be.lanes())while(line.tickTime.positive()){IndustrialProcessing.prepare(line);if(line.batchRecipe.isEmpty())break;Fraction before=line.tickTime;long need=line.demand();long local=be.crystalSupply(need);long accepted=line.advance(local);be.crystalRemaining+=local-accepted;if(before.equals(line.tickTime))break;}}}
             IndustrialProcessing.output(be);
             IndustrialFluidWork.outputAdjacent(be);
@@ -185,6 +185,7 @@ public final class IndustrialWorld extends SavedData {
             }
             jobs.removeIf(j->j.done);if(!progress)break;
         }
+        for(var machine:devices)if(machine.device().has(DeviceType.Capability.IGNITION))used+=generation.ignite(machine,Math.max(0,available-used-held));
         if(held>0)reservations.put(group,new Reservation(owner,held));else reservations.remove(group);
         long balance=available-used,spill=Math.max(0,balance-capacity);balance-=spill;long difference=balance-stored;
         for(var core:storage){if(difference>0){long n=Math.min(difference,core.storageCapacity()-core.energy);core.energy+=n;difference-=n;}else if(difference<0){long n=Math.min(-difference,core.energy);core.energy-=n;difference+=n;}core.setChanged();}
@@ -209,13 +210,13 @@ public final class IndustrialWorld extends SavedData {
         for(int tank=0;tank<be.device().fluidTanks();tank++){int actual=line.fluidTank(tank);var fluid=be.fluids.getResource(actual);String prefix=tank==be.device().fluidOutput()?"fluid_out":tank==0?"fluid_in":"fluid_in2";j.addProperty(prefix,be.fluids.getAmountAsLong(actual));j.addProperty(prefix+"_reserved",be.fluids.reservedAmount(actual));j.addProperty(prefix+"_id",fluid.isEmpty()?"":BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());j.addProperty(prefix+"_name",fluid.isEmpty()?"空":fluid.toStack(1).getHoverName().getString());}
         MachineBlockEntity core=be.device().has(DeviceType.Capability.STORAGE_NETWORK)?be:validBeacon(be);if(core!=null){String group=components.get(core.identity.toString());long balance=0,capacity=0;for(var other:loaded.values())if(!other.isRemoved()&&(other.device().has(DeviceType.Capability.STORAGE_NETWORK)&&Objects.equals(components.get(other.identity.toString()),group)||other.device().has(DeviceType.Capability.ENERGY_STORAGE)&&validBeacon(other)!=null&&Objects.equals(components.get(other.beacon),group))){balance+=other.energy;capacity+=other.storageCapacity();}j.addProperty("network_energy",balance);j.addProperty("network_capacity",capacity);Totals t=totals.get(group);if(t!=null){j.addProperty("generated",t.lastGenerated);j.addProperty("consumed",t.lastConsumed);j.addProperty("overflow",t.lastOverflow);}j.addProperty("member_change",memberReasons.getOrDefault(core.identity.toString(),"网络成员已恢复"));j.addProperty("radius",core.radius());}
         JsonArray list=new JsonArray();for(var r:IndustrialProcessing.choices(be)){
-            JsonObject entry=new JsonObject();entry.addProperty("id",r.id().identifier().toString());entry.addProperty("tier",r.value().minimumTier());entry.addProperty("ticks",r.value().ticks());entry.addProperty("energy",r.value().energy());
+            JsonObject entry=new JsonObject();entry.addProperty("id",r.id().identifier().toString());entry.addProperty("tier",r.value().minimumTier());entry.addProperty("seconds",r.value().ticks()/20.0);entry.addProperty("energy",r.value().energy());entry.addProperty("energy_tier",cn.yumis.fight.modules.industry.api.IndustrialTechnology.energyTier(r.id().identifier().toString()));
             String ingredients=r.value().ingredients().stream().map(n->n.count()+" × "+n.ingredient().items().limit(3).map(h->new ItemStack(h.value()).getHoverName().getString()).reduce((a,b)->a+" / "+b).orElse("缺少兼容材料")).reduce((a,b)->a+"；"+b).orElse("无需物品原料");
             for(var fluid:r.value().fluidInputs())ingredients+="；流体 "+fluid.amount()+" mB";
             entry.addProperty("ingredients",ingredients);
             String result=r.value().results().stream().map(item->item.getHoverName().getString()+" ×"+item.getCount()).reduce((a,b)->a+" + "+b).orElse(r.value().fluidResult().isEmpty()?"随机通货":r.value().fluidResult().getHoverName().getString()+" "+r.value().fluidResult().getAmount()+" mB");
             if(be.device().has(DeviceType.Capability.MINING)){
-                String mineral=IndustrialProcessing.mineralId(r);entry.addProperty("mineral_name",net.minecraft.network.chat.Component.translatable("mineral."+IndustrialContent.NS+"."+mineral).getString());int richness=MineralCatalog.universal(mineral)?100:IndustrialDeposits.get((ServerLevel)be.getLevel()).deposit((ServerLevel)be.getLevel(),be.getBlockPos().getX()>>4,be.getBlockPos().getZ()>>4).get(mineral);
+                String mineral=IndustrialProcessing.mineralId(r);var rule=IndustrialRules.current().minerals.get(mineral);if(rule!=null)entry.addProperty("seconds",rule.ticks()/(20.0*rule.tier()));entry.addProperty("mineral_name",net.minecraft.network.chat.Component.translatable("mineral."+IndustrialContent.NS+"."+mineral).getString());int richness=MineralCatalog.universal(mineral)?100:IndustrialDeposits.get((ServerLevel)be.getLevel()).deposit((ServerLevel)be.getLevel(),be.getBlockPos().getX()>>4,be.getBlockPos().getZ()>>4).get(mineral);
                 result=net.minecraft.network.chat.Component.translatable("mineral."+IndustrialContent.NS+"."+mineral).getString()+" · "+(richness==35?"贫瘠":richness==135?"富集":"普通");
             }
             String titleKey="recipe."+IndustrialContent.NS+"."+r.id().identifier().getPath().replace('/','.');String title=net.minecraft.network.chat.Component.translatable(titleKey).getString();if(!title.equals(titleKey))result=title+" → "+result;entry.addProperty("name",result);var icons=r.value().results();ItemStack icon=icons.isEmpty()?r.value().fluidResult().isEmpty()?ItemStack.EMPTY:new ItemStack(r.value().fluidResult().getFluid().getBucket()):icons.getFirst().copyWithCount(1);entry.add("icon",ItemStack.OPTIONAL_CODEC.encodeStart(be.getLevel().registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),icon).getOrThrow());list.add(entry);

@@ -1,7 +1,7 @@
 {
   "type": "yumis_dungeon_and_fight:industrial",
   "machine": "mana_forge",
-  "minimum_tier": 2,
+  "minimum_tier": 3,
   "ingredients": [
     {
       "ingredient": "yumis_dungeon_and_fight:vanadium_steel",
@@ -20,5 +20,5 @@
   ],
   "fluid_inputs": [],
   "ticks": 400,
-  "energy": 12800
+  "energy": 5000
 }

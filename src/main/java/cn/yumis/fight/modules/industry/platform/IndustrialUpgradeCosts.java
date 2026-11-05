@@ -1,32 +1,15 @@
 package cn.yumis.fight.modules.industry.platform;
 
 import cn.yumis.fight.modules.industry.api.DeviceType;
+import cn.yumis.fight.modules.industry.api.IndustrialTechnology;
 import java.util.*;
 
-/** On-site upgrades omit only the preceding machine item from its workbench recipe. */
+/** The authored crafting catalog also supplies on-site upgrade costs. */
 final class IndustrialUpgradeCosts {
     private IndustrialUpgradeCosts(){}
     static Map<String,Integer> costs(DeviceType kind,int next){
-        var items=new LinkedHashMap<String,Integer>();
-        if(kind==DeviceType.TANK){
-            if(next==2){items.put("vanadium_steel",4);items.put("zircon_ceramic",4);}
-            else {items.put("mithril_niobium_alloy",4);items.put("lattice_substrate",2);items.put("energy_crystal_4",2);}
-        }else if(kind==DeviceType.ACCUMULATOR){
-            items.put(next==2?"reinforced_frame":next==3?"heatproof_frame":"precision_frame",1);
-            if(next==2){items.put("vanadium_steel",3);items.put("energy_crystal_2",4);}
-            else if(next==3){items.put("industrial_magic_stone",3);items.put("energy_crystal_4",4);}
-            else {items.put("mana_superconductor",2);items.put("superconducting_control",1);items.put("energy_crystal_5",4);}
-        }else {
-            items.put("industrial_upgrade_"+(kind.graded?next:next==2?2:kind==DeviceType.HARVEST?4:5),1);
-            if(kind==DeviceType.MINER){items.put(next==2?"basic_frame":next==3?"reinforced_frame":next==4?"heatproof_frame":"precision_frame",1);items.put(next==5?"mithril_mana_component":"mana_component",1);if(next==5)items.put("control_component",1);}
-            if(kind==DeviceType.CURRENCY){
-                items.put(next==2?"basic_frame":next==3?"reinforced_frame":next==4?"heatproof_frame":"precision_frame",1);
-                items.put(next<=3?"mana_component":"mithril_mana_component",next==2||next==4?1:2);
-                if(next>=4)items.put("control_component",next==4?1:2);
-            }
-            if(kind==DeviceType.FLUID_TRANSFER){if(next==2){items.put("reinforced_frame",1);items.put("mana_component",2);items.put("minecraft:glass",3);items.put("minecraft:ender_pearl",1);}else{items.put("mithril_mana_component",2);items.put("control_component",1);items.put("zircon_ceramic",4);}}
-        }
-        return items;
+        var costs=IndustrialTechnology.upgradeCosts(IndustrialContent.spec(kind,next).id());
+        if(costs.isEmpty())throw new IllegalArgumentException("此设备没有该档升级配方");return costs;
     }
     static String held(DeviceType kind,int next){return costs(kind,next).keySet().iterator().next();}
 }

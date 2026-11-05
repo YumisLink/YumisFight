@@ -17,12 +17,6 @@ public final class ShopPage {
         String priceText(){return price+(contract?"金币":"点券");}
     }
     private static final List<Product> ITEMS=List.of(
-        ticket("profession_reset_ticket","职业重置券",List.of(
-            "当前配置至少20级且已转职时，消耗后新增20级职业配置。",
-            "保留原配置的等级、加点和技能，新配置自行选择基础职业与转职。",
-            "每人初始8个容量；新配置不再赠送武器。",
-            "转职与觉醒资格全角色共享，最终转职不得重复。",
-            "需在副本、训练外脱战，无施法且所有技能冷却结束。")),
         ticket("career_unlock_ticket","一次性转职解锁券",List.of(
             "永久解锁所有职业的通用转职资格。",
             "20级可用，无职业前置。",

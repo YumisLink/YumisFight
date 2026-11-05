@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_forge",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:vanadium_steel",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:gold_ingot",
+      "count": 4
+    },
+    {
+      "ingredient": "minecraft:amethyst_shard",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:tech_block_t3",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 400,
+  "energy": 1000
+}

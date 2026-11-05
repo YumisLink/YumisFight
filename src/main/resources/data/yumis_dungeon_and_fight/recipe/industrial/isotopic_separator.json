@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MFM",
+    "CSC",
+    "MMM"
+  ],
+  "key": {
+    "M": "yumis_dungeon_and_fight:adamantite_titanium_alloy",
+    "F": "yumis_dungeon_and_fight:control_component",
+    "C": "yumis_dungeon_and_fight:mithril_mana_component",
+    "S": "yumis_dungeon_and_fight:machine_casing_t4"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:isotopic_separator",
+    "count": 1
+  }
+}

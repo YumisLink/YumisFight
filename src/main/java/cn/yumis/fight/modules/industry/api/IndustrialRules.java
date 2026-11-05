@@ -7,7 +7,7 @@ import java.util.*;
 public final class IndustrialRules {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
-    public static final int VERSION=2;
+    public static final int VERSION=3;
     private static final IndustrialRules DEFAULT=defaults();
     private static volatile java.util.function.Supplier<IndustrialRules> source;
     public static IndustrialRules current(){var read=source;return read==null?DEFAULT:read.get();}
@@ -21,19 +21,19 @@ public final class IndustrialRules {
     public int solarDayPower=2,solarEdgePower=1,solarRainPower=1;
     public int[] solarPeriods={0,2000,10000,12000};
     public int[] transferIntervals={20,10,1},transferAmounts={8,64,64},transferRanges={24,128,Integer.MAX_VALUE};
-    public long[] transferEnergy={100,1000,10000};
+    public long[] transferEnergy={5,25,100};
     public int[] harvestSizes={3,9,27};
     public int harvestPeriod=500;
-    public long harvestEnergy=200;
+    public long harvestEnergy=20;
     public List<String> harvestCrops=new ArrayList<>(List.of("minecraft:wheat","minecraft:carrots","minecraft:potatoes","minecraft:beetroots","minecraft:nether_wart"));
     public int fluidCapacity=20000;
     public int[] tankCapacities={64000,256000,1024000};
     public long[] accumulatorCapacities={100000,1000000,100000000,1000000000};
     public int scanTicks=40,scanCooldown=100,miningWaterRate=100,miningCoolantRate=40;
     public int pumpAmount=1000,pumpInterval=20;
-    public long pumpEnergy=100;
+    public long pumpEnergy=10;
     public int[] fluidTransferAmounts={1000,4000,16000};
-    public long[] fluidTransferOperationEnergy={100,1000,10000};
+    public long[] fluidTransferOperationEnergy={5,25,100};
     public Map<String,MineralCatalog.Mineral> minerals=MineralCatalog.defaults();
     public int magicGrassChance=16;
     public int crystalDropMin=2,crystalDropMax=8,highCrystalWeight=20;
@@ -52,7 +52,8 @@ public final class IndustrialRules {
         r.generators.put("coal_generator",new Generator(0,""));
         r.generators.put("turbine_generator",new Generator(1000,"minecraft:water"));
         r.generators.put("thermal_generator",new Generator(100,"yumis_dungeon_and_fight:coolant"));
-        r.generators.put("nuclear_reactor",new Generator(1000,"yumis_dungeon_and_fight:coolant"));
+        r.generators.put("nuclear_reactor",new Generator(100000,"minecraft:water"));
+        r.generators.put("artificial_star",new Generator(100000,"yumis_dungeon_and_fight:coolant"));
         r.generators.put("rtg_generator",new Generator(0,""));
         r.ores.put("magic",new Ore(-32,32,3,6,1,1));r.ores.put("lead",new Ore(-32,48,4,8,1,1));r.ores.put("uranium",new Ore(-64,0,2,4,4,1));r.ores.put("titanium",new Ore(0,80,3,6,1,1));
         r.ores.put("titanium_overworld",new Ore(-48,16,3,6,2,1));
@@ -71,7 +72,7 @@ public final class IndustrialRules {
         int previous=1;for(int v:r.processingLines){if(v<previous||v>MachineSlots.MAXIMUM_LINES)throw new IllegalArgumentException("无效加工产线数");previous=v;}
         for(int v:r.tankCapacities)positive(v);for(long v:r.accumulatorCapacities)if(v<1)throw new IllegalArgumentException("无效蓄能容量");
         for(int v:r.fluidTransferAmounts)positive(v);for(long v:r.fluidTransferOperationEnergy)if(v<0)throw new IllegalArgumentException("负供液费用");
-        for(String id:MineralCatalog.defaults().keySet()){var m=r.minerals.get(id);if(m==null||m.tier()<1||m.tier()>5||m.chance()<1||m.chance()>100||m.ticks()<1||m.power()<1||m.count()<1)throw new IllegalArgumentException("无效矿藏规则 "+id);}
+        for(String id:MineralCatalog.defaults().keySet()){var m=r.minerals.get(id);if(m==null||m.tier()<1||m.tier()>5||m.chance()<1||m.chance()>100||m.ticks()<1||m.energy()<1||m.count()<1)throw new IllegalArgumentException("无效矿藏规则 "+id);}
         for(var entry:defaults().generators.keySet()){
             Generator g=r.generators.get(entry);if(g==null||g.fluidPerSecond<0)throw new IllegalArgumentException("无效发电规则 "+entry);
         }

@@ -24,15 +24,16 @@ public final class MachineLane {
     public List<ItemStack> batchResults=new ArrayList<>(),batchInputs=new ArrayList<>();
     public List<FluidInput> batchFluidInputs=new ArrayList<>();
     public boolean progressive;
+    public boolean deferredInputs;
     public FluidStack batchFluid=FluidStack.EMPTY;
     public String batchMiningFluid="";
     public int batchFluidRate,roundRobin;
     public long batchFluidPaid;
 
-    private record State(String selected,String queued,String status,String recipe,long energy,long paid,long sequence,Fraction duration,Fraction work,Fraction time,double rate,List<ItemStack> results,List<ItemStack> inputs,List<FluidInput> fluids,boolean progressive,FluidStack output,String cooling,int coolingRate,long coolingPaid,int cursor) {}
+    private record State(String selected,String queued,String status,String recipe,long energy,long paid,long sequence,Fraction duration,Fraction work,Fraction time,double rate,List<ItemStack> results,List<ItemStack> inputs,List<FluidInput> fluids,boolean progressive,boolean deferred,FluidStack output,String cooling,int coolingRate,long coolingPaid,int cursor) {}
     private final SnapshotJournal<State> journal=new SnapshotJournal<>() {
-        protected State createSnapshot(){return new State(selected,queued,status,batchRecipe,batchEnergy,paid,batchSequence,batchDuration,work,tickTime,workThisTick,new ArrayList<>(batchResults),new ArrayList<>(batchInputs),new ArrayList<>(batchFluidInputs),progressive,batchFluid,batchMiningFluid,batchFluidRate,batchFluidPaid,roundRobin);}
-        protected void revertToSnapshot(State s){selected=s.selected;queued=s.queued;status=s.status;batchRecipe=s.recipe;batchEnergy=s.energy;paid=s.paid;batchSequence=s.sequence;batchDuration=s.duration;work=s.work;tickTime=s.time;workThisTick=s.rate;batchResults=s.results;batchInputs=s.inputs;batchFluidInputs=s.fluids;progressive=s.progressive;batchFluid=s.output;batchMiningFluid=s.cooling;batchFluidRate=s.coolingRate;batchFluidPaid=s.coolingPaid;roundRobin=s.cursor;}
+        protected State createSnapshot(){return new State(selected,queued,status,batchRecipe,batchEnergy,paid,batchSequence,batchDuration,work,tickTime,workThisTick,new ArrayList<>(batchResults),new ArrayList<>(batchInputs),new ArrayList<>(batchFluidInputs),progressive,deferredInputs,batchFluid,batchMiningFluid,batchFluidRate,batchFluidPaid,roundRobin);}
+        protected void revertToSnapshot(State s){selected=s.selected;queued=s.queued;status=s.status;batchRecipe=s.recipe;batchEnergy=s.energy;paid=s.paid;batchSequence=s.sequence;batchDuration=s.duration;work=s.work;tickTime=s.time;workThisTick=s.rate;batchResults=s.results;batchInputs=s.inputs;batchFluidInputs=s.fluids;progressive=s.progressive;deferredInputs=s.deferred;batchFluid=s.output;batchMiningFluid=s.cooling;batchFluidRate=s.coolingRate;batchFluidPaid=s.coolingPaid;roundRobin=s.cursor;}
         protected void onRootCommit(State previous){machine.setChanged();}
     };
     void record(TransactionContext tx){journal.updateSnapshots(tx);}
@@ -42,7 +43,7 @@ public final class MachineLane {
     String displayStatus(){return !machine.running?"已停止":machine.device().needsStructure()&&!machine.structureValid?"结构不完整":status;}
     public void beginTick(){tickTime=Fraction.of(128);workThisTick=0;}
     public void clearBatch(){
-        batchInputs=new ArrayList<>();batchFluidInputs=new ArrayList<>();batchRecipe="";batchResults=new ArrayList<>();batchFluid=FluidStack.EMPTY;progressive=false;
+        batchInputs=new ArrayList<>();batchFluidInputs=new ArrayList<>();batchRecipe="";batchResults=new ArrayList<>();batchFluid=FluidStack.EMPTY;progressive=false;deferredInputs=false;
         batchMiningFluid="";batchFluidRate=0;batchFluidPaid=0;work=Fraction.ZERO;paid=0;batchEnergy=0;batchDuration=Fraction.ZERO;
     }
     private long cumulative(long total,Fraction at,boolean consume){
@@ -56,6 +57,7 @@ public final class MachineLane {
         return reserved;
     }
     public List<ItemStack> refundableInputs(){
+        if(deferredInputs)return List.of();
         List<ItemStack> result=new ArrayList<>();
         var consumed=new LinkedHashMap<net.neoforged.neoforge.transfer.item.ItemResource,Long>();
         if(progressive){for(var input:batchInputs)consumed.merge(net.neoforged.neoforge.transfer.item.ItemResource.of(input),(long)input.getCount(),Math::addExact);consumed.replaceAll((resource,total)->cumulative(total,work,true));}
@@ -63,6 +65,7 @@ public final class MachineLane {
         return result;
     }
     private boolean transferStep(Fraction end,TransactionContext tx){
+        if(deferredInputs&&end.equals(batchDuration)&&!takeDeferredInputs(tx))return false;
         if(progressive)for(var input:batchFluidInputs){int due=(int)(cumulative(input.stack.getAmount(),end,true)-cumulative(input.stack.getAmount(),work,true));if(due>0&&machine.fluids.extractReserved(this,input.tank,FluidResource.of(input.stack),due,tx)!=due)return false;}
         long cooling=batchFluidRate==0?0:end.multiply(batchFluidRate).divide(2560).ceil()-batchFluidPaid;
         if(cooling>0&&machine.fluids.extract(fluidTank(0),machine.fluids.getResource(fluidTank(0)),Math.toIntExact(cooling),tx)!=cooling)return false;
@@ -91,6 +94,7 @@ public final class MachineLane {
         return Fraction.ZERO;
     }
     public long demand(){
+        if(deferredInputs&&!hasDeferredInputs()){cancelDeferred();return 0;}
         if(batchRecipe.isEmpty()||!batchDuration.positive()||!tickTime.positive())return 0;
         return ProcessingWork.demand(batchEnergy,batchDuration,work,paid,usableTime());
     }
@@ -110,6 +114,7 @@ public final class MachineLane {
     /** Returns accepted energy; callers retain every unaccepted grid/local unit. */
     public long advance(long supplied){
         if(batchRecipe.isEmpty())return 0;
+        if(deferredInputs&&!hasDeferredInputs()){cancelDeferred();return 0;}
         Fraction time=usableTime();if(!time.positive()){status="原料或产物空间不足，进度已保留";return 0;}
         Fraction before=work;long beforePaid=paid;
         long accepted=Math.min(supplied,ProcessingWork.demand(batchEnergy,batchDuration,work,paid,time));
@@ -130,6 +135,7 @@ public final class MachineLane {
         out.putString("duration",batchDuration.toString());out.putString("work",work.toString());
         out.store("results",ItemStack.CODEC.listOf(),batchResults);out.store("inputs",ItemStack.CODEC.listOf(),batchInputs);
         out.putBoolean("progressive",progressive);out.store("fluid_inputs",FluidInput.CODEC.listOf(),batchFluidInputs);
+        out.putBoolean("deferred_inputs",deferredInputs);
         out.store("fluid",FluidStack.OPTIONAL_CODEC,batchFluid);out.putString("mining_fluid",batchMiningFluid);out.putInt("fluid_rate",batchFluidRate);out.putLong("fluid_paid",batchFluidPaid);
     }
     public void load(ValueInput in){
@@ -138,8 +144,17 @@ public final class MachineLane {
         batchDuration=Fraction.parse(in.getStringOr("duration","0"));work=Fraction.parse(in.getStringOr("work","0"));
         batchResults=new ArrayList<>(in.read("results",ItemStack.CODEC.listOf()).orElse(List.of()));batchInputs=new ArrayList<>(in.read("inputs",ItemStack.CODEC.listOf()).orElse(List.of()));
         progressive=in.getBooleanOr("progressive",false);batchFluidInputs=new ArrayList<>(in.read("fluid_inputs",FluidInput.CODEC.listOf()).orElse(List.of()));
+        deferredInputs=in.getBooleanOr("deferred_inputs",false);
         batchFluid=in.read("fluid",FluidStack.OPTIONAL_CODEC).orElse(FluidStack.EMPTY);batchMiningFluid=in.getStringOr("mining_fluid","");batchFluidRate=in.getIntOr("fluid_rate",0);batchFluidPaid=in.getLongOr("fluid_paid",0);
         status=batchRecipe.isEmpty()?"等待原料":"恢复中的加工批次";beginTick();
     }
+    public boolean hasDeferredInputs(){try(var tx=Transaction.openRoot()){return takeDeferredInputs(tx);}}
+    private boolean takeDeferredInputs(TransactionContext tx){
+        for(var need:batchInputs){var resource=net.neoforged.neoforge.transfer.item.ItemResource.of(need);int left=need.getCount();
+            for(int i=0;i<machine.device().inputs()&&left>0;i++)left-=(int)machine.items.extract(inputSlot(i),resource,left,tx);
+            if(left>0)return false;
+        }return true;
+    }
+    void cancelDeferred(){clearBatch();if(machine.device().selectedRecipe()&&!queued.isEmpty())selected=queued.equals("@auto")?"":queued;queued="";status="原料不足，已取消读条；已耗魔能不退";machine.setChanged();}
 }
 

@@ -10,6 +10,6 @@
     }
   ],
   "fluid_inputs": [],
-  "ticks": 800,
-  "energy": 48000
+  "ticks": 400,
+  "energy": 1440
 }

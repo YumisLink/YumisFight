@@ -25,7 +25,7 @@
     }
   ],
   "ticks": 400,
-  "energy": 12800,
+  "energy": 250000,
   "fluid_result": {
     "id": "yumis_dungeon_and_fight:spent_solvent",
     "amount": 1000

@@ -12,12 +12,13 @@ import java.util.*;
 public final class IndustrialUpgrades {
     private IndustrialUpgrades(){}
     public static String id(ItemStack stack){return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();}
-    public static boolean recognized(ItemStack stack){var key=net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());return key.getNamespace().equals(IndustrialContent.NS)&&(key.getPath().matches("industrial_upgrade_[1-5]")||Set.of("vanadium_steel","mithril_niobium_alloy","reinforced_frame","heatproof_frame","precision_frame").contains(key.getPath()));}
+    public static boolean recognized(ItemStack stack){var key=net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());return key.getNamespace().equals(IndustrialContent.NS)&&key.getPath().matches("machine_casing_t[2-6]");}
     public static String required(DeviceType kind,int next){return IndustrialUpgradeCosts.held(kind,next);}
     public static void use(ServerPlayer player,InteractionHand hand,MachineBlockEntity machine){
-        var inventory=IndustrialPorts.inventory();ItemStack held=player.getItemInHand(hand);String expected=required(machine.device(),machine.tier()+1);
+        var inventory=IndustrialPorts.inventory();ItemStack held=player.getItemInHand(hand);
         int max=machine.device().maximumTier();
         if(machine.tier()>=max)throw new IllegalArgumentException("此设备没有下一档升级");
+        String expected=required(machine.device(),machine.tier()+1);
         if(!held.is(IndustrialContent.ALL_ITEMS.get(expected).get()))throw new IllegalArgumentException("需要手持"+IndustrialContent.stack(expected,1).getHoverName().getString()+"逐级升级；还需工作台配方的其他材料");
         JsonObject intent=new JsonObject();intent.addProperty("machine",machine.identity.toString());intent.addProperty("tier",machine.tier());intent.addProperty("item",id(held));
         inventory.transactMachine(player,"machine-upgrade/"+UUID.randomUUID(),intent,machine,()->{

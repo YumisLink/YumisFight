@@ -20,7 +20,7 @@
     }
   ],
   "ticks": 200,
-  "energy": 12800,
+  "energy": 1000,
   "fluid_result": {
     "id": "yumis_dungeon_and_fight:ceruleum",
     "amount": 1000

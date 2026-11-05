@@ -1,0 +1,20 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "isotopic_separator",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:curium_feed",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:cm244",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 600,
+  "energy": 2250000
+}
