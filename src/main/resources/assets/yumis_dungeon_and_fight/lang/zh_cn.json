@@ -1,4 +1,10 @@
 {
+  "entity.yumis_dungeon_and_fight.gbl_cultist": "GBL教信徒",
+  "entity.yumis_dungeon_and_fight.gbl_female_cultist": "GBL教女信徒",
+  "entity.yumis_dungeon_and_fight.gbl_dragon_cannon": "龙头炮",
+  "entity.yumis_dungeon_and_fight.gbl_yasha": "夜叉",
+  "entity.yumis_dungeon_and_fight.gbl_fallen_priest": "堕落的祭司",
+  "entity.yumis_dungeon_and_fight.gbl_asor": "堕落的阿索尔",
   "item.yumis_dungeon_and_fight.mana_storage_bag": "魔能储物袋",
   "item.yumis_dungeon_and_fight.goblin_treasure_map": "哥布林王国藏宝图",
   "item.yumis_dungeon_and_fight.treasure_chest": "藏宝图宝箱",
@@ -39,6 +45,10 @@
   "item.yumis_dungeon_and_fight.fracturing_orb": "破溃宝珠",
   "entity.yumis_dungeon_and_fight.private_loot": "私人物品",
   "effect.yumis_dungeon_and_fight.stun": "眩晕",
+  "effect.yumis_dungeon_and_fight.element_freeze": "冻结",
+  "effect.yumis_dungeon_and_fight.element_ignite": "点燃",
+  "effect.yumis_dungeon_and_fight.element_shock": "感电",
+  "effect.yumis_dungeon_and_fight.element_erosion": "侵蚀",
   "item.yumis_dungeon_and_fight.blunt": "钝器",
   "item.yumis_dungeon_and_fight.bracelet": "手镯",
   "item.yumis_dungeon_and_fight.necklace": "项链",
@@ -465,5 +475,14 @@
   "fluid_type.yumis_dungeon_and_fight.heavy_water": "重水",
   "block.yumis_dungeon_and_fight.heavy_water": "重水",
   "fluid_type.yumis_dungeon_and_fight.brine": "盐水",
-  "block.yumis_dungeon_and_fight.brine": "盐水"
+  "block.yumis_dungeon_and_fight.brine": "盐水",
+  "entity.yumis_dungeon_and_fight.palace_expeller": "驱逐者",
+  "entity.yumis_dungeon_and_fight.palace_axe_expeller": "斧之驱逐者",
+  "entity.yumis_dungeon_and_fight.palace_golem_commander": "石巨人操控师",
+  "entity.yumis_dungeon_and_fight.palace_scholar_golem": "浮游石巨人",
+  "entity.yumis_dungeon_and_fight.palace_general_iae": "大将伊埃",
+  "entity.yumis_dungeon_and_fight.palace_sieghart": "光之城主赛格哈特",
+  "entity.yumis_dungeon_and_fight.palace_axion": "骑士队长阿克雷",
+  "item.yumis_dungeon_and_fight.waystone": "引路石",
+  "block.yumis_dungeon_and_fight.waystone_pedestal": "引路台"
 }

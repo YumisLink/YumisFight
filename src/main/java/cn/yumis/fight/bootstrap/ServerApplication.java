@@ -157,7 +157,8 @@ public final class ServerApplication {
             public void chest(ServerPlayer p,String definition,int tier,int level,net.minecraft.world.phys.Vec3 position,String instance)throws Exception{loot.privateDrop(p,cn.yumis.fight.modules.economy.application.ChestService.chest(definition,tier,level),position,instance);}
             public void publish(){loot.publish();}public void abort(){loot.abort();}
         },random);
-        chests=new cn.yumis.fight.modules.economy.application.ChestService(journal,inventory,RuntimeAssembly.rewardPlayers(this),random);
+        dungeons.installWaystones(inventory,RuntimeAssembly.waystonePorts(this),inventory::recoverIndustrial,random);
+        chests=new cn.yumis.fight.modules.economy.application.ChestService(journal,inventory,RuntimeAssembly.rewardPlayers(this),random,loot);
 
         worldHealth=new cn.yumis.fight.modules.dungeons.application.WorldHealthService(server,journal,targets::resolve,this::session,()->bridge,value->bridge=value);
         damageMeter=cn.yumis.fight.bootstrap.RuntimeAssembly.damageMeterService(this);
@@ -201,7 +202,7 @@ public final class ServerApplication {
             public Change clear(ServerPlayer player,Progress next){return clean(player,careers.clear(player,next));}
             public Change switchProfile(ServerPlayer player,Progress next){var change=careers.switchProfile(player,next);return new Change(change.writes(),()->{change.committed().run();mages.clear(player);skillStarts.clear(player);basicAttacks.invalidate(player);visuals.clear(player);cn.yumis.fight.modules.equipment.api.EquipmentStats.invalidate(player);});}
             public Change reduceSkill(ServerPlayer player,Progress next,String id){var change=careers.reduceSkill(player,next,id);return new Change(change.writes(),()->{change.committed().run();mages.reduced(player,id);});}
-        });combatApplication.skills(cn.yumis.fight.modules.combat.api.CombatPorts.combine(careers,skillStarts,mages,demons,dungeons.treasure));
+        });combatApplication.skills(cn.yumis.fight.modules.combat.api.CombatPorts.combine(careers,skillStarts,mages,demons,dungeons.treasure,dungeons.contacts));
         progressService.profileGuard(p->{
             var s=session(p);long now=System.currentTimeMillis();
             return new cn.yumis.fight.modules.character.api.ProfileConditions(
@@ -227,6 +228,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.CageActions.install(CURRENT.dungeons::cageHit);
             cn.yumis.fight.modules.dungeons.api.TrainingActions.install(CURRENT.trainingService);
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install(CURRENT.dungeons.treasure::use);
+            cn.yumis.fight.modules.dungeons.api.WaystoneActions.install(CURRENT.dungeons.waystones);
             cn.yumis.fight.modules.economy.api.TreasureChestItem.opening(CURRENT.chests::open);
             cn.yumis.fight.modules.skills.api.SummonActions.install(CURRENT.mages);
             cn.yumis.fight.modules.character.api.CharacterActions.install((p,base)->{try{get().progressService.useItem(p,base);}catch(Exception error){get().message(p,error.getMessage());}});
@@ -263,6 +265,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.CageActions.clear();
             cn.yumis.fight.modules.dungeons.api.TrainingActions.clear();
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install((p,h)->{});
+            cn.yumis.fight.modules.dungeons.api.WaystoneActions.install(null);
             cn.yumis.fight.modules.economy.api.TreasureChestItem.opening((p,h)->{});
             cn.yumis.fight.modules.character.api.CharacterActions.clear();
             cn.yumis.fight.modules.skills.api.SummonActions.clear();
@@ -485,6 +488,7 @@ public final class ServerApplication {
         }
     }
     public Stats stats(ServerPlayer p){
+        if(dungeons!=null&&dungeons.waystones!=null)dungeons.waystones.updateSources(p);
         Stats result=EquipmentStats.build(p,session(p).progress);session(p).resources.equipment=EquipmentStats.effects(p,session(p).progress);return result;
     }
     public void profile(ServerPlayer p){
@@ -569,6 +573,7 @@ public final class ServerApplication {
         for(String action:List.of("damage","heal","nativeOutcome"))commands.register("combat",action,(p,j)->{JsonObject report=j.deepCopy();combatQueue.add(()->combatApplication.report(p,action,report));});
         commands.register("professions","professions",(p,j)->professions(p));commands.register("party","party",partyService::request);
         commands.register("dungeons","dungeon",dungeons::request);commands.register("dungeons","cageHit",dungeons::cageHit);
+        commands.register("dungeons","waystoneTable",dungeons.waystones::command);
         commands.register("dungeons","trainingStart",trainingService::start);
         commands.register("combat","basicStart",basicAttacks::start);commands.register("skills","visual",visuals::receive);
         commands.register("skills","cloudLeap",movement::request);commands.register("skills","movementUi",movement::ui);
@@ -616,6 +621,6 @@ public final class ServerApplication {
             var max=p.getAttribute(Attributes.MAX_HEALTH);
             if(EquipmentStats.cacheRevision(p)!=s.statsRevision)profile(p);
         }
-        stunControl.tick(server);
+        stunControl.tick(server,entity->entity instanceof ServerPlayer player?session(player).life:targets.resolve(entity).life);
     }
 }

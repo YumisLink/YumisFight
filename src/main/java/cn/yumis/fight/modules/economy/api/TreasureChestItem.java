@@ -13,5 +13,9 @@ public final class TreasureChestItem extends Item {
     private static BiConsumer<ServerPlayer,InteractionHand> opening=(p,h)->{};
     public static void opening(BiConsumer<ServerPlayer,InteractionHand> action){opening=action;}
     public TreasureChestItem(Properties p){super(p.stacksTo(1));}
-    @Override public InteractionResult use(Level level,Player player,InteractionHand hand){if(player instanceof ServerPlayer p)opening.accept(p,hand);return InteractionResult.SUCCESS;}
+    @Override public InteractionResult use(Level level,Player player,InteractionHand hand){
+        if(player instanceof ServerPlayer p)opening.accept(p,hand);
+        // The inventory transaction can replace the consumed chest with a reward in this hand.
+        return InteractionResult.SUCCESS.heldItemTransformedTo(player.getItemInHand(hand));
+    }
 }

@@ -101,7 +101,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         }
         return view;
     }
-    public Stats currentStats(ServerPlayer p){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),sessions.apply(p).resources,now),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
+    public Stats currentStats(ServerPlayer p){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),sessions.apply(p).resources,now),progress.apply(p),view,sessions.apply(p).life,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
     public DemonHunterState demonState(ServerPlayer p){return state(p).demonHunter;}
     public void demonState(ServerPlayer p,DemonHunterState value){state(p).demonHunter=value;}
     public SunMoonState sunMoonState(ServerPlayer p){return state(p).sunMoon;}
@@ -120,7 +120,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
         if(next.equals(sentViews.get(p.getUUID())))return;
         sentViews.put(p.getUUID(),next);Network.send(p,"careerState",next);
     }
-    private void ensureActor(ServerPlayer p){if(oracle.locked(p))throw new IllegalArgumentException("觉醒演出中");if(sessions.apply(p).life.dead||p.isDeadOrDying()||p.hasEffect(CombatContentTypes.STUN))throw new IllegalArgumentException("当前不能施放技能");var gear=EquipmentItems.gear(p.getMainHandItem());if(gear==null||gear.slot!=Slot.WEAPON||!gear.valid(progress.apply(p),EquipmentEligibility.allowance(p)))throw new IllegalArgumentException("需要可用的职业武器");}
+    private void ensureActor(ServerPlayer p){if(oracle.locked(p))throw new IllegalArgumentException("觉醒演出中");if(sessions.apply(p).life.dead||p.isDeadOrDying()||CombatContentTypes.controlled(p))throw new IllegalArgumentException("当前不能施放技能");var gear=EquipmentItems.gear(p.getMainHandItem());if(gear==null||gear.slot!=Slot.WEAPON||!gear.valid(progress.apply(p),EquipmentEligibility.allowance(p)))throw new IllegalArgumentException("需要可用的职业武器");}
     private void start(ServerPlayer p,JsonObject request){
         String id=request.get("id").getAsString();UUID.fromString(id);
         var session=sessions.apply(p);if(!request.get("session").getAsString().equals(session.id.toString())||request.get("generation").getAsLong()!=session.life.generation)return;
@@ -145,7 +145,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
             equipment=SkillPreview.currentStats(stats.apply(p),resources,now);
             var next=copy(s,CareerState.class);boolean instruction=oracle.prepare(p,next,skill,now);int fieldRank=skillId.equals(CareerSkills.BLACHE)&&next.field!=null&&next.field.expires>now?next.field.rank:0;
             int brands=next.brands,blood=next.blood;
-            Stats resolved=CareerRules.current(equipment,player,next,life.q,snapshot(p).red(p.getX(),p.getY(),p.getZ(),now),next.ownField(p.getX(),p.getY(),p.getZ(),now),now);
+            Stats resolved=CareerRules.current(equipment,player,next,life,life.q,snapshot(p).red(p.getX(),p.getY(),p.getZ(),now),next.ownField(p.getX(),p.getY(),p.getZ(),now),now);
             if(instruction)resolved=OracleRules.instruction(resolved);
             var parameters=WeaponSkills.skill(SkillParameters.forCast(p.getUUID(),skill,rank,equipment.parameters),player,resolved);
             // State phases hold their first-cast snapshot, even after the weapon or effective rank changes.
@@ -203,7 +203,7 @@ public final class CareerSkillService implements CombatPorts.SkillEffects,JobTra
     public Stats instructionStats(ServerPlayer p,SkillDefinition skill,Stats source){return oracle.preview(p,skill,source);}
     public boolean hotbarChange(ServerPlayer p){return oracle.slotChange(p);}
     public boolean inputLocked(ServerPlayer p){return oracle.locked(p);}
-    public Stats castStats(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime resources){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),resources,now),progress.apply(p),view,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
+    public Stats castStats(ServerPlayer p,cn.yumis.fight.modules.combat.api.Runtime resources){var view=snapshot(p);long now=System.currentTimeMillis();return CareerRules.current(SkillPreview.currentStats(stats.apply(p),resources,now),progress.apply(p),view,sessions.apply(p).life,sessions.apply(p).life.q,view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
     /** A native projectile fixes both the weapon contribution and equipment policies at actual spawn. */
     public CombatPorts.NativeLaunch projectileSnapshot(ServerPlayer player,net.minecraft.world.item.ItemStack weapon){
         var progress=this.progress.apply(player);var session=sessions.apply(player);long now=System.currentTimeMillis();var effects=EquipmentStats.projectileEffects(player,progress,weapon);

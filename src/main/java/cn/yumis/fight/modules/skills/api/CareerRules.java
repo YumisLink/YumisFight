@@ -8,15 +8,18 @@ import java.util.*;
 public final class CareerRules {
     public static final int EYE_COLOR=0xb9a4ff;
     private CareerRules(){}
-    public static Stats current(Stats base,Progress progress,CareerState state,double life,double red,boolean ownField,long now){
+    public static Stats current(Stats base,Progress progress,CareerState state,cn.yumis.fight.modules.combat.api.Life life,double fraction,double red,boolean ownField,long now){
         Stats result=base.copy();
+        double defense=cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);
+        for(var stat:List.of(Stat.PHYSICAL_DEFENSE,Stat.MAGICAL_DEFENSE)){var value=result.attribute(stat);value.more(defense-1);value.fadd*=defense;}
+        if(SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.KEIGA))>0){var value=result.attribute(Stat.EVASION);value.more(1);value.fadd*=2;}
         int brands=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.BRANDS));
         if(brands>0)result.mut(Stat.MANA_REGENERATION,.5*state.brands);
         int frenzy=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.FRENZY));
         if(state.frenzy&&frenzy>0){
             result.extra(Stat.ATTACK_SPEED,15);result.mut(Stat.MOVEMENT_SPEED,.10);
             result.mut(Stat.PHYSICAL_DEFENSE,-.15);result.mut(Stat.MAGICAL_DEFENSE,-.15);
-            result.modifier("final").mut+=CareerSkills.lowHealthMut(life);
+            result.modifier("final").mut+=CareerSkills.lowHealthMut(fraction);
             result.modifiers.put("basicSlashes",2d);result.modifiers.put("careerFrenzy",1d);
         }
         if(red>0){result.mut(Stat.STRENGTH,red);result.mut(Stat.INTELLIGENCE,red);}
@@ -28,11 +31,6 @@ public final class CareerRules {
         if(skill==null||!Set.of(SkillCatalog.WAVE.id,CareerSkills.ICE,CareerSkills.FIRE).contains(skill.id))return source;
         double desired=source.modifiers.getOrDefault("careerEyeBonus",0d),applied=source.modifiers.getOrDefault("careerEyeApplied",0d);if(desired<=0||desired==applied)return source;
         Stats result=source.copy();result.modifier("final").mut+=desired-applied;result.modifiers.put("careerEye",1d);result.modifiers.put("careerEyeApplied",desired);return result;
-    }
-    public static double monsterTaken(Progress progress,Stats stats,double careerDamageTaken){
-        double value=careerDamageTaken;
-        if(SkillLearning.effective(stats,progress,SkillCatalog.require(CareerSkills.KEIGA))>0)value*=.9;
-        return value;
     }
     public static SkillParameters.Snapshot resourceSnapshot(SkillParameters.Snapshot source,int brands,int blood,int fieldRank,boolean terminal){
         var values=new LinkedHashMap<>(source.values());String id=source.skill().id;

@@ -65,10 +65,18 @@ public final class RuntimeAssembly {
     },new RewardPorts.Encounters(){
         public boolean participant(ServerPlayer p,String instance){return runtime.dungeons.participant(p,instance);}
         public Dungeon byId(String instance){return runtime.dungeons.byId(instance);}
+        public String currentInstance(ServerPlayer p){var d=runtime.dungeons.current(p.getUUID());return d==null?"":d.id.toString();}
     },new RewardPorts.Balance(){
         public RewardSettings settings(){return runtime.rewards;}
         public long gold(ServerPlayer p){return runtime.economyService.gold(p);}
         public long revision(ServerPlayer p){return runtime.economyService.goldRevision(p);}
         public void notifyGain(ServerPlayer p,long amount,long balance,long revision){runtime.economyService.goldGain(p,amount,balance,revision);}
     },runtime.random);}
+    public static WaystonePorts waystonePorts(ServerApplication runtime){return new WaystonePorts(){
+        public double dropRate(ServerPlayer p){return runtime.stats(p).get(cn.yumis.fight.modules.attributes.api.Stat.DROP_RATE);}
+        public cn.yumis.fight.modules.equipment.api.Rarity rarity(double luck){return runtime.loot.waystoneRarity(luck);}
+        public Map<String,com.google.gson.JsonElement> drop(UUID player,net.minecraft.world.item.ItemStack stack,ReturnPoint point,String instance){var drop=runtime.loot.preparePersistent(player,stack,point,instance);return Map.of("loot/"+drop.id,new com.google.gson.Gson().toJsonTree(drop));}
+        public net.minecraft.world.item.ItemStack chest(int tier){return cn.yumis.fight.modules.economy.application.ChestService.waystoneChest(tier);}
+        public void publish(){runtime.loot.publishPersistent();}
+    };}
 }

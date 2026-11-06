@@ -26,8 +26,6 @@ public final class SkillsClientMessages {
         router.register("skills","movement",(context,j)->{CloudMovement.receive(j);});
         router.register("skills","projectile",(context,j)->{SkillController.INSTANCE.projectile(j);});
         router.register("skills","nativeLaunch",(context,j)->SkillController.INSTANCE.nativeLaunch(j));
-        router.register("skills","bossAction",(context,j)->{SkillController.INSTANCE.boss(j);});
-        router.register("skills","cancelBossAction",(context,j)->{SkillController.INSTANCE.cancelBoss(j.get("id").getAsString());});
         router.register("skills","visual",(context,j)->{Effects.receive(j);});
     }
 }

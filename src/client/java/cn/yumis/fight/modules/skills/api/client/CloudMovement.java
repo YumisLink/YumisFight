@@ -54,7 +54,7 @@ public final class CloudMovement {
         if(action!=GLFW.GLFW_PRESS)return true;
         var state=SkillsClient.current();
         if(!state.ready()||mc.player==null||mc.level==null||mc.gui.screen()!=null||SkillController.INSTANCE.locked()
-            ||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||!mc.player.isAlive()||mc.player.isPassenger()||mc.player.isSleeping()
+            ||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)||!mc.player.isAlive()||mc.player.isPassenger()||mc.player.isSleeping()
             ||mc.player.isSpectator()||mc.player.getAbilities().flying)return true;
         var j=intent();j.addProperty("vertical",mc.options.keyJump.isDown());
         j.addProperty("dimension",mc.level.dimension().identifier().toString());

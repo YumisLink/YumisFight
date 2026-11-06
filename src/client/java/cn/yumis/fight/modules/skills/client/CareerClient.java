@@ -89,7 +89,7 @@ public final class CareerClient {
         c.equipment=ack.has("equipmentEffects")?JSON.fromJson(ack.get("equipmentEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class):state().resources().equipment;c.stats=JSON.fromJson(ack.get("stats"),Stats.class);c.weapon=c.stats.weaponInstance;c.speed=Math.max(.01,c.stats.get(Stat.CAST_SPEED));c.origin=vector(ack.getAsJsonArray("origin"));c.center=vector(ack.getAsJsonArray("center"));c.direction=vector(ack.getAsJsonArray("direction"));c.start=c.stageStart=now;c.dimension=Minecraft.getInstance().level.dimension().identifier().toString();c.charging=SkillPresentation.charging(c.skill);
         c.release=c.charging&&wasReleased;sources.put(id,c);SkillController.INSTANCE.begin(c);
     }
-    public Stats snapshot(Stats base){var p=Minecraft.getInstance().player;long now=state().serverNow();return p==null?base:CareerRules.current(base,state().progress(),view,state().predicted(state().own()),view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
+    public Stats snapshot(Stats base){var p=Minecraft.getInstance().player;long now=state().serverNow();return p==null?base:CareerRules.current(base,state().progress(),view,state().own(),state().predicted(state().own()),view.red(p.getX(),p.getY(),p.getZ(),now),view.ownField(p.getX(),p.getY(),p.getZ(),now),now);}
     public boolean frenzy(){return view.frenzy&&state().progress().hasJob(JobCatalog.BERSERKER);}
     public boolean eye(){return view.eyeUntil>state().serverNow();}
     public int visualColor(Stats stats,int fallback){return stats.modifiers.getOrDefault("careerEye",0d)>0?CareerRules.EYE_COLOR:fallback;}
@@ -190,7 +190,7 @@ public final class CareerClient {
         asura.tick(context,sources.values().stream().filter(c->c.skill.id.equals(CareerSkills.EYE)&&!c.terminal).max(Comparator.comparingLong(c->c.start)).orElse(null),view.eyeUntil);
         for(var ball:new ArrayList<>(fireBalls))advanceFire(ball,context,now);
         for(var wave:new ArrayList<>(waves))advance(wave,context,now);
-        if(!waiting()&&SkillController.INSTANCE.cast==null&&!p.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)){
+        if(!waiting()&&SkillController.INSTANCE.cast==null&&!cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(p)){
             if(view.eyeUntil>0&&view.eyeUntil<=wall)request(SkillCatalog.require(CareerSkills.EYE),-1);
             else if(view.bloodUntil>0&&view.bloodUntil<=wall)request(SkillCatalog.require(CareerSkills.SWORD),-1);
         }

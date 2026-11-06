@@ -9,4 +9,5 @@ public class Life {
     public long generation=1,revision,basis;
     public double q=1;
     public boolean dead;
+    public ElementAccumulation.State elemental=new ElementAccumulation.State();
 }

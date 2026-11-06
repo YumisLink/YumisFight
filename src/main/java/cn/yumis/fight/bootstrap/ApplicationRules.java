@@ -13,7 +13,7 @@ import java.util.Objects;
 
 /** Application composition of module rules; publishes one complete validated snapshot. */
 public final class ApplicationRules {
-    public static final int DATA_VERSION=11;
+    public static final int DATA_VERSION=13;
     public static final class Bundle {
         private final MaterialCatalog materials;
         private final DungeonCatalog dungeons;

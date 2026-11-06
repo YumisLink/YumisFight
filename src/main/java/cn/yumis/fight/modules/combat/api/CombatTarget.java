@@ -8,6 +8,7 @@ public interface CombatTarget {
     Map<String,Double> contributions();
     double maximumHealth(int playerLevel,boolean sync);
     String power();
+    boolean bossOrElite();
     boolean rewardsEligible();
     default boolean training(){return false;}
     default Receipt receive(double fraction,boolean heal){return LifeRules.apply(life(),fraction,heal);}

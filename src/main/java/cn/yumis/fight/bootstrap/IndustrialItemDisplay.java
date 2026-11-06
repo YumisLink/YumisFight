@@ -15,12 +15,15 @@ public final class IndustrialItemDisplay {
     private IndustrialItemDisplay(){}
     public static Rarity rarity(ItemStack stack){
         if(stack.isEmpty()||!ItemData.own(stack)||!IndustrialContent.ALL_ITEMS.containsKey(ItemData.id(stack)))return null;
-        int tier=IndustrialTechnology.itemTier(stack);
+        return rarity(IndustrialTechnology.itemTier(stack));
+    }
+    private static Rarity rarity(int tier){
         return tier>=1&&tier<=Rarity.values().length?Rarity.values()[tier-1]:null;
     }
     public static void names(ModifyDefaultComponentsEvent event){
         IndustrialContent.ALL_ITEMS.forEach((id,holder)->{
-            var rarity=rarity(new ItemStack(holder.get()));
+            // Default components are not bound yet; resolve the grade from the registered ID.
+            var rarity=rarity(IndustrialTechnology.itemTier(IndustrialContent.id(id).toString()));
             if(rarity==null)return;
             int color=rarity.color();
             event.modify(holder.get(),(components,context,item)->components.set(DataComponents.ITEM_NAME,

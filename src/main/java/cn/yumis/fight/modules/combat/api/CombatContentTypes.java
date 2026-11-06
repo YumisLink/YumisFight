@@ -22,5 +22,11 @@ public final class CombatContentTypes {
     }
     );
     public static final DeferredHolder<MobEffect,MobEffect> CLOUD_STEP=EFFECTS.register("cloud_step",()->new MobEffect(MobEffectCategory.BENEFICIAL,0xb9e4f4){});
+    public static final DeferredHolder<MobEffect,MobEffect> FREEZE=EFFECTS.register("element_freeze",()->new MobEffect(MobEffectCategory.HARMFUL,0x83dfff){});
+    public static final DeferredHolder<MobEffect,MobEffect> IGNITE=EFFECTS.register("element_ignite",()->new MobEffect(MobEffectCategory.HARMFUL,0xff8a58){});
+    public static final DeferredHolder<MobEffect,MobEffect> SHOCK=EFFECTS.register("element_shock",()->new MobEffect(MobEffectCategory.HARMFUL,0xffed8d){});
+    public static final DeferredHolder<MobEffect,MobEffect> EROSION=EFFECTS.register("element_erosion",()->new MobEffect(MobEffectCategory.HARMFUL,0xc783ff){});
+    public static net.minecraft.core.Holder<MobEffect> elementalEffect(ElementAccumulation.Kind kind){return switch(kind){case FREEZE->FREEZE;case IGNITE->IGNITE;case SHOCK->SHOCK;case EROSION->EROSION;};}
+    public static boolean controlled(LivingEntity entity){return entity.hasEffect(STUN)||entity.hasEffect(FREEZE);}
     public static void register(IEventBus bus){ATTACHMENTS.register(bus);EFFECTS.register(bus);}
 }

@@ -36,7 +36,7 @@ public class BasicAttackService implements cn.yumis.fight.modules.combat.api.Com
         if(cycles.containsKey(id)){var previous=cycles.get(id);if(!invalidated.contains(id)&&previous.player.equals(player.getUUID())&&previous.session.equals(session.id.toString())){accepted(player,id,previous);return;}throw new IllegalArgumentException("普攻周期已使用或配置已切换");}
         if(inputLock.test(player))throw new IllegalArgumentException("当前演出期间不能普通攻击");
         var gear=EquipmentItems.gear(player.getMainHandItem());
-        if(gear==null||gear.slot!=Slot.WEAPON||!gear.valid(progress.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player))||session.life.dead||player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN))throw new IllegalArgumentException("当前不能普通攻击");
+        if(gear==null||gear.slot!=Slot.WEAPON||!gear.valid(progress.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player))||session.life.dead||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(player))throw new IllegalArgumentException("当前不能普通攻击");
         double ready=next.getOrDefault(player.getUUID(),0d);
         if(now+50<ready)throw new IllegalArgumentException("普通攻击冷却中");
         var attack=profile.apply(player);double interval=attack.interval();

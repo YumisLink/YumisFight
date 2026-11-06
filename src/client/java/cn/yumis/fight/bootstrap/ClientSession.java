@@ -118,6 +118,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         send("progress",j);
     }
     public void clear(){
+        cn.yumis.fight.modules.dungeons.client.WaystoneClient.clear();
         cn.yumis.fight.modules.character.api.client.CareerProfilesClient.clear();
         cn.yumis.fight.modules.party.client.PartyInvitations.clear();combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
         cn.yumis.fight.modules.combat.api.client.DamageAnalysis.clear();
@@ -157,7 +158,11 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         cn.yumis.fight.modules.inventory.client.InventoryClientMessages.register(messages);
         cn.yumis.fight.modules.economy.client.EconomyClientMessages.register(messages);
         cn.yumis.fight.modules.skills.client.SkillsClientMessages.register(messages);
+        cn.yumis.fight.modules.dungeons.client.DungeonClientMessages.register(messages,SkillController.INSTANCE::boss,SkillController.INSTANCE::cancelBoss);
         messages.register("dungeons","treasureWeapon",(context,j)->cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.receive(j));
+        messages.register("dungeons","waystoneTable",(context,j)->cn.yumis.fight.modules.dungeons.client.WaystoneClient.receive(j));
+        messages.register("dungeons","waystoneStarted",(context,j)->cn.yumis.fight.modules.dungeons.client.WaystoneClient.started());
+        messages.register("dungeons","gblAttack",(context,j)->cn.yumis.fight.modules.dungeons.client.GblVisuals.receive(j));
         cn.yumis.fight.modules.character.api.client.CareerControls.register(messages);
         messages.register("dungeons","damageMeter",(context,j)->{
 damageMeter=j;

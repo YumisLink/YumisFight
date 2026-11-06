@@ -53,6 +53,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.equipment.api.client.EquipmentClient.install(ClientSession.INSTANCE);
         cn.yumis.fight.modules.skills.api.client.SkillsClient.install(ClientSession.INSTANCE);
         cn.yumis.fight.modules.dungeons.api.TrainingActions.client(cn.yumis.fight.modules.dungeons.client.TrainingInput::use);
+        cn.yumis.fight.modules.dungeons.client.WaystoneClient.register(bus,()->ClientSession.INSTANCE.dungeon);
         cn.yumis.fight.bootstrap.PlayerPageAssembly.register();
         cn.yumis.fight.modules.presentation.api.client.MenuInput.navigation(page->Minecraft.getInstance().gui.setScreen(new FightScreen(page)));
         cn.yumis.fight.modules.presentation.client.InventoryMenuButton.register();
@@ -63,6 +64,9 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.presentation.api.client.NearEffectRendering.register(bus);
         cn.yumis.fight.modules.presentation.api.client.EffectParticles.register(bus);
         cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.register();
+        cn.yumis.fight.modules.dungeons.client.GblVisuals.register(()->ClientSession.INSTANCE.own.instance);
+        cn.yumis.fight.modules.dungeons.client.PalaceVisuals.register(()->ClientSession.INSTANCE.own.instance);
+        cn.yumis.fight.modules.dungeons.client.EnemyTelegraphs.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
         cn.yumis.fight.modules.industry.client.ManaWandClient.register(bus,stack->{var rarity=IndustrialItemDisplay.rarity(stack);return rarity==null?null:rarity.color();});
@@ -95,6 +99,8 @@ public final class ClientBootstrap {
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_BE.get(),IndustrialRenderer::new);
             e.registerEntityRenderer(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.CAGE.get(),CageRenderer::new);for(var type:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.entrySet()){
                 if(type.getKey().equals("golden_king"))e.registerEntityRenderer(type.getValue().get(),cn.yumis.fight.modules.dungeons.client.GoldenKingRenderer::new);
+                else if(cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,kind));}
+                else if(cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.PalaceEnemyRenderer(context,kind));}
                 else if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),GoblinRenderer::new);
                 else{
                     int role=java.util.List.of("dragonman","blue_dragonman","wyvern","blue_wyvern","lucas").indexOf(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new DragonRenderer(context,role));
@@ -138,7 +144,7 @@ public final class ClientBootstrap {
         }
         );
         NeoForge.EVENT_BUS.addListener((MovementInputUpdateEvent e)->{
-            if(SkillController.INSTANCE.invulnerable()||e.getEntity().hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)){
+            if(SkillController.INSTANCE.invulnerable()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(e.getEntity())){
                 e.getInput().keyPresses=net.minecraft.world.entity.player.Input.EMPTY;((cn.yumis.fight.mixin.InputAccessor)e.getInput()).ydnf$move(net.minecraft.world.phys.Vec2.ZERO);
             }
         }

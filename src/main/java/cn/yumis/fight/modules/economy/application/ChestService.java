@@ -19,7 +19,11 @@ public final class ChestService {
     private final RewardPorts.Players players;
     private final Random random;
     private final cn.yumis.fight.foundation.Journal journal;
-    public ChestService(cn.yumis.fight.foundation.Journal journal,InventoryOperations inventory,RewardPorts.Players players,Random random){this.journal=journal;this.inventory=inventory;this.players=players;this.random=random;}
+    private final LootService loot;
+    public ChestService(cn.yumis.fight.foundation.Journal journal,InventoryOperations inventory,RewardPorts.Players players,Random random,LootService loot){this.journal=journal;this.inventory=inventory;this.players=players;this.random=random;this.loot=loot;}
+    public static ItemStack waystoneChest(int tier){
+        var definition=ChestDefinitions.current().waystone(tier);var stack=ItemRegistry.item("treasure_chest",1);var data=new JsonObject();data.addProperty("id",UUID.randomUUID().toString());data.addProperty("definition","waystone");data.addProperty("tier",tier);data.addProperty("level",80);ItemData.string(stack,"treasure_chest",data.toString());stack.set(DataComponents.CUSTOM_NAME,Component.literal(definition.name().replace("%s",Integer.toString(tier))));return stack;
+    }
     public static ItemStack chest(String definition,int tier,int level){
         if(tier<1||tier>10||level<1||level>80)throw new IllegalArgumentException("宝箱实例无效");
         var def=ChestDefinitions.current().require(definition);var stack=ItemRegistry.item("treasure_chest",1);
@@ -30,6 +34,7 @@ public final class ChestService {
     public void open(ServerPlayer p,InteractionHand hand){try{
         var stack=p.getItemInHand(hand);String raw=ItemData.string(stack,"treasure_chest");if(raw.isEmpty())throw new IllegalArgumentException("没有有效的宝箱实例");
         var data=JsonParser.parseString(raw).getAsJsonObject();int tier=data.get("tier").getAsInt(),level=data.get("level").getAsInt();
+        if(data.get("definition").getAsString().equals("waystone")){openWaystone(p,hand,data,raw);return;}
         if(tier<1||tier>10||level<1||level>80)throw new IllegalArgumentException("宝箱数据无效");
         var def=ChestDefinitions.current().require(data.get("definition").getAsString());
         String title=stack.getHoverName().getString();
@@ -47,6 +52,17 @@ public final class ChestService {
         boolean committed=inventory.transact(p,"chest/"+data.get("id").getAsString(),intent,()->{if(!ItemData.string(p.getItemInHand(hand),"treasure_chest").equals(raw))throw new IllegalArgumentException("手中宝箱发生变化");p.getItemInHand(hand).shrink(1);},Map.of());
         if(committed)RewardMenu.open(p,title,result,inventory,this::credit);
     }catch(Exception e){players.message(p,e.getMessage());}}
+    private void openWaystone(ServerPlayer p,InteractionHand hand,JsonObject data,String raw){
+        int tier=data.get("tier").getAsInt();var definition=ChestDefinitions.current().waystone(tier);double luck=definition.inheritDropRate()?players.stats(p).get(Stat.DROP_RATE):0;List<ItemStack> result=new ArrayList<>();
+        for(int i=0,n=random.nextInt(definition.currencyMinimum(),definition.currencyMaximum()+1);i<n;i++)result.add(ItemRegistry.item(CurrencyRules.rollGuaranteed(luck,random).id(),1));
+        for(var entry:definition.fixed())add(result,entry);for(int i=0;i<definition.specialRolls();i++){var entry=ChestDefinitions.draw(definition.special(),random);if(entry!=null)add(result,entry);}
+        var changes=new LinkedHashMap<String,JsonElement>();var drops=new ArrayList<LootService.Drop>();var intent=new JsonObject();intent.addProperty("openChest",data.get("id").getAsString());
+        boolean committed=inventory.transact(p,"chest/"+data.get("id").getAsString(),intent,()->{
+            if(!ItemData.string(p.getItemInHand(hand),"treasure_chest").equals(raw))throw new IllegalArgumentException("手中宝箱发生变化");p.getItemInHand(hand).shrink(1);
+            for(ItemStack reward:result){var balance=credit(p,reward);if(!balance.isEmpty()){for(var entry:balance.entrySet()){long previous=changes.containsKey(entry.getKey())?changes.get(entry.getKey()).getAsLong():journal.get(entry.getKey(),Long.class,0L);changes.put(entry.getKey(),new JsonPrimitive(Math.addExact(previous,reward.getCount())));}continue;}var remaining=reward.copy();InventoryPacking.insert(p,remaining);while(!remaining.isEmpty()){var drop=loot.prepareOverflow(p,remaining.split(remaining.getMaxStackSize()));drops.add(drop);changes.put("loot/"+drop.id,new Gson().toJsonTree(drop));}}
+        },changes);
+        if(committed){loot.publishDrops(drops);players.profile(p);players.message(p,"已开启引路石"+tier+"阶宝箱，放不下的奖励已生成在脚下。");}
+    }
     private static void add(List<ItemStack> items,ChestDefinitions.Entry entry){
         items.add(item(entry));
     }

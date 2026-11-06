@@ -11,7 +11,7 @@ public abstract class CreeperStunMixin {
     @Shadow @Final private static EntityDataAccessor<Boolean> DATA_IS_IGNITED;
     @Inject(method="tick",at=@At("HEAD")) private void ydnf$stopFuse(CallbackInfo ci){
         Creeper creeper=(Creeper)(Object)this;
-        if(creeper.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)){
+        if(cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(creeper)){
             swell=0;
             oldSwell=0;
             creeper.setSwellDir(-1);

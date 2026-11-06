@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "stone=0": {
+      "model": "yumis_dungeon_and_fight:block/waystone_pedestal_empty"
+    },
+    "stone=1": {
+      "model": "yumis_dungeon_and_fight:block/waystone_pedestal_common"
+    },
+    "stone=2": {
+      "model": "yumis_dungeon_and_fight:block/waystone_pedestal_rare"
+    },
+    "stone=3": {
+      "model": "yumis_dungeon_and_fight:block/waystone_pedestal_artifact"
+    },
+    "stone=4": {
+      "model": "yumis_dungeon_and_fight:block/waystone_pedestal_legendary"
+    }
+  }
+}

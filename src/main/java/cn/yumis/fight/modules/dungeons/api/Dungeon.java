@@ -10,8 +10,9 @@ public class Dungeon {
     public Difficulty difficulty=Difficulty.NORMAL;
     public boolean summoned;
     public TreasureState treasure;
+    public WaystoneRun waystone;
     public Map<UUID,Boolean> synchronization=new LinkedHashMap<>();
-    public boolean syncFor(UUID player){if(treasure!=null)return false;Boolean value=synchronization.get(player);if(value==null)throw new IllegalArgumentException("玩家没有本场同步选择");return value;}
+    public boolean syncFor(UUID player){if(treasure!=null||waystone!=null)return false;Boolean value=synchronization.get(player);if(value==null)throw new IllegalArgumentException("玩家没有本场同步选择");return value;}
     public Set<UUID> roster=new LinkedHashSet<>(),withdrawn=new HashSet<>(),enemies=new HashSet<>();
     public Map<String,ReturnPoint> returns=new HashMap<>();
 }

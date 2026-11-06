@@ -186,7 +186,7 @@
       "id": "castle_palace",
       "name": "城主宫殿",
       "level": 20,
-      "available": false,
+      "available": true,
       "cell": 2,
       "materials": [
         "fluorite",
@@ -197,7 +197,7 @@
       "id": "gbl_church",
       "name": "GBL教会",
       "level": 25,
-      "available": false,
+      "available": true,
       "cell": 3,
       "materials": [
         "behemoth_scale",
@@ -350,5 +350,138 @@
     "EXPERIENCE_GAIN": "角色经验获取"
   },
   "templates": {},
+  "waystones": {
+    "firstMonsterLevel": 81,
+    "levelsPerTier": 1,
+    "maximumPlayers": 8,
+    "statGrowth": 0.15,
+    "tierReward": 0.1,
+    "affixReward": 0.3,
+    "rewardVariance": 0.2,
+    "starterChance": 0.75,
+    "countdownMillis": 10000,
+    "deathPenaltyMillis": 15000,
+    "timeLimitsMillis": [
+      300000,
+      480000,
+      900000
+    ],
+    "tierChanges": [
+      3,
+      2,
+      1,
+      -1
+    ],
+    "affixCounts": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        5,
+        8
+      ]
+    ],
+    "affixes": [
+      {
+        "id": "sturdy",
+        "title": "强韧",
+        "effect": "monster_health",
+        "minimum": 0.2,
+        "maximum": 0.3,
+        "group": "",
+        "enabled": true
+      },
+      {
+        "id": "ferocious",
+        "title": "凶暴",
+        "effect": "monster_attack",
+        "minimum": 0.12,
+        "maximum": 0.18,
+        "group": "",
+        "enabled": true
+      },
+      {
+        "id": "armored",
+        "title": "铁壁",
+        "effect": "monster_defense",
+        "minimum": 0.12,
+        "maximum": 0.18,
+        "group": "",
+        "enabled": true
+      },
+      {
+        "id": "elemental_barrier",
+        "title": "元素壁垒",
+        "effect": "monster_resistance",
+        "minimum": 4,
+        "maximum": 8,
+        "group": "",
+        "enabled": true
+      },
+      {
+        "id": "depletion",
+        "title": "枯竭",
+        "effect": "mana_regeneration",
+        "minimum": 0.16,
+        "maximum": 0.24,
+        "group": "cycle",
+        "enabled": true
+      },
+      {
+        "id": "time_lag",
+        "title": "时滞",
+        "effect": "cooldown_recovery",
+        "minimum": 0.12,
+        "maximum": 0.18,
+        "group": "cycle",
+        "enabled": true
+      },
+      {
+        "id": "quagmire",
+        "title": "泥泞",
+        "effect": "movement_speed",
+        "minimum": 0.08,
+        "maximum": 0.12,
+        "group": "",
+        "enabled": true
+      },
+      {
+        "id": "armor_break",
+        "title": "破甲",
+        "effect": "player_defense",
+        "minimum": 0.12,
+        "maximum": 0.18,
+        "group": "",
+        "enabled": true
+      },
+      {
+        "id": "elemental_erosion",
+        "title": "元素侵蚀",
+        "effect": "player_resistance",
+        "minimum": 4,
+        "maximum": 8,
+        "group": "",
+        "enabled": true
+      },
+      {
+        "id": "slow_cast",
+        "title": "迟咏",
+        "effect": "cast_speed",
+        "minimum": 0.08,
+        "maximum": 0.12,
+        "group": "cycle",
+        "enabled": true
+      }
+    ]
+  },
   "revision": 1
 }

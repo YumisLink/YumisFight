@@ -67,7 +67,7 @@ public class CloudLeapService {
             if(!input.has("dimension")||!player.level().dimension().identifier().toString().equals(input.get("dimension").getAsString()))return;
             if(!player.isAlive()||session.life.dead||player.isSpectator()||player.isPassenger()||player.isSleeping()||player.getAbilities().flying
                 ||state.uiOpen||player.containerMenu!=player.inventoryMenu||inventoryLocked.test(player.getUUID())
-                ||player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||movementLocked.test(player)
+                ||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(player)||movementLocked.test(player)
                 ||((ConnectionAccessor)player.connection).ydnf$awaitingPosition()!=null)return;
             long tick=server.getTickCount();
             if(!state.stamina.ready(tick))return;

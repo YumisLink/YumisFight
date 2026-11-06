@@ -318,6 +318,10 @@ def crafting(specs):
             shaped(key, ['TIT', 'CSC', 'TNT'], {'T': 'tzm_alloy', 'I': 'high_purity_iridium_ingot', 'C': 'superconducting_control', 'S': 'machine_casing_t5', 'N': 'nuclear_core'})
         elif kind == 'fluid_tank':
             shaped(key, ['G G', 'GSG', 'IBI'], {'G': 'minecraft:glass', 'S': f'machine_casing_t{grade}', 'I': 'minecraft:iron_ingot', 'B': 'minecraft:bucket'})
+        elif kind == 'coolant_mixer':
+            # Keep its cauldron below the casing so it cannot collide with the reactor.
+            shaped(key, ['MMM', 'CSC', 'MFM'], {'M': stage_metals[grade-1], 'F': functions[kind],
+                'C': 'mana_component', 'S': f'machine_casing_t{grade}'})
         elif kind in ['fluid_crystal', 'water_pump']:
             shaped(key, [' C ', 'GSG', 'MBM'], {'C': 'energy_crystal_1', 'G': 'minecraft:glass', 'S': f'machine_casing_t{grade}', 'M': 'minecraft:copper_ingot', 'B': functions[kind]})
         else:

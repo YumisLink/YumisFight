@@ -52,7 +52,7 @@ public final class SkillStartService implements CombatPorts.SkillEffects {
         JsonElement previous=journal.get(key);if(!previous.isJsonNull()){Network.send(p,previous.getAsJsonObject().has("error")?"careerRejected":"careerStarted",previous);return;}
         boolean paymentWritten=false;
         try{
-            if(!session.id.toString().equals(request.get("session").getAsString())||session.life.generation!=request.get("generation").getAsLong()||session.life.dead||p.isDeadOrDying()||p.hasEffect(CombatContentTypes.STUN)||locked.test(p.getUUID()))throw new IllegalArgumentException("当前不能施放技能");
+            if(!session.id.toString().equals(request.get("session").getAsString())||session.life.generation!=request.get("generation").getAsLong()||session.life.dead||p.isDeadOrDying()||CombatContentTypes.controlled(p)||locked.test(p.getUUID()))throw new IllegalArgumentException("当前不能施放技能");
             SkillDefinition skill=SkillCatalog.require(request.get("skill").getAsString());if(skill.passive()||CareerSkills.contains(skill.id))throw new IllegalArgumentException("无效的技能入口");
             instructionInput.accept(p,request);
             Progress player=progress.apply(p);Stats equipment=stats.apply(p);EquipmentEffects.Snapshot effects=session.resources.equipment;int rank=SkillLearning.effective(equipment,player,skill),slot=request.get("slot").getAsInt();

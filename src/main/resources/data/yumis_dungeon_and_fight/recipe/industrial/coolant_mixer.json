@@ -2,9 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "MFM",
+    "MMM",
     "CSC",
-    "MMM"
+    "MFM"
   ],
   "key": {
     "M": "yumis_dungeon_and_fight:tzm_alloy",

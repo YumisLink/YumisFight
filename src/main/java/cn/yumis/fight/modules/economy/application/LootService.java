@@ -136,9 +136,17 @@ public class LootService implements InventoryDrops {
     public void privateDrop(ServerPlayer p,ItemStack stack,Vec3 pos,String instance)throws Exception{
         create(p,stack,pos,instance,true);
     }
+    /** Prepares a durable private reward without publishing or writing before its caller commits. */
+    public Drop preparePersistent(UUID player,ItemStack stack,ReturnPoint point,String instance){
+        Drop d=new Drop();d.owner=player.toString();d.dimension=point.dimension;d.instance=instance;d.x=point.x;d.y=point.y+.4;d.z=point.z;d.durableChest=true;d.expires=Long.MAX_VALUE;
+        d.item=ItemStack.OPTIONAL_CODEC.encodeStart(server.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),stack).getOrThrow();return d;
+    }
+    public Drop prepareOverflow(ServerPlayer player,ItemStack stack){var point=new ReturnPoint();point.dimension=player.level().dimension().identifier().toString();point.x=player.getX();point.y=player.getY();point.z=player.getZ();return preparePersistent(player.getUUID(),stack,point,encounters.currentInstance(player));}
+    public void publishPersistent(){for(String key:journal.keys("loot/")){var d=journal.get(key,Drop.class,null);if(d!=null&&d.durableChest&&journal.get("lootEnd/"+d.id).isJsonNull())publish.add(d);}publish();}
+    public Rarity waystoneRarity(double luck){var rarity=LootOdds.rarity(cn.yumis.fight.modules.dungeons.api.Difficulty.HELL,true,false,luck,random);return rarity.ordinal()>Rarity.LEGENDARY.ordinal()?Rarity.LEGENDARY:rarity;}
     private void create(ServerPlayer p,ItemStack stack,Vec3 pos,String instance,boolean privateLoot)throws Exception{
         Drop d=new Drop();
-        d.durableChest=cn.yumis.fight.platform.ItemData.own(stack)&&cn.yumis.fight.platform.ItemData.id(stack).equals("treasure_chest");if(d.durableChest)d.expires=Long.MAX_VALUE;
+        d.durableChest=cn.yumis.fight.platform.ItemData.own(stack)&&Set.of("treasure_chest","waystone").contains(cn.yumis.fight.platform.ItemData.id(stack));if(d.durableChest)d.expires=Long.MAX_VALUE;
         if(privateLoot){
             d.owner=p.getStringUUID();
             d.session=players.session(p).toString();
@@ -165,16 +173,21 @@ public class LootService implements InventoryDrops {
         for(ServerPlayer p:candidates){
             Progress progress=copy(players.progress(p),Progress.class);
             Stats stats=players.stats(p);
+            var encounter=instance?encounters.byId(target.instance):null;
+            var stone=encounter!=null&&encounter.waystone!=null?encounter.waystone.stone:null;
+            double experienceMultiplier=stone==null?1:stone.experienceMultiplier,goldMultiplier=stone==null?1:stone.goldMultiplier,quantityMultiplier=stone==null?1:stone.quantityMultiplier;
+            double luck=stone==null?stats.get(Stat.DROP_RATE):stone.effectiveDropRate(stats.get(Stat.DROP_RATE));
             int level=target.level(progress.level,instance?encounters.byId(target.instance).syncFor(p.getUUID()):progress.sync);
-            long xp=CurrencyRules.roundedReward((10+2*level)*(boss?10:target.elite?3:1)*target.difficulty.xp*balance.settings().combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN));
+            long xp=CurrencyRules.roundedReward((10d+2d*level)*(boss?10:target.elite?3:1)*target.difficulty.xp*balance.settings().combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*experienceMultiplier);
             progress.grant(xp);
-            long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,balance.settings().killGoldMultiplier());
+            long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,balance.settings().killGoldMultiplier()*goldMultiplier);
             if(gold>0){long balance=Math.addExact(this.balance.gold(p),gold),revision=Math.incrementExact(this.balance.revision(p));journal.put("gold/"+p.getUUID(),balance);journal.put("goldRevision/"+p.getUUID(),revision);goldGains.add(new GoldGain(p.getUUID(),gold,balance,revision));}
             for(var write:characters.writes(p.getUUID(),progress).entrySet())journal.put(write.getKey(),write.getValue());
             progressChanged.add(p.getUUID());
             int count=boss?3:random.nextDouble()<(target.elite?.45:.05)?1:0;
+            count=multipliedCount(count,quantityMultiplier);
             for(int i=0;i<count;i++){
-                Rarity rarity=LootOdds.rarity(target.difficulty,boss,boss&&!instance,stats.get(Stat.DROP_RATE),random);
+                Rarity rarity=LootOdds.rarity(target.difficulty,boss,boss&&!instance,luck,random);
                 List<Slot> eligible=new ArrayList<>(List.of(Slot.BRACELET,Slot.NECKLACE,Slot.RING));
                 for(Slot s:List.of(Slot.SUB_EQUIPMENT,Slot.MAGIC_STONE,Slot.EARRING))if(progress.level>=s.minimum()&&level>=s.minimum())eligible.add(s);
                 double group=random.nextDouble();
@@ -184,15 +197,21 @@ public class LootService implements InventoryDrops {
                 gear.source=target.life.target+"/"+target.life.generation;
                 create(p,EquipmentItems.gear(gear),entity.position(),target.instance,instance);
             }
-            var currency=CurrencyRules.roll(stats.get(Stat.DROP_RATE),random);
-            if(currency!=null)create(p,ItemRegistry.item(currency.id(),1),entity.position(),target.instance,instance);
+            var currency=CurrencyRules.roll(luck,random);
+            if(currency!=null)for(int i=0,n=multipliedCount(1,quantityMultiplier);i<n;i++)create(p,ItemRegistry.item(currency.id(),1),entity.position(),target.instance,instance);
             if(instance){
                 DungeonCatalog.DungeonDef def=DungeonCatalog.current().dungeon(encounters.byId(target.instance).dungeon);
                 int rolls=boss?4:target.elite?2:random.nextDouble()<.2?1:0;
+                rolls=multipliedCount(rolls,quantityMultiplier);
                 for(int i=0;i<rolls;i++)create(p,EquipmentItems.material(def.materials().get(random.nextInt(def.materials().size())),1),entity.position(),target.instance,true);
+            }
+            if(boss&&level==80&&encounter!=null&&encounter.treasure==null&&encounter.waystone==null&&random.nextDouble()<cn.yumis.fight.modules.dungeons.api.WaystoneRules.current().starterChance){
+                Rarity rarity=LootOdds.rarity(target.difficulty,true,false,stats.get(Stat.DROP_RATE),random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;
+                create(p,cn.yumis.fight.modules.dungeons.api.Waystone.generate(1,progress.level,rarity,random).item(),entity.position(),target.instance,true);
             }
         }
     }
+    private int multipliedCount(int count,double multiplier){if(count==0||multiplier==1)return count;double expected=count*multiplier;if(!Double.isFinite(expected)||expected>Integer.MAX_VALUE)throw new IllegalArgumentException("掉落数量超出可计算范围");int whole=(int)Math.floor(expected);return whole+(random.nextDouble()<expected-whole?1:0);}
     public void abort(){
         publish.clear();
         progressChanged.clear();

@@ -68,7 +68,8 @@ public final class CombatPrediction {
     }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){
         boolean outcomeOnly=!heal&&fraction==0&&extras!=null&&extras.has("outcome")&&(extras.has("nativeRoot")||extras.has("feedbackEntity"));
-        if(!state.ready()||life.dead||fraction<0||fraction==0&&!outcomeOnly||!Double.isFinite(fraction))return;
+        boolean effectSettlement=!heal&&fraction==0&&extras!=null&&extras.has("effect")&&extras.has("effectKind")&&ElementAccumulation.kind(extras.get("effectKind").getAsString())!=null;
+        if(!state.ready()||life.dead||fraction<0||fraction==0&&!outcomeOnly&&!effectSettlement||!Double.isFinite(fraction))return;
         JsonObject j=new JsonObject();
         j.addProperty("session",state.session());
         j.addProperty("operation",nextOperation++);
@@ -117,7 +118,7 @@ public final class CombatPrediction {
             if(!r.reason().isEmpty())state.message(r.reason());
             return;
         }
-        if(j.has("ownerLife")){Life actor=JSON.fromJson(j.get("ownerLife"),Life.class);if(actor.generation==state.own().generation&&actor.revision>=state.own().revision){state.own().q=actor.q;state.own().revision=actor.revision;state.own().dead=actor.dead;}}
+        if(j.has("ownerLife")){Life actor=JSON.fromJson(j.get("ownerLife"),Life.class);if(actor.generation==state.own().generation&&actor.revision>=state.own().revision){state.own().q=actor.q;state.own().revision=actor.revision;state.own().dead=actor.dead;state.own().elemental=actor.elemental;}}
         if(j.has("equipmentBuffs")){var type=new com.google.gson.reflect.TypeToken<java.util.Map<String,cn.yumis.fight.modules.combat.api.EquipmentBuffs.State>>(){}.getType();java.util.Map<String,cn.yumis.fight.modules.combat.api.EquipmentBuffs.State> buffs=JSON.fromJson(j.get("equipmentBuffs"),type);long delta=-state.serverOffset();for(var buff:buffs.values())buff.expires+=delta;state.resources().equipmentBuffs=buffs;}
         if(j.has("combatUntil"))confirmedCombatUntil=Math.max(confirmedCombatUntil,j.get("combatUntil").getAsLong()-state.serverOffset());
         if(j.has("shieldRecoveryAt"))confirmedShieldRecoveryAt=Math.max(confirmedShieldRecoveryAt,j.get("shieldRecoveryAt").getAsLong()-state.serverOffset());
@@ -129,6 +130,7 @@ public final class CombatPrediction {
             l.q=r.q();
             l.revision=r.revision();
             l.dead=l.q<=0;
+            if(j.has("elemental"))l.elemental=JSON.fromJson(j.get("elemental"),ElementAccumulation.State.class);
         }
         if(r.actual()>0&&p.action.equals("damage")&&!id.equals(state.own().target)){
             DamageAnalysis.accepted(analysisTicket(p.analysis,j),r.actual()*p.maximum);

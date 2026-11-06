@@ -1,0 +1,224 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/stone_bricks",
+    "stone": "minecraft:block/stone_bricks",
+    "obsidian": "minecraft:block/obsidian",
+    "top": "yumis_dungeon_and_fight:block/waystone_pedestal_top",
+    "waystone": "yumis_dungeon_and_fight:block/waystone_common"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0,
+        1
+      ],
+      "to": [
+        15,
+        2,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#stone"
+        },
+        "south": {
+          "texture": "#stone"
+        },
+        "east": {
+          "texture": "#stone"
+        },
+        "west": {
+          "texture": "#stone"
+        },
+        "up": {
+          "texture": "#stone"
+        },
+        "down": {
+          "texture": "#stone"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        2,
+        2
+      ],
+      "to": [
+        14,
+        11,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#stone"
+        },
+        "south": {
+          "texture": "#stone"
+        },
+        "east": {
+          "texture": "#stone"
+        },
+        "west": {
+          "texture": "#stone"
+        },
+        "up": {
+          "texture": "#stone"
+        },
+        "down": {
+          "texture": "#stone"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        11,
+        0
+      ],
+      "to": [
+        16,
+        14,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#obsidian"
+        },
+        "south": {
+          "texture": "#obsidian"
+        },
+        "east": {
+          "texture": "#obsidian"
+        },
+        "west": {
+          "texture": "#obsidian"
+        },
+        "up": {
+          "texture": "#obsidian"
+        },
+        "down": {
+          "texture": "#obsidian"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        14,
+        2
+      ],
+      "to": [
+        14,
+        15,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#obsidian"
+        },
+        "south": {
+          "texture": "#obsidian"
+        },
+        "east": {
+          "texture": "#obsidian"
+        },
+        "west": {
+          "texture": "#obsidian"
+        },
+        "up": {
+          "texture": "#top"
+        },
+        "down": {
+          "texture": "#obsidian"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        17,
+        7.99
+      ],
+      "to": [
+        14,
+        29,
+        8.01
+      ],
+      "rotation": {
+        "origin": [
+          8,
+          23,
+          8
+        ],
+        "axis": "y",
+        "angle": -45
+      },
+      "shade": false,
+      "faces": {
+        "north": {
+          "texture": "#waystone",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#waystone",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        17,
+        7.99
+      ],
+      "to": [
+        14,
+        29,
+        8.01
+      ],
+      "rotation": {
+        "origin": [
+          8,
+          23,
+          8
+        ],
+        "axis": "y",
+        "angle": 45
+      },
+      "shade": false,
+      "faces": {
+        "north": {
+          "texture": "#waystone",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#waystone",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      }
+    }
+  ]
+}

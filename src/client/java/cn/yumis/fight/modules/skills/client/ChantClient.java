@@ -39,7 +39,7 @@ public final class ChantClient {
         if(!active())return;var mc=Minecraft.getInstance();var state=SkillsClient.current();
         if(mc.player==null||mc.level==null){clear();return;}
         String held=cn.yumis.fight.modules.equipment.api.EquipmentItems.view(mc.player.getMainHandItem())==null?"":cn.yumis.fight.modules.equipment.api.EquipmentItems.view(mc.player.getMainHandItem()).instance().toString();
-        if(!state.session().equals(session)||state.own().generation!=generation||state.own().dead||!state.progress().jobId().equals(job)||!mc.level.dimension().identifier().toString().equals(dimension)||!held.equals(weapon)||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||ClientUi.now()>until+3000)cancel();
+        if(!state.session().equals(session)||state.own().generation!=generation||state.own().dead||!state.progress().jobId().equals(job)||!mc.level.dimension().identifier().toString().equals(dimension)||!held.equals(weapon)||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)||ClientUi.now()>until+3000)cancel();
     }
     public static void render(GuiGraphicsExtractor g,int width,int height){
         if(!active()||skill==null)return;double progress=Math.clamp((ClientUi.now()-start)/(double)Math.max(1,until-start),0,1);

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "OEO",
+    "ODO",
+    "BBB"
+  ],
+  "key": {
+    "O": "minecraft:obsidian",
+    "E": "minecraft:ender_eye",
+    "D": "minecraft:diamond",
+    "B": "minecraft:stone_bricks"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:waystone_pedestal",
+    "count": 1
+  }
+}

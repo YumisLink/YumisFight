@@ -21,6 +21,7 @@ public final class RewardPorts {
     public interface Encounters {
         boolean participant(ServerPlayer player,String instance);
         Dungeon byId(String instance);
+        String currentInstance(ServerPlayer player);
     }
     public interface Balance {
         RewardSettings settings();

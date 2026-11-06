@@ -4,9 +4,12 @@
     "treasure": {"name":"藏宝图之%s宝箱","enabled":true,"equipmentBase":3,"equipmentPerTier":2,"currencyBase":3,"currencyPerTier":1,"fixed":[],"special":[],"specialRolls":0},
     "goblin_kingdom": {"name":"哥布林王国的宝箱","enabled":true,"equipmentBase":0,"equipmentPerTier":0,"currencyBase":0,"currencyPerTier":0,"fixed":[{"item":"colorless_crystal","count":10,"weight":1}],"special":[],"specialRolls":0}
   },
+  "waystoneDefault": {"name": "引路石%s阶宝箱", "currencyMinimum": 2, "currencyMaximum": 4, "inheritDropRate": true, "fixed": [], "special": [], "specialRolls": 0},
+  "waystoneByTier": {},
   "bossPools": {
     "goblin_camp":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
     "dragon_tower":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "castle_palace":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
     "treasure_forest":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
     "treasure_tower":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
     "treasure_palace":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]}

@@ -35,6 +35,7 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         return growth(projected)/growth(original);
     }
     public String power(){return elitePower;}
+    public boolean bossOrElite(){return elite||kind.equals("BOSS")||kind.equals("WITHER")||kind.equals("yumis_dungeon_and_fight:dragon");}
     public boolean rewardsEligible(){return !noRewards;}
     public boolean training(){return kind.equals("TRAINING");}
     public boolean consumesHealth(){return !training();}
@@ -44,8 +45,11 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         life.q=1;life.dead=false;life.revision++;
         return new cn.yumis.fight.modules.combat.api.Receipt(true,"",heal?0:fraction,1,life.revision,"");
     }
-    public double defense(int level,boolean magic){return training()?0:(magic?20+5*(level-1):30+8*(level-1))*(elitePower.equals("armor")?1.5:1);}
-    public double[] resistances(){double[] copy=elementalResists.clone();if(elitePower.equals("elemental"))for(int i=0;i<4;i++)copy[i]+=30;return copy;}
+    /** Temporary encounter source, additive with the existing armor increase; never changes health or its basis. */
+    public double encounterDefenseIncrease;
+    public double waystoneHealth=1,waystoneAttack=1,waystoneDefense=1,waystoneDefenseIncrease,waystoneResistance;
+    public double defense(int level,boolean magic){return training()?0:(magic?20+5*(level-1):30+8*(level-1))*(1+(elitePower.equals("armor")?.5:0)+encounterDefenseIncrease+waystoneDefenseIncrease)*waystoneDefense*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);}
+    public double[] resistances(){double[] copy=elementalResists.clone();for(int i=0;i<4;i++)copy[i]+=waystoneResistance+(elitePower.equals("elemental")?30:0);return copy;}
     public double speciesHealth=1,speciesAttack=1;
     public Life life=new Life();
     public Map<String,Double> contributions=new HashMap<>();
@@ -61,10 +65,10 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         }
         ;
         double growth=growth(level);
-        return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1);
+        return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1)*waystoneHealth;
     }
     public double attack(int level){
-        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1);
+        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1)*waystoneAttack;
     }
     private static double growth(int level){if(level<1)throw new IllegalArgumentException("敌人等级无效");return level<=HEALTH_GROWTH.length?HEALTH_GROWTH[level-1]:HEALTH_GROWTH[HEALTH_GROWTH.length-1]*Math.pow(1.08,level-HEALTH_GROWTH.length);}
 }

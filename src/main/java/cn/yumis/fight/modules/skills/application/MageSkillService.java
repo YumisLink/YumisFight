@@ -65,7 +65,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private void tickChants(long now){
         for(var source:new ArrayList<>(chants.values())){var p=owner(source);if(p==null){chants.remove(source.owner);source.cancelled=true;continue;}
             var hand=cn.yumis.fight.modules.equipment.api.EquipmentItems.gear(p.getMainHandItem());
-            if(!valid(source)||p.hasEffect(CombatContentTypes.STUN)||hand==null||!hand.instance.toString().equals(source.weapon)||!hand.valid(progress.apply(p),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(p))||progress.apply(p).level<source.skill.unlock||SkillLearning.effective(source.stats,progress.apply(p),source.skill)<=0){cancelChant(p,source.id);continue;}
+            if(!valid(source)||CombatContentTypes.controlled(p)||hand==null||!hand.instance.toString().equals(source.weapon)||!hand.valid(progress.apply(p),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(p))||progress.apply(p).level<source.skill.unlock||SkillLearning.effective(source.stats,progress.apply(p),source.skill)<=0){cancelChant(p,source.id);continue;}
             if(now<source.chantUntil)continue;chants.remove(p.getUUID());ChantRules.movement(p,false);chantEnded(p,source);
             try{release(p,source);}catch(RuntimeException failure){source.cancelled=true;sources.remove(source.id);p.sendOverlayMessage(net.minecraft.network.chat.Component.literal(Objects.toString(failure.getMessage(),"施放失败")));}
         }

@@ -133,7 +133,7 @@ public final class DemonHunterService implements CombatPorts.SkillEffects {
         for(var a:new ArrayList<>(actions.values())){
             var p=mage.owner(a.source);if(p==null||!mage.valid(a.source)){finish(a,true);continue;}
             String id=a.source.skill.id;boolean beam=id.equals(DemonHunterSkills.BEAM);
-            if((beam||id.equals(DemonHunterSkills.HUNT))&&(p.hasEffect(CombatContentTypes.STUN)&&!steadfast(p)||beam&&(!p.getOffhandItem().isEmpty()||!a.source.weapon.equals(weapon(p))))){finish(a,true);continue;}
+            if((beam||id.equals(DemonHunterSkills.HUNT))&&(CombatContentTypes.controlled(p)&&!steadfast(p)||beam&&(!p.getOffhandItem().isEmpty()||!a.source.weapon.equals(weapon(p))))){finish(a,true);continue;}
             long elapsed=now-a.start;double dt=Math.min(.25,Math.max(0,now-a.last)/1000d);a.last=now;
             try{
                 if(id.equals(DemonHunterSkills.AURA)){while(a.index<6&&elapsed>=(a.index+1)*1000){area(a,p.position(),4,a.source.parameters.get("damage",0),"pulse","pulse/"+a.index);a.index++;}if(elapsed>=6000)finish(a,false);}

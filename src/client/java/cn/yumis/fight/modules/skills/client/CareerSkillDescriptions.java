@@ -7,7 +7,7 @@ final class CareerSkillDescriptions {
     private CareerSkillDescriptions(){}
     static void install(){
         Map<String,String> descriptions=new LinkedHashMap<>();
-        descriptions.put(CareerSkills.KEIGA,"常驻附身：剑类普攻转为暗属性魔法伤害。\n防护：怪物直接伤害在职业防护后再乘0.9。");
+        descriptions.put(CareerSkills.KEIGA,"常驻附身：剑类普攻转为暗属性魔法伤害。\n防护：总闪避值提高100%。");
         descriptions.put(CareerSkills.FIELD,"放置：8格内指向地面，半径5格，持续12秒。\n解锁：有效1级红阵、3级绿阵、8级冰阵、15级紫阵。\n红阵增益自己和队友；绿阵降低敌人双防15%。\n同类增益取最强。");
         descriptions.put(CareerSkills.SOUL_SLASH,"触发：满蓄力鬼斩追加鬼神冲击，按本技能等级成长。\n增幅：位于自己的鬼阵内时进一步增强。\n不增加鬼斩的消耗和冷却。");
         descriptions.put(CareerSkills.TOMBSTONE,"引导：站定2秒，在半径4格内进行10轮落碑。\n命中：每个目标每轮最多一次。\n中断引导会取消剩余段数。");
