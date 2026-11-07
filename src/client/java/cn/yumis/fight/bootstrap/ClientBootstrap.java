@@ -9,6 +9,7 @@ import cn.yumis.fight.modules.dungeons.client.DragonRenderer;
 import cn.yumis.fight.modules.dungeons.client.EnemyModel;
 import cn.yumis.fight.modules.dungeons.client.EnemyRenderer;
 import cn.yumis.fight.modules.economy.client.LootRenderer;
+import cn.yumis.fight.modules.economy.client.JarClient;
 import cn.yumis.fight.modules.equipment.client.CurrencyUi;
 import cn.yumis.fight.modules.inventory.client.DimensionalScreen;
 import cn.yumis.fight.modules.equipment.client.FabricatorScreen;
@@ -66,6 +67,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.register();
         cn.yumis.fight.modules.dungeons.client.GblVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.PalaceVisuals.register(()->ClientSession.INSTANCE.own.instance);
+        cn.yumis.fight.modules.dungeons.client.ForbiddenVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.EnemyTelegraphs.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
@@ -99,7 +101,8 @@ public final class ClientBootstrap {
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_BE.get(),IndustrialRenderer::new);
             e.registerEntityRenderer(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.CAGE.get(),CageRenderer::new);for(var type:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.entrySet()){
                 if(type.getKey().equals("golden_king"))e.registerEntityRenderer(type.getValue().get(),cn.yumis.fight.modules.dungeons.client.GoldenKingRenderer::new);
-                else if(cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,kind));}
+                else if(cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"gbl/"+kind.model,kind.width));}
+                else if(cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"forbidden/"+kind.model,kind.width));}
                 else if(cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.PalaceEnemyRenderer(context,kind));}
                 else if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),GoblinRenderer::new);
                 else{
@@ -115,20 +118,21 @@ public final class ClientBootstrap {
         bus.addListener((RegisterGuiLayersEvent e)->{e.registerAboveAll(id("hud"),Hud::render);e.registerAboveAll(id("stamina"),CloudMovement::render);});
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
             IndustrialVisuals.tick();
-            ClientSession.INSTANCE.tick();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();while(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.consumeClick()){
-                var mc=Minecraft.getInstance();if(mc.player!=null&&mc.gui.screen()==null){
+            ClientSession.INSTANCE.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();while(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.consumeClick()){
+                var mc=Minecraft.getInstance();if(!JarClient.blocking()&&mc.player!=null&&mc.gui.screen()==null){
                     ClientSession.INSTANCE.upload();mc.gui.setScreen(new FightScreen());
                 }
             }
-            while(cn.yumis.fight.modules.skills.api.client.SkillInputs.RENEW.consumeClick())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.renewSummons();
-            while(cn.yumis.fight.modules.skills.api.client.SkillInputs.FOLLOW.consumeClick())cn.yumis.fight.modules.presentation.api.client.ClientUi.current().send("summonFollow",cn.yumis.fight.modules.presentation.api.client.ClientUi.current().operation("summonFollow"));
+            while(cn.yumis.fight.modules.skills.api.client.SkillInputs.RENEW.consumeClick())if(!JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.renewSummons();
+            while(cn.yumis.fight.modules.skills.api.client.SkillInputs.FOLLOW.consumeClick())if(!JarClient.blocking())cn.yumis.fight.modules.presentation.api.client.ClientUi.current().send("summonFollow",cn.yumis.fight.modules.presentation.api.client.ClientUi.current().operation("summonFollow"));
             for(var key:cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS)while(key.consumeClick()){
             }
             ;
         }
         );
-        NeoForge.EVENT_BUS.addListener((InputEvent.MouseScrollingEvent event)->{if(cn.yumis.fight.modules.skills.client.Effects.VFX.blocksHotbar())event.setCanceled(true);});
+        NeoForge.EVENT_BUS.addListener((InputEvent.MouseScrollingEvent event)->{if(JarClient.blocking()||cn.yumis.fight.modules.skills.client.Effects.VFX.blocksHotbar())event.setCanceled(true);});
         NeoForge.EVENT_BUS.addListener((InputEvent.InteractionKeyMappingTriggered e)->{
+            if(JarClient.blocking()){e.setCanceled(true);e.setSwingHand(false);return;}
             if(e.isAttack()&&SkillController.INSTANCE.validWeapon()&&(Minecraft.getInstance().hitResult==null||Minecraft.getInstance().hitResult.getType()!=HitResult.Type.BLOCK)){
                 e.setCanceled(true);e.setSwingHand(false);SkillController.INSTANCE.attack();
             }
@@ -138,13 +142,14 @@ public final class ClientBootstrap {
         }
         );
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Opening e)->{
+            JarClient.opening(e);if(e.isCanceled())return;
             cn.yumis.fight.modules.equipment.client.FabricatorOpening.opening(e);
             if(e.getNewScreen()!=null&&Minecraft.getInstance().player!=null)SkillController.INSTANCE.cancel(false);
             CloudMovement.screen(e.getNewScreen()!=null);
         }
         );
         NeoForge.EVENT_BUS.addListener((MovementInputUpdateEvent e)->{
-            if(SkillController.INSTANCE.invulnerable()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(e.getEntity())){
+            if(JarClient.blocking()||SkillController.INSTANCE.invulnerable()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(e.getEntity())){
                 e.getInput().keyPresses=net.minecraft.world.entity.player.Input.EMPTY;((cn.yumis.fight.mixin.InputAccessor)e.getInput()).ydnf$move(net.minecraft.world.phys.Vec2.ZERO);
             }
         }
@@ -183,6 +188,7 @@ public final class ClientBootstrap {
         return ctrl?1:alt?2:0;
     }
     public static boolean key(KeyEvent event,int action){
+        if(JarClient.blocking())return false;
         var mc=Minecraft.getInstance();
         boolean control=InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_LEFT_CONTROL)||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_RIGHT_CONTROL);
         if(mc.player!=null&&ClientSession.INSTANCE.ready&&event.key()==GLFW.GLFW_KEY_RIGHT_BRACKET&&control&&(mc.gui.screen()==null||mc.gui.screen() instanceof FightScreen)){

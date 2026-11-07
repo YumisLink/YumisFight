@@ -11,10 +11,10 @@ public final class GblEnemyRenderer extends MobRenderer<DungeonEnemy,GblEnemyRen
     public static final class State extends LivingEntityRenderState {
         String move="";long elapsed,duration;boolean moving,dying;int hurt;float deathPhase;
     }
-    private final GblEnemyKind kind;
-    public GblEnemyRenderer(EntityRendererProvider.Context context,GblEnemyKind kind){super(context,GblModel.load(kind.model),kind.width*.45f);this.kind=kind;}
+    private final String model;
+    public GblEnemyRenderer(EntityRendererProvider.Context context,String model,float width){super(context,GblModel.load(model),width*.45f);this.model=model;}
     @Override public State createRenderState(){return new State();}
-    @Override public Identifier getTextureLocation(State state){return Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/entity/gbl/"+kind.model+".png");}
+    @Override public Identifier getTextureLocation(State state){return Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/entity/"+model+".png");}
     @Override protected float getFlipDegrees(){return 0;}
     @Override protected net.minecraft.world.phys.AABB getBoundingBoxForCulling(DungeonEnemy enemy){return super.getBoundingBoxForCulling(enemy).inflate(2,2,2);}
     @Override public void extractRenderState(DungeonEnemy enemy,State state,float partial){

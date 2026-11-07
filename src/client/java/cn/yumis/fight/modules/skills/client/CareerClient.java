@@ -22,6 +22,7 @@ public final class CareerClient {
     private final ArrayDeque<String> renewQueue=new ArrayDeque<>();private long renewAfter;
     public void renewSummons(){if(!state().progress().hasJob(JobCatalog.SUMMONER)||waiting())return;renewQueue.clear();for(String id:SummonerSkills.RENEW)if(SkillLearning.effective(state().stats(),state().progress(),SkillCatalog.require(id))>0)renewQueue.add(id);nextRenew();}
     public void tickRenew(){if(ClientUi.now()>=renewAfter)nextRenew();}
+    public void stopRenewing(){renewQueue.clear();}
     private void nextRenew(){if(waiting()||renewQueue.isEmpty())return;String id=renewQueue.remove();request(SkillCatalog.require(id),-1);renewAfter=ClientUi.now()+600;}
     private final Map<String,Long> pending=new HashMap<>();
     private final Map<String,Integer> pendingSlots=new HashMap<>();

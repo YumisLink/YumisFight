@@ -35,7 +35,8 @@ public final class DungeonEnemy extends Zombie {
     public long moveDuration(){return entityData.get(MOVE_DURATION);}
     public void guarded(boolean value){entityData.set(GUARDED,value);}
     public boolean guarded(){return entityData.get(GUARDED);}
-    @Override public boolean isPushable(){return GblEnemyKind.of(this)!=GblEnemyKind.DRAGON_CANNON&&super.isPushable();}
+    @Override public boolean isPickable(){return !move().equals("spent")&&super.isPickable();}
+    @Override public boolean isPushable(){return GblEnemyKind.of(this)!=GblEnemyKind.DRAGON_CANNON&&ForbiddenEnemyKind.of(this)!=ForbiddenEnemyKind.BARRIER_CORE&&!move().equals("spent")&&super.isPushable();}
     public void scripted(){
         goalSelector.removeAllGoals(g->true);
         targetSelector.removeAllGoals(g->true);

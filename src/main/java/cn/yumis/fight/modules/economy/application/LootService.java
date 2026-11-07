@@ -146,7 +146,7 @@ public class LootService implements InventoryDrops {
     public Rarity waystoneRarity(double luck){var rarity=LootOdds.rarity(cn.yumis.fight.modules.dungeons.api.Difficulty.HELL,true,false,luck,random);return rarity.ordinal()>Rarity.LEGENDARY.ordinal()?Rarity.LEGENDARY:rarity;}
     private void create(ServerPlayer p,ItemStack stack,Vec3 pos,String instance,boolean privateLoot)throws Exception{
         Drop d=new Drop();
-        d.durableChest=cn.yumis.fight.platform.ItemData.own(stack)&&Set.of("treasure_chest","waystone").contains(cn.yumis.fight.platform.ItemData.id(stack));if(d.durableChest)d.expires=Long.MAX_VALUE;
+        d.durableChest=cn.yumis.fight.platform.ItemData.own(stack)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(stack));if(d.durableChest)d.expires=Long.MAX_VALUE;
         if(privateLoot){
             d.owner=p.getStringUUID();
             d.session=players.session(p).toString();
@@ -171,6 +171,7 @@ public class LootService implements InventoryDrops {
         }
         List<ServerPlayer> candidates=instance?server.getPlayerList().getPlayers().stream().filter(p->p.level()==entity.level()&&p.distanceToSqr(entity)<=4096&&encounters.participant(p,target.instance)).toList():List.of(killer);
         for(ServerPlayer p:candidates){
+            if(instance&&boss)for(var jar:cn.yumis.fight.modules.economy.api.JarDefinitions.current().jars.entrySet())if(random.nextDouble()<jar.getValue().bossDropChance())create(p,cn.yumis.fight.modules.economy.api.LootJarItem.create(jar.getKey(),1),entity.position(),target.instance,true);
             Progress progress=copy(players.progress(p),Progress.class);
             Stats stats=players.stats(p);
             var encounter=instance?encounters.byId(target.instance):null;

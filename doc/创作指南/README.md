@@ -24,6 +24,7 @@
 | `dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；`content/DungeonLayouts.java`、`application/EncounterContacts.java` | 新副本复用场次、地图边界／门控、等级难度缩放、接触凭据和清场；AI与地图留在副本模块。 |
 | `industry/api/DeviceType.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；`platform/IndustrialProcessing.java` | 新设备和工艺复用设备能力、科技目录、批次／产线结算；精度用既有 `EnergyMath`／`Fraction`，资源从正式生成源维护。 |
 | `economy/api/CurrencyRules.java`、`RewardPorts.java`；`professions/application/ProfessionService.java` | 掉落、出售分解、通货与副职业奖励走原资格、操作号和事务，不新增第二套余额或发奖模型。 |
+| `economy/api/JarDefinitions.java`、`LootJarItem.java` | 单抽罐子登记奖池与权重，物品工厂使用定义ID；开罐与交付沿库存／WAL事务，演出不决定奖品。配置方法见下文。 |
 | 客户端 `presentation/api/client/WorldQuads.java`、`EffectModels.java`、`EffectParticles.java`、`NearEffectRendering.java` | 技能和副本共用世界绘制、粒子及近身淡化；内容提供形状和时间轴，展示不授予命中、无敌或重力权限。 |
 
 规则整包接主源码 `bootstrap/ApplicationRules.java` 与 `architecture/RuleStore.java` 的既有发布流程；新增内容不另建通用网络、事务或规则运行时。
@@ -41,3 +42,17 @@
 | 奖励／副职业 | 来源资格、数量／概率权重、经验与等级曲线、操作号和领取上限；消费、发奖、重复请求与失败回滚共用现有事务。 |
 
 资源放既有模块对应目录，入口见项目索引；本指南只补可复用方法，不追加某次实现履历或数值快照。
+
+## 单抽罐子配置
+
+数据包覆盖 `data/yumis_dungeon_and_fight/rules/jars.json` 后执行服务端 `/reload`。根对象 `jars` 按稳定ID登记定义，每种包含 `name`、`bossDropChance`（0～1）和 `entries`。条目使用有限、非负的 `weight`，每池总权重必须大于0；单次只产出1件。修改单项权重会改变整池归一化概率，不额外抽品质。配置无效时整包保留上次有效规则，已开始的抽取保留原奖与演出快照。
+
+| 条目 `type` | 必需参数与资格 |
+|---|---|
+| `weapon` | `weapon` 使用现有武器枚举，`rarity` 只允许 `COMMON`、`RARE`、`ARTIFACT`、`LEGENDARY`；统一生成80级，不提供等级字段。 |
+| `named` | `template` 使用已设计具名史诗的稳定ID，如 `named/skyspine`；保留模板原等级与效果，不允许神话。 |
+| `item` | `item` 使用注册物品ID，如 `minecraft:diamond`；模组普通物品可省略命名空间。需要实例数据的装备和罐子须使用正式工厂，不可用裸注册物品代替。 |
+
+`bossDropChance` 是普通副本、藏宝图、地狱+中有奖励资格的首领击杀独立投放，每位符合既有奖励资格的玩家分别判定，不继承掉落率、难度或引路石数量倍率。使用入口为背包右键，仅副本外且脱战可用；管理命令为 `/ydnf jar give <player> <definition> <count>`，数量1～64。
+
+开罐开始事务保存完整奖品，正常10秒后交付；断线、死亡、换维度或正常停服提前结算，崩溃遗留在下次上线交付。背包放不下时使用普通公共掉落语义。客户端演出独立等概率选择陪衬，最终始终停在服务端既定奖品。

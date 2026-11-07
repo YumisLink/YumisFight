@@ -118,6 +118,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         send("progress",j);
     }
     public void clear(){
+        cn.yumis.fight.modules.economy.client.JarClient.clear();
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.clear();
         cn.yumis.fight.modules.character.api.client.CareerProfilesClient.clear();
         cn.yumis.fight.modules.party.client.PartyInvitations.clear();combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;

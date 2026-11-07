@@ -13,6 +13,7 @@ public final class EconomyClientMessages {
     private static JsonObject pending;private static int nextPart;
     private EconomyClientMessages(){}
     public static void register(CommandRouter<Void,JsonObject> router){
+        router.register("economy","jarState",(context,message)->JarClient.accept(message));
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Init.Post event)->{
             if(event.getScreen() instanceof AbstractContainerScreen<?> screen&&screen.getMenu() instanceof DimensionalMenu menu){
                 int x=screen.getLeftPos()+76,y=screen.getTopPos()+menu.rows*18+174-23;

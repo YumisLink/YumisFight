@@ -33,6 +33,7 @@ public final class EncounterContacts implements CombatPorts.SkillEffects {
         Network.send(player,"bossAction",hit);
     }
     void tick(long now){credits.values().removeIf(c->c.expires<now);}
+    boolean pending(UUID source){return credits.values().stream().anyMatch(c->c.source.equals(source));}
     void close(String instance){credits.values().removeIf(c->c.instance.equals(instance));}
     private String receipt(Credit c,ServerPlayer p){return "dungeonContact/"+c.action+"/"+p.getUUID()+"/"+c.session+"/"+c.generation;}
     private Credit credit(ServerPlayer p,JsonObject report){return credits.get(report.get("encounterAction").getAsString()+"/"+p.getUUID());}

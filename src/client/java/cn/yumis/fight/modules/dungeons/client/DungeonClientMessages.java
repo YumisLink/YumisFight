@@ -10,6 +10,7 @@ public final class DungeonClientMessages {
         router.register("dungeons","bossAction",(context,j)->{EnemyTelegraphs.receive(j);hit.accept(j);});
         router.register("dungeons","cancelBossAction",(context,j)->{String id=j.get("id").getAsString();EnemyTelegraphs.cancel(id);cancel.accept(id);});
         router.register("dungeons","palaceAttack",(context,j)->PalaceVisuals.receive(j));
+        router.register("dungeons","forbiddenAttack",(context,j)->ForbiddenVisuals.receive(j));
     }
     private DungeonClientMessages(){}
 }

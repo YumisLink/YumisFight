@@ -28,6 +28,9 @@ import cn.yumis.fight.modules.economy.api.RewardSettings;
 import cn.yumis.fight.modules.inventory.application.InventoryTransactions;
 
 import cn.yumis.fight.modules.economy.application.LootService;
+import cn.yumis.fight.modules.economy.application.JarService;
+import cn.yumis.fight.modules.economy.api.JarDefinitions;
+import cn.yumis.fight.modules.economy.api.LootJarItem;
 import cn.yumis.fight.modules.dungeons.application.DungeonService;
 import cn.yumis.fight.modules.dungeons.application.DamageMeterService;
 import cn.yumis.fight.modules.skills.application.CloudLeapService;
@@ -80,6 +83,7 @@ public final class ServerApplication {
     public final cn.yumis.fight.modules.party.application.PartyService partyService;
     public final InventoryTransactions inventory;
     public final cn.yumis.fight.modules.economy.application.ChestService chests;
+    public final JarService jars;
     public final DungeonService dungeons;
     public final LootService loot;
     public final VisualService visuals;
@@ -126,6 +130,7 @@ public final class ServerApplication {
             value.add("affixDefinitions",JSON.toJsonTree(bundle.affixes()));value.add("equipmentDefinitions",JSON.toJsonTree(bundle.equipment()));value.add("equipmentLayout",JSON.toJsonTree(bundle.layout()));
             value.add("skillBalanceRules",JSON.toJsonTree(bundle.skills()));
             value.add("chestDefinitions",JSON.toJsonTree(bundle.chests()));
+            value.add("jarDefinitions",JSON.toJsonTree(bundle.jars()));
             wireDefinitions=value;definitionsKey=ProfileSync.digest(value);definitionsBundle=bundle;
         }
         return wireDefinitions;
@@ -159,6 +164,13 @@ public final class ServerApplication {
         },random);
         dungeons.installWaystones(inventory,RuntimeAssembly.waystonePorts(this),inventory::recoverIndustrial,random);
         chests=new cn.yumis.fight.modules.economy.application.ChestService(journal,inventory,RuntimeAssembly.rewardPlayers(this),random,loot);
+        jars=new JarService(journal,inventory,RuntimeAssembly.rewardPlayers(this),loot,random,p->{
+            var state=session(p);
+            if(state.life.dead||p.isDeadOrDying())return "死亡时不能开罐";
+            if(!state.life.instance.isEmpty()||dungeons.current(p.getUUID())!=null||p.level().dimension()==DungeonService.DIMENSION)return "请在副本外开启罐子";
+            if(!cn.yumis.fight.modules.combat.api.CombatTiming.out(state.resources,System.currentTimeMillis()))return "请脱战后开启罐子";
+            return "";
+        },(p,message)->Network.send(p,"jarState",message));
 
         worldHealth=new cn.yumis.fight.modules.dungeons.application.WorldHealthService(server,journal,targets::resolve,this::session,()->bridge,value->bridge=value);
         damageMeter=cn.yumis.fight.bootstrap.RuntimeAssembly.damageMeterService(this);
@@ -230,6 +242,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install(CURRENT.dungeons.treasure::use);
             cn.yumis.fight.modules.dungeons.api.WaystoneActions.install(CURRENT.dungeons.waystones);
             cn.yumis.fight.modules.economy.api.TreasureChestItem.opening(CURRENT.chests::open);
+            LootJarItem.opening(CURRENT.jars::open);
             cn.yumis.fight.modules.skills.api.SummonActions.install(CURRENT.mages);
             cn.yumis.fight.modules.character.api.CharacterActions.install((p,base)->{try{get().progressService.useItem(p,base);}catch(Exception error){get().message(p,error.getMessage());}});
             Network.SERVER=CURRENT::handle;
@@ -251,7 +264,7 @@ public final class ServerApplication {
     public static void stop(){
         if(CURRENT==null)return;
         try{
-            for(ServerPlayer p:CURRENT.server.getPlayerList().getPlayers()){if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu menu){menu.forfeit();CURRENT.inventory.closeCursor(p);}cn.yumis.fight.modules.inventory.api.RewardMenu.discardPending(p);CURRENT.mages.clear(p);CURRENT.savePlayer(p);}
+            for(ServerPlayer p:CURRENT.server.getPlayerList().getPlayers()){CURRENT.jars.interrupt(p);if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu menu){menu.forfeit();CURRENT.inventory.closeCursor(p);}cn.yumis.fight.modules.inventory.api.RewardMenu.discardPending(p);CURRENT.mages.clear(p);CURRENT.savePlayer(p);}
             CURRENT.dungeons.shutdown();
             CURRENT.journal.close();
         }
@@ -267,6 +280,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install((p,h)->{});
             cn.yumis.fight.modules.dungeons.api.WaystoneActions.install(null);
             cn.yumis.fight.modules.economy.api.TreasureChestItem.opening((p,h)->{});
+            LootJarItem.opening((p,h)->{});
             cn.yumis.fight.modules.character.api.CharacterActions.clear();
             cn.yumis.fight.modules.skills.api.SummonActions.clear();
             CURRENT=null;
@@ -292,6 +306,9 @@ public final class ServerApplication {
             if(ready()&&e.getEntity() instanceof ServerPlayer p)get().respawn(p);
         }
         );
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST,(net.neoforged.neoforge.event.entity.living.LivingDeathEvent event)->{
+            if(ready()&&event.getEntity() instanceof ServerPlayer player)get().jars.interrupt(player);
+        });
         NeoForge.EVENT_BUS.addListener((PlayerEvent.StartTracking e)->{
             if(ready()&&e.getEntity() instanceof ServerPlayer p&&e.getTarget() instanceof LivingEntity target&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(target)){
                 get().context(p,target);if(target instanceof ServerPlayer caster)get().visuals.track(p,caster);
@@ -313,6 +330,7 @@ public final class ServerApplication {
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e)->{
             if(ready()&&e.getEntity() instanceof ServerPlayer p){
                 var runtime=get();var s=runtime.session(p);try{
+                    runtime.jars.interrupt(p);
                     if(!s.life.instance.isEmpty()&&p.level().dimension()!=DungeonService.DIMENSION)runtime.dungeons.leave(p,false);s.life.dimension=p.level().dimension().identifier().toString();s.life.revision++;runtime.savePlayer(p);runtime.profile(p);
                 }
                 catch(Exception failure){
@@ -369,8 +387,11 @@ public final class ServerApplication {
             var nextChests=cn.yumis.fight.modules.economy.api.ChestDefinitions.defaults();
             var chestResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/chests.json"));
             if(chestResource.isPresent())try(var reader=chestResource.get().openAsReader()){nextChests=cn.yumis.fight.modules.economy.api.ChestDefinitions.parse(JsonParser.parseReader(reader).toString());}
-            var candidate=cn.yumis.fight.bootstrap.ApplicationRules.Bundle.validated(nextCatalog,nextDungeons,nextNames,nextDefinitions,nextAffixes,nextLayout,nextIndustrial,nextSkills,nextChests);
-            journal.transaction(Map.of("definitions/equipment",JSON.toJsonTree(candidate.equipment()),"definitions/affixes",JSON.toJsonTree(candidate.affixes()),"definitions/skills",JSON.toJsonTree(candidate.skills()),"definitions/chests",JSON.toJsonTree(candidate.chests())));
+            var nextJars=JarDefinitions.defaults();
+            var jarResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/jars.json"));
+            if(jarResource.isPresent())try(var reader=jarResource.get().openAsReader()){nextJars=JarDefinitions.parse(JsonParser.parseReader(reader).toString());}
+            var candidate=cn.yumis.fight.bootstrap.ApplicationRules.Bundle.validated(nextCatalog,nextDungeons,nextNames,nextDefinitions,nextAffixes,nextLayout,nextIndustrial,nextSkills,nextChests,nextJars);
+            journal.transaction(Map.of("definitions/equipment",JSON.toJsonTree(candidate.equipment()),"definitions/affixes",JSON.toJsonTree(candidate.affixes()),"definitions/skills",JSON.toJsonTree(candidate.skills()),"definitions/chests",JSON.toJsonTree(candidate.chests()),"definitions/jars",JSON.toJsonTree(candidate.jars())));
             cn.yumis.fight.bootstrap.ApplicationRules.publish(candidate);
             worldDifficulty=nextDifficulty;
             rewards=nextRewards;
@@ -401,6 +422,7 @@ public final class ServerApplication {
         try{
             inventory.restore(p);
             inventory.restoreCursorAtLogin(p);
+            jars.recover(p);
             this.equipmentLayout.reconcile(p,this.equipmentLayout.bonus(p));
             Session s=session(p);
             movement.reset(p);
@@ -432,6 +454,7 @@ public final class ServerApplication {
         mages.clear(p);
         viewSenders.remove(p.getUUID());
         try{
+            jars.interrupt(p);
             careers.clear(p);
             session(p).resources.equipmentBuffs.clear();
             inventory.closeCursor(p);
@@ -451,6 +474,7 @@ public final class ServerApplication {
         careers.clear(p);
         Session s=session(p);
         inventory.restore(p);
+        jars.interrupt(p);
         s.life.generation++;
         movement.reset(p);
         s.life.revision=0;
@@ -558,7 +582,7 @@ public final class ServerApplication {
         commands.register("industry","industrialRoute",(p,j)->{if(p.containerMenu instanceof cn.yumis.fight.modules.industry.platform.IndustrialMenu menu)menu.routeAction(p,j);});
         commands.register("industry","prospectorPan",(p,j)->{if(p.containerMenu instanceof cn.yumis.fight.modules.industry.platform.ProspectorMenu menu&&menu.containerId==j.get("menu").getAsInt()&&menu.stillValid(p))menu.pan(p,j.get("x").getAsInt(),j.get("z").getAsInt());});
         careers.register(commands);skillStarts.register(commands);mages.register(commands);demons.register(commands);
-        equipmentApplication.register(commands);economyService.register(commands);progressService.register(commands);inventoryApplication.register(commands);
+        equipmentApplication.register(commands);economyService.register(commands);jars.register(commands);progressService.register(commands);inventoryApplication.register(commands);
         commands.register("presentation","hello",(p,j)->{if(j.get("protocol").getAsInt()!=cn.yumis.fight.architecture.ProtocolVersion.CURRENT||j.has("rules")&&j.get("rules").getAsInt()!=cn.yumis.fight.bootstrap.ApplicationRules.DATA_VERSION){p.connection.disconnect(ModText.of("模组协议或规则版本不一致"));return;}profile(p);});
         commands.register("presentation","profile",(p,j)->{var sender=viewSenders.get(p.getUUID());if(sender!=null){if(j.has("definitions")&&j.get("definitions").getAsBoolean())sender.resetDefinitions();else sender.resetPersonal();}profile(p);});
         commands.register("combat","context",(p,j)->{Entity e=p.level().getEntity(j.get("entity").getAsInt());if(e instanceof LivingEntity l&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(l))context(p,l);});
@@ -601,6 +625,7 @@ public final class ServerApplication {
         mages.tick();
         int size=combatQueue.size();
         for(int i=0;i<size;i++)combatQueue.removeFirst().run();
+        jars.tick(server.getPlayerList().getPlayers());
         trainingService.tick();
         if(ticks%5==0){
             careers.tick();

@@ -25,6 +25,8 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public String dimension="",instance="",kind="NORMAL";
     public Difficulty difficulty=Difficulty.NORMAL;
     public boolean elite,noRewards,timedTraining;
+    /** Encounter-owned immunity, shared by prediction and the existing receipt settlement. */
+    public boolean damageImmune;
     public String elitePower="";
     public double[] elementalResists={0,0,0,0};
     public double maximumHealth(int playerLevel,boolean sync){return health(level(playerLevel,sync));}
@@ -38,10 +40,11 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public boolean bossOrElite(){return elite||kind.equals("BOSS")||kind.equals("WITHER")||kind.equals("yumis_dungeon_and_fight:dragon");}
     public boolean rewardsEligible(){return !noRewards;}
     public boolean training(){return kind.equals("TRAINING");}
-    public boolean consumesHealth(){return !training();}
+    public boolean consumesHealth(){return !training()&&!damageImmune;}
     @Override public cn.yumis.fight.modules.combat.api.Receipt receive(double fraction,boolean heal){
-        if(!training())return cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);
         if(!Double.isFinite(fraction)||fraction<0)throw new IllegalArgumentException("伤害份额无效");
+        if(!heal&&damageImmune)return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
+        if(!training())return cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);
         life.q=1;life.dead=false;life.revision++;
         return new cn.yumis.fight.modules.combat.api.Receipt(true,"",heal?0:fraction,1,life.revision,"");
     }

@@ -208,7 +208,7 @@
       "id": "behemoth_forbidden",
       "name": "天帷禁地",
       "level": 30,
-      "available": false,
+      "available": true,
       "cell": 4,
       "materials": [
         "behemoth_scale",

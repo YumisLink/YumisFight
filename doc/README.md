@@ -35,6 +35,7 @@
 | 副职业、经验与奖励 | `modules/professions/api/ProfessionCatalog.java`、`ProfessionRules.java`；发奖在 `application/ProfessionService.java` |
 | 库存、容器、接收与事务 | `modules/inventory/api/InventoryOperations.java`、`InventoryPacking.java`、`InventoryIntake.java`；事务在 `application/InventoryTransactions.java` |
 | 通货、掉落、出售与分解 | `modules/economy/api/CurrencyRules.java`、`RewardPorts.java`；用例在 `application/` |
+| 单抽罐子、奖池与演出 | `modules/economy/api/JarDefinitions.java`、`LootJarItem.java`；配置 `rules/jars.json`，服务端用例 `application/JarService.java`，客户端 `client/JarClient.java`、`JarScreen.java` |
 | 队伍与邀请 | `modules/party/api/Team.java`、`PartyInvitation.java` |
 | 页面、主题、输入与通用演出 | `modules/presentation/api/`；客户端绘制及页面合同查其 `client/` 和 `api/client/` |
 

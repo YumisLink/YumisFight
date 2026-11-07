@@ -21,7 +21,7 @@ final class GblModel extends EntityModel<GblEnemyRenderer.State> {
         for(int i=0;i<parts.length;i++){Bone b=data.bones[i];parts[i]=byName.get(b.parent).getChild(b.name);byName.put(b.name,parts[i]);}
     }
     static GblModel load(String name){
-        try(var reader=Minecraft.getInstance().getResourceManager().openAsReader(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","dungeons/gbl/"+name+".json"))){
+        try(var reader=Minecraft.getInstance().getResourceManager().openAsReader(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","dungeons/"+name+".json"))){
             Data data=new Gson().fromJson(reader,Data.class);var mesh=new MeshDefinition();Map<String,PartDefinition> parts=new HashMap<>();parts.put("",mesh.getRoot().addOrReplaceChild("ground",CubeListBuilder.create(),PartPose.offset(0,24,0)));
             for(Bone b:data.bones){
                 var bone=parts.get(b.parent).addOrReplaceChild(b.name,CubeListBuilder.create(),PartPose.offsetAndRotation(b.pivot[0],-b.pivot[1],-b.pivot[2],rad(b.rotation[0]),-rad(b.rotation[1]),-rad(b.rotation[2])));parts.put(b.name,bone);
