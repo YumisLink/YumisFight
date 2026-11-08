@@ -44,7 +44,8 @@ public final class ServerEvents {
     private ServerEvents(){
     }
     public static void register(){
-        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent e)->{if(e.getEntity() instanceof net.minecraft.world.entity.player.Player)e.setStrength(e.getStrength()*.1f);});
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent e)->{if(e.getEntity() instanceof net.minecraft.world.entity.player.Player){if(e.getEntity() instanceof ServerPlayer p&&ServerApplication.ready()&&ServerApplication.get().careers.steadfast(p))e.setCanceled(true);else e.setStrength(e.getStrength()*.1f);}});
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.MobEffectEvent.Applicable e)->{if(e.getEntity() instanceof ServerPlayer p&&ServerApplication.ready()&&e.getEffectInstance().getEffect()==cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN&&(ServerApplication.get().careers.steadfast(p)||ServerApplication.get().careers.invulnerable(p)))e.setResult(net.neoforged.neoforge.event.entity.living.MobEffectEvent.Applicable.Result.DO_NOT_APPLY);});
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent e)->{
             if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof net.minecraft.world.entity.item.ItemEntity item)ServerApplication.get().loot.nativeLeft(item);
             if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof net.minecraft.world.entity.projectile.Projectile projectile&&projectile.getRemovalReason()!=net.minecraft.world.entity.Entity.RemovalReason.CHANGED_DIMENSION&&projectile.getRemovalReason()!=net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK)ServerApplication.get().nativeHits.projectileLeft(projectile.getUUID());
@@ -126,7 +127,7 @@ public final class ServerEvents {
         for(String operation:List.of("give","take"))points.then(Commands.literal(operation).then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("amount",LongArgumentType.longArg(1)).executes(c->{long amount=LongArgumentType.getLong(c,"amount")*(operation.equals("give")?1:-1);ServerApplication.get().economyService.changePoints(EntityArgument.getPlayer(c,"player"),amount);return 1;}))));
         root.then(points);
         root.then(Commands.literal("profession").requires(source->source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)).then(Commands.literal("addxp").then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("profession",StringArgumentType.word()).then(Commands.argument("experience",LongArgumentType.longArg(1)).executes(c->{
-            var runtime=ServerApplication.get();var player=EntityArgument.getPlayer(c,"player");runtime.professionService.award(player.getUUID(),StringArgumentType.getString(c,"profession"),LongArgumentType.getLong(c,"experience"),"administrator/"+UUID.randomUUID(),true);runtime.professions(player);return 1;
+            var runtime=ServerApplication.get();var player=EntityArgument.getPlayer(c,"player");runtime.professionService.awardAdmin(player.getUUID(),StringArgumentType.getString(c,"profession"),LongArgumentType.getLong(c,"experience"),"administrator/"+UUID.randomUUID());runtime.professions(player);return 1;
         }
         ))))));
         var dev=Commands.literal("dev").requires(s->s.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));

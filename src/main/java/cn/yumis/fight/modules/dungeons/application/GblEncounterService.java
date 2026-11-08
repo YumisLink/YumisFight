@@ -12,7 +12,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
 import java.util.*;
 
-/** GBL content AI, fixed telegraphs and signed contacts. Client arithmetic and the existing WAL remain authoritative for health. */
+/** GBL content AI, fixed telegraphs and world trajectories. Each recipient owns its contact and health calculation. */
 public final class GblEncounterService {
     private static final Gson JSON=new Gson();
     private final DungeonService owner;
@@ -25,7 +25,7 @@ public final class GblEncounterService {
         Brain(DungeonEnemy enemy,Dungeon dungeon){home=enemy.position();area=GblChurch.area(dungeon.wave);}
     }
     private static final class Pending {
-        final GblAttack attack;final Set<UUID> struck=new HashSet<>();long previous;
+        final GblAttack attack;long previous;
         Pending(GblAttack attack){this.attack=attack;previous=attack.release();}
     }
     private record Leap(UUID source,Vec3 from,Vec3 to,long start,long end,double height){}
@@ -105,7 +105,7 @@ public final class GblEncounterService {
         var a=attack(e,kind,"LINE",windup,active,.3,coefficient,magic,element);a.origin(from);setDestination(a,from.add(dir.scale(range)));a.width=kind.equals("CANNONBALL")?.55:.25;add(a);
     }
     private void impact(DungeonEnemy e,String kind,long windup,long active,Vec3 point,double radius,double coefficient,boolean magic){var a=attack(e,kind,"IMPACT",windup,active,radius,coefficient,magic,-1);a.origin(point);setDestination(a,point);add(a);}
-    private void add(GblAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"gblAttack",a);}
+    private void add(GblAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"gblAttack",packet(a,false));}
     private Vec3 inside(Dungeon d,int area,Vec3 point){double half=area==3?17:13;return new Vec3(Math.clamp(point.x,d.cell*512-half,d.cell*512+half),80,Math.clamp(point.z,area*40+3,area*40+(area==3?36:29)));}
     private void leap(Dungeon d,DungeonEnemy e,ServerPlayer p,Brain b,long delay,long duration,double height){Vec3 delta=p.position().subtract(e.position()).multiply(1,0,1);if(delta.length()>5)delta=delta.normalize().scale(5);leap(d,e,e.position().add(delta),b,delay,duration,height);}
     private void leap(Dungeon d,DungeonEnemy e,Vec3 destination,Brain b,long delay,long duration,double height){long start=System.currentTimeMillis()+delay;Vec3 to=inside(d,b.area,destination);leaps.put(e.getUUID(),new Leap(e.getUUID(),e.position(),to,start,start+duration,height));}
@@ -131,29 +131,15 @@ public final class GblEncounterService {
                 blocked=hit.getType()!=HitResult.Type.MISS;
                 if(blocked){to=hit.getLocation();if(a.shape.equals("LOB")){setDestination(a,to);a.active=Math.max(1,now-a.release());}}
             }
-            for(ServerPlayer p:online){
-                if(p.level()!=e.level()||!owner.participant(p,a.instance)||players.session(p).life.dead||!p.isAlive()||p.isSpectator()||p.getAbilities().invulnerable||pending.struck.contains(p.getUUID()))continue;
-                if(contains(a,p,from,to,now)&&visible(e,a,p)){pending.struck.add(p.getUUID());issue(a,e,p,now);}
-            }
             pending.previous=now;
-            if(blocked||now>=a.end())remove(a);
+            if(blocked||now>=a.end())remove(a,false);
         }
         refreshAuras(online,now);
         for(var entry:new ArrayList<>(brains.entrySet())){Entity raw=owner.level().getEntity(entry.getKey());if(!(raw instanceof DungeonEnemy e)||!e.isAlive()){brains.remove(entry.getKey());continue;}if(now>=entry.getValue().busy&&e.isAggressive())e.setAggressive(false);}
     }
-    private boolean contains(GblAttack a,ServerPlayer p,Vec3 from,Vec3 to,long now){
-        if(a.shape.equals("LINE"))return p.getBoundingBox().inflate(a.width+.15).contains(from)||p.getBoundingBox().inflate(a.width+.15).clip(from,to).isPresent();
-        if(a.shape.equals("LOB")){if(now<a.end())return false;return Math.abs(p.getY()-a.ey)<2.6&&p.position().subtract(a.destination()).horizontalDistanceSqr()<=Math.pow(a.radius+.3,2);}
-        Vec3 offset=p.position().subtract(a.origin());if(Math.abs(offset.y)> (a.shape.equals("WAVE")?1.05:2.6))return false;
-        double distance=offset.horizontalDistance();
-        if(a.shape.equals("WAVE")){double previous=a.waveRadius(now-75),current=a.waveRadius(now);return distance>=Math.max(0,previous-a.width*.5-.3)&&distance<=current+a.width*.5+.3;}
-        if(distance>a.radius+.3)return false;
-        if(a.shape.equals("FAN")){Vec3 dir=a.destination().subtract(a.origin()).multiply(1,0,1).normalize();return distance<.4||dir.lengthSqr()<.001||offset.multiply(1,0,1).normalize().dot(dir)>=Math.cos(a.halfAngle);}
-        return true;
-    }
-    private boolean visible(DungeonEnemy source,GblAttack a,ServerPlayer p){if(a.shape.equals("LINE"))return true;Vec3 origin=a.shape.equals("LOB")?a.destination().add(0,.4,0):a.origin().add(0,.5,0);return owner.level().clip(new ClipContext(origin,p.position().add(0,.65,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,source)).getType()==HitResult.Type.MISS;}
-    private void issue(GblAttack a,DungeonEnemy source,ServerPlayer p,long now){owner.contacts.issue(a.id,source,p,a.kind,a.coefficient,a.magic,a.element,now);}
-    private void remove(GblAttack a){if(attacks.remove(a.id)!=null){a.remove=true;owner.broadcast(a.instance,"gblAttack",a);}}
+    private JsonObject packet(GblAttack a,boolean cancelled){var frame=JSON.toJsonTree(a).getAsJsonObject();frame.addProperty("cancelled",cancelled);frame.addProperty("contactUntil",System.currentTimeMillis());var raw=owner.level().getEntity(a.source);if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));return frame;}
+    private void remove(GblAttack a){remove(a,true);}
+    private void remove(GblAttack a,boolean cancelled){if(attacks.remove(a.id)!=null){a.remove=true;owner.broadcast(a.instance,"gblAttack",packet(a,cancelled));}}
     private void refreshAuras(List<ServerPlayer> online,long now)throws Exception{
         auras.values().removeIf(a->{var e=owner.level().getEntity(a.source);return now>=a.until||!(e instanceof DungeonEnemy mob)||!mob.isAlive()||CombatContentTypes.controlled(mob)||owner.byId(a.instance)==null||!owner.byId(a.instance).status.equals("RUNNING");});
         Set<UUID> affected=new HashSet<>(protectedEnemies);
@@ -165,7 +151,7 @@ public final class GblEncounterService {
             mob.guarded(protectedNow);if(protectedNow)protectedEnemies.add(id);else protectedEnemies.remove(id);
         }
     }
-    public void track(ServerPlayer p){for(var pending:attacks.values())if(owner.participant(p,pending.attack.instance))Network.send(p,"gblAttack",pending.attack);}
+    public void track(ServerPlayer p){for(var pending:attacks.values())if(owner.participant(p,pending.attack.instance))Network.send(p,"gblAttack",packet(pending.attack,false));}
     public void cancel(UUID id){
         for(var pending:new ArrayList<>(attacks.values()))if(pending.attack.source.equals(id))remove(pending.attack);
         leaps.remove(id);auras.remove(id);Entity raw=owner.level().getEntity(id);

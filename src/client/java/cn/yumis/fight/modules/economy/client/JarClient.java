@@ -11,7 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import java.util.*;
 
-/** One frozen display snapshot. The server's encoded winner is never replaced by a display roll. */
+/** One frozen display snapshot. The owner's stored winner is never replaced by a display roll. */
 public final class JarClient {
     static final class View {
         final String id,name,dimension,session;
@@ -67,7 +67,7 @@ public final class JarClient {
     public static void tick(){
         applyDeferred();if(view==null)return;var mc=Minecraft.getInstance();
         if(mc.player==null||mc.level==null||mc.player.isDeadOrDying()||!ClientUi.current().session().equals(view.session)||!view.dimension.equals(mc.level.dimension().identifier().toString())){clear();return;}
-        if(!view.complete&&view.progress()>=1&&ClientUi.now()>=nextStatus){nextStatus=ClientUi.now()+1000;var request=ClientUi.current().operation("jarStatus");request.addProperty("session",view.session);ClientUi.current().send("jarStatus",request);}
+        if(!view.complete&&view.progress()>=1&&ClientUi.now()>=nextStatus){nextStatus=ClientUi.now()+1000;var request=ClientUi.current().operation("jarFinish");request.addProperty("session",view.session);request.addProperty("id",view.id);ClientUi.current().send("jarFinish",request);}
     }
     public static void opening(ScreenEvent.Opening event){
         if(!blocking()||event.getNewScreen() instanceof JarScreen)return;

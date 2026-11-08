@@ -21,7 +21,6 @@ import cn.yumis.fight.modules.equipment.api.Weapon;
 import static cn.yumis.fight.modules.character.api.CharacterRules.spAt;
 import cn.yumis.fight.modules.economy.api.CurrencyRules;
 
-import cn.yumis.fight.modules.combat.application.BasicAttackService;
 import cn.yumis.fight.modules.equipment.api.EquipmentRules;
 import cn.yumis.fight.modules.inventory.api.DimensionalMenu;
 
@@ -89,7 +88,7 @@ public final class VerificationChecks {
     }
     private JsonObject dismantleRequest(int slot){
         var request=new JsonObject();request.addProperty("session",runtime.session(player).id.toString());String token=runtime.economyService.saleOpen(player,request);
-        request.addProperty("operation",prefix+sequence++);request.addProperty("menu",player.inventoryMenu.containerId);request.addProperty("token",token);var items=new JsonArray();items.add("inventory/"+slot);request.add("items",items);return request;
+        request.addProperty("operation",prefix+sequence++);request.addProperty("menu",player.inventoryMenu.containerId);request.addProperty("token",token);var items=new JsonArray();items.add("inventory/"+slot);request.add("items",items);var source=player.getInventory().getItem(slot);var result=CurrencyRules.dismantle(EquipmentItems.gear(source).rarity,new Random(14));var changes=new JsonArray();changes.add(cn.yumis.fight.modules.inventory.api.InventoryEdits.change(player,"inventory",slot,source,ItemStack.EMPTY));request.add("inventoryChanges",changes);var drops=new JsonArray();drops.add(runtime.inventory.encode(player,ItemRegistry.item(result.item(),result.count())));request.add("drops",drops);return request;
     }
     private long droppedSince(Set<String> previous,String item){
         long total=0;for(String key:runtime.journal.keys("loot/"))if(!previous.contains(key)){var value=runtime.journal.get(key);if(value.isJsonObject()&&value.getAsJsonObject().has("item")){var stack=runtime.inventory.decode(player,value.getAsJsonObject().get("item"));if(ItemData.id(stack).equals(item))total+=stack.getCount();}}return total;
@@ -148,23 +147,23 @@ public final class VerificationChecks {
         clear();
         mutate(()->{player.getInventory().setItem(0,EquipmentItems.gear(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(gear)));player.inventoryMenu.setCarried(ItemRegistry.item("fracturing_orb",2));});
         JsonObject fracture=currency(0,null);
-        runtime.equipmentApplication.currencyRequest(player,fracture);
+        ownerCurrency(fracture);
         Gear first=EquipmentItems.gear(player.getInventory().getItem(0));
         check(first.affixes.stream().filter(a->a.locked).count()==1&&player.inventoryMenu.getCarried().getCount()==1,"fracturing_locks_one_and_consumes_one");
-        runtime.equipmentApplication.currencyRequest(player,fracture);
+        ownerCurrency(fracture);
         check(player.inventoryMenu.getCarried().getCount()==1&&EquipmentItems.gear(player.getInventory().getItem(0)).revision==first.revision,"duplicate_fracturing_does_not_lock_twice");
-        runtime.equipmentApplication.currencyRequest(player,currency(0,null));
+        ownerCurrency(currency(0,null));
         Gear locked=EquipmentItems.gear(player.getInventory().getItem(0));
         check(locked.affixes.stream().filter(a->a.locked).count()==2&&player.inventoryMenu.getCarried().isEmpty(),"fracturing_can_lock_every_random_affix");
         ItemStack restored=runtime.inventory.decode(player,runtime.inventory.encode(player,player.getInventory().getItem(0)));
         check(JSON.toJson(locked).equals(JSON.toJson(EquipmentItems.gear(restored))),"locked_affixes_survive_native_item_codec");
         mutate(()->player.inventoryMenu.setCarried(ItemRegistry.item("fracturing_orb",2)));
         String before=inventory();
-        rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"all_locked_fracturing_rejected");
+        rejects(()->ownerCurrency(currency(0,null)),"all_locked_fracturing_rejected");
         check(before.equals(inventory()),"failed_fracturing_keeps_equipment_and_full_cursor");
         mutate(()->player.inventoryMenu.setCarried(ItemRegistry.item("chaos_stone",2)));
         before=inventory();
-        rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"all_locked_chaos_rejected");
+        rejects(()->ownerCurrency(currency(0,null)),"all_locked_chaos_rejected");
         check(before.equals(inventory()),"failed_chaos_keeps_equipment_and_full_cursor");
         Gear eligible=copy(locked,Gear.class);
         int replace=-1;
@@ -172,13 +171,13 @@ public final class VerificationChecks {
         eligible.affixes.get(replace).locked=false;
         mutate(()->player.getInventory().setItem(0,EquipmentItems.gear(eligible)));
         JsonObject chaos=currency(0,null);
-        runtime.equipmentApplication.currencyRequest(player,chaos);
+        ownerCurrency(chaos);
         Gear changed=EquipmentItems.gear(player.getInventory().getItem(0));
         check(changed.instance.equals(eligible.instance)&&changed.revision==eligible.revision+1&&changed.affixes.size()==eligible.affixes.size()
             &&player.inventoryMenu.getCarried().getCount()==1,"chaos_preserves_identity_count_and_consumes_one");
         for(int i=0;i<eligible.affixes.size();i++)if(i!=replace)check(JSON.toJsonTree(eligible.affixes.get(i)).equals(JSON.toJsonTree(changed.affixes.get(i))),"chaos_preserves_other_affix_"+i);
         check(JSON.toJson(eligible.gems).equals(JSON.toJson(changed.gems)),"chaos_preserves_embedded_gems");
-        runtime.equipmentApplication.currencyRequest(player,chaos);
+        ownerCurrency(chaos);
         check(player.inventoryMenu.getCarried().getCount()==1&&JSON.toJson(changed).equals(JSON.toJson(EquipmentItems.gear(player.getInventory().getItem(0)))),"duplicate_chaos_returns_same_result_without_reroll");
     }
     private int run(){
@@ -195,7 +194,7 @@ public final class VerificationChecks {
         Throwable failure=null;
         try{
             cn.yumis.fight.modules.combat.api.Runtime forged=copy(session.resources,cn.yumis.fight.modules.combat.api.Runtime.class);
-            forged.training=!session.resources.training;
+            forged.sequence++;forged.training=!session.resources.training;
             forged.trainingBoundary=999999;
             JsonObject forgedUpload=new JsonObject();
             forgedUpload.addProperty("session",session.id.toString());forgedUpload.addProperty("generation",session.life.generation);
@@ -205,11 +204,11 @@ public final class VerificationChecks {
             check(session.resources.trainingBoundary==originalResources.trainingBoundary,"client_runtime_cannot_replace_administrator_training_boundary");
             var adminBefore=runtime.professionService.get(player.getUUID(),"craftsman");
             String adminOperation=prefix+"administrator";
-            runtime.professionService.award(player.getUUID(),"craftsman",35,adminOperation,true);
+            runtime.professionService.awardAdmin(player.getUUID(),"craftsman",35,adminOperation);
             check(runtime.professionService.get(player.getUUID(),"craftsman").experience.equals(adminBefore.experience.add(java.math.BigInteger.valueOf(35)))&&runtime.professionService.get(player.getUUID(),"craftsman").coins.equals(adminBefore.coins),"administrator_profession_xp_without_coins");
-            runtime.professionService.award(player.getUUID(),"craftsman",35,adminOperation,true);
+            runtime.professionService.awardAdmin(player.getUUID(),"craftsman",35,adminOperation);
             check(runtime.professionService.get(player.getUUID(),"craftsman").experience.equals(adminBefore.experience.add(java.math.BigInteger.valueOf(35))),"duplicate_profession_award_is_idempotent");
-            rejects(()->runtime.professionService.award(player.getUUID(),"craftsman",36,adminOperation,true),"conflicting_profession_award_rejected");
+            rejects(()->runtime.professionService.awardAdmin(player.getUUID(),"craftsman",36,adminOperation),"conflicting_profession_award_rejected");
             runtime.journal.put("profession/"+player.getUUID()+"/craftsman",adminBefore);
             var boundInventory=MenuHooks.extra(player);
             var curios=top.theillusivec4.curios.api.CuriosApi.getCuriosInventoryOrNull(player);
@@ -237,16 +236,16 @@ public final class VerificationChecks {
             var oldXp=profession.experience;
             var oldCoins=profession.coins;
             JsonObject request=craft(Slot.WEAPON,10);
-            runtime.equipmentApplication.craft(player,request);
+            ownerCraft(request);
             check(regional("goblin_ingot")==40,"craft_weapon_regional_fixed_24");
             check(count("iron_ingot")==62&&count("stick")==63,"craft_vanilla_q_formula");
             check(runtime.professionService.get(player.getUUID(),"craftsman").experience.subtract(oldXp).intValueExact()==60&&runtime.professionService.get(player.getUUID(),"craftsman").coins.subtract(oldCoins).intValueExact()==60,"craft_exact_xp_and_coins");
             long gearCount=count("katana");
-            runtime.equipmentApplication.craft(player,request);
+            ownerCraft(request);
             check(count("katana")==gearCount&&regional("goblin_ingot")==40&&runtime.professionService.get(player.getUUID(),"craftsman").experience.subtract(oldXp).intValueExact()==60,"duplicate_craft_no_second_reward");
             mutate(()->player.getInventory().setItem(2,EquipmentItems.material("goblin_ingot",23)));
             String before=inventory();
-            rejects(()->runtime.equipmentApplication.craft(player,craft(Slot.WEAPON,10)),"insufficient_material_rejected");
+            rejects(()->ownerCraft(craft(Slot.WEAPON,10)),"insufficient_material_rejected");
             check(before.equals(inventory()),"insufficient_material_full_rollback");
             clear();
             mutate(()->{
@@ -255,16 +254,16 @@ public final class VerificationChecks {
             );
             before=inventory();
             var xp=runtime.professionService.get(player.getUUID(),"craftsman").experience;
-            rejects(()->runtime.equipmentApplication.craft(player,craft(Slot.WEAPON,10)),"full_inventory_craft_rejected");
+            rejects(()->ownerCraft(craft(Slot.WEAPON,10)),"full_inventory_craft_rejected");
             check(before.equals(inventory())&&runtime.professionService.get(player.getUUID(),"craftsman").experience.equals(xp),"full_inventory_no_consumption_or_xp");
             clear();
             mutate(()->{
                 player.getInventory().setItem(0,new ItemStack(Items.IRON_INGOT,64));player.getInventory().setItem(1,new ItemStack(Items.STICK,64));player.getInventory().setItem(2,EquipmentItems.material("spinel",64));
             }
             );
-            rejects(()->runtime.equipmentApplication.craft(player,craft(Slot.WEAPON,20)),"regional_material_cannot_substitute_adjacent_band");
+            rejects(()->ownerCraft(craft(Slot.WEAPON,20)),"regional_material_cannot_substitute_adjacent_band");
             mutate(()->player.getInventory().setItem(2,EquipmentItems.material("stigma_silk",64)));
-            runtime.equipmentApplication.craft(player,craft(Slot.CHEST,24));
+            ownerCraft(craft(Slot.CHEST,24));
             check(regional("stigma_silk")==52&&count("iron_ingot")==40,"chest_fixed_12_and_level24_q3");
             player.closeContainer();
             clear();
@@ -280,23 +279,23 @@ public final class VerificationChecks {
             }
             );
             JsonObject upgrade=currency(0,null);
-            runtime.equipmentApplication.currencyRequest(player,upgrade);
+            ownerCurrency(upgrade);
             Gear upgraded=EquipmentItems.gear(player.getInventory().getItem(0));
             check(upgraded.level==80&&upgraded.instance.equals(identity)&&upgraded.gems.getFirst().name.equals("保留样本")&&special.equals(JSON.toJsonTree(upgraded.affixes.stream().filter(a->!a.base).toList())),"upgrade_clamp_identity_specials_and_gems");
-            runtime.equipmentApplication.currencyRequest(player,upgrade);
+            ownerCurrency(upgrade);
             check(player.inventoryMenu.getCarried().getCount()==1,"duplicate_upgrade_returns_original_result");
-            rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"level80_upgrade_rejected");
+            rejects(()->ownerCurrency(currency(0,null)),"level80_upgrade_rejected");
             currencies();
             clear();
             mutate(()->{
                 player.getInventory().setItem(0,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,10,new Random(3))));player.inventoryMenu.setCarried(ItemRegistry.item("socket_stone",2));
             }
             );
-            runtime.equipmentApplication.currencyRequest(player,currency(0,null));
-            runtime.equipmentApplication.currencyRequest(player,currency(0,null));
+            ownerCurrency(currency(0,null));
+            ownerCurrency(currency(0,null));
             check(EquipmentItems.gear(player.getInventory().getItem(0)).sockets==2&&player.inventoryMenu.getCarried().isEmpty(),"two_socket_stones_open_exactly_two");
             mutate(()->player.inventoryMenu.setCarried(ItemRegistry.item("socket_stone",1)));
-            rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"weapon_socket_limit");
+            rejects(()->ownerCurrency(currency(0,null)),"weapon_socket_limit");
             check(player.inventoryMenu.getCarried().getCount()==1,"failed_socket_keeps_currency");
             Gem gem=new Gem();
             gem.level=10;
@@ -306,37 +305,37 @@ public final class VerificationChecks {
             effect.fixed=true;
             gem.affixes.add(effect);
             mutate(()->player.inventoryMenu.setCarried(EquipmentItems.payload("affix_gem",gem,gem.name)));
-            runtime.equipmentApplication.currencyRequest(player,currency(0,0));
+            ownerCurrency(currency(0,0));
             mutate(()->player.inventoryMenu.setCarried(EquipmentItems.payload("affix_gem",gem,gem.name)));
-            rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,1)),"duplicate_special_gem_rejected");
+            rejects(()->ownerCurrency(currency(0,1)),"duplicate_special_gem_rejected");
             Gem tooHigh=copy(gem,Gem.class);
             tooHigh.level=11;
             tooHigh.affixes.getFirst().id="verify_other";
             mutate(()->player.inventoryMenu.setCarried(EquipmentItems.payload("affix_gem",tooHigh,"高等级样本")));
-            rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,1)),"gem_source_level_restriction");
+            rejects(()->ownerCurrency(currency(0,1)),"gem_source_level_restriction");
             Gem replacement=copy(gem,Gem.class);
             replacement.name="覆盖样本";
             replacement.affixes.getFirst().id="verify_replacement";
             mutate(()->player.inventoryMenu.setCarried(EquipmentItems.payload("affix_gem",replacement,replacement.name)));
-            runtime.equipmentApplication.currencyRequest(player,currency(0,0));
+            ownerCurrency(currency(0,0));
             check(EquipmentItems.gear(player.getInventory().getItem(0)).gems.size()==1&&EquipmentItems.gear(player.getInventory().getItem(0)).gems.getFirst().name.equals("覆盖样本")&&count("affix_gem")==0,"gem_overwrite_destroys_previous");
             clear();
             mutate(()->{
                 player.getInventory().setItem(0,EquipmentItems.gear(EquipmentRules.create(Slot.CHEST,Weapon.KATANA,Rarity.EPIC,20,new Random(2))));player.inventoryMenu.setCarried(ItemRegistry.item("set_extraction_stone",1));
             }
             );
-            runtime.equipmentApplication.currencyRequest(player,currency(0,null));
+            ownerCurrency(currency(0,null));
             check(count("chest_armor")==0&&count("set_stone")==1&&player.inventoryMenu.getCarried().isEmpty(),"set_extraction_consumes_entire_source_and_stone");
             ItemStack stone=java.util.stream.IntStream.range(0,36).mapToObj(player.getInventory()::getItem).filter(stack->ItemData.id(stack).equals("set_stone")).findFirst().orElseThrow().copy();
             mutate(()->{
                 player.getInventory().setItem(0,EquipmentItems.gear(EquipmentRules.create(Slot.RING,Weapon.KATANA,Rarity.COMMON,20,new Random(2))));player.inventoryMenu.setCarried(stone.copy());
             }
             );
-            rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"armor_set_rejects_jewelry");
+            rejects(()->ownerCurrency(currency(0,null)),"armor_set_rejects_jewelry");
             mutate(()->player.getInventory().setItem(0,EquipmentItems.gear(EquipmentRules.create(Slot.CHEST,Weapon.KATANA,Rarity.COMMON,19,new Random(2)))));
-            rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"set_source_level_restriction");
+            rejects(()->ownerCurrency(currency(0,null)),"set_source_level_restriction");
             mutate(()->player.getInventory().setItem(0,EquipmentItems.gear(EquipmentRules.create(Slot.CHEST,Weapon.KATANA,Rarity.COMMON,20,new Random(2)))));
-            runtime.equipmentApplication.currencyRequest(player,currency(0,null));
+            ownerCurrency(currency(0,null));
             check(EquipmentItems.gear(player.getInventory().getItem(0)).set.equals("first_sword")&&player.inventoryMenu.getCarried().isEmpty(),"set_transfer_allows_white_target");
             clear();
             mutate(()->player.getInventory().setItem(10,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.EPIC,20,new Random(2)))));
@@ -373,7 +372,7 @@ public final class VerificationChecks {
             check(saved.equals(inventory()),"pending_inventory_redo_from_wal_and_native_readback");
             equipmentExpansion(pos);
             containerChecks(pos);
-            basicCycleChecks();
+
         }
         catch(Throwable e){
             failure=e;
@@ -410,15 +409,6 @@ public final class VerificationChecks {
         runtime.message(player,"服务端实机验证通过 "+passed.size()+" 项");
         return passed.size();
     }
-    private void basicCycleChecks(){
-        player.closeContainer();clear();mutate(()->player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.LIGHTSABER,Rarity.COMMON,1,new Random(1)))));runtime.session(player).progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER);
-        BasicAttackService cycles=cn.yumis.fight.bootstrap.RuntimeAssembly.basicAttackService(runtime);JsonObject start=new JsonObject();start.addProperty("id",UUID.randomUUID().toString());cycles.start(player,start);
-        JsonObject replay=new JsonObject();replay.addProperty("basicCycle",start.get("id").getAsString());var snapshot=cycles.sourceStats(player,replay);cycles.start(player,start);
-        check(snapshot!=null&&cycles.sourceStats(player,replay)==snapshot,"server_replayed_basic_start_keeps_original_snapshot");
-        mutate(()->player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.GREATSWORD,Rarity.COMMON,1,new Random(1)))));JsonObject switched=new JsonObject();switched.addProperty("id",UUID.randomUUID().toString());cycles.start(player,switched);JsonObject switchedSource=new JsonObject();switchedSource.addProperty("basicCycle",switched.get("id").getAsString());check(cycles.sourceStats(player,switchedSource)==null,"server_weapon_switch_does_not_reset_basic_cooldown");
-        JsonObject hit=new JsonObject();hit.addProperty("basicCycle",start.get("id").getAsString());hit.addProperty("basicSlash",0);hit.addProperty("target",UUID.randomUUID().toString());cycles.validate(player,hit);cycles.committed(hit);cycles.start(player,start);rejects(()->cycles.validate(player,hit),"server_rejects_duplicate_basic_target_with_new_operation");
-        var movement=player.getDeltaMovement();player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);player.knockback(.4,1,0,player.damageSources().generic(),0);check(Math.abs(Math.abs(player.getDeltaMovement().x)-.04)<.0001,"melee_knockback_retains_ten_percent_once");player.setDeltaMovement(movement);
-    }
     private void openFabricator(net.minecraft.core.BlockPos pos){
         player.openMenu(new SimpleMenuProvider((id,inventory,owner)->new FabricatorMenu(id,inventory,pos),Component.literal("验证 · 装备制作器")));
     }
@@ -440,12 +430,12 @@ public final class VerificationChecks {
             player.closeContainer();clear();
             var needs=MaterialCatalog.current().recipe(slot,50);
             mutate(()->{int index=1;for(var need:needs)player.getInventory().setItem(index++,need.regional()?EquipmentItems.material(need.id(),need.count()):new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(need.id())),need.count()));});
-            openFabricator(pos);JsonObject request=craft(slot,50);runtime.equipmentApplication.craft(player,request);
+            openFabricator(pos);JsonObject request=craft(slot,50);ownerCraft(request);
             Gear result=java.util.stream.IntStream.range(0,36).mapToObj(i->EquipmentItems.gear(player.getInventory().getItem(i))).filter(Objects::nonNull).findFirst().orElseThrow();
             check(result.slot==slot&&result.level==50&&(slot.armor()?result.armorType==ArmorType.CLOTH:result.jewelryType==JewelryType.HEALTH),"typed_craft_matches_requested_"+slot);
             if(slot.jewelry())check(EquipmentRules.contribution(result).get(Stat.HEALTH)==810,"health_jewelry_craft_75_percent");
             String before=inventory();JsonObject invalid=craft(slot,50);invalid.addProperty(slot.armor()?"armorType":"jewelryType","LEGACY");
-            rejects(()->runtime.equipmentApplication.craft(player,invalid),"unclassified_new_craft_rejected_"+slot);
+            rejects(()->ownerCraft(invalid),"unclassified_new_craft_rejected_"+slot);
             check(before.equals(inventory()),"invalid_type_craft_has_no_consumption_"+slot);
         }
         player.closeContainer();clear();
@@ -453,12 +443,12 @@ public final class VerificationChecks {
         Affix locked=new Affix("percent_evasion",Stat.EVASION,EquipmentAffixes.percentBaseline(78,Stat.EVASION)*1.1,false);locked.operation="PERCENT";locked.baseline=locked.value/1.1;locked.roll=1.1;locked.locked=true;gear.affixes.add(locked);
         gear.sockets=1;Gem gem=new Gem();gem.name="升级保留宝石";gear.gems.add(gem);
         mutate(()->{player.getInventory().setItem(0,EquipmentItems.gear(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(gear)));player.inventoryMenu.setCarried(ItemRegistry.item("upgrade_stone",2));});
-        JsonObject upgrade=currency(0,null);runtime.equipmentApplication.currencyRequest(player,upgrade);
+        JsonObject upgrade=currency(0,null);ownerCurrency(upgrade);
         Gear raised=EquipmentItems.gear(player.getInventory().getItem(0));Affix grown=raised.affixes.stream().filter(a->a.id.equals("percent_evasion")).findFirst().orElseThrow();
         check(raised.level==80&&raised.instance.equals(gear.instance)&&raised.armorType==ArmorType.LIGHT&&grown.locked&&Math.abs(grown.value-1.375)<1e-9&&raised.gems.getFirst().name.equals(gem.name),"upgrade_stone_grows_locked_numbers_and_preserves_identity");
         check(player.inventoryMenu.getCarried().getCount()==1,"upgrade_stone_consumes_exactly_one");
-        runtime.equipmentApplication.currencyRequest(player,upgrade);check(player.inventoryMenu.getCarried().getCount()==1&&EquipmentItems.gear(player.getInventory().getItem(0)).revision==raised.revision,"duplicate_new_upgrade_is_idempotent");
-        rejects(()->runtime.equipmentApplication.currencyRequest(player,currency(0,null)),"new_upgrade_level80_rejected");check(player.inventoryMenu.getCarried().getCount()==1,"failed_new_upgrade_keeps_stone");
+        ownerCurrency(upgrade);check(player.inventoryMenu.getCarried().getCount()==1&&EquipmentItems.gear(player.getInventory().getItem(0)).revision==raised.revision,"duplicate_new_upgrade_is_idempotent");
+        rejects(()->ownerCurrency(currency(0,null)),"new_upgrade_level80_rejected");check(player.inventoryMenu.getCarried().getCount()==1,"failed_new_upgrade_keeps_stone");
         mutate(()->{player.inventoryMenu.setCarried(ItemStack.EMPTY);player.getInventory().setItem(10,player.getInventory().getItem(0));player.getInventory().setItem(0,ItemStack.EMPTY);});
         var beforeDrops=new HashSet<>(runtime.journal.keys("loot/"));JsonObject dismantle=dismantleRequest(10);
         runtime.economyService.dismantle(player,dismantle);long produced=CurrencyRules.dismantlePool(Rarity.LEGENDARY).stream().mapToLong(id->droppedSince(beforeDrops,id)).sum();
@@ -474,12 +464,12 @@ public final class VerificationChecks {
         var chest=(net.minecraft.world.Container)player.level().getBlockEntity(pos);
         player.openMenu(new SimpleMenuProvider((id,inv,owner)->net.minecraft.world.inventory.ChestMenu.threeRows(id,inv,chest),Component.literal("验证 · 箱子加工")));
         mutate(()->{chest.setItem(0,EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,10,new Random(90))));player.containerMenu.setCarried(ItemRegistry.item("transmutation_stone",3));});
-        JsonObject request=menuCurrency(0);runtime.equipmentApplication.currencyRequest(player,request);
+        JsonObject request=menuCurrency(0);ownerCurrency(request);
         check(EquipmentItems.gear(chest.getItem(0)).rarity==Rarity.RARE&&player.containerMenu.getCarried().getCount()==2,"chest_currency_uses_current_menu_and_consumes_once");
-        runtime.equipmentApplication.currencyRequest(player,request);
+        ownerCurrency(request);
         check(player.containerMenu.getCarried().getCount()==2,"chest_currency_duplicate_does_not_consume_twice");
         JsonElement before=runtime.inventory.encode(player,chest.getItem(0));
-        rejects(()->runtime.equipmentApplication.currencyRequest(player,menuCurrency(0)),"chest_wrong_quality_rejected");
+        rejects(()->ownerCurrency(menuCurrency(0)),"chest_wrong_quality_rejected");
         check(before.equals(runtime.inventory.encode(player,chest.getItem(0)))&&player.containerMenu.getCarried().getCount()==2,"chest_failed_currency_keeps_target_and_cursor");
         rejects(()->mutate(()->{chest.setItem(0,ItemStack.EMPTY);throw new IllegalArgumentException("测试回滚");}),"external_container_transaction_failure");
         check(before.equals(runtime.inventory.encode(player,chest.getItem(0))),"external_container_failure_restores_real_slot");
@@ -501,7 +491,7 @@ public final class VerificationChecks {
         player.openMenu(new SimpleMenuProvider((id,inv,owner)->new net.minecraft.world.inventory.CraftingMenu(id,inv,net.minecraft.world.inventory.ContainerLevelAccess.create(player.level(),pos)),Component.literal("验证 · 临时输入加工")));
         var crafting=player.containerMenu;
         mutate(()->{crafting.getSlot(1).set(EquipmentItems.gear(EquipmentRules.create(Slot.WEAPON,Weapon.KATANA,Rarity.COMMON,10,new Random(92))));crafting.setCarried(ItemRegistry.item("transmutation_stone",1));});
-        runtime.equipmentApplication.currencyRequest(player,menuCurrency(1));
+        ownerCurrency(menuCurrency(1));
         check(EquipmentItems.gear(crafting.getSlot(1).getItem()).rarity==Rarity.RARE,"crafting_input_currency_modifies_real_input");
         check(!runtime.journal.get("containerTransient/"+player.getUUID()).isJsonNull(),"temporary_input_after_state_is_escrowed");
         player.closeContainer();
@@ -531,5 +521,14 @@ public final class VerificationChecks {
         JsonElement waitingBefore=runtime.journal.get("equipmentWaiting/"+player.getUUID());int oldCount=waitingBefore.isJsonArray()?waitingBefore.getAsJsonArray().size():0;
         runtime.inventory.restore(player);runtime.inventory.restore(player);
         check(runtime.journal.get(escrow).isJsonNull()&&runtime.journal.get("equipmentWaiting/"+player.getUUID()).getAsJsonArray().size()==oldCount+1,"crashed_temporary_menu_escrow_recovers_exactly_once");
+    }
+    private void ownerCurrency(JsonObject request){
+        if(runtime.journal.get("inventoryReceipt/"+player.getUUID()+"/"+request.get("operation").getAsString()).isJsonNull())cn.yumis.fight.modules.equipment.api.EquipmentChanges.prepareCurrency(player,request,new Random(23));
+        runtime.equipmentApplication.receive(player,request);
+    }
+    private void ownerCraft(JsonObject request){
+        request.addProperty("session",runtime.session(player).id.toString());
+        if(runtime.journal.get("inventoryReceipt/"+player.getUUID()+"/"+request.get("operation").getAsString()).isJsonNull())cn.yumis.fight.modules.equipment.api.EquipmentChanges.prepareCraft(player,runtime.session(player).progress,cn.yumis.fight.platform.Permissions.allowed(player.getUUID(),"craft"),runtime.professionService.get(player.getUUID(),"craftsman"),request,new Random(24));
+        runtime.equipmentApplication.craft(player,request);
     }
 }

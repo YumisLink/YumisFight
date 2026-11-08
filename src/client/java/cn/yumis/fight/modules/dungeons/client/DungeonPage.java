@@ -17,6 +17,7 @@ public final class DungeonPage {
         if(current!=null&&current.waystone==null){if(current.treasure!=null){var t=current.treasure;page.line(t.region==0?"哥布林王国 · 野外守宝战斗":"藏宝秘境 · 第"+t.region+" / 5区 · "+(t.theme.equals("palace")?"黄金王宫":t.theme.equals("tower")?"龙人之塔":"格兰之森"));page.line("Lv."+(t.baseLevel+Math.max(0,t.region-1)*2)+" · 地狱 · "+(t.cleared?"已清场":"第"+(current.wave+1)+"波"));}else{page.line("当前："+DungeonCatalog.current().dungeon(current.dungeon).name()+" · "+current.difficulty.title());page.line("波次 "+(current.wave+1)+" / 7 · "+current.status);}page.rowButton("离开地下城",leave);page.gap();}
         if(current!=null&&current.dungeon.equals("gbl_church"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.GblChurch.AREAS[cn.yumis.fight.modules.dungeons.content.GblChurch.area(current.wave)]);
         if(current!=null&&current.dungeon.equals("behemoth_forbidden"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.BehemothForbidden.AREAS[cn.yumis.fight.modules.dungeons.content.BehemothForbidden.area(current.wave)]);
+        if(current!=null&&current.dungeon.equals("skasa"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.SkasaLair.AREAS[cn.yumis.fight.modules.dungeons.content.SkasaLair.area(current.wave)]);
         if(current!=null&&current.dungeon.equals("castle_palace"))page.line("房间："+(current.wave+1)+" / 7 · "+cn.yumis.fight.modules.dungeons.content.CastlePalace.ROOMS[current.wave]);
         int cell=(page.contentWidth()-24)/2,base=page.cursor(),pictureHeight=Math.max(42,(cell-13)/2),height=pictureHeight+43,index=0;
         for(var definition:DungeonCatalog.current().dungeons){
@@ -34,7 +35,7 @@ public final class DungeonPage {
         Choice(DungeonCatalog.DungeonDef definition,boolean sync,Consumer<Join> join){super(Component.literal(definition.name()),ThemeDomain.MENU);this.definition=definition;this.sync=sync;this.join=join;}
         @Override protected void init(){int x=(width-250)/2,y=(height-220)/2;
             addRenderableWidget(Button.builder(Component.literal("本人同步："+(sync?"开启":"关闭")),b->{sync=!sync;rebuildWidgets();}).bounds(x+10,y+35,230,22).build(ThemedButton::new));
-            int[] colors={0xffffff,0x55aaff,0xb787ff,0xff9a35,0xff4545};
+            int[] colors={UiTheme.TEXT,0xff55aaff,0xffb787ff,0xffff9a35,0xffff4545};
             for(var difficulty:Difficulty.values()){var button=addRenderableWidget(Button.builder(Component.literal(difficulty.title()),b->{minecraft.gui.popScreenLayer();join.accept(new Join(definition.id(),difficulty,sync));}).bounds(x+10,y+64+difficulty.ordinal()*25,230,22).build(ThemedButton::new));((ThemedButton)button).textColor=colors[difficulty.ordinal()];}
             addRenderableWidget(Button.builder(Component.literal("返回"),b->onClose()).bounds(x+193,y+7,47,20).build(ThemedButton::new));
         }

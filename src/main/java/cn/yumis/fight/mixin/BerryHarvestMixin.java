@@ -17,7 +17,7 @@ import java.util.UUID;
 public abstract class BerryHarvestMixin {
     @Inject(method="useWithoutItem",at=@At("RETURN"))
     private void ydnf$harvest(BlockState before,Level level,BlockPos pos,Player player,BlockHitResult hit,CallbackInfoReturnable<InteractionResult> ci){
-        if(ServerApplication.ready()&&player instanceof ServerPlayer serverPlayer&&before.getValue(SweetBerryBushBlock.AGE)==3&&level.getBlockState(pos).is(before.getBlock())&&level.getBlockState(pos).getValue(SweetBerryBushBlock.AGE)==1)
-        ServerApplication.get().professionService.award(serverPlayer.getUUID(),"farmer",10,"berry/"+UUID.randomUUID(),false);
+        if(ServerApplication.ready()&&player instanceof ServerPlayer serverPlayer)
+            cn.yumis.fight.modules.professions.application.ProfessionEvents.berry(serverPlayer,before,level.getBlockState(pos));
     }
 }

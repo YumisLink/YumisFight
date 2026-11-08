@@ -16,7 +16,6 @@ public class VisualService {
     private final Map<String,Long> ended=new HashMap<>();
     private final net.minecraft.server.MinecraftServer server;
     private final java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.combat.api.CombatSession> sessions;
-    public static void resetGravity(ServerPlayer player){SkillVisualRules.restore(player);}
     public VisualService(net.minecraft.server.MinecraftServer server,java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.combat.api.CombatSession> sessions){this.server=server;this.sessions=sessions;}
     public void receive(ServerPlayer player,JsonObject input){
         var session=sessions.apply(player);
@@ -40,14 +39,12 @@ public class VisualService {
             if(phase.equals("END")&&cn.yumis.fight.modules.skills.api.CareerSkills.persistent(input.get("kind").getAsString())&&!(input.has("terminal")&&input.get("terminal").getAsBoolean())){
                 PacketDistributor.sendToPlayersTrackingEntity(player,new Network.Snapshot("visual",JSON.toJson(j)));return;
             }
-            Active old=active.remove(key);
-            if(old!=null)SkillVisualRules.end(player,old.data.get("kind").getAsString());
+            active.remove(key);
             ended.put(key,now+15000);
         }
         else if(phase.equals("START")){
             if(active.containsKey(key))return;
             long duration=input.has("duration")?Math.clamp(input.get("duration").getAsLong(),0,40000):2000;
-            SkillVisualRules.start(player,input.get("kind").getAsString());
             active.put(key,new Active(player.getUUID(),session.id.toString(),session.life.generation,j,Math.min(now+duration,started+duration),List.of(j.deepCopy())));
         }
         else if(!active.containsKey(key))return;
@@ -62,14 +59,6 @@ public class VisualService {
         for(var pair:new ArrayList<>(active.entrySet()))if(pair.getValue().owner.equals(player.getUUID())){
             var cancel=pair.getValue().data.deepCopy();cancel.addProperty("phase","CANCEL");cancel.addProperty("terminal",true);receive(player,cancel);
         }
-    }
-    public boolean movementLocked(ServerPlayer player){
-        var session=sessions.apply(player);long now=System.currentTimeMillis();
-        return active.values().stream().anyMatch(a->a.owner.equals(player.getUUID())&&a.session.equals(session.id.toString())&&a.generation==session.life.generation&&a.expires>now&&!(a.data.has("cosmeticOnly")&&a.data.get("cosmeticOnly").getAsBoolean())&&!cn.yumis.fight.modules.skills.api.CareerSkills.persistent(a.data.get("kind").getAsString()));
-    }
-    public boolean invulnerable(ServerPlayer player){
-        var session=sessions.apply(player);long now=System.currentTimeMillis();
-        return active.values().stream().anyMatch(a->a.owner.equals(player.getUUID())&&a.session.equals(session.id.toString())&&a.generation==session.life.generation&&a.expires>now&&SkillVisualRules.policy(a.data.get("kind").getAsString()).invulnerable());
     }
     public void tick(){
         long now=System.currentTimeMillis();
@@ -87,7 +76,6 @@ public class VisualService {
                 cancel.addProperty("phase","CANCEL");
                 cancel.addProperty("at",now);cancel.addProperty("serverNow",now);
                 for(ServerPlayer observer:server.getPlayerList().getPlayers())Network.send(observer,"visual",cancel);
-                if(player!=null)SkillVisualRules.end(player,a.data.get("kind").getAsString());
                 active.remove(entry.getKey());
                 ended.put(entry.getKey(),now+15000);
             }

@@ -47,7 +47,7 @@ public final class TrainingService implements TrainingActions.Handler,CombatPort
     }
     private Run load(UUID id){return journal.get(PREFIX+id,Run.class,null);}
     public boolean active(UUID player){return active.containsKey(player);}
-    private boolean permitted(ServerPlayer p){return !p.isDeadOrDying()&&!sessions.apply(p).life.dead&&!inDungeon.test(p)&&!p.level().dimension().equals(DungeonService.DIMENSION);}
+    private boolean permitted(ServerPlayer p){return !inDungeon.test(p)&&!p.level().dimension().equals(DungeonService.DIMENSION);}
     public void start(ServerPlayer p,JsonObject request)throws Exception{
         int seconds=request.get("seconds").getAsInt();String session=request.get("session").getAsString(),dimension=request.get("dimension").getAsString();
         if(seconds!=20&&seconds!=60)throw new IllegalArgumentException("沙袋测试时长无效");
@@ -105,7 +105,7 @@ public final class TrainingService implements TrainingActions.Handler,CombatPort
                 if(run==null){cleanup(id);continue;}
                 boolean complete=run.started>0&&now>=run.started+run.duration;
                 if(Objects.equals(active.get(slot.owner),id)){
-                    if(p==null||!permitted(p)||!run.session.equals(sessions.apply(p).id.toString())||run.generation!=sessions.apply(p).life.generation||!run.dimension.equals(p.level().dimension().identifier().toString())||slot.bag.isRemoved()){cleanup(id);continue;}
+                    if(p==null||sessions.apply(p).life.dead||!permitted(p)||!run.session.equals(sessions.apply(p).id.toString())||run.generation!=sessions.apply(p).life.generation||!run.dimension.equals(p.level().dimension().identifier().toString())||slot.bag.isRemoved()){cleanup(id);continue;}
                     if(complete){active.remove(slot.owner,id);slot.bag.finish();}
                 }
                 if(p!=null&&inDungeon.test(p)&&Objects.equals(shown.get(slot.owner),id)){cleanup(id);continue;}

@@ -219,7 +219,7 @@
       "id": "dark_city",
       "name": "暗黑城入口",
       "level": 35,
-      "available": false,
+      "available": true,
       "cell": 5,
       "materials": [
         "dark_elf_bone",
@@ -230,7 +230,7 @@
       "id": "skasa",
       "name": "斯卡萨的巢穴",
       "level": 40,
-      "available": false,
+      "available": true,
       "cell": 6,
       "materials": [
         "wolf_fang",
@@ -241,7 +241,7 @@
       "id": "moonlight_tavern",
       "name": "月光酒馆",
       "level": 45,
-      "available": false,
+      "available": true,
       "cell": 7,
       "materials": [
         "disaster_sign",
@@ -252,7 +252,7 @@
       "id": "hamelin",
       "name": "迷乱之村哈穆林",
       "level": 50,
-      "available": false,
+      "available": true,
       "cell": 8,
       "materials": [
         "disaster_sign",
@@ -263,7 +263,7 @@
       "id": "pursuit",
       "name": "追击歼灭战",
       "level": 55,
-      "available": false,
+      "available": true,
       "cell": 9,
       "materials": [
         "silver_meteorite",
@@ -274,7 +274,7 @@
       "id": "sea_train",
       "name": "海上列车",
       "level": 60,
-      "available": false,
+      "available": true,
       "cell": 10,
       "materials": [
         "silver_meteorite",
@@ -283,9 +283,9 @@
     },
     {
       "id": "time_rift",
-      "name": "时空裂缝",
+      "name": "时空之门",
       "level": 65,
-      "available": false,
+      "available": true,
       "cell": 11,
       "materials": [
         "mirage_crystal",
@@ -294,9 +294,9 @@
     },
     {
       "id": "mysterious_awareness",
-      "name": "迷之觉悟",
+      "name": "谜之觉悟",
       "level": 70,
-      "available": false,
+      "available": true,
       "cell": 12,
       "materials": [
         "mirage_crystal",
@@ -307,7 +307,7 @@
       "id": "grandi",
       "name": "格兰迪发电厂",
       "level": 75,
-      "available": false,
+      "available": true,
       "cell": 13,
       "materials": [
         "magtonium"
@@ -315,9 +315,9 @@
     },
     {
       "id": "central_park",
-      "name": "中央公园（红色魔女之森）",
+      "name": "魔女之森",
       "level": 80,
-      "available": false,
+      "available": true,
       "cell": 14,
       "materials": [
         "terranium"

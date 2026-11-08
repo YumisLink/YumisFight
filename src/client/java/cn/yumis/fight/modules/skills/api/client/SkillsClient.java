@@ -18,11 +18,12 @@ public interface SkillsClient extends ClientUi {
     cn.yumis.fight.modules.combat.api.CombatSettings combatSettings();
     Life own();
     cn.yumis.fight.modules.combat.api.Runtime resources();
+    void resources(cn.yumis.fight.modules.combat.api.Runtime value);
     boolean encounterSync();
     Map<UUID,Target> targets();
     Target context(LivingEntity entity);
     double predicted(Life life);
-    Stats projectileStats(ItemStack weapon);
+    Stats weaponStats(ItemStack weapon);
     void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras);
     JsonObject ailment(String target,String kind);
 }

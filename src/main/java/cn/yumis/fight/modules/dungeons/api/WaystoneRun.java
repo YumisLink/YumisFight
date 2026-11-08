@@ -7,8 +7,8 @@ public final class WaystoneRun {
     public Waystone stone;
     public UUID owner;
     public WaystoneRules rules;
-    public int monsterLevel,ownerLevel,resultingTier;
-    public double statMultiplier,lastOwnerDropRate;
+    public int monsterLevel,resultingTier;
+    public double statMultiplier;
     public long startedAt,finishedAt,penaltyMillis;
     public boolean settled;
     public String result="";

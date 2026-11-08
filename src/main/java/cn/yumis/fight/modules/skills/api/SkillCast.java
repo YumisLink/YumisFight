@@ -10,11 +10,12 @@ public class SkillCast {
         public SkillParameters.Snapshot parameters;
         public Stats stats;
         public cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot equipment;
-        public String weapon,id,dimension;
-        public String mageAttack="",visualWeapon="",eyeGear="";
+        public String weapon,id,dimension,session="",job="",instance="";
+        public long generation;
+        public String summonSource="",summonMove="",visualWeapon="",eyeGear="";
         public double sweepDegrees;
-        public double mageCoefficient;
-        public boolean passiveDamage,suppressEquipment;
+        public boolean summonSlow;
+        public boolean passiveDamage,suppressEquipment,gravityLease,previousGravity;
         public Vec3 origin,direction,center;
         public long start,stageStart,window;
         public int slot,segment=1,slashes,visualSequence=-1;
@@ -24,7 +25,7 @@ public class SkillCast {
         public boolean charging,release,finisher;
         public double speed=1,moved;
         public int hitIndex,elementOverride=-2;
-        public String damagePhase="";
+        public String damagePhase="",contactGroup="";
         public boolean dot,terminal;
         public double controlSeconds;
         public Set<UUID> hit=new HashSet<>();

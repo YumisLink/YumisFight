@@ -510,8 +510,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "仅鬼剑士武器可随机生成，提高已学会的剑术系技能等级。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_ghost": {
       "id": "family_ghost",
@@ -519,8 +518,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "仅鬼剑士武器可随机生成，提高已学会的鬼神系技能等级。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_wave": {
       "id": "family_wave",
@@ -528,8 +526,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "仅鬼剑士武器可随机生成，提高已学会的波动系技能等级。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_blood": {
       "id": "family_blood",
@@ -537,8 +534,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "仅鬼剑士武器可随机生成，提高已学会的血气系技能等级。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_sun_moon": {
       "id": "family_sun_moon",
@@ -546,8 +542,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "仅魔法师武器可随机生成，提高已学会的日月魔法师技能等级，包括日月流转。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_summon": {
       "id": "family_summon",
@@ -555,8 +550,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "仅魔法师武器可随机生成，提高已学会的召唤系技能等级，包括赫尔德和召唤师技能。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_element": {
       "id": "family_element",
@@ -564,8 +558,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "仅魔法师武器可随机生成，提高已学会的元素系技能等级，包括杰克爆弹及日月魔法师技能。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_magic": {
       "id": "family_magic",
@@ -573,8 +566,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "提高已学会的魔法技能等级，不提高日月流转。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_physical": {
       "id": "family_physical",
@@ -582,8 +574,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "提高已学会的物理技能等级。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_passive": {
       "id": "family_passive",
@@ -591,8 +582,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "提高已学会的被动技能等级，包括转职自带的日月流转。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_havoc": {
       "id": "family_havoc",
@@ -600,8 +590,7 @@
       "operation": "SKILL_FAMILY",
       "group": "fixed_rank",
       "stat": null,
-      "element": -1,
-      "description": "仅战刃可随机生成，提高已学会的恶魔猎手基础及浩劫技能等级。每件装备最多随机出现一条技能加级词条。"
+      "element": -1
     },
     "family_devourer": {
       "id": "family_devourer",
@@ -610,8 +599,7 @@
       "group": "fixed_rank",
       "stat": null,
       "element": -1,
-      "retired": true,
-      "description": "待投放：对应技能尚未实现，不进入随机池或词条宝典；未来仅限战刃。"
+      "retired": true
     },
     "family_vengeance": {
       "id": "family_vengeance",
@@ -620,8 +608,7 @@
       "group": "fixed_rank",
       "stat": null,
       "element": -1,
-      "retired": true,
-      "description": "待投放：对应技能尚未实现，不进入随机池或词条宝典；未来仅限战刃。"
+      "retired": true
     },
     "epic_dark": {
       "revision": 1,

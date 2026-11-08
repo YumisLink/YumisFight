@@ -3,12 +3,12 @@ import static cn.yumis.fight.modules.attributes.api.AttributeNumbers.finite;
 
 import java.util.*;
 
-/** combat模块拥有的数据合同；仅接收当前存档代际。 */
+/** 玩家本机拥有的资源快照；training、trainingBoundary 和 controlEpoch 属于管理与生命代际。 */
 public class Runtime {
     public transient cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot equipment=new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot();
     public Map<String,EquipmentBuffs.State> equipmentBuffs=new LinkedHashMap<>();
     public double mp=-1,shield=-1,trainingBoundary=-1;
-    public long combatUntil,shieldRecoveryAt,recordedAt,controlEpoch;
+    public long combatUntil,shieldRecoveryAt,recordedAt,controlEpoch,sequence;
     public boolean training;
     public Map<String,Long> cooldowns=new HashMap<>(),buffs=new HashMap<>(),absorptionUntil=new HashMap<>();
     public Map<String,Double> absorption=new HashMap<>();

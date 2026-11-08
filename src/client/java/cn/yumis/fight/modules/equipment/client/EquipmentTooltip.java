@@ -141,8 +141,9 @@ public final class EquipmentTooltip {
     private static void addAffix(List<Component> out,Affix a,Gear gear,boolean gem,int color){
         if(MageBlood.is(gear)&&(a.operation.equals("MAGIC")||a.operation.equals("MAGIC_AMPLIFICATION"))){out.add(text(MagicEffects.text(a),color));if(shift())out.add(text(a.operation.equals("MAGIC")?"  神圣石从14种魔法重抽；允许重复，同名只生效一次":"  神圣石可洗：25%～50%",0x9aa9be));return;}
         if(gem){a=EquipmentJson.copy(a,Affix.class);if(Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA").contains(a.operation)){double factor=cn.yumis.fight.modules.equipment.api.EquipmentEffects.gemMultiplier(gear);a.value*=factor;a.maximum*=factor;}}
-        String label=(gem?"  ":"")+affix(a)+(a.locked?" 〔已锁定·不可删除替换〕":"");
-        if(!shift()){out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label,color)));return;}
+        boolean skillRanks=a.operation.equals("SKILL_FAMILY")||a.operation.equals("EQUIPMENT_RULE")&&a.parameter.equals("magic_ranks");
+        String label=(gem?"  ":"")+affix(a)+(a.locked&&!skillRanks?" 〔已锁定·不可删除替换〕":"");
+        if(!shift()||skillRanks){out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label,color)));return;}
         var range=EquipmentAffixRanges.reroll(a,gear.rarity,gem);
         if(range==null){out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label+" 〔不可重掷〕",color)));return;}
         String unit=EquipmentAffixRanges.percentage(a)?"%":"";
@@ -208,7 +209,7 @@ public final class EquipmentTooltip {
         if(!valid)out.add(text("等级或职业条件不足，装备属性不生效",0xff7272));
         boolean weapon=g.slot==Slot.WEAPON;
         boolean baseValues=shift();
-        if(weapon){double cast=WeaponTraits.castSpeed(g.weapon.name());if(cast!=0)out.add(text("技能释放速度 "+AffixText.signed(cast*100)+"%",0x9aa9be));if(WeaponTraits.basic(g.weapon.name()).projectileSpeed()>0)out.add(text("12格无元素魔法弹",0x9aa9be));if(g.weapon==Weapon.WARGLAIVE)out.add(text("恶魔猎手专用 · 使用时副手须为空 · 单件双刃",0x9acf80));if(g.weapon==Weapon.BROOM)out.add(text("需要扫把精通；该资格尚未开放",0xffb875));}
+        if(weapon){double cast=WeaponTraits.castSpeed(g.weapon.name());if(cast!=0)out.add(text("技能释放速度 "+AffixText.signed(cast*100)+"%",0x9aa9be));if(WeaponTraits.basic(g.weapon.name()).projectileSpeed()>0)out.add(text("12格无元素魔法弹",0x9aa9be));if(g.weapon==Weapon.WARGLAIVE)out.add(text("恶魔猎手专用 · 使用时副手须为空 · 单件双刃",0x9acf80));if(g.weapon==Weapon.BROOM)out.add(text("需要扫把精通",0xffb875));}
         if(weapon&&!baseValues)addWeaponAttributes(out,g);
         else{
             if(g.affixes.stream().anyMatch(a->a.base))separator(out,"基础属性");

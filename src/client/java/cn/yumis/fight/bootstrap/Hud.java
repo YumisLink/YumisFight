@@ -22,6 +22,7 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.inventory.*;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 public final class Hud {
     // Unmodified RarityCore white texture, tinted with this project's rarity colors.
@@ -106,12 +107,21 @@ public final class Hud {
         g.nextStratum();
         cn.yumis.fight.modules.combat.client.DamageNumbers.render(g,mc,now,s.dimension,s.prediction.numbers());
         cn.yumis.fight.modules.skills.client.CareerHud.renderGauge(g,width,height,now);
+    }
+    public static void renderTarget(RenderGuiEvent.Post event){
+        var mc=Minecraft.getInstance();
+        var s=ClientSession.INSTANCE;
+        if(!s.ready||mc.player==null||mc.gui.hud.isHidden()||mc.gui.screen()!=null)return;
         if(mc.hitResult instanceof EntityHitResult hit){
             var entity=hit.getEntity();
             if(entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part)entity=part.parentMob;
             if(entity instanceof LivingEntity living&&!(entity instanceof net.minecraft.world.entity.player.Player)){
                 Target target=s.context(living);
-                if(target!=null)target(g,living,target);
+                if(target!=null){
+                    var g=event.getGuiGraphics();
+                    g.nextStratum();
+                    target(g,living,target);
+                }
             }
         }
     }

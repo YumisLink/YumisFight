@@ -20,6 +20,6 @@ public final class SaleClient {
     static void bag(boolean value){bag=value;}
     static JsonObject snapshot(){return snapshot!=null&&ClientUi.current().ready()&&snapshot.get("session").getAsString().equals(ClientUi.current().session())?snapshot:null;}
     static long revision(){return revision;}
-    static void accept(JsonObject state){snapshot=state;revision++;}
+    static void accept(JsonObject state){EconomyActions.decorate(state);snapshot=state;revision++;}
     static void request(){var request=ClientUi.current().operation("saleOpen");request.addProperty("session",ClientUi.current().session());ClientUi.current().send("saleOpen",request);}
 }

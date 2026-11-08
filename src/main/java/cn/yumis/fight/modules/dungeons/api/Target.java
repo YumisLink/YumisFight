@@ -27,6 +27,9 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public boolean elite,noRewards,timedTraining;
     /** Encounter-owned immunity, shared by prediction and the existing receipt settlement. */
     public boolean damageImmune;
+    /** Enemy-owned lives: intermediate depletion starts a revive phase and never publishes a death receipt. */
+    public int encounterLives=1;
+    public long encounterReviveUntil,encounterReviveMillis=2800;
     public String elitePower="";
     public double[] elementalResists={0,0,0,0};
     public double maximumHealth(int playerLevel,boolean sync){return health(level(playerLevel,sync));}
@@ -44,7 +47,14 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     @Override public cn.yumis.fight.modules.combat.api.Receipt receive(double fraction,boolean heal){
         if(!Double.isFinite(fraction)||fraction<0)throw new IllegalArgumentException("伤害份额无效");
         if(!heal&&damageImmune)return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
-        if(!training())return cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);
+        if(!training()){
+            var receipt=cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);
+            if(!heal&&receipt.accepted()&&!receipt.deathId().isEmpty()&&encounterLives>1){
+                encounterLives--;life.dead=false;damageImmune=true;encounterReviveUntil=System.currentTimeMillis()+encounterReviveMillis;
+                return new cn.yumis.fight.modules.combat.api.Receipt(true,"REVIVING",receipt.actual(),life.q,life.revision,"");
+            }
+            return receipt;
+        }
         life.q=1;life.dead=false;life.revision++;
         return new cn.yumis.fight.modules.combat.api.Receipt(true,"",heal?0:fraction,1,life.revision,"");
     }

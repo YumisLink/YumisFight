@@ -7,10 +7,8 @@ import cn.yumis.fight.modules.economy.api.RewardSettings;
 import cn.yumis.fight.modules.economy.application.LootService;
 import cn.yumis.fight.modules.dungeons.application.DungeonService;
 import cn.yumis.fight.modules.dungeons.application.DamageMeterService;
-import cn.yumis.fight.modules.skills.application.CloudLeapService;
 import cn.yumis.fight.modules.skills.application.VisualService;
 import cn.yumis.fight.modules.combat.application.NativeHits;
-import cn.yumis.fight.modules.combat.application.BasicAttackService;
 
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.combat.api.CombatSession;
@@ -25,16 +23,14 @@ public final class RuntimeAssembly {
     private RuntimeAssembly(){}
     public static RewardPorts.Players rewardPlayers(ServerApplication runtime){return new RewardPorts.Players(){
         public UUID session(ServerPlayer p){return runtime.session(p).id;}public Progress progress(ServerPlayer p){return runtime.session(p).progress;}public void progress(ServerPlayer p,Progress next){runtime.session(p).progress=next;}
-        public Stats stats(ServerPlayer p){return cn.yumis.fight.modules.skills.api.SkillPreview.currentStats(runtime.stats(p),runtime.session(p).resources,System.currentTimeMillis());}
+        public Stats stats(ServerPlayer p){return runtime.stats(p);}
         public void profile(ServerPlayer p){runtime.profile(p);}public void message(ServerPlayer p,String text){runtime.message(p,text);}
     };}
     public static cn.yumis.fight.modules.dungeons.application.TargetService targetService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.TargetService(runtime.journal,runtime.random,()->runtime.worldDifficulty,id->runtime.dungeons.byId(id));}
     public static cn.yumis.fight.modules.inventory.application.InventoryTransactions.CurrencyAction currencyAction(ServerApplication runtime){return (p,menu,slot,button,input)->cn.yumis.fight.modules.inventory.api.InventoryIntake.click(p,menu,slot,button,input,()->runtime.equipmentApplication.versionlessCurrencyClick(p,menu,slot,button,input));}
 
-    public static cn.yumis.fight.modules.combat.application.BasicAttackService basicAttackService(ServerApplication runtime){return new cn.yumis.fight.modules.combat.application.BasicAttackService(runtime::session,p->runtime.session(p).progress,p->cn.yumis.fight.modules.skills.api.WeaponSkills.basicAttack(runtime.session(p).progress,runtime.careers.currentStats(p))).sources(p->cn.yumis.fight.modules.skills.api.WeaponSkills.basicSnapshot(runtime.session(p).progress,runtime.careers.currentStats(p)),p->runtime.session(p).resources.equipment);}
-    public static cn.yumis.fight.modules.combat.application.NativeHits nativeHits(ServerApplication runtime){return new cn.yumis.fight.modules.combat.application.NativeHits(runtime.journal,runtime::session,runtime.targets::resolve,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,p->runtime.visuals.invulnerable(p)||runtime.careers.invulnerable(p)||runtime.demons.invulnerable(p),()->runtime.bridge,runtime.inventory::encode).launches((player,weapon)->runtime.careers.projectileSnapshot(player,weapon));}
+    public static cn.yumis.fight.modules.combat.application.NativeHits nativeHits(ServerApplication runtime){return new cn.yumis.fight.modules.combat.application.NativeHits(runtime.journal,runtime::session,runtime.targets::resolve,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,()->runtime.bridge,runtime.inventory::encode);}
     public static cn.yumis.fight.modules.skills.application.VisualService visualService(ServerApplication runtime){return new cn.yumis.fight.modules.skills.application.VisualService(runtime.server,runtime::session);}
-    public static cn.yumis.fight.modules.skills.application.CloudLeapService cloudLeapService(ServerApplication runtime){return new cn.yumis.fight.modules.skills.application.CloudLeapService(runtime.server,runtime::session,runtime.inventory::locked,runtime.visuals::movementLocked);}
     public static cn.yumis.fight.modules.dungeons.application.DamageMeterService damageMeterService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.DamageMeterService(runtime.journal,runtime.server,id->runtime.dungeons.current(id),(p,id)->runtime.dungeons.participant(p,id),p->runtime.session(p).progress.level,()->runtime.combatSettings);}
     public static DungeonService dungeonService(ServerApplication runtime){return new DungeonService(runtime.journal,runtime.characters,runtime.server,new DungeonPorts.Players(){
         public CombatSession session(ServerPlayer p){return runtime.session(p);}
@@ -59,7 +55,7 @@ public final class RuntimeAssembly {
         public UUID session(ServerPlayer p){return runtime.session(p).id;}
         public Progress progress(ServerPlayer p){return runtime.session(p).progress;}
         public void progress(ServerPlayer p,Progress value){runtime.session(p).progress=value;}
-        public Stats stats(ServerPlayer p){return cn.yumis.fight.modules.skills.api.SkillPreview.currentStats(runtime.stats(p),runtime.session(p).resources,System.currentTimeMillis());}
+        public Stats stats(ServerPlayer p){return runtime.stats(p);}
         public void profile(ServerPlayer p){runtime.profile(p);}
         public void message(ServerPlayer p,String text){runtime.message(p,text);}
     },new RewardPorts.Encounters(){
@@ -71,12 +67,10 @@ public final class RuntimeAssembly {
         public long gold(ServerPlayer p){return runtime.economyService.gold(p);}
         public long revision(ServerPlayer p){return runtime.economyService.goldRevision(p);}
         public void notifyGain(ServerPlayer p,long amount,long balance,long revision){runtime.economyService.goldGain(p,amount,balance,revision);}
-    },runtime.random);}
+        public Map<String,com.google.gson.JsonElement> receive(ServerPlayer p,com.google.gson.JsonObject result){return runtime.economyService.receiveBalances(p,result);}
+    });}
     public static WaystonePorts waystonePorts(ServerApplication runtime){return new WaystonePorts(){
-        public double dropRate(ServerPlayer p){return runtime.stats(p).get(cn.yumis.fight.modules.attributes.api.Stat.DROP_RATE);}
-        public cn.yumis.fight.modules.equipment.api.Rarity rarity(double luck){return runtime.loot.waystoneRarity(luck);}
         public Map<String,com.google.gson.JsonElement> drop(UUID player,net.minecraft.world.item.ItemStack stack,ReturnPoint point,String instance){var drop=runtime.loot.preparePersistent(player,stack,point,instance);return Map.of("loot/"+drop.id,new com.google.gson.Gson().toJsonTree(drop));}
-        public net.minecraft.world.item.ItemStack chest(int tier){return cn.yumis.fight.modules.economy.application.ChestService.waystoneChest(tier);}
         public void publish(){runtime.loot.publishPersistent();}
     };}
 }

@@ -10,7 +10,6 @@
     "ContainerCloseMixin",
     "ContainerPacketMixin",
     "EquipmentSelectedDropMixin",
-    "EquipmentMenuDropMixin",
     "PlayerMixin",
     "NativeDamageMixin",
     "GoblinStoneMixin",

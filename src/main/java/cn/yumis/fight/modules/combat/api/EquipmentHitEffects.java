@@ -1,7 +1,7 @@
 package cn.yumis.fight.modules.combat.api;
 import cn.yumis.fight.modules.attributes.api.*;
 import cn.yumis.fight.modules.equipment.api.EquipmentEffects;
-/** Applies to the same mutable actor draft as all other receipt effects, before the one WAL commit. */
+/** Owner-side equipment hit effects, using the shared life and equipment buff rules. */
 public final class EquipmentHitEffects {
     private EquipmentHitEffects(){}
     public static void apply(CombatTarget target,Receipt receipt,boolean direct,Stats attacker,double currentMaximum,EquipmentEffects.Snapshot effects,Life actor,Runtime resources,double targetMaximum,long now){

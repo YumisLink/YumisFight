@@ -23,6 +23,7 @@ public final class WaystoneClient {
     private static JsonObject enrollment;
     private static Supplier<Dungeon> current=()->null;
     private WaystoneClient(){}
+    public static Waystone stone(String table){var state=tables.get(table);return state==null||!state.has("stone")||state.get("stone").isJsonNull()?null:JSON.fromJson(state.get("stone"),Waystone.class);}
     public static void register(IEventBus bus,Supplier<Dungeon> dungeon){current=dungeon;NeoForge.EVENT_BUS.addListener(WaystoneClient::tooltip);bus.addListener((RegisterGuiLayersEvent e)->e.registerAboveAll(Identifier.fromNamespaceAndPath(ItemData.NS,"waystone"),WaystoneClient::hud));}
     private static boolean self(JsonObject state){var p=Minecraft.getInstance().player;if(p==null)return false;return state.getAsJsonArray("members").asList().stream().anyMatch(m->m.getAsJsonObject().get("id").getAsString().equals(p.getStringUUID()));}
     public static void receive(JsonObject value){

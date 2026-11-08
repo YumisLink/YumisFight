@@ -26,29 +26,26 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
     @Override public void suppressProjectionFeedback(boolean enabled){suppressProjectionFeedback=enabled;}
-    private record Hit(UUID player,String session,long sourceGeneration,UUID target,long generation,long basis,String dimension,String instance,long created,long expires,DamageSource source,NativeEffects.Scope effects) {}
+    private record Hit(UUID player,String session,long sourceGeneration,long expires,DamageSource source,NativeEffects.Scope effects) {}
     private final Map<String,Hit> hits=new HashMap<>();
     private final VanillaAttackClock vanillaAttacks=new VanillaAttackClock();
     private final Journal journal;
     private final Function<ServerPlayer,CombatSession> sessions;
     private final Function<LivingEntity,CombatTarget> targets;
     private final Predicate<LivingEntity> managed;
-    private final Predicate<ServerPlayer> invulnerable;
     private final BooleanSupplier bridge;
     private final BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode;
-    private BiFunction<ServerPlayer,ItemStack,CombatPorts.NativeLaunch> launchSnapshots;
     private BiPredicate<LivingEntity,ServerPlayer> targetAccess=(target,player)->true;
     private final Map<UUID,Long> launchSent=new LinkedHashMap<>();
     public long forwarded,committed;
     public boolean suppressProjectionFeedback;
-    public NativeHits(Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<LivingEntity,CombatTarget> targets,Predicate<LivingEntity> managed,Predicate<ServerPlayer> invulnerable,BooleanSupplier bridge,BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode){this.journal=journal;this.sessions=sessions;this.targets=targets;this.managed=managed;this.invulnerable=invulnerable;this.bridge=bridge;this.encode=encode;}
-    public NativeHits launches(BiFunction<ServerPlayer,ItemStack,CombatPorts.NativeLaunch> snapshots){launchSnapshots=Objects.requireNonNull(snapshots);return this;}
+    public NativeHits(Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<LivingEntity,CombatTarget> targets,Predicate<LivingEntity> managed,BooleanSupplier bridge,BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode){this.journal=journal;this.sessions=sessions;this.targets=targets;this.managed=managed;this.bridge=bridge;this.encode=encode;}
     public void targetAccess(BiPredicate<LivingEntity,ServerPlayer> access){targetAccess=Objects.requireNonNull(access);}
     public void launched(Projectile projectile){
-        if(launchSnapshots==null||!(projectile instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow)||!(arrow.getOwner() instanceof ServerPlayer owner)||launchSent.containsKey(arrow.getUUID()))return;
+        if(!(projectile instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow)||!(arrow.getOwner() instanceof ServerPlayer owner)||launchSent.containsKey(arrow.getUUID()))return;
         long now=System.currentTimeMillis();launchSent.values().removeIf(expires->expires<now);launchSent.put(arrow.getUUID(),now+300000);while(launchSent.size()>4096)launchSent.remove(launchSent.keySet().iterator().next());
-        ItemStack weapon=arrow.getWeaponItem();if(weapon==null||weapon.isEmpty())weapon=owner.getMainHandItem();var snapshot=launchSnapshots.apply(owner,weapon.copy());var session=sessions.apply(owner);
-        JsonObject message=new JsonObject();message.addProperty("id",arrow.getStringUUID());message.addProperty("session",session.id.toString());message.addProperty("generation",session.life.generation);message.addProperty("dimension",owner.level().dimension().identifier().toString());message.addProperty("at",now);message.addProperty("item",cn.yumis.fight.platform.ItemData.id(weapon));message.add("stats",JSON.toJsonTree(snapshot.stats()));message.add("equipmentEffects",JSON.toJsonTree(snapshot.effects()));Network.send(owner,"nativeLaunch",message);
+        ItemStack weapon=arrow.getWeaponItem();if(weapon==null||weapon.isEmpty())weapon=owner.getMainHandItem();var session=sessions.apply(owner);
+        JsonObject message=new JsonObject();message.addProperty("id",arrow.getStringUUID());message.addProperty("session",session.id.toString());message.addProperty("generation",session.life.generation);message.addProperty("dimension",owner.level().dimension().identifier().toString());message.addProperty("at",now);message.addProperty("item",cn.yumis.fight.platform.ItemData.id(weapon));message.add("weapon",encode.apply(owner,weapon));Network.send(owner,"nativeLaunch",message);
     }
     public void projectileLeft(UUID projectile){launchSent.remove(projectile);}
     public boolean handles(LivingEntity entity){return !bridge.getAsBoolean()&&managed.test(entity)&&!entity.level().isClientSide();}
@@ -61,11 +58,8 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         var attacker=source.getEntity();
         if(!targetAccess.test(victim,attacker instanceof ServerPlayer player?player:null)){event.getContainer().setShouldCauseSideEffects(false);event.setCanceled(true);return;}
         boolean reject;
-        if(victim instanceof ServerPlayer player){
-            reject=attacker instanceof Player&&attacker!=player
-                ||source.is(DamageTypes.FALL)&&player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.CLOUD_STEP)
-                ||invulnerable.test(player);
-        }else reject=!(attacker instanceof ServerPlayer);
+        if(victim instanceof ServerPlayer player)reject=attacker instanceof Player&&attacker!=player;
+        else reject=!(attacker instanceof ServerPlayer);
         if(reject){event.setCanceled(true);return;}
         if(victim instanceof ServerPlayer player&&attacker instanceof LivingEntity&&!(attacker instanceof Player)
             &&net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(attacker.getType()).getNamespace().equals("minecraft")
@@ -109,7 +103,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
                 if(!source.is(DamageTypeTags.NO_KNOCKBACK)){victim.knockback(.4,x,z,source,(float)original);victim.indicateDamage(x,z);}
             });
         }
-        hits.put(root,new Hit(owner.getUUID(),session.id.toString(),session.life.generation,victim.getUUID(),life.generation,life.basis,life.dimension,life.instance,now,now+60000,source,effects));
+        hits.put(root,new Hit(owner.getUUID(),session.id.toString(),session.life.generation,now+60000,source,effects));
         JsonObject data=new JsonObject();
         data.addProperty("session",session.id.toString());
         data.addProperty("generation",session.life.generation);
@@ -139,22 +133,13 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         }
         forwarded++;
     }
-    /** Only binds an issued collision to its report; does not audit client damage formulas. */
-    public boolean validate(ServerPlayer player,LivingEntity entity,JsonObject report){
-        if(!report.has("nativeRoot"))return false;
-        String root=report.get("nativeRoot").getAsString();
-        Hit hit=hits.get(root);
-        var session=sessions.apply(player);
-        if(hit==null||hit.expires<System.currentTimeMillis()||!hit.player.equals(player.getUUID())||!hit.session.equals(session.id.toString())||hit.sourceGeneration!=session.life.generation||!hit.target.equals(entity.getUUID())||hit.generation!=report.get("generation").getAsLong()||hit.basis!=report.get("basis").getAsLong()||!hit.dimension.equals(report.get("dimension").getAsString())||!hit.instance.equals(report.get("instance").getAsString()))throw new IllegalArgumentException("原生命中来源已失效");
-        if(!journal.get(key(player,root)).isJsonNull())throw new IllegalArgumentException("原生命中已结算");
-        return true;
-    }
     public void commit(ServerPlayer player,JsonObject report)throws Exception{
-        journal.put(key(player,report.get("nativeRoot").getAsString()),report.get("operation"));
+        var hit=hits.get(report.get("nativeRoot").getAsString());var session=sessions.apply(player);if(hit!=null&&(!hit.player.equals(player.getUUID())||!hit.session.equals(session.id.toString())||hit.sourceGeneration!=session.life.generation))throw new IllegalArgumentException("原生事实归属已失效");
+        String key=key(player,report.get("nativeRoot").getAsString());if(!journal.get(key).isJsonNull())throw new IllegalArgumentException("原生命中事实已接收");
+        journal.put(key,report.get("operation"));
         committed++;
     }
-    public DamageSource source(JsonObject report){return hits.get(report.get("nativeRoot").getAsString()).source;}
-    public long occurredAt(JsonObject report){return hits.get(report.get("nativeRoot").getAsString()).created;}
+    public DamageSource source(JsonObject report){Hit hit=hits.get(report.get("nativeRoot").getAsString());return hit==null?null:hit.source;}
     public void complete(JsonObject report){
         if(!report.has("nativeRoot"))return;
         Hit hit=hits.get(report.get("nativeRoot").getAsString());

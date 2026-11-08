@@ -4,190 +4,135 @@ import cn.yumis.fight.modules.skills.api.*;
 import cn.yumis.fight.modules.skills.api.client.*;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.modules.attributes.api.Stats;
+import cn.yumis.fight.modules.character.api.JobCatalog;
+import cn.yumis.fight.modules.combat.api.CombatTiming;
 import cn.yumis.fight.modules.equipment.api.*;
-import com.google.gson.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MoverType;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.*;
 import java.util.*;
 
-/** Oracle input and client-side hit geometry. Server-confirmed steps provide safe origins and conditional stats. */
+/** Oracle commands, weapon choice, poses and contacts all belong to the owner. */
 public final class OracleClient {
     public static final OracleClient INSTANCE=new OracleClient();
-    private static final Gson JSON=new Gson();
-    private record Candidate(LivingEntity entity,long generation,long basis){}
-    private static final class Stroke {
-        SkillCast source;JsonObject pose;String predictedTarget="";Vec3 predictedOrigin,predictedDirection;AABB actorBox;float stepHeight;long retargetSent;boolean completed,resolved,replayHit,retargeting,grounded;final Map<UUID,Candidate> collisions=new HashMap<>();
-    }
     private static final class Run {
-        int next,active=-1;long sent,stageStart,deadline,finishSent;double moved;boolean target,completed,ended,finished;
-        String session,instance,job;long generation;SkillCast cast;SkillBehaviors.Context context;
-        final Map<Integer,JsonObject> replies=new HashMap<>();final Map<Integer,Stroke> strokes=new LinkedHashMap<>();
-        final Map<Integer,Long> poseSent=new TreeMap<>();final Set<Integer> poseConfirmed=new HashSet<>();
+        SkillCast cast;Stats frozen;SkillBehaviors.Context context;int index=-1,count,originalSlot,stepSlot=-1;UUID originalWeapon;
+        String originalType,pausedInstruction="";long instructionLeft,stageAt;double moved;Vec3 axis;LivingEntity target;
+        long targetGeneration;boolean resolved;final Map<UUID,LivingEntity> contacts=new LinkedHashMap<>();
     }
-    private final Map<String,Run> runs=new HashMap<>();
+    private final Map<String,Run> runs=new LinkedHashMap<>();
+    private final Random random=new Random();
     private OracleClient(){}
+    private static SkillsClient state(){return SkillsClient.current();}
+    private static net.minecraft.client.player.LocalPlayer player(){return Minecraft.getInstance().player;}
     public static void install(){
         SkillBehaviors.registerStart(OracleSkills.RIFT,(x,c,now)->{c.hitIndex=0;x.path(c,x.player().position(),x.player().position(),3,3,c.parameters.get("damage",0),.2);});
+        SkillBehaviors.registerStart(OracleSkills.SMILE,(x,c,now)->{x.player().setPos(c.origin);heading(c.direction);x.player().setDeltaMovement(Vec3.ZERO);});
         for(String id:OracleSkills.ACTIONS)SkillBehaviors.register(id,(x,c,now,elapsed,stage,speed)->normal(x,c,now,elapsed));
-        SkillBehaviors.registerStart(OracleSkills.REPLICA,INSTANCE::start);
-        SkillBehaviors.register(OracleSkills.REPLICA,INSTANCE::replica);
+        SkillBehaviors.registerStart(OracleSkills.REPLICA,INSTANCE::start);SkillBehaviors.register(OracleSkills.REPLICA,INSTANCE::replica);
     }
-    public SkillDefinition resolve(SkillDefinition binding){
-        if(!binding.bindingProxy)return binding;String id=CareerClient.INSTANCE.view.oracle.instruction;
-        if(id.isEmpty()||!SkillCatalog.contains(id)){SkillsClient.current().message("当前没有待执行指令");return null;}return SkillCatalog.require(id);
-    }
+    public SkillDefinition resolve(SkillDefinition binding){if(!binding.bindingProxy)return binding;String id=CareerClient.INSTANCE.view.oracle.instruction;if(id.isEmpty()||!SkillCatalog.contains(id)){state().message("当前没有待执行指令");return null;}return SkillCatalog.require(id);}
     public void prepareInput(SkillDefinition binding){
-        var state=SkillsClient.current();var command=CareerClient.INSTANCE.view.oracle;String id=binding.bindingProxy?command.instruction:binding.id;int index=OracleSkills.ACTIONS.indexOf(id);
-        if(index<0||state.progress().learned(id)<=0||!OracleRules.matches(command,SkillCatalog.require(id),state.serverNow()))return;
-        var player=Minecraft.getInstance().player;
-        for(int slot=0;slot<9;slot++){var gear=EquipmentItems.view(player.getInventory().getItem(slot));if(gear!=null&&gear.slot()==Slot.WEAPON&&gear.weapon().name().equals(OracleSkills.WEAPONS.get(index))&&gear.valid(state.progress(),EquipmentEligibility.allowance(player))){player.getInventory().setSelectedSlot(slot);return;}}
+        var command=CareerClient.INSTANCE.view.oracle;String id=binding.bindingProxy?command.instruction:binding.id;int index=OracleSkills.ACTIONS.indexOf(id);
+        if(index<0||state().progress().learned(id)<=0||!OracleRules.matches(command,SkillCatalog.require(id),state().serverNow()))return;int selected=weaponSlot(OracleSkills.WEAPONS.get(index));if(selected>=0)player().getInventory().setSelectedSlot(selected);
     }
-    private void start(SkillBehaviors.Context context,SkillCast c,long now){
-        var state=SkillsClient.current();var run=new Run();run.cast=c;run.context=context;run.session=state.session();run.generation=state.own().generation;run.instance=state.own().instance;run.job=state.progress().jobId();run.deadline=now+(long)(c.parameters.get("duration",OracleSkills.FULL_DURATION)*1000/c.speed)+5000;
-        runs.put(c.id,run);TrainingCombat.hold(c.id,"oracle",run.deadline);
+    public Stats prepareStats(SkillDefinition skill,Stats source){
+        var command=CareerClient.INSTANCE.view.oracle;int rank=OracleRules.rank(source,state().progress());if(rank<=0||!OracleRules.matches(command,skill,state().serverNow()))return source;
+        var result=OracleRules.instruction(source);int gained=command.hermes<OracleRules.cap(state().progress())?1:0;result.modifier("final").mut+=gained*OracleRules.layer(rank);return result;
     }
-    public void receive(JsonObject reply){
-        String id=reply.get("id").getAsString();var run=runs.get(id);if(run==null||!valid(run))return;
-        if(reply.has("cancelled")){if(SkillController.INSTANCE.cast==run.cast)SkillController.INSTANCE.cancel(false);else cancel(id);return;}
-        if(reply.has("finished")){run.finished=true;if(reply.has("noFinisher")&&!run.ended&&SkillController.INSTANCE.cast==run.cast){run.ended=true;SkillController.INSTANCE.cancel(true);}disposeIfDone(run);return;}
-        int step=reply.get("step").getAsInt();
-        if(reply.has("retargetPending")||reply.has("retargetDenied")){var stroke=run.strokes.get(step);if(stroke!=null&&stroke.pose!=null&&stroke.pose.get("target").getAsString().equals(reply.get("retargetFrom").getAsString())){stroke.retargeting=false;if(reply.has("retargetDenied"))stroke.resolved=true;else{JsonObject context=new JsonObject();context.add("entity",stroke.pose.get("targetEntity"));SkillsClient.current().send("context",context);}}return;}
-        if(reply.has("pose")){
-            run.poseConfirmed.add(step);var stroke=run.strokes.get(step);
-            if(stroke!=null&&reply.has("retarget")){if(!stroke.pose.get("target").getAsString().equals(reply.get("retargetFrom").getAsString()))return;stroke.retargeting=false;stroke.pose=reply;stroke.replayHit=false;stroke.source.stats=JSON.fromJson(reply.get("stats"),Stats.class);if(stroke.completed)repair(stroke);resolve(stroke);disposeIfDone(run);return;}
-            if(stroke!=null&&stroke.pose==null){Vec3 approvedOrigin=vector(reply.getAsJsonArray("origin")),approvedDirection=vector(reply.getAsJsonArray("direction"));if(stroke.predictedOrigin.distanceToSqr(approvedOrigin)>1e-8||stroke.predictedDirection.distanceToSqr(approvedDirection)>1e-8)stroke.collisions.clear();stroke.pose=reply;stroke.source.stats=JSON.fromJson(reply.get("stats"),Stats.class);}
-            var c=SkillController.INSTANCE.cast;
-            if(c==run.cast&&run.active==step&&(stroke==null||!stroke.completed)){
-                run.target=reply.get("hasTarget").getAsBoolean();c.stats=JSON.fromJson(reply.get("stats"),Stats.class);c.origin=vector(reply.getAsJsonArray("origin"));c.direction=vector(reply.getAsJsonArray("direction"));String previousWeapon=c.visualWeapon;c.visualWeapon=reply.get("weaponType").getAsString();
-                var player=Minecraft.getInstance().player;
-                if(stroke!=null){player.setPos(c.origin);player.move(MoverType.SELF,c.direction.scale(run.moved));player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;c.center=player.position();if(run.target)collect(stroke,c,c.origin,player.position());}
-                else{player.setPos(c.origin.add(c.direction.scale(run.moved)));c.center=player.position();}xHeading(c);if(step==OracleSkills.FINISH_STEP&&!previousWeapon.equals(c.visualWeapon))run.context.visual(c,"SEGMENT");
-            }
-            else if(stroke!=null&&stroke.completed)repair(stroke);
-            if(stroke!=null)resolve(stroke);disposeIfDone(run);return;
+    public boolean prepare(CareerState next,SkillDefinition skill,Stats stats,long now){int rank=OracleRules.rank(stats,state().progress());if(skill.id.equals(OracleSkills.REPLICA)&&(rank<=0||next.oracle.hermes<1))throw new IllegalArgumentException("至少需要一层代行-赫尔墨斯");return rank>0&&OracleRules.succeed(next.oracle,state().progress(),skill,rank,now);}
+    public SkillParameters.Snapshot parameters(SkillParameters.Snapshot input,CareerState next,long now){
+        if(!OracleSkills.contains(input.skill().id))return input;var values=new LinkedHashMap<>(input.values());
+        if(input.skill().id.equals(OracleSkills.REPLICA)){int stacks=next.oracle.hermes;values.put("replicaStacks",(double)stacks);values.put("duration",stacks==9?OracleSkills.FULL_DURATION:stacks*.35);}
+        if(input.skill().id.equals(OracleSkills.SMILE)){var target=target(null,10);Vec3 point=target==null?player().position():behind(target),direction=target==null?flat(player().getLookAngle()):flat(target.position().subtract(point));values.put("oracleX",point.x);values.put("oracleY",point.y);values.put("oracleZ",point.z);values.put("oracleDX",direction.x);values.put("oracleDZ",direction.z);}
+        return new SkillParameters.Snapshot(input.skill(),input.rank(),values);
+    }
+    public Vec3 origin(SkillParameters.Snapshot p,Vec3 fallback){return p.values().containsKey("oracleX")?new Vec3(p.get("oracleX",0),p.get("oracleY",0),p.get("oracleZ",0)):fallback;}
+    public Vec3 direction(SkillParameters.Snapshot p,Vec3 fallback){return p.values().containsKey("oracleDX")?new Vec3(p.get("oracleDX",0),0,p.get("oracleDZ",1)):fallback;}
+    private void start(SkillBehaviors.Context x,SkillCast c,long now){
+        var r=new Run();r.cast=c;r.context=x;r.frozen=c.stats.copy();r.originalSlot=player().getInventory().getSelectedSlot();var gear=EquipmentItems.view(player().getMainHandItem());r.originalWeapon=gear.instance();r.originalType=gear.weapon().name();r.axis=c.direction;r.stageAt=now;
+        int stacks=(int)c.parameters.get("replicaStacks",1);r.count=stacks==9?OracleSkills.FULL_STEPS:stacks;runs.put(c.id,r);var command=CareerClient.INSTANCE.view.oracle;command.cast=c.id;command.castingUntil=state().serverNow()+(long)(c.parameters.get("duration",OracleSkills.FULL_DURATION)*1000/c.speed)+5000;
+        if(!command.instruction.isEmpty()){r.pausedInstruction=command.instruction;r.instructionLeft=Math.max(0,command.instructionUntil-state().serverNow());command.instructionPausedLeft=r.instructionLeft;}
+        TrainingCombat.hold(c.id,"oracle",ClientUi.now()+(long)(c.parameters.get("duration",OracleSkills.FULL_DURATION)*1000/c.speed)+5000);CareerClient.INSTANCE.publish();
+    }
+    public boolean locked(){return !runs.isEmpty();}
+    private void finish(Run r){
+        runs.remove(r.cast.id);if(player()!=null)player().getInventory().setSelectedSlot(r.originalSlot);
+        var command=CareerClient.INSTANCE.view.oracle;if(!r.pausedInstruction.isEmpty()&&command.instruction.equals(r.pausedInstruction))command.instructionUntil=state().serverNow()+r.instructionLeft;
+        command.instructionPausedLeft=0;command.cast="";command.castingUntil=0;command.hermes=0;command.hermesUntil=0;TrainingCombat.release(r.cast.id,"oracle");if(MageClient.INSTANCE.valid(r.cast))CareerClient.INSTANCE.publish();
+    }
+    public void cancel(String id){var r=runs.get(id);if(r!=null)finish(r);}
+    public void clear(){for(var r:new ArrayList<>(runs.values()))finish(r);runs.clear();}
+    public void tick(long localNow){
+        for(var r:new ArrayList<>(runs.values()))if(!MageClient.INSTANCE.valid(r.cast)||localNow-r.cast.start>r.cast.parameters.get("duration",OracleSkills.FULL_DURATION)*1000/r.cast.speed+5000)finish(r);
+        var career=CareerClient.INSTANCE.view;var command=career.oracle;var progress=state().progress();if(!progress.hasJob(JobCatalog.ORACLE))return;long now=state().serverNow();int rank=OracleRules.rank(state().stats(),progress);String before=command.instruction+"/"+command.hermes+"/"+command.karma+"/"+command.weapon;
+        OracleRules.preparation(command,progress,CombatTiming.out(state().resources(),localNow),locked(),now);
+        if(rank<=0){if(!locked()&&command.initialized){var reset=new OracleState();reset.awakeningObserved=command.awakeningObserved;reset.awakeningLearned=command.awakeningLearned;reset.awakeningGrantPending=command.awakeningGrantPending;reset.outOfCombatSince=command.outOfCombatSince;reset.hermes=command.hermes;career.oracle=reset;}return;}
+        if(!command.initialized){command.initialized=true;command.nextInstruction=now+10000;command.weaponUntil=0;}
+        if(now>=command.weaponUntil){var choices=new ArrayList<>(OracleSkills.WEAPONS);choices.remove(command.weapon);command.weapon=choices.get(random.nextInt(choices.size()));command.weaponUntil=now+30000;}
+        if(command.karmaUntil<=now)command.karma=0;if(locked())return;
+        int cap=OracleRules.cap(progress);if(command.hermes>cap){command.hermes=cap;command.hermesUntil=now+30000;command.instruction="";command.nextInstruction=now;}
+        if(command.hermes==9){command.hermesUntil=0;command.instruction=OracleSkills.REPLICA;command.instructionUntil=0;}
+        else{
+            if(command.hermes>0&&command.hermesUntil<=now){command.hermes=0;command.hermesUntil=0;}
+            if(!command.instruction.isEmpty()&&command.instructionUntil<=now){if(!CombatTiming.out(state().resources(),localNow)){command.karma=Math.min(5,command.karma+1);command.karmaUntil=now+15000;}command.instruction="";command.nextInstruction=now;}
+            if(command.instruction.isEmpty()&&now>=command.nextInstruction){var pool=SkillCatalog.all().stream().filter(s->!s.passive()&&!s.equipmentGranted&&!s.id.equals(OracleSkills.REPLICA)&&s.available(progress)&&progress.learned(s.id)>0&&state().resources().cooldowns.getOrDefault(s.id,0L)-localNow<5000).toList();if(pool.isEmpty())command.nextInstruction=now+1000;else{command.instruction=pool.get(random.nextInt(pool.size())).id;command.instructionUntil=now+10000;}}
         }
-        run.replies.put(step,reply);
+        if(!before.equals(command.instruction+"/"+command.hermes+"/"+command.karma+"/"+command.weapon))CareerClient.INSTANCE.publish();
     }
-    private static void xHeading(SkillCast c){var p=Minecraft.getInstance().player;float yaw=(float)Math.toDegrees(Math.atan2(-c.direction.x,c.direction.z));p.setYRot(yaw);p.setYHeadRot(yaw);}
-    public void clear(){for(var run:runs.values())TrainingCombat.release(run.cast.id,"oracle");runs.clear();}
-    public void cancel(String id){var run=runs.remove(id);if(run!=null)TrainingCombat.release(id,"oracle");}
-    private boolean valid(Run run){
-        var state=SkillsClient.current();var mc=Minecraft.getInstance();return mc.player!=null&&mc.level!=null&&!state.own().dead&&run.session.equals(state.session())&&run.generation==state.own().generation&&run.instance.equals(state.own().instance)&&run.job.equals(state.progress().jobId())&&run.cast.dimension.equals(mc.level.dimension().identifier().toString());
-    }
-    public void tick(long now){
-        for(var run:new ArrayList<>(runs.values())){
-            if(!valid(run)||now>run.deadline){cancel(run.cast.id);continue;}
-            for(var entry:new ArrayList<>(run.poseSent.entrySet()))if(!run.poseConfirmed.contains(entry.getKey())&&now-entry.getValue()>=250)pose(run,entry.getKey(),now);
-            for(var stroke:run.strokes.values())resolve(stroke);
-            if(run.ended&&!run.finished&&now-run.finishSent>=250)finish(run,now);
-            disposeIfDone(run);
-        }
-    }
-    private void disposeIfDone(Run run){if(run.ended&&run.finished&&run.strokes.values().stream().allMatch(s->s.resolved)){runs.remove(run.cast.id,run);TrainingCombat.release(run.cast.id,"oracle");}}
-    private static void pose(Run run,int index,long now){JsonObject request=new JsonObject();request.addProperty("id",run.cast.id);request.addProperty("step",index);SkillsClient.current().send("oraclePose",request);run.poseSent.put(index,now);}
-    private static void finish(Run run,long now){JsonObject request=new JsonObject();request.addProperty("id",run.cast.id);SkillsClient.current().send("oracleFinish",request);run.finishSent=now;}
     private static void normal(SkillBehaviors.Context x,SkillCast c,long now,long elapsed){
         String id=c.skill.id;double damage=c.parameters.get("damage",0);
         if(id.equals(OracleSkills.DOWN)&&elapsed>=300&&!c.finisher){c.finisher=true;c.hitIndex=0;x.player().swing(net.minecraft.world.InteractionHand.MAIN_HAND);x.slash(c,c.parameters.get("range",4),3,3,damage,.3,false);x.visual(c,"HIT");}
         if(id.equals(OracleSkills.SWEEP)&&elapsed>=500&&!c.finisher){c.finisher=true;c.hitIndex=0;c.sweepDegrees=145;x.slash(c,c.parameters.get("range",5),5,3,damage,.4,true);x.visual(c,"RELEASE");}
-        if(id.equals(OracleSkills.THRUST)||id.equals(OracleSkills.RIFT)){
-            double length=c.parameters.get("range",id.equals(OracleSkills.THRUST)?6:5),duration=id.equals(OracleSkills.THRUST)?250:350;double desired=length*Math.clamp(elapsed/duration,0,1);
-            Vec3 from=x.player().position();move(x,c,desired-c.moved);c.moved=desired;c.hitIndex=0;x.path(c,from,x.player().position(),id.equals(OracleSkills.THRUST)?2.5:3,3,damage,.2);
-            if(now-c.visualTrail>=80){x.visual(c,"TRAIL");c.visualTrail=now;}
-        }
+        if(id.equals(OracleSkills.THRUST)||id.equals(OracleSkills.RIFT)){double length=c.parameters.get("range",id.equals(OracleSkills.THRUST)?6:5),duration=id.equals(OracleSkills.THRUST)?250:350,desired=length*Math.clamp(elapsed/duration,0,1);Vec3 from=x.player().position();move(x,c,desired-c.moved);c.moved=desired;c.hitIndex=0;x.path(c,from,x.player().position(),id.equals(OracleSkills.THRUST)?2.5:3,3,damage,.2);if(now-c.visualTrail>=80){x.visual(c,"TRAIL");c.visualTrail=now;}}
         if(id.equals(OracleSkills.SMILE))for(int i=c.slashes;i<2&&elapsed>=(i==0?100:300);i++){c.hit.clear();c.hitIndex=i;x.slash(c,c.parameters.get("range",4),3,3,damage*.5,.2,false);x.visual(c,"HIT");c.slashes++;}
         if(elapsed>=c.parameters.get("duration",.6)*1000)x.cancel(true);
     }
-    private static SkillCast strikeSource(SkillCast c,int index){
-        var source=new SkillCast();source.id=c.id;source.skill=c.skill;source.parameters=c.parameters;source.stats=c.stats;source.equipment=c.equipment;source.dimension=c.dimension;source.hitIndex=index*2;source.passiveDamage=c.passiveDamage;source.suppressEquipment=c.suppressEquipment;source.elementOverride=c.elementOverride;source.dot=c.dot;return source;
+    private int originalSlot(Run r){for(int slot=0;slot<9;slot++){var gear=EquipmentItems.view(player().getInventory().getItem(slot));if(gear!=null&&gear.instance().equals(r.originalWeapon)&&gear.valid(state().progress(),EquipmentEligibility.allowance(player())))return slot;}return -1;}
+    private int weaponSlot(String type){for(int slot=0;slot<9;slot++){var gear=EquipmentItems.view(player().getInventory().getItem(slot));if(gear!=null&&gear.slot()==Slot.WEAPON&&gear.weapon().name().equals(type)&&gear.valid(state().progress(),EquipmentEligibility.allowance(player())))return slot;}return -1;}
+    private int fallbackSlot(){for(int slot=0;slot<9;slot++){var gear=EquipmentItems.view(player().getInventory().getItem(slot));if(gear!=null&&JobCatalog.weapons(state().progress().jobId()).contains(gear.weapon().name())&&gear.valid(state().progress(),EquipmentEligibility.allowance(player())))return slot;}return -1;}
+    private boolean next(Run r,long at){
+        int index=++r.index;if(index>=r.count)return false;var c=r.cast;int action=index>=8?4:OracleSkills.action(c.id.hashCode(),index);String type=index>=8?r.originalType:OracleSkills.WEAPONS.get(action);int selected=index<8?weaponSlot(type):originalSlot(r);if(index==OracleSkills.FINISH_STEP&&selected<0)selected=fallbackSlot();if(index==OracleSkills.FINISH_STEP&&selected<0)return false;
+        if(selected>=0){player().getInventory().setSelectedSlot(selected);r.stepSlot=selected;if(index==OracleSkills.FINISH_STEP)type=EquipmentItems.view(player().getMainHandItem()).weapon().name();}
+        r.target=target(r.target,12);var targetState=r.target==null?null:state().context(r.target);r.targetGeneration=targetState==null?-1:targetState.life.generation;
+        c.origin=r.target==null?player().position():around(r.target,c.id.hashCode(),index);c.direction=r.target==null?r.axis:flat(r.target.position().subtract(c.origin));r.axis=c.direction;c.center=c.origin;c.stats=OracleRules.stepStats(r.frozen,CareerClient.INSTANCE.view.oracle,type,selected>=0);c.visualWeapon=type;c.hit.clear();c.slashes=0;c.finisher=false;c.release=false;c.sweepDegrees=0;c.charging=index==OracleSkills.FINISH_STEP;
+        r.stageAt=at;r.moved=0;r.resolved=false;r.contacts.clear();player().setPos(c.origin);heading(c.direction);player().setDeltaMovement(Vec3.ZERO);player().fallDistance=0;player().swing(net.minecraft.world.InteractionHand.MAIN_HAND);r.context.visual(c,"SEGMENT");return true;
     }
-    private static void repair(Stroke stroke){
-        var pose=stroke.pose;if(pose==null||!pose.get("hasTarget").getAsBoolean())return;String target=pose.get("target").getAsString();UUID targetId=UUID.fromString(target);var previous=stroke.collisions.get(targetId);if(previous!=null&&previous.generation()>=0)return;
-        var mc=Minecraft.getInstance();Vec3 origin=vector(pose.getAsJsonArray("origin")),direction=vector(pose.getAsJsonArray("direction"));
-        if(previous==null&&stroke.predictedTarget.equals(target)&&stroke.predictedOrigin.distanceToSqr(origin)<=1e-8&&stroke.predictedDirection.distanceToSqr(direction)<=1e-8&&mc.level.getEntity(pose.get("targetEntity").getAsInt())!=null)return;
-        var player=mc.player;Vec3 movement=direction.scale(8);AABB actor=stroke.actorBox.move(origin.subtract(stroke.predictedOrigin));
-        Vec3 allowed=Entity.collideBoundingBox(player,movement,actor,mc.level,mc.level.getEntityCollisions(player,actor.expandTowards(movement)));
-        if(stroke.grounded&&stroke.stepHeight>0&&allowed.horizontalDistanceSqr()<movement.horizontalDistanceSqr()){Vec3 stepping=movement.add(0,stroke.stepHeight,0);Vec3 climbed=Entity.collideBoundingBox(player,stepping,actor,mc.level,mc.level.getEntityCollisions(player,actor.expandTowards(stepping)));if(climbed.horizontalDistanceSqr()>allowed.horizontalDistanceSqr())allowed=climbed;}
-        Vec3 start=origin.add(0,.8,0),end=origin.add(allowed).add(0,.8,0);JsonArray b=pose.getAsJsonArray("targetBox");
-        AABB box=new AABB(b.get(0).getAsDouble(),b.get(1).getAsDouble(),b.get(2).getAsDouble(),b.get(3).getAsDouble(),b.get(4).getAsDouble(),b.get(5).getAsDouble());double width=3*stroke.source.parameters.get("meleeScale",1);
-        stroke.replayHit=SkillGeometry.intersects(box.inflate(width/2,1.5,width/2),start,end)&&SkillController.INSTANCE.sight(start,box.getCenter());if(stroke.replayHit&&previous!=null)stroke.collisions.remove(targetId);
-    }
-    private static void collect(Stroke stroke,SkillCast c,Vec3 from,Vec3 to){
-        if(stroke.resolved)return;double width=3*c.parameters.get("meleeScale",1),height=3;Vec3 start=from.add(0,.8,0),end=to.add(0,.8,0);var controller=SkillController.INSTANCE;
-        for(var target:controller.targets(new AABB(start,end).inflate(width/2,height/2,width/2))){
-            var previous=stroke.collisions.get(target.getUUID());if(previous!=null&&previous.generation()>=0||!SkillGeometry.intersects(target.getBoundingBox().inflate(width/2,height/2,width/2),start,end)||!controller.sight(start,target.getBoundingBox().getCenter()))continue;
-            var state=SkillsClient.current().context(target);if(state!=null)stroke.collisions.put(target.getUUID(),new Candidate(target,state.life.generation,state.life.basis));else if(previous==null)stroke.collisions.put(target.getUUID(),new Candidate(target,-1,-1));
-        }
-        resolve(stroke);
-    }
-    private static void resolve(Stroke stroke){
-        if(stroke.resolved||stroke.pose==null)return;if(stroke.retargeting){retarget(stroke);return;}String targetId=stroke.pose.get("target").getAsString();if(targetId.isEmpty()){stroke.resolved=true;return;}
-        UUID id=UUID.fromString(targetId);var collision=stroke.collisions.get(id);
-        if(collision==null&&stroke.replayHit){var mc=Minecraft.getInstance();var entity=mc.level==null?null:mc.level.getEntity(stroke.pose.get("targetEntity").getAsInt());if(!(entity instanceof LivingEntity target)||!target.getUUID().equals(id)){retarget(stroke);return;}collision=new Candidate(target,stroke.pose.get("targetGeneration").getAsLong(),stroke.pose.get("targetBasis").getAsLong());stroke.collisions.put(id,collision);}
-        if(collision==null){
-            if(stroke.completed){var mc=Minecraft.getInstance();var entity=mc.level==null?null:mc.level.getEntity(stroke.pose.get("targetEntity").getAsInt());
-                if(!(entity instanceof LivingEntity target)||!target.getUUID().equals(id)||!target.isAlive()){retarget(stroke);return;}
-                var known=SkillsClient.current().context(target);if(known==null)return;
-                if(known.life.dead||SkillsClient.current().predicted(known.life)<=0||known.life.generation!=stroke.pose.get("targetGeneration").getAsLong()||known.life.basis!=stroke.pose.get("targetBasis").getAsLong()){retarget(stroke);return;}stroke.resolved=true;
-            }return;
-        }
-        var target=collision.entity();var mc=Minecraft.getInstance();
-        if(collision.generation()<0){if(stroke.completed)stroke.resolved=true;return;}
-        if(mc.level==null)return;if(!target.isAlive()||mc.level.getEntity(target.getId())!=target||target.getId()!=stroke.pose.get("targetEntity").getAsInt()){retarget(stroke);return;}
-        var state=SkillsClient.current().context(target);if(state==null)return;long generation=stroke.pose.get("targetGeneration").getAsLong(),basis=stroke.pose.get("targetBasis").getAsLong();
-        if(collision.generation()>=0&&(collision.generation()!=generation||collision.basis()!=basis)){stroke.resolved=true;return;}
-        if(state.life.dead||SkillsClient.current().predicted(state.life)<=0||state.life.generation!=generation||state.life.basis!=basis){retarget(stroke);return;}
-        SkillController.INSTANCE.hitCast(stroke.source,target,stroke.source.parameters.get("damage",0)*.05,.4);stroke.resolved=true;
-    }
-    private static void retarget(Stroke stroke){
-        if(!stroke.completed)return;long now=ClientUi.now();if(now-stroke.retargetSent<250)return;
-        JsonObject request=new JsonObject();request.addProperty("id",stroke.source.id);request.addProperty("step",stroke.source.hitIndex/2);request.addProperty("retarget",true);request.addProperty("previousTarget",stroke.pose.get("target").getAsString());JsonArray candidates=new JsonArray();stroke.collisions.entrySet().stream().filter(entry->entry.getValue().generation()>=0).limit(128).forEach(entry->{JsonObject candidate=new JsonObject();candidate.addProperty("target",entry.getKey().toString());candidate.addProperty("generation",entry.getValue().generation());candidate.addProperty("basis",entry.getValue().basis());candidates.add(candidate);});request.add("candidates",candidates);SkillsClient.current().send("oraclePose",request);stroke.retargetSent=now;stroke.retargeting=true;
+    private boolean alive(LivingEntity e,long generation){if(e==null||!e.isAlive())return false;var t=state().context(e);return t!=null&&!t.life.dead&&state().predicted(t.life)>0&&(generation<0||t.life.generation==generation);}
+    private void combo(Run r,Vec3 from,Vec3 to,boolean completed){
+        var c=r.cast;double width=3*c.parameters.get("meleeScale",1);Vec3 start=from.add(0,.8,0),end=to.add(0,.8,0);
+        for(var target:SkillController.INSTANCE.targets(new AABB(start,end).inflate(width/2,1.5,width/2)))if(SkillGeometry.intersects(target.getBoundingBox().inflate(width/2,1.5,width/2),start,end)&&SkillController.INSTANCE.sight(start,target.getBoundingBox().getCenter()))r.contacts.putIfAbsent(target.getUUID(),target);
+        if(r.resolved)return;LivingEntity target=alive(r.target,r.targetGeneration)?r.contacts.get(r.target.getUUID()):completed?r.contacts.values().stream().filter(e->alive(e,-1)).min(Comparator.comparingDouble(e->e.distanceToSqr(c.origin))).orElse(null):null;
+        if(target!=null){c.hitIndex=r.index*2;SkillController.INSTANCE.hitCast(c,target,c.parameters.get("damage",0)*.05,.4);r.resolved=true;}
     }
     private void replica(SkillBehaviors.Context x,SkillCast c,long now,long elapsed,long stage,double speed){
-        Run run=runs.get(c.id);if(run==null){x.cancel(false);return;}
-        if(now>run.deadline){cancel(c.id);x.cancel(false);return;}
-        int stacks=(int)c.parameters.get("replicaStacks",1),count=stacks==9?OracleSkills.FULL_STEPS:stacks;
-        for(int transitions=0;transitions<=count;transitions++){
-            if(run.active<0||run.completed){
-                if(run.next>=count){run.ended=true;finish(run,now);x.cancel(true);disposeIfDone(run);return;}
-                var ack=run.replies.remove(run.next);if(ack==null){if(run.sent==0||now-run.sent>=100)request(run,c,now);return;}
-                long previousEnd=run.active<0?now:run.stageStart+(long)(OracleSkills.stepDuration(run.active)*1000/speed);int next=run.next++;
-                run.active=next;run.sent=0;run.moved=0;run.completed=false;run.stageStart=next>0?previousEnd:now;run.target=ack.get("hasTarget").getAsBoolean();c.stats=JSON.fromJson(ack.get("stats"),Stats.class);c.direction=vector(ack.getAsJsonArray("direction"));c.origin=vector(ack.getAsJsonArray("origin"));c.center=c.origin;c.visualWeapon=ack.get("weaponType").getAsString();c.hit.clear();c.slashes=0;c.finisher=false;c.release=false;c.sweepDegrees=0;c.charging=next==OracleSkills.FINISH_STEP;
-                if(OracleSkills.combo(next)){var stroke=new Stroke();stroke.source=strikeSource(c,next);stroke.predictedTarget=ack.get("target").getAsString();stroke.predictedOrigin=c.origin;stroke.predictedDirection=c.direction;stroke.actorBox=x.player().getBoundingBox().move(c.origin.subtract(x.player().position()));stroke.stepHeight=x.player().maxUpStep();stroke.grounded=x.player().onGround();run.strokes.put(next,stroke);}
-                pose(run,next,now);x.player().setPos(c.origin);xHeading(c);x.player().swing(net.minecraft.world.InteractionHand.MAIN_HAND);x.visual(c,"SEGMENT");
-                if(next==0||next==4||next==7)for(var candidate:SkillController.INSTANCE.targets(x.player().getBoundingBox().inflate(16,4,16)))SkillsClient.current().context(candidate);
-            }
-            int index=run.active;
-            if(run.next<count&&!run.replies.containsKey(run.next)&&(now-run.stageStart)*speed>=(OracleSkills.combo(index)?0:100)&&(run.sent==0||now-run.sent>=100))request(run,c,now);
-            double local=Math.min(Math.max(0,(now-run.stageStart)*speed),OracleSkills.stepDuration(index)*1000),damage=c.parameters.get("damage",0);
-            if(OracleSkills.combo(index)){
-                var stroke=run.strokes.get(index);
-                if(run.target){double desired=8*Math.clamp(local/(OracleSkills.COMBO_INTERVAL*1000),0,1);move(x,c,desired-run.moved);run.moved=desired;collect(stroke,c,c.origin,x.player().position());}
-                if(!c.finisher){c.finisher=true;x.visual(c,"HIT");}
-            }else if(index==OracleSkills.FINISH_STEP){
-                if(local>=600&&run.poseConfirmed.contains(index)){
-                    if(run.target){double desired=8*Math.clamp((local-600)/200,0,1);move(x,c,desired-run.moved);run.moved=desired;}
-                    c.hitIndex=index*2;x.path(c,c.origin,run.target?x.player().position():c.origin.add(c.direction.scale(8)),3,3,damage*.35,.4);
-                    if(!c.finisher){c.finisher=true;c.charging=false;x.visual(c,"FINISH");}
-                }
-            }else{
-                int action=OracleSkills.action(c.id.hashCode(),index);double part=damage*.0625;
-                if(run.target){double desired=5*Math.clamp(local/250,0,1);move(x,c,desired-run.moved);run.moved=desired;}
-                Vec3 end=run.target?x.player().position():c.origin.add(c.direction.scale(5));
-                c.hitIndex=index*2+c.slashes;x.path(c,c.origin,end,action==1?2.5:3,3,action==3?part*.5:part,.2);
-                if(action==3&&local>=175&&c.slashes==0){c.slashes=1;c.hit.clear();c.hitIndex=index*2+1;x.path(c,c.origin,end,3,3,part*.5,.2);x.visual(c,"HIT");}
-                if(!c.finisher&&local>=100){c.finisher=true;x.visual(c,action==2?"RELEASE":"HIT");}
-            }
-            if(now-c.visualTrail>=80){x.visual(c,"TRAIL");c.visualTrail=now;}
-            if((now-run.stageStart)*speed<OracleSkills.stepDuration(index)*1000||index==OracleSkills.FINISH_STEP&&!run.poseConfirmed.contains(index))return;
-            run.completed=true;var stroke=run.strokes.get(index);if(stroke!=null){stroke.completed=true;repair(stroke);resolve(stroke);}
+        var r=runs.get(c.id);if(r==null){x.cancel(false);return;}if(r.stepSlot>=0)player().getInventory().setSelectedSlot(r.stepSlot);
+        if(r.index<0&&!next(r,now)){finish(r);x.cancel(true);return;}
+        for(int transitions=0;transitions<=r.count;transitions++){
+            int index=r.index;double local=Math.min(Math.max(0,(now-r.stageAt)*speed),OracleSkills.stepDuration(index)*1000),damage=c.parameters.get("damage",0);boolean done=(now-r.stageAt)*speed>=OracleSkills.stepDuration(index)*1000;
+            if(OracleSkills.combo(index)){Vec3 from=x.player().position();if(r.target!=null){double desired=8*Math.clamp(local/(OracleSkills.COMBO_INTERVAL*1000),0,1);move(x,c,desired-r.moved);r.moved=desired;}combo(r,from,x.player().position(),done);if(!c.finisher){c.finisher=true;x.visual(c,"HIT");}}
+            else if(index==OracleSkills.FINISH_STEP){if(local>=600){if(r.target!=null){double desired=8*Math.clamp((local-600)/200,0,1);move(x,c,desired-r.moved);r.moved=desired;}c.hitIndex=index*2;x.path(c,c.origin,r.target!=null?x.player().position():c.origin.add(c.direction.scale(8)),3,3,damage*.35,.4);if(!c.finisher){c.finisher=true;c.charging=false;x.visual(c,"FINISH");}}}
+            else{int action=OracleSkills.action(c.id.hashCode(),index);double part=damage*.0625;if(r.target!=null){double desired=5*Math.clamp(local/250,0,1);move(x,c,desired-r.moved);r.moved=desired;}Vec3 end=r.target!=null?x.player().position():c.origin.add(c.direction.scale(5));c.hitIndex=index*2+c.slashes;x.path(c,c.origin,end,action==1?2.5:3,3,action==3?part*.5:part,.2);if(action==3&&local>=175&&c.slashes==0){c.slashes=1;c.hit.clear();c.hitIndex=index*2+1;x.path(c,c.origin,end,3,3,part*.5,.2);x.visual(c,"HIT");}if(!c.finisher&&local>=100){c.finisher=true;x.visual(c,action==2?"RELEASE":"HIT");}}
+            if(now-c.visualTrail>=80){x.visual(c,"TRAIL");c.visualTrail=now;}if(!done)return;
+            long nextAt=r.stageAt+(long)(OracleSkills.stepDuration(index)*1000/speed);if(!next(r,nextAt)){finish(r);x.cancel(true);return;}
         }
     }
-    private static void request(Run run,SkillCast c,long now){JsonObject request=new JsonObject();request.addProperty("id",c.id);request.addProperty("step",run.next);SkillsClient.current().send("oracleStep",request);run.sent=now;}
-    private static void move(SkillBehaviors.Context x,SkillCast c,double amount){if(amount<=0)return;var player=x.player();player.move(MoverType.SELF,c.direction.scale(amount));player.setDeltaMovement(Vec3.ZERO);player.fallDistance=0;c.center=player.position();}
-    private static Vec3 vector(JsonArray array){return new Vec3(array.get(0).getAsDouble(),array.get(1).getAsDouble(),array.get(2).getAsDouble());}
+    private LivingEntity target(LivingEntity locked,double range){
+        var p=player();if(alive(locked,-1)&&p.distanceToSqr(locked)<=range*range&&p.hasLineOfSight(locked))return locked;
+        var candidates=SkillController.INSTANCE.targets(p.getBoundingBox().inflate(range,4,range)).stream().filter(e->alive(e,-1)&&p.distanceToSqr(e)<=range*range&&p.hasLineOfSight(e)).toList();Vec3 from=p.getEyePosition(),end=from.add(p.getLookAngle().scale(range));
+        var aimed=candidates.stream().filter(e->e.getBoundingBox().inflate(.2).clip(from,end).isPresent()).min(Comparator.comparingDouble(e->from.distanceToSqr(e.getBoundingBox().inflate(.2).clip(from,end).orElseThrow()))).orElse(null);if(aimed!=null)return aimed;Vec3 look=flat(p.getLookAngle());return candidates.stream().filter(e->flat(e.position().subtract(p.position())).dot(look)>=.5).min(Comparator.comparingDouble(p::distanceToSqr)).orElse(null);
+    }
+    private Vec3 around(LivingEntity target,int seed,int index){
+        var p=player();double first=new Random(seed).nextDouble()*Math.PI*2+index*2.399963229728653;
+        for(int attempt=0;attempt<16;attempt++){double angle=first+attempt*Math.PI/8;Vec3 candidate=target.position().add(Math.cos(angle)*3.5,0,Math.sin(angle)*3.5);var floor=p.level().clip(new ClipContext(candidate.add(0,1,0),candidate.add(0,-3,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));if(floor.getType()==HitResult.Type.MISS)continue;Vec3 point=floor.getLocation().add(0,.001,0);var box=p.getBoundingBox().move(point.subtract(p.position()));if(p.level().hasChunkAt(BlockPos.containing(point))&&p.level().getWorldBorder().isWithinBounds(BlockPos.containing(point))&&p.level().noCollision(p,box)&&!p.level().containsAnyLiquid(box)&&SkillController.INSTANCE.sight(point.add(0,p.getEyeHeight(),0),target.getBoundingBox().getCenter()))return point;}return p.position();
+    }
+    private Vec3 behind(LivingEntity target){
+        var p=player();Vec3 back=flat(target.getLookAngle()).scale(-1),side=new Vec3(-back.z,0,back.x);
+        for(double distance:new double[]{1.5,2,1})for(double offset:new double[]{0,.5,-.5}){Vec3 candidate=target.position().add(back.scale(distance)).add(side.scale(offset));var floor=p.level().clip(new ClipContext(candidate.add(0,1,0),candidate.add(0,-3,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));if(floor.getType()==HitResult.Type.MISS)continue;Vec3 point=floor.getLocation().add(0,.001,0);var box=p.getBoundingBox().move(point.subtract(p.position()));if(p.position().distanceToSqr(point)<=144&&p.level().hasChunkAt(BlockPos.containing(point))&&p.level().getWorldBorder().isWithinBounds(BlockPos.containing(point))&&SkillController.INSTANCE.sight(p.getEyePosition(),point.add(0,p.getEyeHeight(),0))&&p.level().noCollision(p,box)&&!p.level().containsAnyLiquid(box))return point;}return p.position();
+    }
+    private static void move(SkillBehaviors.Context x,SkillCast c,double amount){if(amount<=0)return;x.player().move(MoverType.SELF,c.direction.scale(amount));x.player().setDeltaMovement(Vec3.ZERO);x.player().fallDistance=0;c.center=x.player().position();}
+    private static void heading(Vec3 direction){float yaw=(float)Math.toDegrees(Math.atan2(-direction.x,direction.z));player().setYRot(yaw);player().setYHeadRot(yaw);}
+    private static Vec3 flat(Vec3 v){var result=new Vec3(v.x,0,v.z);return result.lengthSqr()<.0001?new Vec3(0,0,1):result.normalize();}
 }

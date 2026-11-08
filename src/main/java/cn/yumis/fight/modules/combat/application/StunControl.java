@@ -7,7 +7,7 @@ public final class StunControl {
     private static final String PREVIOUS_AI="ydnf_control_previous_no_ai";
     public void tick(MinecraftServer server,java.util.function.Function<LivingEntity,cn.yumis.fight.modules.combat.api.Life> lives){
         long now=System.currentTimeMillis();
-        for(ServerLevel level:server.getAllLevels())for(Entity e:level.getAllEntities())if(e instanceof LivingEntity living){
+        for(ServerLevel level:server.getAllLevels())for(Entity e:level.getAllEntities())if(e instanceof LivingEntity living&&!(living instanceof net.minecraft.world.entity.player.Player)){
             cn.yumis.fight.modules.combat.api.Life life=null;
             for(var kind:cn.yumis.fight.modules.combat.api.ElementAccumulation.Kind.values())if(living.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.elementalEffect(kind))){
                 if(life==null)life=lives.apply(living);

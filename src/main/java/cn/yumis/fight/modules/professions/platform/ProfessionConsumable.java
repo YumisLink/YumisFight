@@ -12,8 +12,9 @@ import net.minecraft.world.level.Level;
 import java.util.function.ToIntFunction;
 /** 菜品与药剂的即时使用：右键施加效果并消耗 1 个，不走原版食物组件。 */
 public final class ProfessionConsumable extends Item {
-    /** 由 ProfessionEvents 在服务端安装，用来读取饮用者的药师等级；默认 0 级。 */
-    public static ToIntFunction<Player> LEVEL_SOURCE=player->0;
+    /** 本人客户端准备药师加成、消耗和效果快照。 */
+    @FunctionalInterface public interface Use {void use(Player player,InteractionHand hand,Holder<MobEffect> effect,int duration,int amplifier);}
+    public static Use CLIENT_USE=(player,hand,effect,duration,amplifier)->{};
     private final Holder<MobEffect> effect;
     private final int duration;
     private final int amplifier;
@@ -24,11 +25,7 @@ public final class ProfessionConsumable extends Item {
         this.amplifier=amplifier;
     }
     @Override public InteractionResult use(Level level,Player player,InteractionHand hand){
-        if(level.isClientSide())return InteractionResult.SUCCESS;
-        ItemStack stack=player.getItemInHand(hand);
-        int extra=(int)Math.round(duration*ProfessionBonuses.potionDuration(LEVEL_SOURCE.applyAsInt(player)));
-        player.addEffect(new MobEffectInstance(effect,duration+extra,amplifier));
-        stack.shrink(1);
+        if(level.isClientSide())CLIENT_USE.use(player,hand,effect,duration,amplifier);
         return InteractionResult.SUCCESS;
     }
 }

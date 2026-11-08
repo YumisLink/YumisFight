@@ -15,9 +15,9 @@ import java.util.function.BiConsumer;
 /** Stacks identify a pool, not an individual draw; each consumption gets its own transaction ID. */
 public final class LootJarItem extends Item {
     public static final String ID="loot_jar";
-    private static BiConsumer<ServerPlayer,InteractionHand> opening=(p,h)->{};
+    private static BiConsumer<Player,InteractionHand> opening=(p,h)->{};
     public LootJarItem(Properties properties){super(properties.stacksTo(64));}
-    public static void opening(BiConsumer<ServerPlayer,InteractionHand> action){opening=action;}
+    public static void opening(BiConsumer<Player,InteractionHand> action){opening=action;}
     public static String definition(ItemStack stack){return ItemData.own(stack)&&ItemData.id(stack).equals(ID)?ItemData.string(stack,ID):"";}
     public static ItemStack create(String definition,int count){
         if(count<1||count>64)throw new IllegalArgumentException("罐子数量必须为1～64");
@@ -26,7 +26,7 @@ public final class LootJarItem extends Item {
     }
     @Override public Component getName(ItemStack stack){var rule=JarDefinitions.current().jars.get(definition(stack));return rule==null?super.getName(stack):Component.literal(rule.name());}
     @Override public InteractionResult use(Level level,Player player,InteractionHand hand){
-        if(player instanceof ServerPlayer server)opening.accept(server,hand);
+        if(level.isClientSide())opening.accept(player,hand);
         return InteractionResult.SUCCESS.heldItemTransformedTo(player.getItemInHand(hand));
     }
 }

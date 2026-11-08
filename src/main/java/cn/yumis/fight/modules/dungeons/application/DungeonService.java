@@ -35,9 +35,11 @@ import net.minecraft.world.phys.Vec3;
 import java.util.*;
 public class DungeonService {
     public final GblEncounterService gbl;
-    public final EncounterContacts contacts;
     public final PalaceEncounterService palace;
     public final ForbiddenEncounterService forbidden;
+    public final SkasaEncounterService skasa;
+    public final DarkCityEncounterService darkCity;
+    private final List<ClassicEncounterService> classic;
     @FunctionalInterface private interface EnemyBrain {void tick(Dungeon d,DungeonEnemy e,List<ServerPlayer> players,long now)throws Exception;}
     private final Map<String,EnemyBrain> enemyBrains=new HashMap<>();
     private final Map<String,java.util.function.Consumer<Dungeon>> waves=new HashMap<>();
@@ -76,16 +78,29 @@ public class DungeonService {
     public DungeonService(Journal journal,cn.yumis.fight.modules.character.api.CharacterPersistence characters,MinecraftServer server,DungeonPorts.Players players,DungeonPorts.Targets targets,DungeonPorts.Rewards rewards,DungeonPorts.Meter meter,Function<UUID,Team> team,Runnable refresh){
         this.characters=characters;
         this.journal=journal;this.server=server;this.playerAccess=players;this.targets=targets;this.rewards=rewards;this.meter=meter;this.team=team;this.refresh=refresh;
-        this.contacts=new EncounterContacts(this,journal,players,targets);
         this.gbl=new GblEncounterService(this,journal,players,targets);
-        this.palace=new PalaceEncounterService(this,players);
+        this.palace=new PalaceEncounterService(this,players,targets);
         this.forbidden=new ForbiddenEncounterService(this,journal,players,targets);
-        for(var kind:cn.yumis.fight.modules.dungeons.api.GblEnemyKind.values()){enemyBrains.put(kind.id,gbl::brain);contacts.register(kind.id);}
-        for(var kind:cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.values()){enemyBrains.put(kind.id,palace::brain);contacts.register(kind.id);}
-        for(var kind:cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.values()){enemyBrains.put(kind.id,forbidden::brain);contacts.register(kind.id);}
+        this.skasa=new SkasaEncounterService(this,journal,players,targets);
+        this.darkCity=new DarkCityEncounterService(this,journal,players,targets);
+        this.classic=List.of(new TavernEncounterService(this,journal,players,targets),new HamelinEncounterService(this,journal,players,targets),
+            new PursuitEncounterService(this,journal,players,targets),new SeaTrainEncounterService(this,journal,players,targets),
+            new TimeGateEncounterService(this,journal,players,targets),new AwarenessEncounterService(this,journal,players,targets),
+            new GrandineEncounterService(this,journal,players,targets),new ForestEncounterService(this,journal,players,targets));
+        for(var kind:cn.yumis.fight.modules.dungeons.api.GblEnemyKind.values()){enemyBrains.put(kind.id,gbl::brain);}
+        for(var kind:cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.values()){enemyBrains.put(kind.id,palace::brain);}
+        for(var kind:cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.values()){enemyBrains.put(kind.id,forbidden::brain);}
+        for(var kind:cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.values()){enemyBrains.put(kind.id,skasa::brain);}
+        for(var kind:cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.values())enemyBrains.put(kind.id,darkCity::brain);
         waves.put("goblin_camp",this::spawnLegacyWave);waves.put("dragon_tower",this::spawnLegacyWave);
         waves.put("gbl_church",this::spawnGblWave);waves.put("castle_palace",palace::spawn);
         waves.put("behemoth_forbidden",forbidden::spawn);
+        waves.put("skasa",skasa::spawn);
+        waves.put("dark_city",darkCity::spawn);
+        for(var encounter:classic){
+            waves.put(encounter.dungeon,encounter::spawn);
+            for(var kind:cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.values())if(kind.dungeon.equals(encounter.dungeon))enemyBrains.put(kind.id,encounter::brain);
+        }
     }
     public Dungeon byId(String id){
         if(id==null||id.isEmpty())return null;
@@ -131,7 +146,6 @@ public class DungeonService {
         String id=j.get("dungeon").getAsString();
         DungeonCatalog.DungeonDef def=DungeonCatalog.current().dungeon(id);
         if(!def.available())throw new IllegalArgumentException("该副本尚未开放");
-        if(playerAccess.level(p)<def.level())throw new IllegalArgumentException("角色等级不足");
         Dungeon old=current(p.getUUID());
         Difficulty difficulty=Difficulty.valueOf(j.get("difficulty").getAsString());
         String operation=j.get("operation").getAsString(),key="dungeonReceipt/"+p.getUUID()+"/"+playerAccess.session(p).id+"/"+operation;
@@ -194,7 +208,8 @@ public class DungeonService {
             playerAccess.profile(player);
             for(Entity e:level().getAllEntities())if(e instanceof DungeonEnemy enemy&&enemy.instance().equals(d.id.toString()))targets.context(player,enemy);
         }
-        gbl.track(p);palace.track(p);forbidden.track(p);
+        gbl.track(p);palace.track(p);forbidden.track(p);skasa.track(p);darkCity.track(p);
+        for(var encounter:classic)encounter.track(p);
     }
     public void leave(ServerPlayer p,boolean teleport)throws Exception{
         Dungeon d=current(p.getUUID());
@@ -313,11 +328,15 @@ public class DungeonService {
         var gblKind=cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type);
         var palaceKind=cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type);
         var forbiddenKind=cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.find(type);
-        e.setCustomName(cn.yumis.fight.modules.presentation.api.ModText.of(forbiddenKind!=null?forbiddenKind.title:palaceKind!=null?palaceKind.title:gblKind!=null?gblKind.title:switch(type){
+        var skasaKind=cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.find(type);
+        var darkCityKind=cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.find(type);
+        var classicKind=cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type);
+        e.setCustomName(cn.yumis.fight.modules.presentation.api.ModText.of(classicKind!=null?classicKind.title:darkCityKind!=null?darkCityKind.title:skasaKind!=null?skasaKind.title:forbiddenKind!=null?forbiddenKind.title:palaceKind!=null?palaceKind.title:gblKind!=null?gblKind.title:switch(type){
             case "golden_king"->"黄金之王";case "goblin_shaman"->"落雷凯诺";case "lucas"->"鲁卡斯";case "goblin_captain"->"哥布林队长";case "goblin_thrower"->"投石哥布林";case "blue_wyvern"->"蓝翼龙";case "blue_dragonman"->"蓝龙人";case "dragonman"->"龙人";case "wyvern"->"翼龙";default->"哥布林";
         }
         ));
-        if(boss||gblKind!=null||palaceKind!=null||forbiddenKind!=null||type.equals("goblin_thrower")||type.contains("wyvern"))e.scripted();
+        if(boss||gblKind!=null||palaceKind!=null||forbiddenKind!=null||skasaKind!=null||darkCityKind!=null||classicKind!=null||type.equals("goblin_thrower")||type.contains("wyvern"))e.scripted();
+        if(skasaKind==cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.ICE_DRAGON){e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);e.setYRot(180);e.yBodyRot=180;e.setYHeadRot(180);}
         if(forbiddenKind==cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.MARCELLUS||forbiddenKind==cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.BARRIER_CORE)e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
         if(gblKind==cn.yumis.fight.modules.dungeons.api.GblEnemyKind.DRAGON_CANNON)e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
         if(type.contains("wyvern")){
@@ -427,6 +446,9 @@ public class DungeonService {
                     if((d.wave+1)%layout.wavesPerGate()==0)openDoor(d,d.wave/layout.wavesPerGate());
                     if(d.dungeon.equals("gbl_church")&&gbl.waitsAtGate(d,players))continue;
                     if(d.dungeon.equals("behemoth_forbidden")&&forbidden.waitsAtGate(d,players))continue;
+                    if(d.dungeon.equals("skasa")&&skasa.waitsAtGate(d,players))continue;
+                    if(d.dungeon.equals("dark_city")&&darkCity.waitsAtGate(d,players))continue;
+                    if(classic.stream().anyMatch(encounter->encounter.dungeon.equals(d.dungeon)&&encounter.waitsAtGate(d,players)))continue;
                     d.wave++;
                     spawnWave(d);
                 }
@@ -435,7 +457,8 @@ public class DungeonService {
                     if(entity instanceof DungeonEnemy enemy&&enemy.isAlive())brain(d,enemy,players,now);
                 }
             }
-            contacts.tick(now);gbl.tick(server.getPlayerList().getPlayers(),now);palace.tick(server.getPlayerList().getPlayers(),now);forbidden.tick(server.getPlayerList().getPlayers(),now);
+            gbl.tick(server.getPlayerList().getPlayers(),now);palace.tick(server.getPlayerList().getPlayers(),now);forbidden.tick(server.getPlayerList().getPlayers(),now);skasa.tick(server.getPlayerList().getPlayers(),now);darkCity.tick(server.getPlayerList().getPlayers(),now);
+            for(var encounter:classic)encounter.tick(server.getPlayerList().getPlayers(),now);
             for(Cast cast:new ArrayList<>(casts.values())){
                 Entity raw=level().getEntity(cast.boss);
                 if(raw instanceof DungeonEnemy enemy&&(cast.data.get("kind").getAsString().equals("CHARGE")||cast.data.get("kind").getAsString().equals("WYVERN_CHARGE"))&&now>=cast.active){
@@ -649,6 +672,9 @@ public class DungeonService {
     public void died(UUID boss){
         if(treasure!=null)treasure.died(boss);
         try{forbidden.died(boss);}catch(Exception failure){throw new IllegalStateException("禁地死亡清理失败",failure);}
+        skasa.died(boss);
+        darkCity.died(boss);
+        for(var encounter:classic)encounter.died(boss);
         cancelBoss(boss);
         for(Entity e:level().getAllEntities())if(e instanceof DungeonEnemy mob&&mob.getPersistentData().getStringOr("ydnf_parent","").equals(boss.toString())){
             cancelBoss(e.getUUID());
@@ -672,7 +698,8 @@ public class DungeonService {
         }
     }
     public void cancelBoss(UUID boss){
-        gbl.cancel(boss);palace.cancel(boss);forbidden.cancel(boss);
+        gbl.cancel(boss);palace.cancel(boss);forbidden.cancel(boss);skasa.cancel(boss);darkCity.cancel(boss);
+        for(var encounter:classic)encounter.cancel(boss);
         Cast cast=casts.remove(boss);
         if(cast!=null){
             Entity e=level().getEntity(boss);
@@ -687,7 +714,8 @@ public class DungeonService {
     void close(Dungeon d)throws Exception{
         if(d.treasure!=null&&treasure!=null){treasure.finish(d,"本次挖宝探索已结束。");return;}
         if(d.waystone!=null&&waystones!=null&&!stopping)waystones.fail(d);
-        gbl.close(d);palace.close(d);forbidden.close(d);contacts.close(d.id.toString());
+        gbl.close(d);palace.close(d);forbidden.close(d);skasa.close(d);darkCity.close(d);
+        for(var encounter:classic)encounter.close(d);
         d.status="CLOSED";
         journal.put("instance/"+d.id,d);
         clearCell(d.cell);

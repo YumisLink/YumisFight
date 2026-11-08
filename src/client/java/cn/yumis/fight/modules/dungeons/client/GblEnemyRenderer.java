@@ -16,7 +16,7 @@ public final class GblEnemyRenderer extends MobRenderer<DungeonEnemy,GblEnemyRen
     @Override public State createRenderState(){return new State();}
     @Override public Identifier getTextureLocation(State state){return Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/entity/"+model+".png");}
     @Override protected float getFlipDegrees(){return 0;}
-    @Override protected net.minecraft.world.phys.AABB getBoundingBoxForCulling(DungeonEnemy enemy){return super.getBoundingBoxForCulling(enemy).inflate(2,2,2);}
+    @Override protected net.minecraft.world.phys.AABB getBoundingBoxForCulling(DungeonEnemy enemy){return model.equals("skasa/ice_dragon")?super.getBoundingBoxForCulling(enemy).inflate(17,18,18):model.equals("time_rift/young_skasa")?super.getBoundingBoxForCulling(enemy).inflate(6,7,8):super.getBoundingBoxForCulling(enemy).inflate(2,2,2);}
     @Override public void extractRenderState(DungeonEnemy enemy,State state,float partial){
         super.extractRenderState(enemy,state,partial);state.move=enemy.move();state.elapsed=Math.max(0,ClientUi.current().serverNow()-enemy.moveAt());state.duration=enemy.moveDuration();state.moving=Math.abs(enemy.getX()-enemy.xo)+Math.abs(enemy.getZ()-enemy.zo)>.002;state.hurt=enemy.hurtTime;state.dying=enemy.isDeadOrDying();state.deathPhase=(enemy.deathTime+partial)/20f;
     }

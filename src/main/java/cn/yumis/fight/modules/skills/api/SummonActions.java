@@ -1,7 +1,7 @@
 package cn.yumis.fight.modules.skills.api;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
-/** Native entity hooks enter the skill-owned lifetime and receipt service. */
+/** World AI and raw incoming events; the owning client reports summon combat and life. */
 public final class SummonActions {
     public interface Handler {void tick(SummonedCreature entity);boolean incoming(SummonedCreature entity,ServerLevel level,DamageSource source,float points);}
     private static Handler handler=new Handler(){public void tick(SummonedCreature e){if(e.tickCount>20)e.discard();}public boolean incoming(SummonedCreature e,ServerLevel l,DamageSource s,float p){return false;}};

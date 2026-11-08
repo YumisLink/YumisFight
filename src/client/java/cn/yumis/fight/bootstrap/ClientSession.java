@@ -38,6 +38,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     public cn.yumis.fight.modules.combat.api.CombatSettings combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
     public Life own(){return own;}
     public cn.yumis.fight.modules.combat.api.Runtime resources(){return resources;}
+    public void resources(cn.yumis.fight.modules.combat.api.Runtime value){resources=java.util.Objects.requireNonNull(value);}
     public boolean ready(){return ready;}
     public String session(){return session;}
     public boolean encounterSync(){return dungeon==null?progress.sync:dungeon.syncFor(own.target);}
@@ -56,6 +57,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     public final GoldFeedback gold=new GoldFeedback();
     private cn.yumis.fight.modules.attributes.api.AttributeSources syncedSources=new cn.yumis.fight.modules.attributes.api.AttributeSources();
     private long lastUpload,lastHello,lastUploadCheck;
+    private String sentStats="";
     private final ProfileSync.Receiver viewSync=new ProfileSync.Receiver();
     private cn.yumis.fight.modules.combat.api.RuntimeCheckpoint checkpoint;
     private long checkpointGeneration=-1;
@@ -91,10 +93,40 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     public long serverNow(){
         return now()+serverOffset;
     }
+    public final cn.yumis.fight.architecture.CommandRouter<Void,JsonObject> preparations=new cn.yumis.fight.architecture.CommandRouter<>();
+    private record PersonalRequest(String action,JsonObject value){}
+    private final ArrayDeque<PersonalRequest> personalQueue=new ArrayDeque<>();
+    private long personalSequence,personalAcknowledged;
+    private boolean personalSent,personalReceived;private int personalRetries;
     public void send(String action,JsonObject value){
+        if(preparations.owners().containsKey(action)){personalQueue.add(new PersonalRequest(action,value.deepCopy()));personalNext();return;}
+        transmit(action,value);
+    }
+    private void personalNext(){
+        if(!ready||personalSent)return;
+        while(!personalQueue.isEmpty()){
+            var next=personalQueue.peek();var value=next.value();
+            try{
+                if(value.has("retryStorage")){value.remove("profileId");value.remove("profileRevision");}
+                if(value.has("profileId")&&(!cn.yumis.fight.modules.character.api.client.CareerProfilesClient.active().equals(value.get("profileId").getAsString())||cn.yumis.fight.modules.character.api.client.CareerProfilesClient.revision()!=value.get("profileRevision").getAsLong()))throw new IllegalArgumentException("职业配置已变化，请重新操作");
+                value.addProperty("session",session);value.addProperty("clientTransaction",++personalSequence);
+                preparations.dispatch(null,next.action(),value);if(value.has("localOnly")){personalQueue.remove();personalRetries=0;continue;}personalSent=true;transmit(next.action(),value);return;
+            }catch(Exception failure){personalQueue.remove();personalRetries=0;message(failure.getMessage());}
+        }
+    }
+    private void personalRetire(){
+        if(!personalSent||personalQueue.isEmpty()||!profile.has("personalSequence"))return;
+        long sent=personalQueue.peek().value().get("clientTransaction").getAsLong();
+        if(personalAcknowledged<sent||profile.get("personalSequence").getAsLong()<sent)return;
+        if(!personalReceived&&personalQueue.peek().value().has("retryStorage")&&personalRetries++<3){personalSent=false;personalNext();return;}
+        personalQueue.remove();personalSent=false;personalRetries=0;personalNext();
+    }
+    private void transmit(String action,JsonObject value){
         if(ready)cn.yumis.fight.modules.character.api.client.CareerProfilesClient.context(value);
         if(value.has("operation")&&value.has("runtime")){
             long operation=value.get("operation").getAsLong();
+            if(!reportedCheckpoints.containsKey(operation)){resources.sequence=++runtimeSequence;value.getAsJsonObject("runtime").getAsJsonObject("state").addProperty("sequence",resources.sequence);}
+
             reportedCheckpoints.computeIfAbsent(operation,id->new ReportCheckpoint(cn.yumis.fight.modules.combat.api.RuntimeCheckpoint.capture(resources),own.generation,now()));
             while(reportedCheckpoints.size()>256)reportedCheckpoints.remove(reportedCheckpoints.keySet().iterator().next());
         }
@@ -105,7 +137,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     }
     public JsonObject operation(String kind){
         JsonObject j=new JsonObject();
-        j.addProperty("kind",kind);
+        j.addProperty("kind",kind);j.addProperty("session",session);j.addProperty("generation",own.generation);
         j.addProperty("rulesRevision",EquipmentDefinitions.current().revision);
         j.addProperty("operation",UUID.randomUUID().toString());
         cn.yumis.fight.modules.character.api.client.CareerProfilesClient.context(j);
@@ -118,6 +150,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         send("progress",j);
     }
     public void clear(){
+        sentStats="";cn.yumis.fight.modules.equipment.client.EquipmentActions.clear();personalQueue.clear();personalSequence=personalAcknowledged=0;personalSent=false;personalRetries=0;cn.yumis.fight.modules.character.client.CharacterClient.clear();cn.yumis.fight.modules.professions.client.ProfessionClient.clear();cn.yumis.fight.modules.economy.client.EconomyActions.clear();cn.yumis.fight.modules.dungeons.client.DungeonActions.clear();
         cn.yumis.fight.modules.economy.client.JarClient.clear();
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.clear();
         cn.yumis.fight.modules.character.api.client.CareerProfilesClient.clear();
@@ -147,7 +180,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         cn.yumis.fight.modules.presentation.api.ViewTraffic.record("receive",action,j.toString());
         try{
             messages.dispatch(null,action,j);
-            if(j.has("serverNow")&&(action.equals("careerStarted")||action.equals("skillStarted")||action.equals("basicStarted")||action.equals("ack")&&j.has("receipt")&&j.getAsJsonObject("receipt").get("accepted").getAsBoolean()))lastResourceServerTime=Math.max(lastResourceServerTime,j.get("serverNow").getAsLong());
+            if(j.has("serverNow")&&(action.equals("ack")&&j.has("receipt")&&j.getAsJsonObject("receipt").get("accepted").getAsBoolean()))lastResourceServerTime=Math.max(lastResourceServerTime,j.get("serverNow").getAsLong());
         }catch(Exception error){
             message("消息处理失败："+error.getMessage());
             if((action.equals("profile")||action.equals("definitionPart"))&&definitionRetries<3&&now()-lastDefinitionRetry>=1000){lastDefinitionRetry=now();definitionRetries++;viewSync.retryDefinitions();var request=new JsonObject();request.addProperty("definitions",true);send("profile",request);}
@@ -155,6 +188,12 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     }
     private final cn.yumis.fight.architecture.CommandRouter<Void,JsonObject> messages=new cn.yumis.fight.architecture.CommandRouter<>();
     private void registerMessages(){
+        messages.register("inventory","personalCommit",(context,j)->{if(session.equals(j.get("session").getAsString())){personalAcknowledged=Math.max(personalAcknowledged,j.get("sequence").getAsLong());personalReceived=j.get("received").getAsBoolean();personalRetire();}});
+        messages.register("equipment","equipmentArrival",(context,j)->cn.yumis.fight.modules.equipment.client.EquipmentActions.tick());
+        messages.register("dungeons","waystoneReturn",(context,j)->cn.yumis.fight.modules.dungeons.client.DungeonActions.receiveReturn(j));
+        messages.register("economy","killReward",(context,j)->cn.yumis.fight.modules.economy.client.EconomyActions.reward(j));
+        messages.register("professions","professionApplied",(context,j)->cn.yumis.fight.modules.professions.client.ProfessionClient.applied(j));
+        messages.register("professions","professionEvent",(context,j)->cn.yumis.fight.modules.professions.client.ProfessionClient.event(j));
         cn.yumis.fight.modules.industry.client.IndustryClientMessages.register(messages);
         cn.yumis.fight.modules.inventory.client.InventoryClientMessages.register(messages);
         cn.yumis.fight.modules.economy.client.EconomyClientMessages.register(messages);
@@ -163,7 +202,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         messages.register("dungeons","treasureWeapon",(context,j)->cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.receive(j));
         messages.register("dungeons","waystoneTable",(context,j)->cn.yumis.fight.modules.dungeons.client.WaystoneClient.receive(j));
         messages.register("dungeons","waystoneStarted",(context,j)->cn.yumis.fight.modules.dungeons.client.WaystoneClient.started());
-        messages.register("dungeons","gblAttack",(context,j)->cn.yumis.fight.modules.dungeons.client.GblVisuals.receive(j));
+        messages.register("dungeons","gblAttack",(context,j)->{cn.yumis.fight.modules.dungeons.client.GblVisuals.receive(j);cn.yumis.fight.modules.dungeons.client.EncounterClientContacts.receive(cn.yumis.fight.modules.dungeons.client.EncounterClientContacts.Family.GBL,j,SkillController.INSTANCE::boss);});
         cn.yumis.fight.modules.character.api.client.CareerControls.register(messages);
         messages.register("dungeons","damageMeter",(context,j)->{
 damageMeter=j;
@@ -185,7 +224,7 @@ Target t=JSON.fromJson(j,Target.class);
         messages.register("combat","health",(context,j)->{
 Life l=JSON.fromJson(j,Life.class);
                 if(l.target.equals(own.target)){
-                    if(l.generation==own.generation&&l.revision>=own.revision)own=l;
+                    if(l.generation==own.generation&&l.revision>=own.revision){l.elemental=prediction.elemental(l.elemental);own=l;own.dead=prediction.predicted(own)<=0;}
                 }
                 else{
                     Target t=targets.get(l.target);
@@ -213,7 +252,7 @@ message(j.get("text").getAsString());
 if(ready&&session.equals(j.get("session").getAsString()))gold.income(j.get("amount").getAsLong(),j.get("balance").getAsLong(),j.get("revision").getAsLong(),now());
         });
         messages.register("professions","professions",(context,j)->{
-professions=j;
+cn.yumis.fight.modules.professions.client.ProfessionClient.decorate(j);professions=j;
                 if(Minecraft.getInstance().gui.screen() instanceof FightScreen screen)screen.refresh();
         });
         messages.register("combat","healing",(context,j)->{
@@ -249,6 +288,8 @@ if(j.has("target")&&j.has("kind")){
                 if(same&&life.generation<own.generation)return;
                 boolean newerLife=!same||life.generation>own.generation;
                 boolean changingProfile=same&&!cn.yumis.fight.modules.character.api.client.CareerProfilesClient.active().equals(j.getAsJsonObject("careerProfiles").get("activeId").getAsString());
+                double absoluteHealth=changingProfile&&ready?prediction.predicted(own)*SkillController.INSTANCE.snapshot().get(Stat.HEALTH):0;
+                var localResources=changingProfile?JSON.fromJson(JSON.toJson(resources),cn.yumis.fight.modules.combat.api.Runtime.class):null;
                 boolean freshResources=newerLife||runtime.controlEpoch>=resources.controlEpoch&&serverNow>=lastResourceServerTime;
                 boolean reset=newerLife||freshResources&&runtime.controlEpoch>resources.controlEpoch;
                 if(receivedAt>=lastClockArrival){serverOffset=serverNow-receivedAt;lastClockArrival=receivedAt;}
@@ -257,23 +298,20 @@ if(j.has("target")&&j.has("kind")){
                     SkillController.INSTANCE.cancel(false);
                     SkillController.INSTANCE.clearTransient();reportedCheckpoints.clear();
                     if(!changingProfile||newerLife||!life.dimension.equals(own.dimension))ailments.clear();
-                    resources=runtime;
-                    translate(resources,receivedAt-serverNow);
+                    resources=changingProfile?localResources:runtime;
+                    if(changingProfile){resources.controlEpoch=runtime.controlEpoch;resources.recordedAt=now();}else translate(resources,receivedAt-serverNow);
                     prediction.reset(!incoming.equals(session));
                 }
                 if(newerLife||life.revision>=own.revision)own=life;
                 session=incoming;
                 profile=j;
+                cn.yumis.fight.modules.character.client.CharacterClient.receive(j);cn.yumis.fight.modules.professions.client.ProfessionClient.receive(j);
+                professions=new JsonObject();professions.add("professions",j.get("professionState").deepCopy());professions.add("gold",j.get("gold"));cn.yumis.fight.modules.professions.client.ProfessionClient.decorate(professions);
                 progress=JSON.fromJson(j.get("progress"),Progress.class);
                 boolean selectedProfileChanged=cn.yumis.fight.modules.character.api.client.CareerProfilesClient.receive(j.getAsJsonObject("careerProfiles"));
                 if(selectedProfileChanged){Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP,1.0f));cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.clear();cn.yumis.fight.modules.skills.client.DemonHunterClient.clear();}
                 combatSettings=JSON.fromJson(j.get("combatSettings"),cn.yumis.fight.modules.combat.api.CombatSettings.class);
-                if(freshResources)stats=JSON.fromJson(j.get("stats"),Stats.class);
-                if(freshResources&&j.has("equipmentEffects"))resources.equipment=JSON.fromJson(j.get("equipmentEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);
-                if(freshResources&&!reset){resources.equipmentBuffs=runtime.equipmentBuffs;for(var buff:resources.equipmentBuffs.values())buff.expires+=receivedAt-serverNow;}
                 if(freshResources)lastResourceServerTime=Math.max(lastResourceServerTime,serverNow);
-                resources.mp=Math.clamp(resources.mp,0,stats.get(Stat.MP));
-                resources.shield=Math.clamp(resources.shield,0,stats.get(Stat.SHIELD));
                 party=!j.has("party")||j.get("party").isJsonNull()?null:JSON.fromJson(j.get("party"),Team.class);
                 cn.yumis.fight.modules.party.client.PartyInvitations.receive(j.getAsJsonArray("partyInvitations"));
                 dungeon=!j.has("dungeon")||j.get("dungeon").isJsonNull()?null:JSON.fromJson(j.get("dungeon"),Dungeon.class);
@@ -288,14 +326,22 @@ if(j.has("target")&&j.has("kind")){
                     for(var source:j.getAsJsonArray("attributeSources"))sources.add(JSON.fromJson(source,cn.yumis.fight.modules.attributes.api.AttributeSources.Source.class));
                     syncedSources.replace(j.get("attributeRevision").getAsLong(),sources);
                 }
-                if(reset){checkpoint=cn.yumis.fight.modules.combat.api.RuntimeCheckpoint.capture(resources);checkpointGeneration=own.generation;pendingRuntime=null;pendingRuntimeState=null;}
-                minimumRuntimeIssuedAt=Math.max(minimumRuntimeIssuedAt,runtime.recordedAt);
-                ready=true;definitionRetries=0;analysisLifecycle();
-                if(j.has("movement"))CloudMovement.receive(j.getAsJsonObject("movement"));
-                CloudMovement.screen(Minecraft.getInstance().gui.screen()!=null);
                 cn.yumis.fight.modules.inventory.client.InventoryClientMessages.applyEquipment(j.get("equipmentState").getAsString());
+                stats=EquipmentStats.build(Minecraft.getInstance().player,progress,syncedSources);
+                resources.equipment=EquipmentStats.cachedEffects(Minecraft.getInstance().player,progress,syncedSources);
+                boolean initializeResources=newerLife&&(runtime.mp<0||runtime.shield<0);
+                if(newerLife&&runtime.mp<0)resources.mp=stats.get(Stat.MP);if(newerLife&&runtime.shield<0)resources.shield=stats.get(Stat.SHIELD);
+                resources.mp=Math.clamp(resources.mp,0,stats.get(Stat.MP));resources.shield=Math.clamp(resources.shield,0,stats.get(Stat.SHIELD));
+                if(newerLife&&resources.training)resources.trainingBoundary=resources.mp;
+                if(reset){checkpoint=initializeResources?null:cn.yumis.fight.modules.combat.api.RuntimeCheckpoint.capture(resources);checkpointGeneration=own.generation;pendingRuntime=null;pendingRuntimeState=null;}
+                minimumRuntimeIssuedAt=Math.max(minimumRuntimeIssuedAt,runtime.recordedAt);runtimeSequence=Math.max(runtimeSequence,runtime.sequence);
+                own.dead=prediction.predicted(own)<=0;ready=true;definitionRetries=0;analysisLifecycle();
+                if(changingProfile&&!newerLife&&!own.dead){cn.yumis.fight.modules.skills.api.SkillReductions.resources(cn.yumis.fight.modules.skills.api.SkillCatalog.OVERDRIVE.id,resources);cn.yumis.fight.modules.combat.api.EquipmentBuffs.prune(resources,resources.equipment,now(),false);double targetFraction=Math.clamp(absoluteHealth/Math.max(1,cn.yumis.fight.modules.skills.api.SkillPreview.currentStats(stats,resources,now()).get(Stat.HEALTH)),0,1),delta=targetFraction-prediction.predicted(own);if(delta!=0){var extra=new JsonObject();extra.addProperty("resourceCost",true);report(own,Math.abs(delta),delta>0,stats.get(Stat.HEALTH),0xffffff,false,extra);}upload();}
+
+                CloudMovement.screen(Minecraft.getInstance().gui.screen()!=null);
                 if(selectedProfileChanged&&!progress.selected())Minecraft.getInstance().gui.setScreen(new FightScreen("skills"));
                 else if(Minecraft.getInstance().gui.screen() instanceof FightScreen screen)screen.refresh();
+                if(initializeResources)upload();personalRetire();personalNext();
     }
     private void translate(cn.yumis.fight.modules.combat.api.Runtime r,long delta){
         r.combatUntil+=delta;
@@ -319,7 +365,7 @@ if(j.has("target")&&j.has("kind")){
         JsonObject j=new JsonObject();
         j.addProperty("session",session);
         j.addProperty("generation",own.generation);
-        j.addProperty("checkpoint",++runtimeSequence);
+        resources.sequence=++runtimeSequence;j.addProperty("checkpoint",runtimeSequence);
         j.addProperty("serverIssuedAt",Math.max(serverNow(),minimumRuntimeIssuedAt+1));
         j.add("state",JSON.toJsonTree(resources));
         send("runtime",j);
@@ -343,8 +389,10 @@ if(j.has("target")&&j.has("kind")){
             }
             return;
         }
+        cn.yumis.fight.modules.equipment.client.EquipmentActions.tick();cn.yumis.fight.modules.professions.client.ProfessionClient.tick();
         stats=EquipmentStats.build(mc.player,progress,syncedSources);
         resources.equipment=EquipmentStats.cachedEffects(mc.player,progress,syncedSources);
+        var ownStats=JSON.toJsonTree(SkillController.INSTANCE.snapshot());String nextStats=ownStats.toString();if(!nextStats.equals(sentStats)){sentStats=nextStats;var state=operation("playerStats");state.add("stats",ownStats);send("playerStats",state);}
         cn.yumis.fight.modules.combat.api.EquipmentBuffs.prune(resources,resources.equipment,now(),own.dead);
         EquipmentStats.applyMovement(mc.player,stats);
         resources.mp=Math.clamp(resources.mp,0,stats.get(Stat.MP));
@@ -381,7 +429,7 @@ if(j.has("target")&&j.has("kind")){
         if(changed&&mc.gui.screen() instanceof FightScreen screen&&screen.page>=0&&cn.yumis.fight.modules.presentation.api.PlayerPages.at(screen.page).id().equals("damage_analysis"))mc.gui.setScreen(null);
     }
     public double predicted(Life life){return prediction.predicted(life);}
-    public Stats projectileStats(ItemStack weapon){
+    public Stats weaponStats(ItemStack weapon){
         return EquipmentStats.build(Minecraft.getInstance().player,progress,syncedSources,weapon);
     }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){prediction.report(life,fraction,heal,maximum,color,critical,extras);}

@@ -8,9 +8,6 @@ import java.util.*;
 
 /** Narrow reward composition; dungeon code does not own economy internals. */
 public interface WaystonePorts {
-    double dropRate(ServerPlayer player);
-    Rarity rarity(double dropRate);
     Map<String,JsonElement> drop(UUID player,ItemStack stack,ReturnPoint point,String instance);
-    ItemStack chest(int tier);
     void publish();
 }

@@ -30,11 +30,17 @@ public final class SkillBehaviors {
     }
     @FunctionalInterface public interface Behavior {void tick(Context context,SkillCast cast,long now,long elapsed,long stage,double speed);}
     @FunctionalInterface public interface Starter {void start(Context context,SkillCast cast,long now);}
+    private static final Map<String,java.util.function.Supplier<Vec3>> PREPARATIONS=new LinkedHashMap<>();
+    public static Vec3 prepare(SkillDefinition skill){var preparation=PREPARATIONS.get(skill.id);return preparation==null?null:preparation.get();}
+    public static void finish(SkillCast cast){if(cast!=null&&cast.gravityLease){var player=net.minecraft.client.Minecraft.getInstance().player;if(player!=null){player.setNoGravity(cast.previousGravity);player.fallDistance=0;}cast.gravityLease=false;}}
     private static final Map<String,Starter> STARTERS=new LinkedHashMap<>();
     public static void registerStart(String id,Starter starter){if(STARTERS.putIfAbsent(id,Objects.requireNonNull(starter))!=null)throw new IllegalArgumentException("Duplicate skill start: "+id);}
     public static void start(Context context,SkillCast cast,long now){var starter=STARTERS.get(cast.skill.id);if(starter!=null)starter.start(context,cast,now);}
     private static final Map<String,Behavior> BEHAVIORS=new LinkedHashMap<>();
     static {
+        PREPARATIONS.put(SkillCatalog.BLINK.id,SkillBehaviors::blink);
+        registerStart(SkillCatalog.BLINK.id,(x,c,now)->{x.player().setPos(c.center);x.player().fallDistance=0;});
+        registerStart(SkillCatalog.STORM.id,(x,c,now)->{c.previousGravity=x.player().isNoGravity();c.gravityLease=true;x.player().setNoGravity(true);x.player().fallDistance=0;});
         registerStart(SkillCatalog.OVERDRIVE.id,(x,c,now)->{x.buff("yumis_dungeon_and_fight:overdrive",now+30000);x.absorption("overdrivePower",.15*Math.pow(1.12,c.parameters.rank()-1));});
         register(List.of(SkillCatalog.GHOST),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
@@ -156,5 +162,16 @@ public final class SkillBehaviors {
         if(behavior==null){context.cancel(true);return;}
         double speed=SkillPresentation.fixedActionTime(cast.skill)?1:cast.speed;
         behavior.tick(context,cast,now,(long)((now-cast.start)*speed),(long)((now-cast.stageStart)*speed),speed);
+    }
+    private static Vec3 blink(){
+        var p=net.minecraft.client.Minecraft.getInstance().player;
+        Vec3 origin=p.position(),direction=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z).normalize();if(direction.lengthSqr()<.001)throw new IllegalArgumentException("没有有效前进方向");
+        double limit=5;
+        for(double height: new double[]{.1,p.getBbHeight()*.5,p.getEyeHeight()}){Vec3 start=origin.add(0,height,0);var obstruction=p.level().clip(new net.minecraft.world.level.ClipContext(start,start.add(direction.scale(5)),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,p));if(obstruction.getType()!=net.minecraft.world.phys.HitResult.Type.MISS)limit=Math.min(limit,Math.max(0,start.distanceTo(obstruction.getLocation())-p.getBbWidth()*.5-.02));}
+        for(double distance=limit;distance>=.25;distance-=.25){Vec3 desired=origin.add(direction.scale(distance));var floor=p.level().clip(new net.minecraft.world.level.ClipContext(desired.add(0,1,0),desired.add(0,-4.99,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,p));if(floor.getType()==net.minecraft.world.phys.HitResult.Type.MISS)continue;Vec3 point=floor.getLocation().add(0,.001,0);net.minecraft.core.BlockPos pos=net.minecraft.core.BlockPos.containing(point);
+            if(origin.distanceToSqr(point)>25||!p.level().hasChunkAt(pos)||!p.level().getWorldBorder().isWithinBounds(pos))continue;net.minecraft.world.phys.AABB box=p.getBoundingBox().move(point.subtract(origin));
+            if(p.level().noCollision(p,box)&&!p.level().containsAnyLiquid(box)&&p.level().getBlockState(net.minecraft.core.BlockPos.containing(point.add(0,-.02,0))).blocksMotion())return point;
+        }
+        throw new IllegalArgumentException("前方5格内没有可落地位置");
     }
 }

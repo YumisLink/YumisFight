@@ -6,6 +6,7 @@ import cn.yumis.fight.modules.dungeons.content.BehemothForbidden;
 import cn.yumis.fight.foundation.Journal;
 import cn.yumis.fight.network.Network;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.level.ClipContext;
@@ -14,7 +15,7 @@ import java.util.*;
 import static cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.*;
 import static cn.yumis.fight.modules.dungeons.api.ForbiddenMoves.*;
 
-/** Forbidden temple content. Health, signed contacts and rewards retain the established owners. */
+/** Forbidden temple content. Enemy health and world behavior stay here; each recipient decides its contacts. */
 public final class ForbiddenEncounterService {
     private static final Gson JSON=new Gson();
     private static final String REINFORCEMENT="forbidden_reinforcement",SPENT="forbidden_spent";
@@ -30,7 +31,7 @@ public final class ForbiddenEncounterService {
         boolean ready(ForbiddenMoves move,long now){return now>=ready.getOrDefault(move,0L);}
     }
     private static final class Pending {
-        final GblAttack attack;final Set<UUID> struck=new HashSet<>();long previous;
+        final GblAttack attack;long previous;
         Pending(GblAttack attack){this.attack=attack;previous=attack.release();}
     }
     private record Ritual(UUID source,String instance,int area,ForbiddenMoves move,long release){}
@@ -115,7 +116,7 @@ public final class ForbiddenEncounterService {
         GblAttack a=new GblAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=move.name();a.shape=shape;a.started=now;a.windup=move.windup;a.active=move.active;a.radius=move.range;a.coefficient=move.coefficient;a.magic=move.magic;a.element=move.element;a.origin(e.position());destination(a,e.position());return a;
     }
     private static void destination(GblAttack a,Vec3 p){a.ex=p.x;a.ey=p.y;a.ez=p.z;}
-    private void add(GblAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"forbiddenAttack",a);}
+    private void add(GblAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"forbiddenAttack",packet(a,false));}
     private void fan(DungeonEnemy e,ServerPlayer p,ForbiddenMoves move,long now){var a=attack(e,move,"FAN",now);a.halfAngle=Math.PI/3;destination(a,p.position());add(a);}
     private void wave(DungeonEnemy e,ForbiddenMoves move,long now){var a=attack(e,move,"WAVE",now);a.width=1.15;add(a);}
     private void projectiles(DungeonEnemy e,ServerPlayer p,ForbiddenMoves move,int count,long now){
@@ -164,13 +165,12 @@ public final class ForbiddenEncounterService {
     private void explode(Dungeon d,DungeonEnemy e,List<ServerPlayer> here,long now)throws Exception{
         if(e.getPersistentData().getBooleanOr(SPENT,false))return;
         GblAttack a=attack(e,EXPLOSION,"EXPLOSION",now);
-        // Retire before issuing any contact: a second player/tick cannot consume this source again.
+        // Retire the world source once, then let each recipient decide its own explosion contact.
         Target t=targets.target(e);t.noRewards=true;t.life.dead=true;t.life.q=0;t.life.revision++;
         saveTarget(e,t);e.getPersistentData().putBoolean(SPENT,true);e.play("spent",3000);e.scripted();e.getNavigation().stop();e.setDeltaMovement(Vec3.ZERO);e.noPhysics=true;e.setNoGravity(true);e.setInvisible(true);e.setCustomNameVisible(false);
         d.enemies.remove(e.getUUID());journal.put("instance/"+d.id,d);
         retired.put(e.getUUID(),new Retired(e.instance(),now+3000));
-        owner.broadcast(a.instance,"forbiddenAttack",a);
-        for(var p:here)if(eligible(p,a.instance)&&Math.abs(p.getY()-a.y)<2.6&&p.position().subtract(a.origin()).horizontalDistanceSqr()<=Math.pow(a.radius+.3,2)&&visible(e,a,p))owner.contacts.issue(a.id,e,p,a.kind,a.coefficient,a.magic,a.element,now);
+        owner.broadcast(a.instance,"forbiddenAttack",packet(a,false));
         brains.remove(e.getUUID());
     }
     public void tick(List<ServerPlayer> online,long now)throws Exception{
@@ -184,8 +184,8 @@ public final class ForbiddenEncounterService {
             }
         }
         tracked.keySet().retainAll(present);
-        // Keep spent entities only as receipt sources, never as live encounter enemies.
-        for(var entry:new ArrayList<>(retired.entrySet()))if(now>=entry.getValue().expires||!owner.contacts.pending(entry.getKey())){Entity e=owner.level().getEntity(entry.getKey());if(e!=null)e.discard();retired.remove(entry.getKey());}
+        // Keep spent world sources for the existing bounded contact delivery window.
+        for(var entry:new ArrayList<>(retired.entrySet()))if(now>=entry.getValue().expires){Entity e=owner.level().getEntity(entry.getKey());if(e!=null)e.discard();retired.remove(entry.getKey());}
         for(var r:new ArrayList<>(rituals.values())){
             Entity raw=owner.level().getEntity(r.source);Dungeon d=owner.byId(r.instance);
             if(!(raw instanceof DungeonEnemy e)||!alive(e)||d==null||!d.status.equals("RUNNING")||CombatContentTypes.controlled(e)){cancel(r.source);continue;}
@@ -202,10 +202,7 @@ public final class ForbiddenEncounterService {
             if(now<a.release())continue;
             Vec3 from=a.position(Math.max(a.release(),pending.previous)),to=a.position(now);boolean blocked=false;
             if(a.shape.equals("LINE")){var hit=owner.level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));blocked=hit.getType()!=HitResult.Type.MISS;if(blocked)to=hit.getLocation();}
-            if(a.coefficient>0)for(var p:online)if(eligible(p,a.instance)&&!pending.struck.contains(p.getUUID())&&contains(a,p,from,to,pending.previous,now)&&visible(e,a,p)){
-                pending.struck.add(p.getUUID());owner.contacts.issue(a.id,e,p,a.kind,a.coefficient,a.magic,a.element,now);
-            }
-            pending.previous=now;if(blocked||now>=a.end())remove(a);
+            pending.previous=now;if(blocked||now>=a.end())remove(a,false);
         }
         for(var entry:new ArrayList<>(brains.entrySet())){
             Entity raw=owner.level().getEntity(entry.getKey());if(!(raw instanceof DungeonEnemy e)||!alive(e)){brains.remove(entry.getKey());continue;}
@@ -213,17 +210,9 @@ public final class ForbiddenEncounterService {
         }
     }
     private boolean alive(DungeonEnemy e){return e.isAlive()&&!targets.target(e).life.dead;}
-    private boolean contains(GblAttack a,ServerPlayer p,Vec3 from,Vec3 to,long previous,long now){
-        if(a.shape.equals("LINE"))return p.getBoundingBox().inflate(a.width+.15).contains(from)||p.getBoundingBox().inflate(a.width+.15).clip(from,to).isPresent();
-        Vec3 offset=p.position().subtract(a.origin());if(Math.abs(offset.y)>(a.shape.equals("WAVE")?1.05:2.6))return false;
-        double distance=offset.horizontalDistance();
-        if(a.shape.equals("WAVE"))return distance>=Math.max(0,a.waveRadius(previous)-a.width*.5-.3)&&distance<=a.waveRadius(now)+a.width*.5+.3;
-        if(distance>a.radius+.3)return false;
-        Vec3 direction=a.destination().subtract(a.origin()).multiply(1,0,1).normalize();
-        return !a.shape.equals("FAN")||distance<.4||direction.lengthSqr()<.001||offset.multiply(1,0,1).normalize().dot(direction)>=Math.cos(a.halfAngle);
-    }
-    private boolean visible(DungeonEnemy e,GblAttack a,ServerPlayer p){return a.shape.equals("LINE")||owner.level().clip(new ClipContext(a.origin().add(0,.5,0),p.position().add(0,.65,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e)).getType()==HitResult.Type.MISS;}
-    private void remove(GblAttack a){if(attacks.remove(a.id)!=null){a.remove=true;owner.broadcast(a.instance,"forbiddenAttack",a);}}
+    private JsonObject packet(GblAttack a,boolean cancelled){var frame=JSON.toJsonTree(a).getAsJsonObject();frame.addProperty("cancelled",cancelled);frame.addProperty("contactUntil",System.currentTimeMillis());frame.addProperty("retired",a.kind.equals(EXPLOSION.name()));var raw=owner.level().getEntity(a.source);if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));return frame;}
+    private void remove(GblAttack a){remove(a,true);}
+    private void remove(GblAttack a,boolean cancelled){if(attacks.remove(a.id)!=null){a.remove=true;owner.broadcast(a.instance,"forbiddenAttack",packet(a,cancelled));}}
     private void clearBarrier(Barrier b)throws Exception{
         Entity raw=owner.level().getEntity(b.source);if(raw instanceof DungeonEnemy boss)immune(boss,false);
         Entity core=owner.level().getEntity(b.core);
@@ -243,7 +232,7 @@ public final class ForbiddenEncounterService {
     public void track(ServerPlayer p){
         var session=players.session(p);Dungeon d=owner.byId(session.life.instance);
         if(d==null||!d.dungeon.equals("behemoth_forbidden")||!d.status.equals("RUNNING")||!owner.participant(p,d.id.toString()))return;
-        for(var pending:attacks.values())if(pending.attack.instance.equals(d.id.toString()))Network.send(p,"forbiddenAttack",pending.attack);
+        for(var pending:attacks.values())if(pending.attack.instance.equals(d.id.toString()))Network.send(p,"forbiddenAttack",packet(pending.attack,false));
         tracked.put(p.getUUID(),d.id+"/"+session.id+"/"+session.life.generation);
     }
     public void close(Dungeon d)throws Exception{

@@ -20,7 +20,7 @@ public final class ApplicationModules {
         module("inventory","presentation"),
         module("party","presentation"),
         module("presentation"),
-        module("professions","presentation"),
+        module("professions","inventory","presentation"),
         module("skills","attributes","character","combat","dungeons","equipment","presentation")
     ));
     private ApplicationModules(){}

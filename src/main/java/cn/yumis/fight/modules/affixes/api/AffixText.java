@@ -17,11 +17,11 @@ public final class AffixText {
     };}
     public static String affix(Affix a){
         var current=AffixDefinitions.current().affixes.get(cn.yumis.fight.modules.affixes.api.AffixResolver.definitionId(a));
+        if(a.operation.equals("SKILL_FAMILY"))return (current==null?a.family:current.name())+"等级"+signed(a.rank);
         if(current!=null&&current.description()!=null&&!current.description().isBlank())return current.name()+"："+current.description();
         if(a.operation.equals("MAGIC")||a.operation.equals("MAGIC_AMPLIFICATION"))return MagicEffects.text(a);
         if(a.operation.equals("EQUIPMENT_RULE"))return equipmentRule(a);
         String body;
-        if(a.operation.equals("SKILL_FAMILY")){return (current==null?a.family:current.name())+" +"+a.rank+"级（不可重掷，可替换）";}
         if(a.operation.equals("EXTRA")&&(a.element<0||a.element>=4))return a.id+"（保留原记录）";
         if(a.operation.equals("EXTRA"))body="附加"+integer(a.value)+"～"+integer(a.maximum)+"点"+new String[]{"光","火","冰","暗"}[a.element]+"属性伤害";
         else if(a.operation.equals("ALL_RESIST_FLAT"))body="所有元素抗性 "+signed(a.value);
@@ -43,7 +43,7 @@ public final class AffixText {
         case "golden_power"->"有效击杀获得黄金之力：每层掉宝率+1，最多255层，20秒未触发清除";
         case "imprint_power"->"成功施放主动技能获得印记之力：每层伤害提高1%，最多18层，20秒未触发清除";
         case "hero_power"->"击败精英获得对应力量，持续 "+v+" 秒；同类刷新，不同类共存";
-        case "magic_ranks"->"所有可用魔法技能等级 "+signed(a.value);
+        case "magic_ranks"->"魔法技能等级"+signed(a.value);
         case "magic_cooldown"->"魔法技能最终冷却时间减少 "+v+" 秒";
         case "grant_blink"->"授予主动技能：闪现（可在技能页面装配）";
         case "kill_recovery"->"击杀敌人回复最大生命的 "+n+"%";

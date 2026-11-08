@@ -14,6 +14,6 @@ public final class CharacterContent {
         ticket(CharacterItems.LEVEL_ONE,CharacterActions.Ticket.LEVEL_ONE);ticket(CharacterItems.LEVEL_TEN,CharacterActions.Ticket.LEVEL_TEN);ticket(CharacterItems.LEVEL_MAX,CharacterActions.Ticket.LEVEL_MAX);
     }
     private static void ticket(String id,CharacterActions.Ticket ticket){ItemRegistry.ALL.put(id,ItemRegistry.ITEMS.registerItem(id,properties->new Item(properties){
-        @Override public InteractionResult use(Level level,Player player,InteractionHand hand){if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;if(player instanceof ServerPlayer server)CharacterActions.use(server,ticket);return InteractionResult.SUCCESS;}
+        @Override public InteractionResult use(Level level,Player player,InteractionHand hand){if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;if(level.isClientSide())CharacterActions.use(player,ticket);return InteractionResult.SUCCESS;}
     }));}
 }

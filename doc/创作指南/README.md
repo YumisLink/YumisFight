@@ -17,13 +17,14 @@
 | `attributes/api/Stats.java`、`AttributeSources.java` | 角色、装备与技能属性都从正式来源汇总；运算按已有乘区，不在内容里另算一套面板。 |
 | `affixes/api/AffixGeneration.java`、`AffixEffects.java`、`AffixResolver.java`；`equipment/api/EquipmentGrowth.java` | 装备／宝石词条的抽取、效果、同步与成长；新定义登记运算和资格，保留当前格式实例。 |
 | `skills/api/SkillDefinition.java`、`SkillBalance.java`、`SkillBalanceProfile.java` | 技能定义、等级参数与伤害预算；伤害技能登记权值及命中时间轴，非伤害技能明确登记为非伤害，新职业参考用 `SkillBalanceStyle`。 |
-| `skills/application/SkillStartService.java`；`skills/api/SkillCosts.java`、`SkillTargeting.java`、`SkillDamagePhases.java` | 技能起手、MP／生命／专属资源支付、冷却、选点与物魔分段；接入原支付与命中流程，不从演出直接扣血。 |
+| 客户端 `skills/client/CareerClient.java`、`skills/client/SkillBehaviors.java`；`skills/api/SkillCosts.java`、`SkillTargeting.java`、`SkillDamagePhases.java` | 在所属职业的客户端内容中登记起手、资源支付、冷却、选点和物魔分段，复用本机命中与战斗报告；需要世界实体时通过本模块公开接口请求服务器维护实体。 |
 | `combat/api/CombatPorts.java`；`inventory/api/InventoryOperations.java`、`InventoryIntake.java`、`InventoryPacking.java` | 战斗回执、领取、拾取、奖励及工业资产变更复用既有库存／WAL事务；跨模块通过端口提交，失败与重试沿原语义处理。 |
 | `combat/api/ElementAccumulation.java`、`Life.java`、`CombatContentTypes.java` | 玩家和敌人共用生命内的元素积累；伤害分量沿正式回执提交。内容通过 `addConversion(stats, damageElement, kind, ratio)` 登记额外积累来源，保留原伤害元素；来源为 −1 无属性、0 光、1 火、2 冰、3 暗，比例用小数。效果期间暂停同种积累，不从描述文字解析转换。控制判断复用 `controlled(entity)`。 |
-| `character/api/JobCatalog.java`、`CharacterPersistence.java`、`CareerProfiles.java`；`skills/api/CareerState.java` | 新职业登记资格与内容；成长由角色模块保存，连接／生命／场景内的临时技能状态由技能模块持有。 |
-| `dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；`content/DungeonLayouts.java`、`application/EncounterContacts.java` | 新副本复用场次、地图边界／门控、等级难度缩放、接触凭据和清场；AI与地图留在副本模块。 |
+| `character/api/JobCatalog.java`、`CharacterChanges.java`、`CharacterPersistence.java`、`CareerProfiles.java`；`skills/api/CareerState.java` | 新职业登记资格与内容；成长与学习在本人客户端调用角色／技能规则，服务器用角色端口保存结果，连接／生命／场景内的临时技能状态由技能模块持有。 |
+| `dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；`content/DungeonLayouts.java`；客户端 `dungeons/client/EncounterClientContacts.java`、`DungeonActions.java` | 新副本复用场次、地图边界／门控、等级难度缩放和清场；个人入场资格、玩家接触和引路石个人奖励由本机判定，AI、敌人和地图留在服务器。 |
+| `dungeons/api/ClassicEnemyKind.java`、`ClassicMove.java`；`content/ClassicDungeonRooms.java` 及各副本内容类 | 经典后续副本登记原型、六组编队与首领，精英复用本体；动作稳定ID对应原生模型片段，毫秒时长及接触相位共同驱动动作、预警与本机判定。召唤物／机关在所属副本服务维护，不计入普通编队清场数；中间复活不发布死亡回执，最终死亡沿原奖励入口。 |
 | `industry/api/DeviceType.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；`platform/IndustrialProcessing.java` | 新设备和工艺复用设备能力、科技目录、批次／产线结算；精度用既有 `EnergyMath`／`Fraction`，资源从正式生成源维护。 |
-| `economy/api/CurrencyRules.java`、`RewardPorts.java`；`professions/application/ProfessionService.java` | 掉落、出售分解、通货与副职业奖励走原资格、操作号和事务，不新增第二套余额或发奖模型。 |
+| `economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；`professions/api/ProfessionRewards.java` | 掉落、出售分解、通货与副职业奖励由本人客户端按原资格计算；消费与确定奖品走既有库存／WAL事务，源快照、操作号和结果一并保存。重试复用已确定结果，不新增第二套余额或发奖模型。 |
 | `economy/api/JarDefinitions.java`、`LootJarItem.java` | 单抽罐子登记奖池与权重，物品工厂使用定义ID；开罐与交付沿库存／WAL事务，演出不决定奖品。配置方法见下文。 |
 | 客户端 `presentation/api/client/WorldQuads.java`、`EffectModels.java`、`EffectParticles.java`、`NearEffectRendering.java` | 技能和副本共用世界绘制、粒子及近身淡化；内容提供形状和时间轴，展示不授予命中、无敌或重力权限。 |
 
@@ -55,4 +56,4 @@
 
 `bossDropChance` 是普通副本、藏宝图、地狱+中有奖励资格的首领击杀独立投放，每位符合既有奖励资格的玩家分别判定，不继承掉落率、难度或引路石数量倍率。使用入口为背包右键，仅副本外且脱战可用；管理命令为 `/ydnf jar give <player> <definition> <count>`，数量1～64。
 
-开罐开始事务保存完整奖品，正常10秒后交付；断线、死亡、换维度或正常停服提前结算，崩溃遗留在下次上线交付。背包放不下时使用普通公共掉落语义。客户端演出独立等概率选择陪衬，最终始终停在服务端既定奖品。
+本人客户端判断开罐资格并一次确定完整奖品，开始事务将扣罐与原奖品一并保存；本机10秒到时请求交付，服务器不再次抽取或审批。断线、死亡、换维度或正常停服交付已保存奖品，崩溃遗留在下次上线交付。背包放不下时使用普通公共掉落语义。演出独立等概率选择陪衬，最终始终停在已保存的原奖品。

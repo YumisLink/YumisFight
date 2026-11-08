@@ -5,9 +5,9 @@ import java.util.*;
 /** Connection/life-scoped skill state. Timestamps in messages use server wall time. */
 public final class CareerState {
     public String session="",job="",dimension="",instance="";
-    public long generation,nextBrand,kallaUntil,eyeUntil,bloodUntil;
+    public long generation,sequence,nextBrand,kallaUntil,eyeUntil,bloodUntil;
     public int brands,blood;
-    public boolean frenzy;
+    public boolean frenzy,steadfast,invulnerable;
     public double eyeBonusMut;
     public OracleState oracle=new OracleState();
     public SunMoonState sunMoon=new SunMoonState();

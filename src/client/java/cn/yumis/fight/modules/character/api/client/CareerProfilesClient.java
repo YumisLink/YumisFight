@@ -10,7 +10,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import java.util.*;
 
-/** Server profile summaries and character-owned controls; physical keys remain local. */
+/** Stored owner profile summaries and character-owned controls; physical keys remain local. */
 public final class CareerProfilesClient {
     private static JsonObject view;
     private CareerProfilesClient(){}
@@ -37,7 +37,7 @@ public final class CareerProfilesClient {
             page.gap();
         }
         page.line("切换需副本、训练外脱战，结束施法与全部技能冷却。",UiTheme.MUTED);
-        if(view.has("blockedReason")&&!view.get("blockedReason").getAsString().isEmpty())page.line("当前限制："+view.get("blockedReason").getAsString(),UiTheme.MUTED);
+        String reason=cn.yumis.fight.modules.character.client.CharacterClient.blockReason();if(!reason.isEmpty())page.line("当前限制："+reason,UiTheme.MUTED);
     }
     private static final class RenameScreen extends ThemedScreen {
         private final Screen parent;private final String name;private final JsonObject request;private EditBox box;

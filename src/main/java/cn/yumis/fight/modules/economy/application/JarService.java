@@ -23,36 +23,18 @@ public final class JarService {
     private final InventoryOperations inventory;
     private final RewardPorts.Players players;
     private final LootService loot;
-    private final Random random;
-    private final Function<ServerPlayer,String> eligibility;
+    private final EconomyService.Drafts drafts;
     private final BiConsumer<ServerPlayer,JsonObject> send;
     private final Map<UUID,Long> retryAfter=new HashMap<>();
-    public JarService(Journal journal,InventoryOperations inventory,RewardPorts.Players players,LootService loot,Random random,Function<ServerPlayer,String> eligibility,BiConsumer<ServerPlayer,JsonObject> send){
-        this.journal=journal;this.inventory=inventory;this.players=players;this.loot=loot;this.random=random;this.eligibility=eligibility;this.send=send;
-    }
+    public JarService(Journal journal,InventoryOperations inventory,RewardPorts.Players players,LootService loot,EconomyService.Drafts drafts,BiConsumer<ServerPlayer,JsonObject> send){this.journal=journal;this.inventory=inventory;this.players=players;this.loot=loot;this.drafts=drafts;this.send=send;}
     private static String key(ServerPlayer player){return "jarDraw/"+player.getUUID();}
     private Draw draw(ServerPlayer player){return journal.get(key(player),Draw.class,null);}
-    public void open(ServerPlayer player,InteractionHand hand){
-        try{
-            var existing=draw(player);
-            if(existing!=null){state(player,existing);return;}
-            if(inventory.locked(player.getUUID()))throw new IllegalArgumentException("背包事务处理中");
-            String reason=eligibility.apply(player);if(!reason.isEmpty())throw new IllegalArgumentException(reason);
-            var source=player.getItemInHand(hand);String definition=LootJarItem.definition(source);
-            var rule=JarDefinitions.current().require(definition);
-            if(player.containerMenu!=player.inventoryMenu)player.closeContainer();
-            ItemStack before=player.getItemInHand(hand).copy();
-            String id=UUID.randomUUID().toString();
-            var chosen=JarDefinitions.draw(rule,random);
-            var reward=JarDefinitions.create(chosen,random,"jar/"+definition+"/"+id);
-            var value=new Draw(id,definition,rule.name(),player.level().dimension().identifier().toString(),System.currentTimeMillis(),random.nextLong(),random.nextInt(7)-3,rule.entries().stream().filter(e->e.weight()>0).toList(),inventory.encode(player,reward),false,false);
-            JsonObject intent=new JsonObject();intent.addProperty("openJar",id);intent.addProperty("definition",definition);intent.addProperty("hand",hand.name());intent.add("source",inventory.encode(player,before));
-            boolean committed=inventory.transact(player,"jar/start/"+id,intent,()->{
-                if(draw(player)!=null||!ItemStack.matches(before,player.getItemInHand(hand)))throw new IllegalArgumentException("手中罐子发生变化");
-                player.getItemInHand(hand).shrink(1);
-            },Map.of(key(player),JSON.toJsonTree(value)));
-            if(committed){players.profile(player);state(player,value);}
-        }catch(Exception failure){players.message(player,failure.getMessage());}
+    private void receive(ServerPlayer player,JsonObject request){
+        session(player,request);var prior=journal.get("inventoryReceipt/"+player.getUUID()+"/"+request.get("operation").getAsString());if(!prior.isJsonNull()){if(!prior.getAsJsonObject().get("intent").equals(request))throw new IllegalArgumentException("操作号冲突");inventory.restore(player);var saved=draw(player);if(saved!=null)state(player,saved);players.profile(player);return;}
+        var value=JSON.fromJson(drafts.value(player,request,"draw"),Draw.class);var existing=draw(player);
+        if(existing!=null){if(!existing.id().equals(value.id()))throw new IllegalArgumentException("已存储另一份开罐结果");state(player,existing);return;}
+        boolean committed=inventory.transact(player,request.get("operation").getAsString(),request,()->InventoryEdits.apply(player,inventory,request),Map.of(key(player),JSON.toJsonTree(value)));
+        if(committed){players.profile(player);state(player,value);}
     }
     private JsonObject envelope(ServerPlayer player,Draw value,String status){
         JsonObject message=new JsonObject();message.addProperty("session",players.session(player).toString());message.addProperty("status",status);message.addProperty("serverNow",System.currentTimeMillis());
@@ -105,16 +87,17 @@ public final class JarService {
         long now=System.currentTimeMillis();
         for(var player:online){
             var value=draw(player);if(value==null||value.delivered()||retryAfter.getOrDefault(player.getUUID(),0L)>now)continue;
-            boolean interrupted=player.isDeadOrDying()||!player.level().dimension().identifier().toString().equals(value.dimension());
-            if(!interrupted&&now-value.startedAt()<JarDefinitions.DURATION_MILLIS)continue;
+            if(!retryAfter.containsKey(player.getUUID()))continue;
+            boolean interrupted=true;
             try{finish(player,interrupted);}catch(Exception failure){retryAfter.put(player.getUUID(),now+1000);players.message(player,"罐子结算暂未完成，将保留原奖品重试："+failure.getMessage());}
         }
     }
     public void register(CommandRouter<ServerPlayer,JsonObject> router){
+        router.register("economy","jarStart",this::receive);
+        router.register("economy","jarFinish",(player,message)->{session(player,message);var value=draw(player);if(value!=null&&value.id().equals(message.get("id").getAsString()))finish(player,false);});
         router.register("economy","jarStatus",(player,message)->{
             session(player,message);var value=draw(player);
             if(value==null)send.accept(player,envelope(player,null,"idle"));
-            else if(!value.delivered()&&System.currentTimeMillis()-value.startedAt()>=JarDefinitions.DURATION_MILLIS)finish(player,false);
             else state(player,value);
         });
         router.register("economy","jarDismiss",(player,message)->{

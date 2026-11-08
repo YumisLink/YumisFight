@@ -52,7 +52,7 @@ public final class CombatPrediction {
             this.critical=critical;
             timing=state.combatSettings();
             var kind=state.damageKind(UUID.fromString(r.get("target").getAsString()));
-            analysis=!a.equals("heal")?DamageAnalysis.submit(source,kind,now(),state.combatSettings()):null;
+            analysis=!a.equals("heal")&&!r.has("resourceCost")?DamageAnalysis.submit(source,kind,now(),state.combatSettings()):null;
             sent=now();
             occurredAt=sent;
             point=state.position(UUID.fromString(r.get("target").getAsString()));
@@ -60,10 +60,12 @@ public final class CombatPrediction {
             if(preview!=null){if(numbers.size()>=96)numbers.removeFirst();numbers.add(preview);}
         }
     }
+    public ElementAccumulation.State elemental(ElementAccumulation.State confirmed){ElementAccumulation.State value=confirmed;for(var p:pending.values())if(p.report.get("target").getAsString().equals(state.own().target.toString())&&p.report.has("elemental"))value=JSON.fromJson(p.report.get("elemental"),ElementAccumulation.State.class);return value;}
     public double predicted(Life life){
         if(!state.consumesHealth(life.target))return life.q;
         double q=life.q;
         for(Pending p:pending.values())if(p.report.get("target").getAsString().equals(life.target.toString())&&p.report.get("generation").getAsLong()==life.generation&&p.report.get("basis").getAsLong()==life.basis)q=Math.clamp(q+(p.action.equals("heal")?1:-1)*p.report.get("fraction").getAsDouble(),0,1);
+        for(Pending p:pending.values())if(life.target.equals(state.own().target)&&p.report.has("ownerHealing"))q=Math.clamp(q+p.report.get("ownerHealing").getAsDouble(),0,1);
         return q;
     }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){
@@ -82,9 +84,11 @@ public final class CombatPrediction {
         j.addProperty("fraction",fraction);
         j.addProperty("heal",heal);
         j.addProperty("occurredAt",state.serverNow());
+        j.addProperty("combatDelayMillis",state.combatSettings().delayMillis());
         if(extras!=null)extras.entrySet().stream().filter(e->!e.getKey().equals(DamageAnalysis.LOCAL_SOURCE)).forEach(e->j.add(e.getKey(),e.getValue()));
         String action=heal?"heal":outcomeOnly?"nativeOutcome":"damage";
         pending.put(j.get("operation").getAsLong(),new Pending(j,action,maximum,color,critical,DamageAnalysis.source(extras)));
+        state.own().dead=predicted(state.own())<=0;
         refreshDamageClocks();
         JsonObject runtime=new JsonObject();
         runtime.addProperty("session",state.session());
@@ -99,7 +103,7 @@ public final class CombatPrediction {
     private void refreshDamageClocks(){
         state.resources().combatUntil=confirmedCombatUntil;
         state.resources().shieldRecoveryAt=confirmedShieldRecoveryAt;
-        for(Pending p:pending.values())if(!p.action.equals("heal")){
+        for(Pending p:pending.values())if(!p.action.equals("heal")&&!p.report.has("resourceCost")){
             boolean hit=!p.report.has("outcome")||p.report.get("outcome").getAsString().equals("HIT");
             if(!hit)continue;
             boolean taken=p.report.get("target").getAsString().equals(state.own().target.toString());
@@ -114,12 +118,11 @@ public final class CombatPrediction {
         if(p==null){var saved=analysisPending.remove(j.get("operation").getAsLong());if(saved!=null&&r.accepted()){if(saved.output&&r.actual()>0)DamageAnalysis.accepted(analysisTicket(saved.ticket,j),r.actual()*saved.maximum);else if(!saved.output&&(saved.taken||r.actual()>0))DamageAnalysis.combat(analysisTicket(saved.ticket,j));}return;}
         if(!r.accepted()){
             if(p.preview!=null)numbers.remove(p.preview);
-            refreshDamageClocks();
+            state.own().dead=predicted(state.own())<=0;refreshDamageClocks();
             if(!r.reason().isEmpty())state.message(r.reason());
             return;
         }
         if(j.has("ownerLife")){Life actor=JSON.fromJson(j.get("ownerLife"),Life.class);if(actor.generation==state.own().generation&&actor.revision>=state.own().revision){state.own().q=actor.q;state.own().revision=actor.revision;state.own().dead=actor.dead;state.own().elemental=actor.elemental;}}
-        if(j.has("equipmentBuffs")){var type=new com.google.gson.reflect.TypeToken<java.util.Map<String,cn.yumis.fight.modules.combat.api.EquipmentBuffs.State>>(){}.getType();java.util.Map<String,cn.yumis.fight.modules.combat.api.EquipmentBuffs.State> buffs=JSON.fromJson(j.get("equipmentBuffs"),type);long delta=-state.serverOffset();for(var buff:buffs.values())buff.expires+=delta;state.resources().equipmentBuffs=buffs;}
         if(j.has("combatUntil"))confirmedCombatUntil=Math.max(confirmedCombatUntil,j.get("combatUntil").getAsLong()-state.serverOffset());
         if(j.has("shieldRecoveryAt"))confirmedShieldRecoveryAt=Math.max(confirmedShieldRecoveryAt,j.get("shieldRecoveryAt").getAsLong()-state.serverOffset());
         refreshDamageClocks();
@@ -132,10 +135,11 @@ public final class CombatPrediction {
             l.dead=l.q<=0;
             if(j.has("elemental"))l.elemental=JSON.fromJson(j.get("elemental"),ElementAccumulation.State.class);
         }
+        state.own().elemental=elemental(state.own().elemental);state.own().dead=predicted(state.own())<=0;
         if(r.actual()>0&&p.action.equals("damage")&&!id.equals(state.own().target)){
             DamageAnalysis.accepted(analysisTicket(p.analysis,j),r.actual()*p.maximum);
             if(p.preview==null){if(numbers.size()>=96)numbers.removeFirst();numbers.add(new DamageNumber(r.actual()*p.maximum,now()+DamageNumber.LIFETIME_MILLIS,p.color,p.point,p.report.get("dimension").getAsString(),id,p.critical));}
         }
     }
-    private static DamageAnalysis.Ticket analysisTicket(DamageAnalysis.Ticket ticket,JsonObject ack){return ticket==null?null:new DamageAnalysis.Ticket(ticket.round(),ticket.source(),ticket.kind(),ticket.occurredAt(),ack.get("combatDelayMillis").getAsLong());}
+    private static DamageAnalysis.Ticket analysisTicket(DamageAnalysis.Ticket ticket,JsonObject ack){return ticket==null?null:new DamageAnalysis.Ticket(ticket.round(),ticket.source(),ticket.kind(),ticket.occurredAt(),ack.has("combatDelayMillis")?ack.get("combatDelayMillis").getAsLong():ticket.delayMillis());}
 }

@@ -28,5 +28,6 @@ public final class RewardPorts {
         long gold(ServerPlayer player);
         long revision(ServerPlayer player);
         void notifyGain(ServerPlayer player,long amount,long balance,long revision);
+        java.util.Map<String,com.google.gson.JsonElement> receive(ServerPlayer player,com.google.gson.JsonObject result);
     }
 }

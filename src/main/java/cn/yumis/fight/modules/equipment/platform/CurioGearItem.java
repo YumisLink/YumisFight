@@ -16,6 +16,6 @@ public final class CurioGearItem extends Item implements ICurioItem {
         var gear=EquipmentItems.gear(stack);
         if(gear==null||!(context.entity() instanceof Player player))return false;
         String expected="ydnf_"+gear.slot.name().toLowerCase(java.util.Locale.ROOT);
-        return context.identifier().equals(expected)&&gear.valid(EquipmentEligibility.PROGRESS.apply(player),EquipmentEligibility.allowance(player));
+        return context.identifier().equals(expected)&&(!player.level().isClientSide()||gear.valid(EquipmentEligibility.PROGRESS.apply(player),EquipmentEligibility.allowance(player)));
     }
 }

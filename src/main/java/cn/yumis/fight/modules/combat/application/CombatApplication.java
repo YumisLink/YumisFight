@@ -23,13 +23,8 @@ import java.util.*;
 import java.util.function.*;
 /** Receipt validation and lifecycle. Rewards and encounter effects participate in the same WAL batch. */
 public final class CombatApplication {
-    private java.util.function.Supplier<cn.yumis.fight.modules.combat.api.CombatSettings> timing=()->cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
-    public void timing(java.util.function.Supplier<cn.yumis.fight.modules.combat.api.CombatSettings> settings){timing=java.util.Objects.requireNonNull(settings);}
-    private java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> equipmentStats;
-    private java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.character.api.Progress> equipmentProgress;
-    private java.util.function.Predicate<ServerPlayer> equipmentSync=p->true;
     private java.util.function.Consumer<ServerPlayer> equipmentProfile=p->{};
-    public void equipment(java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.attributes.api.Stats> stats,java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.character.api.Progress> progress,java.util.function.Predicate<ServerPlayer> sync,java.util.function.Consumer<ServerPlayer> profile){equipmentStats=stats;equipmentProgress=progress;equipmentSync=sync;equipmentProfile=profile;}
+    public void equipment(java.util.function.Consumer<ServerPlayer> profile){equipmentProfile=java.util.Objects.requireNonNull(profile);}
     private CombatPorts.SkillEffects skills=new CombatPorts.SkillEffects(){};
     public void skills(CombatPorts.SkillEffects value){skills=java.util.Objects.requireNonNull(value);}
     private CombatPorts.Training training;
@@ -45,11 +40,10 @@ public final class CombatApplication {
     private final CombatPorts.Encounters dungeons;
     private final CombatPorts.Rewards loot;
     private final CombatPorts.NativeHits nativeHits;
-    private final CombatPorts.Attacks basicAttacks;
     private final CombatPorts.Recorder damageMeter;
     private final Consumer<Boolean> projection;
     private final BiConsumer<ServerPlayer,String> message;
-    public CombatApplication(Journal journal,MinecraftServer server,Function<ServerPlayer,? extends CombatSession> sessions,Predicate<Entity> managed,Function<LivingEntity,? extends CombatTarget> targets,CombatPorts.Encounters dungeons,CombatPorts.Rewards loot,CombatPorts.NativeHits nativeHits,CombatPorts.Attacks basicAttacks,CombatPorts.Recorder damageMeter,Consumer<Boolean> projection,BiConsumer<ServerPlayer,String> message){this.journal=journal;this.server=server;this.sessions=sessions;this.managed=managed;this.targets=targets;this.dungeons=dungeons;this.loot=loot;this.nativeHits=nativeHits;this.basicAttacks=basicAttacks;this.damageMeter=damageMeter;this.projection=projection;this.message=message;}
+    public CombatApplication(Journal journal,MinecraftServer server,Function<ServerPlayer,? extends CombatSession> sessions,Predicate<Entity> managed,Function<LivingEntity,? extends CombatTarget> targets,CombatPorts.Encounters dungeons,CombatPorts.Rewards loot,CombatPorts.NativeHits nativeHits,CombatPorts.Recorder damageMeter,Consumer<Boolean> projection,BiConsumer<ServerPlayer,String> message){this.journal=journal;this.server=server;this.sessions=sessions;this.managed=managed;this.targets=targets;this.dungeons=dungeons;this.loot=loot;this.nativeHits=nativeHits;this.damageMeter=damageMeter;this.projection=projection;this.message=message;}
     public boolean runtime(ServerPlayer p,JsonObject j){
         CombatSession s=sessions.apply(p);
         if(j.has("session")&&!s.id.toString().equals(j.get("session").getAsString()))return false;
@@ -59,21 +53,19 @@ public final class CombatApplication {
         r.validate();
         long issued=j.has("serverIssuedAt")?j.get("serverIssuedAt").getAsLong():r.recordedAt;
         if(r.controlEpoch!=s.resources.controlEpoch)return false;
-        if(issued<s.resources.recordedAt)return false;
+        if(r.sequence<=s.resources.sequence)return false;
         long local=r.recordedAt;
         // These fields belong to the administrator command, never to combat prediction uploads.
         r.training=s.resources.training;
         r.trainingBoundary=s.resources.trainingBoundary;
-        // Accepted damage events own these clocks; prediction uploads cannot extend them.
-        r.combatUntil=s.resources.combatUntil;
-        r.shieldRecoveryAt=s.resources.shieldRecoveryAt;
+        r.combatUntil=issued+r.combatUntil-r.recordedAt;
+        r.shieldRecoveryAt=issued+r.shieldRecoveryAt-r.recordedAt;
         r.cooldowns.replaceAll((k,v)->issued+Math.max(0,v-local));
         r.buffs.replaceAll((k,v)->issued+Math.max(0,v-local));
         r.absorptionUntil.replaceAll((k,v)->v==Long.MAX_VALUE?v:issued+Math.max(0,v-local));
+        for(var buff:r.equipmentBuffs.values())buff.expires=issued+Math.max(0,buff.expires-local);
         r.recordedAt=issued;
         r.equipment=s.resources.equipment;
-        r.equipmentBuffs=copy(s.resources,cn.yumis.fight.modules.combat.api.Runtime.class).equipmentBuffs;
-        skills.reconcile(p,s.resources,r);
         try{
             journal.put("resources/"+p.getUUID(),r);
             s.resources=r;
@@ -98,7 +90,7 @@ public final class CombatApplication {
             }
             if(!s.id.toString().equals(j.get("session").getAsString())||j.get("operation").getAsLong()<=0)throw new IllegalArgumentException("会话已失效");
             if(!j.has("sourceGeneration")||j.get("sourceGeneration").getAsLong()!=s.life.generation||s.life.dead)throw new IllegalArgumentException("施加者生命已失效");
-            boolean heal=action.equals("heal"),outcomeOnly=action.equals("nativeOutcome");
+            boolean heal=action.equals("heal"),outcomeOnly=action.equals("nativeOutcome"),resourceCost=j.has("resourceCost")&&j.get("resourceCost").getAsBoolean();
             if(j.has("heal")&&j.get("heal").getAsBoolean()!=heal)throw new IllegalArgumentException("伤害类型不一致");
             UUID id=UUID.fromString(j.get("target").getAsString());
             LivingEntity entity=id.equals(p.getUUID())?p:(LivingEntity)p.level().getEntity(id);
@@ -107,16 +99,17 @@ public final class CombatApplication {
             if(heal&&entity!=p)throw new IllegalArgumentException("仅支持本人恢复");
             CombatTarget target=entity==p?null:targets.apply(entity);
             Life life=entity==p?copy(s.life,Life.class):target.life();
-            double hitMaximum=target==null||equipmentProgress==null?0:target.maximumHealth(equipmentProgress.apply(p).level,equipmentSync.test(p));
             if(!j.has("dimension")||!j.get("dimension").getAsString().equals(p.level().dimension().identifier().toString()))throw new IllegalArgumentException("维度已改变");
             if(j.get("generation").getAsLong()!=life.generation||j.get("basis").getAsLong()!=life.basis)throw new IllegalArgumentException("生命或扩血基准已失效");
             String instance=j.has("instance")?j.get("instance").getAsString():"";
             if(!instance.equals(life.instance)||!instance.isEmpty()&&!dungeons.participant(p,instance))throw new IllegalArgumentException("副本轮次已失效");
-            boolean nativeHit=nativeHits.validate(p,entity,j);
+            boolean nativeHit=j.has("nativeRoot");
             if(heal&&nativeHit)throw new IllegalArgumentException("原生命中不能用于治疗");
             JsonObject dot=null;
             if(j.has("effect")){
-                dot=validateDot(p,j,life);
+                String kind=j.has("effectKind")?j.get("effectKind").getAsString():"BLEED";
+                String effectKey="ailments/"+life.target+"/"+p.getUUID()+"/"+kind+(ElementAccumulation.kind(kind)==null?"":"/"+j.get("effect").getAsString());
+                JsonElement storedEffect=journal.get(effectKey);if(storedEffect.isJsonObject())dot=storedEffect.getAsJsonObject();
             }
             double fraction=j.get("fraction").getAsDouble();
             double[] components=damageComponents(j,fraction);
@@ -126,18 +119,14 @@ public final class CombatApplication {
             finite(taken);
             if(taken<0||!outcome.equals("HIT")&&taken!=0)throw new IllegalArgumentException("承伤结果无效");
             if(outcomeOnly){
-                boolean bossHit=entity==p&&outcome.equals("HIT")&&taken>0&&j.has("feedbackEntity")&&p.level().getEntity(UUID.fromString(j.get("feedbackEntity").getAsString())) instanceof LivingEntity origin&&managed.test(origin);
-                if(heal||entity!=p||fraction!=0||!nativeHit&&!bossHit)throw new IllegalArgumentException("零伤害命中来源无效");
+                if(heal||entity!=p||fraction!=0)throw new IllegalArgumentException("零伤害结果格式无效");
             }
-            basicAttacks.validate(p,j);
-            skills.validate(p,entity,j);
-            long eventTime=nativeHit?nativeHits.occurredAt(j):j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
-            if(!nativeHit&&target!=null&&target.training()){long issued=skills.occurredAt(p,j);if(issued>=0)eventTime=issued;}
+            long eventTime=j.has("occurredAt")?Math.min(System.currentTimeMillis(),j.get("occurredAt").getAsLong()):System.currentTimeMillis();
             if(target!=null&&target.training()){
                 if(training==null||heal)throw new IllegalArgumentException("训练会话不可用");
                 training.validate(p,target,eventTime);
             }
-            Receipt receipt=outcomeOnly?cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life):target==null?cn.yumis.fight.modules.combat.api.LifeRules.apply(life,fraction,heal):target.receive(fraction,heal);
+            Receipt receipt=outcomeOnly?cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life):target!=null?target.receive(fraction,heal):cn.yumis.fight.modules.combat.api.LifeRules.apply(life,fraction,heal);
             Life actorLife=entity==p?life:copy(s.life,Life.class);
             CombatPorts.Commit skillCommit=skills.prepare(p,entity,j,receipt,actorLife);
             String previousBuffs=JSON.toJson(s.resources.equipmentBuffs);
@@ -153,9 +142,8 @@ public final class CombatApplication {
             journal.begin();
             if(j.has("runtime"))ack.addProperty("runtimeApplied",runtime(p,j.getAsJsonObject("runtime")));
             ack.addProperty("runtimeRecordedAt",s.resources.recordedAt);
-            if(!heal&&(receipt.actual()>0||entity==p&&outcome.equals("HIT")&&taken>0)){
-                var clock=timing.get();ack.addProperty("combatDelayMillis",clock.delayMillis());
-                if(entity==p)CombatTiming.taken(s.resources,eventTime,clock);else CombatTiming.dealt(s.resources,eventTime,clock);
+            if(!heal&&!resourceCost&&(receipt.actual()>0||entity==p&&outcome.equals("HIT")&&taken>0)){
+                ack.addProperty("combatDelayMillis",j.has("combatDelayMillis")?j.get("combatDelayMillis").getAsLong():0);
                 journal.put("resources/"+p.getUUID(),s.resources);
                 if(target!=null&&target.training())training.record(p,target,receipt.actual(),eventTime);
                 else damageMeter.record(p,target,receipt.actual(),eventTime);
@@ -169,17 +157,15 @@ public final class CombatApplication {
             }
             if(nativeHit)nativeHits.commit(p,j);
             var elementalAilments=new ArrayList<JsonObject>();
-            if(!heal&&receipt.actual()>0&&!life.dead&&j.has("damageComponents")){
-                cn.yumis.fight.modules.attributes.api.Stats source=null;
-                cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot sourceEffects=null;
-                if(entity!=p){
-                    if(dot!=null&&dot.has("settleUntil")){source=JSON.fromJson(dot.getAsJsonObject("change").get("stats"),cn.yumis.fight.modules.attributes.api.Stats.class);sourceEffects=JSON.fromJson(dot.getAsJsonObject("change").get("equipment"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);}
-                    else{source=basicAttacks.sourceStats(p,j);if(source==null)source=skills.sourceStats(p,j);if(source==null&&equipmentStats!=null)source=equipmentStats.apply(p);sourceEffects=basicAttacks.sourceEffects(p,j);if(sourceEffects==null)sourceEffects=skills.sourceEffects(p,j);if(sourceEffects==null)sourceEffects=s.resources.equipment;}
-                }
-                long now=System.currentTimeMillis();
-                var accumulated=ElementAccumulation.advance(life.elemental,life,components,receipt.actual()/fraction,source,target!=null&&target.bossOrElite(),now);
-                life.elemental=accumulated.state();
-                for(var kind:accumulated.triggered())elementalAilments.add(applyElementalAilment(p,entity,life,kind,target!=null&&target.bossOrElite(),source,sourceEffects,now));
+            if(entity==p){
+                if(j.has("elemental"))life.elemental=JSON.fromJson(j.get("elemental"),ElementAccumulation.State.class);
+                if(j.has("elementalAilments"))for(JsonElement value:j.getAsJsonArray("elementalAilments")){var state=value.getAsJsonObject().deepCopy();if(!state.get("target").getAsString().equals(p.getStringUUID())||state.get("generation").getAsLong()!=life.generation)throw new IllegalArgumentException("异常状态归属无效");journal.put(ailmentKey(state),state);elementalAilments.add(state);}
+            }else if(!heal&&receipt.actual()>0&&!life.dead&&fraction>0&&j.has("damageComponents")){
+                var source=j.has("sourceStats")?JSON.fromJson(j.get("sourceStats"),cn.yumis.fight.modules.attributes.api.Stats.class):null;
+                var effects=j.has("sourceEffects")?JSON.fromJson(j.get("sourceEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class):null;
+                if(dot!=null&&dot.has("settleUntil")){source=JSON.fromJson(dot.getAsJsonObject("change").get("stats"),cn.yumis.fight.modules.attributes.api.Stats.class);effects=JSON.fromJson(dot.getAsJsonObject("change").get("equipment"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);}
+                long now=System.currentTimeMillis();var accumulated=ElementAccumulation.advance(life.elemental,life,components,receipt.actual()/fraction,source,target.bossOrElite(),now);life.elemental=accumulated.state();
+                for(var kind:accumulated.triggered())elementalAilments.add(applyElementalAilment(p,entity,life,kind,target.bossOrElite(),source,effects,now));
             }
             ack.add("elemental",JSON.toJsonTree(life.elemental));
             journal.put("life/"+id,life);
@@ -192,12 +178,7 @@ public final class CombatApplication {
                     loot.death(p,entity,target);
                 }
             }
-            if(!heal&&entity!=p&&equipmentStats!=null){
-                var actorStats=equipmentStats.apply(p);var effects=basicAttacks.sourceEffects(p,j);if(effects==null)effects=skills.sourceEffects(p,j);if(effects==null)effects=s.resources.equipment;
-                var launched=basicAttacks.sourceStats(p,j);if(launched==null)launched=skills.sourceStats(p,j);if(launched==null)launched=actorStats;
-                cn.yumis.fight.modules.combat.api.EquipmentHitEffects.apply(target,receipt,!j.has("effect")&&!j.has("reflected")&&skills.direct(p,j),launched,actorStats.get(cn.yumis.fight.modules.attributes.api.Stat.HEALTH),effects,actorLife,s.resources,hitMaximum,System.currentTimeMillis());
-                journal.put("resources/"+p.getUUID(),s.resources);
-            }
+            if(entity!=p&&j.has("ownerHealing")){double healing=j.get("ownerHealing").getAsDouble();finite(healing);if(healing<0)throw new IllegalArgumentException("恢复份额不可为负");if(healing>0)cn.yumis.fight.modules.combat.api.LifeRules.apply(actorLife,healing,true);}
             if(entity!=p&&actorLife.revision!=s.life.revision)journal.put("life/"+p.getUUID(),actorLife);
             if(actorLife.dead){s.resources.equipmentBuffs.clear();journal.put("resources/"+p.getUUID(),s.resources);}
             ack.add("ownerLife",JSON.toJsonTree(actorLife));ack.add("equipmentBuffs",JSON.toJsonTree(s.resources.equipmentBuffs));ack.addProperty("serverNow",System.currentTimeMillis());
@@ -210,7 +191,6 @@ public final class CombatApplication {
             skillCommit.publish();
             if(entity!=p&&actorLife.revision>=s.life.revision){s.life=actorLife;if(!s.life.dead)p.setHealth((float)Math.max(.001,p.getMaxHealth()*s.life.q));}
             if(!previousBuffs.equals(JSON.toJson(s.resources.equipmentBuffs)))equipmentProfile.accept(p);
-            basicAttacks.committed(j);
             if(ailment!=null){
                 net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("ailments",JSON.toJson(ailment)));
                 if(ailment.get("kind").getAsString().equals("STUN")){
@@ -224,7 +204,7 @@ public final class CombatApplication {
             nativeHits.suppressProjectionFeedback(nativeHit&&life.dead);
             projection.accept(true);
             try{
-                if(life.dead&&!entity.isDeadOrDying())entity.hurtServer(p.level(),entity==p?entity.damageSources().genericKill():nativeHit?nativeHits.source(j):entity.damageSources().playerAttack(p),Float.MAX_VALUE);
+                if(life.dead&&!entity.isDeadOrDying())entity.hurtServer(p.level(),entity==p?entity.damageSources().genericKill():nativeHit&&nativeHits.source(j)!=null?nativeHits.source(j):entity.damageSources().playerAttack(p),Float.MAX_VALUE);
                 else if(!life.dead)entity.setHealth((float)Math.max(.001,entity.getMaxHealth()*life.q));
             }
             finally{
@@ -240,7 +220,7 @@ public final class CombatApplication {
                 entity.addEffect(new net.minecraft.world.effect.MobEffectInstance(CombatContentTypes.elementalEffect(kind),(int)Math.max(1,(elemental.get("expires").getAsLong()-System.currentTimeMillis()+49)/50)));
                 if(kind==ElementAccumulation.Kind.FREEZE)dungeons.cancelBoss(entity.getUUID());
             }
-            if(!heal&&!nativeHit&&(receipt.actual()>0||entity==p&&taken>0)){
+            if(!heal&&!resourceCost&&!nativeHit&&(receipt.actual()>0||entity==p&&taken>0)){
                 entity.hurtTime=10;
                 entity.hurtDuration=10;
                 LivingEntity feedbackAttacker=p;
@@ -300,24 +280,6 @@ public final class CombatApplication {
         String key="ailments/"+effect.get("target").getAsString()+"/"+effect.get("owner").getAsString()+"/"+effect.get("kind").getAsString();
         return effect.has("settleUntil")?key+"/"+effect.getAsJsonObject("change").get("effect").getAsString():key;
     }
-    public JsonObject validateDot(ServerPlayer p,JsonObject report,Life life){
-        String kind=report.has("effectKind")?report.get("effectKind").getAsString():"BLEED";
-        var elemental=ElementAccumulation.kind(kind);
-        if(!kind.equals("BLEED")&&(elemental==null||!elemental.damaging()))throw new IllegalArgumentException("异常伤害类型无效");
-        String key="ailments/"+life.target+"/"+p.getUUID()+"/"+kind+(elemental==null?"":"/"+UUID.fromString(report.get("effect").getAsString()));
-        JsonObject effect=journal.get(key).isJsonObject()?journal.get(key).getAsJsonObject():null;
-        CombatSession owner=sessions.apply(p);
-        long now=System.currentTimeMillis();
-        if(effect==null||owner.life.dead||!effect.get("session").getAsString().equals(owner.id.toString())||effect.get("ownerGeneration").getAsLong()!=owner.life.generation||effect.get("generation").getAsLong()!=life.generation||elemental==null&&effect.get("basis").getAsLong()!=life.basis||(effect.has("settleUntil")?effect.get("settleUntil"):effect.get("expires")).getAsLong()<now||!effect.getAsJsonObject("change").get("effect").equals(report.get("effect"))||effect.get("nextIndex").getAsInt()!=report.get("index").getAsInt())throw new IllegalArgumentException("异常伤害生命周期或顺序已失效");
-        if(elemental!=null&&(report.has("ailment")||report.get("heal").getAsBoolean()||effect.get("nextIndex").getAsInt()>=elemental.ticks()||effect.get("nextAt").getAsLong()>now+150))throw new IllegalArgumentException("异常伤害次数或时机无效");
-        if(elemental==ElementAccumulation.Kind.EROSION){
-            double expected=ElementAccumulation.erosionFraction(effect.getAsJsonObject("change").get("strong").getAsBoolean());
-            double fraction=report.get("fraction").getAsDouble();
-            if(fraction<0||fraction>expected+1e-10||!life.target.equals(p.getUUID())&&Math.abs(fraction-expected)>1e-10)throw new IllegalArgumentException("侵蚀伤害份额无效");
-            double[] components=damageComponents(report,fraction);if(Math.abs(components[0]-fraction)>1e-10)throw new IllegalArgumentException("侵蚀必须使用真实伤害");
-        }
-        return effect;
-    }
     private JsonObject applyElementalAilment(ServerPlayer p,LivingEntity entity,Life life,ElementAccumulation.Kind kind,boolean strong,cn.yumis.fight.modules.attributes.api.Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot equipment,long now)throws Exception{
         JsonObject state=new JsonObject(),change=new JsonObject();
         change.addProperty("kind",kind.id);change.addProperty("effect",UUID.randomUUID().toString());change.addProperty("strong",strong);
@@ -371,6 +333,7 @@ public final class CombatApplication {
             var level=server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(j.get("dimension").getAsString())));
             if(level!=null&&level.getEntity(UUID.fromString(j.get("target").getAsString())) instanceof LivingEntity living)entity=living;
             var elemental=ElementAccumulation.kind(j.get("kind").getAsString());
+            if(entity instanceof ServerPlayer){if((j.has("settleUntil")?j.get("settleUntil"):j.get("expires")).getAsLong()<=now)try{journal.put(key,null);}catch(java.io.IOException failure){throw new IllegalStateException(failure);}continue;}
             CombatTarget target=entity==null||entity instanceof Player?null:targets.apply(entity);
             Life life=entity instanceof ServerPlayer player?sessions.apply(player).life:target==null?null:target.life();
             if(elemental!=null&&life!=null&&life.elemental.matches(life)&&life.elemental.until[elemental.ordinal()]==j.get("expires").getAsLong()&&j.get("expires").getAsLong()<=now)entity.removeEffect(CombatContentTypes.elementalEffect(elemental));

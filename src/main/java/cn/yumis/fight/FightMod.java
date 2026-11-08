@@ -28,7 +28,7 @@ public final class FightMod {
             if(!EquipmentLayout.current().accepts(group,stack))return false;
             var gear=cn.yumis.fight.modules.equipment.api.EquipmentItems.view(stack);
             if(gear==null)return !cn.yumis.fight.modules.equipment.api.EquipmentItems.GEAR_IDS.contains(cn.yumis.fight.platform.ItemData.id(stack));
-            return gear.valid(cn.yumis.fight.modules.equipment.api.EquipmentEligibility.PROGRESS.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player));
+            return !player.level().isClientSide()||gear.valid(cn.yumis.fight.modules.equipment.api.EquipmentEligibility.PROGRESS.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player));
         });
         cn.yumis.fight.modules.inventory.api.SlotAccess.currencyPolicy(stack->!stack.isEmpty()&&cn.yumis.fight.platform.ItemData.own(stack)&&cn.yumis.fight.modules.economy.api.CurrencyRules.find(cn.yumis.fight.platform.ItemData.id(stack))!=null);
         cn.yumis.fight.modules.equipment.platform.EquipmentContent.register();

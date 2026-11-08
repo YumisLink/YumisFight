@@ -9,9 +9,12 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
 import java.util.*;
+import com.google.gson.*;
 
-/** Palace content AI, real motion, frozen telegraphs and bounded signed contacts. */
+/** Palace content AI, real motion and frozen telegraphs; the recipient decides its own contacts. */
 public final class PalaceEncounterService {
+    private static final Gson JSON=new Gson();
+    private final DungeonPorts.Targets targets;
     private static final class Brain {
         final Vec3 home;final int room;
         long busy,next,heavy,storm;int step;
@@ -26,9 +29,8 @@ public final class PalaceEncounterService {
     private final DungeonPorts.Players players;
     private final Map<UUID,Brain> brains=new HashMap<>();
     private final Map<String,Pending> attacks=new LinkedHashMap<>();
-    private final Map<String,Set<UUID>> struck=new HashMap<>();
     private final Map<UUID,Motion> motions=new HashMap<>();
-    PalaceEncounterService(DungeonService owner,DungeonPorts.Players players){this.owner=owner;this.players=players;}
+    PalaceEncounterService(DungeonService owner,DungeonPorts.Players players,DungeonPorts.Targets targets){this.owner=owner;this.players=players;this.targets=targets;}
 
     void spawn(Dungeon d){
         String e=PalaceEnemyKind.EXPELLER.id,a=PalaceEnemyKind.AXE_EXPELLER.id,c=PalaceEnemyKind.COMMANDER.id,g=PalaceEnemyKind.GOLEM.id;
@@ -99,7 +101,7 @@ public final class PalaceEncounterService {
         PalaceAttack a=new PalaceAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=kind;a.shape=shape;a.started=now;a.windup=windup;a.active=active;a.radius=radius;a.coefficient=coefficient;a.magic=magic;a.element=element;a.origin(e.position());a.destination(e.position());return a;
     }
     private void fan(DungeonEnemy e,ServerPlayer p,String kind,long windup,long active,double radius,double halfAngle,double coefficient,boolean magic,int element,long now){var hit=attack(e,kind,"FAN",windup,active,radius,coefficient,magic,element,now);hit.halfAngle=halfAngle;hit.destination(p.position());add(hit);}
-    private void add(PalaceAttack attack){if(attack.group.isEmpty())attack.group=attack.id;attacks.put(attack.id,new Pending(attack));struck.computeIfAbsent(attack.group,id->new HashSet<>());owner.broadcast(attack.instance,"palaceAttack",attack);}
+    private void add(PalaceAttack attack){if(attack.group.isEmpty())attack.group=attack.id;attacks.put(attack.id,new Pending(attack));owner.broadcast(attack.instance,"palaceAttack",packet(attack));}
     private void motion(DungeonEnemy e,Vec3 to,long delay,long duration,double arc,String kind,long now){motions.put(e.getUUID(),new Motion(e.getUUID(),e.position(),to,now+delay,now+delay+duration,arc,kind));}
     private Vec3 clipMove(DungeonEnemy e,Vec3 to){Vec3 from=e.position().add(0,.8,0);var hit=owner.level().clip(new ClipContext(from,to.add(0,.8,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));if(hit.getType()==HitResult.Type.MISS)return to;Vec3 direction=to.subtract(e.position()).multiply(1,0,1).normalize();return hit.getLocation().subtract(0,.8,0).subtract(direction.scale(e.getBbWidth()*.6));}
     private void move(DungeonEnemy e,PalaceEnemyKind kind,Vec3 to,long now){
@@ -130,32 +132,14 @@ public final class PalaceEncounterService {
                 long start=Math.min(a.end(),Math.max(a.release(),pending.previous)),end=Math.min(a.end(),now);
                 for(long time=start;time<end;){long next=Math.min(end,time+25);Vec3 p=a.position(time),q=a.position(next);var wall=owner.level().clip(new ClipContext(p,q,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));if(wall.getType()!=HitResult.Type.MISS){to=wall.getLocation();blocked=true;break;}time=next;}
             }
-            if(blocked&&a.shape.equals("BOMB")){a.destination(to);a.active=Math.max(1,now-a.release());owner.broadcast(a.instance,"palaceAttack",a);}
-            Set<UUID> group=struck.get(a.group);
-            for(ServerPlayer p:online){
-                if(p.level()!=e.level()||!owner.participant(p,a.instance)||players.session(p).life.dead||!p.isAlive()||p.isSpectator()||p.getAbilities().invulnerable||group.contains(p.getUUID())||!CastlePalace.contains(d.cell,b.room,p.position()))continue;
-                if(contains(a,p,from,to,pending.previous,now,blocked)&&visible(e,a,p)){
-                    group.add(p.getUUID());owner.contacts.issue(a.group,e,p,a.kind,a.coefficient,a.magic,a.element,now);
-                }
-            }
+            if(blocked&&a.shape.equals("BOMB")){a.destination(to);a.active=Math.max(1,now-a.release());owner.broadcast(a.instance,"palaceAttack",packet(a));}
             pending.previous=now;if(blocked||now>=a.end())remove(a,false);
         }
         for(var entry:new ArrayList<>(brains.entrySet())){Entity raw=owner.level().getEntity(entry.getKey());if(!(raw instanceof DungeonEnemy e)||!e.isAlive()){brains.remove(entry.getKey());continue;}if(now>=entry.getValue().busy&&e.isAggressive())e.setAggressive(false);}
     }
-    private boolean contains(PalaceAttack a,ServerPlayer p,Vec3 from,Vec3 to,long previous,long now,boolean blocked){
-        if(a.shape.equals("DART"))return p.getBoundingBox().inflate(a.width+.1).contains(from)||p.getBoundingBox().inflate(a.width+.1).clip(from,to).isPresent();
-        if(a.shape.equals("BOMB")){return (blocked||now>=a.end())&&Math.abs(p.getY()-a.ey)<2.6&&p.position().subtract(a.destination()).horizontalDistanceSqr()<=Math.pow(a.radius+.3,2);}
-        Vec3 offset=p.position().subtract(a.origin());if(Math.abs(offset.y)>2.6)return false;
-        Vec3 direction=a.destination().subtract(a.origin()).multiply(1,0,1).normalize();double distance=offset.horizontalDistance();
-        if(a.shape.equals("RECT")){double forward=offset.dot(direction),side=Math.abs(offset.x*direction.z-offset.z*direction.x);return forward>=-.3&&forward<=a.radius+.3&&side<=a.width*.5+.3;}
-        if(a.shape.equals("DASH")){Vec3 lo=a.position(Math.max(a.release(),previous)),hi=a.position(Math.min(a.end(),now));return p.getBoundingBox().inflate(a.width*.5,.5,a.width*.5).contains(lo)||p.getBoundingBox().inflate(a.width*.5,.5,a.width*.5).clip(lo,hi).isPresent();}
-        if(a.shape.equals("WAVE")){double low=a.radius*a.progress(Math.max(a.release(),previous)),high=a.radius*a.progress(now);return distance>=Math.max(0,low-a.width*.5-.3)&&distance<=high+a.width*.5+.3;}
-        if(distance>a.radius+.3)return false;
-        return !a.shape.equals("FAN")||distance<.4||direction.lengthSqr()<.001||offset.multiply(1,0,1).normalize().dot(direction)>=Math.cos(a.halfAngle);
-    }
-    private boolean visible(DungeonEnemy e,PalaceAttack a,ServerPlayer p){if(a.shape.equals("DART"))return true;Vec3 point=a.shape.equals("BOMB")?a.destination():a.origin();return owner.level().clip(new ClipContext(point.add(0,.6,0),p.position().add(0,.7,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e)).getType()==HitResult.Type.MISS;}
-    private void remove(PalaceAttack a,boolean cancelled){if(attacks.remove(a.id)==null)return;a.remove=true;a.cancelled=cancelled;owner.broadcast(a.instance,"palaceAttack",a);if(attacks.values().stream().noneMatch(p->p.attack.group.equals(a.group)))struck.remove(a.group);}
-    public void track(ServerPlayer p){for(Pending pending:attacks.values())if(owner.participant(p,pending.attack.instance))Network.send(p,"palaceAttack",pending.attack);}
+    private JsonObject packet(PalaceAttack a){var frame=JSON.toJsonTree(a).getAsJsonObject();var dungeon=owner.byId(a.instance);var brain=brains.get(a.source);if(dungeon!=null){frame.addProperty("cell",dungeon.cell);frame.addProperty("area",brain==null?dungeon.wave:brain.room);}frame.addProperty("contactUntil",System.currentTimeMillis());var raw=owner.level().getEntity(a.source);if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));return frame;}
+    private void remove(PalaceAttack a,boolean cancelled){if(attacks.remove(a.id)==null)return;a.remove=true;a.cancelled=cancelled;owner.broadcast(a.instance,"palaceAttack",packet(a));}
+    public void track(ServerPlayer p){for(Pending pending:attacks.values())if(owner.participant(p,pending.attack.instance))Network.send(p,"palaceAttack",packet(pending.attack));}
     public void cancel(UUID source){
         for(Pending pending:new ArrayList<>(attacks.values()))if(pending.attack.source.equals(source))remove(pending.attack,true);
         Entity raw=owner.level().getEntity(source);Motion old=motions.get(source);

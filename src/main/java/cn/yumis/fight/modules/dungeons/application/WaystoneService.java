@@ -58,21 +58,20 @@ public final class WaystoneService implements WaystoneActions.Handler {
         var stone=Waystone.read(b.getItem(0));
         switch(action){
             case "insert"->{
-                if(!b.isEmpty())throw new IllegalArgumentException("请先取下台上的引路石");var held=p.getMainHandItem();var next=Waystone.read(held);if(next==null)throw new IllegalArgumentException("请将引路石拿在主手");eligible(p,next);String raw=cn.yumis.fight.platform.ItemData.string(held,Waystone.DATA);var item=held.copyWithCount(1);
+                if(!b.isEmpty())throw new IllegalArgumentException("请先取下台上的引路石");var held=p.getMainHandItem();var next=Waystone.read(held);if(next==null)throw new IllegalArgumentException("请将引路石拿在主手");String raw=cn.yumis.fight.platform.ItemData.string(held,Waystone.DATA);var item=held.copyWithCount(1);
                 boolean committed=inventory.transactMachine(p,"waystone-table/"+j.get("operation").getAsString(),j,b,()->{if(!b.isEmpty()||!cn.yumis.fight.platform.ItemData.string(p.getMainHandItem(),Waystone.DATA).equals(raw))throw new IllegalArgumentException("引路石发生变化");b.setItem(0,item);b.inserter=p.getUUID();p.getMainHandItem().shrink(1);},Map.of());if(committed){b.display();observe(t,b);}
             }
             case "take"->{if(stone==null)throw new IllegalArgumentException("台上没有引路石");String raw=t.raw;var item=b.getItem(0).copy();boolean committed=inventory.transactMachine(p,"waystone-table/"+j.get("operation").getAsString(),j,b,()->{if(!cn.yumis.fight.platform.ItemData.string(b.getItem(0),Waystone.DATA).equals(raw))throw new IllegalArgumentException("台上的引路石发生变化");inventory.requireSpace(p,item);b.clearContent();},Map.of());if(committed){b.display();observe(t,b);}}
-            case "join"->{if(stone==null)throw new IllegalArgumentException("请先放入引路石");eligible(p,stone);if(owner.current(p.getUUID())!=null)throw new IllegalArgumentException("请先离开当前副本");if(!t.members.containsKey(p.getUUID())&&t.members.size()>=WaystoneRules.current().maximumPlayers)throw new IllegalArgumentException("本场人数已满");for(var other:tables.values())if(other!=t&&other.members.remove(p.getUUID())!=null){changed(other);var old=block(other);if(old!=null)broadcast(other,old);}if(t.members.putIfAbsent(p.getUUID(),false)==null)changed(t);}
-            case "ready"->{if(stone==null||!t.members.containsKey(p.getUUID()))throw new IllegalArgumentException("请先报名");eligible(p,stone);if(owner.current(p.getUUID())!=null)throw new IllegalArgumentException("已进入其他副本，请先退出报名");t.members.put(p.getUUID(),!t.members.get(p.getUUID()));t.deadline=0;t.revision++;}
+            case "join"->{if(stone==null)throw new IllegalArgumentException("请先放入引路石");if(owner.current(p.getUUID())!=null)throw new IllegalArgumentException("请先离开当前副本");if(!t.members.containsKey(p.getUUID())&&t.members.size()>=WaystoneRules.current().maximumPlayers)throw new IllegalArgumentException("本场人数已满");for(var other:tables.values())if(other!=t&&other.members.remove(p.getUUID())!=null){changed(other);var old=block(other);if(old!=null)broadcast(other,old);}if(t.members.putIfAbsent(p.getUUID(),false)==null)changed(t);}
+            case "ready"->{if(stone==null||!t.members.containsKey(p.getUUID()))throw new IllegalArgumentException("请先报名");if(owner.current(p.getUUID())!=null)throw new IllegalArgumentException("已进入其他副本，请先退出报名");t.members.put(p.getUUID(),!t.members.get(p.getUUID()));t.deadline=0;t.revision++;}
             case "start"->{if(!Boolean.TRUE.equals(t.members.get(p.getUUID())))throw new IllegalArgumentException("报名并准备后才可开始战斗");if(t.deadline>0)throw new IllegalArgumentException("本场已经开始倒数");validate(t,b);t.startedBy=p.getUUID();t.deadline=System.currentTimeMillis()+WaystoneRules.current().countdownMillis;t.revision++;}
             default->throw new IllegalArgumentException("未知引路台操作");
         }
         broadcast(t,b);
     }catch(Exception e){players.message(p,e.getMessage());}}
-    private void eligible(ServerPlayer p,Waystone stone){var d=DungeonCatalog.current().dungeon(stone.dungeon);if(!d.available())throw new IllegalArgumentException("该引路石副本尚未开放");if(players.level(p)<d.level())throw new IllegalArgumentException("角色尚未解锁该副本");if(players.session(p).life.dead)throw new IllegalArgumentException("死亡状态不能参加挑战");}
     private void validate(Table t,WaystonePedestalBlockEntity b){
         var stone=Waystone.read(b.getItem(0));if(stone==null||b.inserter==null)throw new IllegalArgumentException("请先插入引路石");if(!t.members.containsKey(b.inserter))throw new IllegalArgumentException("石主需要报名并准备");if(t.members.isEmpty()||t.members.size()>WaystoneRules.current().maximumPlayers||t.members.values().stream().anyMatch(v->!v))throw new IllegalArgumentException("需要所有报名者准备");
-        for(UUID id:t.members.keySet()){ServerPlayer p=server.getPlayerList().getPlayer(id);if(p==null)throw new IllegalArgumentException("报名者必须全部在线");eligible(p,stone);if(owner.current(id)!=null)throw new IllegalArgumentException("有报名者正在其他副本内");}
+        for(UUID id:t.members.keySet()){ServerPlayer p=server.getPlayerList().getPlayer(id);if(p==null)throw new IllegalArgumentException("报名者必须全部在线");if(owner.current(id)!=null)throw new IllegalArgumentException("有报名者正在其他副本内");}
     }
     private void send(Table t,WaystonePedestalBlockEntity b,ServerPlayer p,boolean open){
         var j=new JsonObject();j.addProperty("table",t.id);j.addProperty("revision",t.revision);j.addProperty("open",open);j.addProperty("deadline",t.deadline);j.addProperty("serverNow",System.currentTimeMillis());j.addProperty("owner",b.inserter==null?"":b.inserter.toString());j.add("stone",JSON.toJsonTree(Waystone.read(b.getItem(0))));var members=new JsonArray();
@@ -91,7 +90,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
     private void begin(Table t,WaystonePedestalBlockEntity b)throws Exception{
         validate(t,b);var stone=Waystone.read(b.getItem(0));var rules=JSON.fromJson(JSON.toJson(WaystoneRules.current()),WaystoneRules.class);var stoneOwner=server.getPlayerList().getPlayer(b.inserter);
         var operator=server.getPlayerList().getPlayer(t.startedBy);if(operator==null||operator.level()!=b.getLevel())throw new IllegalArgumentException("点击开始的参战者须留在主世界直至倒数结束");
-        Dungeon d=new Dungeon();d.dungeon=stone.dungeon;d.difficulty=Difficulty.HELL;d.cell=owner.freeCell();d.waystone=new WaystoneRun();var run=d.waystone;run.stone=stone;run.owner=b.inserter;run.ownerLevel=players.level(stoneOwner);run.lastOwnerDropRate=rewards.dropRate(stoneOwner);run.rules=rules;run.monsterLevel=rules.monsterLevel(stone.tier);run.statMultiplier=rules.statMultiplier(stone.tier);
+        Dungeon d=new Dungeon();d.dungeon=stone.dungeon;d.difficulty=Difficulty.HELL;d.cell=owner.freeCell();d.waystone=new WaystoneRun();var run=d.waystone;run.stone=stone;run.owner=b.inserter;run.rules=rules;run.monsterLevel=rules.monsterLevel(stone.tier);run.statMultiplier=rules.statMultiplier(stone.tier);
         Target probe=new Target();probe.kind="BOSS";probe.elite=true;probe.elitePower="strong";probe.partySize=t.members.size();probe.difficulty=Difficulty.HELL;apply(probe,d);
         for(double stat:new double[]{probe.health(run.monsterLevel),probe.attack(run.monsterLevel),probe.defense(run.monsterLevel,false),probe.defense(run.monsterLevel,true)})if(!Double.isFinite(stat)||stat<=0)throw new IllegalArgumentException("当前阶数与等级配置超出可计算范围，引路石未消耗");
         for(UUID id:t.members.keySet()){var p=server.getPlayerList().getPlayer(id);d.roster.add(id);d.synchronization.put(id,false);d.returns.put(id.toString(),owner.point(p));}
@@ -113,16 +112,27 @@ public final class WaystoneService implements WaystoneActions.Handler {
     public void fail(Dungeon d)throws Exception{if(d.waystone!=null&&!d.waystone.settled)settle(d,false,List.of());}
     private void settle(Dungeon d,boolean completed,List<ServerPlayer> here)throws Exception{
         var run=d.waystone;if(run.settled)return;if(!journal.get("waystoneSettlement/"+d.id).isJsonNull())throw new IllegalStateException("引路石结算状态不一致");
-        run.finishedAt=System.currentTimeMillis();rewards.publish();
-        var p=server.getPlayerList().getPlayer(run.owner);if(p!=null){run.lastOwnerDropRate=rewards.dropRate(p);run.ownerLevel=players.level(p);}run.resultingTier=run.rules.nextTier(run.stone.tier,run.elapsed(run.finishedAt),completed);run.result=completed?"COMPLETED":"FAILED";
-        var replacement=Waystone.generate(run.resultingTier,run.ownerLevel,rewards.rarity(run.stone.effectiveDropRate(run.lastOwnerDropRate)),random);
-        ReturnPoint point=completed&&p!=null&&here.contains(p)?owner.point(p):d.returns.get(run.owner.toString());if(point==null)throw new IllegalStateException("石主返回位置缺失");String instance=completed&&p!=null&&here.contains(p)?d.id.toString():"";
-        var edits=new LinkedHashMap<String,JsonElement>(rewards.drop(run.owner,replacement.item(),point,instance));
-        if(completed)for(ServerPlayer member:here)edits.putAll(rewards.drop(member.getUUID(),rewards.chest(run.stone.tier),owner.point(member),d.id.toString()));
-        run.settled=true;d.status=completed?"COMPLETED":"CLOSED";edits.put("instance/"+d.id,JSON.toJsonTree(d));edits.put("waystoneSettlement/"+d.id,new JsonPrimitive(run.result));journal.transaction(edits);meter.freeze(d);rewards.publish();
-        for(ServerPlayer member:server.getPlayerList().getPlayers())if(d.roster.contains(member.getUUID())){updateSources(member);players.profile(member);players.message(member,(completed?"地狱+通关":"地狱+挑战结束")+"，用时 "+(run.elapsed(run.finishedAt)/1000)+"秒；石主获得 +"+run.resultingTier+" 引路石。");}
+        run.finishedAt=System.currentTimeMillis();run.result=completed?"COMPLETED":"FAILED";run.settled=true;d.status=completed?"COMPLETED":"CLOSED";
+        var recipients=new LinkedHashSet<UUID>();recipients.add(run.owner);if(completed)for(var player:here)recipients.add(player.getUUID());
+        var edits=new LinkedHashMap<String,JsonElement>();
+        for(UUID id:recipients){var player=server.getPlayerList().getPlayer(id);boolean inside=completed&&player!=null&&here.contains(player);ReturnPoint point=inside?owner.point(player):d.returns.get(id.toString());if(point==null)throw new IllegalStateException("奖励返回位置缺失");
+            var fact=new JsonObject();fact.addProperty("id",d.id.toString());fact.add("run",JSON.toJsonTree(run));fact.add("point",JSON.toJsonTree(point));fact.addProperty("instance",inside?d.id.toString():"");fact.addProperty("returnStone",id.equals(run.owner));fact.addProperty("chest",inside);edits.put("waystonePersonal/"+id+"/"+d.id,fact);
+        }
+        edits.put("instance/"+d.id,JSON.toJsonTree(d));edits.put("waystoneSettlement/"+d.id,new JsonPrimitive(run.result));journal.transaction(edits);meter.freeze(d);
+        for(var player:server.getPlayerList().getPlayers())if(d.roster.contains(player.getUUID())){updateSources(player);players.profile(player);pendingRewards(player);players.message(player,(completed?"地狱+通关":"地狱+挑战结束")+"，用时 "+(run.elapsed(run.finishedAt)/1000)+"秒。");}
     }
-    public void disconnected(ServerPlayer p,Dungeon d)throws Exception{var run=d.waystone;if(run.owner.equals(p.getUUID())){run.lastOwnerDropRate=rewards.dropRate(p);run.ownerLevel=players.level(p);journal.put("instance/"+d.id,d);}if(server.getPlayerList().getPlayers().stream().noneMatch(other->!other.getUUID().equals(p.getUUID())&&owner.participant(other,d.id.toString())&&other.level().dimension()==DungeonService.DIMENSION))owner.close(d);}
+    public void pendingRewards(ServerPlayer player){for(String key:journal.keys("waystonePersonal/"+player.getUUID()+"/")){var fact=journal.get(key);if(!fact.isJsonNull()&&journal.get("waystonePersonalDone/"+player.getUUID()+"/"+fact.getAsJsonObject().get("id").getAsString()).isJsonNull())Network.send(player,"waystoneReturn",fact);}}
+    public void receiveReward(ServerPlayer player,JsonObject request){
+        var fact=request.getAsJsonObject("context");String id=fact.get("id").getAsString(),key="waystonePersonalDone/"+player.getUUID()+"/"+id;
+        var previous=journal.get(key);if(!previous.isJsonNull()){if(!previous.equals(request))throw new IllegalArgumentException("引路石奖励操作号冲突");inventory.restore(player);players.profile(player);return;}
+        if(!journal.get("waystonePersonal/"+player.getUUID()+"/"+id).equals(fact))throw new IllegalArgumentException("挑战结算事实已变化");
+        var point=JSON.fromJson(fact.get("point"),ReturnPoint.class);String instance=fact.get("instance").getAsString();var d=owner.byId(id);
+        if(!instance.isEmpty()&&!owner.participant(player,instance)){point=d.returns.get(player.getStringUUID());instance="";}
+        var edits=new LinkedHashMap<String,JsonElement>();for(var raw:request.getAsJsonArray("items"))edits.putAll(rewards.drop(player.getUUID(),inventory.decode(player,raw),point,instance));edits.put(key,request.deepCopy());edits.put("waystonePersonal/"+player.getUUID()+"/"+id,JsonNull.INSTANCE);
+        if(request.has("resultingTier")){var updated=JSON.fromJson(JSON.toJsonTree(d),Dungeon.class);updated.waystone.resultingTier=request.get("resultingTier").getAsInt();edits.put("instance/"+id,JSON.toJsonTree(updated));}
+        inventory.transact(player,request.get("operation").getAsString(),request,()->{},edits);rewards.publish();players.profile(player);
+    }
+    public void disconnected(ServerPlayer p,Dungeon d)throws Exception{if(server.getPlayerList().getPlayers().stream().noneMatch(other->!other.getUUID().equals(p.getUUID())&&owner.participant(other,d.id.toString())&&other.level().dimension()==DungeonService.DIMENSION))owner.close(d);}
     public void reconnect(ServerPlayer p,Dungeon d)throws Exception{if(!d.status.equals("RUNNING"))return;var life=players.session(p).life;life.instance=d.id.toString();life.dimension=DungeonService.DIMENSION.identifier().toString();life.revision++;if(p.level().dimension()!=DungeonService.DIMENSION)owner.teleport(p,owner.level(),d.cell*512+.5,80,2.5);updateSources(p);for(UUID id:d.enemies){var e=owner.level().getEntity(id);if(e instanceof net.minecraft.world.entity.LivingEntity living)targets.context(p,living);}players.profile(p);}
     public void death(Dungeon d)throws Exception{if(d.status.equals("RUNNING")){d.waystone.penaltyMillis=Math.addExact(d.waystone.penaltyMillis,d.waystone.rules.deathPenaltyMillis);journal.put("instance/"+d.id,d);}}
     public void updateSources(ServerPlayer p){

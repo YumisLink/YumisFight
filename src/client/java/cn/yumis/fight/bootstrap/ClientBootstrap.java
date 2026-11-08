@@ -42,6 +42,7 @@ import net.minecraft.world.inventory.*;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.client.event.*;
@@ -53,6 +54,13 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.presentation.api.client.ClientUi.install(ClientSession.INSTANCE);
         cn.yumis.fight.modules.equipment.api.client.EquipmentClient.install(ClientSession.INSTANCE);
         cn.yumis.fight.modules.skills.api.client.SkillsClient.install(ClientSession.INSTANCE);
+        var local=ClientSession.INSTANCE;
+        cn.yumis.fight.modules.character.client.CharacterClient.install(local.preparations,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->new cn.yumis.fight.modules.character.api.ProfileConditions(!local.own.dead,local.dungeon!=null||!local.own.instance.isEmpty(),local.resources.training||local.trainingMeter.has("id")&&!local.trainingMeter.get("completed").getAsBoolean(),SkillController.INSTANCE.locked(),local.resources.cooldowns.values().stream().anyMatch(until->until>ClientSession.now())),()->local.resources.combatUntil,cn.yumis.fight.modules.skills.api.SkillLearning::apply,job->EquipmentItems.gear(cn.yumis.fight.modules.equipment.api.EquipmentTemplates.starter(job,new java.util.Random())));
+        cn.yumis.fight.modules.professions.client.ProfessionClient.install(local.preparations,()->local.professions,points->local.report(local.own,points*.05,true,SkillController.INSTANCE.snapshot().get(cn.yumis.fight.modules.attributes.api.Stat.HEALTH),0x8ef5ad,false,null),()->!local.own.dead);
+        cn.yumis.fight.modules.equipment.client.EquipmentActions.install(local.preparations,()->local.progress,()->local.profile,cn.yumis.fight.modules.professions.client.ProfessionClient::get);
+        cn.yumis.fight.modules.economy.client.EconomyActions.install(local.preparations,()->local.profile,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->!local.own.dead&&local.dungeon==null&&local.own.instance.isEmpty()&&ClientSession.now()>=local.resources.combatUntil);
+        cn.yumis.fight.modules.dungeons.client.DungeonActions.install(local.preparations,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->!local.own.dead,cn.yumis.fight.modules.economy.api.ChestRewards::waystoneChest,luck->cn.yumis.fight.modules.economy.api.LootOdds.rarity(cn.yumis.fight.modules.dungeons.api.Difficulty.HELL,true,false,luck,new java.util.Random()),()->!local.own.dead&&local.dungeon==null&&local.own.instance.isEmpty());
+        local.preparations.seal();
         cn.yumis.fight.modules.dungeons.api.TrainingActions.client(cn.yumis.fight.modules.dungeons.client.TrainingInput::use);
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.register(bus,()->ClientSession.INSTANCE.dungeon);
         cn.yumis.fight.bootstrap.PlayerPageAssembly.register();
@@ -68,6 +76,11 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.client.GblVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.PalaceVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.ForbiddenVisuals.register(()->ClientSession.INSTANCE.own.instance);
+        cn.yumis.fight.modules.dungeons.client.SkasaVisuals.register(()->ClientSession.INSTANCE.own.instance);
+        cn.yumis.fight.modules.dungeons.client.DarkCityVisuals.register(()->ClientSession.INSTANCE.own.instance);
+        cn.yumis.fight.modules.dungeons.client.ClassicVisuals.register(()->ClientSession.INSTANCE.own.instance);
+        cn.yumis.fight.modules.dungeons.client.DarkCityClient.register(()->ClientSession.INSTANCE.own);
+        cn.yumis.fight.modules.dungeons.client.EncounterClientContacts.register(()->ClientSession.INSTANCE.own,()->ClientSession.INSTANCE.progress.level,()->ClientSession.INSTANCE.encounterSync(),()->SkillController.INSTANCE.invulnerable());
         cn.yumis.fight.modules.dungeons.client.EnemyTelegraphs.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
@@ -103,6 +116,9 @@ public final class ClientBootstrap {
                 if(type.getKey().equals("golden_king"))e.registerEntityRenderer(type.getValue().get(),cn.yumis.fight.modules.dungeons.client.GoldenKingRenderer::new);
                 else if(cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"gbl/"+kind.model,kind.width));}
                 else if(cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"forbidden/"+kind.model,kind.width));}
+                else if(cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"skasa/"+kind.model,kind.width));}
+                else if(cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"dark_city/"+kind.model,kind.width));}
+                else if(cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,kind.resource(),kind.width));}
                 else if(cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.PalaceEnemyRenderer(context,kind));}
                 else if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),GoblinRenderer::new);
                 else{
@@ -116,6 +132,8 @@ public final class ClientBootstrap {
         }
         );
         bus.addListener((RegisterGuiLayersEvent e)->{e.registerAboveAll(id("hud"),Hud::render);e.registerAboveAll(id("stamina"),CloudMovement::render);});
+        // Jade renders in RenderGuiEvent.Post at NORMAL; draw the target panel afterward.
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,Hud::renderTarget);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
             IndustrialVisuals.tick();
             ClientSession.INSTANCE.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();while(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.consumeClick()){

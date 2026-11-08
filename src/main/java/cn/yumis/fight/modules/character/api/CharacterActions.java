@@ -1,12 +1,11 @@
 package cn.yumis.fight.modules.character.api;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import java.util.function.BiConsumer;
-/** Character-owned item actions, wired to the application by bootstrap. */
+/** Character-owned local item actions, wired by client composition. */
 public final class CharacterActions {
     public enum Ticket { CAREER_UNLOCK,AWAKENING,PROFILE_EXPANSION,LEVEL_ONE,LEVEL_TEN,LEVEL_MAX }
-    private static BiConsumer<ServerPlayer,Ticket> use=(player,ticket)->{};
+    private static BiConsumer<Player,Ticket> use=(player,ticket)->{};
     private CharacterActions(){}
-    public static void install(BiConsumer<ServerPlayer,Ticket> action){use=java.util.Objects.requireNonNull(action);}
-    public static void use(ServerPlayer player,Ticket ticket){use.accept(player,ticket);}
-    public static void clear(){use=(player,ticket)->{};}
+    public static void install(BiConsumer<Player,Ticket> action){use=java.util.Objects.requireNonNull(action);}
+    public static void use(Player player,Ticket ticket){use.accept(player,ticket);}
 }

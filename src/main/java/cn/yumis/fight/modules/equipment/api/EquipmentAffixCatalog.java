@@ -13,7 +13,7 @@ public final class EquipmentAffixCatalog {
     private EquipmentAffixCatalog(){}
     private static String range(double low,double high){return "（"+AffixText.integer(low)+"～"+AffixText.integer(high)+"）";}
     private static String preview(Gear gear,AffixDefinition definition){
-        if(definition.operation().equals("SKILL_FAMILY"))return definition.name()+" +（1～3）级";
+        if(definition.operation().equals("SKILL_FAMILY"))return definition.name()+"等级+（1～3）";
         Affix affix=new Affix();affix.id=definition.id();affix.operation=definition.operation();affix.stat=definition.stat()==null?"":definition.stat().name();affix.element=definition.element();
         if(affix.operation.equals("EXTRA")){affix.baseline=.1*EquipmentRules.budget(80);affix.baselineMaximum=.2*EquipmentRules.budget(80);}
         else if(affix.stat.equals("ATTACK_SPEED")){affix.baseline=AttackSpeedRoll.sample(80,.8);affix.baselineMaximum=AttackSpeedRoll.sample(80,1.2);}

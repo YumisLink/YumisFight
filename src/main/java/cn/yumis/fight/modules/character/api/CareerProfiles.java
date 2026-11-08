@@ -18,6 +18,17 @@ public final class CareerProfiles {
     }
     public static CareerProfiles first(){var book=new CareerProfiles();book.activeId=UUID.randomUUID().toString();book.entries.put(book.activeId,new Entry("职业配置1",null));return book;}
     public CareerProfiles copy(){return JSON.fromJson(JSON.toJsonTree(this),CareerProfiles.class);}
+    public String stateKey(){try{return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(JSON.toJson(this).getBytes(java.nio.charset.StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException impossible){throw new IllegalStateException(impossible);}}
+    /** Only changed stored entries cross the wire; every untouched profile keeps its exact growth. */
+    public JsonObject delta(CareerProfiles next){
+        var before=JSON.toJsonTree(this).getAsJsonObject();var result=JSON.toJsonTree(next).getAsJsonObject();var changed=new JsonObject();var removed=new JsonArray();
+        for(var entry:result.getAsJsonObject("entries").entrySet())if(!entry.getValue().equals(before.getAsJsonObject("entries").get(entry.getKey())))changed.add(entry.getKey(),entry.getValue().deepCopy());
+        for(String id:before.getAsJsonObject("entries").keySet())if(!next.entries.containsKey(id))removed.add(id);result.add("entries",changed);result.add("removed",removed);return result;
+    }
+    public CareerProfiles applyDelta(JsonObject delta){
+        var result=JSON.toJsonTree(this).getAsJsonObject();for(var field:delta.entrySet())if(!field.getKey().equals("entries")&&!field.getKey().equals("removed"))result.add(field.getKey(),field.getValue().deepCopy());
+        for(var entry:delta.getAsJsonObject("entries").entrySet())result.getAsJsonObject("entries").add(entry.getKey(),entry.getValue().deepCopy());for(var id:delta.getAsJsonArray("removed"))result.getAsJsonObject("entries").remove(id.getAsString());return JSON.fromJson(result,CareerProfiles.class);
+    }
     public static Progress copy(Progress value){return JSON.fromJson(JSON.toJsonTree(value),Progress.class);}
     private static JsonObject growth(Progress value){var source=JSON.toJsonTree(value).getAsJsonObject();var result=new JsonObject();for(String key:GROWTH)result.add(key,source.get(key).deepCopy());return result;}
     public Progress select(Progress current,String target){
@@ -54,12 +65,24 @@ public final class CareerProfiles {
             if(e.growth!=null){if(!e.growth.keySet().equals(new HashSet<>(GROWTH)))throw new IllegalStateException("职业配置成长格式不符");var source=JSON.toJsonTree(new Progress()).getAsJsonObject();e.growth.entrySet().forEach(v->source.add(v.getKey(),v.getValue()));var p=JSON.fromJson(source,Progress.class);validateProgress(p);if(p.selected()&&!JobCatalog.basic(p.jobId())&&!jobs.add(p.jobId()))throw new IllegalStateException("职业配置转职重复");}
         }
     }
+    /** Storage checks shape and identity only; level/SP/occupation policy belongs to the owner. */
+    public void stored(Progress active){
+        if(schema!=1||capacity<1||revision<0||entries==null||entries.isEmpty()||entries.size()>capacity||!entries.containsKey(activeId))throw new IllegalStateException("职业配置存档格式不符");
+        storedProgress(active);
+        for(var pair:entries.entrySet()){
+            UUID.fromString(pair.getKey());var entry=pair.getValue();if(entry==null||entry.name==null||pair.getKey().equals(activeId)!=(entry.growth==null))throw new IllegalStateException("职业配置索引不完整");
+            if(entry.growth!=null){if(!entry.growth.keySet().equals(new HashSet<>(GROWTH)))throw new IllegalStateException("职业配置成长格式不符");var source=JSON.toJsonTree(new Progress()).getAsJsonObject();entry.growth.entrySet().forEach(field->source.add(field.getKey(),field.getValue()));storedProgress(JSON.fromJson(source,Progress.class));}
+        }
+    }
+    public static void storedProgress(Progress p){
+        if(p==null||p.job==null||p.skills==null||p.slots==null||p.slots.length!=Progress.SLOT_COUNT||p.completedJobQuests==null)throw new IllegalStateException("角色存档字段缺失");JobCatalog.require(p.jobId());for(String slot:p.slots)if(slot==null)throw new IllegalStateException("技能配置存档字段缺失");
+    }
     public static void validateProgress(Progress p){
         if(p==null||p.level<1||p.level>CharacterRules.MAX_LEVEL||p.experience<0||p.sp<0||p.strength<0||p.intelligence<0||p.spirit<0||p.free()<0||p.skills==null||p.slots==null||p.slots.length!=Progress.SLOT_COUNT||p.completedJobQuests==null)throw new IllegalStateException("角色成长存档不完整");
         JobCatalog.require(p.jobId());for(String slot:p.slots)if(slot==null)throw new IllegalStateException("技能配置存档不完整");
     }
     public JsonObject view(Progress active){
         var result=new JsonObject();result.addProperty("schema",1);result.addProperty("activeId",activeId);result.addProperty("revision",revision);result.addProperty("capacity",capacity);result.addProperty("unlocked",unlocked(active));var rows=new JsonArray();
-        for(var pair:entries.entrySet()){var e=pair.getValue();boolean selected=pair.getKey().equals(activeId);var row=new JsonObject();row.addProperty("id",pair.getKey());row.addProperty("name",e.name);row.addProperty("level",selected?active.level:e.growth.get("level").getAsInt());row.addProperty("job",selected?active.jobId():e.growth.get("job").getAsString());rows.add(row);}result.add("entries",rows);return result;
+        for(var pair:entries.entrySet()){var e=pair.getValue();boolean selected=pair.getKey().equals(activeId);var row=new JsonObject();row.addProperty("id",pair.getKey());row.addProperty("name",e.name);row.addProperty("level",selected?active.level:e.growth.get("level").getAsInt());row.addProperty("job",selected?active.jobId():e.growth.get("job").getAsString());rows.add(row);}result.add("entries",rows);result.add("state",JSON.toJsonTree(this));return result;
     }
 }
