@@ -4,7 +4,8 @@ from math import cos,sin,radians
 import json,copy
 from industrial_visual_models import ROOT,ASSETS,NS,FAMILIES,write
 SOURCE=ROOT/'art/industry-arcane'
-UV={'stone':(0,0),'gold':(16,0),'gem':(0,16),'rune':(16,16)}
+# Symbol panels use the body material; functional crystals retain their existing UVs.
+UV={'stone':(0,0),'gold':(16,0),'gem':(0,16),'rune':(0,0)}
 
 
 def subtract(rect,cover):

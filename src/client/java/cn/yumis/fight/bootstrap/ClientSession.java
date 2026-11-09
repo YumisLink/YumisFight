@@ -72,7 +72,8 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     public long serverOffset;
     public final Map<UUID,Target> targets=new HashMap<>();
     public final Map<String,JsonObject> ailments=new HashMap<>();
-    private final Map<Integer,Long> contextRequests=new HashMap<>();
+    private record ContextRequest(UUID target,long sent){}
+    private final Map<Integer,ContextRequest> contextRequests=new HashMap<>();
     public final cn.yumis.fight.modules.combat.api.client.CombatPrediction prediction=new cn.yumis.fight.modules.combat.api.client.CombatPrediction(new cn.yumis.fight.modules.combat.api.client.CombatPrediction.State(){
         public boolean ready(){return ready;} public String session(){return session;} public Life own(){return own;}
         public cn.yumis.fight.modules.combat.api.Runtime resources(){return resources;}
@@ -215,6 +216,8 @@ damageMeter=j;
         },this::applyProfile));
         messages.register("dungeons","context",(context,j)->{
 Target t=JSON.fromJson(j,Target.class);
+                ContextRequest request=contextRequests.get(t.entityId);
+                if(request!=null&&request.target().equals(t.id))contextRequests.remove(t.entityId);
                 Target old=targets.get(t.id);
                 if(old==null||t.life.generation>old.life.generation||t.life.generation==old.life.generation&&t.life.revision>=old.life.revision){
                     targets.put(t.id,t);
@@ -409,14 +412,23 @@ if(j.has("target")&&j.has("kind")){
             Effects.clear();
         }
         analysisLifecycle();
-        targets.entrySet().removeIf(entry->{Target target=entry.getValue();if(!target.training())return false;var entity=mc.level.getEntity(target.entityId);return entity==null||!entity.getUUID().equals(entry.getKey());});
+        Set<UUID> referenced=new HashSet<>(prediction.referencedTargets());
+        referenced.addAll(SkillController.INSTANCE.referencedTargets());
+        targets.entrySet().removeIf(entry->{
+            if(referenced.contains(entry.getKey()))return false;
+            Target target=entry.getValue();var entity=mc.level.getEntity(target.entityId);
+            return !target.dimension.equals(dim)||entity==null||!entity.getUUID().equals(entry.getKey());
+        });
+        contextRequests.entrySet().removeIf(entry->{var entity=mc.level.getEntity(entry.getKey());return entity==null||!entity.getUUID().equals(entry.getValue().target());});
         prediction.tick();
         if(now()-lastUploadCheck>=500)upload();
     }
     public Target context(net.minecraft.world.entity.LivingEntity entity){
         Target t=targets.get(entity.getUUID());
-        if(t==null&&now()-contextRequests.getOrDefault(entity.getId(),0L)>250){
-            contextRequests.put(entity.getId(),now());
+        if(t!=null&&(t.entityId!=entity.getId()||!t.dimension.equals(entity.level().dimension().identifier().toString())))t=null;
+        ContextRequest request=contextRequests.get(entity.getId());
+        if(t==null&&(request==null||!request.target().equals(entity.getUUID())||now()-request.sent()>250)){
+            contextRequests.put(entity.getId(),new ContextRequest(entity.getUUID(),now()));
             JsonObject j=new JsonObject();
             j.addProperty("entity",entity.getId());
             send("context",j);

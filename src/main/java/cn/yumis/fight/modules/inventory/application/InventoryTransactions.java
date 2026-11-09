@@ -201,6 +201,7 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             for(var drop:stagedDrops)edits.put(drop.journalKey(),drop.state());
             journal.transaction(edits);
             committed=true;
+            loot.committed(edits.keySet());
             apply(p,after);
             containers.apply(p,external,externalAfter.values(),externalAfter.metadata());
             verify(p,after);

@@ -1331,15 +1331,13 @@
         "west": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            12.0,
-            8.5
+            0.0,
+            0.0,
+            4.0,
+            0.5
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     },
     {
       "from": [
@@ -1356,15 +1354,13 @@
         "east": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            12.0,
-            8.5
+            0.0,
+            0.0,
+            4.0,
+            0.5
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     },
     {
       "from": [
@@ -1381,15 +1377,13 @@
         "up": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            12.0,
-            12.0
+            0.0,
+            0.0,
+            4.0,
+            4.0
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     },
     {
       "from": [
@@ -1406,15 +1400,13 @@
         "north": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            12.0,
-            8.5
+            0.0,
+            0.0,
+            4.0,
+            0.5
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     },
     {
       "from": [
@@ -1431,15 +1423,13 @@
         "south": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            12.0,
-            8.5
+            0.0,
+            0.0,
+            4.0,
+            0.5
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     },
     {
       "from": [

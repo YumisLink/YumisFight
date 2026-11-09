@@ -24,6 +24,11 @@ public final class CombatPrediction {
     public CombatPrediction(State state){this.state=state;}
     public static long now(){return net.minecraft.util.Util.getMillis();}
     public int pendingCount(){return pending.size();}
+    public Set<UUID> referencedTargets(){
+        Set<UUID> targets=new HashSet<>();
+        for(Pending value:pending.values())targets.add(UUID.fromString(value.report.get("target").getAsString()));
+        return Set.copyOf(targets);
+    }
     public List<DamageNumber> numbers(){return numberView;}
     public void clear(){pending.clear();analysisPending.clear();numbers.clear();confirmedCombatUntil=confirmedShieldRecoveryAt=0;}
     public void reset(boolean newSession){if(newSession)analysisPending.clear();else retainAnalysis();pending.clear();confirmedCombatUntil=state.resources().combatUntil;confirmedShieldRecoveryAt=state.resources().shieldRecoveryAt;if(newSession)nextOperation=1;}

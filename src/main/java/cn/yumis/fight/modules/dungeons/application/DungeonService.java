@@ -55,6 +55,8 @@ public class DungeonService {
     public TreasureHuntService treasure;
     public WaystoneService waystones;
     private boolean stopping;
+    private Set<String> activeInstances=new LinkedHashSet<>();
+    private boolean instanceIndexValid;
     public void installWaystones(cn.yumis.fight.modules.inventory.api.InventoryOperations inventory,cn.yumis.fight.modules.dungeons.api.WaystonePorts rewards,Runnable recovery,Random random){waystones=new WaystoneService(this,journal,server,playerAccess,targets,meter,inventory,rewards,recovery,random);}
     public void installTreasure(cn.yumis.fight.modules.inventory.api.InventoryOperations inventory,cn.yumis.fight.modules.dungeons.api.TreasurePorts rewards,Random random){treasure=new TreasureHuntService(this,journal,server,playerAccess,targets,inventory,rewards,random);}
     private final DungeonPorts.Meter meter;
@@ -106,9 +108,28 @@ public class DungeonService {
         if(id==null||id.isEmpty())return null;
         return journal.get("instance/"+id,Dungeon.class,null);
     }
-    public Dungeon current(UUID p){
+    private void ensureInstanceIndex(){
+        if(instanceIndexValid)return;
+        Set<String> active=new LinkedHashSet<>();
         for(String key:journal.keys("instance/")){
             Dungeon d=journal.get(key,Dungeon.class,null);
+            if(d!=null&&!d.status.equals("CLOSED"))active.add(key.substring(9));
+        }
+        activeInstances=active;instanceIndexValid=true;
+    }
+    List<String> activeInstanceIds(){ensureInstanceIndex();return List.copyOf(activeInstances);}
+    /** Call after the outer transaction has committed, never while its writes are still staged. */
+    void instanceCommitted(UUID id){
+        if(!instanceIndexValid)return;
+        try{
+            Dungeon d=byId(id.toString());
+            if(d!=null&&!d.status.equals("CLOSED"))activeInstances.add(id.toString());
+            else activeInstances.remove(id.toString());
+        }catch(RuntimeException failure){instanceIndexValid=false;}
+    }
+    public Dungeon current(UUID p){
+        for(String instance:activeInstanceIds()){
+            Dungeon d=byId(instance);
             if(d!=null&&!d.status.equals("CLOSED")&&!(d.treasure!=null&&d.treasure.region==0&&d.treasure.cleared)&&d.roster.contains(p)&&!d.withdrawn.contains(p))return d;
         }
         return null;
@@ -124,6 +145,7 @@ public class DungeonService {
         return l;
     }
     public void recover()throws Exception{
+        instanceIndexValid=false;
         for(String key:journal.keys("instance/")){
             Dungeon d=journal.get(key,Dungeon.class,null);
             if(d!=null&&!d.status.equals("CLOSED")){
@@ -133,6 +155,7 @@ public class DungeonService {
                 for(var e:d.returns.entrySet())journal.put("return/"+e.getKey(),e.getValue());
             }
         }
+        activeInstances=new LinkedHashSet<>();instanceIndexValid=true;
         ServerLevel l=server.getLevel(DIMENSION);
         if(l!=null)for(Entity e:l.getAllEntities())if(e instanceof DungeonEnemy||e instanceof CageEntity)e.discard();
         for(ServerLevel world:server.getAllLevels())for(Entity e:world.getAllEntities())if(e instanceof DungeonEnemy mob){Dungeon d=byId(mob.instance());if(d==null||d.status.equals("CLOSED"))e.discard();}
@@ -153,8 +176,8 @@ public class DungeonService {
         if(old!=null){if(old.dungeon.equals(id)&&old.difficulty==difficulty&&old.syncFor(p.getUUID())==j.get("sync").getAsBoolean()){playerAccess.profile(p);return;}throw new IllegalArgumentException("请先退出当前副本，再选择场次或同步");}
         Dungeon d=null;
         boolean created=false;
-        for(String recordKey:journal.keys("instance/")){
-            Dungeon candidate=journal.get(recordKey,Dungeon.class,null);
+        for(String instance:activeInstanceIds()){
+            Dungeon candidate=byId(instance);
             if(candidate!=null&&candidate.treasure==null&&candidate.waystone==null&&candidate.dungeon.equals(id)&&candidate.difficulty==difficulty&&candidate.status.equals("RUNNING")){
                 d=candidate;
                 break;
@@ -169,7 +192,8 @@ public class DungeonService {
             d.cell=freeCell();
             d.difficulty=difficulty;
             journal.put("instance/"+d.id,d);
-            try{forceArena(d,true);ensureArena(def,d.cell);}catch(Exception failure){d.status="CLOSED";journal.put("instance/"+d.id,d);clearCell(d.cell);forceArena(d,false);throw failure;}
+            instanceCommitted(d.id);
+            try{forceArena(d,true);ensureArena(def,d.cell);}catch(Exception failure){d.status="CLOSED";journal.put("instance/"+d.id,d);instanceCommitted(d.id);clearCell(d.cell);forceArena(d,false);throw failure;}
             clearCell(d.cell);
             journal.put("instance/"+d.id,d);
             resetDoors(d);
@@ -198,6 +222,7 @@ public class DungeonService {
             }
         }
         journal.finish();
+        instanceCommitted(d.id);
         }catch(Exception failure){journal.abort();if(created)close(d);throw failure;}
         playerAccess.progress(p,nextProgress);
         playerAccess.session(p).life.instance=d.id.toString();
@@ -290,7 +315,7 @@ public class DungeonService {
             level().setChunkForced(x,z,forced);if(forced)level().getChunk(x,z);
         }
     }
-    int freeCell(){Set<Integer> occupied=new HashSet<>();for(String key:journal.keys("instance/")){Dungeon d=journal.get(key,Dungeon.class,null);if(d!=null&&!d.status.equals("CLOSED"))occupied.add(d.cell);}int cell=DungeonCatalog.current().dungeons.stream().mapToInt(DungeonCatalog.DungeonDef::cell).max().orElse(-1)+1;while(occupied.contains(cell))cell++;return cell;}
+    int freeCell(){Set<Integer> occupied=new HashSet<>();for(String instance:activeInstanceIds()){Dungeon d=byId(instance);if(d!=null&&!d.status.equals("CLOSED"))occupied.add(d.cell);}int cell=DungeonCatalog.current().dungeons.stream().mapToInt(DungeonCatalog.DungeonDef::cell).max().orElse(-1)+1;while(occupied.contains(cell))cell++;return cell;}
     void ensureArena(DungeonCatalog.DungeonDef def,int cell)throws Exception{
         var definition=DungeonLayouts.require(def.id());
         String key="arenaCell/"+cell,layout=def.id()+"/"+definition.version();
@@ -418,7 +443,8 @@ public class DungeonService {
         try{
             if(waystones!=null)waystones.tick();
             long now=System.currentTimeMillis();
-            for(String key:journal.keys("instance/")){
+            for(String instance:activeInstanceIds()){
+                String key="instance/"+instance;
                 Dungeon d=journal.get(key,Dungeon.class,null);
                 if(d==null||d.treasure!=null||!d.status.equals("RUNNING"))continue;
                 List<ServerPlayer> players=server.getPlayerList().getPlayers().stream().filter(p->participant(p,d.id.toString())&&p.level().dimension()==DIMENSION).toList();
@@ -718,14 +744,15 @@ public class DungeonService {
         for(var encounter:classic)encounter.close(d);
         d.status="CLOSED";
         journal.put("instance/"+d.id,d);
+        instanceCommitted(d.id);
         clearCell(d.cell);
         forceArena(d,false);
         for(Cage c:new ArrayList<>(cages.values()))if(c.instance.equals(d.id.toString()))removeCage(c);
     }
     public void shutdown()throws Exception{
         stopping=true;
-        for(String key:journal.keys("instance/")){
-            Dungeon d=journal.get(key,Dungeon.class,null);
+        for(String instance:activeInstanceIds()){
+            Dungeon d=byId(instance);
             if(d!=null&&!d.status.equals("CLOSED"))close(d);
         }
     }

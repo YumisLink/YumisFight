@@ -53,17 +53,19 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
         JsonObject map=JsonParser.parseString(raw).getAsJsonObject();int x=map.get("x").getAsInt(),z=map.get("z").getAsInt();
         double dx=p.getX()-(x+.5),dz=p.getZ()-(z+.5);if(dx*dx+dz*dz>100)throw new IllegalArgumentException("请前往藏宝地点的水平10格以内：X="+x+" Z="+z);
         if(owner.current(p.getUUID())!=null)throw new IllegalArgumentException("请先结束当前战斗或离开副本");
-        for(String key:journal.keys("instance/")){Dungeon other=journal.get(key,Dungeon.class,null);if(other!=null&&other.treasure!=null&&other.treasure.region==0&&!other.treasure.cleared&&!other.status.equals("CLOSED")){long ox=(long)x-other.treasure.mapX,oz=(long)z-other.treasure.mapZ;if(ox*ox+oz*oz<128*128)throw new IllegalArgumentException("附近已有守宝战斗，请完成后再挖掘这张图");}}
+        for(String instance:owner.activeInstanceIds()){Dungeon other=owner.byId(instance);if(other!=null&&other.treasure!=null&&other.treasure.region==0&&!other.treasure.cleared&&!other.status.equals("CLOSED")){long ox=(long)x-other.treasure.mapX,oz=(long)z-other.treasure.mapZ;if(ox*ox+oz*oz<128*128)throw new IllegalArgumentException("附近已有守宝战斗，请完成后再挖掘这张图");}}
         List<Vec3> positions=new ArrayList<>();for(int i=0;i<4;i++){Vec3 pos=legal(server.overworld(),x+(i-2)*3,z+5,p.getY());if(pos==null)throw new IllegalArgumentException("附近没有合法守宝怪出生位置，请整理空间后重试");positions.add(pos);}
         Vec3 portalPosition=legal(server.overworld(),x,z,p.getY());if(portalPosition==null)throw new IllegalArgumentException("藏宝坐标没有合法落脚点，请整理空间后重试");
         Dungeon d=new Dungeon();d.cell=owner.freeCell();d.dungeon="goblin_camp";d.difficulty=Difficulty.HELL;d.treasure=new TreasureState();var t=d.treasure;t.baseLevel=players.level(p);t.owner=p.getUUID();t.mapX=x;t.mapZ=z;t.mapY=positions.getFirst().y;t.lastX=x+.5;t.lastY=t.mapY;t.lastZ=z+.5;
         d.roster.add(p.getUUID());d.synchronization.put(p.getUUID(),false);d.returns.put(p.getStringUUID(),owner.point(p));
         t.mapY=portalPosition.y;t.partySize=Math.max(1,present(d).size());
         JsonObject intent=new JsonObject();intent.addProperty("digMap",map.get("id").getAsString());
-        boolean consumed=inventory.transact(p,"map-dig/"+map.get("id").getAsString(),intent,()->{if(!ItemData.string(p.getItemInHand(hand),"treasure_map").equals(raw))throw new IllegalArgumentException("手中藏宝图发生变化");p.getItemInHand(hand).shrink(1);},Map.of("instance/"+d.id,JSON.toJsonTree(d)));
+        boolean consumed;
+        try{consumed=inventory.transact(p,"map-dig/"+map.get("id").getAsString(),intent,()->{if(!ItemData.string(p.getItemInHand(hand),"treasure_map").equals(raw))throw new IllegalArgumentException("手中藏宝图发生变化");p.getItemInHand(hand).shrink(1);},Map.of("instance/"+d.id,JSON.toJsonTree(d)));}
+        finally{owner.instanceCommitted(d.id);}
         if(!consumed)return;
         try{String[] types={"goblin","goblin","goblin_thrower","goblin_captain"};for(int i=0;i<4;i++){Vec3 pos=positions.get(i);owner.spawn(d,types[i],i==3,false,pos.x,pos.y,pos.z);}journal.put("instance/"+d.id,d);}
-        catch(Exception failure){for(UUID id:d.enemies){Entity e=server.overworld().getEntity(id);if(e!=null)e.discard();}d.status="CLOSED";inventory.transact(p,"map-refund/"+d.id,intent,()->{var refund=cn.yumis.fight.platform.ItemRegistry.item("goblin_treasure_map",1);ItemData.string(refund,"treasure_map",raw);refund.set(DataComponents.CUSTOM_NAME,ModText.of("已开启的哥布林王国藏宝图 · X:"+x+" Z:"+z));inventory.requireSpace(p,refund);},Map.of("instance/"+d.id,JSON.toJsonTree(d)));throw failure;}
+        catch(Exception failure){for(UUID id:d.enemies){Entity e=server.overworld().getEntity(id);if(e!=null)e.discard();}d.status="CLOSED";try{inventory.transact(p,"map-refund/"+d.id,intent,()->{var refund=cn.yumis.fight.platform.ItemRegistry.item("goblin_treasure_map",1);ItemData.string(refund,"treasure_map",raw);refund.set(DataComponents.CUSTOM_NAME,ModText.of("已开启的哥布林王国藏宝图 · X:"+x+" Z:"+z));inventory.requireSpace(p,refund);},Map.of("instance/"+d.id,JSON.toJsonTree(d)));}finally{owner.instanceCommitted(d.id);}throw failure;}
         arrived(d,p);players.message(p,"守宝怪出现！击败所有敌人获得宝箱。");
     }catch(Exception failure){players.message(p,failure.getMessage());}}
 
@@ -96,7 +98,8 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
     public void tick(){
         tick++;long now=System.currentTimeMillis();
         try{
-            if(tick%5==0)for(String key:journal.keys("instance/")){
+            if(tick%5==0)for(String instance:owner.activeInstanceIds()){
+                String key="instance/"+instance;
                 Dungeon d=journal.get(key,Dungeon.class,null);if(d==null||d.treasure==null||d.status.equals("CLOSED"))continue;var t=d.treasure;
                 if(d.status.equals("PREPARING")){finish(d,"地区生成未完成，本次探索已安全结束，已获得宝箱保留。");continue;}
                 if(t.expires>0&&now>=t.expires){finish(d,"挖宝时间已到，探索结束。");continue;}
@@ -137,7 +140,7 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
             for(ServerPlayer p:here){String award="treasureAward/"+d.id+"/"+t.region+"/"+p.getUUID();if(!journal.get(award).isJsonNull())continue;Vec3 at=new Vec3(t.lastX,t.lastY,t.lastZ);rewards.chest(p,"treasure",tier,t.baseLevel,at,d.id.toString());if(t.region==0)rewards.chest(p,"goblin_kingdom",1,t.baseLevel,at,d.id.toString());journal.put(award,true);}
             t.cleared=true;if(t.region>0){t.tier=tier;t.failedProbability=probability;}
             else{t.portal=random.nextBoolean();if(t.portal){Vec3 legal=legal(server.overworld(),t.mapX,t.mapZ,t.mapY);if(legal!=null)t.mapY=legal.y;else t.portal=false;t.expires=System.currentTimeMillis()+30*60*1000L;}if(!t.portal)d.status="CLOSED";}
-            if(t.region==5)d.status="COMPLETED";journal.put("instance/"+d.id,d);journal.finish();
+            if(t.region==5)d.status="COMPLETED";journal.put("instance/"+d.id,d);journal.finish();owner.instanceCommitted(d.id);
         }catch(Exception e){journal.abort();rewards.abort();throw e;}
         rewards.publish();
         if(t.region==0){for(ServerPlayer p:here){players.session(p).life.instance="";players.save(p);players.profile(p);}if(t.portal)server.getPlayerList().broadcastSystemMessage(ModText.of("【挖宝】哥布林王国的秘密入口出现！主世界 X:"+t.mapX+" Y:"+(int)t.mapY+" Z:"+t.mapZ+"，所有冒险者均可进入，30分钟后关闭。"),false);}
@@ -160,7 +163,7 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
     private void portalRing(ServerLevel level,double x,double y,double z){for(int i=0;i<12;i++){double a=i*Math.PI/6;level.sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD,x,y+2+Math.sin(a)*2,z+Math.cos(a)*1.8,1,0,0,0,0);}}
     private void warn(Dungeon d,long now){var t=d.treasure;if(t.expires==0)return;long left=t.expires-now;String text=null;if(left<=60000&&!t.warningOne){t.warningOne=true;text="挖宝入口与秘境将在1分钟后关闭。";}else if(left<=300000&&!t.warningFive){t.warningFive=true;text="挖宝入口与秘境剩余5分钟。";}if(text!=null)for(ServerPlayer p:present(d))players.message(p,text);}
     void leave(Dungeon d,ServerPlayer p,boolean back)throws Exception{d.withdrawn.add(p.getUUID());ReturnPoint point=d.returns.get(p.getStringUUID());if(point!=null){owner.rewards.move(p,d.id.toString(),point);if(back)owner.back(p,point);}var life=players.session(p).life;life.instance="";life.dimension=p.level().dimension().identifier().toString();journal.put("instance/"+d.id,d);players.save(p);players.profile(p);owner.rewards.publish();}
-    void finish(Dungeon d,String message)throws Exception{for(ServerPlayer p:present(d)){players.message(p,message);leave(d,p,d.treasure.region>0);}for(UUID id:d.roster){ServerPlayer p=server.getPlayerList().getPlayer(id);ReturnPoint point=d.returns.get(id.toString());if(p!=null&&point!=null)owner.rewards.move(p,d.id.toString(),point);}owner.rewards.publish();d.status="CLOSED";journal.put("instance/"+d.id,d);clearWeapons(d.id.toString());for(Entity e:world(d).getAllEntities())if(e instanceof DungeonEnemy mob&&mob.instance().equals(d.id.toString())){owner.cancelBoss(e.getUUID());e.discard();}if(d.treasure.region>0)owner.forceArena(d,false);}
+    void finish(Dungeon d,String message)throws Exception{for(ServerPlayer p:present(d)){players.message(p,message);leave(d,p,d.treasure.region>0);}for(UUID id:d.roster){ServerPlayer p=server.getPlayerList().getPlayer(id);ReturnPoint point=d.returns.get(id.toString());if(p!=null&&point!=null)owner.rewards.move(p,d.id.toString(),point);}owner.rewards.publish();d.status="CLOSED";journal.put("instance/"+d.id,d);owner.instanceCommitted(d.id);clearWeapons(d.id.toString());for(Entity e:world(d).getAllEntities())if(e instanceof DungeonEnemy mob&&mob.instance().equals(d.id.toString())){owner.cancelBoss(e.getUUID());e.discard();}if(d.treasure.region>0)owner.forceArena(d,false);}
     public void died(UUID boss){for(var weapon:new ArrayList<>(weapons.values()))if(weapon.boss.equals(boss))removeWeapon(weapon);}
     private void king(Dungeon d,DungeonEnemy boss,List<ServerPlayer> here,long now){
         boss.getNavigation().stop();if(cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(boss)||now<d.treasure.nextVolley)return;d.treasure.nextVolley=now+5000;

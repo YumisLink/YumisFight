@@ -1833,15 +1833,13 @@
         "west": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            8.5,
-            8.5
+            0.0,
+            0.0,
+            0.5,
+            0.5
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     },
     {
       "from": [
@@ -1858,15 +1856,13 @@
         "east": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            8.5,
-            8.5
+            0.0,
+            0.0,
+            0.5,
+            0.5
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     },
     {
       "from": [
@@ -1883,15 +1879,13 @@
         "down": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            10.0,
-            8.5
+            0.0,
+            0.0,
+            2.0,
+            0.5
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     },
     {
       "from": [
@@ -1908,15 +1902,13 @@
         "north": {
           "texture": "#atlas",
           "uv": [
-            8.0,
-            8.0,
-            10.0,
-            8.5
+            0.0,
+            0.0,
+            2.0,
+            0.5
           ]
         }
-      },
-      "light_emission": 12,
-      "shade": false
+      }
     }
   ],
   "display": {

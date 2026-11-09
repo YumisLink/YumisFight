@@ -58,6 +58,7 @@ public class LootService implements InventoryDrops {
                 try{
                     var prepared=prepare(p,e.getItemEntity());
                     journal.put(prepared.journalKey(),prepared.state());
+                    committed(List.of(prepared.journalKey()));
                     id=prepared.id().toString();e.getItemEntity().getPersistentData().putString("ydnf_drop",id);
                 }catch(Exception failure){e.setCanPickup(net.minecraft.util.TriState.FALSE);players.message(p,failure.getMessage());return;}
             }
@@ -98,7 +99,43 @@ public class LootService implements InventoryDrops {
     private record RewardNotice(UUID player,JsonElement fact){}
     private final List<RewardNotice> rewardNotices=new ArrayList<>();
     private final ArrayDeque<Drop> recover=new ArrayDeque<>();
+    private Map<UUID,Long> activeDrops=new LinkedHashMap<>();
+    private Set<UUID> persistentDrops=new LinkedHashSet<>();
+    private boolean dropIndexValid;
     private long recoverAfter=System.currentTimeMillis()+1500;
+    private void refreshDrop(UUID id,Map<UUID,Long> active,Set<UUID> persistent,long now){
+        Drop drop=journal.get("lootEnd/"+id).isJsonNull()?journal.get("loot/"+id,Drop.class,null):null;
+        if(drop==null||drop.expires<now){active.remove(id);persistent.remove(id);return;}
+        active.put(id,drop.expires);
+        if(drop.durableChest)persistent.add(id);else persistent.remove(id);
+    }
+    private void ensureDropIndex(){
+        if(dropIndexValid)return;
+        // Cache repair is read-only; recover() also reconciles sessions and must not run here.
+        Map<UUID,Long> active=new LinkedHashMap<>();
+        Set<UUID> persistent=new LinkedHashSet<>();
+        long now=System.currentTimeMillis();
+        for(String key:journal.keys("loot/"))refreshDrop(UUID.fromString(key.substring(5)),active,persistent,now);
+        activeDrops=active;persistentDrops=persistent;dropIndexValid=true;
+    }
+    private void expireDropIndex(){
+        long now=System.currentTimeMillis();
+        activeDrops.entrySet().removeIf(entry->{if(entry.getValue()>=now)return false;persistentDrops.remove(entry.getKey());return true;});
+    }
+    private List<UUID> activeDropIds(){ensureDropIndex();expireDropIndex();return List.copyOf(activeDrops.keySet());}
+    private List<UUID> persistentDropIds(){ensureDropIndex();expireDropIndex();return List.copyOf(persistentDrops);}
+    @Override public void committed(Collection<String> journalKeys){
+        if(!dropIndexValid)return;
+        try{
+            Set<UUID> changed=new LinkedHashSet<>();
+            for(String key:journalKeys){
+                if(key.startsWith("loot/"))changed.add(UUID.fromString(key.substring(5)));
+                else if(key.startsWith("lootEnd/"))changed.add(UUID.fromString(key.substring(8)));
+            }
+            long now=System.currentTimeMillis();
+            for(UUID id:changed)refreshDrop(id,activeDrops,persistentDrops,now);
+        }catch(RuntimeException failure){dropIndexValid=false;}
+    }
     public Drop manual(ServerPlayer p,ItemStack stack,Vec3 pos){
         Drop d=new Drop();
         d.dimension=p.level().dimension().identifier().toString();
@@ -140,7 +177,7 @@ public class LootService implements InventoryDrops {
         d.item=ItemStack.OPTIONAL_CODEC.encodeStart(server.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),stack).getOrThrow();return d;
     }
     public Drop prepareOverflow(ServerPlayer player,ItemStack stack){var point=new ReturnPoint();point.dimension=player.level().dimension().identifier().toString();point.x=player.getX();point.y=player.getY();point.z=player.getZ();return preparePersistent(player.getUUID(),stack,point,encounters.currentInstance(player));}
-    public void publishPersistent(){for(String key:journal.keys("loot/")){var d=journal.get(key,Drop.class,null);if(d!=null&&d.durableChest&&journal.get("lootEnd/"+d.id).isJsonNull())publish.add(d);}publish();}
+    public void publishPersistent(){for(UUID id:persistentDropIds()){var d=journal.get("loot/"+id,Drop.class,null);if(d!=null&&d.durableChest&&journal.get("lootEnd/"+d.id).isJsonNull())publish.add(d);}publish();}
     private void create(ServerPlayer p,ItemStack stack,Vec3 pos,String instance,boolean privateLoot)throws Exception{
         Drop d=new Drop();
         d.durableChest=cn.yumis.fight.platform.ItemData.own(stack)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(stack));if(d.durableChest)d.expires=Long.MAX_VALUE;
@@ -161,7 +198,7 @@ public class LootService implements InventoryDrops {
         var encounter=target.instance.isEmpty()?null:encounters.byId(target.instance);
         var nearby=new LinkedHashSet<UUID>();for(var player:server.getPlayerList().getPlayers())if(player.level()==entity.level()&&player.distanceToSqr(entity)<=4096)nearby.add(player.getUUID());
         var context=new cn.yumis.fight.modules.economy.api.RewardRules.Context(target.id+"/"+target.life.generation,killer.getUUID(),target,encounter,balance.settings(),entity.level().dimension().identifier().toString(),entity.getX(),entity.getY(),entity.getZ(),Set.copyOf(nearby));
-        var fact=JSON.toJsonTree(context);
+        var fact=JsonParser.parseString(JSON.toJson(context));
         for(var player:server.getPlayerList().getPlayers())if(nearby.contains(player.getUUID())||player==killer){
             journal.put("personalKill/"+player.getUUID()+"/"+context.id(),fact);rewardNotices.add(new RewardNotice(player.getUUID(),fact));
         }
@@ -196,6 +233,9 @@ public class LootService implements InventoryDrops {
         rewardNotices.clear();
     }
     public void recover(){
+        dropIndexValid=false;
+        Map<UUID,Long> active=new LinkedHashMap<>();
+        Set<UUID> persistent=new LinkedHashSet<>();
         try{
             for(String key:journal.keys("loot/")){
                 Drop d=journal.get(key,Drop.class,null);
@@ -203,9 +243,11 @@ public class LootService implements InventoryDrops {
                 if(d.durableChest){
                     if(!d.instance.isEmpty()){var encounter=encounters.byId(d.instance);var point=encounter==null?null:encounter.returns.get(d.owner);if(point!=null){d.dimension=point.dimension;d.x=point.x;d.y=point.y+.3;d.z=point.z;d.instance="";journal.put("loot/"+d.id,d);}}
                 }
-                else if(!d.owner.isEmpty()||d.expires<System.currentTimeMillis())journal.put("lootEnd/"+d.id,"expired-session");
+                else if(!d.owner.isEmpty()||d.expires<System.currentTimeMillis()){journal.put("lootEnd/"+d.id,"expired-session");continue;}
                 else recover.add(d);
+                if(d.expires>=System.currentTimeMillis()){active.put(d.id,d.expires);if(d.durableChest)persistent.add(d.id);}
             }
+            activeDrops=active;persistentDrops=persistent;dropIndexValid=true;
         }
         catch(Exception e){
             throw new IllegalStateException(e);
@@ -225,6 +267,7 @@ public class LootService implements InventoryDrops {
         return entity;
     }
     public void publish(){
+        committed(publish.stream().map(drop->"loot/"+drop.id).toList());
         for(Drop d:new ArrayList<>(publish)){
             ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));
             if(level==null)continue;
@@ -300,7 +343,8 @@ public class LootService implements InventoryDrops {
     }
     public void move(ServerPlayer p,String instance,ReturnPoint point){
         try{
-            for(String key:journal.keys("loot/")){
+            for(UUID id:activeDropIds()){
+                String key="loot/"+id;
                 Drop d=journal.get(key,Drop.class,null);
                 if(d!=null&&d.owner.equals(p.getStringUUID())&&d.instance.equals(instance)&&journal.get("lootEnd/"+d.id).isJsonNull()){
                     for(ServerLevel level:server.getAllLevels())for(Entity e:level.getAllEntities())if(e instanceof PrivateLoot loot&&loot.dropId.equals(d.id.toString()))e.discard();
@@ -310,6 +354,7 @@ public class LootService implements InventoryDrops {
                     d.z=point.z;
                     d.instance="";
                     journal.put(key,d);
+                    committed(List.of(key));
                     publish.add(d);
                 }
             }
@@ -319,9 +364,11 @@ public class LootService implements InventoryDrops {
         }
     }
     public void endSession(ServerPlayer p)throws Exception{
-        for(String key:journal.keys("loot/")){
-            Drop d=journal.get(key,Drop.class,null);
-            if(d!=null&&!d.durableChest&&d.owner.equals(p.getStringUUID())&&d.session.equals(players.session(p).toString()))journal.put("lootEnd/"+d.id,"session-ended");
+        for(UUID id:activeDropIds()){
+            Drop d=journal.get("loot/"+id,Drop.class,null);
+            if(d!=null&&!d.durableChest&&d.owner.equals(p.getStringUUID())&&d.session.equals(players.session(p).toString())){
+                String key="lootEnd/"+id;journal.put(key,"session-ended");committed(List.of(key));
+            }
         }
     }
     public void nativeLeft(ItemEntity entity){
@@ -332,13 +379,21 @@ public class LootService implements InventoryDrops {
         if(id.isEmpty()||reason==null||!reason.shouldDestroy())return;
         try{
             if(journal.get("lootEnd/"+id).isJsonNull())journal.put("lootEnd/"+id,"native-ended");
+            committed(List.of("lootEnd/"+id));
         }
         catch(Exception e){
             throw new IllegalStateException(e);
         }
     }
     public void tick(){
-        for(String key:journal.keys("loot/")){Drop d=journal.get(key,Drop.class,null);if(d==null||!d.durableChest||!journal.get("lootEnd/"+d.id).isJsonNull()||d.owner.isEmpty())continue;ServerPlayer p=server.getPlayerList().getPlayer(UUID.fromString(d.owner));if(p==null)continue;ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));if(level!=null&&level.getEntity(d.id)==null)publish.add(d);}
+        for(UUID id:persistentDropIds()){
+            Drop d=journal.get("loot/"+id,Drop.class,null);
+            if(d==null||!d.durableChest||!journal.get("lootEnd/"+id).isJsonNull()){committed(List.of("loot/"+id));continue;}
+            if(d.owner.isEmpty())continue;
+            ServerPlayer p=server.getPlayerList().getPlayer(UUID.fromString(d.owner));if(p==null)continue;
+            ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));
+            if(level!=null&&level.getEntity(d.id)==null)publish.add(d);
+        }
         if(!publish.isEmpty())publish();
         if(System.currentTimeMillis()>=recoverAfter){
             for(int i=0;i<4&&!recover.isEmpty();i++){

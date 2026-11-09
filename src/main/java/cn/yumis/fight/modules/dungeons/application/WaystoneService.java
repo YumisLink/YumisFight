@@ -98,7 +98,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
         run.startedAt=System.currentTimeMillis();Map<String,JsonElement> edits=new LinkedHashMap<>();edits.put("instance/"+d.id,JSON.toJsonTree(d));d.returns.forEach((id,point)->edits.put("return/"+id,JSON.toJsonTree(point)));
         var intent=new JsonObject();intent.addProperty("stone",stone.id.toString());intent.addProperty("table",b.key());intent.add("members",JSON.toJsonTree(d.roster));String raw=t.raw;
         boolean committed;
-        try{committed=inventory.transactMachine(operator,"waystone-start/"+stone.id,intent,b,()->{if(!cn.yumis.fight.platform.ItemData.string(b.getItem(0),Waystone.DATA).equals(raw)||!run.owner.equals(b.inserter))throw new IllegalArgumentException("开战前引路石发生变化");b.clearContent();},edits);}catch(Exception e){if(owner.byId(d.id.toString())==null){owner.forceArena(d,false);owner.clearCell(d.cell);}throw e;}
+        try{committed=inventory.transactMachine(operator,"waystone-start/"+stone.id,intent,b,()->{if(!cn.yumis.fight.platform.ItemData.string(b.getItem(0),Waystone.DATA).equals(raw)||!run.owner.equals(b.inserter))throw new IllegalArgumentException("开战前引路石发生变化");b.clearContent();},edits);}catch(Exception e){if(owner.byId(d.id.toString())==null){owner.forceArena(d,false);owner.clearCell(d.cell);}throw e;}finally{owner.instanceCommitted(d.id);}
         if(!committed){owner.forceArena(d,false);return;}
         t.members.clear();changed(t);b.display();observe(t,b);broadcast(t,b);
         try{
@@ -118,7 +118,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
         for(UUID id:recipients){var player=server.getPlayerList().getPlayer(id);boolean inside=completed&&player!=null&&here.contains(player);ReturnPoint point=inside?owner.point(player):d.returns.get(id.toString());if(point==null)throw new IllegalStateException("奖励返回位置缺失");
             var fact=new JsonObject();fact.addProperty("id",d.id.toString());fact.add("run",JSON.toJsonTree(run));fact.add("point",JSON.toJsonTree(point));fact.addProperty("instance",inside?d.id.toString():"");fact.addProperty("returnStone",id.equals(run.owner));fact.addProperty("chest",inside);edits.put("waystonePersonal/"+id+"/"+d.id,fact);
         }
-        edits.put("instance/"+d.id,JSON.toJsonTree(d));edits.put("waystoneSettlement/"+d.id,new JsonPrimitive(run.result));journal.transaction(edits);meter.freeze(d);
+        edits.put("instance/"+d.id,JSON.toJsonTree(d));edits.put("waystoneSettlement/"+d.id,new JsonPrimitive(run.result));journal.transaction(edits);owner.instanceCommitted(d.id);meter.freeze(d);
         for(var player:server.getPlayerList().getPlayers())if(d.roster.contains(player.getUUID())){updateSources(player);players.profile(player);pendingRewards(player);players.message(player,(completed?"地狱+通关":"地狱+挑战结束")+"，用时 "+(run.elapsed(run.finishedAt)/1000)+"秒。");}
     }
     public void pendingRewards(ServerPlayer player){for(String key:journal.keys("waystonePersonal/"+player.getUUID()+"/")){var fact=journal.get(key);if(!fact.isJsonNull()&&journal.get("waystonePersonalDone/"+player.getUUID()+"/"+fact.getAsJsonObject().get("id").getAsString()).isJsonNull())Network.send(player,"waystoneReturn",fact);}}
@@ -130,7 +130,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
         if(!instance.isEmpty()&&!owner.participant(player,instance)){point=d.returns.get(player.getStringUUID());instance="";}
         var edits=new LinkedHashMap<String,JsonElement>();for(var raw:request.getAsJsonArray("items"))edits.putAll(rewards.drop(player.getUUID(),inventory.decode(player,raw),point,instance));edits.put(key,request.deepCopy());edits.put("waystonePersonal/"+player.getUUID()+"/"+id,JsonNull.INSTANCE);
         if(request.has("resultingTier")){var updated=JSON.fromJson(JSON.toJsonTree(d),Dungeon.class);updated.waystone.resultingTier=request.get("resultingTier").getAsInt();edits.put("instance/"+id,JSON.toJsonTree(updated));}
-        inventory.transact(player,request.get("operation").getAsString(),request,()->{},edits);rewards.publish();players.profile(player);
+        try{inventory.transact(player,request.get("operation").getAsString(),request,()->{},edits);}finally{owner.instanceCommitted(UUID.fromString(id));}rewards.publish();players.profile(player);
     }
     public void disconnected(ServerPlayer p,Dungeon d)throws Exception{if(server.getPlayerList().getPlayers().stream().noneMatch(other->!other.getUUID().equals(p.getUUID())&&owner.participant(other,d.id.toString())&&other.level().dimension()==DungeonService.DIMENSION))owner.close(d);}
     public void reconnect(ServerPlayer p,Dungeon d)throws Exception{if(!d.status.equals("RUNNING"))return;var life=players.session(p).life;life.instance=d.id.toString();life.dimension=DungeonService.DIMENSION.identifier().toString();life.revision++;if(p.level().dimension()!=DungeonService.DIMENSION)owner.teleport(p,owner.level(),d.cell*512+.5,80,2.5);updateSources(p);for(UUID id:d.enemies){var e=owner.level().getEntity(id);if(e instanceof net.minecraft.world.entity.LivingEntity living)targets.context(p,living);}players.profile(p);}

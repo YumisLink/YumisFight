@@ -10,5 +10,7 @@ import java.util.*;
 public interface InventoryDrops {
     record Prepared(UUID id,Vec3 position,String journalKey,JsonElement state){}
     Prepared prepare(ServerPlayer player,net.minecraft.world.entity.item.ItemEntity projection);
+    /** Updates derived drop indexes after durable commit; failures must invalidate the index rather than escape. */
+    void committed(Collection<String> journalKeys);
     void publishPrepared(Collection<Prepared> drops);
 }

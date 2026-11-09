@@ -76,6 +76,15 @@ public final class SkillController {
     private record Bleed(JsonObject state,long next,int index){
     }
 
+    public Set<UUID> referencedTargets(){
+        Set<UUID> targets=new HashSet<>();
+        for(JsonObject report:equipmentReceipts.values())targets.add(UUID.fromString(report.get("target").getAsString()));
+        for(BleedRefresh pending:pendingBleeds.values())targets.add(pending.target());
+        for(Bleed bleed:bleeds.values())targets.add(UUID.fromString(bleed.state().get("target").getAsString()));
+        for(Bleed dot:elementalDots.values())targets.add(UUID.fromString(dot.state().get("target").getAsString()));
+        return Set.copyOf(targets);
+    }
+
     private static final class Wave {
         SkillCast source;
         Vec3 point,direction,origin;

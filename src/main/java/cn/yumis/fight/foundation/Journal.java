@@ -15,6 +15,8 @@ public final class Journal implements AutoCloseable, UnitOfWork<JsonElement> {
     private final Path path;
     private FileChannel channel;
     private final Map<String,JsonElement> data=new LinkedHashMap<>();
+    // Only queried namespaces receive an index, so retained receipts do not need a second key set.
+    private final Map<String,Set<String>> namespaceKeys=new HashMap<>();
     private Map<String,JsonElement> batch;
     private boolean healthy=true;
     public Journal(Path path)throws IOException{
@@ -63,9 +65,19 @@ public final class Journal implements AutoCloseable, UnitOfWork<JsonElement> {
         return true;
     }
     private void apply(JsonObject changes){
-        for(var e:changes.entrySet())if(e.getValue().isJsonNull())data.remove(e.getKey());
-        else data.put(e.getKey(),e.getValue().deepCopy());
+        for(var e:changes.entrySet()){
+            String key=e.getKey();
+            Set<String> indexed=namespaceKeys.get(namespace(key));
+            if(e.getValue().isJsonNull()){
+                data.remove(key);
+                if(indexed!=null)indexed.remove(key);
+            }else{
+                data.put(key,e.getValue().deepCopy());
+                if(indexed!=null)indexed.add(key);
+            }
+        }
     }
+    private static String namespace(String key){int separator=key.indexOf('/');return separator<0?null:key.substring(0,separator+1);}
     public synchronized JsonElement get(String key){
         JsonElement v=batch!=null&&batch.containsKey(key)?batch.get(key):data.get(key);
         return v==null?JsonNull.INSTANCE:v.deepCopy();
@@ -76,7 +88,13 @@ public final class Journal implements AutoCloseable, UnitOfWork<JsonElement> {
     }
     public synchronized Set<String> keys(String prefix){
         Set<String> result=new LinkedHashSet<>();
-        for(String k:data.keySet())if(k.startsWith(prefix))result.add(k);
+        String namespace=namespace(prefix);
+        Collection<String> candidates=namespace==null?data.keySet():namespaceKeys.computeIfAbsent(namespace,name->{
+            Set<String> indexed=new LinkedHashSet<>();
+            for(String key:data.keySet())if(key.startsWith(name))indexed.add(key);
+            return indexed;
+        });
+        for(String k:candidates)if(k.startsWith(prefix))result.add(k);
         if(batch!=null)for(String k:batch.keySet())if(k.startsWith(prefix))result.add(k);
         return result;
     }
