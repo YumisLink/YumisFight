@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "bounds": [-9, -29, 33, 5],
+  "settings": {
+    "maxRise": 1,
+    "entranceFlatRadius": 1,
+    "floatingThreshold": 80,
+    "searchRadius": 0,
+    "floatingSearchHeight": 0,
+    "mainWoodFamilies": [],
+    "accentWoodFamilies": [],
+    "roadWeights": [1],
+    "roadBlocks": ["minecraft:smooth_quartz"],
+    "roadSlabs": ["minecraft:smooth_quartz_slab"],
+    "roadStairs": ["minecraft:smooth_quartz_stairs"],
+    "lighting": false,
+    "streetLightTarget": 0,
+    "noHostileSpawns": false
+  },
+  "roads": [
+    {
+      "id": "landing_access",
+      "width": 1,
+      "points": [[-2, 0], [2, 0]],
+      "external": false
+    }
+  ],
+  "grounds": [],
+  "facilities": [
+    {
+      "id": "cloud_garden_home",
+      "kind": "floating_family_residence",
+      "template": "yumis_dungeon_and_fight:map_blueprints/cloud_garden_home/home",
+      "position": [-9, -29],
+      "entrance": [2, 0],
+      "referenceY": 6,
+      "anchor": "road",
+      "foundation": "platform",
+      "platform": false,
+      "flatten": true,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    }
+  ]
+}

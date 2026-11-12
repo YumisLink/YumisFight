@@ -1,6 +1,21 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "yumis_dungeon_and_fight:item/magic_grass"
+    "model": "yumis_dungeon_and_fight:item/magic_grass",
+    "tints": [
+      {
+        "type": "minecraft:grass",
+        "downfall": 1.0,
+        "temperature": 0.5
+      },
+      {
+        "type": "yumis_dungeon_and_fight:magic_grass_transition",
+        "step": 1
+      },
+      {
+        "type": "yumis_dungeon_and_fight:magic_grass_transition",
+        "step": 2
+      }
+    ]
   }
 }

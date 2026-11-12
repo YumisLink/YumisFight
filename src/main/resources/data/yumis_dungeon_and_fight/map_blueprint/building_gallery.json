@@ -1,0 +1,5563 @@
+{
+  "version": 1,
+  "bounds": [
+    -90,
+    -90,
+    90,
+    50
+  ],
+  "settings": {
+    "maxRise": 1,
+    "entranceFlatRadius": 3,
+    "floatingThreshold": 80,
+    "mainWoodFamilies": [],
+    "accentWoodFamilies": [],
+    "roadWeights": [
+      60,
+      30,
+      10
+    ],
+    "roadBlocks": [
+      "minecraft:andesite",
+      "minecraft:cobblestone",
+      "minecraft:mossy_cobblestone"
+    ],
+    "roadSlabs": [
+      "minecraft:andesite_slab",
+      "minecraft:cobblestone_slab",
+      "minecraft:mossy_cobblestone_slab"
+    ],
+    "roadStairs": [
+      "minecraft:andesite_stairs",
+      "minecraft:cobblestone_stairs",
+      "minecraft:mossy_cobblestone_stairs"
+    ],
+    "lighting": false,
+    "streetLightTarget": 0,
+    "noHostileSpawns": false,
+    "searchRadius": 256
+  },
+  "roads": [
+    {
+      "id": "north_walk",
+      "width": 3,
+      "points": [
+        [
+          -85,
+          -45
+        ],
+        [
+          78,
+          -45
+        ]
+      ]
+    },
+    {
+      "id": "south_walk",
+      "width": 3,
+      "points": [
+        [
+          -85,
+          35
+        ],
+        [
+          78,
+          35
+        ]
+      ]
+    },
+    {
+      "id": "west_walk",
+      "width": 3,
+      "points": [
+        [
+          -85,
+          -45
+        ],
+        [
+          -85,
+          35
+        ]
+      ]
+    },
+    {
+      "id": "east_walk",
+      "width": 3,
+      "points": [
+        [
+          78,
+          -45
+        ],
+        [
+          78,
+          35
+        ]
+      ]
+    },
+    {
+      "id": "original_arrival",
+      "width": 3,
+      "points": [
+        [
+          -67,
+          -45
+        ],
+        [
+          -66,
+          -51
+        ],
+        [
+          -67,
+          -56
+        ],
+        [
+          -67,
+          -61
+        ]
+      ],
+      "external": false
+    },
+    {
+      "id": "original_workshop_walk",
+      "width": 2,
+      "points": [
+        [
+          -67,
+          -58
+        ],
+        [
+          -60,
+          -58
+        ],
+        [
+          -55,
+          -61
+        ],
+        [
+          -55,
+          -66
+        ]
+      ],
+      "external": false
+    },
+    {
+      "id": "original_garden_walk",
+      "width": 2,
+      "points": [
+        [
+          -67,
+          -58
+        ],
+        [
+          -74,
+          -58
+        ],
+        [
+          -79,
+          -60
+        ],
+        [
+          -79,
+          -64
+        ]
+      ],
+      "external": false
+    },
+    {
+      "id": "original_gathering_trail",
+      "width": 1,
+      "points": [
+        [
+          -79,
+          -60
+        ],
+        [
+          -79,
+          -58
+        ],
+        [
+          -81,
+          -58
+        ],
+        [
+          -81,
+          -54
+        ],
+        [
+          -82,
+          -54
+        ],
+        [
+          -82,
+          -49
+        ],
+        [
+          -83,
+          -49
+        ],
+        [
+          -83,
+          -45
+        ]
+      ],
+      "external": false
+    },
+    {
+      "id": "herbalist_home_approach",
+      "width": 2,
+      "points": [
+        [
+          -17,
+          -45
+        ],
+        [
+          -17,
+          -59
+        ]
+      ]
+    },
+    {
+      "id": "artist_home_approach",
+      "width": 2,
+      "points": [
+        [
+          43,
+          -45
+        ],
+        [
+          43,
+          -58
+        ]
+      ]
+    },
+    {
+      "id": "mechanic_home_approach",
+      "width": 2,
+      "points": [
+        [
+          -60,
+          35
+        ],
+        [
+          -60,
+          11
+        ]
+      ]
+    },
+    {
+      "id": "alchemist_home_approach",
+      "width": 2,
+      "points": [
+        [
+          -9,
+          35
+        ],
+        [
+          -9,
+          9
+        ]
+      ]
+    },
+    {
+      "id": "astronomer_home_approach",
+      "width": 2,
+      "points": [
+        [
+          44,
+          35
+        ],
+        [
+          44,
+          26
+        ]
+      ]
+    },
+    {
+      "id": "woodworker_yard_access",
+      "width": 2,
+      "points": [
+        [
+          -66,
+          -53
+        ],
+        [
+          -70,
+          -53
+        ],
+        [
+          -71,
+          -54
+        ]
+      ]
+    },
+    {
+      "id": "herbalist_garden_access",
+      "width": 2,
+      "points": [
+        [
+          -17,
+          -49
+        ],
+        [
+          -19,
+          -49
+        ],
+        [
+          -19,
+          -53
+        ]
+      ]
+    },
+    {
+      "id": "artist_work_access",
+      "width": 2,
+      "points": [
+        [
+          43,
+          -50
+        ],
+        [
+          40,
+          -50
+        ],
+        [
+          40,
+          -52
+        ]
+      ]
+    },
+    {
+      "id": "mechanic_garage_access",
+      "width": 2,
+      "points": [
+        [
+          -69,
+          35
+        ],
+        [
+          -69,
+          8
+        ]
+      ]
+    },
+    {
+      "id": "alchemist_garden_access",
+      "width": 2,
+      "points": [
+        [
+          -9,
+          20
+        ],
+        [
+          -11,
+          20
+        ],
+        [
+          -11,
+          17
+        ]
+      ]
+    },
+    {
+      "id": "observatory_viewpoint_link",
+      "width": 2,
+      "points": [
+        [
+          44,
+          30
+        ],
+        [
+          40,
+          30
+        ],
+        [
+          40,
+          25
+        ],
+        [
+          37,
+          25
+        ],
+        [
+          35,
+          22
+        ]
+      ]
+    }
+  ],
+  "grounds": [
+    {
+      "id": "native_gallery_ground",
+      "bounds": [
+        -90,
+        -90,
+        90,
+        50
+      ],
+      "surface": "native",
+      "clearVegetation": false,
+      "plants": [
+        {
+          "x": -35,
+          "z": 41,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 9,
+          "z": -25,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -59,
+          "z": -26,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 2,
+          "z": -43,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 50,
+          "z": -35,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 23,
+          "z": -82,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 47,
+          "z": -25,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -1,
+          "z": -84,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 71,
+          "z": -5,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 17,
+          "z": 8,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 17,
+          "z": -17,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 22,
+          "z": -71,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 80,
+          "z": -69,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 65,
+          "z": 17,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -30,
+          "z": -16,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 78,
+          "z": -55,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -57,
+          "z": -27,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 32,
+          "z": 29,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 79,
+          "z": -78,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -52,
+          "z": -17,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 55,
+          "z": -72,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -55,
+          "z": 32,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -28,
+          "z": 34,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 47,
+          "z": -52,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -69,
+          "z": -51,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -25,
+          "z": -2,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 27,
+          "z": 2,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 19,
+          "z": -80,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -31,
+          "z": -29,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 76,
+          "z": -77,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 54,
+          "z": -67,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 19,
+          "z": 24,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 35,
+          "z": -52,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -34,
+          "z": -21,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 77,
+          "z": 1,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -6,
+          "z": -51,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 58,
+          "z": 34,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 46,
+          "z": -47,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -37,
+          "z": 29,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 19,
+          "z": 20,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 61,
+          "z": 6,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -17,
+          "z": 42,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -21,
+          "z": -46,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 83,
+          "z": 3,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 51,
+          "z": -27,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 16,
+          "z": 35,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -62,
+          "z": -37,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 17,
+          "z": 29,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -46,
+          "z": 32,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 29,
+          "z": -2,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 35,
+          "z": -86,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 79,
+          "z": 25,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 37,
+          "z": 44,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 27,
+          "z": -81,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 7,
+          "z": 40,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -83,
+          "z": -43,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -58,
+          "z": 48,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 72,
+          "z": -31,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 85,
+          "z": 7,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -7,
+          "z": 19,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 73,
+          "z": -43,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 83,
+          "z": 36,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 48,
+          "z": -34,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 32,
+          "z": 44,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 22,
+          "z": -29,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 86,
+          "z": -22,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -67,
+          "z": -80,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 13,
+          "z": -22,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 2,
+          "z": -22,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 69,
+          "z": -77,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -7,
+          "z": -82,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 68,
+          "z": -38,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 11,
+          "z": -23,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -78,
+          "z": 34,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 63,
+          "z": -33,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -51,
+          "z": -39,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -83,
+          "z": -6,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 64,
+          "z": 17,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -23,
+          "z": -87,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 73,
+          "z": -56,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -86,
+          "z": 37,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 74,
+          "z": 32,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -46,
+          "z": -50,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 83,
+          "z": 4,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 10,
+          "z": -40,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -5,
+          "z": -67,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 78,
+          "z": 27,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -86,
+          "z": 17,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 86,
+          "z": -32,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -6,
+          "z": -31,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -57,
+          "z": -48,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -7,
+          "z": -84,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 27,
+          "z": 41,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -2,
+          "z": 45,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 87,
+          "z": -80,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -77,
+          "z": 29,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -85,
+          "z": -21,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -81,
+          "z": -29,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 51,
+          "z": -21,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -74,
+          "z": -87,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 14,
+          "z": -20,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -86,
+          "z": -1,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 28,
+          "z": 35,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 66,
+          "z": -3,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 64,
+          "z": 3,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 71,
+          "z": 3,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 60,
+          "z": 9,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 63,
+          "z": -57,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 11,
+          "z": -37,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -40,
+          "z": 43,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -73,
+          "z": -20,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -22,
+          "z": 7,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 68,
+          "z": -2,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -33,
+          "z": 13,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -53,
+          "z": -85,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 74,
+          "z": 4,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 70,
+          "z": -25,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -5,
+          "z": -65,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 84,
+          "z": -4,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 56,
+          "z": 47,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -1,
+          "z": 22,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -4,
+          "z": 32,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 12,
+          "z": -78,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -31,
+          "z": 36,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -85,
+          "z": -54,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -24,
+          "z": -19,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -75,
+          "z": -82,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -49,
+          "z": -75,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 27,
+          "z": 27,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 66,
+          "z": -78,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -3,
+          "z": 34,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -34,
+          "z": -26,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -25,
+          "z": -82,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -32,
+          "z": -40,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -32,
+          "z": -71,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 84,
+          "z": -54,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 45,
+          "z": -34,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 71,
+          "z": -34,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 78,
+          "z": -12,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -15,
+          "z": 25,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": -20,
+          "z": -79,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -26,
+          "z": 15,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -85,
+          "z": 17,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 82,
+          "z": -69,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -18,
+          "z": 30,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 14,
+          "z": -12,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": -67,
+          "z": -50,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -11,
+          "z": 36,
+          "block": "minecraft:azure_bluet",
+          "tall": false
+        },
+        {
+          "x": 40,
+          "z": -25,
+          "block": "minecraft:fern",
+          "tall": false
+        },
+        {
+          "x": 88,
+          "z": -48,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": 12,
+          "z": -8,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -33,
+          "z": -78,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 84,
+          "z": 14,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 84,
+          "z": -9,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -7,
+          "z": -81,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": -8,
+          "z": -85,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 34,
+          "z": -24,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -3,
+          "z": -82,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": 9,
+          "z": 12,
+          "block": "minecraft:dandelion",
+          "tall": false
+        },
+        {
+          "x": -13,
+          "z": -27,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -3,
+          "z": 25,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -55,
+          "z": -14,
+          "block": "minecraft:short_grass",
+          "tall": false
+        },
+        {
+          "x": -70,
+          "z": 29,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        },
+        {
+          "x": 38,
+          "z": 35,
+          "block": "minecraft:oxeye_daisy",
+          "tall": false
+        }
+      ]
+    }
+  ],
+  "facilities": [
+    {
+      "id": "original_house",
+      "kind": "two_person_home",
+      "template": "yumis_dungeon_and_fight:map_blueprints/forest_cabin/house",
+      "position": [
+        -75,
+        -75
+      ],
+      "referenceY": 2,
+      "entrance": [
+        -67,
+        -61
+      ],
+      "anchor": "road",
+      "foundation": "terrain_retaining",
+      "flatten": true,
+      "platform": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          11
+        ],
+        [
+          0,
+          12
+        ],
+        [
+          0,
+          14
+        ],
+        [
+          0,
+          15
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          1,
+          10
+        ],
+        [
+          1,
+          11
+        ],
+        [
+          1,
+          13
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          2,
+          10
+        ],
+        [
+          2,
+          11
+        ],
+        [
+          2,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          11
+        ],
+        [
+          3,
+          12
+        ],
+        [
+          3,
+          14
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          4,
+          12
+        ],
+        [
+          4,
+          14
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          5,
+          14
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          6,
+          12
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          8,
+          2
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          9,
+          0
+        ],
+        [
+          9,
+          1
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          9,
+          12
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          11,
+          1
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          11,
+          6
+        ],
+        [
+          11,
+          11
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          11,
+          14
+        ],
+        [
+          12,
+          1
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          12,
+          12
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          13,
+          1
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          13,
+          8
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          13,
+          11
+        ],
+        [
+          13,
+          12
+        ],
+        [
+          13,
+          14
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          7
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          13
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          15,
+          0
+        ],
+        [
+          15,
+          1
+        ],
+        [
+          15,
+          2
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          15,
+          4
+        ],
+        [
+          15,
+          5
+        ],
+        [
+          15,
+          8
+        ],
+        [
+          15,
+          11
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          16,
+          1
+        ],
+        [
+          16,
+          2
+        ],
+        [
+          16,
+          3
+        ],
+        [
+          16,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "original_workshop",
+      "kind": "woodworking_shelter",
+      "template": "yumis_dungeon_and_fight:map_blueprints/forest_cabin/workshop",
+      "position": [
+        -58,
+        -73
+      ],
+      "referenceY": 1,
+      "entrance": [
+        -55,
+        -66
+      ],
+      "anchor": "road",
+      "foundation": "sparse_stone",
+      "flatten": true,
+      "platform": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          7
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "original_garden",
+      "kind": "kitchen_garden",
+      "template": "yumis_dungeon_and_fight:map_blueprints/forest_cabin/garden",
+      "position": [
+        -82,
+        -70
+      ],
+      "referenceY": 1,
+      "entrance": [
+        -79,
+        -64
+      ],
+      "anchor": "road",
+      "foundation": "sparse_stone",
+      "flatten": true,
+      "platform": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          0
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "herbalist_home",
+      "template": "yumis_dungeon_and_fight:building_variants/herbalist_home",
+      "position": [
+        -25,
+        -75
+      ],
+      "entrance": [
+        -17,
+        -59
+      ],
+      "referenceY": 2,
+      "anchor": "road",
+      "foundation": "terrain_retaining",
+      "platform": true,
+      "flatten": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          17
+        ],
+        [
+          1,
+          14
+        ],
+        [
+          1,
+          16
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          2,
+          10
+        ],
+        [
+          2,
+          11
+        ],
+        [
+          2,
+          12
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          2,
+          16
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          12
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          12
+        ],
+        [
+          4,
+          16
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          12
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          7,
+          12
+        ],
+        [
+          8,
+          2
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          9,
+          12
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          11,
+          3
+        ],
+        [
+          11,
+          5
+        ],
+        [
+          11,
+          6
+        ],
+        [
+          11,
+          7
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          11,
+          16
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          12,
+          3
+        ],
+        [
+          12,
+          4
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          12,
+          10
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          12,
+          12
+        ]
+      ],
+      "npcGroups": [],
+      "loot": []
+    },
+    {
+      "id": "artist_home",
+      "template": "yumis_dungeon_and_fight:building_variants/artist_home",
+      "position": [
+        35,
+        -75
+      ],
+      "entrance": [
+        43,
+        -58
+      ],
+      "referenceY": 2,
+      "anchor": "road",
+      "foundation": "terrain_retaining",
+      "platform": true,
+      "flatten": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          2,
+          10
+        ],
+        [
+          2,
+          11
+        ],
+        [
+          2,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          3,
+          11
+        ],
+        [
+          3,
+          13
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          4,
+          13
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          5,
+          13
+        ],
+        [
+          5,
+          15
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          13
+        ],
+        [
+          6,
+          15
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          13
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          8,
+          13
+        ],
+        [
+          9,
+          1
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          9,
+          13
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          7
+        ],
+        [
+          10,
+          8
+        ],
+        [
+          10,
+          9
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          10,
+          13
+        ],
+        [
+          11,
+          1
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          11,
+          13
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          12,
+          1
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          12,
+          3
+        ],
+        [
+          12,
+          4
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          12,
+          10
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          12,
+          12
+        ],
+        [
+          12,
+          13
+        ],
+        [
+          12,
+          17
+        ]
+      ],
+      "npcGroups": [],
+      "loot": []
+    },
+    {
+      "id": "mechanic_home",
+      "template": "yumis_dungeon_and_fight:building_variants/mechanic_home",
+      "position": [
+        -75,
+        -10
+      ],
+      "entrance": [
+        -60,
+        11
+      ],
+      "referenceY": 2,
+      "anchor": "road",
+      "foundation": "terrain_retaining",
+      "platform": true,
+      "flatten": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          2,
+          10
+        ],
+        [
+          2,
+          11
+        ],
+        [
+          2,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          2,
+          15
+        ],
+        [
+          2,
+          16
+        ],
+        [
+          2,
+          17
+        ],
+        [
+          2,
+          18
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          18
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          6,
+          10
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          7,
+          10
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          8,
+          2
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          18
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          11,
+          18
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          12,
+          3
+        ],
+        [
+          12,
+          4
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          12,
+          10
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          12,
+          12
+        ],
+        [
+          12,
+          13
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          12,
+          15
+        ],
+        [
+          12,
+          16
+        ],
+        [
+          12,
+          17
+        ],
+        [
+          12,
+          18
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          13,
+          18
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          14,
+          18
+        ],
+        [
+          15,
+          2
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          15,
+          7
+        ],
+        [
+          15,
+          8
+        ],
+        [
+          15,
+          18
+        ],
+        [
+          16,
+          2
+        ],
+        [
+          16,
+          3
+        ],
+        [
+          16,
+          18
+        ],
+        [
+          17,
+          2
+        ],
+        [
+          17,
+          3
+        ],
+        [
+          17,
+          15
+        ],
+        [
+          17,
+          16
+        ],
+        [
+          17,
+          18
+        ],
+        [
+          18,
+          2
+        ],
+        [
+          18,
+          3
+        ],
+        [
+          18,
+          15
+        ],
+        [
+          18,
+          16
+        ],
+        [
+          18,
+          18
+        ],
+        [
+          19,
+          2
+        ],
+        [
+          19,
+          18
+        ],
+        [
+          20,
+          2
+        ],
+        [
+          20,
+          3
+        ],
+        [
+          20,
+          4
+        ],
+        [
+          20,
+          5
+        ],
+        [
+          20,
+          6
+        ],
+        [
+          20,
+          7
+        ],
+        [
+          20,
+          8
+        ],
+        [
+          20,
+          9
+        ],
+        [
+          20,
+          10
+        ],
+        [
+          20,
+          11
+        ],
+        [
+          20,
+          12
+        ],
+        [
+          20,
+          13
+        ],
+        [
+          20,
+          14
+        ],
+        [
+          20,
+          15
+        ],
+        [
+          20,
+          16
+        ],
+        [
+          20,
+          17
+        ],
+        [
+          20,
+          18
+        ],
+        [
+          20,
+          21
+        ]
+      ],
+      "npcGroups": [],
+      "loot": []
+    },
+    {
+      "id": "alchemist_home",
+      "template": "yumis_dungeon_and_fight:building_variants/alchemist_home",
+      "position": [
+        -17,
+        -10
+      ],
+      "entrance": [
+        -9,
+        9
+      ],
+      "referenceY": 1,
+      "anchor": "road",
+      "foundation": "terrain_retaining",
+      "platform": true,
+      "flatten": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          2,
+          10
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          3,
+          11
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          4,
+          12
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          5,
+          8
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          6,
+          10
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          6,
+          12
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          7,
+          10
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          7,
+          12
+        ],
+        [
+          7,
+          16
+        ],
+        [
+          7,
+          17
+        ],
+        [
+          8,
+          2
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          8,
+          17
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          9,
+          4
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          9,
+          7
+        ],
+        [
+          9,
+          8
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          9,
+          12
+        ],
+        [
+          9,
+          16
+        ],
+        [
+          9,
+          17
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ],
+        [
+          10,
+          8
+        ],
+        [
+          10,
+          9
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          11,
+          3
+        ],
+        [
+          11,
+          4
+        ],
+        [
+          11,
+          5
+        ],
+        [
+          11,
+          6
+        ],
+        [
+          11,
+          7
+        ],
+        [
+          11,
+          8
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          11,
+          10
+        ],
+        [
+          11,
+          11
+        ],
+        [
+          12,
+          4
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          12,
+          10
+        ]
+      ],
+      "npcGroups": [],
+      "loot": []
+    },
+    {
+      "id": "astronomer_home",
+      "template": "yumis_dungeon_and_fight:building_variants/astronomer_home",
+      "position": [
+        32,
+        -10
+      ],
+      "entrance": [
+        44,
+        26
+      ],
+      "referenceY": 1,
+      "anchor": "road",
+      "foundation": "terrain_retaining",
+      "platform": true,
+      "flatten": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          10,
+          35
+        ],
+        [
+          15,
+          35
+        ]
+      ],
+      "npcGroups": [],
+      "loot": [],
+      "kind": "floating_observatory"
+    },
+    {
+      "id": "landscape_0",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        -86,
+        -89
+      ],
+      "referenceY": 0,
+      "entrance": [
+        -82,
+        -85
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_1",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/birch_tree",
+      "position": [
+        -52,
+        -87
+      ],
+      "referenceY": 0,
+      "entrance": [
+        -48,
+        -83
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_2",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        -4,
+        -86
+      ],
+      "referenceY": 0,
+      "entrance": [
+        0,
+        -82
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_3",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        18,
+        -87
+      ],
+      "referenceY": 0,
+      "entrance": [
+        22,
+        -83
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_4",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/birch_tree",
+      "position": [
+        61,
+        -87
+      ],
+      "referenceY": 0,
+      "entrance": [
+        65,
+        -83
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_5",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        76,
+        -74
+      ],
+      "referenceY": 0,
+      "entrance": [
+        80,
+        -70
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_6",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        -69,
+        -29
+      ],
+      "referenceY": 0,
+      "entrance": [
+        -65,
+        -25
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_7",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/birch_tree",
+      "position": [
+        -39,
+        -34
+      ],
+      "referenceY": 0,
+      "entrance": [
+        -35,
+        -30
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_8",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        -4,
+        -29
+      ],
+      "referenceY": 0,
+      "entrance": [
+        0,
+        -25
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_9",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        21,
+        -34
+      ],
+      "referenceY": 0,
+      "entrance": [
+        25,
+        -30
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_10",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/birch_tree",
+      "position": [
+        64,
+        -29
+      ],
+      "referenceY": 0,
+      "entrance": [
+        68,
+        -25
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_11",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        -74,
+        41
+      ],
+      "referenceY": 0,
+      "entrance": [
+        -70,
+        45
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_12",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        -34,
+        41
+      ],
+      "referenceY": 0,
+      "entrance": [
+        -30,
+        45
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_13",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/birch_tree",
+      "position": [
+        6,
+        41
+      ],
+      "referenceY": 0,
+      "entrance": [
+        10,
+        45
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "landscape_14",
+      "kind": "landscape_tree",
+      "template": "yumis_dungeon_and_fight:building_variants/oak_tree",
+      "position": [
+        61,
+        41
+      ],
+      "referenceY": 0,
+      "entrance": [
+        65,
+        45
+      ],
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "skipInOcean": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          4,
+          4
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "woodworker_yard",
+      "kind": "courtyard",
+      "template": "yumis_dungeon_and_fight:courtyards/woodworker_yard",
+      "position": [
+        -76,
+        -59
+      ],
+      "referenceY": 1,
+      "entrance": [
+        -66,
+        -50
+      ],
+      "anchor": "surface",
+      "foundation": "sparse_stone",
+      "platform": true,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          13,
+          3
+        ],
+        [
+          13,
+          7
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          14,
+          7
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          15,
+          7
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          16,
+          5
+        ],
+        [
+          16,
+          9
+        ],
+        [
+          17,
+          3
+        ],
+        [
+          17,
+          7
+        ],
+        [
+          17,
+          9
+        ],
+        [
+          18,
+          6
+        ],
+        [
+          18,
+          7
+        ],
+        [
+          18,
+          8
+        ],
+        [
+          18,
+          9
+        ]
+      ],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "herbalist_yard",
+      "kind": "courtyard",
+      "template": "yumis_dungeon_and_fight:courtyards/herbalist_yard",
+      "position": [
+        -25,
+        -57
+      ],
+      "referenceY": 1,
+      "entrance": [
+        -17,
+        -48
+      ],
+      "anchor": "road",
+      "foundation": "sparse_stone",
+      "platform": true,
+      "flatten": true,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          9
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          13,
+          4
+        ],
+        [
+          13,
+          5
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          15,
+          0
+        ],
+        [
+          15,
+          1
+        ],
+        [
+          15,
+          2
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          15,
+          4
+        ],
+        [
+          15,
+          5
+        ],
+        [
+          15,
+          6
+        ],
+        [
+          15,
+          7
+        ],
+        [
+          15,
+          8
+        ],
+        [
+          15,
+          9
+        ]
+      ],
+      "loot": [],
+      "npcGroups": [],
+      "parent": "herbalist_home"
+    },
+    {
+      "id": "artist_frontcourt",
+      "kind": "courtyard",
+      "template": "yumis_dungeon_and_fight:courtyards/artist_frontcourt",
+      "position": [
+        35,
+        -56
+      ],
+      "referenceY": 1,
+      "entrance": [
+        43,
+        -48
+      ],
+      "anchor": "road",
+      "foundation": "sparse_stone",
+      "platform": true,
+      "flatten": true,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          13,
+          7
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          6
+        ],
+        [
+          14,
+          7
+        ],
+        [
+          15,
+          1
+        ],
+        [
+          15,
+          6
+        ],
+        [
+          15,
+          7
+        ]
+      ],
+      "loot": [],
+      "npcGroups": [],
+      "parent": "artist_home"
+    },
+    {
+      "id": "mechanic_workyard",
+      "kind": "courtyard",
+      "template": "yumis_dungeon_and_fight:courtyards/mechanic_workyard",
+      "position": [
+        -75,
+        12
+      ],
+      "referenceY": 1,
+      "entrance": [
+        -60,
+        27
+      ],
+      "anchor": "road",
+      "foundation": "sparse_stone",
+      "platform": true,
+      "flatten": true,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          11
+        ],
+        [
+          0,
+          12
+        ],
+        [
+          0,
+          13
+        ],
+        [
+          0,
+          14
+        ],
+        [
+          0,
+          15
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          15
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          10
+        ],
+        [
+          2,
+          15
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          4,
+          15
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          9,
+          7
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          11,
+          5
+        ],
+        [
+          11,
+          7
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          12,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          17,
+          3
+        ],
+        [
+          17,
+          15
+        ],
+        [
+          18,
+          3
+        ],
+        [
+          18,
+          15
+        ],
+        [
+          19,
+          3
+        ],
+        [
+          19,
+          15
+        ],
+        [
+          20,
+          5
+        ],
+        [
+          20,
+          7
+        ],
+        [
+          20,
+          15
+        ],
+        [
+          21,
+          15
+        ],
+        [
+          22,
+          0
+        ],
+        [
+          22,
+          1
+        ],
+        [
+          22,
+          2
+        ],
+        [
+          22,
+          3
+        ],
+        [
+          22,
+          4
+        ],
+        [
+          22,
+          5
+        ],
+        [
+          22,
+          6
+        ],
+        [
+          22,
+          7
+        ],
+        [
+          22,
+          8
+        ],
+        [
+          22,
+          9
+        ],
+        [
+          22,
+          10
+        ],
+        [
+          22,
+          11
+        ],
+        [
+          22,
+          12
+        ],
+        [
+          22,
+          13
+        ],
+        [
+          22,
+          14
+        ],
+        [
+          22,
+          15
+        ]
+      ],
+      "loot": [],
+      "npcGroups": [],
+      "parent": "mechanic_home"
+    },
+    {
+      "id": "alchemist_secret_garden",
+      "kind": "courtyard",
+      "template": "yumis_dungeon_and_fight:courtyards/alchemist_secret_garden",
+      "position": [
+        -16,
+        11
+      ],
+      "referenceY": 1,
+      "entrance": [
+        -9,
+        22
+      ],
+      "anchor": "road",
+      "foundation": "sparse_stone",
+      "platform": true,
+      "flatten": true,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          11
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          11
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          11
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          3,
+          11
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          11,
+          3
+        ],
+        [
+          11,
+          4
+        ],
+        [
+          11,
+          11
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          12,
+          3
+        ],
+        [
+          12,
+          4
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          13,
+          1
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          13,
+          3
+        ],
+        [
+          13,
+          4
+        ],
+        [
+          13,
+          5
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          13,
+          7
+        ],
+        [
+          13,
+          8
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          13,
+          10
+        ],
+        [
+          13,
+          11
+        ]
+      ],
+      "loot": [],
+      "npcGroups": [],
+      "parent": "alchemist_home"
+    },
+    {
+      "id": "observatory_viewpoint",
+      "kind": "courtyard",
+      "template": "yumis_dungeon_and_fight:courtyards/observatory_viewpoint",
+      "position": [
+        27,
+        17
+      ],
+      "referenceY": 1,
+      "entrance": [
+        40,
+        25
+      ],
+      "anchor": "road",
+      "foundation": "sparse_stone",
+      "platform": true,
+      "flatten": true,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          11,
+          1
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          12,
+          1
+        ],
+        [
+          12,
+          2
+        ]
+      ],
+      "loot": [],
+      "npcGroups": [],
+      "parent": "astronomer_home"
+    },
+    {
+      "id": "observatory_drift_0",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_large",
+      "position": [
+        56,
+        13
+      ],
+      "referenceY": 0,
+      "entrance": [
+        44,
+        26
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_1",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_high",
+      "position": [
+        18,
+        -11
+      ],
+      "referenceY": 0,
+      "entrance": [
+        44,
+        26
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_2",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_shard",
+      "position": [
+        54,
+        -26
+      ],
+      "referenceY": 0,
+      "entrance": [
+        44,
+        26
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_3",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_low",
+      "position": [
+        22,
+        15
+      ],
+      "referenceY": 0,
+      "entrance": [
+        44,
+        26
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_4",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_west",
+      "position": [
+        16,
+        -29
+      ],
+      "referenceY": 0,
+      "entrance": [
+        44,
+        26
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_5",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_crown",
+      "position": [
+        34,
+        -32
+      ],
+      "referenceY": 0,
+      "entrance": [
+        44,
+        26
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_6",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_east",
+      "position": [
+        59,
+        -7
+      ],
+      "referenceY": 0,
+      "entrance": [
+        44,
+        26
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    }
+  ]
+}

@@ -69,6 +69,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.presentation.api.client.MenuInput.navigation(page->Minecraft.getInstance().gui.setScreen(new FightScreen(page)));
         cn.yumis.fight.modules.presentation.client.InventoryMenuButton.register();
         IndustrialRecipeCache.register();
+        IndustrialVisuals.register(bus);
         Network.CLIENT=ClientSession.INSTANCE::accept;
         if(Boolean.getBoolean("ydnf.verify"))cn.yumis.fight.modules.skills.api.client.SkillDiagnostics.attack=(weapon,value)->{cn.yumis.fight.verification.FeedbackProbe.weapon=weapon;cn.yumis.fight.verification.FeedbackProbe.attack=value;};
         Effects.VFX.register();

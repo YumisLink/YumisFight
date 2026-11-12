@@ -87,7 +87,7 @@ public final class IndustrialContent {
         for(String material:List.of("terra","spacetime")){item(material+"_ingot");block(material+"_block",Block::new);}
         item("industrial_magic_stone");block("industrial_magic_stone_block",Block::new);item("sulfide");block("energy_crystal_block_2",Block::new);
         block("magic_ore",p->new ResourceBlock("magic",p));
-        var grass=BLOCKS.registerBlock("magic_grass",MagicGrassBlock::new,p->p.noCollision().instabreak().sound(SoundType.GRASS).noOcclusion());ALL_BLOCKS.put("magic_grass",grass);ALL_ITEMS.put("magic_grass",ITEMS.registerSimpleBlockItem(grass));
+        var grass=BLOCKS.registerBlock("magic_grass",MagicGrassBlock::new,p->p.noCollision().instabreak().sound(SoundType.GRASS).noOcclusion().lightLevel(state->3));ALL_BLOCKS.put("magic_grass",grass);ALL_ITEMS.put("magic_grass",ITEMS.registerSimpleBlockItem(grass));
         for(String metal:List.of("vanadium","molybdenum","zirconium","mithril","adamantite","orichalcum","iridium","niobium_tantalum")){
             item("raw_"+metal);item("crushed_"+metal);block(metal+"_ore",p->new ResourceBlock(metal,p));
             if(!metal.equals("niobium_tantalum")){item(metal+"_ingot");item(metal+"_concentrate");}

@@ -14,6 +14,31 @@ def write(path, value):
 
 def recipe(name,value): write(DATA/'recipe'/'industrial'/f'{name}.json',value)
 def own(name):return f'{NS}:{name}'
+
+def magic_grass_model():
+    # Use the original 16x16 sprite and cross at their exact vanilla size.
+    # Two biome-tinted rows blend the grass into the four animated blue-tip rows.
+    rotation={'origin':[8,8,8],'axis':'y','angle':45,'rescale':True}
+    elements=[]
+    for along_x,faces in [(True,('north','south')),(False,('west','east'))]:
+        for bottom,top,v0,v1,tint,light in [(0,8,8,16,0,0),(8,9,7,8,1,3),(9,10,6,7,2,7),(10,16,0,6,-1,15)]:
+            face={'uv':[0,v0,16,v1],'texture':'#cross' if tint==0 else '#tips'}
+            if tint>=0:face['tintindex']=tint
+            element={'from':[.8,bottom,8] if along_x else [8,bottom,.8],
+                     'to':[15.2,top,8] if along_x else [8,top,15.2],
+                     'rotation':rotation,'shade':False,
+                     'faces':{direction:dict(face) for direction in faces}}
+            if light:element['light_emission']=light
+            elements.append(element)
+    return {'parent':'minecraft:block/tinted_cross','render_type':'minecraft:cutout',
+            'textures':{'cross':'minecraft:block/short_grass','tips':own('block/magic_grass')},
+            'elements':elements}
+
+def magic_grass_item():
+    return {'model':{'type':'minecraft:model','model':own('item/magic_grass'),
+                     'tints':[{'type':'minecraft:grass','downfall':1.0,'temperature':.5}]+
+                             [{'type':own('magic_grass_transition'),'step':step} for step in (1,2)]}}
+
 def result(item,count=1):return {'id':item,'count':count}
 def need(item,count=1):return {'ingredient':item,'count':count}
 def process(name,machine,ingredients,out=None,count=1,ticks=100,energy=100,tier=1,**extra):
@@ -127,7 +152,7 @@ all_blocks=list(devices)+blocks
 tag('mineable/pickaxe',[own(b) for b in all_blocks if b!='magic_grass'],'block','minecraft')
 tag('needs_iron_tool',[own(b) for b in ['lead_ore','magic_ore']],'block','minecraft');tag('needs_diamond_tool',[own(b) for b in ['uranium_ore','titanium_ore']],'block','minecraft')
 for key in blocks:
-    if key=='magic_grass':model={'parent':'minecraft:block/cross','render_type':'minecraft:cutout','textures':{'cross':own('block/magic_grass')}}
+    if key=='magic_grass':model=magic_grass_model()
     else:model={'parent':'minecraft:block/cube_all','textures':{'all':own('block/'+key)}}
     write(ASSETS/f'models/block/{key}.json',model);write(ASSETS/f'blockstates/{key}.json',{'variants':{'':{'model':own('block/'+key)}}})
     if key not in ['magic_ore','magic_grass','lead_ore','uranium_ore','titanium_ore']:write(DATA/f'loot_table/blocks/{key}.json',{'type':'minecraft:block','pools':[{'rolls':1,'entries':[{'type':'minecraft:item','name':own(key)}]}]})
@@ -146,7 +171,7 @@ for key,(family,tier) in devices.items():
                     variants[f'facing={facing},tier={visual},connected={str(connected).lower()},active={str(active).lower()}']={'model':own('block/'+model),'y':rot}
     write(ASSETS/f'blockstates/{key}.json',{'variants':variants});write(ASSETS/f'models/item/{key}.json',{'parent':'minecraft:item/generated','textures':{'layer0':own('block/'+family)}} if family in ['transfer_crystal','harvest_crystal'] else {'parent':own(f'block/{family}_{tier}')})
 for key in items+all_blocks:
-    write(ASSETS/f'items/{key}.json',{'model':{'type':'minecraft:model','model':own('item/'+key)}})
+    write(ASSETS/f'items/{key}.json',magic_grass_item() if key=='magic_grass' else {'model':{'type':'minecraft:model','model':own('item/'+key)}})
     if key in blocks:write(ASSETS/f'models/item/{key}.json',{'parent':own('block/'+key)})
     elif key not in devices:write(ASSETS/f'models/item/{key}.json',{'parent':'minecraft:item/generated','textures':{'layer0':own('item/'+key)}})
 for locale in ['zh_cn','en_us']:

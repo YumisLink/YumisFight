@@ -1,4 +1,4 @@
--- Preserve Minecraft's exact 16px silhouettes; change only material/ore/liquid pixels.
+-- Preserve Minecraft's exact 16px silhouettes; recolor materials and animate grass tips.
 local root=assert(app.params.root):gsub("\\","/").."/"
 local vanilla=(app.params.vanilla or (root.."temp/industrial-vanilla")):gsub("\\","/").."/"
 local output=root.."src/main/resources/assets/yumis_dungeon_and_fight/textures/"
@@ -9,6 +9,37 @@ local function tone(p,l,a)
  local t=math.max(0,math.min(1,(l-35)/220));local idx=t<.5 and 1 or 2;local f=t<.5 and t*2 or (t-.5)*2
  local r,g,b=rgb(p[idx]);local R,G,B=rgb(p[idx+1]);return app.pixelColor.rgba(math.floor(r+(R-r)*f+.5),math.floor(g+(G-g)*f+.5),math.floor(b+(B-b)*f+.5),a)
 end
+local function magic_grass()
+ local spr=app.open(vanilla.."short_grass.png");app.activeSprite=spr
+ assert(spr.width==16 and spr.height==16,"Magic grass requires the vanilla 16x16 short_grass.png")
+ app.command.ChangePixelFormat{format="rgb"};spr.layers[1].name="01 / vanilla short grass"
+ local base=Image(16,16,ColorMode.RGB);base:drawSprite(spr,1)
+ for i=2,12 do spr:newFrame(#spr.frames) end
+ local lights=spr:newLayer();lights.name="02 / blue tip breathing"
+ local strip=Image(16,192,ColorMode.RGB)
+ for i=1,12 do
+  local overlay=Image(16,16,ColorMode.RGB)
+  for y=0,5 do for x=0,15 do
+   local p=base:getPixel(x,y);local a=app.pixelColor.rgbaA(p)
+   if a>0 then
+    local shade=.72+.28*app.pixelColor.rgbaR(p)/255
+    local pulse=(1-math.cos((i-1)*math.pi/6+x*.18-y*.3))/2
+    overlay:drawPixel(x,y,app.pixelColor.rgba(math.floor((38+132*pulse)*shade+.5),math.floor((132+110*pulse)*shade+.5),math.floor((214+41*pulse)*shade+.5),a))
+   end
+  end end
+  spr:newCel(lights,i,overlay,Point(0,0));spr.frames[i].duration=.25
+  local frame=base:clone();frame:drawImage(overlay,Point(0,0));strip:drawImage(frame,Point(0,(i-1)*16))
+ end
+ local tag=spr:newTag(1,12);tag.name="Blue tips / 3 second breathing cycle"
+ spr:saveAs(source.."block/magic_grass.aseprite");spr:close()
+ local sheet=Sprite(16,192,ColorMode.RGB);sheet.cels[1].image=strip
+ sheet:saveAs(output.."block/magic_grass.png");sheet:close()
+ local meta=assert(io.open(output.."block/magic_grass.png.mcmeta","w"))
+ meta:write('{"animation":{"width":16,"height":16,"frametime":5,"interpolate":true}}\n');meta:close()
+ print("Magic grass: 12 frames at 16x16; blue upper four visible pixel rows; 3-second breathing cycle.")
+end
+magic_grass()
+if app.params.only=="magic_grass" then return end
 local function recolor(category,name,template,palette,mask)
  local spr=app.open(vanilla..template..".png");app.activeSprite=spr;app.command.ChangePixelFormat{format="rgb"};spr.layers[1].name="01 / vanilla silhouette"
  local base=Image(spr.width,spr.height,ColorMode.RGB);base:drawSprite(spr,1)

@@ -1,0 +1,385 @@
+{
+  "version": 1,
+  "bounds": [
+    -18,
+    -24,
+    47,
+    54
+  ],
+  "settings": {
+    "maxRise": 1,
+    "entranceFlatRadius": 3,
+    "floatingThreshold": 80,
+    "mainWoodFamilies": [],
+    "accentWoodFamilies": [],
+    "roadWeights": [
+      60,
+      30,
+      10
+    ],
+    "roadBlocks": [
+      "minecraft:andesite",
+      "minecraft:cobblestone",
+      "minecraft:mossy_cobblestone"
+    ],
+    "roadSlabs": [
+      "minecraft:andesite_slab",
+      "minecraft:cobblestone_slab",
+      "minecraft:mossy_cobblestone_slab"
+    ],
+    "roadStairs": [
+      "minecraft:andesite_stairs",
+      "minecraft:cobblestone_stairs",
+      "minecraft:mossy_cobblestone_stairs"
+    ],
+    "lighting": false,
+    "streetLightTarget": 0,
+    "noHostileSpawns": false,
+    "searchRadius": 256
+  },
+  "roads": [
+    {
+      "id": "approach",
+      "width": 3,
+      "points": [
+        [
+          12,
+          52
+        ],
+        [
+          12,
+          36
+        ]
+      ],
+      "external": true
+    },
+    {
+      "id": "observatory_viewpoint_link",
+      "width": 2,
+      "points": [
+        [
+          12,
+          40
+        ],
+        [
+          8,
+          40
+        ],
+        [
+          8,
+          35
+        ],
+        [
+          5,
+          35
+        ],
+        [
+          3,
+          32
+        ]
+      ]
+    }
+  ],
+  "grounds": [
+    {
+      "id": "native_ground",
+      "bounds": [
+        -4,
+        -4,
+        31,
+        49
+      ],
+      "surface": "native",
+      "clearVegetation": false,
+      "plants": []
+    }
+  ],
+  "facilities": [
+    {
+      "id": "astronomer_home",
+      "template": "yumis_dungeon_and_fight:building_variants/astronomer_home",
+      "position": [
+        0,
+        0
+      ],
+      "entrance": [
+        12,
+        36
+      ],
+      "referenceY": 1,
+      "anchor": "road",
+      "foundation": "terrain_retaining",
+      "platform": true,
+      "flatten": true,
+      "island": true,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          10,
+          35
+        ],
+        [
+          15,
+          35
+        ]
+      ],
+      "npcGroups": [],
+      "loot": [],
+      "kind": "floating_observatory"
+    },
+    {
+      "id": "observatory_viewpoint",
+      "kind": "courtyard",
+      "template": "yumis_dungeon_and_fight:courtyards/observatory_viewpoint",
+      "position": [
+        -5,
+        27
+      ],
+      "referenceY": 1,
+      "entrance": [
+        8,
+        35
+      ],
+      "anchor": "road",
+      "foundation": "sparse_stone",
+      "platform": true,
+      "flatten": true,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          11,
+          1
+        ],
+        [
+          11,
+          2
+        ],
+        [
+          12,
+          1
+        ],
+        [
+          12,
+          2
+        ]
+      ],
+      "loot": [],
+      "npcGroups": [],
+      "parent": "astronomer_home"
+    },
+    {
+      "id": "observatory_drift_0",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_large",
+      "position": [
+        24,
+        23
+      ],
+      "referenceY": 0,
+      "entrance": [
+        12,
+        36
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_1",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_high",
+      "position": [
+        -14,
+        -1
+      ],
+      "referenceY": 0,
+      "entrance": [
+        12,
+        36
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_2",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_shard",
+      "position": [
+        22,
+        -16
+      ],
+      "referenceY": 0,
+      "entrance": [
+        12,
+        36
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_3",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_low",
+      "position": [
+        -10,
+        25
+      ],
+      "referenceY": 0,
+      "entrance": [
+        12,
+        36
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_4",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_west",
+      "position": [
+        -16,
+        -19
+      ],
+      "referenceY": 0,
+      "entrance": [
+        12,
+        36
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_5",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_crown",
+      "position": [
+        2,
+        -22
+      ],
+      "referenceY": 0,
+      "entrance": [
+        12,
+        36
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    },
+    {
+      "id": "observatory_drift_6",
+      "kind": "floating_rock",
+      "template": "yumis_dungeon_and_fight:courtyards/drift_rock_east",
+      "position": [
+        27,
+        3
+      ],
+      "referenceY": 0,
+      "entrance": [
+        12,
+        36
+      ],
+      "parent": "astronomer_home",
+      "anchor": "surface",
+      "platform": false,
+      "flatten": false,
+      "island": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": []
+    }
+  ]
+}

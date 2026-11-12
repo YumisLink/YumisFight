@@ -29,6 +29,7 @@ replay_pid*
 /art/
 /dist/
 /参考文档/
+/建筑模板/
 */__pycache__/
 # Per-computer tool paths and build instructions; each machine maintains its own.
 /doc/本机环境.md
