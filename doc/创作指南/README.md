@@ -27,6 +27,7 @@
 | `economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；`professions/api/ProfessionRewards.java` | 掉落、出售分解、通货与副职业奖励由本人客户端按原资格计算；消费与确定奖品走既有库存／WAL事务，源快照、操作号和结果一并保存。重试复用已确定结果，不新增第二套余额或发奖模型。 |
 | `economy/api/JarDefinitions.java`、`LootJarItem.java` | 单抽罐子登记奖池与权重，物品工厂使用定义ID；开罐与交付沿库存／WAL事务，演出不决定奖品。配置方法见下文。 |
 | 客户端 `presentation/api/client/WorldQuads.java`、`EffectModels.java`、`EffectParticles.java`、`NearEffectRendering.java` | 技能和副本共用世界绘制、粒子及近身淡化；内容提供形状和时间轴，展示不授予命中、无敌或重力权限。 |
+| `mapgeneration/api/MapGeneration.java`、`MapBlueprint.java` | JSON 蓝图与原版 NBT 结构共用道路、其他地面、建筑／设施三类配置；统一规划后放置。管理员用 `/ydnf map plan <蓝图> [x y z]` 预览规划摘要、`/ydnf map generate <蓝图> [x y z]` 生成；控制台必须给坐标。 |
 
 规则整包接主源码 `bootstrap/ApplicationRules.java` 与 `architecture/RuleStore.java` 的既有发布流程；新增内容不另建通用网络、事务或规则运行时。
 
@@ -43,6 +44,12 @@
 | 奖励／副职业 | 来源资格、数量／概率权重、经验与等级曲线、操作号和领取上限；消费、发奖、重复请求与失败回滚共用现有事务。 |
 
 资源放既有模块对应目录，入口见项目索引；本指南只补可复用方法，不追加某次实现履历或数值快照。
+
+## 配置地图与结构素材
+
+新增野外建筑、配置地图或出生村庄前，先读 [野外建筑生成规则](野外建筑生成.md)。该文集中说明 `ydcore.toml` 开关、首次出生生成、三类区域配置、NBT 素材、道路高度、三种地基、地形与换材、战利品及验收方法；`starter_village.json` 是正式蓝图示例。
+
+继续复用 `mapgeneration/api/MapGeneration.java` 和 `MapBlueprint.java`；新增地图以配置和结构素材登记，保留用户修改，不在生成器中增加地图坐标或建筑 ID 分支。
 
 ## 单抽罐子配置
 

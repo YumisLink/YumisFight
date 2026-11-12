@@ -15,6 +15,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.RangedAttribute;
 import net.minecraft.world.effect.*;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.registries.*;
@@ -23,7 +24,8 @@ import java.util.*;
 @Mod(ItemData.NS)
 public final class FightMod {
     public static final String ID=ItemData.NS;
-    public FightMod(IEventBus bus){
+    public FightMod(IEventBus bus,ModContainer container){
+        cn.yumis.fight.modules.mapgeneration.api.MapGeneration.registerConfig(container);
         cn.yumis.fight.modules.inventory.api.WearablePolicy.install((player,group,stack)->{
             if(!EquipmentLayout.current().accepts(group,stack))return false;
             var gear=cn.yumis.fight.modules.equipment.api.EquipmentItems.view(stack);
@@ -71,8 +73,12 @@ public final class FightMod {
         NeoForge.EVENT_BUS.addListener((ServerStartedEvent e)->{
             if(e.getServer() instanceof net.minecraft.server.dedicated.DedicatedServer dedicated&&!dedicated.allowFlight())dedicated.setAllowFlight(true);
             ServerApplication.start(e.getServer());
+            cn.yumis.fight.modules.mapgeneration.api.MapGeneration.started(e.getServer());
         });
-        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e)->ServerApplication.stop());
+        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e)->{
+            cn.yumis.fight.modules.mapgeneration.api.MapGeneration.stopped(e.getServer());
+            ServerApplication.stop();
+        });
         ServerApplication.registerEvents();
     }
 }

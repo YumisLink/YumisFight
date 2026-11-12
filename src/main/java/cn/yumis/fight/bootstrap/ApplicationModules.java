@@ -18,6 +18,7 @@ public final class ApplicationModules {
         module("equipment","affixes","attributes","character","inventory","presentation","professions"),
         module("industry","economy","inventory","presentation"),
         module("inventory","presentation"),
+        module("mapgeneration"),
         module("party","presentation"),
         module("presentation"),
         module("professions","inventory","presentation"),

@@ -44,6 +44,9 @@ public final class ServerEvents {
     private ServerEvents(){
     }
     public static void register(){
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.level.LevelEvent.CreateSpawnPosition e)->cn.yumis.fight.modules.mapgeneration.api.MapGeneration.spawnCreated(e.getLevel()));
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post e)->cn.yumis.fight.modules.mapgeneration.api.MapGeneration.tick(e.getServer()));
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST,(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e)->{if(cn.yumis.fight.modules.mapgeneration.api.MapGeneration.blocksHostileSpawn(e.getEntity(),e.getLevel()))e.setCanceled(true);});
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent e)->{if(e.getEntity() instanceof net.minecraft.world.entity.player.Player){if(e.getEntity() instanceof ServerPlayer p&&ServerApplication.ready()&&ServerApplication.get().careers.steadfast(p))e.setCanceled(true);else e.setStrength(e.getStrength()*.1f);}});
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.MobEffectEvent.Applicable e)->{if(e.getEntity() instanceof ServerPlayer p&&ServerApplication.ready()&&e.getEffectInstance().getEffect()==cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN&&(ServerApplication.get().careers.steadfast(p)||ServerApplication.get().careers.invulnerable(p)))e.setResult(net.neoforged.neoforge.event.entity.living.MobEffectEvent.Applicable.Result.DO_NOT_APPLY);});
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent e)->{
@@ -100,6 +103,7 @@ public final class ServerEvents {
             ServerPlayer p=c.getSource().getPlayerOrException();ServerApplication.get().profile(p);c.getSource().sendSuccess(()->cn.yumis.fight.modules.presentation.api.ModText.of("按 I 打开地下城与战斗菜单"),false);return 1;
         }
         );
+        root.then(cn.yumis.fight.modules.mapgeneration.api.MapGeneration.command());
         var equipment=Commands.literal("equipment").then(Commands.literal("claim").executes(c->{
             ServerApplication.get().handle(c.getSource().getPlayerOrException(),"claim",new JsonObject());return 1;
         }

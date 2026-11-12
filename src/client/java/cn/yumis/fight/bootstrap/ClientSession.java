@@ -392,6 +392,10 @@ if(j.has("target")&&j.has("kind")){
             }
             return;
         }
+        // Client-created effects have no server removal packet when their timer expires.
+        for(var effect:List.copyOf(mc.player.getActiveEffects())){
+            if(effect.endsWithin(0))mc.player.removeEffect(effect.getEffect());
+        }
         cn.yumis.fight.modules.equipment.client.EquipmentActions.tick();cn.yumis.fight.modules.professions.client.ProfessionClient.tick();
         stats=EquipmentStats.build(mc.player,progress,syncedSources);
         resources.equipment=EquipmentStats.cachedEffects(mc.player,progress,syncedSources);
