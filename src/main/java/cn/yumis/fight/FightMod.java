@@ -37,10 +37,15 @@ public final class FightMod {
         cn.yumis.fight.modules.professions.platform.ProfessionContent.register();
         cn.yumis.fight.modules.economy.platform.CurrencyContent.register();
         cn.yumis.fight.modules.economy.platform.ChestContent.register();
+        cn.yumis.fight.modules.economy.platform.ShopContent.register(bus);
+        cn.yumis.fight.modules.npc.api.NpcContentTypes.register(bus);
+        cn.yumis.fight.modules.npc.api.NpcEntity.playerOwnedSources(e->e instanceof cn.yumis.fight.modules.skills.api.SummonedCreature summon&&summon.owner!=null);
+        cn.yumis.fight.modules.economy.api.ItemRarity.external(cn.yumis.fight.bootstrap.IndustrialItemDisplay::rarity);
         cn.yumis.fight.modules.character.platform.CharacterContent.register();
         cn.yumis.fight.bootstrap.ApplicationModules.REGISTRY.order();
         cn.yumis.fight.modules.industry.platform.IndustrialContent.register(bus);
         bus.addListener(cn.yumis.fight.bootstrap.IndustrialItemDisplay::names);
+        bus.addListener((net.neoforged.neoforge.event.ModifyDefaultComponentsEvent event)->{for(String name:cn.yumis.fight.modules.economy.api.ShopDefinitions.RARE_MATERIALS){var item=net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(name));event.modify(item,(components,context,value)->components.set(net.minecraft.core.component.DataComponents.ITEM_NAME,cn.yumis.fight.modules.presentation.api.ModText.decorate(net.minecraft.network.chat.Component.translatable(value.getDescriptionId())).withColor(cn.yumis.fight.modules.equipment.api.Rarity.RARE.color())));}});
         cn.yumis.fight.modules.inventory.api.InventoryMenuPorts.install(
             ()->cn.yumis.fight.modules.industry.platform.IndustrialContent.STORAGE_MENU.get(),
             (player,tier)->{
@@ -79,6 +84,9 @@ public final class FightMod {
             cn.yumis.fight.modules.mapgeneration.api.MapGeneration.stopped(e.getServer());
             ServerApplication.stop();
         });
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.EntityInteract event)->{if(event.getTarget() instanceof LivingEntity living&&cn.yumis.fight.modules.npc.api.NpcInteractionComponent.query(living)!=null){event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);event.setCanceled(true);}});
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityJoinLevelEvent event)->{if(!event.getLevel().isClientSide()&&(event.getEntity() instanceof net.minecraft.world.entity.projectile.Projectile||event.getEntity() instanceof net.minecraft.world.entity.item.PrimedTnt||event.getEntity() instanceof net.minecraft.world.entity.AreaEffectCloud))cn.yumis.fight.modules.npc.api.NpcEntity.rememberPlayerSource(event.getEntity());});
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.living.MobEffectEvent.Applicable event)->{if(event.getEntity() instanceof cn.yumis.fight.modules.npc.api.NpcEntity&&cn.yumis.fight.modules.npc.api.NpcEntity.playerOwned(event.getEffectSource()))event.setResult(net.neoforged.neoforge.event.entity.living.MobEffectEvent.Applicable.Result.DO_NOT_APPLY);});
         ServerApplication.registerEvents();
     }
 }

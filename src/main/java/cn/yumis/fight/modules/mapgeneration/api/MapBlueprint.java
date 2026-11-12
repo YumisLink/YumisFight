@@ -58,11 +58,22 @@ public final class MapBlueprint {
         public int[][] blocked=new int[0][];
         public List<String> tags=new ArrayList<>();
         public List<Loot> loot=new ArrayList<>();
+        public List<NpcGroup> npcGroups=new ArrayList<>();
         public boolean fittedFoundation() {return !foundation.equals("platform");}
     }
     public static final class Loot {
         public int[] pos;
         public String table;
+    }
+    public static final class NpcGroup {
+        public String id;
+        public List<String> definitions=new ArrayList<>();
+        public List<NpcAnchor> anchors=new ArrayList<>();
+    }
+    public static final class NpcAnchor {
+        public String id;
+        public double[] pos;
+        public float yaw;
     }
     public static MapBlueprint load(ServerLevel level,Identifier id) throws IOException {
         var resource=Identifier.fromNamespaceAndPath(id.getNamespace(),"map_blueprint/"+id.getPath()+".json");
@@ -85,6 +96,12 @@ public final class MapBlueprint {
             Identifier.parse(f.template);
             if(f.foundation==null||!Set.of("platform","sparse_stone","terrain_retaining").contains(f.foundation)||f.fittedFoundation()&&!f.platform)throw new IllegalArgumentException("设施地基须为 platform、sparse_stone 或 terrain_retaining，后两种须启用 platform: "+f.id);
             for(Loot l:f.loot) {if(l.pos==null||l.pos.length!=3||l.table==null)throw new IllegalArgumentException("战利品槽配置无效");Identifier.parse(l.table);}
+            Set<String> groups=new HashSet<>();
+            for(var group:f.npcGroups){
+                if(group.id==null||!groups.add(group.id)||group.definitions.isEmpty()||new HashSet<>(group.definitions).size()!=group.definitions.size()||group.anchors.size()<group.definitions.size())throw new IllegalArgumentException("NPC投放组无效："+f.id);
+                for(String definition:group.definitions)cn.yumis.fight.modules.npc.api.NpcDefinitions.current().require(definition);
+                Set<String> anchors=new HashSet<>();for(var anchor:group.anchors)if(anchor.id==null||!anchors.add(anchor.id)||anchor.pos==null||anchor.pos.length!=3||Arrays.stream(anchor.pos).anyMatch(v->!Double.isFinite(v))||!Float.isFinite(anchor.yaw))throw new IllegalArgumentException("NPC锚点无效："+f.id);
+            }
         }
     }
 }

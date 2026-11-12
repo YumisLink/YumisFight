@@ -31,18 +31,33 @@ public final class MachineBlock extends BaseEntityBlock {
     @Override protected MapCodec<? extends BaseEntityBlock> codec(){return simpleCodec(p->new MachineBlock(initial,p));}
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block,BlockState> b){b.add(TIER,FACING,CONNECTED,ACTIVE);}
     @Override public BlockEntity newBlockEntity(BlockPos pos,BlockState state){return new MachineBlockEntity(pos,state);}
+    @Override protected RenderShape getRenderShape(BlockState state){return initial.device()==DeviceType.STAR?RenderShape.INVISIBLE:super.getRenderShape(state);}
     @Override protected VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){
+        if(initial.device()==DeviceType.STAR)return ArtificialStarPartBlock.shape(0,0,0);
         // Minecraft initializes every tier state, including tiers this device does not define.
         var spec=IndustrialContent.spec(initial.device(),state.getValue(TIER));
         return IndustrialShapes.machine(spec!=null?spec:initial,state.getValue(FACING));
     }
     @Override protected VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return getShape(state,level,pos,context);}
     @Override public BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext c){
+        if(initial.device()==DeviceType.STAR&&!ArtificialStarPartBlock.canPlace(c))return null;
         if(initial.device().has(DeviceType.Capability.WIND)){if(c.getClickedPos().getY()+2>c.getLevel().getMaxY())return null;for(int i=1;i<=2;i++)if(!c.getLevel().getBlockState(c.getClickedPos().above(i)).canBeReplaced(c))return null;}
         return defaultBlockState().setValue(FACING,c.getHorizontalDirection().getOpposite());
     }
-    @Override public void setPlacedBy(Level level,BlockPos pos,BlockState state,LivingEntity owner,ItemStack stack){super.setPlacedBy(level,pos,state,owner,stack);if(level instanceof ServerLevel server&&level.getBlockEntity(pos) instanceof MachineBlockEntity be){if(initial.device().has(DeviceType.Capability.WIND))WindGeneratorPartBlock.ensure(server,pos);IndustrialWorld.get(server).placed(be);if(be.device().has(DeviceType.Capability.MINING)&&owner instanceof net.minecraft.server.level.ServerPlayer player)IndustrialDeposits.get(server).reveal(player,server,pos.getX()>>4,pos.getZ()>>4,be.tier());}}
-    @Override protected void affectNeighborsAfterRemoval(BlockState state,ServerLevel level,BlockPos pos,boolean moved){super.affectNeighborsAfterRemoval(state,level,pos,moved);if(initial.device().has(DeviceType.Capability.WIND)&&level.getBlockState(pos).getBlock()!=this)WindGeneratorPartBlock.removeUpper(level,pos);}
+    @Override public void setPlacedBy(Level level,BlockPos pos,BlockState state,LivingEntity owner,ItemStack stack){
+        super.setPlacedBy(level,pos,state,owner,stack);
+        if(level instanceof ServerLevel server&&level.getBlockEntity(pos) instanceof MachineBlockEntity be){
+            if(initial.device()==DeviceType.STAR&&!ArtificialStarPartBlock.assemble(server,pos)){server.destroyBlock(pos,true,owner);return;}
+            if(initial.device().has(DeviceType.Capability.WIND))WindGeneratorPartBlock.ensure(server,pos);
+            IndustrialWorld.get(server).placed(be);
+            if(be.device().has(DeviceType.Capability.MINING)&&owner instanceof net.minecraft.server.level.ServerPlayer player)IndustrialDeposits.get(server).reveal(player,server,pos.getX()>>4,pos.getZ()>>4,be.tier());
+        }
+    }
+    @Override protected void affectNeighborsAfterRemoval(BlockState state,ServerLevel level,BlockPos pos,boolean moved){
+        super.affectNeighborsAfterRemoval(state,level,pos,moved);if(level.getBlockState(pos).getBlock()==this)return;
+        if(initial.device().has(DeviceType.Capability.WIND))WindGeneratorPartBlock.removeUpper(level,pos);
+        if(initial.device()==DeviceType.STAR)ArtificialStarPartBlock.removeParts(level,pos);
+    }
     @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){if(!level.isClientSide()&&level.getBlockEntity(pos) instanceof MachineBlockEntity be)IndustrialWorld.get((ServerLevel)level).opening.prepare((net.minecraft.server.level.ServerPlayer)player,be);return InteractionResult.SUCCESS;}
     @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit){if(stack.getItem() instanceof ManaWand)return InteractionResult.PASS;if(IndustrialUpgrades.recognized(stack)){if(player instanceof net.minecraft.server.level.ServerPlayer server)try{IndustrialUpgrades.use(server,hand,(MachineBlockEntity)level.getBlockEntity(pos));}catch(RuntimeException failure){cn.yumis.fight.modules.industry.api.IndustrialPorts.message(server,failure.getMessage());}return InteractionResult.SUCCESS;}if(!level.isClientSide())try(var tx=net.neoforged.neoforge.transfer.transaction.Transaction.openRoot()){if(net.neoforged.neoforge.transfer.fluid.FluidUtil.interactWithFluidHandler(player,hand,level,pos,hit.getDirection(),tx)){tx.commit();return InteractionResult.SUCCESS;}}return InteractionResult.TRY_WITH_EMPTY_HAND;}
     @Override protected List<ItemStack> getDrops(BlockState state,LootParams.Builder params){

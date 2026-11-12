@@ -60,6 +60,8 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.equipment.client.EquipmentActions.install(local.preparations,()->local.progress,()->local.profile,cn.yumis.fight.modules.professions.client.ProfessionClient::get);
         cn.yumis.fight.modules.economy.client.EconomyActions.install(local.preparations,()->local.profile,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->!local.own.dead&&local.dungeon==null&&local.own.instance.isEmpty()&&ClientSession.now()>=local.resources.combatUntil);
         cn.yumis.fight.modules.dungeons.client.DungeonActions.install(local.preparations,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->!local.own.dead,cn.yumis.fight.modules.economy.api.ChestRewards::waystoneChest,luck->cn.yumis.fight.modules.economy.api.LootOdds.rarity(cn.yumis.fight.modules.dungeons.api.Difficulty.HELL,true,false,luck,new java.util.Random()),()->!local.own.dead&&local.dungeon==null&&local.own.instance.isEmpty());
+        cn.yumis.fight.modules.economy.client.ShopClient.install(local.preparations,()->local.profile,()->local.ready&&!local.own.dead,(entity,shop)->{var definition=cn.yumis.fight.modules.npc.api.NpcInteractionComponent.query(entity);return definition!=null&&definition.actions().stream().anyMatch(action->action.type().equals("shop")&&action.value().equals(shop));});
+        cn.yumis.fight.modules.npc.client.NpcClient.blocked(()->local.own.dead||JarClient.blocking()||Effects.VFX.blocksHotbar());
         local.preparations.seal();
         cn.yumis.fight.modules.dungeons.api.TrainingActions.client(cn.yumis.fight.modules.dungeons.client.TrainingInput::use);
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.register(bus,()->ClientSession.INSTANCE.dungeon);
@@ -85,12 +87,14 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
         cn.yumis.fight.modules.industry.client.ManaWandClient.register(bus,stack->{var rarity=IndustrialItemDisplay.rarity(stack);return rarity==null?null:rarity.color();});
+        cn.yumis.fight.modules.industry.client.ArtificialStarHazard.register(SkillController.INSTANCE::environmentDamage);
+        NeoForge.EVENT_BUS.addListener(IndustrialItemDisplay::tooltip);
         cn.yumis.fight.modules.skills.client.SkillTooltip.register(bus);
         ClientSettings.load();
         UiTheme.load();
         UiFonts.register(bus);
         CurrencyUi.register();
-        NeoForge.EVENT_BUS.addListener((RenderTooltipEvent.Texture event)->{if(cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mythic(event.getItemStack())||cn.yumis.fight.modules.equipment.api.client.MythicDisplay.marked(event.getComponents()))event.setTexture(cn.yumis.fight.modules.equipment.api.client.MythicDisplay.TOOLTIP);});
+        NeoForge.EVENT_BUS.addListener((RenderTooltipEvent.Texture event)->{if(cn.yumis.fight.modules.economy.api.ItemRarity.rarity(event.getItemStack())==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC||cn.yumis.fight.modules.equipment.api.client.MythicDisplay.marked(event.getComponents()))event.setTexture(cn.yumis.fight.modules.equipment.api.client.MythicDisplay.TOOLTIP);});
         EquipmentEligibility.CLIENT_PROGRESS=p->ClientSession.INSTANCE.progress;
         EquipmentTooltip.install(id->{var currency=cn.yumis.fight.modules.economy.api.CurrencyRules.find(id);if(currency==null)return null;var label=cn.yumis.fight.modules.presentation.api.client.UiFonts.decorate(net.minecraft.network.chat.Component.literal(currency.rarity().title()+" · 通货").withStyle(style->style.withColor(currency.rarity().color()).withItalic(false)));return currency.rarity()==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC?cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(label):label;},
             id->cn.yumis.fight.modules.dungeons.api.DungeonCatalog.current().dungeons.stream().filter(d->d.materials().contains(id)).map(d->"来源："+d.name()+(d.available()?"":"（尚未开放）")).toList(),
@@ -103,13 +107,14 @@ public final class ClientBootstrap {
             e.register(id("katana_style"),StyleProperty.TYPE);e.register(id("material"),MaterialProperty.TYPE);
         }
         );
-        bus.addListener((RegisterMenuScreensEvent e)->{e.register(cn.yumis.fight.modules.equipment.api.EquipmentContentTypes.FABRICATOR_MENU.get(),FabricatorScreen::new);e.register(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_MENU.get(),IndustrialScreen::new);e.register(IndustrialContent.PROSPECTOR_MENU.get(),cn.yumis.fight.modules.industry.client.ProspectorScreen::new);e.register(cn.yumis.fight.modules.industry.platform.IndustrialContent.STORAGE_MENU.get(),DimensionalScreen::new);});
+        bus.addListener((RegisterMenuScreensEvent e)->{e.register(cn.yumis.fight.modules.economy.platform.ShopContent.SHOP.get(),cn.yumis.fight.modules.economy.client.ShopScreen::new);e.register(cn.yumis.fight.modules.equipment.api.EquipmentContentTypes.FABRICATOR_MENU.get(),FabricatorScreen::new);e.register(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_MENU.get(),IndustrialScreen::new);e.register(IndustrialContent.PROSPECTOR_MENU.get(),cn.yumis.fight.modules.industry.client.ProspectorScreen::new);e.register(cn.yumis.fight.modules.industry.platform.IndustrialContent.STORAGE_MENU.get(),DimensionalScreen::new);});
         bus.addListener((RegisterFluidModelsEvent e)->e.register(new net.minecraft.client.renderer.block.FluidModel.Unbaked(new net.minecraft.client.resources.model.sprite.Material(Identifier.withDefaultNamespace("block/water_still")),new net.minecraft.client.resources.model.sprite.Material(Identifier.withDefaultNamespace("block/water_flow")),null,net.neoforged.neoforge.client.fluid.FluidTintSources.constant(0xff70cbd2)),cn.yumis.fight.modules.industry.platform.IndustrialContent.COOLANT,cn.yumis.fight.modules.industry.platform.IndustrialContent.FLOWING_COOLANT));
         bus.addListener((RegisterFluidModelsEvent e)->{
             for(var liquid:IndustrialContent.LIQUIDS.values())e.register(new net.minecraft.client.renderer.block.FluidModel.Unbaked(new net.minecraft.client.resources.model.sprite.Material(Identifier.withDefaultNamespace("block/water_still")),new net.minecraft.client.resources.model.sprite.Material(Identifier.withDefaultNamespace("block/water_flow")),null,net.neoforged.neoforge.client.fluid.FluidTintSources.constant(liquid.color)),liquid.source,liquid.flowing);
         });
         bus.addListener((EntityRenderersEvent.RegisterRenderers e)->{
             for(var entry:cn.yumis.fight.modules.skills.api.SkillContentTypes.SUMMONS.entrySet())e.registerEntityRenderer(entry.getValue().get(),c->new cn.yumis.fight.modules.skills.client.SummonRenderer(c,entry.getKey()));
+            e.registerEntityRenderer(cn.yumis.fight.modules.npc.api.NpcContentTypes.NPC.get(),cn.yumis.fight.modules.npc.client.NpcRenderer::new);
             e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.TRAINING_SANDBAG.get(),cn.yumis.fight.modules.dungeons.client.TrainingSandbagRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_BE.get(),IndustrialRenderer::new);
             e.registerEntityRenderer(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.CAGE.get(),CageRenderer::new);for(var type:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.entrySet()){
@@ -134,8 +139,11 @@ public final class ClientBootstrap {
         bus.addListener((RegisterGuiLayersEvent e)->{e.registerAboveAll(id("hud"),Hud::render);e.registerAboveAll(id("stamina"),CloudMovement::render);});
         // Jade renders in RenderGuiEvent.Post at NORMAL; draw the target panel afterward.
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,Hud::renderTarget);
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->cn.yumis.fight.modules.npc.client.NpcClient.render(event.getGuiGraphics()));
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::scroll);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::interact);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
-            IndustrialVisuals.tick();
+            cn.yumis.fight.modules.npc.client.NpcClient.tick();IndustrialVisuals.tick();
             ClientSession.INSTANCE.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();while(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.consumeClick()){
                 var mc=Minecraft.getInstance();if(!JarClient.blocking()&&mc.player!=null&&mc.gui.screen()==null){
                     ClientSession.INSTANCE.upload();mc.gui.setScreen(new FightScreen());
@@ -174,6 +182,8 @@ public final class ClientBootstrap {
         );
         NeoForge.EVENT_BUS.addListener((ItemTooltipEvent e)->{
             EquipmentTooltip.item(e);
+            var material=cn.yumis.fight.modules.economy.api.ShopDefinitions.materialRarity(e.getItemStack());
+            if(material!=null){if(!e.getToolTip().isEmpty())e.getToolTip().set(0,e.getToolTip().getFirst().copy().withColor(material.color()));e.getToolTip().add(UiFonts.decorate(net.minecraft.network.chat.Component.literal("稀有度 · "+material.title()).withColor(material.color())));}
             if(ItemData.own(e.getItemStack()))e.getToolTip().replaceAll(UiFonts::decorate);
         });
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Background e)->Hud.equipment(e));
@@ -238,6 +248,7 @@ public final class ClientBootstrap {
     private static void currency(ScreenEvent.MouseButtonPressed.Pre e){
         var mc=Minecraft.getInstance();
         if(e.getButton()!=1||!(e.getScreen() instanceof AbstractContainerScreen<?> screen)||mc.player==null)return;
+        if(screen instanceof cn.yumis.fight.modules.economy.client.ShopScreen shop&&shop.modal()){e.setCanceled(true);return;}
         var target=CurrencyUi.target(screen,e.getMouseX(),e.getMouseY());
         if(target==null)return;
         var menu=target.menu();

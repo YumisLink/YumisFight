@@ -116,6 +116,7 @@ public final class Hud {
             var entity=hit.getEntity();
             if(entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part)entity=part.parentMob;
             if(entity instanceof LivingEntity living&&!(entity instanceof net.minecraft.world.entity.player.Player)){
+                if(cn.yumis.fight.modules.npc.api.NpcInteractionComponent.query(living)!=null)return;
                 Target target=s.context(living);
                 if(target!=null){
                     var g=event.getGuiGraphics();
@@ -179,25 +180,13 @@ public final class Hud {
         g.pose().popMatrix();
     }
     /** Foreground precedes deferred tooltips; Post would cover their text and background. */
-    public static void creativeFrames(ScreenEvent.Render.Foreground event){if(!(event.getScreen() instanceof CreativeModeInventoryScreen screen))return;var graphics=event.getGuiGraphics();for(var slot:screen.getMenu().slots){if(!slot.isActive())continue;var stack=slot.getItem();if(stack.isEmpty()||!ItemData.own(stack))continue;var industrial=IndustrialItemDisplay.rarity(stack);var rarity=industrial!=null?industrial:ItemRarity.rarity(stack);if(industrial==null&&rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC)continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;if(rarity==Rarity.MYTHIC)cn.yumis.fight.modules.equipment.api.client.MythicDisplay.frame(graphics,x,y,16,16);else {int color=0xff000000|rarity.color();graphics.fill(x,y,x+16,y+1,color);graphics.fill(x,y+15,x+16,y+16,color);graphics.fill(x,y,x+1,y+16,color);graphics.fill(x+15,y,x+16,y+16,color);}}}
+    public static void creativeFrames(ScreenEvent.Render.Foreground event){
+        if(!(event.getScreen() instanceof CreativeModeInventoryScreen screen))return;
+        for(var slot:screen.getMenu().slots){if(!slot.isActive()||!ItemRarity.decorated(slot.getItem()))continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;cn.yumis.fight.modules.economy.api.client.RarityFrames.draw(event.getGuiGraphics(),slot.getItem(),x,y,false);}
+    }
     public static void equipment(ScreenEvent.Render.Background event){
         if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;
-        for(var slot:screen.getMenu().slots){
-            if(!slot.isActive())continue;
-            int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;
-            if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;
-            var stack=slot.getItem();
-            if(stack.isEmpty()||!ItemData.own(stack))continue;
-            var industrial=IndustrialItemDisplay.rarity(stack);
-            var rarity=industrial!=null?industrial:ItemRarity.rarity(stack);
-            // COMMON is also the fallback for unrelated items; decorate only known entries.
-            if(industrial==null&&rarity==Rarity.COMMON&&EquipmentItems.view(stack)==null&&CurrencyRules.find(ItemData.id(stack))==null)continue;
-            int color=0xff000000|rarity.color();
-            var g=event.getGuiGraphics();
-            g.blit(RenderPipelines.GUI_TEXTURED,RARITY_BACKGROUND,x,y,0.0F,0.0F,16,16,16,16,color);
-            // Former [x-1,x+17) / [y-1,y+17) frame moves inward one pixel on every side.
-            if(rarity==Rarity.MYTHIC)cn.yumis.fight.modules.equipment.api.client.MythicDisplay.frame(g,x,y,16,16);
-            else {g.fill(x,y,x+16,y+1,color);g.fill(x,y+15,x+16,y+16,color);g.fill(x,y+1,x+1,y+15,color);g.fill(x+15,y+1,x+16,y+15,color);}
-        }
+        for(var slot:screen.getMenu().slots){if(!slot.isActive()||!ItemRarity.decorated(slot.getItem()))continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;cn.yumis.fight.modules.economy.api.client.RarityFrames.draw(event.getGuiGraphics(),slot.getItem(),x,y,true);}
     }
+
 }

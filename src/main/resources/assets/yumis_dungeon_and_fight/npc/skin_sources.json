@@ -1,0 +1,66 @@
+{
+  "zimin": {
+    "displayName": "籽岷",
+    "username": "Zi__Min",
+    "uuid": "f4f59ac621b44bfe90ff106b64c5d599",
+    "model": "wide",
+    "sha256": "4a4f489e4f43d6b52c07d9ea85b60a9d3ea82c7929a55f0fce447aee5ad9a2a8",
+    "source": "https://textures.minecraft.net/texture/4a4f489e4f43d6b52c07d9ea85b60a9d3ea82c7929a55f0fce447aee5ad9a2a8"
+  },
+  "uncle_red": {
+    "displayName": "红叔",
+    "username": "Uncle_Red",
+    "uuid": "30ecf6ccf46f405584c4c8b980c0d6d7",
+    "model": "slim",
+    "sha256": "7d188e33fcd03ed25f94c3756bc83f1ca852d6d839678e95990dd3a94bbaf760",
+    "source": "https://textures.minecraft.net/texture/7d188e33fcd03ed25f94c3756bc83f1ca852d6d839678e95990dd3a94bbaf760"
+  },
+  "badcen": {
+    "displayName": "BadCen",
+    "username": "BadCen",
+    "uuid": "a3c7d62a311c4a28b02c1ba2e27f9e67",
+    "model": "slim",
+    "sha256": "3088b49190b15d24fe2c60ed2c42d8fae8a9eef77d03d0e8bad727ef76227d0e",
+    "source": "https://textures.minecraft.net/texture/3088b49190b15d24fe2c60ed2c42d8fae8a9eef77d03d0e8bad727ef76227d0e"
+  },
+  "hei_mao": {
+    "displayName": "黑猫",
+    "username": "Hei_Mao",
+    "uuid": "87cc1b9592fa448ca4fc5164b38fbc47",
+    "model": "wide",
+    "sha256": "521947f19e07d492dbc0f92042632d020accce61615a3a14e941d578e018a202",
+    "source": "https://textures.minecraft.net/texture/521947f19e07d492dbc0f92042632d020accce61615a3a14e941d578e018a202"
+  },
+  "dream": {
+    "displayName": "Dream",
+    "username": "Dream",
+    "uuid": "ec70bcaf702f4bb8b48d276fa52a780c",
+    "model": "slim",
+    "sha256": "ca93f6fc40488f1877cda94a830b54e9f6f54ab58a5453bad5c947726dd1f473",
+    "source": "https://textures.minecraft.net/texture/ca93f6fc40488f1877cda94a830b54e9f6f54ab58a5453bad5c947726dd1f473"
+  },
+  "technoblade": {
+    "displayName": "Technoblade",
+    "username": "Technoblade",
+    "uuid": "b876ec32e396476ba1158438d83c67d4",
+    "model": "wide",
+    "sha256": "8c907a7f4f0c3a6c9c9b79348f7bf1993695b6d2eae2fab704a1a4d9b8288cbe",
+    "source": "https://textures.minecraft.net/texture/8c907a7f4f0c3a6c9c9b79348f7bf1993695b6d2eae2fab704a1a4d9b8288cbe"
+  },
+  "grian": {
+    "displayName": "Grian",
+    "username": "Grian",
+    "uuid": "5f8eb73b25be4c5aa50fd27d65e30ca0",
+    "model": "slim",
+    "sha256": "fd82a31be355fae3842af8a66a208df602230a0fc748c7453e491e08377eb4c2",
+    "source": "https://textures.minecraft.net/texture/fd82a31be355fae3842af8a66a208df602230a0fc748c7453e491e08377eb4c2"
+  },
+  "tommyinnit": {
+    "displayName": "TommyInnit",
+    "username": "TommyInnit",
+    "uuid": "e80e8194323e414298515e1bcb8a3508",
+    "model": "wide",
+    "sha256": "eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56",
+    "source": "https://textures.minecraft.net/texture/eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56"
+  }
+}

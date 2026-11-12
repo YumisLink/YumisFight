@@ -219,7 +219,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
             int left=(width-300)/2,top=(height-240)/2;
             g.fill(0,0,width,height,UiTheme.OVERLAY);IndustrialUi.panel(g,left,top,300,240);
             if(!parent.menu.info.has("structure"))return;
-            var data=definition();int size=data.get("size").getAsInt();layer=Math.clamp(layer,0,size-1);
+            var data=definition();int size=data.get("size").getAsInt();layer=Math.clamp(layer,0,size-1);boolean automatic=data.has("automatic")&&data.get("automatic").getAsBoolean();
             g.text(UiFonts.font(),"结构 · "+size+"×"+size+"×"+size+" · 第"+(layer+1)+"层",left+12,top+12,UiTheme.TEXT,false);
             g.text(UiFonts.font(),parent.text("structure_material","机外壳"),left+12,top+28,UiTheme.TEXT,false);
             Set<Long> missing=new HashSet<>();if(parent.menu.info.has("missing"))for(var value:parent.menu.info.getAsJsonArray("missing"))missing.add(value.getAsLong());
@@ -228,12 +228,12 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
                 var item=value.getAsJsonObject();if(item.get("y").getAsInt()!=layer)continue;
                 int x=x0+item.get("x").getAsInt()*cell,y=y0+item.get("z").getAsInt()*cell;
                 long position=item.get("position").getAsLong();boolean control=item.get("controller").getAsBoolean(),air=item.get("air").getAsBoolean(),bad=missing.contains(position);
-                g.fill(x,y,x+20,y+20,control?UiTheme.GOLD:air?UiTheme.CARD:bad?UiTheme.ERROR:UiTheme.SUCCESS);
-                g.text(UiFonts.font(),control?"控":air?"空":bad?"×":"✓",x+6,y+6,UiTheme.TEXT,false);
-                if(mx>=x&&mx<x+20&&my>=y&&my<y+20)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(Component.literal(BlockPos.of(position).toShortString()),Component.literal(control?"控制器":air?"内部留空":bad?"缺少正确机壳":"机壳正确")),mx,my);
+                g.fill(x,y,x+20,y+20,control?UiTheme.GOLD:bad?UiTheme.ERROR:air?UiTheme.CARD:UiTheme.SUCCESS);
+                g.text(UiFonts.font(),control?"控":bad?"×":air?"空":"✓",x+6,y+6,UiTheme.TEXT,false);
+                if(mx>=x&&mx<x+20&&my>=y&&my<y+20)g.setComponentTooltipForNextFrame(UiFonts.font(),List.of(Component.literal(BlockPos.of(position).toShortString()),Component.literal(control?"控制器":automatic?(bad?"整机部件缺失":air?"悬浮留空区域":"整机部件完整"):air?"内部留空":bad?"缺少正确机壳":"机壳正确")),mx,my);
             }
-            g.text(UiFonts.font(),"控制器在底层正面中央，内部留空。",left+12,top+170,UiTheme.TEXT,false);
-            g.text(UiFonts.font(),"机壳 "+data.get("shell_count").getAsInt()+" · 缺失 "+missing.size()+" 处",left+12,top+187,missing.isEmpty()?UiTheme.SUCCESS:UiTheme.ERROR,false);
+            g.text(UiFonts.font(),automatic?"底层中央放置一台，自动组成整机。":"控制器在底层正面中央，内部留空。",left+12,top+170,UiTheme.TEXT,false);
+            g.text(UiFonts.font(),(automatic?"整机自动成型":"机壳 "+data.get("shell_count").getAsInt())+" · 缺失 "+missing.size()+" 处",left+12,top+187,missing.isEmpty()?UiTheme.SUCCESS:UiTheme.ERROR,false);
         }
         @Override public void onClose(){minecraft.gui.popScreenLayer();}
         @Override public boolean isPauseScreen(){return false;}

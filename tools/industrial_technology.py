@@ -222,7 +222,7 @@ def catalog(specs):
         tiers[own(k)] = t
     for k, t in LIQUID_TIERS.items():
         tiers[own(k + '_bucket')] = t
-    for t in range(1, 11):
+    for t in range(1, 9):
         tiers[own(f'energy_crystal_{t}')] = (t + 1) // 2
     for t in range(1, 7):
         tiers[own(f'industrial_upgrade_{t}')] = t
@@ -520,6 +520,9 @@ def icon(name, grade, block=False):
 
 
 def resources(specs):
+    # One machine owns the visible artificial sun; its reserved cells have no independent model or item.
+    write(ASSETS / 'blockstates/artificial_star_part.json', {'variants': {'': {'model': own('block/artificial_star_part')}}})
+    write(ASSETS / 'models/block/artificial_star_part.json', {'textures': {'particle': own('block/arcane/artificial_star')}, 'elements': []})
     atlas_dir = ASSETS / 'textures/block/arcane'
     for path in atlas_dir.glob('*.png'):
         stem = path.stem

@@ -35,7 +35,7 @@ public final class ManaStorageBagItem extends Item {
         CompoundTag data=root.getCompoundOrEmpty(DATA);
         long energy=data.getLongOr("energy",-1);
         int tier=data.getIntOr("tier",-1);
-        return data.getIntOr("schema",-1)==SCHEMA&&energy>=0&&tier>=1&&tier<=10?new State(energy,tier):null;
+        return data.getIntOr("schema",-1)==SCHEMA&&energy>=0&&tier>=1&&tier<=EnergyMath.MAX_CRYSTAL_TIER?new State(energy,tier):null;
     }
     private static void write(ItemStack bag,State state){
         CustomData.update(DataComponents.CUSTOM_DATA,bag,root->{
@@ -53,7 +53,7 @@ public final class ManaStorageBagItem extends Item {
     }
     public static void registerIntake(){
         InventoryIntake.register(IndustrialContent.NS+":mana_storage_bag",new InventoryIntake.Receiver(){
-            public boolean accepts(ItemStack stack){int tier=IndustrialContent.crystalTier(stack);return tier>=1&&tier<=10;}
+            public boolean accepts(ItemStack stack){int tier=IndustrialContent.crystalTier(stack);return tier>=1&&tier<=EnergyMath.MAX_CRYSTAL_TIER;}
             public int capacity(ServerPlayer player,ItemStack stack){
                 long value=EnergyMath.crystal(IndustrialContent.crystalTier(stack)),room=0;
                 for(var bag:bags(player)){
@@ -121,7 +121,7 @@ public final class ManaStorageBagItem extends Item {
             int direction=request.get("direction").getAsInt();
             if(direction!=-1&&direction!=1)throw new IllegalArgumentException("无效的切换方向");
             String operation=UUID.fromString(request.get("operation").getAsString()).toString();
-            State current=state(bag);int tier=Math.floorMod(current.tier()-1+direction,10)+1;
+            State current=state(bag);int tier=Math.floorMod(current.tier()-1+direction,EnergyMath.MAX_CRYSTAL_TIER)+1;
             JsonObject intent=new JsonObject();intent.addProperty("hand",hand.name());intent.addProperty("direction",direction);
             IndustrialPorts.inventory().transact(player,"mana-bag-tier/"+operation,intent,()->write(bag,new State(current.energy(),tier)),Map.of());
         });

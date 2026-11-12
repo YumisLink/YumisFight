@@ -5,12 +5,13 @@ import java.util.*;
 
 /** Integer accounting shared by the server and deterministic rule tests. */
 public final class EnergyMath {
+    public static final int MAX_CRYSTAL_TIER=8;
     private EnergyMath(){}
     public static long crystal(int tier){
-        if(tier<1||tier>10)throw new IllegalArgumentException("水晶阶位必须为1～10");
+        if(tier<1||tier>MAX_CRYSTAL_TIER)throw new IllegalArgumentException("水晶阶位必须为1～8");
         return 100L << (3*(tier-1));
     }
-    public static boolean accepts(int machineTier,int crystalTier){return machineTier>=1&&machineTier<=5&&crystalTier>=machineTier*2-1&&crystalTier<=machineTier*2;}
+    public static boolean accepts(int machineTier,int crystalTier){return machineTier>=1&&machineTier<=5&&crystalTier>=Math.min(8,machineTier*2-1)&&crystalTier<=Math.min(8,machineTier*2);}
     public record Allocation(long[] grants,int nextCursor){}
     public static Allocation allocate(long available,long[] demands,int cursor){
         if(available<0)throw new IllegalArgumentException("负魔能");

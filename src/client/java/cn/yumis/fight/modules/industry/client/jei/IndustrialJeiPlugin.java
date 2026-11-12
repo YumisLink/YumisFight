@@ -61,7 +61,7 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         registration.addItemStackInfo(IndustrialContent.stack("storage_plugin",1),Component.literal("机器侧边箭头展开3格插件栏，每格最多8件。每件使物品输入／输出槽与液槽容量翻倍，逐件乘算；不可堆叠物仍为1。取出插件前须清空超额储量。"));
         registration.addItemStackInfo(IndustrialContent.stack("speed_plugin",1),Component.literal("每件使速度×1.5、单批耗能×2，逐件乘算。背包堆叠64、机内每格8。适用加工、采矿、通货升级、抽水、收获与水晶运输，发电机暂不适用。"));
         registration.addItemStackInfo(IndustrialContent.stack("water_pump",1),Component.literal("接网且相邻任一面有水源时抽水，不移除水源。出水缓存自动供给六面相邻设备的入液口，紧贴涡轮任一面即可直接供水；满罐时保留余水。远距离送水仍可使用供液水晶。"));
-        registration.addItemStackInfo(IndustrialContent.stack("mana_storage_bag",1),Component.literal("随身携带时，新获得的1至10阶魔能水晶自动转为魔能，满背包也可拾取。每升一阶所需魔能为前一阶的8倍，存取无损。\n手持Shift＋滚轮切换取出等级；右键取1个，Shift＋右键取64个，魔能或空间不足时整次取消。取出的水晶可留在背包使用。\n魔能跟随袋子保存，多袋按主手、副手、背包顺序收纳。4根线、4张皮革和1枚1阶水晶在工作台合成。"));
+        registration.addItemStackInfo(IndustrialContent.stack("mana_storage_bag",1),Component.literal("随身携带时，新获得的1至8阶魔能水晶自动转为魔能，满背包也可拾取。每升一阶所需魔能为前一阶的8倍，存取无损。\n手持Shift＋滚轮切换取出等级；右键取1个，Shift＋右键取64个，魔能或空间不足时整次取消。取出的水晶可留在背包使用。\n魔能跟随袋子保存，多袋按主手、副手、背包顺序收纳。4根线、4张皮革和1枚1阶水晶在工作台合成。"));
         var recipes=IndustrialRecipeCache.recipes.byType(IndustrialContent.RECIPE_TYPE.get());
         for(String key:MACHINES)registration.addRecipes(TYPES.get(key),recipes.stream().filter(h->group(h.value()).equals(key)).toList());
         for(var spec:IndustrialContent.SPECS.values())if(spec.tier()<spec.device().maximumTier())registration.addItemStackInfo(IndustrialContent.stack(spec.id(),1),Component.literal("手持下一档科技机外壳右键，消耗该工作台升级配方中除前级设备外的材料；原地升级保留内容。工作台升级仅接受空设备，拆除会清空液体和余能。"));

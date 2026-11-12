@@ -24,7 +24,7 @@ public final class WorldHealthService {
     public void tick(int tick){
         for(ServerLevel level:server.getAllLevels())for(Entity raw:level.getAllEntities())if(raw instanceof LivingEntity entity&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(entity)&&!(entity instanceof ServerPlayer)){
             Target target=null;
-            if(entity instanceof WitherBoss||entity instanceof EnderDragon)target=targets.apply(entity);
+            if(entity instanceof WitherBoss||entity instanceof EnderDragon||entity instanceof cn.yumis.fight.modules.combat.api.WorldVitalEntity)target=targets.apply(entity);
             else if(!journal.get("target/"+entity.getUUID()).isJsonNull())target=journal.get("target/"+entity.getUUID(),Target.class,null);
             if(target==null)continue;
             if(entity instanceof WitherBoss wither){
@@ -62,6 +62,19 @@ public final class WorldHealthService {
             journal.abort();
             throw new IllegalStateException(e);
         }
+    }
+    /** Final native points for server-owned friendly world lives; death is projected by tick, outside damage Pre. */
+    public void nativeDamage(LivingEntity entity,double points){
+        if(!(entity instanceof cn.yumis.fight.modules.combat.api.WorldVitalEntity world)||!Double.isFinite(points)||points<=0)return;
+        var target=targets.apply(entity);if(target.life.dead)return;
+        var receipt=cn.yumis.fight.modules.combat.api.LifeRules.apply(target.life,points/world.combatMaximumHealth(),false);
+        if(!receipt.accepted())return;
+        try{
+            var edits=new LinkedHashMap<String,com.google.gson.JsonElement>();edits.put("life/"+entity.getUUID(),JSON.toJsonTree(target.life));edits.put("target/"+entity.getUUID(),JSON.toJsonTree(target));
+            journal.transaction(edits);
+            entity.setData(cn.yumis.fight.modules.combat.api.CombatContentTypes.TARGET,JSON.toJson(target));
+            PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("health",JSON.toJson(target.life)));
+        }catch(Exception failure){throw new IllegalStateException("世界实体生命保存失败",failure);}
     }
     public void nativeHeal(net.neoforged.neoforge.event.entity.living.LivingHealEvent event){
         if(event.getEntity().level().isClientSide())return;

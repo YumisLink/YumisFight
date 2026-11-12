@@ -54,7 +54,7 @@ for family,title,component,third in [('transfer_crystal','物品传送水晶','e
         key=f'{family}_t{tier}';devices[key]=(family,tier);names[f'block.{NS}.{key}']=f'{title} · {tier}档'
 
 items += ['nuclear_core','rtg_core']
-for tier in range(1,11):
+for tier in range(1,9):
     key=f'energy_crystal_{tier}';items.append(key);names[f'item.{NS}.{key}']=f'{tier}阶魔能水晶'
 for tier in range(1,6):
     key=f'industrial_upgrade_{tier}';items.append(key);names[f'item.{NS}.{key}']=f'{tier}级工业升级组件'

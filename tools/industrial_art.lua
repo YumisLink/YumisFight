@@ -60,7 +60,7 @@ for _,name in ipairs({"lead","uranium","titanium","terra","spacetime"}) do
  end
 end
 for _,name in ipairs({"iron","copper","gold","lead","uranium","titanium"}) do start();layer("粉碎矿粒");rock(colors[name]);for i=1,8 do pixel(math.random(2,13),math.random(4,13),colors[name][3]) end;finish("item","crushed_"..name) end
-for tier=1,10 do
+for tier=1,8 do
  start();layer("晶体轮廓");local p=palette[math.min(5,math.floor((tier+1)/2))];for y=1,14 do local w=math.min(4,math.min(y,15-y));for x=8-w,7+w do pixel(x,y,p[1]) end end
  layer("晶面");for y=2,12 do local w=math.min(3,math.min(y-1,14-y));for x=8-w,7+w do pixel(x,y,x<8 and p[3] or p[4]) end end;line(7,3,6,10,p[3]);line(8,7,9,12,p[2]);layer("阶位标记");for i=1,tier do pixel(2+(i-1)%5*2,14-math.floor((i-1)/5),p[4]) end;finish("item","energy_crystal_"..tier)
 end

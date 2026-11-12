@@ -29,12 +29,22 @@ public final class MapPlacer {
     public static void place(GenerationPlan p) {
         var writer=new MapPlacer(p);writer.validateStructureCollisions();
         for(int x=p.minX>>4;x<=p.maxX>>4;x++)for(int z=p.minZ>>4;z<=p.maxZ>>4;z++)if(p.level.setChunkForced(x,z,true))p.acquiredChunks.add(new ChunkPos(x,z));
-        try {writer.prepare();writer.islands();writer.roads();writer.grounds();writer.facilities();writer.platformApproaches();writer.clearRoadFoliage();writer.plants();writer.externalLandings();writer.platformGuards();writer.clearActivityAreas();writer.finishShapes();writer.safeAnimals();}
+        try {writer.prepare();writer.islands();writer.roads();writer.grounds();writer.facilities();writer.platformApproaches();writer.clearRoadFoliage();writer.plants();writer.externalLandings();writer.platformGuards();writer.clearActivityAreas();writer.finishShapes();writer.safeAnimals();writer.npcs();}
         catch(RuntimeException e){releaseChunks(p);throw e;}
         p.metrics.put("block_writes",writer.writes);p.metrics.put("support_columns",writer.supports);p.metrics.put("bridge_cells",writer.bridgeCells);
         levelLight(p.level);
     }
     static void releaseChunks(GenerationPlan p) {for(var c:p.acquiredChunks)p.level.setChunkForced(c.x(),c.z(),false);p.acquiredChunks.clear();}
+    private void npcs(){
+        int spawned=0;
+        for(var facility:p.facilities)for(var group:facility.definition().npcGroups){
+            String identity=level.dimension().identifier()+"|"+p.id+"|"+p.origin.asLong()+"|"+facility.definition().id+"|"+group.id;
+            long seed=level.getSeed()^p.origin.asLong()^p.id.hashCode()^((long)facility.definition().id.hashCode()<<32)^group.id.hashCode()^0x4e50435f5354414cL;
+            var anchors=group.anchors.stream().map(a->new cn.yumis.fight.modules.npc.api.NpcSpawns.Anchor(a.id,new net.minecraft.world.phys.Vec3(facility.position().getX()+a.pos[0],facility.position().getY()+a.pos[1],facility.position().getZ()+a.pos[2]),a.yaw)).toList();
+            spawned+=cn.yumis.fight.modules.npc.api.NpcSpawns.group(level,identity,anchors,group.definitions,seed);
+        }
+        p.metrics.put("npc_spawns",spawned);
+    }
     static void validate(GenerationPlan p) {new MapPlacer(p).validateStructureCollisions();}
     static void levelLight(ServerLevel level) {level.getChunkSource().getLightEngine().tryScheduleUpdate();}
     private void put(int x,int y,int z,BlockState state) {

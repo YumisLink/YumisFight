@@ -27,6 +27,7 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public boolean elite,noRewards,timedTraining;
     /** Encounter-owned immunity, shared by prediction and the existing receipt settlement. */
     public boolean damageImmune;
+    public boolean fixedLevel;
     /** Enemy-owned lives: intermediate depletion starts a revive phase and never publishes a death receipt. */
     public int encounterLives=1;
     public long encounterReviveUntil,encounterReviveMillis=2800;
@@ -67,7 +68,7 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public Life life=new Life();
     public Map<String,Double> contributions=new HashMap<>();
     public int level(int playerLevel,boolean sync){
-        return training()?playerLevel:sync?Math.max(originalLevel,playerLevel):originalLevel;
+        return fixedLevel?originalLevel:training()?playerLevel:sync?Math.max(originalLevel,playerLevel):originalLevel;
     }
     public double health(int level){
         if(training())return 10000;

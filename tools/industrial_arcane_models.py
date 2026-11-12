@@ -236,7 +236,7 @@ final class ArcaneRotorMesh {
                 u,U=(band+.18)/8,(band+.82)/8;base_mesh['uvs'].append([[u,.1],[u,.9],[U,.9],[U,.1]] if len(face)==4 else [[u,.15],[(u+U)/2,.9],[U,.15]])
                 base_mesh['materials'].append('crystal')
             meshes[name]=base_mesh;export_mesh(name,base_mesh)
-            p=ASSETS/f'models/item/{name}.json';d=json.loads(p.read_text());d['textures']={'atlas':f'{NS}:block/arcane/{family}_{tier}','crystal':f'{NS}:block/energy_crystal_facets_{tier*2}','particle':f'{NS}:block/arcane/{family}_{tier}'};write(p,d)
+            p=ASSETS/f'models/item/{name}.json';d=json.loads(p.read_text());d['textures']={'atlas':f'{NS}:block/arcane/{family}_{tier}','crystal':f'{NS}:block/energy_crystal_facets_{min(8,tier*2)}','particle':f'{NS}:block/arcane/{family}_{tier}'};write(p,d)
     SOURCE.mkdir(parents=True,exist_ok=True);write(SOURCE/'meshes.json',meshes);write(SOURCE/'rotors.json',{'wind':generated[True],'turbine':generated[False]})
     print('Arcane V2: 240 device states, two upper wind cells, matching static/animated rotors; hidden coplanar faces clipped.')
 

@@ -183,7 +183,7 @@ def obj_model(name, crystal_texture, tier=1):
 def generate():
     meshes = {}
     gem = mesh(); crystal(gem); meshes['energy_crystal'] = gem; export_obj('energy_crystal', gem)
-    for tier in range(1,11):
+    for tier in range(1,9):
         write(ASSETS/f'models/item/energy_crystal_{tier}.json',
               obj_model('energy_crystal', f'{NS}:block/energy_crystal_facets_{tier}'))
     # Static item meshes include the plinth; placed blocks retain the existing animated BER.
@@ -206,7 +206,7 @@ def generate():
                 crystal(data,(.23,.37,.5),.065,.3,6)
                 crystal(data,(.77,.37,.5),.065,.3,6)
             meshes[name]=data;export_obj(name,data)
-            write(ASSETS/f'models/item/{name}.json',obj_model(name,f'{NS}:block/energy_crystal_facets_{tier*2}',tier))
+            write(ASSETS/f'models/item/{name}.json',obj_model(name,f'{NS}:block/energy_crystal_facets_{min(8,tier*2)}',tier))
             # The functional billboard uses FIXED. Keep its symbol separate from held 3D geometry.
             write(ASSETS/f'items/{name}.json',{'model':{'type':'minecraft:select',
                 'property':'minecraft:display_context','cases':[{'when':'fixed','model':{
@@ -220,7 +220,7 @@ def generate():
     SOURCE.mkdir(parents=True,exist_ok=True)
     write(SOURCE/'meshes.json',meshes)
     write(ASSETS/'models/block/equipment_fabricator.json',device_model('equipment_fabricator',1))
-    print('Refreshed 240 device variants, equipment fabricator, 10 crystal items and 11 crystal plinth items.')
+    print('Refreshed 240 device variants, equipment fabricator, 8 crystal items and 11 crystal plinth items.')
 
 
 if __name__=='__main__':

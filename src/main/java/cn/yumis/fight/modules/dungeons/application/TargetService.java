@@ -59,7 +59,11 @@ public final class TargetService {
             t.originalLevel=e.level().dimension()==Level.NETHER?25+random.nextInt(11):e.level().dimension()==Level.END?45+random.nextInt(6):1+random.nextInt(10);
             t.difficulty=difficulty.get();
             t.kind=e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon?"yumis_dungeon_and_fight:dragon":e instanceof net.minecraft.world.entity.boss.wither.WitherBoss?"WITHER":"NORMAL";
-            if(e instanceof DungeonEnemy mob){
+            if(e instanceof cn.yumis.fight.modules.combat.api.WorldVitalEntity world){
+                t.originalLevel=world.combatLevel();t.fixedLevel=true;t.difficulty=Difficulty.NORMAL;t.kind="NORMAL";t.noRewards=true;t.damageImmune=true;
+                t.speciesHealth=world.combatMaximumHealth()/t.health(t.originalLevel);
+            }
+            else if(e instanceof DungeonEnemy mob){
                 t.originalLevel=mob.dungeonLevel();
                 t.instance=mob.instance();
                 t.life.instance=t.instance;

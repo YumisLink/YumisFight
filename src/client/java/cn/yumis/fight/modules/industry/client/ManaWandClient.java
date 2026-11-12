@@ -16,6 +16,10 @@ public final class ManaWandClient {
             String local=id.substring(id.indexOf(':')+1);boolean device=id.startsWith(IndustrialContent.NS+":")&&cn.yumis.fight.modules.industry.api.IndustrialTechnology.isDevice(local);
             Integer color=displayColor.apply(stack);if(color==null)color=cn.yumis.fight.modules.industry.api.IndustrialTechnology.color(tier);
             event.getToolTip().add(net.minecraft.network.chat.Component.literal((device?"科技等级 · ":"材料等级 · ")+cn.yumis.fight.modules.industry.api.IndustrialTechnology.label(tier)).withColor(color));
+            if(stack.getItem() instanceof net.minecraft.world.item.BlockItem blockItem&&blockItem.getBlock() instanceof MachineBlock machine&&machine.initial.device()==cn.yumis.fight.modules.industry.api.DeviceType.STAR){
+                event.getToolTip().add(net.minecraft.network.chat.Component.literal("放置后自动补全 · 占地5×5 · 总高5格 · 放置点为底座中央"));
+                event.getToolTip().add(net.minecraft.network.chat.Component.literal(ArtificialStarPartBlock.hazardDescription()).withColor(0xff9b51));
+            }
             if(device)event.getToolTip().add(net.minecraft.network.chat.Component.literal("工艺能力上限 · "+cn.yumis.fight.modules.industry.api.IndustrialTechnology.label(cn.yumis.fight.modules.industry.api.IndustrialTechnology.processing(local))));
             if(id.startsWith(IndustrialContent.NS+":")&&java.util.Set.of("raw_iridium","iridium_ore","crushed_iridium","iridium_concentrate","iridium_ingot","high_purity_iridium_ingot").contains(local))event.getToolTip().add(net.minecraft.network.chat.Component.literal("原矿开采 · T6 神话能耗"));
             if(local.endsWith("_ore")&&tier>3)event.getToolTip().add(net.minecraft.network.chat.Component.literal("原矿由对应等级矿机取得；玩家手挖不产出。"));

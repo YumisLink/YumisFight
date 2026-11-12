@@ -34,7 +34,7 @@ public final class ManaWand extends Item {
         catch(IllegalArgumentException error){player.sendOverlayMessage(Component.literal(error.getMessage()));return InteractionResult.FAIL;}
     }
     private static void move(UseOnContext context,CompoundTag state){
-        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var position=WindGeneratorPartBlock.base(level,context.getClickedPos());var raw=level.getBlockEntity(position);
+        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var position=ArtificialStarPartBlock.base(level,WindGeneratorPartBlock.base(level,context.getClickedPos()));var raw=level.getBlockEntity(position);
         if(raw instanceof MachineBlockEntity crystal&&(crystal.device().has(DeviceType.Capability.LOGISTICS)||crystal.device().has(DeviceType.Capability.FLUID_LOGISTICS))){state.putString("crystal",crystal.identity.toString());state.putLong("crystal_pos",position.asLong());state.remove("source");player.sendOverlayMessage(Component.literal("已绑定水晶，请选择来源容器（"+crystal.routes.size()+"/"+crystal.routeLimit()+"）"));return;}
         var crystal=IndustrialWorld.get(level).loaded.get(state.getStringOr("crystal",""));if(crystal==null||crystal.getLevel()!=level)throw new IllegalArgumentException("请先右键绑定一个移物或供液水晶");
         if(crystal.routes.size()>=crystal.routeLimit())throw new IllegalArgumentException("配对已满，请在水晶面板删除一对后再绑定");
@@ -49,7 +49,7 @@ public final class ManaWand extends Item {
         crystal.routes.add(route);crystal.setChanged();state.remove("source");player.sendOverlayMessage(Component.literal("配对完成（"+crystal.routes.size()+"/"+crystal.routeLimit()+"），可继续选择下一对来源"));
     }
     private static void network(UseOnContext context,CompoundTag state){
-        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var raw=level.getBlockEntity(WindGeneratorPartBlock.base(level,context.getClickedPos()));if(!(raw instanceof MachineBlockEntity second))return;
+        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var raw=level.getBlockEntity(ArtificialStarPartBlock.base(level,WindGeneratorPartBlock.base(level,context.getClickedPos())));if(!(raw instanceof MachineBlockEntity second))return;
         var world=IndustrialWorld.get(level);String selected=state.getStringOr("first","");
         if(selected.isEmpty()){state.putString("first",second.identity.toString());state.putLong("first_pos",second.getBlockPos().asLong());player.sendOverlayMessage(Component.literal("已选择方块，请选择信标或设备"));return;}
         var first=world.loaded.get(selected);if(first==null||first.getLevel()!=level)throw new IllegalArgumentException("第一次选择的方块已卸载，请点击空气取消");

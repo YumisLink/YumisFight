@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.industry.platform;
 import cn.yumis.fight.platform.ItemData;
 import cn.yumis.fight.modules.industry.api.IndustrialRecipe;
 import cn.yumis.fight.modules.industry.api.DeviceType;
+import cn.yumis.fight.modules.industry.api.EnergyMath;
 import cn.yumis.fight.modules.inventory.api.DimensionalMenu;
 
 import net.minecraft.core.registries.*;
@@ -49,7 +50,8 @@ public final class IndustrialContent {
     public static final DeferredHolder<Fluid,BaseFlowingFluid.Flowing> FLOWING_COOLANT=FLUIDS.register("flowing_coolant",()->new BaseFlowingFluid.Flowing(coolantProperties()));
     public static final DeferredBlock<LiquidBlock> COOLANT_BLOCK=BLOCKS.registerBlock("coolant",p->new LiquidBlock(COOLANT.get(),p),p->p.noCollision().strength(100).noLootTable().liquid().replaceable());
     public static final DeferredBlock<WindGeneratorPartBlock> WIND_PART=BLOCKS.registerBlock("wind_generator_part",WindGeneratorPartBlock::new,p->p.strength(3.5f).sound(SoundType.STONE).noOcclusion().pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK));
-    public static final DeferredHolder<CreativeModeTab,CreativeModeTab> TAB=TABS.register("industry",()->CreativeModeTab.builder().title(net.minecraft.network.chat.Component.literal("AYD-工业")).icon(()->stack("mana_crusher_t1",1)).displayItems((p,out)->ALL_ITEMS.forEach((key,value)->{if(!key.matches("energy_crystal_(?:[6-9]|10)"))out.accept(value.get());})).build());
+    public static final DeferredBlock<ArtificialStarPartBlock> STAR_PART=BLOCKS.registerBlock("artificial_star_part",ArtificialStarPartBlock::new,p->p.strength(3.5f).sound(SoundType.METAL).noOcclusion().dynamicShape().noLootTable().pushReaction(PushReaction.BLOCK));
+    public static final DeferredHolder<CreativeModeTab,CreativeModeTab> TAB=TABS.register("industry",()->CreativeModeTab.builder().title(net.minecraft.network.chat.Component.literal("AYD-工业")).icon(()->stack("mana_crusher_t1",1)).displayItems((p,out)->ALL_ITEMS.forEach((key,value)->{if(!key.matches("energy_crystal_[6-8]"))out.accept(value.get());})).build());
     public static final Map<String,Liquid> LIQUIDS=new LinkedHashMap<>();
     public static final class Liquid {
         public final String id;public final int color;
@@ -73,10 +75,10 @@ public final class IndustrialContent {
             for(int i=1;i<=count;i++){
                 int tier=kind.minimumTier()+i-1;
                 String key=kind.id+(kind.graded||kind.maximumTier()>kind.minimumTier()?"_t"+tier:"");Spec spec=new Spec(key,kind,tier);SPECS.put(key,spec);
-                var block=BLOCKS.registerBlock(key,p->new MachineBlock(spec,p),p->{p.strength(3.5f).sound(SoundType.METAL).noOcclusion();if(kind.currencyUpgrader())p.lightLevel(state->state.getValue(MachineBlock.ACTIVE)?7:0);if(kind.has(DeviceType.Capability.WIND))p.pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK);return p;});ALL_BLOCKS.put(key,block);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(block));
+                var block=BLOCKS.registerBlock(key,p->new MachineBlock(spec,p),p->{p.strength(3.5f).sound(SoundType.METAL).noOcclusion();if(kind.currencyUpgrader())p.lightLevel(state->state.getValue(MachineBlock.ACTIVE)?7:0);if(kind.has(DeviceType.Capability.WIND)||kind==DeviceType.STAR)p.pushReaction(PushReaction.BLOCK);return p;});ALL_BLOCKS.put(key,block);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(block));
             }
         }
-        for(int i=1;i<=10;i++)item("energy_crystal_"+i);
+        for(int i=1;i<=EnergyMath.MAX_CRYSTAL_TIER;i++)item("energy_crystal_"+i);
         ALL_ITEMS.put("mana_storage_bag",ITEMS.registerItem("mana_storage_bag",ManaStorageBagItem::new,p->p.stacksTo(1)));
         for(int i=1;i<=5;i++)item("industrial_upgrade_"+i);
         for(String key:List.of("nuclear_core","rtg_core"))item(key);
@@ -118,7 +120,7 @@ public final class IndustrialContent {
     private static void block(String key,java.util.function.Function<net.minecraft.world.level.block.state.BlockBehaviour.Properties,? extends Block> factory){var b=BLOCKS.registerBlock(key,factory,p->p.strength(3).requiresCorrectToolForDrops());ALL_BLOCKS.put(key,b);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(b));}
     public static ItemStack stack(String key,int count){return new ItemStack(ALL_ITEMS.get(key).get(),count);}
     public static Spec spec(DeviceType kind,int tier){return SPECS.get(kind.id+(kind.graded||kind.maximumTier()>kind.minimumTier()?"_t"+tier:""));}
-    public static int crystalTier(ItemStack stack){var key=BuiltInRegistries.ITEM.getKey(stack.getItem());if(!key.getNamespace().equals(NS)||!key.getPath().startsWith("energy_crystal_"))return 0;try{return Integer.parseInt(key.getPath().substring(15));}catch(NumberFormatException bad){return 0;}}
+    public static int crystalTier(ItemStack stack){var key=BuiltInRegistries.ITEM.getKey(stack.getItem());if(!key.getNamespace().equals(NS)||!key.getPath().startsWith("energy_crystal_"))return 0;try{int tier=Integer.parseInt(key.getPath().substring(15));return tier>=1&&tier<=EnergyMath.MAX_CRYSTAL_TIER?tier:0;}catch(NumberFormatException bad){return 0;}}
     public static void register(IEventBus bus){
         ManaStorageBagItem.registerIntake();
         IndustrialEvents.register();

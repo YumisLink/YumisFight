@@ -163,6 +163,7 @@ public final class ServerEvents {
         root.then(dev);
         cn.yumis.fight.modules.economy.application.ChestService.commands(root,()->ServerApplication.get().chests);
         cn.yumis.fight.modules.economy.application.JarService.commands(root,()->ServerApplication.get().jars);
+        cn.yumis.fight.modules.npc.application.NpcService.commands(root,()->ServerApplication.get().npcs);
         e.getDispatcher().register(root);
     }
     private static String itemNamespace(){return cn.yumis.fight.platform.ItemData.NS+":";}

@@ -36,11 +36,13 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
     private final BooleanSupplier bridge;
     private final BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode;
     private BiPredicate<LivingEntity,ServerPlayer> targetAccess=(target,player)->true;
+    private BiConsumer<LivingEntity,Double> worldDamage=(entity,points)->{};
     private final Map<UUID,Long> launchSent=new LinkedHashMap<>();
     public long forwarded,committed;
     public boolean suppressProjectionFeedback;
     public NativeHits(Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<LivingEntity,CombatTarget> targets,Predicate<LivingEntity> managed,BooleanSupplier bridge,BiFunction<ServerPlayer,ItemStack,com.google.gson.JsonElement> encode){this.journal=journal;this.sessions=sessions;this.targets=targets;this.managed=managed;this.bridge=bridge;this.encode=encode;}
     public void targetAccess(BiPredicate<LivingEntity,ServerPlayer> access){targetAccess=Objects.requireNonNull(access);}
+    public void worldDamage(BiConsumer<LivingEntity,Double> receiver){worldDamage=Objects.requireNonNull(receiver);}
     public void launched(Projectile projectile){
         if(!(projectile instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow)||!(arrow.getOwner() instanceof ServerPlayer owner)||launchSent.containsKey(arrow.getUUID()))return;
         long now=System.currentTimeMillis();launchSent.values().removeIf(expires->expires<now);launchSent.put(arrow.getUUID(),now+300000);while(launchSent.size()>4096)launchSent.remove(launchSent.keySet().iterator().next());
@@ -56,6 +58,10 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         NativeEffects.attempted(victim);
         var source=event.getSource();
         var attacker=source.getEntity();
+        if(victim instanceof WorldVitalEntity world){
+            if(world.rejectsNativeDamage(source)){event.getContainer().setShouldCauseSideEffects(false);event.setCanceled(true);}
+            return;
+        }
         if(!targetAccess.test(victim,attacker instanceof ServerPlayer player?player:null)){event.getContainer().setShouldCauseSideEffects(false);event.setCanceled(true);return;}
         boolean reject;
         if(victim instanceof ServerPlayer player)reject=attacker instanceof Player&&attacker!=player;
@@ -72,6 +78,11 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
     public void pre(LivingDamageEvent.Pre event){
         LivingEntity victim=event.getEntity();
         if(!handles(victim))return;
+        if(victim instanceof WorldVitalEntity world){
+            double points=event.getNewDamage();event.setNewDamage(0);
+            if(points>0&&!world.rejectsNativeDamage(event.getSource()))worldDamage.accept(victim,points);
+            return;
+        }
         var container=event.getContainer();
         double original=event.getOriginalDamage();
         double scale=original>0?Math.clamp((original-container.getBlockedDamage())/original,0,1):0;

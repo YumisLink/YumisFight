@@ -120,8 +120,8 @@ for _,name in ipairs(families) do
  end
  start();plate(1);layer("03 / top mechanism");mechanics(name,accents[name] or "6bcdd9",true);finish("block",name.."_top")
 end
--- Facet atlas: ten genuinely distinct colours; face UVs pick one of eight strips.
-local gems={"8ad8f1","49c5eb","82a7f2","a283ed","d2b2ef","dd8eda","71dcbb","50c9a5","e3b96a","df83c1"}
+-- Facet atlas: eight distinct colours; face UVs pick one of eight strips.
+local gems={"8ad8f1","49c5eb","82a7f2","a283ed","d2b2ef","dd8eda","71dcbb","50c9a5"}
 local function shade(h,k)
  local r=math.min(255,math.floor(tonumber(h:sub(1,2),16)*k));local g=math.min(255,math.floor(tonumber(h:sub(3,4),16)*k));local b=math.min(255,math.floor(tonumber(h:sub(5,6),16)*k));return string.format("%02x%02x%02x",r,g,b)
 end
@@ -209,7 +209,7 @@ for name,p in pairs(resourceColors) do
   start();layer("02 / crushed fragments");chunk(p,9,13,5);chunk(p,22,10,4);chunk(p,18,23,6);px(5,25,p[2]);px(26,19,p[3]);finish("item","crushed_"..name)
  end
 end
-for tier=1,10 do
+for tier=1,8 do
  start();local h=gems[tier];layer("02 / crystal silhouette");poly({{16,1},{24,10},{23,23},{15,30},{7,23},{8,9}},shade(h,.48));poly({{16,3},{16,26},{9,21},{10,10}},shade(h,1.12));poly({{17,4},{22,11},{21,22},{16,27}},shade(h,.8));line(12,8,11,16,shade(h,1.4));layer("03 / rank notches");for i=1,tier do px(5+(i-1)%5*5,29-math.floor((i-1)/5)*2,h) end;finish("item","energy_crystal_"..tier)
 end
 for t=1,5 do

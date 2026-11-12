@@ -7,7 +7,7 @@
   "ambientocclusion": false,
   "textures": {
     "atlas": "yumis_dungeon_and_fight:block/arcane/mana_beacon_5",
-    "crystal": "yumis_dungeon_and_fight:block/energy_crystal_facets_10",
+    "crystal": "yumis_dungeon_and_fight:block/energy_crystal_facets_8",
     "particle": "yumis_dungeon_and_fight:block/arcane/mana_beacon_5"
   },
   "display": {

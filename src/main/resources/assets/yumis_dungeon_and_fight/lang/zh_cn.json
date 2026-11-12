@@ -150,8 +150,6 @@
   "item.yumis_dungeon_and_fight.energy_crystal_6": "6阶魔能水晶",
   "item.yumis_dungeon_and_fight.energy_crystal_7": "7阶魔能水晶",
   "item.yumis_dungeon_and_fight.energy_crystal_8": "8阶魔能水晶",
-  "item.yumis_dungeon_and_fight.energy_crystal_9": "9阶魔能水晶",
-  "item.yumis_dungeon_and_fight.energy_crystal_10": "10阶魔能水晶",
   "item.yumis_dungeon_and_fight.raw_lead": "粗铅",
   "item.yumis_dungeon_and_fight.lead_ingot": "铅锭",
   "block.yumis_dungeon_and_fight.lead_ore": "铅矿石",
@@ -492,5 +490,6 @@
   "entity.yumis_dungeon_and_fight.palace_sieghart": "光之城主赛格哈特",
   "entity.yumis_dungeon_and_fight.palace_axion": "骑士队长阿克雷",
   "item.yumis_dungeon_and_fight.waystone": "引路石",
-  "block.yumis_dungeon_and_fight.waystone_pedestal": "引路台"
+  "block.yumis_dungeon_and_fight.waystone_pedestal": "引路台",
+  "entity.yumis_dungeon_and_fight.npc": "商人"
 }

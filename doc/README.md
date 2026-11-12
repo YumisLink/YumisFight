@@ -35,6 +35,7 @@
 | 副职业、经验与奖励 | `modules/professions/api/ProfessionCatalog.java`、`ProfessionRules.java`、`ProfessionRewards.java`；本机判定在客户端 `professions/client/ProfessionClient.java`，事实保存与管理奖励在 `application/ProfessionService.java` |
 | 库存、容器、接收与事务 | `modules/inventory/api/InventoryOperations.java`、`InventoryEdits.java`、`InventoryPacking.java`、`InventoryIntake.java`；事务在 `application/InventoryTransactions.java` |
 | 通货、掉落、出售与分解 | `modules/economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；本机操作在客户端 `economy/client/EconomyActions.java`，事实保存与世界投影在 `application/` |
+| NPC、交互、商店与集市投放 | `modules/npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`；商店合同 `modules/economy/api/ShopDefinitions.java`、`ShopMenu.java`；规则 `rules/npcs.json`、`rules/shops.json`，蓝图挂载见野外建筑生成规则 |
 | 单抽罐子、奖池与演出 | `modules/economy/api/JarDefinitions.java`、`LootJarItem.java`；配置 `rules/jars.json`，本机决定奖品在客户端 `economy/client/EconomyActions.java`，演出在 `JarClient.java`、`JarScreen.java`，保存与交付在主源码 `application/JarService.java` |
 | 队伍与邀请 | `modules/party/api/Team.java`、`PartyInvitation.java` |
 | 页面、主题、输入与通用演出 | `modules/presentation/api/`；客户端绘制及页面合同查其 `client/` 和 `api/client/` |

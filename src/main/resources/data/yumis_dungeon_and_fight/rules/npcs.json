@@ -1,0 +1,169 @@
+{
+  "npcs": {
+    "mobs_merchant": {
+      "name": "怪物掉落商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "mobs"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "外头的怪物可不安分。",
+        "缺哪种材料？到摊上看看。",
+        "这些材料我都仔细挑过了。",
+        "出远门前，记得把补给备齐。"
+      ]
+    },
+    "wood_merchant": {
+      "name": "木头商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "wood"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "木头的纹理各有各的好看。",
+        "盖房子还是做工具？慢慢挑。",
+        "下界的菌木也有货。",
+        "今天的原木已经整理好了。"
+      ]
+    },
+    "stone_merchant": {
+      "name": "石头商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "stone"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "打好地基，房子才住得安心。",
+        "这些石料拿去盖房子正合适。",
+        "圆石和石头都给你备着。",
+        "想修路的话，别忘了多带些石料。"
+      ]
+    },
+    "food_merchant": {
+      "name": "食物商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "food"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "赶路前先吃饱。",
+        "今天想来点什么？",
+        "背包里留些吃的总没错。",
+        "闻到香味了吗？刚好该补充食物了。"
+      ]
+    },
+    "crystal_merchant": {
+      "name": "魔能水晶商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "crystal"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "魔能水晶要按阶位分清楚。",
+        "不同阶的水晶，储存的魔能可不一样。",
+        "需要补充魔能的话，来我这儿看看。",
+        "给机器备点水晶，做事也安心些。"
+      ]
+    }
+  },
+  "skins": {
+    "zimin": {
+      "name": "籽岷",
+      "uuid": "f4f59ac621b44bfe90ff106b64c5d599",
+      "texture": "4a4f489e4f43d6b52c07d9ea85b60a9d3ea82c7929a55f0fce447aee5ad9a2a8",
+      "slim": false
+    },
+    "uncle_red": {
+      "name": "红叔",
+      "uuid": "30ecf6ccf46f405584c4c8b980c0d6d7",
+      "texture": "7d188e33fcd03ed25f94c3756bc83f1ca852d6d839678e95990dd3a94bbaf760",
+      "slim": true
+    },
+    "badcen": {
+      "name": "BadCen",
+      "uuid": "a3c7d62a311c4a28b02c1ba2e27f9e67",
+      "texture": "3088b49190b15d24fe2c60ed2c42d8fae8a9eef77d03d0e8bad727ef76227d0e",
+      "slim": true
+    },
+    "hei_mao": {
+      "name": "黑猫",
+      "uuid": "87cc1b9592fa448ca4fc5164b38fbc47",
+      "texture": "521947f19e07d492dbc0f92042632d020accce61615a3a14e941d578e018a202",
+      "slim": false
+    },
+    "dream": {
+      "name": "Dream",
+      "uuid": "ec70bcaf702f4bb8b48d276fa52a780c",
+      "texture": "ca93f6fc40488f1877cda94a830b54e9f6f54ab58a5453bad5c947726dd1f473",
+      "slim": true
+    },
+    "technoblade": {
+      "name": "Technoblade",
+      "uuid": "b876ec32e396476ba1158438d83c67d4",
+      "texture": "8c907a7f4f0c3a6c9c9b79348f7bf1993695b6d2eae2fab704a1a4d9b8288cbe",
+      "slim": false
+    },
+    "grian": {
+      "name": "Grian",
+      "uuid": "5f8eb73b25be4c5aa50fd27d65e30ca0",
+      "texture": "fd82a31be355fae3842af8a66a208df602230a0fc748c7453e491e08377eb4c2",
+      "slim": true
+    },
+    "tommyinnit": {
+      "name": "TommyInnit",
+      "uuid": "e80e8194323e414298515e1bcb8a3508",
+      "texture": "eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56",
+      "slim": false
+    }
+  }
+}

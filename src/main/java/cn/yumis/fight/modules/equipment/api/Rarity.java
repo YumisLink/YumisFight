@@ -19,7 +19,7 @@ public enum Rarity {
         }
         public int color(){
             return new int[]{
-                0xffffff,0x65aaff,0xb787ff,0xff80c8,0xffa12d,0xffd778
+                0xffffff,0xb36bff,0xff00f0,0xff8000,0xffb100,0xffd778
             }
             [ordinal()];
         }

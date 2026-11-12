@@ -786,6 +786,12 @@ public final class SkillController {
         if(magic){double received=ElementAccumulation.magicTaken(state().own().elemental,state().own(),false,state().serverNow());for(int i=0;i<components.length;i++)components[i]*=received;}
         return components;
     }
+    /** Owner-side maximum-health environmental damage using normal absorption and hit reports. */
+    public void environmentDamage(double fraction){
+        var player=Minecraft.getInstance().player;
+        if(player==null||!state().ready()||state().own().dead||player.isDeadOrDying()||player.isSpectator()||player.getAbilities().invulnerable||invulnerable())return;
+        ownDamage(fraction);
+    }
     private void ownDamage(double fraction){
         ownDamage(fraction,null);
     }

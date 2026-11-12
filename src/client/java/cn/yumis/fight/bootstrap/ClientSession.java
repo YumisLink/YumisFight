@@ -152,7 +152,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     }
     public void clear(){
         sentStats="";cn.yumis.fight.modules.equipment.client.EquipmentActions.clear();personalQueue.clear();personalSequence=personalAcknowledged=0;personalSent=false;personalRetries=0;cn.yumis.fight.modules.character.client.CharacterClient.clear();cn.yumis.fight.modules.professions.client.ProfessionClient.clear();cn.yumis.fight.modules.economy.client.EconomyActions.clear();cn.yumis.fight.modules.dungeons.client.DungeonActions.clear();
-        cn.yumis.fight.modules.economy.client.JarClient.clear();
+        cn.yumis.fight.modules.economy.client.JarClient.clear();cn.yumis.fight.modules.economy.client.ShopClient.clear();cn.yumis.fight.modules.npc.client.NpcClient.clear();
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.clear();
         cn.yumis.fight.modules.character.api.client.CareerProfilesClient.clear();
         cn.yumis.fight.modules.party.client.PartyInvitations.clear();combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
@@ -189,7 +189,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     }
     private final cn.yumis.fight.architecture.CommandRouter<Void,JsonObject> messages=new cn.yumis.fight.architecture.CommandRouter<>();
     private void registerMessages(){
-        messages.register("inventory","personalCommit",(context,j)->{if(session.equals(j.get("session").getAsString())){personalAcknowledged=Math.max(personalAcknowledged,j.get("sequence").getAsLong());personalReceived=j.get("received").getAsBoolean();personalRetire();}});
+        messages.register("inventory","personalCommit",(context,j)->{if(session.equals(j.get("session").getAsString())){personalAcknowledged=Math.max(personalAcknowledged,j.get("sequence").getAsLong());personalReceived=j.get("received").getAsBoolean();cn.yumis.fight.modules.economy.client.ShopClient.personalCommit(j);personalRetire();}});
         messages.register("equipment","equipmentArrival",(context,j)->cn.yumis.fight.modules.equipment.client.EquipmentActions.tick());
         messages.register("dungeons","waystoneReturn",(context,j)->cn.yumis.fight.modules.dungeons.client.DungeonActions.receiveReturn(j));
         messages.register("economy","killReward",(context,j)->cn.yumis.fight.modules.economy.client.EconomyActions.reward(j));
