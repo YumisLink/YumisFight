@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MFM",
+    "CSC",
+    "MMM"
+  ],
+  "key": {
+    "M": "yumis_dungeon_and_fight:vanadium_steel",
+    "F": "minecraft:magma_block",
+    "C": "yumis_dungeon_and_fight:mana_component",
+    "S": "yumis_dungeon_and_fight:machine_casing_t2"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:heat_generator",
+    "count": 1
+  }
+}

@@ -42,6 +42,18 @@ public final class IndustrialGeneration {
         }
         if(be.device().has(DeviceType.Capability.IGNITION)&&!be.ignited){be.status="等待点火 · 已充能 "+be.ignitionPaid+" / "+IGNITION_ENERGY;return 0;}
         if(be.device().has(DeviceType.Capability.SOLAR)||be.device().has(DeviceType.Capability.WIND)){Environment env=environments.computeIfAbsent(level,l->new Environment(l.getDefaultClockTime(),l.isRaining(),l.isThundering(),l.dimensionType().hasSkyLight(),l.dimensionType().hasSkyLight()&&!l.dimensionType().hasFixedTime()&&l.dimensionType().defaultClock().isPresent()));if(be.device().has(DeviceType.Capability.WIND)&&!WindGeneratorPartBlock.complete(level,be.getBlockPos())&&!WindGeneratorPartBlock.ensure(level,be.getBlockPos())){be.status="风机需要上方两格空间";return 0;}boolean sky=skyVisible(level,be.device().has(DeviceType.Capability.WIND)?be.getBlockPos().above(2):be.getBlockPos());long power=0;if(be.device().has(DeviceType.Capability.WIND)){int y=be.getBlockPos().getY();if(sky&&env.skylight&&y>=rules.windBaseHeight)power=rules.windBasePower+(long)Math.floorDiv(y-rules.windBaseHeight,rules.windHeightStep)*rules.windPowerStep;}else{int state=EnergyMath.solar(env.time,env.rain,env.thunder,sky,env.solar,rules.solarPeriods);power=state==0?0:env.rain?rules.solarRainPower:state==2?rules.solarDayPower:rules.solarEdgePower;}be.currentPower=power;long whole=(power+be.powerRemainder)/20;be.powerRemainder=(int)((power+be.powerRemainder)%20);be.status=power>0?"发能 "+power+" 点/秒":"当前环境不满足发电条件";be.setChanged();return whole;}
+        if(be.device().has(DeviceType.Capability.ENVIRONMENTAL_HEAT)){
+            int quarters=0;
+            for(Direction direction:Direction.values()){
+                BlockPos pos=be.getBlockPos().relative(direction);if(!level.hasChunkAt(pos))continue;
+                var state=level.getBlockState(pos);
+                if(state.getFluidState().is(net.minecraft.tags.FluidTags.LAVA))quarters+=2;
+                else if(state.is(Blocks.FIRE)||state.is(Blocks.SOUL_FIRE)||state.is(Blocks.MAGMA_BLOCK)||state.getBlock() instanceof CampfireBlock&&state.getValue(CampfireBlock.LIT))quarters++;
+            }
+            long power=2700L*quarters/4;be.currentPower=power;
+            long generated=(power+be.powerRemainder)/20;be.powerRemainder=(int)((power+be.powerRemainder)%20);
+            be.status="热源效率 "+quarters*25+"% · "+power+" 魔能/秒";be.setChanged();return generated;
+        }
         if(be.fuelRemaining<=0)try(var tx=Transaction.openRoot()){if(!loadFuel(be,tx)){extinguish(be);be.status="缺少燃料或必要流体";return 0;}tx.commit();}
         int fluid=(be.fuelFluidRate+be.fluidRemainder)/20;
         if(fluid>0&&(!IndustrialFluids.matches(be.fluids.getResource(0),be.fuelFluid)||be.fluids.getAmountAsInt(0)<fluid)){extinguish(be);be.status="缺少必要流体，燃料已暂停";return 0;}

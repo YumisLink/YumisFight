@@ -10,41 +10,11 @@ import cn.yumis.fight.modules.industry.platform.IndustrialMenu;
 import cn.yumis.fight.modules.industry.api.DeviceType;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.color.block.BlockTintSource;
-import net.minecraft.client.color.block.BlockTintSources;
-import net.minecraft.client.color.item.ItemTintSource;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.BiomeColors;
-import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.ARGB;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.GrassColor;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.*;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 
-/** Industrial block colors, local traces and placement previews. Never loads terrain. */
+/** Industrial local traces and placement previews. Never loads terrain. */
 public final class IndustrialVisuals {
-    public static void register(IEventBus bus){
-        bus.addListener((RegisterColorHandlersEvent.BlockTintSources event)->event.register(
-                java.util.List.of(BlockTintSources.grass(),new GrassTransition(1),new GrassTransition(2)),IndustrialContent.ALL_BLOCKS.get("magic_grass").get()));
-        bus.addListener((RegisterColorHandlersEvent.ItemTintSources event)->event.register(
-                IndustrialContent.id("magic_grass_transition"),GrassTransition.CODEC));
-    }
-    /** The two boundary pixels share their biome-aware palette with the item model. */
-    private record GrassTransition(int step) implements BlockTintSource,ItemTintSource {
-        private static final MapCodec<GrassTransition> CODEC=Codec.intRange(1,2).fieldOf("step").xmap(GrassTransition::new,GrassTransition::step);
-        private int mix(int grass){return ARGB.opaque(ARGB.srgbLerp(step/3f,grass,0xff79dfff));}
-        @Override public int color(BlockState state){return mix(GrassColor.getDefaultColor());}
-        @Override public int colorInWorld(BlockState state,BlockAndTintGetter level,BlockPos pos){return mix(BiomeColors.getAverageGrassColor(level,pos));}
-        @Override public int calculate(ItemStack stack,ClientLevel level,LivingEntity owner){return mix(GrassColor.getDefaultColor());}
-        @Override public MapCodec<GrassTransition> type(){return CODEC;}
-    }
     private static int ticks;
     private static long expires;
     private static String beamDimension="";

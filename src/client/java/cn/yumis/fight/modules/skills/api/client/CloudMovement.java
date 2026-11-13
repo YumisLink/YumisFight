@@ -20,15 +20,18 @@ public final class CloudMovement {
     private static boolean uiOpen;
     private CloudMovement(){}
     public static void clear(){pool=new Stamina();fullAt=0;session=dimension="";generation=-1;uiOpen=false;}
-    public static int stamina(){return pool.value;}
+    public static double stamina(){return pool.value;}
     public static void screen(boolean open){uiOpen=open;}
     public static void tick(){
         var state=SkillsClient.current();var p=Minecraft.getInstance().player;if(!state.ready()||p==null)return;
         String current=p.level().dimension().identifier().toString();
-        if(!session.equals(state.session())||generation!=state.own().generation||!dimension.equals(current)){clear();session=state.session();generation=state.own().generation;dimension=current;}
-        uiOpen=Minecraft.getInstance().gui.screen()!=null;int previous=pool.value;
+        boolean reset=!session.equals(state.session())||generation!=state.own().generation||!dimension.equals(current);
+        if(reset){clear();session=state.session();generation=state.own().generation;dimension=current;}
+        pool.attributes(state.stats().get(cn.yumis.fight.modules.attributes.api.Stat.STAMINA),state.stats().get(cn.yumis.fight.modules.attributes.api.Stat.STAMINA_RECOVERY));
+        if(reset)pool.value=pool.maximum;
+        uiOpen=Minecraft.getInstance().gui.screen()!=null;double previous=pool.value;
         pool.recover(p.tickCount,p.onGround(),p.isCreative()||state.resources().training);
-        if(previous<Stamina.MAXIMUM&&pool.value==Stamina.MAXIMUM)fullAt=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
+        if(previous<pool.maximum&&pool.value==pool.maximum)fullAt=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
     }
     public static boolean key(KeyEvent event,int action){
         var mc=Minecraft.getInstance();
@@ -52,11 +55,11 @@ public final class CloudMovement {
     public static void render(GuiGraphicsExtractor g,DeltaTracker delta){
         var mc=Minecraft.getInstance();
         if(!SkillsClient.current().ready()||mc.player==null||mc.gui.hud.isHidden()||mc.gui.screen()!=null&&!(mc.gui.screen() instanceof ChatScreen))return;
-        if(pool.value==Stamina.MAXIMUM&&(fullAt==0||cn.yumis.fight.modules.presentation.api.client.ClientUi.now()-fullAt>2000))return;
+        if(pool.value==pool.maximum&&(fullAt==0||cn.yumis.fight.modules.presentation.api.client.ClientUi.now()-fullAt>2000))return;
         int extra=(mc.player.isUnderWater()||mc.player.getAirSupply()<mc.player.getMaxAirSupply()?10:0)+(mc.player.isPassenger()?10:0);
         int x=g.guiWidth()/2-43,y=Math.max(4,g.guiHeight()-111-extra),width=86;
         g.fill(x,y,x+width,y+11,UiTheme.PANEL);
-        g.fill(x+1,y+1,x+1+(width-2)*pool.value/Stamina.MAXIMUM,y+10,0xff69a879);
-        g.text(UiFonts.font(),"体力 "+pool.value+" / 100",x+3,y+1,UiTheme.TEXT,false);
+        g.fill(x+1,y+1,x+1+(int)((width-2)*pool.value/pool.maximum),y+10,0xff69a879);
+        g.text(UiFonts.font(),"体力 "+(int)pool.value+" / "+(int)pool.maximum,x+3,y+1,UiTheme.TEXT,false);
     }
 }

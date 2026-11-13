@@ -50,7 +50,7 @@ public final class RuntimeAssembly {
         public void join(Dungeon d,ServerPlayer p)throws Exception{runtime.damageMeter.join(d,p);}
         public void leave(Dungeon d,ServerPlayer p)throws Exception{runtime.damageMeter.leave(d,p);}
         public void freeze(Dungeon d)throws Exception{runtime.damageMeter.freeze(d);}
-    },runtime.partyService::team,runtime::refreshAll);}
+    },runtime.partyService::team,runtime::refreshAll,cn.yumis.fight.modules.mapgeneration.api.WorldDecorations::block);}
     public static LootService lootService(ServerApplication runtime){return new LootService(runtime.journal,runtime.characters,runtime.server,()->runtime.inventory,new RewardPorts.Players(){
         public UUID session(ServerPlayer p){return runtime.session(p).id;}
         public Progress progress(ServerPlayer p){return runtime.session(p).progress;}
@@ -62,13 +62,14 @@ public final class RuntimeAssembly {
         public boolean participant(ServerPlayer p,String instance){return runtime.dungeons.participant(p,instance);}
         public Dungeon byId(String instance){return runtime.dungeons.byId(instance);}
         public String currentInstance(ServerPlayer p){var d=runtime.dungeons.current(p.getUUID());return d==null?"":d.id.toString();}
-    },new RewardPorts.Balance(){
+    },rewardBalance(runtime));}
+    public static RewardPorts.Balance rewardBalance(ServerApplication runtime){return new RewardPorts.Balance(){
         public RewardSettings settings(){return runtime.rewards;}
         public long gold(ServerPlayer p){return runtime.economyService.gold(p);}
         public long revision(ServerPlayer p){return runtime.economyService.goldRevision(p);}
         public void notifyGain(ServerPlayer p,long amount,long balance,long revision){runtime.economyService.goldGain(p,amount,balance,revision);}
         public Map<String,com.google.gson.JsonElement> receive(ServerPlayer p,com.google.gson.JsonObject result){return runtime.economyService.receiveBalances(p,result);}
-    });}
+    };}
     public static WaystonePorts waystonePorts(ServerApplication runtime){return new WaystonePorts(){
         public Map<String,com.google.gson.JsonElement> drop(UUID player,net.minecraft.world.item.ItemStack stack,ReturnPoint point,String instance){var drop=runtime.loot.preparePersistent(player,stack,point,instance);return Map.of("loot/"+drop.id,new com.google.gson.Gson().toJsonTree(drop));}
         public void publish(){runtime.loot.publishPersistent();}

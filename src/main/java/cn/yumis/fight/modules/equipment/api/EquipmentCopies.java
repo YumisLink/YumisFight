@@ -12,7 +12,7 @@ final class EquipmentCopies {
         copy.set=source.set;copy.source=source.source;copy.template=source.template;copy.appearance=source.appearance;copy.savedName=source.savedName;
         source.baseGrowth.forEach((stat,curve)->copy.baseGrowth.put(stat,curve.clone()));
         for(Affix affix:source.affixes)copy.affixes.add(affix(affix));
-        for(Gem original:source.gems){Gem gem=new Gem();gem.name=original.name;gem.level=original.level;gem.group=original.group;for(Affix affix:original.affixes)gem.affixes.add(affix(affix));copy.gems.add(gem);}
+        for(Gem original:source.gems){Gem gem=new Gem();gem.name=original.name;gem.level=original.level;gem.rarity=original.rarity;gem.group=original.group;for(Affix affix:original.affixes)gem.affixes.add(affix(affix));copy.gems.add(gem);}
         return copy;
     }
     static Affix affix(Affix source){
@@ -21,7 +21,7 @@ final class EquipmentCopies {
         copy.schemaVersion=source.schemaVersion;copy.instanceId=source.instanceId;copy.syncStatus=source.syncStatus;
         copy.id=source.id;copy.stat=source.stat;copy.operation=source.operation;copy.family=source.family;copy.skill=source.skill;copy.parameter=source.parameter;
         copy.value=source.value;copy.maximum=source.maximum;copy.baseline=source.baseline;copy.baselineMaximum=source.baselineMaximum;
-        copy.roll=source.roll;copy.corruptionMultiplier=source.corruptionMultiplier;copy.base=source.base;copy.fixed=source.fixed;copy.locked=source.locked;copy.element=source.element;copy.rank=source.rank;
+        copy.roll=source.roll;copy.corruptionMultiplier=source.corruptionMultiplier;copy.base=source.base;copy.fixed=source.fixed;copy.locked=source.locked;copy.crafted=source.crafted;copy.element=source.element;copy.rank=source.rank;
         if(source.origin!=null){var a=source.origin;var origin=new Affix.Anchor();origin.operation=a.operation;origin.stat=a.stat;origin.element=a.element;origin.rank=a.rank;origin.revision=a.revision;origin.value=a.value;origin.maximum=a.maximum;origin.baseline=a.baseline;origin.baselineMaximum=a.baselineMaximum;origin.roll=a.roll;origin.definitionScale=a.definitionScale;origin.quality=a.quality;copy.origin=origin;}
         return copy;
     }

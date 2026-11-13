@@ -18,7 +18,7 @@ public final class SkillsPage {
         if(progress.hasJob(cn.yumis.fight.modules.character.api.JobCatalog.SUMMONER)){page.rowButton("一键续召",()->CareerClient.INSTANCE.renewSummons());page.rowButton("切换跟随 / 自动攻击",()->{var ui=cn.yumis.fight.modules.presentation.api.client.ClientUi.current();ui.send("summonFollow",ui.operation("summonFollow"));});}
         page.line("剩余SP："+progress.sp+"    装备可提高有效等级",UiTheme.GOLD);
         if(!page.hasSidebar())page.line("职业减伤："+Math.round((1-cn.yumis.fight.modules.character.api.JobCatalog.style(progress.jobId()).damageTaken())*100)+"%");
-        page.line("点击图标绑定；右键退1级，Shift右键退5级并返还SP。",UiTheme.MUTED);
+        page.line("拖拽已学图标到快捷槽，或点击后选槽；右键退1级，Shift右键退5级。",UiTheme.MUTED);
         page.line("Shift学习最多5级；卡片显示学习等级，有效等级见悬浮详情。",UiTheme.MUTED);
         int base=page.cursor()+6,cell=(page.contentWidth()-24)/4,index=0;
         for(var skill:SkillCatalog.all()){

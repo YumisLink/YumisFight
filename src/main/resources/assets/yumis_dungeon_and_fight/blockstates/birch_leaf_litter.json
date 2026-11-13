@@ -1,0 +1,260 @@
+{
+  "variants": {
+    "facing=north,layout=0,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_1",
+      "y": 0
+    },
+    "facing=east,layout=0,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_1",
+      "y": 90
+    },
+    "facing=south,layout=0,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_1",
+      "y": 180
+    },
+    "facing=west,layout=0,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_1",
+      "y": 270
+    },
+    "facing=north,layout=0,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_2",
+      "y": 0
+    },
+    "facing=east,layout=0,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_2",
+      "y": 90
+    },
+    "facing=south,layout=0,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_2",
+      "y": 180
+    },
+    "facing=west,layout=0,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_2",
+      "y": 270
+    },
+    "facing=north,layout=0,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_3",
+      "y": 0
+    },
+    "facing=east,layout=0,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_3",
+      "y": 90
+    },
+    "facing=south,layout=0,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_3",
+      "y": 180
+    },
+    "facing=west,layout=0,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_3",
+      "y": 270
+    },
+    "facing=north,layout=0,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_4",
+      "y": 0
+    },
+    "facing=east,layout=0,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_4",
+      "y": 90
+    },
+    "facing=south,layout=0,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_4",
+      "y": 180
+    },
+    "facing=west,layout=0,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_4",
+      "y": 270
+    },
+    "facing=north,layout=1,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_1",
+      "y": 0
+    },
+    "facing=east,layout=1,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_1",
+      "y": 90
+    },
+    "facing=south,layout=1,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_1",
+      "y": 180
+    },
+    "facing=west,layout=1,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_1",
+      "y": 270
+    },
+    "facing=north,layout=1,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_2",
+      "y": 0
+    },
+    "facing=east,layout=1,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_2",
+      "y": 90
+    },
+    "facing=south,layout=1,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_2",
+      "y": 180
+    },
+    "facing=west,layout=1,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_2",
+      "y": 270
+    },
+    "facing=north,layout=1,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_3",
+      "y": 0
+    },
+    "facing=east,layout=1,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_3",
+      "y": 90
+    },
+    "facing=south,layout=1,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_3",
+      "y": 180
+    },
+    "facing=west,layout=1,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_3",
+      "y": 270
+    },
+    "facing=north,layout=1,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_4",
+      "y": 0
+    },
+    "facing=east,layout=1,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_4",
+      "y": 90
+    },
+    "facing=south,layout=1,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_4",
+      "y": 180
+    },
+    "facing=west,layout=1,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_1_4",
+      "y": 270
+    },
+    "facing=north,layout=2,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_1",
+      "y": 0
+    },
+    "facing=east,layout=2,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_1",
+      "y": 90
+    },
+    "facing=south,layout=2,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_1",
+      "y": 180
+    },
+    "facing=west,layout=2,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_1",
+      "y": 270
+    },
+    "facing=north,layout=2,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_2",
+      "y": 0
+    },
+    "facing=east,layout=2,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_2",
+      "y": 90
+    },
+    "facing=south,layout=2,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_2",
+      "y": 180
+    },
+    "facing=west,layout=2,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_2",
+      "y": 270
+    },
+    "facing=north,layout=2,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_3",
+      "y": 0
+    },
+    "facing=east,layout=2,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_3",
+      "y": 90
+    },
+    "facing=south,layout=2,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_3",
+      "y": 180
+    },
+    "facing=west,layout=2,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_3",
+      "y": 270
+    },
+    "facing=north,layout=2,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_4",
+      "y": 0
+    },
+    "facing=east,layout=2,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_4",
+      "y": 90
+    },
+    "facing=south,layout=2,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_4",
+      "y": 180
+    },
+    "facing=west,layout=2,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_2_4",
+      "y": 270
+    },
+    "facing=north,layout=3,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_1",
+      "y": 0
+    },
+    "facing=east,layout=3,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_1",
+      "y": 90
+    },
+    "facing=south,layout=3,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_1",
+      "y": 180
+    },
+    "facing=west,layout=3,segment_amount=1": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_1",
+      "y": 270
+    },
+    "facing=north,layout=3,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_2",
+      "y": 0
+    },
+    "facing=east,layout=3,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_2",
+      "y": 90
+    },
+    "facing=south,layout=3,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_2",
+      "y": 180
+    },
+    "facing=west,layout=3,segment_amount=2": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_2",
+      "y": 270
+    },
+    "facing=north,layout=3,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_3",
+      "y": 0
+    },
+    "facing=east,layout=3,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_3",
+      "y": 90
+    },
+    "facing=south,layout=3,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_3",
+      "y": 180
+    },
+    "facing=west,layout=3,segment_amount=3": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_3",
+      "y": 270
+    },
+    "facing=north,layout=3,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_4",
+      "y": 0
+    },
+    "facing=east,layout=3,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_4",
+      "y": 90
+    },
+    "facing=south,layout=3,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_4",
+      "y": 180
+    },
+    "facing=west,layout=3,segment_amount=4": {
+      "model": "yumis_dungeon_and_fight:block/decorations/birch_leaf_litter_layout_3_4",
+      "y": 270
+    }
+  }
+}

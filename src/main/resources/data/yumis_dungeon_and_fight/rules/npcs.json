@@ -114,6 +114,459 @@
         "需要补充魔能的话，来我这儿看看。",
         "给机器备点水晶，做事也安心些。"
       ]
+    },
+    "elaina": {
+      "name": "伊蕾娜",
+      "skin": "elaina",
+      "headwear": "witch_hat",
+      "title": "旅途引路人",
+      "unique": true,
+      "actions": [
+        {
+          "id": "tutorial",
+          "label": "旅途指引",
+          "type": "tutorial",
+          "value": "elaina"
+        }
+      ],
+      "dialogue": [
+        "冒险这种事，先学会第一步就够了。",
+        "选你喜欢的。旅途可没有标准答案。"
+      ],
+      "tutorial": {
+        "introduction": [
+          {
+            "spans": [
+              {
+                "text": "欢迎，旅行者。我是 ",
+                "colors": []
+              },
+              {
+                "text": "伊蕾娜",
+                "colors": [
+                  "#EBD09C",
+                  "#C6ACFF"
+                ]
+              },
+              {
+                "text": "。冒险这种事，先学会第一步就够了。",
+                "colors": []
+              }
+            ]
+          },
+          {
+            "spans": [
+              {
+                "text": "先按 ",
+                "colors": []
+              },
+              {
+                "text": "I",
+                "colors": [
+                  "#EBD09C"
+                ]
+              },
+              {
+                "text": "，打开「职业技能」选一个基础职业。任务会记在「任务追踪器」，完成后在那里提交，下一课也会自动接上。",
+                "colors": []
+              }
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "id": "choose_road",
+            "goal": "choose_job",
+            "title": {
+              "spans": [
+                {
+                  "text": "第一课 · 选择你的道路",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "objective": {
+              "spans": [
+                {
+                  "text": "打开 ",
+                  "colors": []
+                },
+                {
+                  "text": "I",
+                  "colors": [
+                    "#EBD09C"
+                  ]
+                },
+                {
+                  "text": " → 职业技能 → ",
+                  "colors": []
+                },
+                {
+                  "text": "选择基础职业",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "dialogue": [
+              {
+                "spans": [
+                  {
+                    "text": "选你喜欢的。第一把武器，已经替你准备好了。",
+                    "colors": []
+                  }
+                ]
+              },
+              {
+                "spans": [
+                  {
+                    "text": "打开 I，进入「职业技能」选择基础职业。选定后不能更换，这一步慢慢想。",
+                    "colors": []
+                  }
+                ]
+              }
+            ],
+            "reward": {
+              "experience": 300,
+              "gold": 0,
+              "items": []
+            },
+            "page": "skills"
+          },
+          {
+            "id": "first_skill",
+            "goal": "learn_skill",
+            "title": {
+              "spans": [
+                {
+                  "text": "第二课 · 学会第一招",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "objective": {
+              "spans": [
+                {
+                  "text": "在职业技能中",
+                  "colors": []
+                },
+                {
+                  "text": "学习一个主动技能",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "dialogue": [
+              {
+                "spans": [
+                  {
+                    "text": "先会一招，再慢慢变厉害。",
+                    "colors": []
+                  }
+                ]
+              },
+              {
+                "spans": [
+                  {
+                    "text": "鬼剑士可以先学「鬼斩」，魔法师学「魔法星弹」，恶魔猎手学「混乱打击」。打开技能页，点击「学习」。",
+                    "colors": []
+                  }
+                ]
+              }
+            ],
+            "reward": {
+              "experience": 0,
+              "gold": 50,
+              "items": []
+            },
+            "page": "skills"
+          },
+          {
+            "id": "handy_skill",
+            "goal": "bind_skill",
+            "title": {
+              "spans": [
+                {
+                  "text": "第三课 · 把本领放在手边",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "objective": {
+              "spans": [
+                {
+                  "text": "把已学的主动技能",
+                  "colors": []
+                },
+                {
+                  "text": "拖到快捷槽",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "dialogue": [
+              {
+                "spans": [
+                  {
+                    "text": "把它放到顺手的位置。战斗时，可没空翻书。",
+                    "colors": []
+                  }
+                ]
+              },
+              {
+                "spans": [
+                  {
+                    "text": "按住已学技能的图标，拖到屏幕下方的快捷槽后松开。槽位显示实际按键，Ctrl / Alt 可以切换技能层。",
+                    "colors": []
+                  }
+                ]
+              }
+            ],
+            "reward": {
+              "experience": 0,
+              "gold": 50,
+              "items": [
+                {
+                  "item": "yumis_dungeon_and_fight:training_sandbag",
+                  "count": 1
+                }
+              ]
+            },
+            "page": "skills"
+          },
+          {
+            "id": "first_contact",
+            "goal": "practice_hit",
+            "title": {
+              "spans": [
+                {
+                  "text": "第四课 · 试试身手",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "objective": {
+              "spans": [
+                {
+                  "text": "用一个已学主动技能",
+                  "colors": []
+                },
+                {
+                  "text": "命中普通训练沙袋一次",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "dialogue": [
+              {
+                "spans": [
+                  {
+                    "text": "先打个招呼吧。沙袋比怪物有耐心得多。",
+                    "colors": []
+                  }
+                ]
+              },
+              {
+                "spans": [
+                  {
+                    "text": "把沙袋放在附近空地，装备初始武器后按快捷键施放技能。左键是普攻；沙袋不会反击，也不掉奖励。Shift＋空手右键可收回。",
+                    "colors": []
+                  }
+                ]
+              }
+            ],
+            "reward": {
+              "experience": 0,
+              "gold": 100,
+              "items": []
+            },
+            "page": ""
+          },
+          {
+            "id": "first_growth",
+            "goal": "allocate",
+            "title": {
+              "spans": [
+                {
+                  "text": "第五课 · 一点成长",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "objective": {
+              "spans": [
+                {
+                  "text": "打开 I → 属性，",
+                  "colors": []
+                },
+                {
+                  "text": "分配至少一点属性",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "dialogue": [
+              {
+                "spans": [
+                  {
+                    "text": "变强的第一步，就是决定把力量用在哪里。",
+                    "colors": []
+                  }
+                ]
+              },
+              {
+                "spans": [
+                  {
+                    "text": "打开 I 的「属性」页，在力量、智力或精神旁点「+1」。选择职业适合的方向就好，不必一次用光。",
+                    "colors": []
+                  }
+                ]
+              }
+            ],
+            "reward": {
+              "experience": 0,
+              "gold": 100,
+              "items": [
+                {
+                  "item": "yumis_dungeon_and_fight:equipment_fabricator",
+                  "count": 1
+                },
+                {
+                  "item": "yumis_dungeon_and_fight:crafting_material",
+                  "material": "goblin_cloth",
+                  "count": 4
+                },
+                {
+                  "item": "minecraft:iron_ingot",
+                  "count": 4
+                }
+              ]
+            },
+            "page": "character"
+          },
+          {
+            "id": "first_equipment",
+            "goal": "craft",
+            "title": {
+              "spans": [
+                {
+                  "text": "第六课 · 亲手制作",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "objective": {
+              "spans": [
+                {
+                  "text": "使用装备制作器",
+                  "colors": []
+                },
+                {
+                  "text": "制作一件装备",
+                  "colors": [
+                    "#EBD09C",
+                    "#C6ACFF"
+                  ]
+                }
+              ]
+            },
+            "dialogue": [
+              {
+                "spans": [
+                  {
+                    "text": "材料收好。亲手做一件，比听我讲十遍都有用。",
+                    "colors": []
+                  }
+                ]
+              },
+              {
+                "spans": [
+                  {
+                    "text": "放下制作器并右键打开，选择「战靴」、一种护甲类型和 1 级，再点「制作」。4 哥布林布和 4 铁锭刚好够；获得装备后可以在背包中查看并穿上。",
+                    "colors": []
+                  }
+                ]
+              }
+            ],
+            "reward": {
+              "experience": 0,
+              "gold": 200,
+              "items": []
+            },
+            "page": ""
+          }
+        ],
+        "completion": [
+          {
+            "spans": [
+              {
+                "text": "看吧，第一步也没有那么难。接下来就按自己的节奏去冒险。",
+                "colors": []
+              }
+            ]
+          },
+          {
+            "spans": [
+              {
+                "text": "野外战斗可以积累经验。到 ",
+                "colors": []
+              },
+              {
+                "text": "10 级",
+                "colors": [
+                  "#EBD09C"
+                ]
+              },
+              {
+                "text": "，从 I 的「副本」进入哥布林营地；",
+                "colors": []
+              },
+              {
+                "text": "20 级",
+                "colors": [
+                  "#EBD09C"
+                ]
+              },
+              {
+                "text": "并解锁通用转职资格后，再回「职业技能」选择进阶职业。",
+                "colors": []
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "skins": {
@@ -164,6 +617,13 @@
       "uuid": "e80e8194323e414298515e1bcb8a3508",
       "texture": "eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56",
       "slim": false
+    },
+    "elaina": {
+      "name": "伊蕾娜",
+      "uuid": "23813911-6dc2-4af9-9d41-f25fa701f041",
+      "texture": "69d8f1b2c2787cba75dd5e5d6aa5dd037da22180f3930f616ecd0243bb631149",
+      "slim": true,
+      "exclusive": true
     }
   }
 }

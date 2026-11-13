@@ -1,0 +1,25 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "fluid_infuser",
+  "minimum_tier": 2,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:transmutation_stone",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:regal_stone",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:mana_fluid",
+      "amount": 100
+    }
+  ],
+  "ticks": 20,
+  "energy": 100
+}

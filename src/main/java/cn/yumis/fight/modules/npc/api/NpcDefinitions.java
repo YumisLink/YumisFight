@@ -8,8 +8,10 @@ import java.util.function.Supplier;
 
 public final class NpcDefinitions {
     public record Action(String id,String label,String type,String value) {}
-    public record Definition(String name,List<Action> actions,List<String> dialogue) {}
-    public record Skin(String name,String uuid,String texture,boolean slim) {}
+    public record Definition(String name,List<Action> actions,List<String> dialogue,String skin,String headwear,String title,boolean unique,NpcTutorial.Definition tutorial) {
+        public String displayName(){return title==null||title.isBlank()?name+" Lv."+NpcEntity.LEVEL:name+" · "+title;}
+    }
+    public record Skin(String name,String uuid,String texture,boolean slim,boolean exclusive) {}
     public Map<String,Definition> npcs=new LinkedHashMap<>();
     public Map<String,Skin> skins=new LinkedHashMap<>();
     private static Supplier<NpcDefinitions> source=NpcDefinitions::defaults;
@@ -28,9 +30,12 @@ public final class NpcDefinitions {
         for(var row:result.npcs.entrySet()){
             var d=row.getValue();if(!row.getKey().matches("[a-z0-9_./-]+")||d==null||d.name()==null||d.name().isBlank()||d.actions()==null||d.actions().isEmpty()||d.dialogue()==null)throw new IllegalArgumentException("NPC定义无效："+row.getKey());
             var ids=new HashSet<String>();for(var a:d.actions())if(a==null||a.id()==null||!ids.add(a.id())||a.label()==null||a.type()==null||a.value()==null)throw new IllegalArgumentException("NPC选项无效："+row.getKey());
+            if(d.skin()!=null&&!d.skin().isBlank()&&!result.skins.containsKey(d.skin()))throw new IllegalArgumentException("NPC固定皮肤不存在："+row.getKey());
+            if(d.headwear()!=null&&!d.headwear().isBlank()&&!d.headwear().equals("witch_hat"))throw new IllegalArgumentException("NPC头饰不存在："+row.getKey());
         }
         for(var row:result.skins.entrySet())if(!row.getKey().matches("[a-z0-9_]+")||row.getValue()==null||!row.getValue().texture().matches("[a-f0-9]{64}"))throw new IllegalArgumentException("NPC皮肤无效："+row.getKey());
         return result;
     }
     public Definition require(String id){var d=npcs.get(id);if(d==null)throw new IllegalArgumentException("NPC定义不存在："+id);return d;}
+    public List<String> randomSkins(){return skins.entrySet().stream().filter(row->!row.getValue().exclusive()).map(Map.Entry::getKey).toList();}
 }

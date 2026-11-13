@@ -1180,6 +1180,901 @@
       "stat": "DROP_RATE",
       "description": null,
       "fixedValue": 15
+    },
+    "crafted/strength": {
+      "id": "crafted/strength",
+      "name": "工艺之力量",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "STRENGTH",
+      "element": -1
+    },
+    "crafted/intelligence": {
+      "id": "crafted/intelligence",
+      "name": "工艺之智识",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "INTELLIGENCE",
+      "element": -1
+    },
+    "crafted/spirit": {
+      "id": "crafted/spirit",
+      "name": "工艺之精神",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "SPIRIT",
+      "element": -1
+    },
+    "crafted/health": {
+      "id": "crafted/health",
+      "name": "工艺之生命",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "HEALTH",
+      "element": -1
+    },
+    "crafted/mp": {
+      "id": "crafted/mp",
+      "name": "工艺之魔泉",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "MP",
+      "element": -1
+    },
+    "crafted/physical_defense_percent": {
+      "id": "crafted/physical_defense_percent",
+      "name": "工艺之坚壁",
+      "operation": "PERCENT",
+      "group": "crafted",
+      "stat": "PHYSICAL_DEFENSE",
+      "element": -1
+    },
+    "crafted/magical_defense_percent": {
+      "id": "crafted/magical_defense_percent",
+      "name": "工艺之魔御",
+      "operation": "PERCENT",
+      "group": "crafted",
+      "stat": "MAGICAL_DEFENSE",
+      "element": -1
+    },
+    "crafted/movement_speed": {
+      "id": "crafted/movement_speed",
+      "name": "工艺之疾行",
+      "operation": "CHARACTER_PERCENT",
+      "group": "crafted",
+      "stat": "MOVEMENT_SPEED",
+      "element": -1,
+      "minimum": 0.08,
+      "maximum": 0.12
+    },
+    "crafted/all_resistance": {
+      "id": "crafted/all_resistance",
+      "name": "工艺之庇护",
+      "operation": "ALL_RESIST_FLAT",
+      "group": "crafted",
+      "stat": null,
+      "element": -1
+    },
+    "crafted/physical_defense": {
+      "id": "crafted/physical_defense",
+      "name": "工艺之护甲",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "PHYSICAL_DEFENSE",
+      "element": -1
+    },
+    "crafted/attack_speed": {
+      "id": "crafted/attack_speed",
+      "name": "工艺之迅捷",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "ATTACK_SPEED",
+      "element": -1
+    },
+    "crafted/drop_rate": {
+      "id": "crafted/drop_rate",
+      "name": "工艺之寻宝",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "DROP_RATE",
+      "element": -1
+    },
+    "crafted/physical_attack": {
+      "id": "crafted/physical_attack",
+      "name": "工艺之锋锐",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "PHYSICAL_ATTACK",
+      "element": -1
+    },
+    "crafted/magical_attack": {
+      "id": "crafted/magical_attack",
+      "name": "工艺之秘法",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "MAGICAL_ATTACK",
+      "element": -1
+    },
+    "crafted/physical_attack_percent": {
+      "id": "crafted/physical_attack_percent",
+      "name": "工艺之破军",
+      "operation": "PERCENT",
+      "group": "crafted",
+      "stat": "PHYSICAL_ATTACK",
+      "element": -1
+    },
+    "crafted/magical_attack_percent": {
+      "id": "crafted/magical_attack_percent",
+      "name": "工艺之魔涌",
+      "operation": "PERCENT",
+      "group": "crafted",
+      "stat": "MAGICAL_ATTACK",
+      "element": -1
+    },
+    "crafted/extra_light": {
+      "id": "crafted/extra_light",
+      "name": "工艺之光辉追击",
+      "operation": "EXTRA",
+      "group": "crafted",
+      "stat": null,
+      "element": 0
+    },
+    "crafted/element_light": {
+      "id": "crafted/element_light",
+      "name": "工艺之光辉强化",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "LIGHT",
+      "element": -1
+    },
+    "crafted/extra_fire": {
+      "id": "crafted/extra_fire",
+      "name": "工艺之烈焰追击",
+      "operation": "EXTRA",
+      "group": "crafted",
+      "stat": null,
+      "element": 1
+    },
+    "crafted/element_fire": {
+      "id": "crafted/element_fire",
+      "name": "工艺之烈焰强化",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "FIRE",
+      "element": -1
+    },
+    "crafted/extra_ice": {
+      "id": "crafted/extra_ice",
+      "name": "工艺之寒霜追击",
+      "operation": "EXTRA",
+      "group": "crafted",
+      "stat": null,
+      "element": 2
+    },
+    "crafted/element_ice": {
+      "id": "crafted/element_ice",
+      "name": "工艺之寒霜强化",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "ICE",
+      "element": -1
+    },
+    "crafted/extra_dark": {
+      "id": "crafted/extra_dark",
+      "name": "工艺之幽暗追击",
+      "operation": "EXTRA",
+      "group": "crafted",
+      "stat": null,
+      "element": 3
+    },
+    "crafted/element_dark": {
+      "id": "crafted/element_dark",
+      "name": "工艺之幽暗强化",
+      "operation": "FLAT",
+      "group": "crafted",
+      "stat": "DARK",
+      "element": -1
+    },
+    "crafted/family_sword": {
+      "id": "crafted/family_sword",
+      "name": "工艺之剑术",
+      "operation": "SKILL_FAMILY",
+      "group": "crafted",
+      "stat": null,
+      "element": -1,
+      "fixedRank": 2
+    },
+    "crafted/family_ghost": {
+      "id": "crafted/family_ghost",
+      "name": "工艺之鬼神",
+      "operation": "SKILL_FAMILY",
+      "group": "crafted",
+      "stat": null,
+      "element": -1,
+      "fixedRank": 2
+    },
+    "crafted/family_wave": {
+      "id": "crafted/family_wave",
+      "name": "工艺之波动",
+      "operation": "SKILL_FAMILY",
+      "group": "crafted",
+      "stat": null,
+      "element": -1,
+      "fixedRank": 2
+    },
+    "crafted/family_blood": {
+      "id": "crafted/family_blood",
+      "name": "工艺之血气",
+      "operation": "SKILL_FAMILY",
+      "group": "crafted",
+      "stat": null,
+      "element": -1,
+      "fixedRank": 2
+    },
+    "crafted/family_element": {
+      "id": "crafted/family_element",
+      "name": "工艺之元素",
+      "operation": "SKILL_FAMILY",
+      "group": "crafted",
+      "stat": null,
+      "element": -1,
+      "fixedRank": 2
+    },
+    "crafted/family_summon": {
+      "id": "crafted/family_summon",
+      "name": "工艺之召唤",
+      "operation": "SKILL_FAMILY",
+      "group": "crafted",
+      "stat": null,
+      "element": -1,
+      "fixedRank": 2
+    },
+    "crafted/family_sun_moon": {
+      "id": "crafted/family_sun_moon",
+      "name": "工艺之日月",
+      "operation": "SKILL_FAMILY",
+      "group": "crafted",
+      "stat": null,
+      "element": -1,
+      "fixedRank": 2
+    },
+    "crafted/family_havoc": {
+      "id": "crafted/family_havoc",
+      "name": "工艺之浩劫",
+      "operation": "SKILL_FAMILY",
+      "group": "crafted",
+      "stat": null,
+      "element": -1,
+      "fixedRank": 2
+    },
+    "gem/rare/strength": {
+      "id": "gem/rare/strength",
+      "name": "力量",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "STRENGTH",
+      "element": -1,
+      "fixedValue": 11.4
+    },
+    "gem/artifact/strength": {
+      "id": "gem/artifact/strength",
+      "name": "力量",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "STRENGTH",
+      "element": -1,
+      "fixedValue": 17.1
+    },
+    "gem/legendary/strength": {
+      "id": "gem/legendary/strength",
+      "name": "力量",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "STRENGTH",
+      "element": -1,
+      "fixedValue": 22.8
+    },
+    "gem/rare/intelligence": {
+      "id": "gem/rare/intelligence",
+      "name": "智识",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "INTELLIGENCE",
+      "element": -1,
+      "fixedValue": 7.725
+    },
+    "gem/artifact/intelligence": {
+      "id": "gem/artifact/intelligence",
+      "name": "智识",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "INTELLIGENCE",
+      "element": -1,
+      "fixedValue": 11.5875
+    },
+    "gem/legendary/intelligence": {
+      "id": "gem/legendary/intelligence",
+      "name": "智识",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "INTELLIGENCE",
+      "element": -1,
+      "fixedValue": 15.45
+    },
+    "gem/rare/spirit": {
+      "id": "gem/rare/spirit",
+      "name": "精神",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "SPIRIT",
+      "element": -1,
+      "fixedValue": 7.35
+    },
+    "gem/artifact/spirit": {
+      "id": "gem/artifact/spirit",
+      "name": "精神",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "SPIRIT",
+      "element": -1,
+      "fixedValue": 11.025
+    },
+    "gem/legendary/spirit": {
+      "id": "gem/legendary/spirit",
+      "name": "精神",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "SPIRIT",
+      "element": -1,
+      "fixedValue": 14.7
+    },
+    "gem/rare/cooldown": {
+      "id": "gem/rare/cooldown",
+      "name": "冷却",
+      "operation": "CHARACTER_PERCENT",
+      "group": "gem",
+      "stat": "COOLDOWN_RECOVERY",
+      "element": -1,
+      "fixedValue": 0.05
+    },
+    "gem/artifact/cooldown": {
+      "id": "gem/artifact/cooldown",
+      "name": "冷却",
+      "operation": "CHARACTER_PERCENT",
+      "group": "gem",
+      "stat": "COOLDOWN_RECOVERY",
+      "element": -1,
+      "fixedValue": 0.075
+    },
+    "gem/legendary/cooldown": {
+      "id": "gem/legendary/cooldown",
+      "name": "冷却",
+      "operation": "CHARACTER_PERCENT",
+      "group": "gem",
+      "stat": "COOLDOWN_RECOVERY",
+      "element": -1,
+      "fixedValue": 0.1
+    },
+    "gem/rare/movement": {
+      "id": "gem/rare/movement",
+      "name": "疾行",
+      "operation": "CHARACTER_PERCENT",
+      "group": "gem",
+      "stat": "MOVEMENT_SPEED",
+      "element": -1,
+      "fixedValue": 0.05
+    },
+    "gem/artifact/movement": {
+      "id": "gem/artifact/movement",
+      "name": "疾行",
+      "operation": "CHARACTER_PERCENT",
+      "group": "gem",
+      "stat": "MOVEMENT_SPEED",
+      "element": -1,
+      "fixedValue": 0.075
+    },
+    "gem/legendary/movement": {
+      "id": "gem/legendary/movement",
+      "name": "疾行",
+      "operation": "CHARACTER_PERCENT",
+      "group": "gem",
+      "stat": "MOVEMENT_SPEED",
+      "element": -1,
+      "fixedValue": 0.1
+    },
+    "gem/artifact/critical_chance": {
+      "id": "gem/artifact/critical_chance",
+      "name": "会心",
+      "operation": "MODIFIER",
+      "group": "gem",
+      "stat": null,
+      "element": -1,
+      "fixedValue": 0.03
+    },
+    "gem/legendary/critical_chance": {
+      "id": "gem/legendary/critical_chance",
+      "name": "会心",
+      "operation": "MODIFIER",
+      "group": "gem",
+      "stat": null,
+      "element": -1,
+      "fixedValue": 0.05
+    },
+    "gem/artifact/critical_damage": {
+      "id": "gem/artifact/critical_damage",
+      "name": "破势",
+      "operation": "MODIFIER",
+      "group": "gem",
+      "stat": null,
+      "element": -1,
+      "fixedValue": 0.1
+    },
+    "gem/legendary/critical_damage": {
+      "id": "gem/legendary/critical_damage",
+      "name": "破势",
+      "operation": "MODIFIER",
+      "group": "gem",
+      "stat": null,
+      "element": -1,
+      "fixedValue": 0.2
+    },
+    "gem/rare/resist_light": {
+      "id": "gem/rare/resist_light",
+      "name": "光辉抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "LIGHT_RESIST",
+      "element": 0,
+      "fixedValue": 9.6
+    },
+    "gem/artifact/resist_light": {
+      "id": "gem/artifact/resist_light",
+      "name": "光辉抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "LIGHT_RESIST",
+      "element": 0,
+      "fixedValue": 14.4
+    },
+    "gem/legendary/resist_light": {
+      "id": "gem/legendary/resist_light",
+      "name": "光辉抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "LIGHT_RESIST",
+      "element": 0,
+      "fixedValue": 19.2
+    },
+    "gem/rare/resist_fire": {
+      "id": "gem/rare/resist_fire",
+      "name": "烈焰抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "FIRE_RESIST",
+      "element": 1,
+      "fixedValue": 9.6
+    },
+    "gem/artifact/resist_fire": {
+      "id": "gem/artifact/resist_fire",
+      "name": "烈焰抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "FIRE_RESIST",
+      "element": 1,
+      "fixedValue": 14.4
+    },
+    "gem/legendary/resist_fire": {
+      "id": "gem/legendary/resist_fire",
+      "name": "烈焰抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "FIRE_RESIST",
+      "element": 1,
+      "fixedValue": 19.2
+    },
+    "gem/rare/resist_ice": {
+      "id": "gem/rare/resist_ice",
+      "name": "寒霜抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "ICE_RESIST",
+      "element": 2,
+      "fixedValue": 9.6
+    },
+    "gem/artifact/resist_ice": {
+      "id": "gem/artifact/resist_ice",
+      "name": "寒霜抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "ICE_RESIST",
+      "element": 2,
+      "fixedValue": 14.4
+    },
+    "gem/legendary/resist_ice": {
+      "id": "gem/legendary/resist_ice",
+      "name": "寒霜抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "ICE_RESIST",
+      "element": 2,
+      "fixedValue": 19.2
+    },
+    "gem/rare/resist_dark": {
+      "id": "gem/rare/resist_dark",
+      "name": "幽暗抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "DARK_RESIST",
+      "element": 3,
+      "fixedValue": 9.6
+    },
+    "gem/artifact/resist_dark": {
+      "id": "gem/artifact/resist_dark",
+      "name": "幽暗抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "DARK_RESIST",
+      "element": 3,
+      "fixedValue": 14.4
+    },
+    "gem/legendary/resist_dark": {
+      "id": "gem/legendary/resist_dark",
+      "name": "幽暗抗性",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "DARK_RESIST",
+      "element": 3,
+      "fixedValue": 19.2
+    },
+    "gem/rare/extra_light": {
+      "id": "gem/rare/extra_light",
+      "name": "光辉追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 0,
+      "fixedValue": 40.8
+    },
+    "gem/artifact/extra_light": {
+      "id": "gem/artifact/extra_light",
+      "name": "光辉追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 0,
+      "fixedValue": 61.2
+    },
+    "gem/legendary/extra_light": {
+      "id": "gem/legendary/extra_light",
+      "name": "光辉追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 0,
+      "fixedValue": 81.6
+    },
+    "gem/rare/extra_fire": {
+      "id": "gem/rare/extra_fire",
+      "name": "烈焰追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 1,
+      "fixedValue": 40.8
+    },
+    "gem/artifact/extra_fire": {
+      "id": "gem/artifact/extra_fire",
+      "name": "烈焰追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 1,
+      "fixedValue": 61.2
+    },
+    "gem/legendary/extra_fire": {
+      "id": "gem/legendary/extra_fire",
+      "name": "烈焰追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 1,
+      "fixedValue": 81.6
+    },
+    "gem/rare/extra_ice": {
+      "id": "gem/rare/extra_ice",
+      "name": "寒霜追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 2,
+      "fixedValue": 40.8
+    },
+    "gem/artifact/extra_ice": {
+      "id": "gem/artifact/extra_ice",
+      "name": "寒霜追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 2,
+      "fixedValue": 61.2
+    },
+    "gem/legendary/extra_ice": {
+      "id": "gem/legendary/extra_ice",
+      "name": "寒霜追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 2,
+      "fixedValue": 81.6
+    },
+    "gem/rare/extra_dark": {
+      "id": "gem/rare/extra_dark",
+      "name": "幽暗追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 3,
+      "fixedValue": 40.8
+    },
+    "gem/artifact/extra_dark": {
+      "id": "gem/artifact/extra_dark",
+      "name": "幽暗追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 3,
+      "fixedValue": 61.2
+    },
+    "gem/legendary/extra_dark": {
+      "id": "gem/legendary/extra_dark",
+      "name": "幽暗追击",
+      "operation": "EXTRA",
+      "group": "gem",
+      "stat": null,
+      "element": 3,
+      "fixedValue": 81.6
+    },
+    "gem/artifact/element_light": {
+      "id": "gem/artifact/element_light",
+      "name": "光辉强化",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "LIGHT",
+      "element": 0,
+      "fixedValue": 7.68
+    },
+    "gem/legendary/element_light": {
+      "id": "gem/legendary/element_light",
+      "name": "光辉强化",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "LIGHT",
+      "element": 0,
+      "fixedValue": 11.52
+    },
+    "gem/artifact/element_fire": {
+      "id": "gem/artifact/element_fire",
+      "name": "烈焰强化",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "FIRE",
+      "element": 1,
+      "fixedValue": 7.68
+    },
+    "gem/legendary/element_fire": {
+      "id": "gem/legendary/element_fire",
+      "name": "烈焰强化",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "FIRE",
+      "element": 1,
+      "fixedValue": 11.52
+    },
+    "gem/artifact/element_ice": {
+      "id": "gem/artifact/element_ice",
+      "name": "寒霜强化",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "ICE",
+      "element": 2,
+      "fixedValue": 7.68
+    },
+    "gem/legendary/element_ice": {
+      "id": "gem/legendary/element_ice",
+      "name": "寒霜强化",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "ICE",
+      "element": 2,
+      "fixedValue": 11.52
+    },
+    "gem/artifact/element_dark": {
+      "id": "gem/artifact/element_dark",
+      "name": "幽暗强化",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "DARK",
+      "element": 3,
+      "fixedValue": 7.68
+    },
+    "gem/legendary/element_dark": {
+      "id": "gem/legendary/element_dark",
+      "name": "幽暗强化",
+      "operation": "FLAT",
+      "group": "gem",
+      "stat": "DARK",
+      "element": 3,
+      "fixedValue": 11.52
+    },
+    "movement_speed": {
+      "id": "movement_speed",
+      "name": "疾行",
+      "operation": "CHARACTER_PERCENT",
+      "group": "random",
+      "stat": "MOVEMENT_SPEED",
+      "element": -1,
+      "minimum": 0.08,
+      "maximum": 0.12
+    },
+    "crafted/alaska_wisdom": {
+      "id": "crafted/alaska_wisdom",
+      "name": "工艺之阿拉斯加的智慧",
+      "operation": "CHARACTER_PERCENT",
+      "group": "crafted",
+      "stat": "EXPERIENCE_GAIN",
+      "element": -1,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "crafted/pinocchio": {
+      "id": "crafted/pinocchio",
+      "name": "工艺之烈焰皮诺修",
+      "operation": "WEAPON_ELEMENT",
+      "group": "crafted",
+      "stat": "FIRE",
+      "element": 1,
+      "minimum": 18,
+      "maximum": 25
+    },
+    "crafted/sieghart": {
+      "id": "crafted/sieghart",
+      "name": "工艺之光之城主",
+      "operation": "WEAPON_ELEMENT",
+      "group": "crafted",
+      "stat": "LIGHT",
+      "element": 0,
+      "minimum": 18,
+      "maximum": 25
+    },
+    "crafted/delezie": {
+      "id": "crafted/delezie",
+      "name": "工艺之瘟疫狄瑞吉",
+      "operation": "WEAPON_ELEMENT",
+      "group": "crafted",
+      "stat": "DARK",
+      "element": 3,
+      "minimum": 18,
+      "maximum": 25
+    },
+    "crafted/skasa": {
+      "id": "crafted/skasa",
+      "name": "工艺之斯卡撒",
+      "operation": "WEAPON_ELEMENT",
+      "group": "crafted",
+      "stat": "ICE",
+      "element": 2,
+      "minimum": 18,
+      "maximum": 25
+    },
+    "stamina_capacity": {
+      "id": "stamina_capacity",
+      "name": "充沛",
+      "operation": "FLAT",
+      "group": "random",
+      "stat": "STAMINA",
+      "element": -1,
+      "minimum": 100,
+      "maximum": 200,
+      "levelCurve": "stamina_capacity"
+    },
+    "stamina_recovery": {
+      "id": "stamina_recovery",
+      "name": "精力",
+      "operation": "CHARACTER_PERCENT",
+      "group": "random",
+      "stat": "STAMINA_RECOVERY",
+      "element": -1,
+      "minimum": 1,
+      "maximum": 3,
+      "levelCurve": null
+    },
+    "shield_wait_recovery": {
+      "id": "shield_wait_recovery",
+      "name": "再启",
+      "operation": "CHARACTER_PERCENT",
+      "group": "random",
+      "stat": "SHIELD_COOLDOWN_RECOVERY",
+      "element": -1,
+      "minimum": 0.035,
+      "maximum": 0.175,
+      "levelCurve": "shield_wait_recovery"
+    },
+    "shield_regeneration": {
+      "id": "shield_regeneration",
+      "name": "复苏",
+      "operation": "CHARACTER_PERCENT",
+      "group": "random",
+      "stat": "SHIELD_REGENERATION",
+      "element": -1,
+      "minimum": 0.2,
+      "maximum": 0.4,
+      "levelCurve": "shield_regeneration"
+    },
+    "unique/elaina_shield": {
+      "id": "unique/elaina_shield",
+      "name": "巫师护盾",
+      "operation": "PERCENT",
+      "group": "unique",
+      "stat": "SHIELD",
+      "element": -1,
+      "minimum": 2.5,
+      "maximum": 3.5,
+      "fixedValue": null
+    },
+    "unique/elaina_intelligence": {
+      "id": "unique/elaina_intelligence",
+      "name": "巫师智慧",
+      "operation": "CHARACTER_TOTAL",
+      "group": "unique",
+      "stat": "INTELLIGENCE",
+      "element": -1,
+      "minimum": 0.2,
+      "maximum": 0.3,
+      "fixedValue": null
+    },
+    "unique/elaina_magic": {
+      "id": "unique/elaina_magic",
+      "name": "巫师魔力",
+      "operation": "CHARACTER_TOTAL",
+      "group": "unique",
+      "stat": "MAGICAL_ATTACK",
+      "element": -1,
+      "minimum": 0.05,
+      "maximum": 0.08,
+      "fixedValue": null
+    },
+    "unique/collapse_armor": {
+      "id": "unique/collapse_armor",
+      "name": "倾塌壁垒",
+      "operation": "PERCENT",
+      "group": "unique",
+      "stat": "PHYSICAL_DEFENSE",
+      "element": -1,
+      "minimum": 1,
+      "maximum": 2.5,
+      "fixedValue": null
+    },
+    "unique/armor_retaliation": {
+      "id": "unique/armor_retaliation",
+      "name": "护甲反击",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "stat": null,
+      "element": -1,
+      "minimum": 10,
+      "maximum": 20,
+      "fixedValue": null
+    },
+    "unique/wall_power": {
+      "id": "unique/wall_power",
+      "name": "倾塌之墙",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "stat": null,
+      "element": -1,
+      "minimum": null,
+      "maximum": null,
+      "fixedValue": 0.01
     }
   },
   "equipment": {

@@ -31,6 +31,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     }
     private static final List<FluidGauge> REACTOR_GAUGES=List.of(new FluidGauge("fluid_in",0,88,68,23,70),new FluidGauge("fluid_in2",1,116,68,23,70),new FluidGauge("fluid_out",2,144,68,23,70));
     private static final List<FluidGauge> PROCESS_GAUGES=List.of(new FluidGauge("fluid_in",0,96,68,28,70),new FluidGauge("fluid_out",1,139,68,28,70));
+    private static final List<FluidGauge> INFUSION_GAUGES=List.of(new FluidGauge("fluid_in",0,116,68,28,70));
     private static final List<FluidGauge> MINER_GAUGES=List.of(new FluidGauge("fluid_in",0,116,68,28,70));
     private static final List<FluidGauge> PUMP_GAUGES=List.of(new FluidGauge("fluid_out",1,116,68,28,70));
     private static final List<FluidGauge> STORAGE_GAUGES=List.of(new FluidGauge("fluid_out",0,16,62,32,70));
@@ -40,6 +41,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     private long pendingDrainClick;
     private List<FluidGauge> fluidGauges(){
         var kind=menu.machine.device();
+        if(kind.has(DeviceType.Capability.INFUSION))return INFUSION_GAUGES;
         if(kind.has(DeviceType.Capability.IGNITION))return IGNITION_GAUGES;
         if(kind.has(DeviceType.Capability.DUAL_FLUID))return REACTOR_GAUGES;
         if(kind.has(DeviceType.Capability.FLUID_STORAGE))return STORAGE_GAUGES;
@@ -86,7 +88,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         g.text(UiFonts.font(),"?",leftPos+242,topPos+8,UiTheme.ACCENT,false);
         if(mx>=leftPos+238&&mx<=leftPos+254&&my>=topPos+4&&my<=topPos+22){
             List<Component> help=new ArrayList<>();if(menu.info.has("help"))for(var line:menu.info.getAsJsonArray("help"))help.add(Component.literal(line.getAsString()));else help.add(Component.literal("正在读取设备规则"));help.add(Component.literal("权杖：Shift右键空气切换移动／联网，右键空气取消选择。"));help.add(Component.literal("插件：速度 ×"+text("speed_multiplier","1")+"，单批耗能 ×"+number("energy_multiplier")+"，存储 ×"+number("capacity_multiplier")));
-            if(menu.machine.device().generator()){help.add(Component.literal("额定产能："+number("power")+" 点/秒；满网继续消耗。"));help.add(Component.literal("燃料余时："+seconds(number("fuel"))+"；缺少流体暂停。"));}
+            if(menu.machine.device().generator()){help.add(Component.literal("额定产能："+number("power")+" 点/秒；满网继续发电。"));if(menu.machine.device().has(DeviceType.Capability.FUEL))help.add(Component.literal("燃料余时："+seconds(number("fuel"))+"；缺少流体暂停。"));}
             if(menu.machine.device().has(DeviceType.Capability.STORAGE_NETWORK)){help.add(Component.literal("覆盖半径 "+number("radius")+" 格，三维直线距离。"));help.add(Component.literal(text("member_change","")));}
             if(menu.machine.device().has(DeviceType.Capability.LOGISTICS))help.add(Component.literal("目标："+text("target","未绑定")));
             g.setComponentTooltipForNextFrame(UiFonts.font(),help,mx,my);

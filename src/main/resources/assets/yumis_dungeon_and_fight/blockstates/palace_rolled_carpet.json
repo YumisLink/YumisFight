@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_rolled_carpet",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_rolled_carpet",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_rolled_carpet",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_rolled_carpet",
+      "y": 270
+    }
+  }
+}

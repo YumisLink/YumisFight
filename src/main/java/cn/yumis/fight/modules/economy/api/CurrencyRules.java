@@ -15,7 +15,7 @@ public final class CurrencyRules {
     public record Currency(String id,Rarity rarity,boolean naturalDrop){}
     public record Tier(Rarity rarity,double baseWeight,List<Currency> currencies){}
     public static final double DROP_CHANCE=.05;
-    public static final List<Currency> ALL=List.of(
+    public static final List<Currency> ALL=catalog(List.of(
         new Currency("transmutation_stone",Rarity.COMMON,true),
         new Currency("augmentation_stone",Rarity.RARE,true),
         new Currency("delezie_blood",Rarity.RARE,true),
@@ -23,6 +23,8 @@ public final class CurrencyRules {
         new Currency("exalted_stone",Rarity.LEGENDARY,true),
         new Currency("stripping_stone",Rarity.LEGENDARY,true),
         new Currency("divine_stone",Rarity.EPIC,true),
+        new Currency("advanced_divine_stone",Rarity.EPIC,false),
+        new Currency("perfect_divine_stone",Rarity.EPIC,false),
         new Currency("chaos_stone",Rarity.ARTIFACT,true),
         new Currency("upgrade_stone",Rarity.ARTIFACT,true),
         new Currency("fracturing_orb",Rarity.EPIC,true),
@@ -33,7 +35,13 @@ public final class CurrencyRules {
         new Currency("affix_gem",Rarity.ARTIFACT,false),
         new Currency("epic_upgrade_stone",Rarity.EPIC,false),
         new Currency("mythic_upgrade_stone",Rarity.MYTHIC,false)
-    );
+    ));
+    private static List<Currency> catalog(List<Currency> base){
+        var all=new ArrayList<>(base);
+        for(var d:cn.yumis.fight.modules.equipment.api.CraftingEssences.all())all.add(new Currency(d.id(),Rarity.LEGENDARY,false));
+        for(var d:cn.yumis.fight.modules.equipment.api.Gemstones.all())all.add(new Currency(d.id(),d.rarity(),false));
+        return List.copyOf(all);
+    }
     public static final List<Currency> DROP_POOL=ALL.stream().filter(Currency::naturalDrop).toList();
     public static final List<Tier> DROP_TIERS=List.of(tier(Rarity.COMMON,50),tier(Rarity.RARE,25),
         tier(Rarity.ARTIFACT,15),tier(Rarity.LEGENDARY,7),tier(Rarity.EPIC,3));
@@ -44,6 +52,19 @@ public final class CurrencyRules {
         BY_ID=Map.copyOf(catalog);
     }
     private CurrencyRules(){}
+    public static cn.yumis.fight.modules.equipment.api.Gemstones.Definition rollGem(boolean elite,boolean boss,double dropRate,Random random){
+        if(random.nextDouble()>=(boss?.03:elite?.01:.002))return null;
+        finite(dropRate);double boost=Math.log1p(Math.max(0,dropRate)/DROP_RATE_BASE);
+        double[] base=boss?new double[]{50,40,10}:elite?new double[]{70,25,5}:new double[]{90,9,1};
+        double[] weights=new double[3];double largest=Double.NEGATIVE_INFINITY;
+        for(int i=0;i<3;i++){weights[i]=Math.log(base[i])+i*boost;largest=Math.max(largest,weights[i]);}
+        double total=0;for(int i=0;i<3;i++)total+=weights[i]=Math.exp(weights[i]-largest);
+        double pick=random.nextDouble()*total;int selected=2;
+        for(int i=0;i<3;i++){if(pick<weights[i]){selected=i;break;}pick-=weights[i];}
+        Rarity rarity=List.of(Rarity.RARE,Rarity.ARTIFACT,Rarity.LEGENDARY).get(selected);
+        var pool=cn.yumis.fight.modules.equipment.api.Gemstones.all().stream().filter(d->d.rarity()==rarity).toList();
+        return pool.get(random.nextInt(pool.size()));
+    }
     public static long roundedReward(double value){
         finite(value);if(value<0)throw new IllegalArgumentException("奖励不可为负");
         return java.math.BigDecimal.valueOf(value).setScale(0,java.math.RoundingMode.HALF_UP).longValueExact();

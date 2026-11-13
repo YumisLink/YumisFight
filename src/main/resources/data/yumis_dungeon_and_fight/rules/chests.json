@@ -6,6 +6,10 @@
   },
   "waystoneDefault": {"name": "引路石%s阶宝箱", "currencyMinimum": 2, "currencyMaximum": 4, "inheritDropRate": true, "fixed": [], "special": [], "specialRolls": 0},
   "waystoneByTier": {},
+  "bossRarePools": {
+    "gbl_church":{"chance":0.05,"entries":[{"item":"essence_alaska_wisdom","count":1,"weight":1}]},
+    "castle_palace":{"chance":0.05,"entries":[{"item":"essence_pinocchio","count":1,"weight":1},{"item":"essence_sieghart","count":1,"weight":1},{"item":"essence_delezie","count":1,"weight":1},{"item":"essence_skasa","count":1,"weight":1}]}
+  },
   "bossPools": {
     "goblin_camp":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
     "dragon_tower":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},

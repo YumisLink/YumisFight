@@ -1,0 +1,36 @@
+{
+  "variants": {
+    "facing=north,floating=false": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_floating_shard",
+      "y": 0
+    },
+    "facing=north,floating=true": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_floating_shard",
+      "y": 0
+    },
+    "facing=east,floating=false": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_floating_shard",
+      "y": 90
+    },
+    "facing=east,floating=true": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_floating_shard",
+      "y": 90
+    },
+    "facing=south,floating=false": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_floating_shard",
+      "y": 180
+    },
+    "facing=south,floating=true": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_floating_shard",
+      "y": 180
+    },
+    "facing=west,floating=false": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_floating_shard",
+      "y": 270
+    },
+    "facing=west,floating=true": {
+      "model": "yumis_dungeon_and_fight:block/decorations/palace_floating_shard",
+      "y": 270
+    }
+  }
+}

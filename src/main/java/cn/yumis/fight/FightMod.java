@@ -40,11 +40,17 @@ public final class FightMod {
         cn.yumis.fight.modules.economy.platform.ShopContent.register(bus);
         cn.yumis.fight.modules.npc.api.NpcContentTypes.register(bus);
         cn.yumis.fight.modules.npc.api.NpcEntity.playerOwnedSources(e->e instanceof cn.yumis.fight.modules.skills.api.SummonedCreature summon&&summon.owner!=null);
-        cn.yumis.fight.modules.economy.api.ItemRarity.external(cn.yumis.fight.bootstrap.IndustrialItemDisplay::rarity);
+        cn.yumis.fight.modules.economy.api.ItemRarity.external(stack->{
+            var industry=cn.yumis.fight.bootstrap.IndustrialItemDisplay.rarity(stack);if(industry!=null)return industry;
+            if(stack.is(net.minecraft.world.item.Items.FISHING_ROD)||stack.is(net.minecraft.world.item.Items.COD)||stack.is(net.minecraft.world.item.Items.SALMON)||stack.is(net.minecraft.world.item.Items.PUFFERFISH)||stack.is(net.minecraft.world.item.Items.TROPICAL_FISH))return cn.yumis.fight.modules.equipment.api.Rarity.COMMON;
+            var fish=cn.yumis.fight.platform.ItemData.own(stack)?cn.yumis.fight.modules.professions.api.FishTier.itemTier(cn.yumis.fight.platform.ItemData.id(stack)):null;
+            return fish==null?null:cn.yumis.fight.modules.equipment.api.Rarity.valueOf(fish.name());
+        });
         cn.yumis.fight.modules.character.platform.CharacterContent.register();
         cn.yumis.fight.bootstrap.ApplicationModules.REGISTRY.order();
         cn.yumis.fight.modules.industry.platform.IndustrialContent.register(bus);
         bus.addListener(cn.yumis.fight.bootstrap.IndustrialItemDisplay::names);
+        bus.addListener((net.neoforged.neoforge.event.ModifyDefaultComponentsEvent event)->cn.yumis.fight.platform.ItemRegistry.ALL.forEach((id,holder)->{var tier=cn.yumis.fight.modules.professions.api.FishTier.itemTier(id);if(tier!=null)event.modify(holder.get(),(components,context,item)->components.set(net.minecraft.core.component.DataComponents.ITEM_NAME,cn.yumis.fight.modules.presentation.api.ModText.decorate(net.minecraft.network.chat.Component.translatable(item.getDescriptionId())).withColor(tier.color())));}));
         bus.addListener((net.neoforged.neoforge.event.ModifyDefaultComponentsEvent event)->{for(String name:cn.yumis.fight.modules.economy.api.ShopDefinitions.RARE_MATERIALS){var item=net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(name));event.modify(item,(components,context,value)->components.set(net.minecraft.core.component.DataComponents.ITEM_NAME,cn.yumis.fight.modules.presentation.api.ModText.decorate(net.minecraft.network.chat.Component.translatable(value.getDescriptionId())).withColor(cn.yumis.fight.modules.equipment.api.Rarity.RARE.color())));}});
         cn.yumis.fight.modules.inventory.api.InventoryMenuPorts.install(
             ()->cn.yumis.fight.modules.industry.platform.IndustrialContent.STORAGE_MENU.get(),
@@ -60,6 +66,7 @@ public final class FightMod {
         cn.yumis.fight.modules.equipment.api.EquipmentContentTypes.register(bus);
         cn.yumis.fight.modules.inventory.api.InventoryContentTypes.register(bus);
         cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.register(bus);
+        cn.yumis.fight.modules.mapgeneration.api.WorldDecorations.register(bus);
         cn.yumis.fight.modules.economy.api.RewardContentTypes.register(bus);
         cn.yumis.fight.modules.combat.api.CombatContentTypes.register(bus);
         cn.yumis.fight.modules.skills.api.SkillContentTypes.register(bus);

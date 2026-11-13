@@ -18,14 +18,14 @@ public final class MageBlood {
     public static boolean is(Gear gear){return TEMPLATE.equals(gear.template);}
     public static Gear create(Random random){
         Gear g=new Gear();g.template=TEMPLATE;g.appearance=APPEARANCE;g.slot=Slot.LEGS;g.armorType=ArmorType.CLOTH;g.rarity=Rarity.MYTHIC;g.level=60;
-        reroll(g,random);return EquipmentResolution.initialize(g);
+        reroll(g,random,0);return EquipmentResolution.initialize(g);
     }
-    public static void reroll(Gear g,Random random){
+    public static void reroll(Gear g,Random random,double minimumQuality){
         Set<String> existing=new HashSet<>();for(Affix a:g.affixes)if(a.operation.equals("MAGIC"))existing.add(a.family);
         var choices=MagicEffects.all().stream().filter(m->{var d=AffixDefinitions.current().affixes.get("magic/"+m.id().toLowerCase(Locale.ROOT));return d!=null&&(d.active()||existing.contains(m.id()));}).toList();
         if(choices.isEmpty())throw new IllegalArgumentException("没有可生成的魔法定义");
         g.affixes.removeIf(a->a.operation.equals("MAGIC")||a.operation.equals("MAGIC_AMPLIFICATION"));
-        Affix amp=new Affix();amp.instanceId=UUID.randomUUID().toString();amp.id="magic_amplification";amp.operation="MAGIC_AMPLIFICATION";amp.value=.25+random.nextDouble()*.25;g.affixes.add(amp);
+        Affix amp=new Affix();amp.instanceId=UUID.randomUUID().toString();amp.id="magic_amplification";amp.operation="MAGIC_AMPLIFICATION";amp.value=.25+(minimumQuality+random.nextDouble()*(1-minimumQuality))*.25;g.affixes.add(amp);
         for(int i=0;i<4;i++){Affix a=new Affix();a.instanceId=UUID.randomUUID().toString();a.id="magic";a.operation="MAGIC";a.family=choices.get(random.nextInt(choices.size())).id();g.affixes.add(a);}
     }
     public static int duplicates(Gear g){

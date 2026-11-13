@@ -1,7 +1,6 @@
 package cn.yumis.fight.modules.dungeons.application;
 
 import cn.yumis.fight.modules.dungeons.api.*;
-import cn.yumis.fight.modules.dungeons.content.TreasureArena;
 import cn.yumis.fight.modules.inventory.api.InventoryOperations;
 import cn.yumis.fight.modules.combat.api.*;
 import cn.yumis.fight.modules.presentation.api.ModText;
@@ -153,7 +152,7 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
         for(ServerPlayer p:here){ReturnPoint point=d.returns.get(p.getStringUUID());if(point!=null)owner.rewards.move(p,d.id.toString(),point);}
         clearWeapons(d.id.toString());for(UUID id:d.enemies){Entity e=world(d).getEntity(id);if(e!=null)e.discard();}d.enemies.clear();
         t.region++;t.cleared=false;d.wave=0;t.theme=t.region==5?"palace":random.nextBoolean()?"forest":"tower";d.dungeon=t.theme.equals("tower")?"dragon_tower":"goblin_camp";
-        owner.forceArena(d,true);journal.put("arenaCell/"+d.cell,"TREASURE_LAYOUT_1/"+t.theme);TreasureArena.build(owner.level(),new BlockPos(d.cell*512,80,0),t.theme);
+        owner.forceArena(d,true);owner.buildTreasureArena(d.cell,t.theme);
         if(previous==0)d.withdrawn.addAll(d.roster);
         journal.put("instance/"+d.id,d);
         for(ServerPlayer p:here){if(previous==0&&!d.returns.containsKey(p.getStringUUID()))d.returns.put(p.getStringUUID(),owner.point(p));owner.teleport(p,owner.level(),d.cell*512+.5,80,-23);arrived(d,p);}

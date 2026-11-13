@@ -10,6 +10,7 @@ import java.util.*;
 /** Industrial content grades. Technology, processing access and machine layout are independent. */
 public final class IndustrialTechnology {
     private static final JsonObject DATA=read();
+    private static final Set<String> MATERIAL_ITEMS=DATA.getAsJsonArray("material_items").asList().stream().map(JsonElement::getAsString).collect(java.util.stream.Collectors.toUnmodifiableSet());
     private IndustrialTechnology(){}
     private static JsonObject read(){
         try(var in=Objects.requireNonNull(IndustrialTechnology.class.getResourceAsStream("/assets/yumis_dungeon_and_fight/industry/technology.json"),"缺少工业科技目录")){
@@ -17,6 +18,7 @@ public final class IndustrialTechnology {
         }catch(IOException failure){throw new ExceptionInInitializerError(failure);}
     }
     public static int itemTier(String id){var value=DATA.getAsJsonObject("items").get(id);return value==null?0:value.getAsInt();}
+    public static boolean materialItem(String id){return MATERIAL_ITEMS.contains(id);}
     public static int itemTier(ItemStack item){return item.isEmpty()?0:itemTier(BuiltInRegistries.ITEM.getKey(item.getItem()).toString());}
     public static int mineralTier(ItemStack item){if(item.isEmpty())return 0;var value=DATA.getAsJsonObject("mineral_tiers").get(BuiltInRegistries.ITEM.getKey(item.getItem()).toString());return value==null?0:value.getAsInt();}
     public static int fluidTier(String id){var value=DATA.getAsJsonObject("fluids").get(id);return value==null?0:value.getAsInt();}

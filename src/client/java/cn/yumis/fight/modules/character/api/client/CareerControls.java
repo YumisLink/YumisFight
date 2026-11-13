@@ -22,7 +22,7 @@ public final class CareerControls {
         page.cursor(base+((index+columns-1)/columns)*122);return true;
     }
     public static void footer(PlayerPageSurface page,Progress player){
-        page.gap();page.line("当前职业："+JobCatalog.require(player.jobId()).title(),UiTheme.GOLD);
+        page.gap();page.line("当前职业："+JobCatalog.displayName(player.jobId(),player.level,player.awakened()),UiTheme.GOLD);
         if(player.awakened())page.line("觉醒资格：全角色已解锁；对应觉醒技能仍需50级自行学习。",UiTheme.ACCENT);
         else if(!JobCatalog.basic(player.jobId()))page.line("50级可使用一次性觉醒券，获得资格后自行学习觉醒技能。",UiTheme.MUTED);
         if(JobCatalog.basic(player.jobId())){

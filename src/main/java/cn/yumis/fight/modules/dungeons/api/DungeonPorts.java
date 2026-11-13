@@ -7,6 +7,10 @@ import net.minecraft.world.entity.LivingEntity;
 /** Ports required by encounter lifecycle, without access to the full server runtime. */
 public final class DungeonPorts {
     private DungeonPorts(){}
+    @FunctionalInterface
+    public interface CampDecorations {
+        net.minecraft.world.level.block.Block block(String id);
+    }
     public interface Players {
         CombatSession session(ServerPlayer player);
         int level(ServerPlayer player);

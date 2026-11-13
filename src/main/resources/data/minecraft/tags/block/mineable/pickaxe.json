@@ -94,6 +94,10 @@
     "yumis_dungeon_and_fight:isotope_activator",
     "yumis_dungeon_and_fight:forming_assembler",
     "yumis_dungeon_and_fight:thermal_distiller",
-    "yumis_dungeon_and_fight:artificial_star"
+    "yumis_dungeon_and_fight:artificial_star",
+    "yumis_dungeon_and_fight:display_stand",
+    "yumis_dungeon_and_fight:heat_generator",
+    "yumis_dungeon_and_fight:mana_concentrator",
+    "yumis_dungeon_and_fight:fluid_infuser"
   ]
 }

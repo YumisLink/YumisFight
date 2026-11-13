@@ -35,11 +35,14 @@
 | 副职业、经验与奖励 | `modules/professions/api/ProfessionCatalog.java`、`ProfessionRules.java`、`ProfessionRewards.java`；本机判定在客户端 `professions/client/ProfessionClient.java`，事实保存与管理奖励在 `application/ProfessionService.java` |
 | 库存、容器、接收与事务 | `modules/inventory/api/InventoryOperations.java`、`InventoryEdits.java`、`InventoryPacking.java`、`InventoryIntake.java`；事务在 `application/InventoryTransactions.java` |
 | 通货、掉落、出售与分解 | `modules/economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；本机操作在客户端 `economy/client/EconomyActions.java`，事实保存与世界投影在 `application/` |
-| NPC、交互、商店与集市投放 | `modules/npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`；商店合同 `modules/economy/api/ShopDefinitions.java`、`ShopMenu.java`；规则 `rules/npcs.json`、`rules/shops.json`，蓝图挂载见野外建筑生成规则 |
+| 赫拉迪姆方块、工艺精华与固定宝石 | `modules/equipment/api/CraftingEssences.java`、`Gemstones.java`、`EquipmentChanges.java`；资源制作源 `tools/equipment_currency_resources.py`，效果定义见装备规则，通货登记与击败投放仍经 `CurrencyRules` |
+| NPC、对白、新手任务、商店与集市投放 | `modules/npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`、`NpcTutorial.java`；客户端 `npc/client/NpcDialogueScreen.java`、`TutorialPage.java`；商店合同 `modules/economy/api/ShopDefinitions.java`、`ShopMenu.java`；规则 `rules/npcs.json`、`rules/shops.json`，蓝图挂载见野外建筑生成规则 |
 | 单抽罐子、奖池与演出 | `modules/economy/api/JarDefinitions.java`、`LootJarItem.java`；配置 `rules/jars.json`，本机决定奖品在客户端 `economy/client/EconomyActions.java`，演出在 `JarClient.java`、`JarScreen.java`，保存与交付在主源码 `application/JarService.java` |
 | 队伍与邀请 | `modules/party/api/Team.java`、`PartyInvitation.java` |
-| 页面、主题、输入与通用演出 | `modules/presentation/api/`；客户端绘制及页面合同查其 `client/` 和 `api/client/` |
+| 页面、主题、输入与通用演出 | `modules/presentation/api/`；分片染色文字 `RichText.java`，客户端 `presentation/api/client/RichTextDrawing.java`；其余绘制及页面合同查 `client/` 和 `api/client/` |
 | 野外建筑、配置地图与出生村庄 | [野外建筑生成规则](创作指南/野外建筑生成.md)；公开入口 `modules/mapgeneration/api/MapGeneration.java`、`MapBlueprint.java`；启动开关在游戏目录 `config/ydcore.toml` |
+| 魔力花与魔力草循环 | `modules/industry/api/MagicFlora.java`；植物、液体与展示产线的制作源在 `tools/industrial_technology.py` |
+| 世界微装饰、资源循环与自然生成 | `modules/mapgeneration/api/WorldDecorations.java`；制作源 `tools/build_world_decorations.py`，方法见 [创作指南](创作指南/README.md#世界微装饰) |
 
 ## 规则、资源与工具
 
@@ -50,7 +53,7 @@
 | 配方、标签、掉落与世界生成 | `src/main/resources/data/yumis_dungeon_and_fight/{recipe,tags,loot_table,worldgen}/` |
 | 语言、模型、图标、着色器与动作 | `src/main/resources/assets/yumis_dungeon_and_fight/`，按业务目录查找 |
 | 工业资源生成源 | `tools/industrial_resources.py`、`industrial_expansion.py`、`industrial_technology.py`、`industrial_arcane_art.lua`、`industrial_arcane_breathing.lua` |
-| 武器模型生成源 | `tools/build_weapon_models.py`、`tools/build_warglaive_model.py` |
+| 武器模型生成源 | `tools/build_weapon_models.py`、`tools/build_warglaive_model.py`；光剑本机发光材质源 `tools/weapon_glow_resources.py` |
 | 构建与依赖 | `build.gradle`、`gradle.properties`、`gradle/local-mods/`；本机入口见 [本机环境](本机环境.md) |
 | 正式测试与提交检查 | `src/test/java/`、`tools/check-submission.ps1`；运行和修改须遵守 AGENTS |
 | 模块边界检查 | `gradle/architecture.gradle`，属于受保护文件 |

@@ -8,7 +8,7 @@
   ],
   "key": {
     "M": "minecraft:copper_ingot",
-    "F": "minecraft:dropper",
+    "F": "yumis_dungeon_and_fight:horadric_cube",
     "C": "yumis_dungeon_and_fight:energy_crystal_1",
     "S": "yumis_dungeon_and_fight:machine_casing_t1"
   },

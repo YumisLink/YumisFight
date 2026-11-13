@@ -20,7 +20,9 @@ public record StyleProperty() implements SelectItemModelProperty<String> {
             if(!appearance.isEmpty())return appearance;
         }
         var gear=EquipmentItems.view(stack);
-        return gear==null?ItemData.id(stack)+"_10_base":gear.appearance();
+        String appearance=gear==null?ItemData.id(stack)+"_10_base":gear.appearance();
+        if(gear!=null&&gear.weapon()==cn.yumis.fight.modules.equipment.api.Weapon.LIGHTSABER&&LightsaberLight.localModel(owner,context)&&(appearance.equals("skyspine")||appearance.matches("lightsaber_(10|20|30|40|50)_base")))return appearance+"_local_glow";
+        return appearance;
     }
     @Override public Type<StyleProperty,String> type(){
         return TYPE;

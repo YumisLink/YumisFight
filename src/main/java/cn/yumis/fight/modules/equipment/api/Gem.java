@@ -8,6 +8,7 @@ import cn.yumis.fight.modules.affixes.api.Affix;
 public class Gem {
     public String name="宝石";
     public int level=1;
+    public Rarity rarity=Rarity.ARTIFACT;
     public String group="";
     public List<Affix> affixes=new ArrayList<>();
 }

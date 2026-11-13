@@ -51,6 +51,27 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/named/crown"
         }
+      },
+      {
+        "when": "elaina_witch_hat",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/elaina_witch_hat",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 3353413
+            },
+            {
+              "type": "minecraft:constant",
+              "value": 9927581
+            },
+            {
+              "type": "minecraft:constant",
+              "value": 14532487
+            }
+          ]
+        }
       }
     ],
     "fallback": {

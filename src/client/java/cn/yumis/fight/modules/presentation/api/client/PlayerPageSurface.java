@@ -11,6 +11,7 @@ public interface PlayerPageSurface {
     @FunctionalInterface interface Hover {void render(GuiGraphicsExtractor graphics,int mouseX,int mouseY);}
     void line(String text);
     void line(String text,int color);
+    void line(cn.yumis.fight.modules.presentation.api.RichText text,int color);
     void gap();
     void rowButton(String label,Runnable action);
     Screen screen();
@@ -23,6 +24,7 @@ public interface PlayerPageSurface {
     void card(int x,int y,int width,int height);
     void icon(String path,int x,int y,int size);
     void image(String path,int x,int y,int width,int height,float u0,float u1,float v0,float v1);
+    void experienceBar(int x,int y,int width,double progress);
     void navigation(java.util.List<Navigation> items,String selected,java.util.function.Consumer<String> select);
     void rightClick(int x,int y,int width,int height,Runnable action);
     boolean hasSidebar();

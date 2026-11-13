@@ -5,10 +5,12 @@ public final class SettingsPage {
     private SettingsPage(){}
     public static void render(PlayerPageSurface page,java.util.function.Consumer<String> message){
         String section=page.remember("settings.section","general");
-        page.navigation(List.of(new PlayerPageSurface.Navigation("general","通用界面"),new PlayerPageSurface.Navigation("combat","战斗显示"),new PlayerPageSurface.Navigation("machines","机器与背包"),new PlayerPageSurface.Navigation("keys","字体与按键")),section,id->{page.rememberValue("settings.section",id);page.rebuild();});
+        if(section.equals("keys")){section="general";page.rememberValue("settings.section",section);}
+        page.navigation(List.of(new PlayerPageSurface.Navigation("general","通用界面"),new PlayerPageSurface.Navigation("combat","战斗显示"),new PlayerPageSurface.Navigation("machines","机器与背包")),section,id->{page.rememberValue("settings.section",id);page.rebuild();});
         switch(section){
             case "general"->{
                 page.line("通用界面",UiTheme.GOLD);page.gap();
+                page.rowButton("物品品质外框颜色："+(ClientSettings.itemQualityFrames?"开":"关"),()->{ClientSettings.itemQualityFrames=!ClientSettings.itemQualityFrames;ClientSettings.save();page.rebuild();});
                 page.rowButton("统一主题："+ClientSettings.themeName(ClientSettings.globalTheme),()->{ClientSettings.toggleGlobalTheme();page.rebuild();});
                 page.rowButton("I面板跟随统一主题："+(ClientSettings.menuFollowsTheme?"开":"关"),()->{ClientSettings.follow(ThemeDomain.MENU,!ClientSettings.menuFollowsTheme);page.rebuild();});
                 if(!ClientSettings.menuFollowsTheme)page.rowButton("I面板主题："+ClientSettings.themeName(ClientSettings.menuTheme),()->{ClientSettings.toggleDomain(ThemeDomain.MENU);page.rebuild();});
@@ -27,12 +29,6 @@ public final class SettingsPage {
                 if(!ClientSettings.machineFollowsTheme)page.rowButton("面板主题："+ClientSettings.themeName(ClientSettings.machineTheme),()->{ClientSettings.toggleDomain(ThemeDomain.MACHINE);page.rebuild();});
                 page.line("工业设备、制作器、配方、结构、概率和次元背包共用此设置。",UiTheme.MUTED);
                 page.line("取消跟随时保留当前样式。",UiTheme.MUTED);
-            }
-            case "keys"->{
-                page.line("字体与按键",UiTheme.GOLD);page.gap();page.line("界面字体："+UiFonts.currentName());page.line(UiFonts.PREVIEW);
-                if(!UiFonts.status().isEmpty())page.line(UiFonts.status(),UiTheme.MUTED);
-                page.line("按键可在原版设置中修改。普通、Ctrl、Alt三层共24槽。");
-                page.line("I 返回菜单；Esc 关闭；Ctrl＋】开始或停止伤害统计。",UiTheme.MUTED);
             }
             default->throw new IllegalArgumentException("未知设置分组");
         }

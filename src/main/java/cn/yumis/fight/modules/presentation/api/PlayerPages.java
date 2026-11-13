@@ -7,6 +7,7 @@ public final class PlayerPages {
     static {
         register(new Page("character","角色属性","属性","character","",true));
         register(new Page("skills","职业技能","技能","skills","",true));
+        register(new Page("tutorial","任务追踪器","任务","professions","",true));
         register(new Page("professions","副职业","副职","professions","professions",true));
         register(new Page("party","战斗队伍","队伍","party","",true));
         register(new Page("dungeons","地下城","副本","dungeons","",true));

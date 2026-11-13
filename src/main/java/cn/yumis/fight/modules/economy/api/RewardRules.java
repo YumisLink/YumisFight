@@ -19,6 +19,7 @@ public final class RewardRules {
         boolean participant=encounter!=null&&encounter.roster.contains(player)&&!encounter.withdrawn.contains(player);
         if(target.noRewards)return new Result(progress,0,0,List.of());
         if(instance&&boss&&player.equals(context.killer())&&encounter!=null){String poolId=encounter.treasure==null?encounter.dungeon:"treasure_"+encounter.treasure.theme;var pool=ChestDefinitions.current().bossPools.get(poolId);if(pool!=null&&random.nextDouble()<pool.chance()){var entry=ChestDefinitions.draw(pool.entries(),random);if(entry!=null)drops.add(new Drop(ChestRewards.item(entry),false));}}
+        if(instance&&target.boss()&&player.equals(context.killer())&&encounter!=null&&encounter.treasure==null){var pool=ChestDefinitions.current().bossRarePools.get(encounter.dungeon);if(pool!=null&&random.nextDouble()<pool.chance()){var entry=ChestDefinitions.draw(pool.entries(),random);if(entry!=null)drops.add(new Drop(ChestRewards.item(entry),false));}}
         if(instance&&(!participant||!context.nearby().contains(player))||!instance&&!player.equals(context.killer()))return new Result(progress,0,0,List.copyOf(drops));
         if(instance&&boss)for(var jar:JarDefinitions.current().jars.entrySet())if(random.nextDouble()<jar.getValue().bossDropChance())drops.add(new Drop(LootJarItem.create(jar.getKey(),1),true));
         var stone=encounter!=null&&encounter.waystone!=null?encounter.waystone.stone:null;
@@ -34,6 +35,7 @@ public final class RewardRules {
             var gear=EquipmentTemplates.createStandard(slot,Weapon.standard().get(random.nextInt(Weapon.standard().size())),rarity,Math.clamp(level,1,80),random);gear.source=target.life.target+"/"+target.life.generation;drops.add(new Drop(EquipmentItems.gear(gear),instance));
         }
         var currency=CurrencyRules.roll(luck,random);if(currency!=null)for(int i=0,n=multiplied(1,quantityMultiplier,random);i<n;i++)drops.add(new Drop(ItemRegistry.item(currency.id(),1),instance));
+        var gem=CurrencyRules.rollGem(target.elite,boss,luck,random);if(gem!=null)drops.add(new Drop(Gemstones.item(gem),instance));
         if(instance){var def=DungeonCatalog.current().dungeon(encounter.dungeon);int rolls=multiplied(boss?4:target.elite?2:random.nextDouble()<.2?1:0,quantityMultiplier,random);for(int i=0;i<rolls;i++)drops.add(new Drop(EquipmentItems.material(def.materials().get(random.nextInt(def.materials().size())),1),true));}
         if(boss&&level==80&&encounter!=null&&encounter.treasure==null&&encounter.waystone==null&&random.nextDouble()<WaystoneRules.current().starterChance){var rarity=LootOdds.rarity(target.difficulty,true,false,stats.get(Stat.DROP_RATE),random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;drops.add(new Drop(Waystone.generate(1,progress.level,rarity,random).item(),true));}
         return new Result(progress,xp,gold,List.copyOf(drops));

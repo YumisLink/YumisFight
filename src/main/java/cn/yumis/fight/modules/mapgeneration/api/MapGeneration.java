@@ -33,6 +33,7 @@ public final class MapGeneration {
             service(server).generate(MapGenerationConfig.starterVillageBlueprint(),server.overworld(),server.overworld().getRespawnData().pos(),true,s->{});
         }
         catch(Exception e){LogUtils.getLogger().error("新世界地图生成未完成：{}",e.getMessage(),e);}
+        finally{try{cn.yumis.fight.modules.npc.api.NpcSpawns.starterWorld(server.overworld());}catch(Exception failure){LogUtils.getLogger().error("新世界引导NPC投放未完成",failure);}}
     }
     public static void tick(MinecraftServer server) {var current=SERVICES.get(server);if(current!=null)current.tick();}
     public static void stopped(MinecraftServer server) {var current=SERVICES.remove(server);if(current!=null)current.close();}

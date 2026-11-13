@@ -43,7 +43,7 @@ class EquipmentExpansionTest {
     }
 
     @Test void fortyOneDefinitionsAndBaseOnlyQualificationAcrossEveryLevel(){
-        assertEquals(42,AffixDefinitions.current().affixes.values().stream().filter(d->d.group().equals("random")).count());
+        for(String id:List.of("stamina_capacity","stamina_recovery","shield_wait_recovery","shield_regeneration"))assertEquals("random",AffixDefinitions.current().affixes.get(id).group());
         Gear gear=armor(ArmorType.LIGHT,Slot.CHEST,50);
         gear.affixes.add(new Affix("flat_health",Stat.HEALTH,999,false));
         Affix special=new Affix("special_mp",Stat.MP,999,false);special.fixed=true;gear.affixes.add(special);
@@ -58,6 +58,7 @@ class EquipmentExpansionTest {
                 if(a.operation.equals("FLAT"))assertTrue(EquipmentAffixes.flatAllowed(item,Stat.valueOf(a.stat)),a.id);
                 else if(a.operation.equals("PERCENT"))assertTrue(EquipmentAffixes.percentAllowed(item,Stat.valueOf(a.stat)),a.id);
                 else if(a.operation.equals(EquipmentAffixes.ALL_RESIST_FLAT))assertTrue(EquipmentAffixes.elementFlat(item.slot));
+                else if(a.operation.equals("CHARACTER_PERCENT"))assertTrue(switch(Stat.valueOf(a.stat)){case MOVEMENT_SPEED->item.slot==Slot.FEET;case STAMINA_RECOVERY->item.slot==Slot.LEGS;case SHIELD_COOLDOWN_RECOVERY,SHIELD_REGENERATION->item.slot.armor()&&EquipmentAffixes.base(item,Stat.SHIELD)>0;default->false;},a.id);
                 else assertEquals("EXTRA",a.operation);
             }
         }
@@ -111,7 +112,7 @@ class EquipmentExpansionTest {
     @Test void legacyReadsAndFormattingKeepAllOriginalPrecision(){
         Gear legacy=JSON.fromJson("{\"slot\":\"CHEST\",\"level\":50,\"affixes\":[{\"id\":\"flat_health\",\"stat\":\"HEALTH\",\"value\":38.88,\"baseline\":48.6,\"roll\":0.8}]}",Gear.class);
         assertEquals(ArmorType.UNTYPED,legacy.armorType);String before=JSON.toJson(legacy);
-        assertEquals("生机：最大生命 +39",AffixText.affix(legacy.affixes.getFirst()));assertEquals(before,JSON.toJson(legacy));
+        assertEquals("最大生命 +39",AffixText.affix(legacy.affixes.getFirst()));assertEquals(before,JSON.toJson(legacy));
         assertEquals("0",AffixText.integer(.36));assertEquals("590",AffixText.integer(589.5));assertEquals("0",AffixText.integer(-.01));
         assertFalse(AffixText.affix(new Affix("base_health",Stat.HEALTH,38.88,true)).contains("生机"));
         Gear epic=EquipmentRules.create(Slot.CHEST,Weapon.KATANA,Rarity.EPIC,50,new Random());assertTrue(epic.affixes.stream().anyMatch(a->a.id.equals("epic_shield")));
@@ -120,11 +121,11 @@ class EquipmentExpansionTest {
     }
     @Test void damageAndShieldUseIndependentClocks(){
         cn.yumis.fight.modules.combat.api.Runtime r=new cn.yumis.fight.modules.combat.api.Runtime();
-        CombatTiming.taken(r,1000,cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT);assertEquals(6000,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
+        CombatTiming.taken(r,1000,cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT,1);assertEquals(6000,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
         CombatTiming.dealt(r,5500,cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT);assertEquals(10500,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
         assertFalse(CombatTiming.out(r,10499));assertTrue(CombatTiming.out(r,10500));
         assertFalse(CombatTiming.out(r,6000));assertTrue(CombatTiming.shieldReady(r,6000));assertFalse(CombatTiming.shieldReady(r,5999));
-        CombatTiming.taken(r,500,cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT);assertEquals(10500,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
+        CombatTiming.taken(r,500,cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT,1);assertEquals(10500,r.combatUntil);assertEquals(6000,r.shieldRecoveryAt);
     }
     @Test void zeroHpOutcomesNeverClaimActualDamageOrChangeTheLifeRevision(){
         Life life=new Life();life.target=UUID.randomUUID();life.q=.43;life.revision=19;

@@ -58,6 +58,7 @@ public final class SkillController {
     private final List<Wave> waves=new ArrayList<>();
     private final Map<String,JsonObject> bosses=new HashMap<>();
     private final Set<String> bossHit=new HashSet<>(),incomingRoots=new HashSet<>();
+    private final Map<String,Long> wallActions=new LinkedHashMap<>();
     private final Map<String,Long> controls=new HashMap<>();
     private final Map<String,Long> environment=new HashMap<>();
     private final Map<String,Bleed> bleeds=new HashMap<>();
@@ -69,8 +70,7 @@ public final class SkillController {
     private final ArrayDeque<Runnable> deferred=new ArrayDeque<>();
     public SkillCast cast;
     private final LinkedHashMap<String,Set<String>> cageHits=new LinkedHashMap<>();
-    private long lastAttack,lastTick,lastRegen;
-    private double regen;
+    private long lastAttack,lastTick;
     private String currentWeapon="";
     private Stats snapshotCache,snapshotBase;private Object snapshotCareer;private long snapshotTick=-1,snapshotFingerprint;
     private record Bleed(JsonObject state,long next,int index){
@@ -125,7 +125,7 @@ public final class SkillController {
         return snapshotCache.copy();
     }
     public void invalidateSnapshot(){snapshotCache=null;}
-    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();SkillBehaviors.finish(cast);cast=null;cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;basicActions.clear();basicVisualCycles.clear();waves.clear();staffBolts.clear();nativeLaunches.clear();launchFrames.clear();bosses.clear();bossHit.clear();incomingRoots.clear();controls.clear();environment.clear();bleeds.clear();pendingBleeds.clear();equipmentReceipts.clear();elementalDots.clear();pendingElemental.clear();deferred.clear();lastAttack=lastTick=lastRegen=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
+    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();SkillBehaviors.finish(cast);cast=null;cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;basicActions.clear();basicVisualCycles.clear();waves.clear();staffBolts.clear();nativeLaunches.clear();launchFrames.clear();bosses.clear();bossHit.clear();incomingRoots.clear();wallActions.clear();state().resources().equipmentBuffs.remove("wall");controls.clear();environment.clear();bleeds.clear();pendingBleeds.clear();equipmentReceipts.clear();elementalDots.clear();pendingElemental.clear();deferred.clear();lastAttack=lastTick=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
     public boolean press(int slot){
         if(!state().ready())return false;
         if(cn.yumis.fight.modules.skills.client.ChantClient.press(slot))return true;
@@ -302,19 +302,10 @@ public final class SkillController {
         nativeLaunches.values().removeIf(launch->launch.expires<now);TrainingCombat.tick();
         boolean out=now>=state().resources().combatUntil;
         if(!state().own().dead){
-            Stats recovery=snapshot();if(recovery.modifiers.getOrDefault("manaRecoveryBlocked",0d)<=0)state().resources().mp=Math.min(recovery.get(Stat.MP),state().resources().mp+(1+.04*recovery.get(Stat.SPIRIT))*recovery.get(Stat.MANA_REGENERATION)*(out?3:1)*dt);
-            if(CombatTiming.shieldReady(state().resources(),now))state().resources().shield=Math.min(state().stats().get(Stat.SHIELD),state().resources().shield+.2*state().stats().get(Stat.SHIELD)*dt);
-            if(out){
-                if(state().predicted(state().own())<1){
-                    regen+=.02*dt;
-                    if(now-lastRegen>=100){
-                        lastRegen=now;
-                        state().report(state().own(),regen,true,snapshot().get(Stat.HEALTH),0xffffff,false,null);
-                        regen=0;
-                    }
-                }
-                else regen=0;
-            }
+            Stats recovery=snapshot();double recoveryTick=1d/20;
+            if(recovery.modifiers.getOrDefault("manaRecoveryBlocked",0d)<=0)state().resources().mp=Math.min(recovery.get(Stat.MP),state().resources().mp+(1+.04*recovery.get(Stat.SPIRIT))*recovery.get(Stat.MANA_REGENERATION)*(out?3:1)*recoveryTick);
+            if(CombatTiming.shieldReady(state().resources(),now))state().resources().shield=Math.min(recovery.get(Stat.SHIELD),state().resources().shield+.2*recovery.get(Stat.SHIELD)*recovery.get(Stat.SHIELD_REGENERATION)*recoveryTick);
+            if(out&&state().predicted(state().own())<1)state().report(state().own(),.02*recoveryTick,true,recovery.get(Stat.HEALTH),0xffffff,false,null);
         }
         state().resources().buffs.entrySet().removeIf(e->e.getValue()<now);
         state().resources().absorptionUntil.entrySet().removeIf(e->{
@@ -562,6 +553,11 @@ public final class SkillController {
         var receipt=new cn.yumis.fight.modules.combat.api.Receipt(true,"",actual,remaining,target.life.revision+1,"");
         cn.yumis.fight.modules.combat.api.EquipmentHitEffects.apply(target,receipt,!dot&&!extra.has("effect")&&(hitSource==null||hitSource.summonSource.isEmpty()),stats,snapshot().get(Stat.HEALTH),equipment,actor,state().resources(),maximum,now);
         if(actor.q>actorBefore)extra.addProperty("ownerHealing",actor.q-actorBefore);
+        if(actual>0&&!equipment.wallSource.isEmpty()&&equipment.wallSource.equals(state().resources().equipment.wallSource)&&(basic&&!passive||hitSource!=null&&hitSource.summonSource.isEmpty())){
+            String action=hitSource!=null?hitSource.id:!basicCycle.isEmpty()?basicCycle:nativeContext!=null&&nativeContext.has("nativeRoot")?nativeContext.get("nativeRoot").getAsString():"attack/"+Minecraft.getInstance().player.tickCount;
+            wallActions.values().removeIf(until->until<now);
+            if(wallActions.putIfAbsent(action,now+600000)==null){cn.yumis.fight.modules.combat.api.EquipmentBuffs.wall(state().resources(),now);invalidateSnapshot();}
+        }
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.hit(entity,basic&&!passive&&!dot,extra,actual);
         cn.yumis.fight.modules.skills.client.DemonHunterClient.contact(hitSource,stats,basicCycle,basic&&!passive&&!dot,actual);
         extra.add("damageComponents",JSON.toJsonTree(ElementAccumulation.fractions(components,maximum)));
@@ -569,6 +565,7 @@ public final class SkillController {
         if(extra.has("ailment")){var ailment=extra.getAsJsonObject("ailment");if(ailment.has("effect"))cn.yumis.fight.modules.combat.api.client.DamageAnalysis.rememberEffect(ailment.get("effect").getAsString(),analysisSource,ailment.get("durationTicks").getAsLong()*50);}
         if(target.training()&&!target.timedTraining){
             TrainingCombat.report(practiceRoot,skill==null?"普通攻击":skill.title,target,components,damage,color,parts.critical(),extra);
+            if(!basic&&!passive&&actual>0)state().skillHit(target,skill,actual);
             if(hitSource==null&&trainingRoot.isEmpty()&&basicCycle.isEmpty())TrainingCombat.actionFinished(practiceRoot);
             return true;
         }
@@ -694,13 +691,14 @@ public final class SkillController {
         if(incomingRoots.size()>2048)incomingRoots.clear();
         if(invulnerable()||Minecraft.getInstance().player.isSpectator()||Minecraft.getInstance().player.getAbilities().invulnerable&&!(j.has("bypassInvulnerability")&&j.get("bypassInvulnerability").getAsBoolean())){nativeOutcome(j,"IMMUNE");return;}
         if(j.get("source").getAsString().equals("fall")&&Minecraft.getInstance().player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.CLOUD_STEP)){nativeOutcome(j,"IMMUNE");return;}
-        double fraction;
+        double fraction;boolean enemyAttack=false;int enemyElement=-1;
         double[] componentFractions=new double[5];
         if(j.has("attacker")){
             Target attacker=JSON.fromJson(j.get("attacker"),Target.class);
             int level=attacker.level(state().progress().level,state().encounterSync());
             double points=attacker.attack(level);
             int element=nativeElement(j.get("source").getAsString());
+            enemyAttack=points>0;enemyElement=element;
             componentFractions=ElementAccumulation.fractions(monsterComponents(points,element>=0||Set.of("magic","indirectMagic","sonicBoom").contains(j.get("source").getAsString()),element,level),snapshot().get(Stat.HEALTH));
             fraction=Arrays.stream(componentFractions).sum();
         }
@@ -747,11 +745,13 @@ public final class SkillController {
         }
         double received=NativeEquipmentRules.receivedMultiplier(Minecraft.getInstance().player,j.get("source").getAsString(),j.has("projectile")&&j.get("projectile").getAsBoolean(),j.has("bypassEnchantments")&&j.get("bypassEnchantments").getAsBoolean(),j.has("bypassResistance")&&j.get("bypassResistance").getAsBoolean())*(j.has("nativeScale")?j.get("nativeScale").getAsDouble():1);
         fraction*=received;for(int i=0;i<componentFractions.length;i++)componentFractions[i]*=received;
+        if(enemyAttack)fraction=minimumEnemyFraction(componentFractions,snapshot().get(Stat.HEALTH),enemyElement);
         if(fraction<=0){nativeOutcome(j,"IMMUNE");return;}
         if(j.has("directAttack")&&j.get("directAttack").getAsBoolean()&&CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble)){nativeOutcome(j,"DODGE");return;}
         JsonObject feedback=new JsonObject();
         feedback.add("damageComponents",JSON.toJsonTree(componentFractions));
         if(j.has("nativeRoot"))feedback.add("nativeRoot",j.get("nativeRoot"));
+        if(j.has("attacker"))feedback.addProperty("retaliationTarget",j.getAsJsonObject("attacker").get("id").getAsString());
         ownDamage(fraction,feedback);
     }
     private void nativeOutcome(JsonObject source,String outcome){
@@ -773,15 +773,20 @@ public final class SkillController {
         double resist=element>=0?current.get(new Stat[]{Stat.LIGHT_RESIST,Stat.FIRE_RESIST,Stat.ICE_RESIST,Stat.DARK_RESIST}[element]):Math.max(Math.max(current.get(Stat.LIGHT_RESIST),current.get(Stat.FIRE_RESIST)),Math.max(current.get(Stat.ICE_RESIST),current.get(Stat.DARK_RESIST)));
         if(element<0)resist=Math.max(0,resist);
         double careerTaken=cn.yumis.fight.modules.skills.client.DemonHunterClient.careerDamageTaken(cn.yumis.fight.modules.character.api.JobCatalog.style(state().progress().jobId()).damageTaken());
-        double damage=points*1000/(1000+Math.max(0,defense))*Math.max(0,1-resist/120)*advantage(level,state().progress().level)*careerTaken;
+        double damage=points*1000/(1000+Math.max(0,defense))*Math.max(.3,1-resist/120)*advantage(level,state().progress().level)*careerTaken;
         if(state().resources().buffs.getOrDefault("movementProtection",0L)>cn.yumis.fight.modules.presentation.api.client.ClientUi.now())damage*=.1;
         return damage;
     }
     private static int nativeElement(String source){return switch(source){case "lava","inFire","onFire","hotFloor","campfire","fireball","unattributedFireball"->1;case "lightningBolt"->0;case "freeze"->2;case "wither","witherSkull","dragonBreath"->3;default->-1;};}
+    private static double minimumEnemyFraction(double[] components,double maximum,int element){
+        double total=Arrays.stream(components).sum();
+        if(maximum>0&&Double.isFinite(total)&&total>=0&&total<1/maximum){components[element+1]+=1/maximum-total;return 1/maximum;}
+        return total;
+    }
     private double[] monsterComponents(double points,boolean magic,int element,int level){
         double[] components=new double[5];double damage=monsterDamage(points,magic,element,level);components[element+1]=damage;
         if(state().own().elemental.active(ElementAccumulation.Kind.SHOCK,state().own(),state().serverNow())){
-            var current=snapshot();components[1]+=ElementAccumulation.shockDamage(damage,current.get(magic?Stat.MAGICAL_DEFENSE:Stat.PHYSICAL_DEFENSE),0,current.get(Stat.LIGHT_RESIST));
+            var current=snapshot();components[1]+=ElementAccumulation.shockDamage(damage,current.get(magic?Stat.MAGICAL_DEFENSE:Stat.PHYSICAL_DEFENSE),0,Math.min(84,current.get(Stat.LIGHT_RESIST)));
         }
         if(magic){double received=ElementAccumulation.magicTaken(state().own().elemental,state().own(),false,state().serverNow());for(int i=0;i<components.length;i++)components[i]*=received;}
         return components;
@@ -818,6 +823,25 @@ public final class SkillController {
         if(damage>0)state().report(state().own(),damage/snapshot().get(Stat.HEALTH),false,snapshot().get(Stat.HEALTH),0xff5555,false,feedback);
         else if(feedback.has("nativeRoot")||feedback.has("feedbackEntity")||feedback.has("effectKind"))state().report(state().own(),0,false,snapshot().get(Stat.HEALTH),0xff5555,false,feedback);
         else state().upload();
+        if(!feedback.has("armorRetaliation")){
+            String attacker=feedback.has("retaliationTarget")?feedback.get("retaliationTarget").getAsString():feedback.has("feedbackEntity")?feedback.get("feedbackEntity").getAsString():"";
+            if(!attacker.isEmpty())retaliate(UUID.fromString(attacker));
+        }
+    }
+    private void retaliate(UUID attacker){
+        var mc=Minecraft.getInstance();var effects=state().resources().equipment;
+        if(effects.armorRetaliation<=0||mc.level==null)return;
+        var target=state().targets().get(attacker);if(target==null||target.life.dead||target.damageImmune||state().predicted(target.life)<=0)return;
+        if(!(mc.level.getEntity(target.entityId) instanceof LivingEntity entity)||!attacker.equals(entity.getUUID()))return;
+        Stats stats=snapshot();double raw=stats.get(Stat.PHYSICAL_DEFENSE)*effects.armorRetaliation;
+        if(raw<=0)return;
+        Stats attack=stats.copy();attack.values.put(Stat.PHYSICAL_ATTACK,raw/(1+stats.get(Stat.STRENGTH)/100));
+        int level=target.level(state().progress().level,state().encounterSync());
+        var hit=CombatRules.calculate(attack,target.defense(level,false)*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),cn.yumis.fight.modules.combat.api.EquipmentDamage.resistances(effects,target.resistances()),false,new int[0],1,false,random);
+        if(hit.total()<=0)return;
+        JsonObject report=new JsonObject();report.addProperty("armorRetaliation",true);report.add("damageComponents",JSON.toJsonTree(ElementAccumulation.fractions(hit.components(),target.health(level))));
+        cn.yumis.fight.modules.combat.api.client.DamageAnalysis.attach(report,new cn.yumis.fight.modules.combat.api.client.DamageAnalysis.Source("equipment/armor_retaliation","倾塌之墙"));
+        state().report(target.life,hit.total()/target.health(level),false,target.health(level),0xffffff,hit.critical(),report);
     }
     private void ownElements(double[] components,double fraction,JsonObject report){
         if(fraction<=0)return;var life=state().own();var draft=JSON.fromJson(JSON.toJson(life),Life.class);double actual=Math.min(fraction,state().predicted(life));long now=state().serverNow();
@@ -893,10 +917,11 @@ public final class SkillController {
         if(j.has("encounterHit"))feedback.addProperty("encounterAction",j.get("id").getAsString());
         if(j.has("occurredAt"))feedback.add("occurredAt",j.get("occurredAt"));
         if(j.has("selfStunTicks")){feedback.add("selfStunTicks",j.get("selfStunTicks"));feedback.add("controlId",j.get("controlId"));}
-        double[] components=monsterComponents(boss.attack(level)*j.get("coefficient").getAsDouble(),j.get("magic").getAsBoolean(),j.get("element").getAsInt(),level);
+        double points=boss.attack(level)*j.get("coefficient").getAsDouble();int element=j.get("element").getAsInt();
+        double[] components=monsterComponents(points,j.get("magic").getAsBoolean(),element,level);
         double multiplier=NativeEquipmentRules.receivedMultiplier(p,"bossAction",false,false,false);for(int i=0;i<components.length;i++)components[i]*=multiplier;
-        double[] fractions=ElementAccumulation.fractions(components,snapshot().get(Stat.HEALTH));feedback.add("damageComponents",JSON.toJsonTree(fractions));
-        ownDamage(Arrays.stream(fractions).sum(),feedback);
+        double maximum=snapshot().get(Stat.HEALTH);double[] fractions=ElementAccumulation.fractions(components,maximum);double fraction=points>0?minimumEnemyFraction(fractions,maximum,element):Arrays.stream(fractions).sum();feedback.add("damageComponents",JSON.toJsonTree(fractions));
+        ownDamage(fraction,feedback);
     }
     public void cancelBoss(String id){
         bosses.remove(id);

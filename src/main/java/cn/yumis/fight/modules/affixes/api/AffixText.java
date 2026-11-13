@@ -10,10 +10,11 @@ public final class AffixText {
     public static String integer(double value){return Double.isFinite(value)?BigDecimal.valueOf(value).setScale(0,RoundingMode.HALF_UP).toPlainString():"?";}
     public static String statName(Stat s){return switch(s){
         case HEALTH->"最大生命";case MP->"最大魔力";case STRENGTH->"力量";case INTELLIGENCE->"智力";case SPIRIT->"精神";
-        case PHYSICAL_ATTACK->"基础物理攻击";case MAGICAL_ATTACK->"基础魔法攻击";case PHYSICAL_DEFENSE->"物理防御";case MAGICAL_DEFENSE->"魔法防御";
+        case PHYSICAL_ATTACK->"物理攻击力";case MAGICAL_ATTACK->"魔法攻击力";case PHYSICAL_DEFENSE->"物理防御";case MAGICAL_DEFENSE->"魔法防御";
         case LIGHT->"光属性强化";case FIRE->"火属性强化";case ICE->"冰属性强化";case DARK->"暗属性强化";
         case LIGHT_RESIST->"光属性抗性";case FIRE_RESIST->"火属性抗性";case ICE_RESIST->"冰属性抗性";case DARK_RESIST->"暗属性抗性";
-        case DROP_RATE->"掉宝率";case SHIELD->"装备护盾上限";case EVASION->"闪避值";case ATTACK_SPEED->"攻击速度";case MOVEMENT_SPEED->"移动速度倍率";case CAST_SPEED->"技能释放速度倍率";case LIFE_STEAL->"吸血值";case MANA_REGENERATION->"魔力回复速度";case COOLDOWN_RECOVERY->"冷却恢复速度";case EXPERIENCE_GAIN->"角色经验获取";
+        case DROP_RATE->"掉宝率";case SHIELD->"装备护盾上限";case EVASION->"闪避值";case ATTACK_SPEED->"攻击速度";case MOVEMENT_SPEED->"移动速度倍率";case CAST_SPEED->"技能释放速度倍率";case LIFE_STEAL->"吸血值";case MANA_REGENERATION->"魔力回复速度";case COOLDOWN_RECOVERY->"冷却恢复速度";case EXPERIENCE_GAIN->"怪物击杀经验获取";
+        case STAMINA->"最大体力";case STAMINA_RECOVERY->"体力恢复速度";case SHIELD_COOLDOWN_RECOVERY->"护盾回复冷却恢复速度";case SHIELD_REGENERATION->"护盾回复速度";
     };}
     public static String affix(Affix a){
         var current=AffixDefinitions.current().affixes.get(cn.yumis.fight.modules.affixes.api.AffixResolver.definitionId(a));
@@ -24,17 +25,21 @@ public final class AffixText {
         String body;
         if(a.operation.equals("EXTRA")&&(a.element<0||a.element>=4))return a.id+"（保留原记录）";
         if(a.operation.equals("EXTRA"))body="附加"+integer(a.value)+"～"+integer(a.maximum)+"点"+new String[]{"光","火","冰","暗"}[a.element]+"属性伤害";
+        else if(a.operation.equals("WEAPON_ELEMENT"))body="赋予"+new String[]{"光","火","冰","暗"}[a.element]+"属性攻击；对应属性强化 "+signed(a.value);
         else if(a.operation.equals("ALL_RESIST_FLAT"))body="所有元素抗性 "+signed(a.value);
+        else if(a.operation.equals("MODIFIER")&&java.util.Set.of("crit","critDamage").contains(a.parameter))body=(a.parameter.equals("crit")?"暴击率":"暴击伤害")+" "+signed(a.value*100)+" 个百分点";
         else if(a.stat.isEmpty())body=a.id;
         else{
-            boolean percent=a.operation.equals("PERCENT")||a.operation.equals("CHARACTER_PERCENT");var stat=cn.yumis.fight.modules.affixes.api.AffixEffects.stat(a);if(stat.isEmpty())return a.id+"（保留原记录）";Stat s=stat.get();
-            body=(a.operation.equals("PERCENT")?"本装备":a.operation.equals("ITEM_FINAL_ADD")?"本武器最终固定增加":"")+statName(s)+" "+signed(a.value*(percent?100:1))+(percent||s==Stat.ATTACK_SPEED?"%":s==Stat.DROP_RATE?" 个百分点":"");
+            boolean percent=a.operation.equals("PERCENT")||a.operation.equals("CHARACTER_PERCENT")||a.operation.equals("CHARACTER_TOTAL");var stat=cn.yumis.fight.modules.affixes.api.AffixEffects.stat(a);if(stat.isEmpty())return a.id+"（保留原记录）";Stat s=stat.get();
+            body=(a.operation.equals("PERCENT")?"本装备":"")+statName(s)+(a.operation.equals("CHARACTER_TOTAL")?"总提高 ":" ")+signed(a.value*(percent?100:1))+(percent||s==Stat.ATTACK_SPEED?"%":s==Stat.DROP_RATE?" 个百分点":"");
         }
         var definition=AffixDefinitions.current().affixes.get(a.id);
-        return !a.base&&definition!=null&&!definition.name().equals(a.id)?definition.name()+"："+body:body;
+        return !a.base&&!java.util.Set.of("FLAT","ITEM_FINAL_ADD").contains(a.operation)&&definition!=null&&!definition.name().equals(a.id)?definition.name()+"："+body:body;
     }
     public static String signed(double value){return (value<0?"":"+")+integer(value);}
     private static String equipmentRule(Affix a){String n=integer(a.value*100),v=integer(a.value);return switch(a.parameter){
+        case "armor_retaliation"->"有效受击时对攻击者造成自身物理护甲 "+n+"% 的无属性物理伤害";
+        case "wall_power"->"普攻或技能造成伤害时每次最多获得1层护甲，每层提高1%，最多1000层；15秒脱战清空";
         case "gem_amplification"->"本武器镶嵌宝石的数值效果提高 "+n+"%";
         case "fire_after_damage"->"造成伤害后，额外造成相当于该次伤害 "+n+"% 的火属性伤害（另算防御与火强化／火抗）";
         case "fire_conversion"->"保留火强化，其余元素强化按 "+n+"% 转为火强化";

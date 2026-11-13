@@ -42,6 +42,7 @@ public final class IndustrialProcessing {
             line.status=be.device().has(DeviceType.Capability.MINING)?"请选择矿物；所有区块均可开采圆石":"请锁定加工工艺";return;
         }
         ServerLevel level=(ServerLevel)be.getLevel();
+        if(be.device().has(DeviceType.Capability.INFUSION)){DisplayInfusion.prepare(line);return;}
         int count=be.device().inputs();List<ItemStack> input=new ArrayList<>();
         for(int i=0;i<count;i++)input.add(be.getItem(line.inputSlot((i+line.roundRobin)%count)));
         RecipeHolder<IndustrialRecipe> chosen=null;int[] plan=null;int bestRank=Integer.MAX_VALUE;

@@ -25,11 +25,12 @@ public final class PlayerPageAssembly {
     private PlayerPageAssembly(){}
     public static void register(){
         var state=ClientSession.INSTANCE;
+        PlayerPageRenderers.register("tutorial",cn.yumis.fight.modules.npc.client.TutorialPage::render);
         PlayerPageRenderers.registerPanel("sale",cn.yumis.fight.modules.economy.client.SalePanel::new);
         PlayerPageRenderers.register("affix_compendium",cn.yumis.fight.modules.equipment.client.AffixCompendiumPage::render);
         PlayerPageRenderers.registerPanel("damage_analysis",cn.yumis.fight.modules.combat.client.DamageAnalysisPanel::new);
-        PlayerPageRenderers.register("character",page->{cn.yumis.fight.modules.character.api.client.CareerProfilesClient.render(page);CharacterPage.render(page,characterView(),stat->points("allocate","stat",stat),()->state.progress("resetAttributes","unused",0),enabled->state.progress("sync","enabled",enabled));});
-        PlayerPageRenderers.register("skills",page->{cn.yumis.fight.modules.character.api.client.CareerProfilesClient.render(page);SkillsPage.render(page,state.progress,state.stats,skill->points("learn","skill",skill),skill->points("unlearn","skill",skill),()->state.progress("resetSkills","unused",0));});
+        PlayerPageRenderers.register("character",page->{cn.yumis.fight.modules.character.api.client.CareerProfilesClient.render(page,state.progress);CharacterPage.render(page,characterView(),stat->points("allocate","stat",stat),()->state.progress("resetAttributes","unused",0),enabled->state.progress("sync","enabled",enabled));});
+        PlayerPageRenderers.register("skills",page->{cn.yumis.fight.modules.character.api.client.CareerProfilesClient.render(page,state.progress);SkillsPage.render(page,state.progress,state.stats,skill->points("learn","skill",skill),skill->points("unlearn","skill",skill),()->state.progress("resetSkills","unused",0));});
         PlayerPageRenderers.register("professions",page->ProfessionPage.render(page,state.professions,state.gold.balance,()->state.send("professions"),UiTheme.GOLD,UiTheme.MUTED));
         PlayerPageRenderers.register("party",page->PartyPage.render(page,state.party,state.own.target,id->{var connection=Minecraft.getInstance().getConnection();var info=connection==null?null:connection.getPlayerInfo(id);return info==null?id+" [离线]":info.getProfile().name()+" [在线]";},(kind,name)->{var request=state.operation(kind);request.addProperty(kind.equals("kick")||kind.equals("transfer")?"target":"name",name);state.send("party",request);}));
         PlayerPageRenderers.register("dungeons",page->DungeonPage.render(page,state.dungeon,state.progress.dungeonSync,join->{state.upload();var request=state.operation("join");request.addProperty("dungeon",join.dungeon());request.addProperty("difficulty",join.difficulty().name());request.addProperty("sync",join.sync());state.send("dungeon",request);},()->state.send("dungeon",state.operation("leave")),state::message));

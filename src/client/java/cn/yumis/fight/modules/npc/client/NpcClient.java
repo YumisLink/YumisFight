@@ -43,7 +43,9 @@ public final class NpcClient {
     public static void interact(InputEvent.InteractionKeyMappingTriggered event){
         if(!event.isUseItem())return;updateTarget();if(target==null)return;event.setCanceled(true);event.setSwingHand(false);if(event.getHand()!=InteractionHand.MAIN_HAND)return;
         var definition=NpcInteractionComponent.query(target);var action=definition.actions().get(selected);
-        if(action.type().equals("chat")){
+        if(action.type().equals("tutorial")){
+            Minecraft.getInstance().gui.setScreen(new NpcDialogueScreen(target));
+        }else if(action.type().equals("chat")){
             if(definition.dialogue().isEmpty())return;int line=RANDOM.nextInt(definition.dialogue().size());var old=lastLine.get(target.getUUID());if(old!=null&&line==old&&definition.dialogue().size()>1)line=(line+1)%definition.dialogue().size();lastLine.put(target.getUUID(),line);bubbles.put(target.getUUID(),new Bubble(target.getId(),definition.dialogue().get(line),ClientUi.now()+5000));
         }else{
             var request=ClientUi.current().operation("npcAction");request.addProperty("entity",target.getStringUUID());request.addProperty("action",action.id());ClientUi.current().send("npcAction",request);

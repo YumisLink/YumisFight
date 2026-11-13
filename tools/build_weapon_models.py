@@ -326,7 +326,7 @@ def export(spec):
                 uvs.append(tuple(layer.data[li].uv))
                 fi.append((start+d.loops[li].vertex_index+1,len(uvs),ni))
             faces.append(fi)
-            face_materials.append('energy'if ident=='common_lightsaber'and p.material_index in ENERGY_ALPHA else 'atlas')
+            face_materials.append('energy' if ident=='common_lightsaber' and p.material_index in ENERGY_ALPHA else 'blade' if ident=='common_lightsaber' and p.material_index==14 or ident=='skyspine' and p.material_index in [6,7] else 'atlas')
     # Triangulation did not add vertices; all parts remain in the canonical grip coordinate system.
     for game in [False,True]:
         folder=ASSETS/'models/weapons'if game else ART/'exports'
@@ -338,7 +338,7 @@ def export(spec):
             lines += [f'v {x:.6f} {y:.6f} {z:.6f}'for x,y,z in vertices]
             lines += [f'vn {x:.6f} {y:.6f} {z:.6f}'for x,y,z in normals]
         lines += [f'vt {u:.6f} {v:.6f}'for u,v in uvs]
-        for mat in ['atlas','energy']:
+        for mat in ['atlas','energy','blade']:
             selected=[f for f,m in zip(faces,face_materials)if m==mat]
             if selected:
                 lines.append('usemtl '+mat)
@@ -349,6 +349,7 @@ def export(spec):
         if 'energy'in face_materials:
             texture='#energy'if game else '../textures/weapon_energy.png'
             mtl+='\nnewmtl energy\nKd 1 1 1\nKa 0 0 0\nd 1\nmap_Kd '+texture+'\n'
+        if 'blade' in face_materials:mtl+='\nnewmtl blade\nKd 1 1 1\nKa 0 0 0\nd 1\nmap_Kd '+('#atlas' if game else '../textures/weapon_atlas.png')+'\n'
         (folder/f'{ident}.mtl').write_text(mtl,encoding='utf-8')
     lo=[min(p[i]for p in vertices)for i in range(3)];hi=[max(p[i]for p in vertices)for i in range(3)]
     reference_file=REF_OVERRIDES.get(ident,ref_by_id[refid]['primary_reference'])
@@ -511,3 +512,8 @@ if '--no-render'not in sys.argv:
     bpy.context.preferences.filepaths.save_version=0
     bpy.ops.wm.save_as_mainfile(filepath=str(ART/'weapons-v1.blend'))
 print('FINISHED',ART,flush=True)
+
+# Local held-only materials share the same authored mesh.
+sys.path.insert(0,str(ROOT/"tools"))
+from weapon_glow_resources import generate as generate_glow
+generate_glow()

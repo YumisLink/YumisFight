@@ -10,7 +10,7 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.phys.shapes.*;
 import java.util.List;
 
-/** Not bonemealable; no survival self-drop, so the same plant cannot be replanted for energy. */
+/** Harvest yields crystals; renewable propagation is supplied by the magic flower's grass-tick hook. */
 public final class MagicGrassBlock extends VegetationBlock {
     public MagicGrassBlock(BlockBehaviour.Properties p){super(p);}
     @Override protected MapCodec<? extends VegetationBlock> codec(){return simpleCodec(MagicGrassBlock::new);}

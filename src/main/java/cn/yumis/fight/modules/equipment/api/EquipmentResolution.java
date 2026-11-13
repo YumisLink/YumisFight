@@ -57,7 +57,7 @@ public final class EquipmentResolution {
         for(int i=0;i<g.gems.size();i++)for(int j=0;j<g.gems.get(i).affixes.size();j++)resolve(g.gems.get(i).affixes.get(j),g.instance+"/gems/"+i+"/"+j,g.gems.get(i).level);
         return g;
     }
-    private static void resolve(Affix a,String path,int level){var d=AffixDefinitions.current().affixes.get(AffixResolver.definitionId(a));AffixResolver.resolve(a,d,path,d==null?1:d.effectiveScale(level));}
+    private static void resolve(Affix a,String path,int level){var d=AffixDefinitions.current().affixes.get(AffixResolver.definitionId(a));if(d!=null)d=AffixLevelCurves.atLevel(d,level);AffixResolver.resolve(a,d,path,d==null?1:d.effectiveScale(level));}
     /** Explicit creation or mutation boundary. Reads never invent missing random origins. */
     public static Gear initialize(Gear g){
         for(int i=0;i<g.affixes.size();i++)initialize(g.affixes.get(i),g.instance+"/affixes/"+i);

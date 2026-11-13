@@ -1,0 +1,19 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mana_concentrator",
+  "minimum_tier": 2,
+  "ingredients": [],
+  "results": [],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:mana_fluid",
+      "amount": 100
+    }
+  ],
+  "ticks": 20,
+  "energy": 100,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:concentrated_mana_fluid",
+    "amount": 1
+  }
+}

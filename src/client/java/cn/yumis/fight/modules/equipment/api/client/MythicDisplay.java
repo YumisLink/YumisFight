@@ -16,8 +16,10 @@ import java.util.List;
 public final class MythicDisplay {
     public static final int GOLD=0xffd778,PINK=0xff79c6;
     public static final Identifier TOOLTIP=Identifier.fromNamespaceAndPath(ItemData.NS,"mythic");
+    private static java.util.function.Predicate<ItemStack> additional=stack->false;
     private MythicDisplay(){}
-    public static boolean mythic(ItemStack stack){var view=ItemData.own(stack)?EquipmentItems.view(stack):null;return view!=null&&view.rarity()==Rarity.MYTHIC;}
+    public static void additional(java.util.function.Predicate<ItemStack> resolver){additional=java.util.Objects.requireNonNull(resolver);}
+    public static boolean mythic(ItemStack stack){var view=ItemData.own(stack)?EquipmentItems.view(stack):null;return view!=null&&view.rarity()==Rarity.MYTHIC||!stack.isEmpty()&&additional.test(stack);}
     public static Component mark(Component component){return component.copy().withStyle(style->marked(style)?style:style.withInsertion(MythicTextMarker.encode(style.getInsertion())));}
     private static String raw(Style style){return (Object)style instanceof MythicStyleAccess access?access.ydnf$rawInsertion():style.getInsertion();}
     private static boolean marked(Style style){return MythicTextMarker.marked(raw(style));}

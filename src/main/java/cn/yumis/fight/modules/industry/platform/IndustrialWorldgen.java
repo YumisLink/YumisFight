@@ -22,6 +22,14 @@ public final class IndustrialWorldgen {
         IndustrialFeature(){super(Config.CODEC);}
         @Override public boolean place(FeaturePlaceContext<Config> context){
             var level=context.level();var random=context.random();BlockPos origin=context.origin();IndustrialRules rules=IndustrialRules.current();String kind=context.config().kind;boolean overworldTitanium=kind.equals("titanium_overworld");
+            if(kind.equals("flower")){
+                if(!rules.magicWorldgen||random.nextInt(rules.magicFlowerChance)!=0)return false;
+                int x=origin.getX()+random.nextInt(16),z=origin.getZ()+random.nextInt(16);
+                BlockPos plant=new BlockPos(x,level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,x,z),z);
+                var state=IndustrialContent.ALL_BLOCKS.get("magic_flower").get().defaultBlockState();
+                if(!level.getBlockState(plant.below()).is(Blocks.GRASS_BLOCK)||!level.getBlockState(plant).isAir()||!state.canSurvive(level,plant))return false;
+                level.setBlock(plant,state,2);return true;
+            }
             if(kind.equals("grass")){
                 if(!rules.magicWorldgen)return false;boolean any=false;var chunk=level.getChunk(origin);
                 for(int section=0;section<chunk.getSections().length;section++){var cells=chunk.getSection(section);if(!cells.maybeHas(state->state.is(Blocks.SHORT_GRASS)))continue;int y0=SectionPos.sectionToBlockCoord(chunk.getSectionYFromSectionIndex(section));for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=0;y<16;y++)if(cells.getBlockState(x,y,z).is(Blocks.SHORT_GRASS)&&random.nextInt(rules.magicGrassChance)==0){level.setBlock(new BlockPos(origin.getX()+x,y0+y,origin.getZ()+z),IndustrialContent.ALL_BLOCKS.get("magic_grass").get().defaultBlockState(),2);any=true;}}

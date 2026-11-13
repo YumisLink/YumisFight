@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.character.api.client;
 
 import cn.yumis.fight.modules.character.api.JobCatalog;
+import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.presentation.api.client.*;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
@@ -22,10 +23,15 @@ public final class CareerProfilesClient {
     public static boolean occupied(String job){if(view==null)return false;for(var value:view.getAsJsonArray("entries"))if(value.getAsJsonObject().get("job").getAsString().equals(job))return true;return false;}
     private static void select(String id){var ui=ClientUi.current();ui.upload();var request=ui.operation("switchProfile");request.addProperty("target",id);ui.send("progress",request);}
     private static void selectSlot(int slot){var ui=ClientUi.current();ui.upload();var request=ui.operation("openProfileSlot");request.addProperty("slot",slot);ui.send("progress",request);}
-    public static void render(PlayerPageSurface page){
+    public static void render(PlayerPageSurface page,Progress progress){
         if(view==null)return;
         var rows=new ArrayList<PlayerPageSurface.SidebarRow>();var entries=view.getAsJsonArray("entries");
-        for(var value:entries){var row=value.getAsJsonObject();String id=row.get("id").getAsString(),name=row.get("name").getAsString();String detail=JobCatalog.require(row.get("job").getAsString()).title()+" Lv."+row.get("level").getAsInt();boolean current=id.equals(active());rows.add(new PlayerPageSurface.SidebarRow(name,detail,current,()->select(id),()->Minecraft.getInstance().gui.setScreen(new RenameScreen(page.screen(),id,name))));}
+        for(var value:entries){
+            var row=value.getAsJsonObject();String id=row.get("id").getAsString(),name=row.get("name").getAsString();boolean current=id.equals(active());
+            String job=current?progress.jobId():row.get("job").getAsString();int level=current?progress.level:row.get("level").getAsInt();
+            String detail=JobCatalog.displayName(job,level,progress.awakened())+" Lv."+level;
+            rows.add(new PlayerPageSurface.SidebarRow(name,detail,current,()->select(id),()->Minecraft.getInstance().gui.setScreen(new RenameScreen(page.screen(),id,name))));
+        }
         int capacity=view.get("capacity").getAsInt();boolean unlocked=view.has("unlocked")&&view.get("unlocked").getAsBoolean();
         if(unlocked){for(int i=rows.size();i<capacity;i++){int slot=i;rows.add(new PlayerPageSurface.SidebarRow("职业配置"+(i+1),"未选择职业 Lv.20",false,()->selectSlot(slot),null));}}
         else rows.add(new PlayerPageSurface.SidebarRow("职业栏系统","20级转职后解锁",false,null,null));

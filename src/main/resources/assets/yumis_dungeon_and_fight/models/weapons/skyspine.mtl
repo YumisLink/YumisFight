@@ -3,3 +3,10 @@ Kd 1 1 1
 Ka 0 0 0
 d 1
 map_Kd #atlas
+
+newmtl blade
+Kd 1 1 1
+Ka 0 0 0
+d 1
+map_Kd #atlas
+

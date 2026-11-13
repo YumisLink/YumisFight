@@ -16,6 +16,7 @@ public final class ChestDefinitions {
     public Map<Integer,WaystoneChest> waystoneByTier=new LinkedHashMap<>();
     public Map<String,Definition> chests=new LinkedHashMap<>();
     public Map<String,SpecialPool> bossPools=new LinkedHashMap<>();
+    public Map<String,SpecialPool> bossRarePools=new LinkedHashMap<>();
     public List<String> todo=new ArrayList<>();
     private static Supplier<ChestDefinitions> source=ChestDefinitions::defaults;
     public static void source(Supplier<ChestDefinitions> value){source=Objects.requireNonNull(value);}
@@ -26,12 +27,14 @@ public final class ChestDefinitions {
         d.chests.put("goblin_kingdom",new Definition("哥布林王国的宝箱",true,0,0,0,0,List.of(new Entry("colorless_crystal",10,1)),List.of(),0));
         var pool=new SpecialPool(.1,List.of(new Entry("abyss_invitation",1,10),new Entry("goblin_treasure_map",1,1)));
         for(String id:List.of("goblin_camp","dragon_tower","castle_palace","treasure_forest","treasure_tower","treasure_palace"))d.bossPools.put(id,pool);
+        d.bossRarePools.put("gbl_church",new SpecialPool(.05,List.of(new Entry("essence_alaska_wisdom",1,1))));
+        d.bossRarePools.put("castle_palace",new SpecialPool(.05,List.of(new Entry("essence_pinocchio",1,1),new Entry("essence_sieghart",1,1),new Entry("essence_delezie",1,1),new Entry("essence_skasa",1,1))));
         d.todo=List.of("深渊派对挑战函用途", "哥布林王国宝箱正式掉落", "挖宝专属史诗和神话装备及掉率", "其他特殊道具");
         return d;
     }
     public static ChestDefinitions parse(String json){
         ChestDefinitions d=new Gson().fromJson(json,ChestDefinitions.class);
-        if(d==null||d.chests==null||d.bossPools==null)throw new IllegalArgumentException("宝箱配置不完整");
+        if(d==null||d.chests==null||d.bossPools==null||d.bossRarePools==null)throw new IllegalArgumentException("宝箱配置不完整");
         for(var e:d.chests.entrySet()){
             if(!e.getKey().matches("[a-z0-9_./-]+"))throw new IllegalArgumentException("宝箱ID无效");
             var c=e.getValue();if(c==null||c.name()==null||c.name().isBlank()||c.fixed()==null||c.special()==null||c.specialRolls()<0||c.specialRolls()>128)throw new IllegalArgumentException("宝箱定义无效："+e.getKey());
@@ -39,7 +42,7 @@ public final class ChestDefinitions {
             validate(c.fixed());validate(c.special());
             if(c.specialRolls()>0&&c.special().stream().noneMatch(x->x.weight()>0))throw new IllegalArgumentException("特殊奖励池为空");
         }
-        for(var p:d.bossPools.values()){if(p==null||!Double.isFinite(p.chance())||p.chance()<0||p.chance()>1||p.entries()==null)throw new IllegalArgumentException("首领特殊池无效");validate(p.entries());if(p.chance()>0&&p.entries().stream().noneMatch(x->x.weight()>0))throw new IllegalArgumentException("首领特殊池为空");}
+        for(var p:java.util.stream.Stream.concat(d.bossPools.values().stream(),d.bossRarePools.values().stream()).toList()){if(p==null||!Double.isFinite(p.chance())||p.chance()<0||p.chance()>1||p.entries()==null)throw new IllegalArgumentException("首领特殊池无效");validate(p.entries());if(p.chance()>0&&p.entries().stream().noneMatch(x->x.weight()>0))throw new IllegalArgumentException("首领特殊池为空");}
         for(String required:List.of("treasure","goblin_kingdom"))if(!d.chests.containsKey(required))throw new IllegalArgumentException("缺少宝箱："+required);
         validateWaystone(d.waystoneDefault);if(d.waystoneByTier==null)throw new IllegalArgumentException("缺少引路石分阶宝箱配置");for(var entry:d.waystoneByTier.entrySet()){if(entry.getKey()<1)throw new IllegalArgumentException("引路石箱阶无效");validateWaystone(entry.getValue());}
         return d;

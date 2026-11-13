@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "yumis_dungeon_and_fight:item/gem_rare_cooldown",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 4427519
+      }
+    ]
+  }
+}

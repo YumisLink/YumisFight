@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MFM",
+    "CSC",
+    "MMM"
+  ],
+  "key": {
+    "M": "minecraft:copper_ingot",
+    "F": "minecraft:smooth_stone_slab",
+    "C": "yumis_dungeon_and_fight:energy_crystal_1",
+    "S": "yumis_dungeon_and_fight:machine_casing_t1"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:display_stand",
+    "count": 1
+  }
+}

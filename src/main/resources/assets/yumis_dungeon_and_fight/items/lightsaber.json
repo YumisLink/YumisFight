@@ -114,6 +114,48 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/named/skyspine"
         }
+      },
+      {
+        "when": "lightsaber_10_base_local_glow",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_10_base_local_glow"
+        }
+      },
+      {
+        "when": "lightsaber_20_base_local_glow",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_20_base_local_glow"
+        }
+      },
+      {
+        "when": "lightsaber_30_base_local_glow",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_30_base_local_glow"
+        }
+      },
+      {
+        "when": "lightsaber_40_base_local_glow",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_40_base_local_glow"
+        }
+      },
+      {
+        "when": "lightsaber_50_base_local_glow",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/lightsaber_50_base_local_glow"
+        }
+      },
+      {
+        "when": "skyspine_local_glow",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/skyspine_local_glow"
+        }
       }
     ],
     "fallback": {

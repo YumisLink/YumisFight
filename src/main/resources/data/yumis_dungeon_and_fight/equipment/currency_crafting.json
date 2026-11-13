@@ -1,0 +1,932 @@
+{
+  "essences": [
+    {
+      "id": "essence_strength",
+      "name": "力量之精华",
+      "affix": "crafted/strength",
+      "slots": [
+        "RING"
+      ],
+      "material": "wheat",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_intelligence",
+      "name": "智识之精华",
+      "affix": "crafted/intelligence",
+      "slots": [
+        "RING"
+      ],
+      "material": "paper",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_spirit",
+      "name": "精神之精华",
+      "affix": "crafted/spirit",
+      "slots": [
+        "HEAD",
+        "NECKLACE"
+      ],
+      "material": "sugar",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_health",
+      "name": "生命之精华",
+      "affix": "crafted/health",
+      "slots": [
+        "CHEST",
+        "LEGS",
+        "FEET"
+      ],
+      "material": "carrot",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_mp",
+      "name": "魔泉之精华",
+      "affix": "crafted/mp",
+      "slots": [
+        "HEAD",
+        "NECKLACE"
+      ],
+      "material": "potato",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_physical_defense_percent",
+      "name": "坚壁之精华",
+      "affix": "crafted/physical_defense_percent",
+      "slots": [
+        "CHEST"
+      ],
+      "material": "leather",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_magical_defense_percent",
+      "name": "魔御之精华",
+      "affix": "crafted/magical_defense_percent",
+      "slots": [
+        "LEGS"
+      ],
+      "material": "#wool",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_movement_speed",
+      "name": "疾行之精华",
+      "affix": "crafted/movement_speed",
+      "slots": [
+        "FEET"
+      ],
+      "material": "feather",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_all_resistance",
+      "name": "庇护之精华",
+      "affix": "crafted/all_resistance",
+      "slots": [
+        "BRACELET"
+      ],
+      "material": "dried_kelp",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_physical_defense",
+      "name": "护甲之精华",
+      "affix": "crafted/physical_defense",
+      "slots": [
+        "BRACELET"
+      ],
+      "material": "cobblestone",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_attack_speed",
+      "name": "迅捷之精华",
+      "affix": "crafted/attack_speed",
+      "slots": [
+        "EARRING"
+      ],
+      "material": "bamboo",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_drop_rate",
+      "name": "寻宝之精华",
+      "affix": "crafted/drop_rate",
+      "slots": [
+        "EARRING"
+      ],
+      "material": "melon_slice",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_physical_attack",
+      "name": "锋锐之精华",
+      "affix": "crafted/physical_attack",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "stick",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_magical_attack",
+      "name": "秘法之精华",
+      "affix": "crafted/magical_attack",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "charcoal",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_physical_attack_percent",
+      "name": "破军之精华",
+      "affix": "crafted/physical_attack_percent",
+      "slots": [
+        "SUB_EQUIPMENT"
+      ],
+      "material": "stick",
+      "paper": true,
+      "family": ""
+    },
+    {
+      "id": "essence_magical_attack_percent",
+      "name": "魔涌之精华",
+      "affix": "crafted/magical_attack_percent",
+      "slots": [
+        "SUB_EQUIPMENT"
+      ],
+      "material": "charcoal",
+      "paper": true,
+      "family": ""
+    },
+    {
+      "id": "essence_extra_light",
+      "name": "光辉追击之精华",
+      "affix": "crafted/extra_light",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "glow_berries",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_element_light",
+      "name": "光辉强化之精华",
+      "affix": "crafted/element_light",
+      "slots": [
+        "MAGIC_STONE"
+      ],
+      "material": "glow_berries",
+      "paper": true,
+      "family": ""
+    },
+    {
+      "id": "essence_extra_fire",
+      "name": "烈焰追击之精华",
+      "affix": "crafted/extra_fire",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "beetroot",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_element_fire",
+      "name": "烈焰强化之精华",
+      "affix": "crafted/element_fire",
+      "slots": [
+        "MAGIC_STONE"
+      ],
+      "material": "beetroot",
+      "paper": true,
+      "family": ""
+    },
+    {
+      "id": "essence_extra_ice",
+      "name": "寒霜追击之精华",
+      "affix": "crafted/extra_ice",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "snowball",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_element_ice",
+      "name": "寒霜强化之精华",
+      "affix": "crafted/element_ice",
+      "slots": [
+        "MAGIC_STONE"
+      ],
+      "material": "snowball",
+      "paper": true,
+      "family": ""
+    },
+    {
+      "id": "essence_extra_dark",
+      "name": "幽暗追击之精华",
+      "affix": "crafted/extra_dark",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "sweet_berries",
+      "paper": false,
+      "family": ""
+    },
+    {
+      "id": "essence_element_dark",
+      "name": "幽暗强化之精华",
+      "affix": "crafted/element_dark",
+      "slots": [
+        "MAGIC_STONE"
+      ],
+      "material": "sweet_berries",
+      "paper": true,
+      "family": ""
+    },
+    {
+      "id": "essence_family_sword",
+      "name": "剑术之精华",
+      "affix": "crafted/family_sword",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "SWORD"
+    },
+    {
+      "id": "essence_family_ghost",
+      "name": "鬼神之精华",
+      "affix": "crafted/family_ghost",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "GHOST"
+    },
+    {
+      "id": "essence_family_wave",
+      "name": "波动之精华",
+      "affix": "crafted/family_wave",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "WAVE"
+    },
+    {
+      "id": "essence_family_blood",
+      "name": "血气之精华",
+      "affix": "crafted/family_blood",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "BLOOD"
+    },
+    {
+      "id": "essence_family_element",
+      "name": "元素之精华",
+      "affix": "crafted/family_element",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "ELEMENT"
+    },
+    {
+      "id": "essence_family_summon",
+      "name": "召唤之精华",
+      "affix": "crafted/family_summon",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "SUMMON"
+    },
+    {
+      "id": "essence_family_sun_moon",
+      "name": "日月之精华",
+      "affix": "crafted/family_sun_moon",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "SUN_MOON"
+    },
+    {
+      "id": "essence_family_havoc",
+      "name": "浩劫之精华",
+      "affix": "crafted/family_havoc",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "HAVOC"
+    },
+    {
+      "id": "essence_alaska_wisdom",
+      "name": "阿拉斯加的智慧",
+      "affix": "crafted/alaska_wisdom",
+      "slots": [
+        "HEAD"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "",
+      "dropOnly": true
+    },
+    {
+      "id": "essence_pinocchio",
+      "name": "烈焰皮诺修之精华",
+      "affix": "crafted/pinocchio",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "",
+      "dropOnly": true
+    },
+    {
+      "id": "essence_sieghart",
+      "name": "光之城主之精华",
+      "affix": "crafted/sieghart",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "",
+      "dropOnly": true
+    },
+    {
+      "id": "essence_delezie",
+      "name": "瘟疫狄瑞吉之精华",
+      "affix": "crafted/delezie",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "",
+      "dropOnly": true
+    },
+    {
+      "id": "essence_skasa",
+      "name": "斯卡撒之精华",
+      "affix": "crafted/skasa",
+      "slots": [
+        "WEAPON"
+      ],
+      "material": "",
+      "paper": false,
+      "family": "",
+      "dropOnly": true
+    }
+  ],
+  "gems": [
+    {
+      "id": "gem_rare_strength",
+      "name": "力量宝石",
+      "affix": "gem/rare/strength",
+      "rarity": "RARE",
+      "group": "all",
+      "parameter": "",
+      "value": 11.4,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_strength",
+      "name": "力量宝石",
+      "affix": "gem/artifact/strength",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "",
+      "value": 17.1,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_strength",
+      "name": "力量宝石",
+      "affix": "gem/legendary/strength",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "",
+      "value": 22.8,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_intelligence",
+      "name": "智识宝石",
+      "affix": "gem/rare/intelligence",
+      "rarity": "RARE",
+      "group": "all",
+      "parameter": "",
+      "value": 7.725,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_intelligence",
+      "name": "智识宝石",
+      "affix": "gem/artifact/intelligence",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "",
+      "value": 11.5875,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_intelligence",
+      "name": "智识宝石",
+      "affix": "gem/legendary/intelligence",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "",
+      "value": 15.45,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_spirit",
+      "name": "精神宝石",
+      "affix": "gem/rare/spirit",
+      "rarity": "RARE",
+      "group": "all",
+      "parameter": "",
+      "value": 7.35,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_spirit",
+      "name": "精神宝石",
+      "affix": "gem/artifact/spirit",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "",
+      "value": 11.025,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_spirit",
+      "name": "精神宝石",
+      "affix": "gem/legendary/spirit",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "",
+      "value": 14.7,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_cooldown",
+      "name": "冷却宝石",
+      "affix": "gem/rare/cooldown",
+      "rarity": "RARE",
+      "group": "CHEST",
+      "parameter": "",
+      "value": 0.05,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_cooldown",
+      "name": "冷却宝石",
+      "affix": "gem/artifact/cooldown",
+      "rarity": "ARTIFACT",
+      "group": "CHEST",
+      "parameter": "",
+      "value": 0.075,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_cooldown",
+      "name": "冷却宝石",
+      "affix": "gem/legendary/cooldown",
+      "rarity": "LEGENDARY",
+      "group": "CHEST",
+      "parameter": "",
+      "value": 0.1,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_movement",
+      "name": "疾行宝石",
+      "affix": "gem/rare/movement",
+      "rarity": "RARE",
+      "group": "FEET",
+      "parameter": "",
+      "value": 0.05,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_movement",
+      "name": "疾行宝石",
+      "affix": "gem/artifact/movement",
+      "rarity": "ARTIFACT",
+      "group": "FEET",
+      "parameter": "",
+      "value": 0.075,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_movement",
+      "name": "疾行宝石",
+      "affix": "gem/legendary/movement",
+      "rarity": "LEGENDARY",
+      "group": "FEET",
+      "parameter": "",
+      "value": 0.1,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_critical_chance",
+      "name": "会心宝石",
+      "affix": "gem/artifact/critical_chance",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "crit",
+      "value": 0.03,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_critical_chance",
+      "name": "会心宝石",
+      "affix": "gem/legendary/critical_chance",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "crit",
+      "value": 0.05,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_critical_damage",
+      "name": "破势宝石",
+      "affix": "gem/artifact/critical_damage",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "critDamage",
+      "value": 0.1,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_critical_damage",
+      "name": "破势宝石",
+      "affix": "gem/legendary/critical_damage",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "critDamage",
+      "value": 0.2,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_resist_light",
+      "name": "光辉抗性宝石",
+      "affix": "gem/rare/resist_light",
+      "rarity": "RARE",
+      "group": "accessories",
+      "parameter": "",
+      "value": 9.6,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_resist_light",
+      "name": "光辉抗性宝石",
+      "affix": "gem/artifact/resist_light",
+      "rarity": "ARTIFACT",
+      "group": "accessories",
+      "parameter": "",
+      "value": 14.4,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_resist_light",
+      "name": "光辉抗性宝石",
+      "affix": "gem/legendary/resist_light",
+      "rarity": "LEGENDARY",
+      "group": "accessories",
+      "parameter": "",
+      "value": 19.2,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_resist_fire",
+      "name": "烈焰抗性宝石",
+      "affix": "gem/rare/resist_fire",
+      "rarity": "RARE",
+      "group": "accessories",
+      "parameter": "",
+      "value": 9.6,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_resist_fire",
+      "name": "烈焰抗性宝石",
+      "affix": "gem/artifact/resist_fire",
+      "rarity": "ARTIFACT",
+      "group": "accessories",
+      "parameter": "",
+      "value": 14.4,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_resist_fire",
+      "name": "烈焰抗性宝石",
+      "affix": "gem/legendary/resist_fire",
+      "rarity": "LEGENDARY",
+      "group": "accessories",
+      "parameter": "",
+      "value": 19.2,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_resist_ice",
+      "name": "寒霜抗性宝石",
+      "affix": "gem/rare/resist_ice",
+      "rarity": "RARE",
+      "group": "accessories",
+      "parameter": "",
+      "value": 9.6,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_resist_ice",
+      "name": "寒霜抗性宝石",
+      "affix": "gem/artifact/resist_ice",
+      "rarity": "ARTIFACT",
+      "group": "accessories",
+      "parameter": "",
+      "value": 14.4,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_resist_ice",
+      "name": "寒霜抗性宝石",
+      "affix": "gem/legendary/resist_ice",
+      "rarity": "LEGENDARY",
+      "group": "accessories",
+      "parameter": "",
+      "value": 19.2,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_resist_dark",
+      "name": "幽暗抗性宝石",
+      "affix": "gem/rare/resist_dark",
+      "rarity": "RARE",
+      "group": "accessories",
+      "parameter": "",
+      "value": 9.6,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_resist_dark",
+      "name": "幽暗抗性宝石",
+      "affix": "gem/artifact/resist_dark",
+      "rarity": "ARTIFACT",
+      "group": "accessories",
+      "parameter": "",
+      "value": 14.4,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_resist_dark",
+      "name": "幽暗抗性宝石",
+      "affix": "gem/legendary/resist_dark",
+      "rarity": "LEGENDARY",
+      "group": "accessories",
+      "parameter": "",
+      "value": 19.2,
+      "maximum": 0
+    },
+    {
+      "id": "gem_rare_extra_light",
+      "name": "光辉追击宝石",
+      "affix": "gem/rare/extra_light",
+      "rarity": "RARE",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 40.8,
+      "maximum": 81.6
+    },
+    {
+      "id": "gem_artifact_extra_light",
+      "name": "光辉追击宝石",
+      "affix": "gem/artifact/extra_light",
+      "rarity": "ARTIFACT",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 61.2,
+      "maximum": 122.4
+    },
+    {
+      "id": "gem_legendary_extra_light",
+      "name": "光辉追击宝石",
+      "affix": "gem/legendary/extra_light",
+      "rarity": "LEGENDARY",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 81.6,
+      "maximum": 163.2
+    },
+    {
+      "id": "gem_rare_extra_fire",
+      "name": "烈焰追击宝石",
+      "affix": "gem/rare/extra_fire",
+      "rarity": "RARE",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 40.8,
+      "maximum": 81.6
+    },
+    {
+      "id": "gem_artifact_extra_fire",
+      "name": "烈焰追击宝石",
+      "affix": "gem/artifact/extra_fire",
+      "rarity": "ARTIFACT",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 61.2,
+      "maximum": 122.4
+    },
+    {
+      "id": "gem_legendary_extra_fire",
+      "name": "烈焰追击宝石",
+      "affix": "gem/legendary/extra_fire",
+      "rarity": "LEGENDARY",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 81.6,
+      "maximum": 163.2
+    },
+    {
+      "id": "gem_rare_extra_ice",
+      "name": "寒霜追击宝石",
+      "affix": "gem/rare/extra_ice",
+      "rarity": "RARE",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 40.8,
+      "maximum": 81.6
+    },
+    {
+      "id": "gem_artifact_extra_ice",
+      "name": "寒霜追击宝石",
+      "affix": "gem/artifact/extra_ice",
+      "rarity": "ARTIFACT",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 61.2,
+      "maximum": 122.4
+    },
+    {
+      "id": "gem_legendary_extra_ice",
+      "name": "寒霜追击宝石",
+      "affix": "gem/legendary/extra_ice",
+      "rarity": "LEGENDARY",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 81.6,
+      "maximum": 163.2
+    },
+    {
+      "id": "gem_rare_extra_dark",
+      "name": "幽暗追击宝石",
+      "affix": "gem/rare/extra_dark",
+      "rarity": "RARE",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 40.8,
+      "maximum": 81.6
+    },
+    {
+      "id": "gem_artifact_extra_dark",
+      "name": "幽暗追击宝石",
+      "affix": "gem/artifact/extra_dark",
+      "rarity": "ARTIFACT",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 61.2,
+      "maximum": 122.4
+    },
+    {
+      "id": "gem_legendary_extra_dark",
+      "name": "幽暗追击宝石",
+      "affix": "gem/legendary/extra_dark",
+      "rarity": "LEGENDARY",
+      "group": "WEAPON",
+      "parameter": "",
+      "value": 81.6,
+      "maximum": 163.2
+    },
+    {
+      "id": "gem_artifact_element_light",
+      "name": "光辉强化宝石",
+      "affix": "gem/artifact/element_light",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "",
+      "value": 7.68,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_element_light",
+      "name": "光辉强化宝石",
+      "affix": "gem/legendary/element_light",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "",
+      "value": 11.52,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_element_fire",
+      "name": "烈焰强化宝石",
+      "affix": "gem/artifact/element_fire",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "",
+      "value": 7.68,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_element_fire",
+      "name": "烈焰强化宝石",
+      "affix": "gem/legendary/element_fire",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "",
+      "value": 11.52,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_element_ice",
+      "name": "寒霜强化宝石",
+      "affix": "gem/artifact/element_ice",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "",
+      "value": 7.68,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_element_ice",
+      "name": "寒霜强化宝石",
+      "affix": "gem/legendary/element_ice",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "",
+      "value": 11.52,
+      "maximum": 0
+    },
+    {
+      "id": "gem_artifact_element_dark",
+      "name": "幽暗强化宝石",
+      "affix": "gem/artifact/element_dark",
+      "rarity": "ARTIFACT",
+      "group": "all",
+      "parameter": "",
+      "value": 7.68,
+      "maximum": 0
+    },
+    {
+      "id": "gem_legendary_element_dark",
+      "name": "幽暗强化宝石",
+      "affix": "gem/legendary/element_dark",
+      "rarity": "LEGENDARY",
+      "group": "all",
+      "parameter": "",
+      "value": 11.52,
+      "maximum": 0
+    }
+  ]
+}

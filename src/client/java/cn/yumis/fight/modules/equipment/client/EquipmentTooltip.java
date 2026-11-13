@@ -1,4 +1,7 @@
 package cn.yumis.fight.modules.equipment.client;
+import cn.yumis.fight.modules.equipment.api.CraftingEssences;
+import cn.yumis.fight.modules.equipment.api.Gemstones;
+import cn.yumis.fight.modules.affixes.api.AffixDefinitions;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.ClientSettings;
 import cn.yumis.fight.modules.inventory.api.SlotAccess;
@@ -63,8 +66,10 @@ public final class EquipmentTooltip {
             case "regal_stone"->"神器装备变为传说，并新增1条随机词条";
             case "exalted_stone"->"传说装备新增1条随机词条，最多6条";
             case "delezie_blood"->"不可逆腐化：加孔、等级−5～+5、刷新词条各自独立20%，可同时发生；之后仅可继续镶嵌宝石";
+            case "advanced_divine_stone"->"重洗数值为原区间最高60%（0～100变40～100）";
+            case "perfect_divine_stone"->"重洗数值为原区间最高30%（0～100变70～100）；暂不投放";
             case "divine_stone"->"重掷装备随机词条数值；保留类型、数量与元素";
-            case "stripping_stone"->"随机移除1条未锁定的可加工随机词条；不补词条，保留品质、基础属性与固有效果";
+            case "stripping_stone"->"普通至传说装备随机移除1条未锁定的可加工随机词条；不补词条，保留品质、基础属性与固有效果";
             case "chaos_stone"->"随机删除1条可删除词条并替换为新词条；同种效果不重复，总条数不变";
             case "fracturing_orb"->"锁定传说装备的1条未锁定随机词条；可反复使用，逐条锁定";
             case "socket_stone"->"新增1个宝石孔；武器/防具最多2孔，其他部位1孔";
@@ -77,12 +82,16 @@ public final class EquipmentTooltip {
             case "affix_gem"->"镶嵌到宝石孔；覆盖会销毁原宝石";
             default->"";
         };
+        var essence=CraftingEssences.find(id);
+        if(essence!=null)effect="神器升为传说，保留原词条并追加"+AffixDefinitions.current().affixes.get(essence.affix()).name()+"；部位："+essence.slots().stream().map(cn.yumis.fight.modules.equipment.api.Slot::title).collect(java.util.stream.Collectors.joining("、"));
+        if(Gemstones.currency(id))effect="镶嵌到宝石孔；同件不可重复同效果，覆盖会销毁原宝石";
         if(effect.isEmpty())return List.of();
         List<Component> lines=new ArrayList<>();
         var badge=currencyBadge.apply(id);
         if(badge!=null)lines.add(badge);
         lines.add(text(effect,0xa6c3db));
-        if(id.equals("divine_stone"))lines.add(text("各品质的明确随机区间均可重掷；基础、固定值、技能等级及宝石不重洗；锁定只防删除替换",0xffbc78));
+        if(essence!=null){lines.add(text(essence.dropOnly()?"工艺数值随机；可用神圣石重洗，保留原装备投入":"工艺初始取中点；有范围可用神圣石重洗，升级保留分位",0xffbc78));lines.add(text(essence.dropOnly()?(id.equals("essence_alaska_wisdom")?"GBL教首领5%公共掉落；仅提高怪物击杀经验":"城主宫殿首领稀有池总计5%，四种精华等概率") :"仅在赫拉迪姆方块有序合成",0x9aa9be));}
+        if(java.util.Set.of("divine_stone","advanced_divine_stone","perfect_divine_stone").contains(id))lines.add(text("各品质的明确随机区间均可重掷；基础、固定值、技能等级及宝石不重洗；锁定只防删除替换",0xffbc78));
         if(id.equals("chaos_stone"))lines.add(text("技能等级词条不可重掷、未锁定可替换；基础、固有效果、宝石及锁定词条受保护",0xffbc78));
         if(id.equals("fracturing_orb"))lines.add(text("锁定后不可删除替换；神圣石仍可重掷数值",0xffbc78));
         try{
@@ -92,8 +101,8 @@ public final class EquipmentTooltip {
                 lines.add(text("来源 Lv."+payload.get("level").getAsInt()+" · "+(payload.get("group").getAsString().equals("armor")?"防具":"首饰"),0xc5cfdd));
                 if(set!=null){lines.add(text(set.name(),0xb1ef89));addSet(lines,set,false);}
             }
-            if(id.equals("affix_gem")){
-                Gem gem=EquipmentJson.JSON.fromJson(EquipmentItems.payload(stack),Gem.class);
+            if(Gemstones.currency(id)){
+                Gem gem=Gemstones.read(stack);
                 if(gem!=null){
                     lines.add(text("来源 Lv."+gem.level+" · "+groupName(gem.group),0xc5cfdd));
                     for(Affix a:gem.affixes)lines.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(affix(a),0x85e4d6)));
@@ -107,12 +116,13 @@ public final class EquipmentTooltip {
         if(group.equals("all"))return "所有部位";
         if(group.equals("armor"))return "防具";
         if(group.equals("jewelry"))return "首饰";
+        if(group.equals("accessories"))return "首饰、辅助装备、魔法石、耳环";
         try{return Slot.valueOf(group).title();}catch(IllegalArgumentException e){return group;}
     }
     public static String processingReason(ItemStack currency,Gear gear){
         try{
             String id=ItemData.id(currency);
-            if(gear.corrupted&&!id.equals("affix_gem"))return "腐化装备仅允许继续镶嵌宝石";
+            if(gear.corrupted&&!Gemstones.currency(id))return "腐化装备仅允许继续镶嵌宝石";
             if(id.equals("affix_extraction_stone"))return cn.yumis.fight.modules.equipment.api.GemExtraction.available(gear)?"":"此装备未开放固定宝石提炼";
             if(id.equals("set_extraction_stone"))return gear.set.isEmpty()?"该装备没有套装":"";
             if(id.equals("set_stone")){
@@ -122,8 +132,8 @@ public final class EquipmentTooltip {
                 var definition=EquipmentDefinitions.current().sets.get(p.get("set").getAsString());
                 return definition!=null&&definition.group().equals(p.get("group").getAsString())?"":"套装定义或部位分类无效";
             }
-            if(id.equals("affix_gem")){
-                Gem gem=EquipmentJson.JSON.fromJson(EquipmentItems.payload(currency),Gem.class);
+            if(Gemstones.currency(id)){
+                Gem gem=Gemstones.read(currency);
                 if(gear.sockets<=0)return "装备尚未打孔";
                 String last="宝石不适用于此装备";
                 for(int i=0;i<gear.sockets;i++)try{EquipmentRules.socket(gear,gem,i);return "";}catch(RuntimeException failure){last=failure instanceof IllegalArgumentException&&failure.getMessage()!=null?failure.getMessage():"宝石数据无效";}
@@ -140,11 +150,11 @@ public final class EquipmentTooltip {
     }
     private static void addAffix(List<Component> out,Affix a,Gear gear,boolean gem,int color){
         if(MageBlood.is(gear)&&(a.operation.equals("MAGIC")||a.operation.equals("MAGIC_AMPLIFICATION"))){out.add(text(MagicEffects.text(a),color));if(shift())out.add(text(a.operation.equals("MAGIC")?"  神圣石从14种魔法重抽；允许重复，同名只生效一次":"  神圣石可洗：25%～50%",0x9aa9be));return;}
-        if(gem){a=EquipmentJson.copy(a,Affix.class);if(Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA").contains(a.operation)){double factor=cn.yumis.fight.modules.equipment.api.EquipmentEffects.gemMultiplier(gear);a.value*=factor;a.maximum*=factor;}}
+        if(gem){a=EquipmentJson.copy(a,Affix.class);if(Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA","MODIFIER").contains(a.operation)){double factor=cn.yumis.fight.modules.equipment.api.EquipmentEffects.gemMultiplier(gear);a.value*=factor;a.maximum*=factor;}}
         boolean skillRanks=a.operation.equals("SKILL_FAMILY")||a.operation.equals("EQUIPMENT_RULE")&&a.parameter.equals("magic_ranks");
-        String label=(gem?"  ":"")+affix(a)+(a.locked&&!skillRanks?" 〔已锁定·不可删除替换〕":"");
+        String label=(gem?"  ":"")+affix(a)+(a.crafted?" 〔工艺·不可移除〕":"")+(a.locked&&!skillRanks?" 〔已锁定·不可删除替换〕":"");
         if(!shift()||skillRanks){out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label,color)));return;}
-        var range=EquipmentAffixRanges.reroll(a,gear.rarity,gem);
+        var range=EquipmentAffixRanges.reroll(a,gear.rarity,gem,gear.level);
         if(range==null){out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label+" 〔不可重掷〕",color)));return;}
         String unit=EquipmentAffixRanges.percentage(a)?"%":"";
         out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label,color)));

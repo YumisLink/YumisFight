@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "yumis_dungeon_and_fight:block/decorations/firewood_bundle",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "yumis_dungeon_and_fight:block/decorations/firewood_bundle",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "yumis_dungeon_and_fight:block/decorations/firewood_bundle",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "yumis_dungeon_and_fight:block/decorations/firewood_bundle",
+      "y": 270
+    }
+  }
+}

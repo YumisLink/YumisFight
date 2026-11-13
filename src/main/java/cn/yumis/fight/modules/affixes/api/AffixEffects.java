@@ -11,6 +11,7 @@ public final class AffixEffects {
         void extra(Affix affix);
         void family(String family,int rank);
         void percent(Stat stat,double value);
+        void more(Stat stat,double value);
         void modifier(String id,double value,boolean product);
         void parameter(String source,String skill,String parameter,double add,double multiply);
     }
@@ -21,11 +22,13 @@ public final class AffixEffects {
         registerItem("FLAT",(a,s)->stat(a).ifPresent(k->s.flat(k,a.value)));
         registerItem("PERCENT",(a,s)->stat(a).ifPresent(k->s.percent(k,a.value)));
         registerItem("ITEM_FINAL_ADD",(a,s)->stat(a).ifPresent(k->s.finalAdd(k,a.value)));
+        registerItem("WEAPON_ELEMENT",(a,s)->stat(a).ifPresent(k->s.flat(k,a.value)));
         registerItem("ALL_RESIST_FLAT",(a,s)->{for(Stat k:List.of(Stat.LIGHT_RESIST,Stat.FIRE_RESIST,Stat.ICE_RESIST,Stat.DARK_RESIST))s.flat(k,a.value);});
         registerCharacter("EXTRA",(a,id,s)->{if(a.element>=0&&a.element<4)s.extra(a);});
         registerCharacter("SKILL_FAMILY",(a,id,s)->s.family(a.family,a.rank));
         registerCharacter("CHARACTER_PERCENT",(a,id,s)->stat(a).ifPresent(k->s.percent(k,a.value)));
-        registerCharacter("MODIFIER",(a,id,s)->s.modifier(a.id,a.value,false));
+        registerCharacter("CHARACTER_TOTAL",(a,id,s)->stat(a).ifPresent(k->s.more(k,a.value)));
+        registerCharacter("MODIFIER",(a,id,s)->s.modifier(a.parameter.isEmpty()?a.id:a.parameter,a.value,false));
         registerCharacter("SKILL_ATTACK",(a,id,s)->s.modifier("allSkillAttackProduct",1+a.value,true));
         registerCharacter("SKILL_PARAMETER",(a,id,s)->s.parameter(id+"/"+a.id,a.skill,a.parameter,a.value,a.roll));
     }

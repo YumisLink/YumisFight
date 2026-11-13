@@ -51,7 +51,7 @@ class AffixRevisionTest {
             assertEquals(36,next.affixes.getFirst().value,1e-12);
             assertEquals(old.instance,next.instance);assertEquals(old.revision,next.revision);
             for(int i=0;i<5;i++){next=EquipmentResolution.read(JSON.toJson(next));assertEquals(36,next.affixes.getFirst().value,1e-12);}
-            assertTrue(AffixText.affix(next.affixes.getFirst()).startsWith("新迅捷"));
+            assertTrue(AffixText.affix(next.affixes.getFirst()).contains("36"));
         }finally{AffixDefinitions.source(()->before);}
     }
     @Test void retirementStopsNewGenerationButKeepsCurrentEquipmentGrowth(){
@@ -97,7 +97,7 @@ class AffixRevisionTest {
             Affix a=next.affixes.getFirst();
             assertTrue(a.value>=20&&a.value<=40);assertTrue(a.locked);assertEquals(old.instance,next.instance);
             assertEquals(a.value,EquipmentResolution.read(JSON.toJson(next)).affixes.getFirst().value,1e-12);
-            var range=EquipmentAffixRanges.reroll(a,next.rarity,false);assertEquals(20,range.minimum());assertEquals(40,range.maximum());
+            var range=EquipmentAffixRanges.reroll(a,next.rarity,false,next.level);assertEquals(20,range.minimum());assertEquals(40,range.maximum());
         }finally{AffixDefinitions.source(()->before);}
     }
 }

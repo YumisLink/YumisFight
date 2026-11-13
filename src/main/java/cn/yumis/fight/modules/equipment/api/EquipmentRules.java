@@ -102,11 +102,12 @@ public final class EquipmentRules {
         };
     }
     public static boolean replaceable(Affix a){
-        return !a.base&&(!a.fixed||a.operation.equals("SKILL_FAMILY"))&&!a.locked;
+        return !a.base&&!a.crafted&&(!a.fixed||a.operation.equals("SKILL_FAMILY"))&&!a.locked;
     }
     public static Gear process(Gear original,String currency,Random random){
         Gear g=cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(original);
         if(g.corrupted)throw new IllegalArgumentException("腐化装备仅允许继续镶嵌宝石");
+        var essence=CraftingEssences.find(currency);if(essence!=null)return CraftingEssences.apply(g,essence,random);
         switch(currency){
             case "transmutation_stone"->{
                 if(g.rarity!=Rarity.COMMON)throw new IllegalArgumentException("仅普通装备可蜕变");
@@ -128,6 +129,7 @@ public final class EquipmentRules {
                 appendRandom(g,random);
             }
             case "stripping_stone"->{
+                if(g.rarity==Rarity.EPIC||g.rarity==Rarity.MYTHIC)throw new IllegalArgumentException("史诗和神话装备无法使用剥离石");
                 var eligible=g.affixes.stream().filter(EquipmentRules::replaceable).toList();if(eligible.isEmpty())throw new IllegalArgumentException("没有未锁定的可剥离词条");g.affixes.remove(eligible.get(random.nextInt(eligible.size())));
             }
             case "chaos_stone"->{
@@ -151,11 +153,13 @@ public final class EquipmentRules {
                 boolean level=random.nextDouble()<.2,refresh=random.nextDouble()<.2,socket=random.nextDouble()<.2;
                 if(level){g.level=Math.max(1,Math.min(85,g.level+random.nextInt(11)-5));rebuildBases(g);if(g.rarity!=Rarity.EPIC&&g.rarity!=Rarity.MYTHIC)EquipmentAffixes.grow(g);}
                 if(level)g=EquipmentResolution.initialize(g);
-                if(refresh)reroll(g,random,true,false);
+                if(refresh)reroll(g,random,true,false,0);
                 if(socket)g.sockets++;
                 g.corrupted=true;
             }
-            case "divine_stone"->{reroll(g,random,false,true);}
+            case "divine_stone"->{reroll(g,random,false,true,0);}
+            case "advanced_divine_stone"->{reroll(g,random,false,true,.4);}
+            case "perfect_divine_stone"->{reroll(g,random,false,true,.7);}
             case "socket_stone"->{
                 if(g.sockets>=g.slot.maximumSockets())throw new IllegalArgumentException("宝石孔已满");
                 g.sockets++;
@@ -185,15 +189,16 @@ public final class EquipmentRules {
         var d=AffixDefinitions.current().affixes.get(a.id);
         return !a.fixed||d!=null&&d.minimum()!=null&&d.maximum()>d.minimum();
     }
-    public static void reroll(Gear g,Random random,boolean corrupt,boolean requireChange){
-        if(MageBlood.is(g)){MageBlood.reroll(g,random);if(corrupt)for(Affix a:g.affixes)if(a.operation.equals("MAGIC_AMPLIFICATION")){a.corruptionMultiplier=.8+random.nextDouble()*.6;a.value*=a.corruptionMultiplier;}return;}
+    public static void reroll(Gear g,Random random,boolean corrupt,boolean requireChange,double minimumQuality){
+        if(MageBlood.is(g)){MageBlood.reroll(g,random,minimumQuality);if(corrupt)for(Affix a:g.affixes)if(a.operation.equals("MAGIC_AMPLIFICATION")){a.corruptionMultiplier=.8+random.nextDouble()*.6;a.value*=a.corruptionMultiplier;}return;}
         boolean changed=false;
         for(Affix a:g.affixes)if(washable(a)){
             if(a.origin!=null&&a.origin.quality==null&&!a.fixed){a.syncStatus="unresolved_snapshot";continue;}
-            a.corruptionMultiplier=1;a.roll=.8+random.nextDouble()*.4;double q=(a.roll-.8)/.4;
+            a.corruptionMultiplier=1;double q=minimumQuality+random.nextDouble()*(1-minimumQuality);a.roll=.8+q*.4;
             a.value=a.baseline*a.roll;a.maximum=a.baselineMaximum*a.roll;
             if(a.stat.equals("ATTACK_SPEED"))a.value=AttackSpeedRoll.sample(g.level,a.roll);
             var d=AffixDefinitions.current().affixes.get(a.id);
+            if(d!=null)d=cn.yumis.fight.modules.affixes.api.AffixLevelCurves.atLevel(d,g.level);
             if(d!=null&&d.minimum()!=null){a.value=(d.minimum()+(d.maximum()-d.minimum())*q)*d.scale();if(d.upperMinimum()!=null)a.maximum=(d.upperMinimum()+(d.upperMaximum()-d.upperMinimum())*q)*d.scale();}
             boolean unresolved=a.origin!=null&&a.origin.quality==null&&!a.fixed;
             if(!unresolved)AffixResolver.anchor(a,g.instance+"/"+a.instanceId,d,d==null?0:d.revision(),d==null?1:d.effectiveScale(g.level));
@@ -202,10 +207,10 @@ public final class EquipmentRules {
         }
         if(!changed&&requireChange)throw new IllegalArgumentException("没有可重洗数值");
     }
-    private static String effectKey(Affix a){var definition=AffixDefinitions.current().affixes.get(a.id);return definition==null?a.id:definition.effectKey();}
+    private static String effectKey(Affix a){if(a.operation.equals("MODIFIER")&&!a.parameter.isEmpty())return "MODIFIER/"+a.parameter;var definition=AffixDefinitions.current().affixes.get(a.id);return definition==null?a.id:definition.effectKey();}
     public static Gear socket(Gear original,Gem gem,int index){
         Gear g=cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(original);
-        if(index<0||index>=g.sockets||g.level<gem.level||!(gem.group.equals("all")||gem.group.equals(g.slot.name())||gem.group.equals("armor")&&g.slot.armor()||gem.group.equals("jewelry")&&g.slot.jewelry()))throw new IllegalArgumentException("宝石部位、等级或孔位不符");
+        if(index<0||index>=g.sockets||g.level<gem.level||!(gem.group.equals("all")||gem.group.equals(g.slot.name())||gem.group.equals("armor")&&g.slot.armor()||gem.group.equals("jewelry")&&g.slot.jewelry()||gem.group.equals("accessories")&&EquipmentAffixes.sixJewelry(g.slot)))throw new IllegalArgumentException("宝石部位、等级或孔位不符");
         Set<String> existing=new HashSet<>();
         for(int i=0;i<g.gems.size();i++)if(i!=index)for(Affix a:g.gems.get(i).affixes)existing.add(effectKey(a));
         for(Affix a:gem.affixes)if(existing.contains(effectKey(a)))throw new IllegalArgumentException("同件装备不可重复镶嵌相同效果");

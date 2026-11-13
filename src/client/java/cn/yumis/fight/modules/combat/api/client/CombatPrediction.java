@@ -8,6 +8,7 @@ public final class CombatPrediction {
     public interface State {
         boolean ready(); String session(); Life own(); Runtime resources(); long serverOffset(); long serverNow();
         CombatSettings combatSettings();
+        cn.yumis.fight.modules.attributes.api.Stats stats();
         Life target(UUID id); net.minecraft.world.phys.Vec3 position(UUID id);
         default boolean consumesHealth(UUID id){return true;}
         default DamageAnalysis.Kind damageKind(UUID id){return DamageAnalysis.Kind.COMBAT;}
@@ -77,6 +78,9 @@ public final class CombatPrediction {
         boolean outcomeOnly=!heal&&fraction==0&&extras!=null&&extras.has("outcome")&&(extras.has("nativeRoot")||extras.has("feedbackEntity"));
         boolean effectSettlement=!heal&&fraction==0&&extras!=null&&extras.has("effect")&&extras.has("effectKind")&&ElementAccumulation.kind(extras.get("effectKind").getAsString())!=null;
         if(!state.ready()||life.dead||fraction<0||fraction==0&&!outcomeOnly&&!effectSettlement||!Double.isFinite(fraction))return;
+        boolean own=life.target.equals(state.own().target),cost=extras!=null&&extras.has("resourceCost");
+        boolean contact=own?(fraction>0||extras!=null&&extras.has("damageTaken")&&extras.get("damageTaken").getAsDouble()>0):fraction>0&&predicted(life)>0&&(state.consumesHealth(life.target)||state.damageKind(life.target)!=DamageAnalysis.Kind.COMBAT);
+        if(!heal&&!cost&&contact)EquipmentBuffs.combat(state.resources(),now());
         JsonObject j=new JsonObject();
         j.addProperty("session",state.session());
         j.addProperty("operation",nextOperation++);
@@ -90,6 +94,7 @@ public final class CombatPrediction {
         j.addProperty("heal",heal);
         j.addProperty("occurredAt",state.serverNow());
         j.addProperty("combatDelayMillis",state.combatSettings().delayMillis());
+        j.addProperty("shieldCooldownRecovery",state.stats().get(cn.yumis.fight.modules.attributes.api.Stat.SHIELD_COOLDOWN_RECOVERY));
         if(extras!=null)extras.entrySet().stream().filter(e->!e.getKey().equals(DamageAnalysis.LOCAL_SOURCE)).forEach(e->j.add(e.getKey(),e.getValue()));
         String action=heal?"heal":outcomeOnly?"nativeOutcome":"damage";
         pending.put(j.get("operation").getAsLong(),new Pending(j,action,maximum,color,critical,DamageAnalysis.source(extras)));
@@ -113,7 +118,7 @@ public final class CombatPrediction {
             if(!hit)continue;
             boolean taken=p.report.get("target").getAsString().equals(state.own().target.toString());
             double damage=p.report.has("damageTaken")?p.report.get("damageTaken").getAsDouble():p.report.get("fraction").getAsDouble();
-            if(damage>0){if(taken)CombatTiming.taken(state.resources(),p.occurredAt,p.timing);else CombatTiming.dealt(state.resources(),p.occurredAt,p.timing);}
+            if(damage>0){if(taken)CombatTiming.taken(state.resources(),p.occurredAt,p.timing,p.report.get("shieldCooldownRecovery").getAsDouble());else CombatTiming.dealt(state.resources(),p.occurredAt,p.timing);}
         }
     }
     public void ack(JsonObject j){

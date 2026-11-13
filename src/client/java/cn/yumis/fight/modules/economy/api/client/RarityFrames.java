@@ -14,6 +14,7 @@ public final class RarityFrames {
     private static final Identifier BACKGROUND=Identifier.fromNamespaceAndPath(ItemData.NS,"textures/gui/rarity/background.png");
     private RarityFrames(){}
     public static void draw(GuiGraphicsExtractor g,ItemStack stack,int x,int y,boolean background){
+        if(!cn.yumis.fight.modules.presentation.api.client.ClientSettings.itemQualityFrames)return;
         var rarity=ItemRarity.rarity(stack);int color=0xff000000|rarity.color();
         if(background)g.blit(RenderPipelines.GUI_TEXTURED,BACKGROUND,x,y,0f,0f,16,16,16,16,color);
         if(rarity==Rarity.MYTHIC)MythicDisplay.frame(g,x,y,16,16);

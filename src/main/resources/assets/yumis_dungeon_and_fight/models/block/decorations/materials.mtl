@@ -1,0 +1,136 @@
+# Vanilla textures; shared by the generated OBJ models.
+newmtl minecraft_block_andesite
+Kd 1 1 1
+map_Kd #minecraft_block_andesite
+
+newmtl minecraft_block_black_wool
+Kd 1 1 1
+map_Kd #minecraft_block_black_wool
+
+newmtl minecraft_block_blue_wool
+Kd 1 1 1
+map_Kd #minecraft_block_blue_wool
+
+newmtl minecraft_block_brown_wool
+Kd 1 1 1
+map_Kd #minecraft_block_brown_wool
+
+newmtl minecraft_block_cobbled_deepslate
+Kd 1 1 1
+map_Kd #minecraft_block_cobbled_deepslate
+
+newmtl minecraft_block_cobblestone
+Kd 1 1 1
+map_Kd #minecraft_block_cobblestone
+
+newmtl minecraft_block_cut_copper
+Kd 1 1 1
+map_Kd #minecraft_block_cut_copper
+
+newmtl minecraft_block_cyan_concrete
+Kd 1 1 1
+map_Kd #minecraft_block_cyan_concrete
+
+newmtl minecraft_block_cyan_terracotta
+Kd 1 1 1
+map_Kd #minecraft_block_cyan_terracotta
+
+newmtl minecraft_block_cyan_wool
+Kd 1 1 1
+map_Kd #minecraft_block_cyan_wool
+
+newmtl minecraft_block_diorite
+Kd 1 1 1
+map_Kd #minecraft_block_diorite
+
+newmtl minecraft_block_gold_block
+Kd 1 1 1
+map_Kd #minecraft_block_gold_block
+
+newmtl minecraft_block_iron_block
+Kd 1 1 1
+map_Kd #minecraft_block_iron_block
+
+newmtl minecraft_block_light_blue_concrete
+Kd 1 1 1
+map_Kd #minecraft_block_light_blue_concrete
+
+newmtl minecraft_block_light_blue_wool
+Kd 1 1 1
+map_Kd #minecraft_block_light_blue_wool
+
+newmtl minecraft_block_oak_log
+Kd 1 1 1
+map_Kd #minecraft_block_oak_log
+
+newmtl minecraft_block_oak_log_top
+Kd 1 1 1
+map_Kd #minecraft_block_oak_log_top
+
+newmtl minecraft_block_oak_planks
+Kd 1 1 1
+map_Kd #minecraft_block_oak_planks
+
+newmtl minecraft_block_oxidized_copper
+Kd 1 1 1
+map_Kd #minecraft_block_oxidized_copper
+
+newmtl minecraft_block_polished_andesite
+Kd 1 1 1
+map_Kd #minecraft_block_polished_andesite
+
+newmtl minecraft_block_quartz_block_bottom
+Kd 1 1 1
+map_Kd #minecraft_block_quartz_block_bottom
+
+newmtl minecraft_block_quartz_block_side
+Kd 1 1 1
+map_Kd #minecraft_block_quartz_block_side
+
+newmtl minecraft_block_quartz_block_top
+Kd 1 1 1
+map_Kd #minecraft_block_quartz_block_top
+
+newmtl minecraft_block_quartz_pillar_side
+Kd 1 1 1
+map_Kd #minecraft_block_quartz_pillar_side
+
+newmtl minecraft_block_red_terracotta
+Kd 1 1 1
+map_Kd #minecraft_block_red_terracotta
+
+newmtl minecraft_block_smooth_stone
+Kd 1 1 1
+map_Kd #minecraft_block_smooth_stone
+
+newmtl minecraft_block_spruce_log
+Kd 1 1 1
+map_Kd #minecraft_block_spruce_log
+
+newmtl minecraft_block_spruce_log_top
+Kd 1 1 1
+map_Kd #minecraft_block_spruce_log_top
+
+newmtl minecraft_block_spruce_planks
+Kd 1 1 1
+map_Kd #minecraft_block_spruce_planks
+
+newmtl minecraft_block_stone
+Kd 1 1 1
+map_Kd #minecraft_block_stone
+
+newmtl minecraft_block_stripped_oak_log
+Kd 1 1 1
+map_Kd #minecraft_block_stripped_oak_log
+
+newmtl minecraft_block_weathered_copper
+Kd 1 1 1
+map_Kd #minecraft_block_weathered_copper
+
+newmtl minecraft_block_white_wool
+Kd 1 1 1
+map_Kd #minecraft_block_white_wool
+
+newmtl minecraft_block_yellow_wool
+Kd 1 1 1
+map_Kd #minecraft_block_yellow_wool

@@ -84,6 +84,7 @@ public final class ServerApplication {
     public final JarService jars;
     public final cn.yumis.fight.modules.economy.application.ShopService shops;
     public final cn.yumis.fight.modules.npc.application.NpcService npcs;
+    public final cn.yumis.fight.modules.npc.application.TutorialService tutorials;
     private final cn.yumis.fight.modules.economy.application.EconomyService.Drafts economyDrafts=new cn.yumis.fight.modules.economy.application.EconomyService.Drafts();
     public final DungeonService dungeons;
     public final LootService loot;
@@ -173,10 +174,13 @@ public final class ServerApplication {
         shops=new cn.yumis.fight.modules.economy.application.ShopService(journal,inventory,economyService,p->session(p).id,this::profile);
         npcs=new cn.yumis.fight.modules.npc.application.NpcService(journal);
         cn.yumis.fight.modules.npc.api.NpcSpawns.install(npcs::group);
+        cn.yumis.fight.modules.npc.api.NpcSpawns.starter(npcs::starterWorld);
+        cn.yumis.fight.modules.npc.api.NpcEntity.conversations(npcs::conversing);
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.unregister("shop");
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.register("shop",(p,e,a)->shops.open(p,e.getUUID(),a.value()));
         nativeHits.worldDamage(worldHealth::nativeDamage);
         progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,characters,inventory,p->session(p).progress,(p,next)->session(p).progress=next,this::profile);
+        tutorials=new cn.yumis.fight.modules.npc.application.TutorialService(journal,inventory,characters,RuntimeAssembly.rewardPlayers(this),RuntimeAssembly.rewardBalance(this),p->session(p).life.generation);
         inventoryApplication=new cn.yumis.fight.modules.inventory.application.InventoryApplication(journal,inventory,p->session(p).id,this::message);
         cn.yumis.fight.modules.industry.api.IndustrialPorts.install(inventory,inventory::recoverIndustrial,this::message);
         combatApplication=new cn.yumis.fight.modules.combat.application.CombatApplication(journal,server,this::session,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,targets::resolve,
@@ -243,6 +247,9 @@ public final class ServerApplication {
         }
         finally{
             cn.yumis.fight.modules.industry.api.IndustrialPorts.clear();
+            cn.yumis.fight.modules.npc.api.NpcSpawns.install(null);
+            cn.yumis.fight.modules.npc.api.NpcSpawns.starter(level->{});
+            cn.yumis.fight.modules.npc.api.NpcEntity.conversations(entity->false);
             cn.yumis.fight.modules.combat.api.NativeEffects.clear();
             cn.yumis.fight.modules.economy.api.LootEntityActions.clear();
             cn.yumis.fight.modules.dungeons.api.CageActions.clear();
@@ -499,6 +506,7 @@ public final class ServerApplication {
         j.addProperty("points",economyService.points(p));
         j.addProperty("colorlessCrystals",economyService.colorlessCrystals(p));
         j.add("professionEffects",professionService.effects(p.getUUID()));
+        j.add("npcTutorial",JSON.toJsonTree(tutorials.state(p.getUUID())));
         j.add("professionState",JSON.toJsonTree(professionService.snapshot(p.getUUID())));
         j.add("progress",JSON.toJsonTree(s.progress));
         j.add("careerProfiles",characters.profiles(p.getUUID()).view(s.progress));
@@ -546,7 +554,7 @@ public final class ServerApplication {
         commands.register("industry","prospectorPan",(p,j)->{if(p.containerMenu instanceof cn.yumis.fight.modules.industry.platform.ProspectorMenu menu&&menu.containerId==j.get("menu").getAsInt()&&menu.stillValid(p))menu.pan(p,j.get("x").getAsInt(),j.get("z").getAsInt());});
         careers.register(commands);mages.register(commands);
         commands.register("equipment","playerStats",(p,j)->{if(!session(p).id.toString().equals(j.get("session").getAsString()))return;var value=JSON.fromJson(j.get("stats"),Stats.class);journal.put("playerStats/"+p.getUUID(),j.get("stats"));session(p).viewStats=value;profile(p);});
-        equipmentApplication.register(commands);economyService.register(commands);jars.register(commands);shops.register(commands);npcs.register(commands);chests.register(commands);progressService.register(commands);inventoryApplication.register(commands);
+        equipmentApplication.register(commands);economyService.register(commands);jars.register(commands);shops.register(commands);npcs.register(commands);tutorials.register(commands);chests.register(commands);progressService.register(commands);inventoryApplication.register(commands);
         commands.register("presentation","hello",(p,j)->{if(j.get("protocol").getAsInt()!=cn.yumis.fight.architecture.ProtocolVersion.CURRENT||j.has("rules")&&j.get("rules").getAsInt()!=cn.yumis.fight.bootstrap.ApplicationRules.DATA_VERSION){p.connection.disconnect(ModText.of("模组协议或规则版本不一致"));return;}profile(p);loot.pendingRewards(p);dungeons.waystones.pendingRewards(p);});
         commands.register("presentation","profile",(p,j)->{var sender=viewSenders.get(p.getUUID());if(sender!=null){if(j.has("definitions")&&j.get("definitions").getAsBoolean())sender.resetDefinitions();else sender.resetPersonal();}profile(p);});
         commands.register("combat","context",(p,j)->{Entity e=p.level().getEntity(j.get("entity").getAsInt());if(e instanceof LivingEntity l&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(l))context(p,l);});

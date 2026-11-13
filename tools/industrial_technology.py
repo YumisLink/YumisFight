@@ -41,9 +41,13 @@ PART_TIERS = dict(zircon_ceramic=3, vanadium_steel=2, molybdenum_vanadium_steel=
     nuclear_core=5, rtg_core=5, mana_wand=1, mana_storage_bag=1,
     storage_plugin=2, speed_plugin=2, magic_grass=1, magic_ore=2,
     energy_crystal_block_2=1, equipment_fabricator=1)
-LIQUID_TIERS = dict(coolant=3, alkahest=3, spent_solvent=3, blazing_fluid=3,
+LIQUID_TIERS = dict(mana_fluid=1, concentrated_mana_fluid=2, coolant=3, alkahest=3, spent_solvent=3, blazing_fluid=3,
     ceruleum=2, shimmer=3, azoth=4, penduliquid=4, heavy_water=3, brine=2)
 NEW_CONTENT = {
+    'display_stand': ('block', 1, '展示台'),
+    'magic_flower': ('block', 1, '魔力花'),
+    'mana_fluid': ('fluid', 1, '魔力液'),
+    'concentrated_mana_fluid': ('fluid', 2, '浓缩魔力液'),
     'stellar_alloy': ('item', 6, '恒星合金'),
     'confinement_lattice': ('item', 6, '约束晶格'),
     'fusion_ignition_core': ('item', 6, '恒星点火芯'),
@@ -81,6 +85,9 @@ for _t in range(1, 7):
         NEW_CONTENT[f'tech_block_t{_t}'] = ('block', _t, f'T{_t}科技方块')
 NEW_CONTENT['industrial_upgrade_6'] = ('item', 6, 'T6科技核心')
 NEW_MACHINES = {
+    'heat_generator': (2, 2, 2, '热能发电机', 'thermal_generator'),
+    'mana_concentrator': (2, 2, 2, '魔力液浓缩器', 'coolant_mixer'),
+    'fluid_infuser': (2, 2, 2, '注液器', 'coolant_mixer'),
     'isotopic_separator': (4, 4, 5, '离心分离机', 'mineral_refinery'),
     'isotope_activator': (5, 5, 5, '同位素活化机', 'alchemical_reactor'),
     'forming_assembler': (3, 3, 5, '成型装配机', 'currency_fabricator'),
@@ -263,6 +270,7 @@ def catalog(specs):
     return dict(grades=[dict(tier=t, name=NAMES[t-1], colors=PALETTES[t-1]) for t in range(1, 7)],
                 items=tiers, fluids={own(k): t for k, t in LIQUID_TIERS.items()} | {'minecraft:water': 1},
                 content=content, devices=specs, recipe_energy_tiers=energy_tiers,
+                material_items=[k for k in tiers if any(k==own(form) for metal in METAL_TIERS for form in [metal+'_ore','raw_'+metal,'crushed_'+metal,metal+'_concentrate',metal+'_ingot',metal+'_block','high_purity_'+metal+'_ingot']) or k in {own(key) for key in PART_TIERS if 'alloy' in key or key in ['vanadium_steel','molybdenum_vanadium_steel','zircon_ceramic','industrial_magic_stone','industrial_magic_stone_block','magic_ore','sulfide','energy_crystal_block_2']}],
                 mineral_tiers={k:v for k,v in tiers.items() if any(k==own(form) for metal in METAL_TIERS for form in [metal+'_ore','raw_'+metal,'crushed_'+metal,metal+'_concentrate',metal+'_ingot','high_purity_'+metal+'_ingot'])})
 
 
@@ -293,9 +301,9 @@ def crafting(specs):
         shaped(f'industrial_upgrade_{t}', [' T ', '   ', '   '], {'T': f'tech_block_t{t}'}, count=2)
         shaped(f'machine_casing_t{t}', [' T ', 'FCF', '   '], {'T': f'tech_block_t{t}', 'C': f'industrial_upgrade_{t}', 'F': frames[t-2]})
     functions = dict(mana_crusher='minecraft:stonecutter', mana_furnace='minecraft:furnace', mineral_generator='minecraft:iron_pickaxe',
-        currency_fabricator='minecraft:dropper', mana_forge='minecraft:blast_furnace', mana_beacon='minecraft:amethyst_block',
+        currency_fabricator='horadric_cube', mana_forge='minecraft:blast_furnace', mana_beacon='minecraft:amethyst_block',
         coal_generator='minecraft:smoker', solar_collector='minecraft:daylight_detector', turbine_generator='minecraft:piston',
-        wind_generator='minecraft:lightning_rod', thermal_generator='minecraft:blast_furnace', nuclear_reactor='nuclear_core',
+        wind_generator='minecraft:lightning_rod', heat_generator='minecraft:magma_block', mana_concentrator='minecraft:cauldron', fluid_infuser='minecraft:dropper', thermal_generator='minecraft:blast_furnace', nuclear_reactor='nuclear_core',
         rtg_generator='rtg_core', coolant_mixer='minecraft:cauldron', mineral_refinery='minecraft:bucket',
         alchemical_reactor='minecraft:cauldron', water_pump='minecraft:piston', transfer_crystal='minecraft:ender_pearl',
         harvest_crystal='minecraft:wheat_seeds', fluid_crystal='minecraft:bucket', fluid_tank='minecraft:bucket',
@@ -596,12 +604,112 @@ def resources(specs):
     tag = RES / 'data/minecraft/tags/block/mineable/pickaxe.json'
     values = json.loads(tag.read_text(encoding='utf-8'))
     for key, (kind, grade, title) in NEW_CONTENT.items():
-        if kind == 'block' and own(key) not in values['values']:
+        if kind == 'block' and key!='magic_flower' and own(key) not in values['values']:
             values['values'].append(own(key))
     for key in NEW_MACHINES:
         if own(key) not in values['values']:
             values['values'].append(own(key))
     write(tag, values)
+
+
+def display_line():
+    """Production source for the display/infusion chain and its blue flora resources."""
+    import io
+    import os
+    import zipfile
+    from PIL import Image
+
+    shaped('display_stand', ['MFM','CSC','MMM'], {'M':'minecraft:copper_ingot','F':'minecraft:smooth_stone_slab','C':'energy_crystal_1','S':'machine_casing_t1'})
+    for key, part in [('heat_generator','minecraft:magma_block'),('mana_concentrator','minecraft:cauldron'),('fluid_infuser','minecraft:dropper')]:
+        shaped(key,['MFM','CSC','MMM'],{'M':'vanadium_steel','F':part,'C':'mana_component','S':'machine_casing_t2'})
+    process('make_mana_fluid','mana_forge',[('energy_crystal_1',1)],[],1,ticks=100,energy=50,fluids=[('minecraft:water',1000)],fluid_out=('mana_fluid',1000))
+    process('concentrate_mana_fluid','mana_concentrator',[],[],2,ticks=20,energy=100,fluids=[('mana_fluid',100)],fluid_out=('concentrated_mana_fluid',1))
+    for name, source, fluid, result in [('infuse_regal','transmutation_stone','mana_fluid','regal_stone'),('infuse_exalted','regal_stone','concentrated_mana_fluid','exalted_stone'),('infuse_advanced_divine','divine_stone','shimmer','advanced_divine_stone')]:
+        process(name,'fluid_infuser',[(source,1)],[(result,1)],2,ticks=20,energy=100,fluids=[(fluid,100)])
+    (DATA/'recipe/currency_upgrader.json').unlink(missing_ok=True)
+    rules_path=DATA/'rules/industrial.json'
+    rules=json.loads(rules_path.read_text(encoding='utf-8'))
+    rules.update(magicFlowerChance=16,magicFlowerRadius=4,magicFlowerSpreadChance=8,magicFlowerHeight=1)
+    write(rules_path,rules)
+
+    def cube(low,high,uv=(0,0,4,4),texture='#atlas'):
+        return {'from':low,'to':high,'faces':{face:{'texture':texture,'uv':list(uv)} for face in ['north','south','east','west','up','down']}}
+    bodies={
+        'display_stand':[cube([1,0,1],[15,2,15]),cube([5,2,5],[11,6,11]),cube([.5,6,.5],[15.5,8,15.5],(4,0,8,4))],
+        'heat_generator':[cube([1,0,1],[15,2,15]),cube([3,2,3],[13,13,13]),cube([2,13,2],[14,15,14],(4,0,8,4))]+[cube([x,3,2],[x+1,12,14],(8,0,12,4)) for x in [1,14]],
+        'mana_concentrator':[cube([1,0,1],[15,3,15]),cube([2,13,2],[14,16,14]),cube([7,3,7],[9,13,9],(4,0,8,4)),cube([3,4,3],[7,13,13],texture='#glass'),cube([9,4,3],[13,13,13],texture='#glass')],
+        'fluid_infuser':[cube([2,8,2],[14,16,14]),cube([6,4,6],[10,8,10],(4,0,8,4)),cube([7,0,7],[9,4,9],(8,0,12,4)),cube([2,4,6],[5,10,10],texture='#glass'),cube([11,4,6],[14,10,10],texture='#glass')],
+    }
+    for key, elements in bodies.items():
+        passive=key=='display_stand'
+        for suffix in [''] if passive else ['','_linked','_active']:
+            template='mana_accumulator_1' if passive else 'turbine_generator_2'
+            texture=own('block/arcane/'+template+suffix)
+            model={'ambientocclusion':True,'render_type':'minecraft:cutout','textures':{'atlas':texture,'particle':texture,'glass':'minecraft:block/light_blue_stained_glass'},'elements':elements}
+            write(ASSETS/f'models/block/{key}{suffix}.json',model)
+        variants={'':{'model':own('block/'+key)}} if passive else {
+            f'facing={face},tier={tier},connected={str(connected).lower()},active={str(active).lower()}':
+                {'model':own('block/'+key+('_active' if active else '_linked' if connected else '')),'y':rotation}
+            for face,rotation in [('north',0),('east',90),('south',180),('west',270)] for tier in range(1,6) for connected in [False,True] for active in [False,True]}
+        write(ASSETS/f'blockstates/{key}.json',{'variants':variants})
+        write(ASSETS/f'items/{key}.json',{'model':{'type':'minecraft:model','model':own('block/'+key)}})
+        write(ASSETS/f'models/item/{key}.json',{'parent':own('block/'+key)})
+        write(DATA/f'loot_table/blocks/{key}.json',{'type':'minecraft:block','pools':[{'rolls':1,'entries':[{'type':'minecraft:item','name':own(key)}]}]})
+    tag_path=RES/'data/minecraft/tags/block/mineable/pickaxe.json'
+    tag=json.loads(tag_path.read_text(encoding='utf-8'))
+    for key in bodies:
+        if own(key) not in tag['values']:tag['values'].append(own(key))
+    write(tag_path,tag)
+    for key,color in [('mana_fluid',0x58BAFF),('concentrated_mana_fluid',0x3659E8)]:
+        write(ASSETS/f'items/{key}_bucket.json',{'model':{'type':'minecraft:model','model':own('item/'+key+'_bucket'),'tints':[{'type':'minecraft:constant','value':color}]}})
+        write(ASSETS/f'models/item/{key}_bucket.json',{'parent':'minecraft:item/generated','textures':{'layer0':own('item/coolant_bucket')}})
+        write(ASSETS/f'blockstates/{key}.json',{'variants':{'':{'model':own('block/'+key)}}})
+        write(ASSETS/f'models/block/{key}.json',{'textures':{'particle':'minecraft:block/water_still'}})
+    drop=ASSETS/'textures/particle/infusion_drop.png';drop.parent.mkdir(parents=True,exist_ok=True)
+    Image.new('RGBA',(2,2),(255,255,255,255)).save(drop)
+    for key in ['mana_fluid','concentrated_mana_fluid','shimmer']:
+        write(ASSETS/f'particles/infusion_{key}.json',{'textures':[own('infusion_drop')]})
+
+    cache=Path(os.environ.get('GRADLE_USER_HOME',Path.home()/'.gradle'))/'caches/neoformruntime/artifacts/minecraft_26.2_client.jar'
+    with zipfile.ZipFile(cache) as vanilla:
+        def image(name):return Image.open(io.BytesIO(vanilla.read('assets/minecraft/textures/block/'+name+'.png'))).convert('RGBA')
+        grass=image('firefly_bush')
+        for y in range(grass.height):
+            for x in range(grass.width):
+                r,g,b,a=grass.getpixel((x,y));lum=.3*r+.59*g+.11*b
+                if a:grass.putpixel((x,y),(int(lum*.58),int(lum*.86),min(255,int(lum*1.18)),a))
+        grass.save(ASSETS/'textures/block/magic_grass.png')
+        (ASSETS/'textures/block/magic_grass.png.mcmeta').unlink(missing_ok=True)
+        glow=image('firefly_bush_emissive')
+        for y in range(glow.height):
+            for x in range(glow.width):
+                r,g,b,a=glow.getpixel((x,y));lum=max(r,g,b)
+                if a:glow.putpixel((x,y),(int(lum*.3),int(lum*.7),lum,a))
+        glow.save(ASSETS/'textures/block/magic_grass_emissive.png')
+        write(ASSETS/'textures/block/magic_grass_emissive.png.mcmeta',{'animation':{'frametime':3}})
+        flower=image('poppy')
+        for y in range(flower.height):
+            for x in range(flower.width):
+                r,g,b,a=flower.getpixel((x,y))
+                if not a:continue
+                flower.putpixel((x,y),(min(255,70+int(r*.4)),min(255,100+int(r*.5)),min(255,160+int(r*.4)),a) if r>g*1.2 else (int(r*.7),int(g*.9),min(255,b+int(g*.4)),a))
+        flower.save(ASSETS/'textures/block/magic_flower.png')
+    write(ASSETS/'models/block/magic_grass.json',{'parent':'minecraft:block/cross_emissive','render_type':'minecraft:cutout','textures':{'cross':own('block/magic_grass'),'cross_emissive':own('block/magic_grass_emissive')}})
+    write(ASSETS/'models/item/magic_grass.json',{'parent':own('block/magic_grass')})
+    write(ASSETS/'items/magic_grass.json',{'model':{'type':'minecraft:model','model':own('item/magic_grass')}})
+    write(ASSETS/'models/block/magic_flower.json',{'parent':'minecraft:block/cross','render_type':'minecraft:cutout','textures':{'cross':own('block/magic_flower')}})
+    write(ASSETS/'models/item/magic_flower.json',{'parent':'minecraft:item/generated','textures':{'layer0':own('block/magic_flower')}})
+    write(ASSETS/'items/magic_flower.json',{'model':{'type':'minecraft:model','model':own('item/magic_flower')}})
+    write(ASSETS/'blockstates/magic_flower.json',{'variants':{'':{'model':own('block/magic_flower')}}})
+    write(DATA/'loot_table/blocks/magic_flower.json',{'type':'minecraft:block','pools':[{'rolls':1,'entries':[{'type':'minecraft:item','name':own('magic_flower')}]}]})
+    write(DATA/'worldgen/configured_feature/magic_flower.json',{'type':own('industrial_resources'),'config':{'kind':'flower'}})
+    write(DATA/'worldgen/placed_feature/magic_flower.json',{'feature':own('magic_flower'),'placement':[]})
+    write(DATA/'neoforge/biome_modifier/magic_flower.json',{'type':'neoforge:add_features','biomes':'#minecraft:is_overworld','features':[own('magic_flower')],'step':'vegetal_decoration'})
+    labels={f'block.{NS}.{key}':name for key,name in [('display_stand','展示台'),('heat_generator','热能发电机'),('mana_concentrator','魔力液浓缩器'),('fluid_infuser','注液器'),('magic_flower','魔力花')]}
+    for key,name in [('mana_fluid','魔力液'),('concentrated_mana_fluid','浓缩魔力液')]:
+        labels.update({f'fluid_type.{NS}.{key}':name,f'block.{NS}.{key}':name,f'item.{NS}.{key}_bucket':name+'桶'})
+    for locale in ['zh_cn','en_us']:
+        path=ASSETS/f'lang/{locale}.json';lang=json.loads(path.read_text(encoding='utf-8'));lang.update(labels);write(path,lang)
 
 
 def generate():
@@ -611,6 +719,8 @@ def generate():
     rules_and_processing()
     write(ASSETS / 'industry/technology.json', catalog(specs))
     resources(specs)
+    display_line()
+    write(ASSETS / 'industry/technology.json', catalog(specs))
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ public final class ClientSettings {
     public static String uiFont="modern";
     public static int damageScale=2;
     public static double targetScale=1;
-    public static boolean nearEffectFade=true;
+    public static boolean nearEffectFade=true,itemQualityFrames=true;
     public static String globalTheme="light",menuTheme="dark",machineTheme="light";
     public static boolean menuFollowsTheme=false,machineFollowsTheme=true;
     public static String theme(ThemeDomain domain){return switch(domain){case GENERAL->globalTheme;case MENU->menuFollowsTheme?globalTheme:menuTheme;case MACHINE->machineFollowsTheme?globalTheme:machineTheme;};}
@@ -31,6 +31,7 @@ public final class ClientSettings {
             damageScale=Integer.parseInt(value(s,"damageScale","2"));
             targetScale=Double.parseDouble(value(s,"targetScale","1"));
             nearEffectFade=!value(s,"nearEffectFade","true").equalsIgnoreCase("false");
+            itemQualityFrames=!value(s,"itemQualityFrames","true").equalsIgnoreCase("false");
             uiFont=value(s,"uiFont","modern");
             globalTheme=checkedTheme(value(s,"globalTheme","light"),"light");
             menuTheme=checkedTheme(value(s,"menuTheme","dark"),"dark");
@@ -53,7 +54,7 @@ public final class ClientSettings {
     public static void save(){
         try{
             Files.createDirectories(path().getParent());
-            Files.writeString(path(),"# 本机界面与战斗显示设置；保存后立即生效。\npanelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nnearEffectFade="+nearEffectFade+"\nuiFont=\""+uiFont+"\"\n# light 为灰色立体，dark 为黑灰透明。\nglobalTheme=\""+globalTheme+"\"\n# 取消跟随时保留该类面板当时的主题。\nmenuFollowsTheme="+menuFollowsTheme+"\nmenuTheme=\""+menuTheme+"\"\nmachineFollowsTheme="+machineFollowsTheme+"\nmachineTheme=\""+machineTheme+"\"\n");
+            Files.writeString(path(),"# 本机界面与战斗显示设置；保存后立即生效。\npanelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nitemQualityFrames="+itemQualityFrames+"\nitemQualityFrames="+itemQualityFrames+"\nnearEffectFade="+nearEffectFade+"\nuiFont=\""+uiFont+"\"\n# light 为灰色立体，dark 为黑灰透明。\nglobalTheme=\""+globalTheme+"\"\n# 取消跟随时保留该类面板当时的主题。\nmenuFollowsTheme="+menuFollowsTheme+"\nmenuTheme=\""+menuTheme+"\"\nmachineFollowsTheme="+machineFollowsTheme+"\nmachineTheme=\""+machineTheme+"\"\n");
         }
         catch(Exception e){
             ClientUi.current().message("设置保存失败："+e.getMessage());

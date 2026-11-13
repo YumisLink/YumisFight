@@ -3,6 +3,7 @@
   "package": "cn.yumis.fight.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "MagicGrassRandomTickMixin",
     "MenuAccessor",
     "CompoundContainerAccessor",
     "ConnectionAccessor",
@@ -61,6 +62,8 @@
     "DemonInputMixin",
     "DemonTravelMixin",
     "DemonVisionMixin",
-    "WarglaiveHandMixin"
+    "WarglaiveHandMixin",
+    "LightsaberBlockLightMixin",
+    "LightsaberEntityLightMixin"
   ]
 }

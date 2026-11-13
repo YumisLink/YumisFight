@@ -28,6 +28,8 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private record Line(String text,int x,int y,int color){
     }
     private final List<Line> lines=new ArrayList<>();
+    private record StyledLine(net.minecraft.util.FormattedCharSequence text,int y,int color){}
+    private final List<StyledLine> styledLines=new ArrayList<>();
     private record HoverArea(int x,int y,int width,int height,Hover renderer){}
     private final List<HoverArea> hoverAreas=new ArrayList<>();
     private record Card(int x,int y,int width,int height){
@@ -39,6 +41,8 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private record Picture(String path,int x,int y,int width,int height,float u0,float u1,float v0,float v1){}
     private record RightClick(int x,int y,int width,int height,Runnable action){}
     private final List<Picture> pictures=new ArrayList<>();
+    private record ExperienceBar(int x,int y,int width,double progress){}
+    private final List<ExperienceBar> experienceBars=new ArrayList<>();
     private final List<RightClick> rightClicks=new ArrayList<>();
     private List<PlayerPageSurface.Navigation> navigation=List.of();
     private List<PlayerPageSurface.SidebarRow> sidebarRows=List.of();
@@ -83,10 +87,10 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         clearWidgets();
         body.clear();
         widgetHovers.clear();
-        lines.clear();hoverAreas.clear();
+        lines.clear();styledLines.clear();hoverAreas.clear();
         cards.clear();
         icons.clear();sidebarRows=List.of();sidebarTitle="";
-        pictures.clear();rightClicks.clear();navigation=List.of();
+        pictures.clear();experienceBars.clear();rightClicks.clear();navigation=List.of();
         sidebar=page>=0&&customPanel==null&&panelWidth>=480?112:0;
         nextY=page<0?0:PAGE_TOP_PADDING;
         buttonFixed(page<0?"关闭":"返回",left+panelWidth-50,top+7,42,()->{
@@ -155,6 +159,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
             nextY+=12;
         }
     }
+    public void line(cn.yumis.fight.modules.presentation.api.RichText text,int color){for(var chars:font.split(text.component(),Math.max(1,contentWidth()-24))){styledLines.add(new StyledLine(chars,nextY,color));nextY+=12;}}
     private static String charsToString(net.minecraft.util.FormattedCharSequence seq){
         StringBuilder b=new StringBuilder();
         seq.accept((i,s,c)->{
@@ -179,7 +184,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     }
     private void updateVisibility(){
         for(AbstractWidget w:body){
-            w.visible=w.getY()>=bodyTop()&&w.getY()+w.getHeight()<=bodyTop()+bodyHeight();
+            w.visible=w.getY()<bodyTop()+bodyHeight()&&w.getY()+w.getHeight()>bodyTop();
             
         }
     }
@@ -201,7 +206,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
             UiTheme.card(g,left+6,bodyTop(),(left+sidebar+8)-(left+6),(bodyTop()+bodyHeight())-(bodyTop()));
             int yy=bodyTop()+12;
             if(sidebarRows.isEmpty()||bodyHeight()>=240){
-            g.text(font,cn.yumis.fight.modules.character.api.JobCatalog.require(state.progress.jobId()).title(),left+14,yy,UiTheme.GOLD,false);
+            g.text(font,cn.yumis.fight.modules.character.api.JobCatalog.displayName(state.progress.jobId(),state.progress.level,state.progress.awakened()),left+14,yy,UiTheme.GOLD,false);
             g.text(font,"战斗等级 "+state.progress.level,left+14,yy+21,UiTheme.TEXT,false);
             g.text(font,"可用 SP  "+state.progress.sp,left+14,yy+44,UiTheme.GOLD,false);
             g.text(font,"自由点  "+state.progress.free(),left+14,yy+65,UiTheme.ACCENT,false);
@@ -220,10 +225,12 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
             g.blit(ClientBootstrap.id(icon.path),contentLeft()+12+icon.x,yy,contentLeft()+12+icon.x+icon.size,yy+icon.size,0,1,0,1);
         }
         for(Picture picture:pictures){int yy=bodyTop()+picture.y-scroll;g.blit(ClientBootstrap.id(picture.path),contentLeft()+12+picture.x,yy,contentLeft()+12+picture.x+picture.width,yy+picture.height,picture.u0,picture.u1,picture.v0,picture.v1);}
+        for(var bar:experienceBars){int x=contentLeft()+12+bar.x,y=bodyTop()+bar.y-scroll;g.blit(Identifier.withDefaultNamespace("textures/gui/sprites/hud/experience_bar_background.png"),x,y,x+bar.width,y+5,0,1,0,1);int filled=(int)Math.floor(bar.width*bar.progress);if(filled>0)g.blit(Identifier.withDefaultNamespace("textures/gui/sprites/hud/experience_bar_progress.png"),x,y,x+filled,y+5,0,(float)bar.progress,0,1);}
         for(Line l:lines){
             int y=bodyTop()+l.y-scroll;
             if(y>=bodyTop()&&y+9<=bodyTop()+bodyHeight())g.text(font,page==0?cn.yumis.fight.modules.skills.client.CombatAttributeTooltip.numbers(l.text):Component.literal(l.text),contentLeft()+12+l.x,y,0xff000000|l.color,false);
         }
+        for(var line:styledLines){int y=bodyTop()+line.y-scroll;if(y>=bodyTop()&&y+9<=bodyTop()+bodyHeight())RichTextDrawing.line(g,font,line.text,contentLeft()+12,y,0xff000000|line.color);}
         if(page<0&&state.ready){
             int cell=(panelWidth-20)/4;
             for(int i=0;i<PlayerPages.all().size();i++){
@@ -239,7 +246,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         if(my>=bodyTop()&&my<bodyTop()+bodyHeight())for(var area:hoverAreas){int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;if(mx>=x&&mx<x+area.width&&my>=y&&my<y+area.height){area.renderer.render(g,mx,my);break;}}
         if(minecraft.gui.screen()==this)for(var row:widgetHovers.entrySet()){
             var widget=row.getKey();
-            if(widget.visible&&mx>=widget.getX()&&mx<widget.getX()+widget.getWidth()&&my>=widget.getY()&&my<widget.getY()+widget.getHeight()){
+            if(widget.visible&&(!body.contains(widget)||my>=bodyTop()&&my<bodyTop()+bodyHeight())&&mx>=widget.getX()&&mx<widget.getX()+widget.getWidth()&&my>=widget.getY()&&my<widget.getY()+widget.getHeight()){
                 row.getValue().render(g,mx,my);
                 break;
             }
@@ -278,7 +285,13 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private void dragScroll(double y){int thumb=Math.max(12,bodyHeight()*bodyHeight()/Math.max(1,contentHeight));setScroll((int)Math.round((y-bodyTop()-scrollGrab)*Math.max(0,contentHeight-bodyHeight())/Math.max(1,bodyHeight()-thumb)));}
     @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){if(draggingScroll){dragScroll(event.y());return true;}if(customPanel!=null&&customPanel.mouseDragged(event,dx,dy))return true;return super.mouseDragged(event,dx,dy);}
     @Override public boolean mouseReleased(MouseButtonEvent event){boolean was=draggingScroll;draggingScroll=false;if(customPanel!=null&&customPanel.mouseReleased(event))return true;return was||super.mouseReleased(event);}
-    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(sidebarClick(event))return true;if(customPanel==null&&event.button()==0&&contentHeight>bodyHeight()&&event.x()>=left+panelWidth-14&&event.x()<=left+panelWidth&&event.y()>=bodyTop()&&event.y()<=bodyTop()+bodyHeight()){int thumb=Math.max(12,bodyHeight()*bodyHeight()/contentHeight),at=bodyTop()+(bodyHeight()-thumb)*scroll/Math.max(1,contentHeight-bodyHeight());scrollGrab=event.y()>=at&&event.y()<at+thumb?event.y()-at:thumb/2d;draggingScroll=true;dragScroll(event.y());return true;}if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;if(event.button()==1&&event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())for(var area:rightClicks){int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;if(event.x()>=x&&event.x()<x+area.width&&event.y()>=y&&event.y()<y+area.height){area.action.run();return true;}}return super.mouseClicked(event,twice);}
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(sidebarClick(event))return true;if(customPanel==null&&event.button()==0&&contentHeight>bodyHeight()&&event.x()>=left+panelWidth-14&&event.x()<=left+panelWidth&&event.y()>=bodyTop()&&event.y()<=bodyTop()+bodyHeight()){int thumb=Math.max(12,bodyHeight()*bodyHeight()/contentHeight),at=bodyTop()+(bodyHeight()-thumb)*scroll/Math.max(1,contentHeight-bodyHeight());scrollGrab=event.y()>=at&&event.y()<at+thumb?event.y()-at:thumb/2d;draggingScroll=true;dragScroll(event.y());return true;}if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;if(event.button()==1&&event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())for(var area:rightClicks){int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;if(event.x()>=x&&event.x()<x+area.width&&event.y()>=y&&event.y()<y+area.height){area.action.run();return true;}}return clickWidgets(event,twice);}
+    private boolean clickWidgets(MouseButtonEvent event,boolean twice){
+        if(event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())return super.mouseClicked(event,twice);
+        var visible=body.stream().filter(w->w.visible).toList();
+        for(var widget:visible)widget.visible=false;
+        try{return super.mouseClicked(event,twice);}finally{for(var widget:visible)widget.visible=true;}
+    }
     @Override public boolean mouseScrolled(double x,double y,double sx,double sy){
         if(insideSidebar(x,y)){sidebarScroll=Math.clamp(sidebarScroll-(int)(sy*34),0,Math.max(0,sidebarRows.size()*34-sidebarListHeight()));return true;}
         if(customPanel!=null&&customPanel.mouseScrolled(x,y,sx,sy))return true;
@@ -321,6 +334,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     public void card(int x,int y,int width,int height){cards.add(new Card(x,y,width,height));}
     public void icon(String path,int x,int y,int size){icons.add(new Icon(path,x,y,size));}
     public void image(String path,int x,int y,int width,int height,float u0,float u1,float v0,float v1){pictures.add(new Picture(path,x,y,width,height,u0,u1,v0,v1));}
+    public void experienceBar(int x,int y,int width,double progress){experienceBars.add(new ExperienceBar(x,y,width,Math.clamp(progress,0,1)));}
     public boolean hasSidebar(){return sidebar>0;}
     public void rightClick(int x,int y,int width,int height,Runnable action){rightClicks.add(new RightClick(x,y,width,height,action));}
     public void navigation(List<PlayerPageSurface.Navigation> items,String selected,java.util.function.Consumer<String> select){

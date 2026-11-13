@@ -26,4 +26,6 @@ public interface SkillsClient extends ClientUi {
     Stats weaponStats(ItemStack weapon);
     void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras);
     JsonObject ailment(String target,String kind);
+    /** Optional owner-side gameplay observation, after this client has resolved an actual skill hit. */
+    default void skillHit(Target target,cn.yumis.fight.modules.skills.api.SkillDefinition skill,double fraction){}
 }

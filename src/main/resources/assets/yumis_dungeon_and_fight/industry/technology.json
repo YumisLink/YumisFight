@@ -215,6 +215,8 @@
     "yumis_dungeon_and_fight:magic_ore": 2,
     "yumis_dungeon_and_fight:energy_crystal_block_2": 1,
     "yumis_dungeon_and_fight:equipment_fabricator": 1,
+    "yumis_dungeon_and_fight:mana_fluid_bucket": 1,
+    "yumis_dungeon_and_fight:concentrated_mana_fluid_bucket": 2,
     "yumis_dungeon_and_fight:coolant_bucket": 3,
     "yumis_dungeon_and_fight:alkahest_bucket": 3,
     "yumis_dungeon_and_fight:spent_solvent_bucket": 3,
@@ -320,6 +322,8 @@
     "minecraft:blaze_rod": 3,
     "minecraft:nether_wart": 3,
     "minecraft:obsidian": 3,
+    "yumis_dungeon_and_fight:display_stand": 1,
+    "yumis_dungeon_and_fight:magic_flower": 1,
     "yumis_dungeon_and_fight:stellar_alloy": 6,
     "yumis_dungeon_and_fight:confinement_lattice": 6,
     "yumis_dungeon_and_fight:fusion_ignition_core": 6,
@@ -418,15 +422,22 @@
     "yumis_dungeon_and_fight:mana_accumulator_t2": 2,
     "yumis_dungeon_and_fight:mana_accumulator_t3": 3,
     "yumis_dungeon_and_fight:mana_accumulator_t4": 5,
+    "yumis_dungeon_and_fight:heat_generator": 2,
+    "yumis_dungeon_and_fight:mana_concentrator": 2,
+    "yumis_dungeon_and_fight:fluid_infuser": 2,
     "yumis_dungeon_and_fight:isotopic_separator": 4,
     "yumis_dungeon_and_fight:isotope_activator": 5,
     "yumis_dungeon_and_fight:forming_assembler": 3,
     "yumis_dungeon_and_fight:thermal_distiller": 3,
     "yumis_dungeon_and_fight:artificial_star": 6,
     "minecraft:iron_pickaxe": 1,
-    "minecraft:diamond_pickaxe": 2
+    "minecraft:diamond_pickaxe": 2,
+    "minecraft:smooth_stone_slab": 1,
+    "minecraft:magma_block": 1
   },
   "fluids": {
+    "yumis_dungeon_and_fight:mana_fluid": 1,
+    "yumis_dungeon_and_fight:concentrated_mana_fluid": 2,
     "yumis_dungeon_and_fight:coolant": 3,
     "yumis_dungeon_and_fight:alkahest": 3,
     "yumis_dungeon_and_fight:spent_solvent": 3,
@@ -440,6 +451,26 @@
     "minecraft:water": 1
   },
   "content": {
+    "display_stand": {
+      "kind": "block",
+      "tier": 1,
+      "title": "展示台"
+    },
+    "magic_flower": {
+      "kind": "block",
+      "tier": 1,
+      "title": "魔力花"
+    },
+    "mana_fluid": {
+      "kind": "fluid",
+      "tier": 1,
+      "title": "魔力液"
+    },
+    "concentrated_mana_fluid": {
+      "kind": "fluid",
+      "tier": 2,
+      "title": "浓缩魔力液"
+    },
     "stellar_alloy": {
       "kind": "item",
       "tier": 6,
@@ -692,12 +723,7 @@
           15,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "mana_crusher_t3": {
       "kind": "mana_crusher",
@@ -713,12 +739,7 @@
           15,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t3": 1,
-        "mana_component": 2,
-        "reinforced_frame": 1
-      }
+      ]
     },
     "mana_crusher_t4": {
       "kind": "mana_crusher",
@@ -734,12 +755,7 @@
           15,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t4": 1,
-        "mana_component": 2,
-        "heatproof_frame": 1
-      }
+      ]
     },
     "mana_crusher_t5": {
       "kind": "mana_crusher",
@@ -755,12 +771,7 @@
           15,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
     },
     "mana_furnace_t1": {
       "kind": "mana_furnace",
@@ -792,12 +803,7 @@
           14,
           14
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "mana_furnace_t3": {
       "kind": "mana_furnace",
@@ -813,12 +819,7 @@
           14,
           14
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t3": 1,
-        "mana_component": 2,
-        "reinforced_frame": 1
-      }
+      ]
     },
     "mana_furnace_t4": {
       "kind": "mana_furnace",
@@ -834,12 +835,7 @@
           14,
           14
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t4": 1,
-        "mana_component": 2,
-        "heatproof_frame": 1
-      }
+      ]
     },
     "mana_furnace_t5": {
       "kind": "mana_furnace",
@@ -855,12 +851,7 @@
           14,
           14
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
     },
     "mineral_generator_t1": {
       "kind": "mineral_generator",
@@ -892,12 +883,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "mineral_generator_t3": {
       "kind": "mineral_generator",
@@ -913,12 +899,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t3": 1,
-        "mana_component": 2,
-        "reinforced_frame": 1
-      }
+      ]
     },
     "mineral_generator_t4": {
       "kind": "mineral_generator",
@@ -934,12 +915,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t4": 1,
-        "mana_component": 2,
-        "heatproof_frame": 1
-      }
+      ]
     },
     "mineral_generator_t5": {
       "kind": "mineral_generator",
@@ -955,12 +931,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
     },
     "currency_fabricator_t1": {
       "kind": "currency_fabricator",
@@ -992,12 +963,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "currency_fabricator_t3": {
       "kind": "currency_fabricator",
@@ -1013,12 +979,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t3": 1,
-        "mana_component": 2,
-        "reinforced_frame": 1
-      }
+      ]
     },
     "currency_fabricator_t4": {
       "kind": "currency_fabricator",
@@ -1034,12 +995,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t4": 1,
-        "mana_component": 2,
-        "heatproof_frame": 1
-      }
+      ]
     },
     "currency_fabricator_t5": {
       "kind": "currency_fabricator",
@@ -1055,12 +1011,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
     },
     "mana_forge_t1": {
       "kind": "mana_forge",
@@ -1092,12 +1043,7 @@
           16,
           16
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "mana_forge_t3": {
       "kind": "mana_forge",
@@ -1113,12 +1059,7 @@
           16,
           16
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t3": 1,
-        "mana_component": 2,
-        "reinforced_frame": 1
-      }
+      ]
     },
     "mana_forge_t4": {
       "kind": "mana_forge",
@@ -1134,12 +1075,7 @@
           16,
           16
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t4": 1,
-        "mana_component": 2,
-        "heatproof_frame": 1
-      }
+      ]
     },
     "mana_forge_t5": {
       "kind": "mana_forge",
@@ -1155,12 +1091,7 @@
           16,
           16
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
     },
     "mana_beacon_t1": {
       "kind": "mana_beacon",
@@ -1208,12 +1139,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "mana_beacon_t3": {
       "kind": "mana_beacon",
@@ -1237,12 +1163,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t3": 1,
-        "mana_component": 2,
-        "reinforced_frame": 1
-      }
+      ]
     },
     "mana_beacon_t4": {
       "kind": "mana_beacon",
@@ -1266,12 +1187,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t4": 1,
-        "mana_component": 2,
-        "heatproof_frame": 1
-      }
+      ]
     },
     "mana_beacon_t5": {
       "kind": "mana_beacon",
@@ -1295,12 +1211,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
     },
     "coal_generator": {
       "kind": "coal_generator",
@@ -1540,12 +1451,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "transfer_crystal_t3": {
       "kind": "transfer_crystal",
@@ -1569,12 +1475,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
     },
     "harvest_crystal_t1": {
       "kind": "harvest_crystal",
@@ -1622,12 +1523,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "harvest_crystal_t3": {
       "kind": "harvest_crystal",
@@ -1651,12 +1547,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t4": 1,
-        "mana_component": 2,
-        "heatproof_frame": 1
-      }
+      ]
     },
     "fluid_crystal_t1": {
       "kind": "fluid_crystal",
@@ -1704,12 +1595,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "fluid_crystal_t3": {
       "kind": "fluid_crystal",
@@ -1733,12 +1619,7 @@
           18,
           10.5
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
     },
     "fluid_tank_t1": {
       "kind": "fluid_tank",
@@ -1770,12 +1651,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "fluid_tank_t3": {
       "kind": "fluid_tank",
@@ -1791,12 +1667,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t4": 1,
-        "mana_component": 2,
-        "heatproof_frame": 1
-      }
+      ]
     },
     "mana_accumulator_t1": {
       "kind": "mana_accumulator",
@@ -1828,12 +1699,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t2": 1,
-        "mana_component": 2,
-        "basic_frame": 1
-      }
+      ]
     },
     "mana_accumulator_t3": {
       "kind": "mana_accumulator",
@@ -1849,12 +1715,7 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t3": 1,
-        "mana_component": 2,
-        "reinforced_frame": 1
-      }
+      ]
     },
     "mana_accumulator_t4": {
       "kind": "mana_accumulator",
@@ -1870,12 +1731,55 @@
           16,
           15
         ]
-      ],
-      "upgrade_costs": {
-        "machine_casing_t5": 1,
-        "mithril_mana_component": 2,
-        "precision_frame": 1
-      }
+      ]
+    },
+    "heat_generator": {
+      "kind": "heat_generator",
+      "tier": 2,
+      "technology": 2,
+      "processing": 2,
+      "boxes": [
+        [
+          1,
+          0,
+          1,
+          15,
+          16,
+          15
+        ]
+      ]
+    },
+    "mana_concentrator": {
+      "kind": "mana_concentrator",
+      "tier": 2,
+      "technology": 2,
+      "processing": 2,
+      "boxes": [
+        [
+          1,
+          0,
+          1,
+          15,
+          16,
+          15
+        ]
+      ]
+    },
+    "fluid_infuser": {
+      "kind": "fluid_infuser",
+      "tier": 2,
+      "technology": 2,
+      "processing": 2,
+      "boxes": [
+        [
+          1,
+          0,
+          1,
+          15,
+          16,
+          15
+        ]
+      ]
     },
     "isotopic_separator": {
       "kind": "isotopic_separator",
@@ -1995,6 +1899,7 @@
     "industrial/automatic_superconducting_control": 5,
     "industrial/brine": 2,
     "industrial/cobblestone_to_gravel": 1,
+    "industrial/concentrate_mana_fluid": 2,
     "industrial/confinement_lattice": 6,
     "industrial/convert_uranium": 4,
     "industrial/coolant": 3,
@@ -2071,6 +1976,9 @@
     "industrial/generate_vanadium": 2,
     "industrial/generate_zirconium": 3,
     "industrial/heavy_water": 3,
+    "industrial/infuse_advanced_divine": 2,
+    "industrial/infuse_exalted": 2,
+    "industrial/infuse_regal": 2,
     "industrial/leach_adamantite": 4,
     "industrial/leach_iridium": 5,
     "industrial/leach_mithril": 3,
@@ -2082,6 +1990,7 @@
     "industrial/leach_zirconium": 3,
     "industrial/lithium_salt": 4,
     "industrial/magic_stone": 3,
+    "industrial/make_mana_fluid": 1,
     "industrial/nuclear_pellet": 4,
     "industrial/pu238_precursor": 4,
     "industrial/pump_water": 2,
@@ -2158,6 +2067,148 @@
     "industrial/zirconium_casing": 3,
     "industrial/zircon_ceramic": 3
   },
+  "material_items": [
+    "yumis_dungeon_and_fight:copper_ore",
+    "yumis_dungeon_and_fight:raw_copper",
+    "yumis_dungeon_and_fight:crushed_copper",
+    "yumis_dungeon_and_fight:copper_concentrate",
+    "yumis_dungeon_and_fight:copper_ingot",
+    "yumis_dungeon_and_fight:copper_block",
+    "yumis_dungeon_and_fight:high_purity_copper_ingot",
+    "yumis_dungeon_and_fight:iron_ore",
+    "yumis_dungeon_and_fight:raw_iron",
+    "yumis_dungeon_and_fight:crushed_iron",
+    "yumis_dungeon_and_fight:iron_concentrate",
+    "yumis_dungeon_and_fight:iron_ingot",
+    "yumis_dungeon_and_fight:iron_block",
+    "yumis_dungeon_and_fight:high_purity_iron_ingot",
+    "yumis_dungeon_and_fight:lead_ore",
+    "yumis_dungeon_and_fight:raw_lead",
+    "yumis_dungeon_and_fight:crushed_lead",
+    "yumis_dungeon_and_fight:lead_concentrate",
+    "yumis_dungeon_and_fight:lead_ingot",
+    "yumis_dungeon_and_fight:lead_block",
+    "yumis_dungeon_and_fight:high_purity_lead_ingot",
+    "yumis_dungeon_and_fight:orichalcum_ore",
+    "yumis_dungeon_and_fight:raw_orichalcum",
+    "yumis_dungeon_and_fight:crushed_orichalcum",
+    "yumis_dungeon_and_fight:orichalcum_concentrate",
+    "yumis_dungeon_and_fight:orichalcum_ingot",
+    "yumis_dungeon_and_fight:orichalcum_block",
+    "yumis_dungeon_and_fight:high_purity_orichalcum_ingot",
+    "yumis_dungeon_and_fight:gold_ore",
+    "yumis_dungeon_and_fight:raw_gold",
+    "yumis_dungeon_and_fight:crushed_gold",
+    "yumis_dungeon_and_fight:gold_concentrate",
+    "yumis_dungeon_and_fight:gold_ingot",
+    "yumis_dungeon_and_fight:gold_block",
+    "yumis_dungeon_and_fight:high_purity_gold_ingot",
+    "yumis_dungeon_and_fight:vanadium_ore",
+    "yumis_dungeon_and_fight:raw_vanadium",
+    "yumis_dungeon_and_fight:crushed_vanadium",
+    "yumis_dungeon_and_fight:vanadium_concentrate",
+    "yumis_dungeon_and_fight:vanadium_ingot",
+    "yumis_dungeon_and_fight:vanadium_block",
+    "yumis_dungeon_and_fight:high_purity_vanadium_ingot",
+    "yumis_dungeon_and_fight:titanium_ore",
+    "yumis_dungeon_and_fight:raw_titanium",
+    "yumis_dungeon_and_fight:crushed_titanium",
+    "yumis_dungeon_and_fight:titanium_concentrate",
+    "yumis_dungeon_and_fight:titanium_ingot",
+    "yumis_dungeon_and_fight:titanium_block",
+    "yumis_dungeon_and_fight:high_purity_titanium_ingot",
+    "yumis_dungeon_and_fight:molybdenum_ore",
+    "yumis_dungeon_and_fight:raw_molybdenum",
+    "yumis_dungeon_and_fight:crushed_molybdenum",
+    "yumis_dungeon_and_fight:molybdenum_concentrate",
+    "yumis_dungeon_and_fight:molybdenum_ingot",
+    "yumis_dungeon_and_fight:molybdenum_block",
+    "yumis_dungeon_and_fight:high_purity_molybdenum_ingot",
+    "yumis_dungeon_and_fight:zirconium_ore",
+    "yumis_dungeon_and_fight:raw_zirconium",
+    "yumis_dungeon_and_fight:crushed_zirconium",
+    "yumis_dungeon_and_fight:zirconium_concentrate",
+    "yumis_dungeon_and_fight:zirconium_ingot",
+    "yumis_dungeon_and_fight:zirconium_block",
+    "yumis_dungeon_and_fight:high_purity_zirconium_ingot",
+    "yumis_dungeon_and_fight:mithril_ore",
+    "yumis_dungeon_and_fight:raw_mithril",
+    "yumis_dungeon_and_fight:crushed_mithril",
+    "yumis_dungeon_and_fight:mithril_concentrate",
+    "yumis_dungeon_and_fight:mithril_ingot",
+    "yumis_dungeon_and_fight:mithril_block",
+    "yumis_dungeon_and_fight:high_purity_mithril_ingot",
+    "yumis_dungeon_and_fight:niobium_tantalum_ore",
+    "yumis_dungeon_and_fight:raw_niobium_tantalum",
+    "yumis_dungeon_and_fight:crushed_niobium_tantalum",
+    "yumis_dungeon_and_fight:niobium_tantalum_concentrate",
+    "yumis_dungeon_and_fight:niobium_tantalum_ingot",
+    "yumis_dungeon_and_fight:niobium_tantalum_block",
+    "yumis_dungeon_and_fight:high_purity_niobium_tantalum_ingot",
+    "yumis_dungeon_and_fight:niobium_ore",
+    "yumis_dungeon_and_fight:raw_niobium",
+    "yumis_dungeon_and_fight:crushed_niobium",
+    "yumis_dungeon_and_fight:niobium_concentrate",
+    "yumis_dungeon_and_fight:niobium_ingot",
+    "yumis_dungeon_and_fight:niobium_block",
+    "yumis_dungeon_and_fight:high_purity_niobium_ingot",
+    "yumis_dungeon_and_fight:tantalum_ore",
+    "yumis_dungeon_and_fight:raw_tantalum",
+    "yumis_dungeon_and_fight:crushed_tantalum",
+    "yumis_dungeon_and_fight:tantalum_concentrate",
+    "yumis_dungeon_and_fight:tantalum_ingot",
+    "yumis_dungeon_and_fight:tantalum_block",
+    "yumis_dungeon_and_fight:high_purity_tantalum_ingot",
+    "yumis_dungeon_and_fight:adamantite_ore",
+    "yumis_dungeon_and_fight:raw_adamantite",
+    "yumis_dungeon_and_fight:crushed_adamantite",
+    "yumis_dungeon_and_fight:adamantite_concentrate",
+    "yumis_dungeon_and_fight:adamantite_ingot",
+    "yumis_dungeon_and_fight:adamantite_block",
+    "yumis_dungeon_and_fight:high_purity_adamantite_ingot",
+    "yumis_dungeon_and_fight:uranium_ore",
+    "yumis_dungeon_and_fight:raw_uranium",
+    "yumis_dungeon_and_fight:crushed_uranium",
+    "yumis_dungeon_and_fight:uranium_concentrate",
+    "yumis_dungeon_and_fight:uranium_ingot",
+    "yumis_dungeon_and_fight:uranium_block",
+    "yumis_dungeon_and_fight:high_purity_uranium_ingot",
+    "yumis_dungeon_and_fight:terra_ore",
+    "yumis_dungeon_and_fight:raw_terra",
+    "yumis_dungeon_and_fight:crushed_terra",
+    "yumis_dungeon_and_fight:terra_concentrate",
+    "yumis_dungeon_and_fight:terra_ingot",
+    "yumis_dungeon_and_fight:terra_block",
+    "yumis_dungeon_and_fight:high_purity_terra_ingot",
+    "yumis_dungeon_and_fight:spacetime_ore",
+    "yumis_dungeon_and_fight:raw_spacetime",
+    "yumis_dungeon_and_fight:crushed_spacetime",
+    "yumis_dungeon_and_fight:spacetime_concentrate",
+    "yumis_dungeon_and_fight:spacetime_ingot",
+    "yumis_dungeon_and_fight:spacetime_block",
+    "yumis_dungeon_and_fight:high_purity_spacetime_ingot",
+    "yumis_dungeon_and_fight:iridium_ore",
+    "yumis_dungeon_and_fight:raw_iridium",
+    "yumis_dungeon_and_fight:crushed_iridium",
+    "yumis_dungeon_and_fight:iridium_concentrate",
+    "yumis_dungeon_and_fight:iridium_ingot",
+    "yumis_dungeon_and_fight:iridium_block",
+    "yumis_dungeon_and_fight:high_purity_iridium_ingot",
+    "yumis_dungeon_and_fight:zircon_ceramic",
+    "yumis_dungeon_and_fight:vanadium_steel",
+    "yumis_dungeon_and_fight:molybdenum_vanadium_steel",
+    "yumis_dungeon_and_fight:tzm_alloy",
+    "yumis_dungeon_and_fight:orichalcum_alloy",
+    "yumis_dungeon_and_fight:niobium_titanium_alloy",
+    "yumis_dungeon_and_fight:mithril_niobium_alloy",
+    "yumis_dungeon_and_fight:adamantite_titanium_alloy",
+    "yumis_dungeon_and_fight:henghui_alloy",
+    "yumis_dungeon_and_fight:industrial_magic_stone",
+    "yumis_dungeon_and_fight:industrial_magic_stone_block",
+    "yumis_dungeon_and_fight:sulfide",
+    "yumis_dungeon_and_fight:magic_ore",
+    "yumis_dungeon_and_fight:energy_crystal_block_2"
+  ],
   "mineral_tiers": {
     "yumis_dungeon_and_fight:copper_ore": 1,
     "yumis_dungeon_and_fight:raw_copper": 1,

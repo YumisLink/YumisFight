@@ -40,7 +40,7 @@ MINERALS={
  'niobium_tantalum':(4,3,1600,'raw_niobium_tantalum',1,'铌钽矿'),'adamantite':(4,2,2000,'raw_adamantite',1,'精金'),'uranium':(4,2,2000,'raw_uranium',1,'铀'),'iridium':(5,1,2400,'raw_iridium',1,'铱')}
 from industrial_technology import MINING_ENERGY
 MINERALS={key:(value[0],value[1],value[2],MINING_ENERGY[key],*value[3:]) for key,value in MINERALS.items()}
-ORE_RULES={'titanium_overworld':(-48,16,3,6,2),'orichalcum':(-16,64,4,8,1),'vanadium':(-32,32,3,6,2),'molybdenum':(-48,16,3,5,3),'zirconium':(-32,32,3,6,3),'mithril':(-48,0,2,5,4),'niobium_tantalum':(-64,-16,2,4,5),'adamantite':(-64,-32,2,4,8),'iridium':(-64,-40,1,3,16)}
+ORE_RULES={'titanium_overworld':(-48,16,3,6,1,7),'orichalcum':(-16,64,4,8,1,15),'vanadium':(-32,32,3,6,1,13),'molybdenum':(-48,16,3,5,1,8),'zirconium':(-32,32,3,6,1,10),'mithril':(-48,0,2,5,1,4),'niobium_tantalum':(-64,-16,2,6,1,1),'adamantite':(-64,-32,1,3,1,1),'iridium':(-64,-40,1,3,2,1)}
 LIQUIDS={'alkahest':('万溶剂','963d63'),'blazing_fluid':('炽焰液','ff722c'),'ceruleum':('青磷水','38d8bb'),'shimmer':('微光','ac93ef'),'azoth':('阿佐特','5a89e8'),'penduliquid':('悬凝液','b5e9ef'),'spent_solvent':('浊溶剂','62584b')}
 ALLOYS={
  'vanadium_steel':('钒钢',[('minecraft:iron_ingot',6),('vanadium_ingot',1),('minecraft:coal',1)],None,8,1,300,3200,'718299'),
@@ -110,7 +110,7 @@ def content():
     rules.pop('fluidTransferEnergyPerBucket',None)
     rules['minerals']={k:dict(zip(['tier','chance','ticks','energy','item','count'],[v[0],v[1],v[2],v[3],own(v[4]),v[5]])) for k,v in MINERALS.items()}
     for key,v in ORE_RULES.items():
-        rules['ores'][key]=dict(zip(['minY','maxY','minSize','maxSize','chance','attempts'],[*v,1]))
+        rules['ores'][key]=dict(zip(['minY','maxY','minSize','maxSize','chance','attempts'],v))
         write(DATA/f'worldgen/configured_feature/{key}.json',{'type':own('industrial_resources'),'config':{'kind':key}})
         write(DATA/f'worldgen/placed_feature/{key}.json',{'feature':own(key),'placement':[]})
         write(DATA/f'neoforge/biome_modifier/{key}.json',{'type':'neoforge:add_features','biomes':'#minecraft:is_overworld','features':[own(key)],'step':'underground_ores'})

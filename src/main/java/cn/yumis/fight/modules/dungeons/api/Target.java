@@ -41,7 +41,8 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         return growth(projected)/growth(original);
     }
     public String power(){return elitePower;}
-    public boolean bossOrElite(){return elite||kind.equals("BOSS")||kind.equals("WITHER")||kind.equals("yumis_dungeon_and_fight:dragon");}
+    public boolean boss(){return kind.equals("BOSS")||kind.equals("WITHER")||kind.equals("yumis_dungeon_and_fight:dragon");}
+    public boolean bossOrElite(){return elite||boss();}
     public boolean rewardsEligible(){return !noRewards;}
     public boolean training(){return kind.equals("TRAINING");}
     public boolean consumesHealth(){return !training()&&!damageImmune;}
@@ -82,7 +83,9 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1)*waystoneHealth;
     }
     public double attack(int level){
-        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1)*waystoneAttack;
+        // The added pressure grows from x3 at level 1 to x12 at level 80, then stays at x12.
+        double attackScale=3+9*(Math.clamp(level,1,80)-1)/79d;
+        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1)*waystoneAttack*attackScale;
     }
     private static double growth(int level){if(level<1)throw new IllegalArgumentException("敌人等级无效");return level<=HEALTH_GROWTH.length?HEALTH_GROWTH[level-1]:HEALTH_GROWTH[HEALTH_GROWTH.length-1]*Math.pow(1.08,level-HEALTH_GROWTH.length);}
 }

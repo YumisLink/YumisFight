@@ -41,7 +41,9 @@ public final class AffixGeneration {
     private static Affix instance(AffixDefinition definition){Affix a=new Affix();a.instanceId=UUID.randomUUID().toString();a.id=definition.id();a.stat=definition.stat()==null?"":definition.stat().name();a.operation=definition.operation();a.element=definition.element();return a;}
     private static Affix stat(Context context,AffixDefinition definition,double roll,Random random){
         Affix a=instance(definition);a.baseline=context.item.baseline(a);a.roll=roll;a.value=a.baseline*roll;
-        if(a.stat.equals("ATTACK_SPEED")){a.value=AttackSpeedRoll.sample(context.item.level(),roll);a.baseline=AttackSpeedRoll.sample(context.item.level(),.8);a.baselineMaximum=AttackSpeedRoll.sample(context.item.level(),1.2);}return a;
+        if(a.stat.equals("ATTACK_SPEED")){a.value=AttackSpeedRoll.sample(context.item.level(),roll);a.baseline=AttackSpeedRoll.sample(context.item.level(),.8);a.baselineMaximum=AttackSpeedRoll.sample(context.item.level(),1.2);}
+        if(definition.minimum()!=null){a.baseline=(definition.minimum()+definition.maximum())/2*definition.scale();a.value=(definition.minimum()+(definition.maximum()-definition.minimum())*(roll-.8)/.4)*definition.scale();AffixResolver.anchor(a,UUID.randomUUID().toString(),definition,definition.revision(),definition.effectiveScale(context.item.level()));}
+        return a;
     }
     public static Affix sample(Item item,boolean duplicates,Random random){
         Context context=new Context(item,duplicates);

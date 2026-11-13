@@ -4,7 +4,7 @@ import java.util.*;
 
 /** Stable device IDs composed from capabilities. Registration occurs before block registration. */
 public final class DeviceType {
-    public enum Capability {PROCESSING,PARALLEL,GENERATION,GENERATION_OUTPUT,IGNITION,LOGISTICS,FLUID_LOGISTICS,HARVEST,STORAGE_NETWORK,ENERGY_STORAGE,FLUID_STORAGE,PUMP,MINING,DUAL_FLUID,GRID_ONLY,STRUCTURE,SELECT_RECIPE,REQUIRE_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE,FLUID_INPUT_ALL_SIDES}
+    public enum Capability {PROCESSING,PARALLEL,GENERATION,GENERATION_OUTPUT,IGNITION,LOGISTICS,FLUID_LOGISTICS,HARVEST,STORAGE_NETWORK,ENERGY_STORAGE,FLUID_STORAGE,PUMP,MINING,DUAL_FLUID,GRID_ONLY,STRUCTURE,SELECT_RECIPE,REQUIRE_RECIPE,EXACT_RECIPE_TIER,SMELTING,FUEL,WIND,SOLAR,FLUID_PROCESSING,FLUID_FUEL,ROTOR,CURRENCY_UPGRADE,FLUID_INPUT_ALL_SIDES,INFUSION,ENVIRONMENTAL_HEAT}
     public enum Speed {TIER_EXPONENTIAL,FURNACE_TABLE,MINING_LINEAR,FIXED}
     public enum Output {RECIPE,CURRENCY}
     private static final Map<String,DeviceType> TYPES=new LinkedHashMap<>();
@@ -23,6 +23,9 @@ public final class DeviceType {
         COAL=generator("coal_generator",1,Capability.FUEL),SOLAR=generator("solar_collector",1,Capability.SOLAR),
         TURBINE=generator("turbine_generator",2,Capability.FUEL,Capability.FLUID_FUEL,Capability.ROTOR,Capability.FLUID_INPUT_ALL_SIDES),WIND=generator("wind_generator",2,Capability.WIND),
         THERMAL=generator("thermal_generator",3,Capability.FUEL,Capability.FLUID_FUEL),NUCLEAR=generator("nuclear_reactor",4,Capability.FUEL,Capability.FLUID_FUEL,Capability.GENERATION_OUTPUT,Capability.FLUID_INPUT_ALL_SIDES),RTG=generator("rtg_generator",5,Capability.FUEL),
+        HEAT=generator("heat_generator",2,Capability.ENVIRONMENTAL_HEAT),
+        CONCENTRATOR=register("mana_concentrator",false,0,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING),Speed.FIXED,Output.RECIPE),
+        INFUSER=register("fluid_infuser",false,0,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.INFUSION),Speed.FIXED,Output.RECIPE),
         MIXER=register("coolant_mixer",false,1,2,2,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING),Speed.FIXED,Output.RECIPE),
         TRANSFER=register("transfer_crystal",false,0,1,3,Set.of(Capability.LOGISTICS),Speed.FIXED,Output.RECIPE),
         HARVEST=register("harvest_crystal",false,0,1,3,Set.of(Capability.HARVEST),Speed.FIXED,Output.RECIPE),

@@ -20,6 +20,7 @@ public final class EquipmentAttributes {
         Stats s=new Stats();
         Map<String,Integer> sets=new HashMap<>();
         Map<Stat,Double> ratios=new EnumMap<>(Stat.class);
+        Map<Stat,Double> products=new EnumMap<>(Stat.class);
         for(Gear input:equipped){
             Gear g=cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(input);
             if(!g.valid(p,allowance))continue;
@@ -29,6 +30,7 @@ public final class EquipmentAttributes {
                 public void extra(Affix a){s.extras.add(new cn.yumis.fight.modules.attributes.api.ExtraDamage(a.element,a.value,a.maximum));}
                 public void family(String family,int rank){s.ranks.merge(family,rank,Integer::sum);}
                 public void percent(Stat stat,double value){ratios.merge(stat,value,Double::sum);}
+                public void more(Stat stat,double value){products.merge(stat,1+value,(x,y)->x*y);}
                 public void modifier(String id,double value,boolean product){if(product)s.modifiers.merge(id,value,(x,y)->x*y);else s.modifiers.merge(id,value,Double::sum);}
                 public void parameter(String source,String skill,String parameter,double add,double multiply){s.parameters.add(new ParameterModifier(source,skill,parameter,add,multiply));}
             };
@@ -55,11 +57,13 @@ public final class EquipmentAttributes {
         s.values.putAll(items);
         cn.yumis.fight.modules.character.api.CharacterAttributes.apply(p,s);
         for(var ratio:ratios.entrySet())s.mut(ratio.getKey(),ratio.getValue());
+        products.forEach((stat,factor)->s.attribute(stat).alls*=factor);
         for(var pair:Map.of(Stat.STRENGTH,"strengthRatio",Stat.INTELLIGENCE,"intelligenceRatio",Stat.PHYSICAL_ATTACK,"physicalAttackRatio",Stat.MAGICAL_ATTACK,"magicalAttackRatio").entrySet())s.mut(pair.getKey(),s.modifiers.getOrDefault(pair.getValue(),0d));
         sources.applyCharacter(s);
         for(Gear g:equipped)if(g.valid(p,allowance)&&MageBlood.is(g))MageBlood.apply(cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(g),s);
         s.attribute(Stat.MP).fadd+=2*s.get(Stat.SPIRIT);
         s.attribute(Stat.MAGICAL_DEFENSE).fadd+=2*s.get(Stat.SPIRIT);
+        s.mut(Stat.COOLDOWN_RECOVERY,.002*s.get(Stat.SPIRIT));
         EquipmentEffects.finish(s,EquipmentEffects.resolve(p,equipped,allowance));
         return s;
     }

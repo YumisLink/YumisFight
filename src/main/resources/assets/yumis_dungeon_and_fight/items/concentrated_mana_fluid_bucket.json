@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "yumis_dungeon_and_fight:item/concentrated_mana_fluid_bucket",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 3561960
+      }
+    ]
+  }
+}

@@ -31,7 +31,8 @@ public final class EquipmentAffixes {
     public static boolean flatAllowed(Gear g,Stat s){
         Slot slot=g.slot;
         return switch(s){
-            case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN->false;
+            case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN,STAMINA_RECOVERY,SHIELD_COOLDOWN_RECOVERY,SHIELD_REGENERATION->false;
+            case STAMINA->slot==Slot.LEGS;
             case ATTACK_SPEED->slot==Slot.WEAPON||sixJewelry(slot);
             case HEALTH->slot.armor();
             case MP,STRENGTH,INTELLIGENCE,SPIRIT->slot.armor()||slot.jewelry();
@@ -47,7 +48,7 @@ public final class EquipmentAffixes {
         if(base(g,s)<=0)return false;
         Slot slot=g.slot;
         return switch(s){
-            case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN->false;
+            case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN,STAMINA,STAMINA_RECOVERY,SHIELD_COOLDOWN_RECOVERY,SHIELD_REGENERATION->false;
             case ATTACK_SPEED->false;
             case HEALTH,MP->slot.armor()||slot.jewelry();
             case STRENGTH,INTELLIGENCE,SPIRIT->true;
@@ -64,13 +65,15 @@ public final class EquipmentAffixes {
         for(var d:AffixDefinitions.current().affixes.values()){
             if(!d.active()||!d.group().equals("random"))continue;
             boolean all=d.operation().equals(ALL_RESIST_FLAT);
-            if(percent?!d.operation().equals("PERCENT"):!d.operation().equals("FLAT")&&!all)continue;
-            if(all?!elementFlat(g.slot):d.stat()==null||!(percent?percentAllowed(g,d.stat()):flatAllowed(g,d.stat())))continue;
+            boolean movement=d.operation().equals("CHARACTER_PERCENT");
+            if(percent?!d.operation().equals("PERCENT"):!d.operation().equals("FLAT")&&!all&&!movement)continue;
+            if(movement?!characterPercentAllowed(g,d.stat()):all?!elementFlat(g.slot):d.stat()==null||!(percent?percentAllowed(g,d.stat()):flatAllowed(g,d.stat())))continue;
             if(!duplicates&&g.affixes.stream().anyMatch(a->!a.base&&(percent||!a.fixed)&&a.operation.equals(d.operation())&&(all||a.stat.equals(d.stat().name()))))continue;
-            result.add(d);
+            result.add(cn.yumis.fight.modules.affixes.api.AffixLevelCurves.atLevel(d,g.level));
         }
         return result;
     }
+    private static boolean characterPercentAllowed(Gear g,Stat stat){return stat==Stat.MOVEMENT_SPEED?g.slot==Slot.FEET:stat==Stat.STAMINA_RECOVERY?g.slot==Slot.LEGS:(stat==Stat.SHIELD_COOLDOWN_RECOVERY||stat==Stat.SHIELD_REGENERATION)&&g.slot.armor()&&base(g,Stat.SHIELD)>0;}
     public static double percentBaseline(int level,Stat s){
         return switch(s){case PHYSICAL_DEFENSE,MAGICAL_DEFENSE,SHIELD,EVASION->.175+1.075*(level-1)/79d;default->.175;};
     }
@@ -103,6 +106,13 @@ public final class EquipmentAffixes {
         for(Affix a:g.affixes){
             if(a.origin!=null&&a.origin.quality==null&&!a.fixed){a.syncStatus="unresolved_snapshot";continue;}
             if(a.base||a.fixed||!AffixDefinitions.current().affixes.containsKey(a.id))continue;
+            var definition=AffixDefinitions.current().affixes.get(a.id);
+            if(cn.yumis.fight.modules.affixes.api.AffixLevelCurves.interval(definition.levelCurve())){
+                var d=cn.yumis.fight.modules.affixes.api.AffixLevelCurves.atLevel(definition,g.level);
+                double q=a.origin==null?(a.roll-.8)/.4:a.origin.quality;
+                a.value=(d.minimum()+(d.maximum()-d.minimum())*q)*a.corruptionMultiplier;a.baseline=a.value/a.corruptionMultiplier/a.roll;
+                cn.yumis.fight.modules.affixes.api.AffixResolver.anchor(a,g.instance+"/"+a.instanceId,d,d.revision(),d.effectiveScale(g.level));continue;
+            }
             if(a.stat.equals("ATTACK_SPEED")){a.value=AttackSpeedRoll.sample(g.level,a.roll)*a.corruptionMultiplier;a.baseline=AttackSpeedRoll.sample(g.level,.8);a.baselineMaximum=AttackSpeedRoll.sample(g.level,1.2);a.origin=null;continue;}
             if(a.operation.equals("EXTRA")){
                 a.baseline=.1*EquipmentRules.budget(g.level);a.baselineMaximum=.2*EquipmentRules.budget(g.level);

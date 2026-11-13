@@ -14,7 +14,7 @@ public final class EquipmentChanges {
     private EquipmentChanges(){}
     public static Result process(ItemStack source,ItemStack input,int socket,Random random){
         var gear=EquipmentItems.gear(source);if(gear==null||input.isEmpty())throw new IllegalArgumentException("请选择装备和通货");String id=ItemData.id(input);var currency=input.copy();currency.shrink(1);var outputs=new ArrayList<ItemStack>();
-        if(gear.corrupted&&!id.equals("affix_gem"))throw new IllegalArgumentException("腐化装备仅允许继续镶嵌宝石");
+        if(gear.corrupted&&!Gemstones.currency(id))throw new IllegalArgumentException("腐化装备仅允许继续镶嵌宝石");
         if(id.equals("set_extraction_stone")){
             if(gear.set.isEmpty())throw new IllegalArgumentException("该装备没有套装");outputs.add(EquipmentItems.payload("set_stone",Map.of("set",gear.set,"level",gear.level,"group",gear.slot.armor()?"armor":"jewelry"),"套装石 · "+EquipmentDefinitions.current().sets.get(gear.set).name()));return new Result(ItemStack.EMPTY,currency,outputs);
         }
@@ -22,7 +22,7 @@ public final class EquipmentChanges {
             var payload=JsonParser.parseString(EquipmentItems.payload(input)).getAsJsonObject();boolean armor=payload.get("group").getAsString().equals("armor");
             if(gear.level<payload.get("level").getAsInt()||armor&&!gear.slot.armor()||!armor&&!gear.slot.jewelry())throw new IllegalArgumentException("套装石部位或来源等级不符");
             String set=payload.get("set").getAsString();var definition=EquipmentDefinitions.current().sets.get(set);if(definition==null||!definition.group().equals(payload.get("group").getAsString()))throw new IllegalArgumentException("套装定义或分类不符");gear.set=set;gear.revision++;
-        }else if(id.equals("affix_gem"))gear=EquipmentRules.socket(gear,JSON.fromJson(EquipmentItems.payload(input),Gem.class),socket>=0?socket:gear.gems.size()<gear.sockets?gear.gems.size():0);
+        }else if(Gemstones.currency(id))gear=EquipmentRules.socket(gear,Gemstones.read(input),socket>=0?socket:gear.gems.size()<gear.sockets?gear.gems.size():0);
         else if(id.equals("affix_extraction_stone")){var gem=GemExtraction.create(gear);outputs.add(EquipmentItems.payload("affix_gem",gem,gem.name));return new Result(ItemStack.EMPTY,currency,outputs);}
         else gear=EquipmentRules.process(gear,id,random);
         var updated=source.copy();EquipmentItems.write(updated,gear);return new Result(updated,currency,outputs);
@@ -46,5 +46,25 @@ public final class EquipmentChanges {
         var slot=player.containerMenu.getSlot(index);if(!SlotAccess.isWritable(slot,player))throw new IllegalArgumentException("该栏位不能加工装备");var source=slot.getItem();var gear=EquipmentItems.gear(source);var cursor=player.containerMenu.getCarried();
         if(gear==null||!gear.instance.toString().equals(j.get("equipment").getAsString())||gear.revision!=j.get("revision").getAsInt()||!InventoryEdits.encode(player,cursor).equals(j.get("cursor")))throw new IllegalArgumentException("装备或通货已变化");
         var value=EquipmentChanges.process(source,cursor,j.has("socket")?j.get("socket").getAsInt():-1,random);var edits=new JsonArray();edits.add(InventoryEdits.change(player,"menu",index,source,value.equipment()));edits.add(InventoryEdits.change(player,"cursor",0,cursor,value.currency()));j.add("inventoryChanges",edits);var outputs=new JsonArray();for(var item:value.outputs())outputs.add(InventoryEdits.encode(player,item));j.add("outputs",outputs);
+    }
+    public static void prepareCube(net.minecraft.world.entity.player.Player player,cn.yumis.fight.modules.professions.api.Profession profession,JsonObject request){
+        if(!(player.containerMenu instanceof HoradricCubeMenu menu)||!menu.initialContentsReady)throw new IllegalArgumentException("请等待赫拉迪姆方块材料同步");
+        if(request.get("menu").getAsInt()!=menu.containerId)throw new IllegalArgumentException("合成界面已变化");
+        if(request.get("rulesRevision").getAsLong()!=EquipmentDefinitions.current().revision)throw new IllegalArgumentException("装备规则已更新，请重试");
+        var grid=menu.grid();var recipe=CraftingEssences.match(grid);if(recipe==null)throw new IllegalArgumentException("材料、排列或装备保护条件不符合配方");
+        int count=1;
+        boolean toInventory=request.has("toInventory")&&request.get("toInventory").getAsBoolean();
+        if(toInventory){count=64;for(var stack:grid)if(!stack.isEmpty())count=Math.min(count,stack.getCount());}
+        var edits=new JsonArray();
+        for(int i=0;i<9;i++){var before=grid.get(i);var after=before.copy();if(!after.isEmpty())after.shrink(count);edits.add(InventoryEdits.change(player,"menu",i+1,before,after));}
+        var output=cn.yumis.fight.platform.ItemRegistry.item(recipe.essence().id(),count);
+        if(toInventory){var outputs=new JsonArray();outputs.add(InventoryEdits.encode(player,output));request.add("outputs",outputs);}
+        else{
+            var cursor=menu.getCarried();if(!cursor.isEmpty()&&(!ItemStack.isSameItemSameComponents(cursor,output)||cursor.getCount()+count>cursor.getMaxStackSize()))throw new IllegalArgumentException("请先放下手中物品，或按Shift合成到背包");
+            var after=cursor.isEmpty()?output:cursor.copyWithCount(cursor.getCount()+count);edits.add(InventoryEdits.change(player,"cursor",0,cursor,after));
+        }
+        request.add("inventoryChanges",edits);
+        var before=EquipmentJson.copy(profession,cn.yumis.fight.modules.professions.api.Profession.class);request.add("beforeProfession",JSON.toJsonTree(before));
+        before.award(60*count,false);before.grantTitle("craftsman");request.add("profession",JSON.toJsonTree(before));
     }
 }

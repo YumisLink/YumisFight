@@ -253,7 +253,7 @@ public final class MapPlacer {
                 }
             }
             var settings=new StructurePlaceSettings().setIgnoreEntities(false).setKnownShape(true).addProcessor(BlockIgnoreProcessor.STRUCTURE_AND_AIR);
-            if(!f.template().placeInWorld(level,f.position(),f.position(),settings,random,Block.UPDATE_CLIENTS|Block.UPDATE_SUPPRESS_DROPS))throw new IllegalStateException("结构放置失败: "+f.definition().id);
+            if(!placementTemplate(f).placeInWorld(level,f.position(),f.position(),settings,random,Block.UPDATE_CLIENTS|Block.UPDATE_SUPPRESS_DROPS))throw new IllegalStateException("结构放置失败: "+f.definition().id);
             for(var slot:f.definition().loot) {
                 var pos=f.position().offset(slot.pos[0],slot.pos[1],slot.pos[2]);
                 if(!(level.getBlockEntity(pos) instanceof RandomizableContainerBlockEntity container))throw new IllegalStateException("战利品位置不是可用容器: "+f.definition().id+" "+pos);
@@ -288,6 +288,20 @@ public final class MapPlacer {
             int y=Math.floorDiv(p.roadHeights.get(i),2)-1;BlockPos pos=new BlockPos(p.x(i),y,p.z(i));var state=level.getBlockState(pos);
             if(state.getBlock() instanceof StairBlock||state.getBlock() instanceof SlabBlock)put(pos.getX(),y,pos.getZ(),stone(pos.getX(),pos.getZ(),""));
         }
+    }
+    private StructureTemplate placementTemplate(GenerationPlan.Facility facility) {
+        CompoundTag tag=facility.template().save(new CompoundTag());boolean changed=false;
+        for(Tag item:tag.getListOrEmpty("entities")) {
+            CompoundTag entry=(CompoundTag)item,entity=entry.getCompoundOrEmpty("nbt");String id=entity.getStringOr("id","");
+            if(!id.equals("minecraft:item_frame")&&!id.equals("minecraft:glow_item_frame"))continue;
+            var local=entry.getListOrEmpty("blockPos");
+            if(local.size()!=3)throw new IllegalArgumentException("展示框缺少结构内挂接坐标: "+facility.definition().id);
+            BlockPos attached=facility.position().offset(local.getIntOr(0,0),local.getIntOr(1,0),local.getIntOr(2,0));
+            // Vanilla moves Pos, but block_pos must already match the destination while loading a frame.
+            entity.put("block_pos",new IntArrayTag(new int[]{attached.getX(),attached.getY(),attached.getZ()}));changed=true;
+        }
+        if(!changed)return facility.template();
+        var placed=new StructureTemplate();placed.load(level.registryAccess().lookupOrThrow(Registries.BLOCK),tag);return placed;
     }
     private void column(int x,int z,int bearing,int top,String family) {
         if(top<bearing)return;

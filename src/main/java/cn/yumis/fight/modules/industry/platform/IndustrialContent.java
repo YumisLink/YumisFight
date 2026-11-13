@@ -33,6 +33,8 @@ public final class IndustrialContent {
     public static final DeferredRegister<RecipeType<?>> TYPES=DeferredRegister.create(Registries.RECIPE_TYPE,NS);
     public static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS=DeferredRegister.create(Registries.RECIPE_SERIALIZER,NS);
     public static final DeferredRegister<FluidType> FLUID_TYPES=DeferredRegister.create(NeoForgeRegistries.Keys.FLUID_TYPES,NS);
+    public static final DeferredRegister<net.minecraft.core.particles.ParticleType<?>> PARTICLES=DeferredRegister.create(Registries.PARTICLE_TYPE,NS);
+    public static final Map<String,DeferredHolder<net.minecraft.core.particles.ParticleType<?>,net.minecraft.core.particles.SimpleParticleType>> INFUSION_DROPS=new LinkedHashMap<>();
     public static final DeferredRegister<Fluid> FLUIDS=DeferredRegister.create(Registries.FLUID,NS);
     public static final DeferredRegister<CreativeModeTab> TABS=DeferredRegister.create(Registries.CREATIVE_MODE_TAB,NS);
     public static final Map<String,Spec> SPECS=new LinkedHashMap<>();
@@ -42,6 +44,8 @@ public final class IndustrialContent {
     public static final DeferredHolder<RecipeSerializer<?>,RecipeSerializer<IndustrialRecipe>> RECIPE_SERIALIZER=SERIALIZERS.register("industrial",()->new RecipeSerializer<>(IndustrialRecipe.CODEC,ByteBufCodecs.fromCodecWithRegistries(IndustrialRecipe.CODEC.codec())));
     public static final DeferredHolder<RecipeSerializer<?>,RecipeSerializer<MachineUpgradeRecipe>> MACHINE_UPGRADE_SERIALIZER=SERIALIZERS.register("machine_upgrade",()->new RecipeSerializer<>(MachineUpgradeRecipe.CODEC,MachineUpgradeRecipe.STREAM_CODEC));
     public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<MachineBlockEntity>> MACHINE_BE=BES.register("industrial",()->new BlockEntityType<>(MachineBlockEntity::new,new HashSet<>(SPECS.keySet().stream().map(k->ALL_BLOCKS.get(k).get()).toList())));
+    public static final DeferredBlock<DisplayStandBlock> DISPLAY_STAND=BLOCKS.registerBlock("display_stand",DisplayStandBlock::new,p->p.strength(2.5f).sound(SoundType.METAL).noOcclusion());
+    public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<DisplayStandBlockEntity>> DISPLAY_STAND_BE=BES.register("display_stand",()->new BlockEntityType<>(DisplayStandBlockEntity::new,Set.of(DISPLAY_STAND.get())));
     public static final DeferredHolder<MenuType<?>,MenuType<ProspectorMenu>> PROSPECTOR_MENU=MENUS.register("prospector",()->IMenuTypeExtension.create(ProspectorMenu::new));
     public static final DeferredHolder<MenuType<?>,MenuType<IndustrialMenu>> MACHINE_MENU=MENUS.register("industrial",()->IMenuTypeExtension.create(IndustrialMenu::new));
     public static final DeferredHolder<MenuType<?>,MenuType<DimensionalMenu>> STORAGE_MENU=MENUS.register("dimensional_storage",()->IMenuTypeExtension.create(DimensionalMenu::new));
@@ -51,7 +55,7 @@ public final class IndustrialContent {
     public static final DeferredBlock<LiquidBlock> COOLANT_BLOCK=BLOCKS.registerBlock("coolant",p->new LiquidBlock(COOLANT.get(),p),p->p.noCollision().strength(100).noLootTable().liquid().replaceable());
     public static final DeferredBlock<WindGeneratorPartBlock> WIND_PART=BLOCKS.registerBlock("wind_generator_part",WindGeneratorPartBlock::new,p->p.strength(3.5f).sound(SoundType.STONE).noOcclusion().pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK));
     public static final DeferredBlock<ArtificialStarPartBlock> STAR_PART=BLOCKS.registerBlock("artificial_star_part",ArtificialStarPartBlock::new,p->p.strength(3.5f).sound(SoundType.METAL).noOcclusion().dynamicShape().noLootTable().pushReaction(PushReaction.BLOCK));
-    public static final DeferredHolder<CreativeModeTab,CreativeModeTab> TAB=TABS.register("industry",()->CreativeModeTab.builder().title(net.minecraft.network.chat.Component.literal("AYD-工业")).icon(()->stack("mana_crusher_t1",1)).displayItems((p,out)->ALL_ITEMS.forEach((key,value)->{if(!key.matches("energy_crystal_[6-8]"))out.accept(value.get());})).build());
+    public static final DeferredHolder<CreativeModeTab,CreativeModeTab> TAB=TABS.register("industry",()->CreativeModeTab.builder().title(net.minecraft.network.chat.Component.literal("AYD-工业")).icon(()->stack("mana_crusher_t1",1)).displayItems((p,out)->ALL_ITEMS.forEach((key,value)->{if(!key.matches("energy_crystal_[6-8]")&&!cn.yumis.fight.modules.industry.api.IndustrialTechnology.materialItem(id(key).toString()))out.accept(value.get());})).build());
     public static final Map<String,Liquid> LIQUIDS=new LinkedHashMap<>();
     public static final class Liquid {
         public final String id;public final int color;
@@ -78,6 +82,7 @@ public final class IndustrialContent {
                 var block=BLOCKS.registerBlock(key,p->new MachineBlock(spec,p),p->{p.strength(3.5f).sound(SoundType.METAL).noOcclusion();if(kind.currencyUpgrader())p.lightLevel(state->state.getValue(MachineBlock.ACTIVE)?7:0);if(kind.has(DeviceType.Capability.WIND)||kind==DeviceType.STAR)p.pushReaction(PushReaction.BLOCK);return p;});ALL_BLOCKS.put(key,block);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(block));
             }
         }
+        ALL_BLOCKS.put("display_stand",DISPLAY_STAND);ALL_ITEMS.put("display_stand",ITEMS.registerSimpleBlockItem(DISPLAY_STAND));
         for(int i=1;i<=EnergyMath.MAX_CRYSTAL_TIER;i++)item("energy_crystal_"+i);
         ALL_ITEMS.put("mana_storage_bag",ITEMS.registerItem("mana_storage_bag",ManaStorageBagItem::new,p->p.stacksTo(1)));
         for(int i=1;i<=5;i++)item("industrial_upgrade_"+i);
@@ -88,6 +93,7 @@ public final class IndustrialContent {
         item("industrial_magic_stone");block("industrial_magic_stone_block",Block::new);item("sulfide");block("energy_crystal_block_2",Block::new);
         block("magic_ore",p->new ResourceBlock("magic",p));
         var grass=BLOCKS.registerBlock("magic_grass",MagicGrassBlock::new,p->p.noCollision().instabreak().sound(SoundType.GRASS).noOcclusion().lightLevel(state->3));ALL_BLOCKS.put("magic_grass",grass);ALL_ITEMS.put("magic_grass",ITEMS.registerSimpleBlockItem(grass));
+        var flower=BLOCKS.registerBlock("magic_flower",MagicFlowerBlock::new,p->p.noCollision().instabreak().sound(SoundType.GRASS).noOcclusion());ALL_BLOCKS.put("magic_flower",flower);ALL_ITEMS.put("magic_flower",ITEMS.registerSimpleBlockItem(flower));
         for(String metal:List.of("vanadium","molybdenum","zirconium","mithril","adamantite","orichalcum","iridium","niobium_tantalum")){
             item("raw_"+metal);item("crushed_"+metal);block(metal+"_ore",p->new ResourceBlock(metal,p));
             if(!metal.equals("niobium_tantalum")){item(metal+"_ingot");item(metal+"_concentrate");}
@@ -97,12 +103,13 @@ public final class IndustrialContent {
         for(String metal:List.of("niobium","tantalum","iridium","mithril"))item("high_purity_"+metal+"_ingot");
         for(String key:List.of("zircon_ceramic","vanadium_steel","molybdenum_vanadium_steel","tzm_alloy","orichalcum_alloy","niobium_titanium_alloy","mithril_niobium_alloy","adamantite_titanium_alloy","composite_conductor","henghui_alloy","lattice_substrate","mana_superconductor","basic_frame","reinforced_frame","heatproof_frame","precision_frame","mana_component","mithril_mana_component","control_component","superconducting_control"))item(key);
         for(int i=1;i<=5;i++){final int tier=i;String key="prospector_t"+i;ALL_ITEMS.put(key,ITEMS.registerItem(key,p->new ProspectorItem(tier,p),p->p.stacksTo(1)));}
-        String[] liquids={"alkahest","blazing_fluid","ceruleum","shimmer","azoth","penduliquid","spent_solvent"};
-        int[] colors={0xff963d63,0xffff722c,0xff38d8bb,0xffac93ef,0xff5a89e8,0xffb5e9ef,0xff62584b};
+        String[] liquids={"alkahest","blazing_fluid","ceruleum","shimmer","azoth","penduliquid","spent_solvent","mana_fluid","concentrated_mana_fluid"};
+        int[] colors={0xff963d63,0xffff722c,0xff38d8bb,0xffac93ef,0xff5a89e8,0xffb5e9ef,0xff62584b,0xff58baff,0xff3659e8};
         for(int i=0;i<liquids.length;i++)LIQUIDS.put(liquids[i],new Liquid(liquids[i],colors[i]));
+        for(String liquid:List.of("mana_fluid","concentrated_mana_fluid","shimmer"))INFUSION_DROPS.put(liquid,PARTICLES.register("infusion_"+liquid,()->new net.minecraft.core.particles.SimpleParticleType(false)));
         for(var entry:cn.yumis.fight.modules.industry.api.IndustrialTechnology.content().entrySet()){
             String key=entry.getKey();var definition=entry.getValue().getAsJsonObject();
-            if(ALL_ITEMS.containsKey(key))continue;
+            if(ALL_ITEMS.containsKey(key)||LIQUIDS.containsKey(key))continue;
             switch(definition.get("kind").getAsString()){
                 case "block"->block(key,Block::new);
                 case "fluid"->LIQUIDS.put(key,new Liquid(key,0xff9abccd));
@@ -124,7 +131,7 @@ public final class IndustrialContent {
     public static void register(IEventBus bus){
         ManaStorageBagItem.registerIntake();
         IndustrialEvents.register();
-        BLOCKS.register(bus);ITEMS.register(bus);BES.register(bus);MENUS.register(bus);TYPES.register(bus);SERIALIZERS.register(bus);FLUID_TYPES.register(bus);FLUIDS.register(bus);TABS.register(bus);IndustrialWorldgen.register(bus);
-        bus.addListener((RegisterCapabilitiesEvent e)->{e.registerBlockEntity(Capabilities.Item.BLOCK,MACHINE_BE.get(),(be,side)->be.itemsFor(side));e.registerBlockEntity(Capabilities.Fluid.BLOCK,MACHINE_BE.get(),(be,side)->be.fluidsFor(side));});
+        BLOCKS.register(bus);ITEMS.register(bus);BES.register(bus);MENUS.register(bus);TYPES.register(bus);SERIALIZERS.register(bus);FLUID_TYPES.register(bus);FLUIDS.register(bus);PARTICLES.register(bus);TABS.register(bus);IndustrialWorldgen.register(bus);
+        bus.addListener((RegisterCapabilitiesEvent e)->{e.registerBlockEntity(Capabilities.Item.BLOCK,DISPLAY_STAND_BE.get(),(be,side)->be.automation());e.registerBlockEntity(Capabilities.Item.BLOCK,MACHINE_BE.get(),(be,side)->be.itemsFor(side));e.registerBlockEntity(Capabilities.Fluid.BLOCK,MACHINE_BE.get(),(be,side)->be.fluidsFor(side));});
     }
 }

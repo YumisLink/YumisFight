@@ -18,7 +18,7 @@ public class Affix {
     }
     public String id,stat="",operation="FLAT",family="",skill="",parameter="";
     public double value,maximum,baseline,baselineMaximum,roll=1,corruptionMultiplier=1;
-    public boolean base,fixed,locked;
+    public boolean base,fixed,locked,crafted;
     public int element=-1,rank;
     public Affix(){
     }

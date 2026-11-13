@@ -21,7 +21,7 @@ public final class EquipmentActions {
     private static final Map<String,String> initializing=new HashMap<>();
     private EquipmentActions(){}
     public static void clear(){initializing.clear();}
-    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<JsonObject> view,Function<String,Profession> professions){progress=p;profile=view;profession=professions;router.register("equipment","craft",(ignored,j)->craft(j));router.register("equipment","currency",(ignored,j)->currency(j));router.register("equipment","initializeEquipment",(ignored,j)->initialize(j));}
+    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<JsonObject> view,Function<String,Profession> professions){progress=p;profile=view;profession=professions;router.register("equipment","craft",(ignored,j)->craft(j));router.register("equipment","cubeCraft",(ignored,j)->EquipmentChanges.prepareCube(Minecraft.getInstance().player,profession.apply("craftsman"),j));router.register("equipment","currency",(ignored,j)->currency(j));router.register("equipment","initializeEquipment",(ignored,j)->initialize(j));}
     private static void craft(JsonObject j){EquipmentChanges.prepareCraft(Minecraft.getInstance().player,progress.get(),profile.get().get("craftAllowed").getAsBoolean(),profession.apply("craftsman"),j,RANDOM);}
     private static void currency(JsonObject j){EquipmentChanges.prepareCurrency(Minecraft.getInstance().player,j,RANDOM);}
     private static void initialize(JsonObject j){

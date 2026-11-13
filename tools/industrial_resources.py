@@ -16,28 +16,11 @@ def recipe(name,value): write(DATA/'recipe'/'industrial'/f'{name}.json',value)
 def own(name):return f'{NS}:{name}'
 
 def magic_grass_model():
-    # Use the original 16x16 sprite and cross at their exact vanilla size.
-    # Two biome-tinted rows blend the grass into the four animated blue-tip rows.
-    rotation={'origin':[8,8,8],'axis':'y','angle':45,'rescale':True}
-    elements=[]
-    for along_x,faces in [(True,('north','south')),(False,('west','east'))]:
-        for bottom,top,v0,v1,tint,light in [(0,8,8,16,0,0),(8,9,7,8,1,3),(9,10,6,7,2,7),(10,16,0,6,-1,15)]:
-            face={'uv':[0,v0,16,v1],'texture':'#cross' if tint==0 else '#tips'}
-            if tint>=0:face['tintindex']=tint
-            element={'from':[.8,bottom,8] if along_x else [8,bottom,.8],
-                     'to':[15.2,top,8] if along_x else [8,top,15.2],
-                     'rotation':rotation,'shade':False,
-                     'faces':{direction:dict(face) for direction in faces}}
-            if light:element['light_emission']=light
-            elements.append(element)
-    return {'parent':'minecraft:block/tinted_cross','render_type':'minecraft:cutout',
-            'textures':{'cross':'minecraft:block/short_grass','tips':own('block/magic_grass')},
-            'elements':elements}
+    return {'parent':'minecraft:block/cross_emissive','render_type':'minecraft:cutout',
+            'textures':{'cross':own('block/magic_grass'),'cross_emissive':own('block/magic_grass_emissive')}}
 
 def magic_grass_item():
-    return {'model':{'type':'minecraft:model','model':own('item/magic_grass'),
-                     'tints':[{'type':'minecraft:grass','downfall':1.0,'temperature':.5}]+
-                             [{'type':own('magic_grass_transition'),'step':step} for step in (1,2)]}}
+    return {'model':{'type':'minecraft:model','model':own('item/magic_grass')}}
 
 def result(item,count=1):return {'id':item,'count':count}
 def need(item,count=1):return {'ingredient':item,'count':count}
@@ -66,7 +49,7 @@ def tag(name,values,registry='item',namespace='c'):
 names={};blocks=[];items=[]
 families={'mana_crusher':'魔能碎石机','mana_furnace':'魔能熔炉','mineral_generator':'矿物生成器','currency_fabricator':'通货制造机','mana_forge':'魔能锻炉','mana_beacon':'魔法能量信标塔'}
 prefixes=['','钻石','钛','泰拉石','时空石']
-components={'mana_crusher':'stonecutter','mana_furnace':'furnace','mineral_generator':'iron_pickaxe','currency_fabricator':'dropper','mana_forge':'blast_furnace','mana_beacon':'amethyst_block'}
+components={'mana_crusher':'stonecutter','mana_furnace':'furnace','mineral_generator':'iron_pickaxe','currency_fabricator':'horadric_cube','mana_forge':'blast_furnace','mana_beacon':'amethyst_block'}
 devices={}
 for family,title in families.items():
     for tier in range(1,6):
@@ -136,7 +119,7 @@ for tier in range(2,17):
     process('storage_upgrade_'+str(tier),'storage_upgrade_'+str(tier),ingredients,ticks=1,energy=0)
 
 rules={'version':3,'beaconCapacity':1000,'beaconRadii':[3,5,9,18,32],'furnaceSpeeds':[4,8,16,32,64],'processingLines':[1,1,2,8,16],'solarPeriods':[0,2000,10000,12000],'transferIntervals':[20,10,1],'transferAmounts':[8,64,64],'transferRanges':[24,128,2147483647],'transferEnergy':[5,25,100],'harvestSizes':[3,9,27],'harvestPeriod':500,'harvestEnergy':20,'harvestCrops':['minecraft:wheat','minecraft:carrots','minecraft:potatoes','minecraft:beetroots','minecraft:nether_wart'],'fluidCapacity':20000,'magicGrassChance':16,'crystalDropMin':2,'crystalDropMax':8,'highCrystalWeight':20,'leadWorldgen':True,'uraniumWorldgen':True,'titaniumWorldgen':True,'magicWorldgen':True,'ores':{},'generators':{}}
-for k,vals in {'magic':(-32,32,3,6,1),'lead':(-32,48,4,8,1),'uranium':(-64,0,2,4,4),'titanium':(0,80,3,6,1)}.items():rules['ores'][k]=dict(zip(['minY','maxY','minSize','maxSize','chance','attempts'],(*vals,1)))
+for k,vals in {'magic':(-32,32,3,6,1,16),'lead':(-32,48,4,8,1,15),'uranium':(-64,0,2,5,1,3),'titanium':(0,80,3,6,1,7)}.items():rules['ores'][k]=dict(zip(['minY','maxY','minSize','maxSize','chance','attempts'],vals))
 for k,power,ticks,fluid,rate in [('coal_generator',60,640,'',0),('turbine_generator',1080,640,'minecraft:water',1000),('thermal_generator',6400,640,own('coolant'),100),('nuclear_reactor',108000,16000,'minecraft:water',100000),('rtg_generator',108,16000000,'',0)]:rules['generators'][k]={'fluidPerSecond':rate,'fluid':fluid}
 rules.update(windBaseHeight=60,windBasePower=50,windHeightStep=5,windPowerStep=1,solarDayPower=2,solarEdgePower=1,solarRainPower=1)
 code=(ROOT/'src/main/java/cn/yumis/fight/modules/economy/api/CurrencyRules.java').read_text(encoding='utf-8')

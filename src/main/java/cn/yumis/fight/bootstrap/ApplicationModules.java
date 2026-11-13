@@ -19,7 +19,7 @@ public final class ApplicationModules {
         module("industry","economy","inventory","presentation"),
         module("inventory","presentation"),
         module("mapgeneration","npc"),
-        module("npc","combat","economy","presentation"),
+        module("npc","character","combat","dungeons","economy","equipment","inventory","presentation","skills"),
         module("party","presentation"),
         module("presentation"),
         module("professions","inventory","presentation"),

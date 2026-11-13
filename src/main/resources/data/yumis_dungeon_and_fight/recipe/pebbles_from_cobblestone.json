@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": "minecraft:cobblestone",
+  "result": {
+    "id": "yumis_dungeon_and_fight:pebble",
+    "count": 4
+  }
+}

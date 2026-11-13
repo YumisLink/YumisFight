@@ -1,0 +1,71 @@
+{
+  "type": "yumis_dungeon_and_fight:world_decorations",
+  "config": {
+    "leaf_clusters_min": 1,
+    "leaf_clusters_max": 3,
+    "leaf_patch_min": 3,
+    "leaf_patch_max": 6,
+    "loose_min": 3,
+    "loose_max": 6,
+    "road_chunk_rarity": 3,
+    "camp_chunk_rarity": 64,
+    "camp_props_min": 3,
+    "camp_props_max": 5,
+    "mini_structures": [
+      {
+        "templates": {
+          "oak": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/oak",
+          "birch": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/birch",
+          "spruce": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/spruce",
+          "jungle": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/jungle",
+          "acacia": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/acacia",
+          "dark_oak": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/dark_oak",
+          "mangrove": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/mangrove",
+          "pale_oak": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/pale_oak",
+          "cherry": "yumis_dungeon_and_fight:micro_decorations/fallen_tree/cherry"
+        },
+        "chunk_rarity": 64,
+        "forest_only": true,
+        "prefer_roadside": false,
+        "replaces": []
+      },
+      {
+        "templates": {
+          "oak": "yumis_dungeon_and_fight:micro_decorations/log_bundle/oak",
+          "birch": "yumis_dungeon_and_fight:micro_decorations/log_bundle/birch",
+          "spruce": "yumis_dungeon_and_fight:micro_decorations/log_bundle/spruce",
+          "jungle": "yumis_dungeon_and_fight:micro_decorations/log_bundle/jungle",
+          "acacia": "yumis_dungeon_and_fight:micro_decorations/log_bundle/acacia",
+          "dark_oak": "yumis_dungeon_and_fight:micro_decorations/log_bundle/dark_oak",
+          "mangrove": "yumis_dungeon_and_fight:micro_decorations/log_bundle/mangrove",
+          "pale_oak": "yumis_dungeon_and_fight:micro_decorations/log_bundle/pale_oak",
+          "cherry": "yumis_dungeon_and_fight:micro_decorations/log_bundle/cherry"
+        },
+        "chunk_rarity": 96,
+        "forest_only": false,
+        "prefer_roadside": true,
+        "replaces": [
+          "firewood_bundle",
+          "short_log_stack"
+        ]
+      },
+      {
+        "templates": {
+          "oak": "yumis_dungeon_and_fight:micro_decorations/log_cart/oak",
+          "birch": "yumis_dungeon_and_fight:micro_decorations/log_cart/birch",
+          "spruce": "yumis_dungeon_and_fight:micro_decorations/log_cart/spruce",
+          "jungle": "yumis_dungeon_and_fight:micro_decorations/log_cart/jungle",
+          "acacia": "yumis_dungeon_and_fight:micro_decorations/log_cart/acacia",
+          "dark_oak": "yumis_dungeon_and_fight:micro_decorations/log_cart/dark_oak",
+          "mangrove": "yumis_dungeon_and_fight:micro_decorations/log_cart/mangrove",
+          "pale_oak": "yumis_dungeon_and_fight:micro_decorations/log_cart/pale_oak",
+          "cherry": "yumis_dungeon_and_fight:micro_decorations/log_cart/cherry"
+        },
+        "chunk_rarity": 192,
+        "forest_only": false,
+        "prefer_roadside": true,
+        "replaces": []
+      }
+    ]
+  }
+}

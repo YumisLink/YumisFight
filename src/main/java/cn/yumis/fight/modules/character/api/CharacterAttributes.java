@@ -16,6 +16,7 @@ public final class CharacterAttributes {
         s.add(Stat.MAGICAL_ATTACK,5+n);
         s.add(Stat.PHYSICAL_DEFENSE,20);
         s.add(Stat.MAGICAL_DEFENSE,20);
+        s.add(Stat.STAMINA,100);s.add(Stat.STAMINA_RECOVERY,1);s.add(Stat.SHIELD_COOLDOWN_RECOVERY,1);s.add(Stat.SHIELD_REGENERATION,1);
         s.add(Stat.MOVEMENT_SPEED,1);s.add(Stat.CAST_SPEED,1);s.add(Stat.MANA_REGENERATION,1);s.add(Stat.COOLDOWN_RECOVERY,1);s.add(Stat.EXPERIENCE_GAIN,1);
     }
 }

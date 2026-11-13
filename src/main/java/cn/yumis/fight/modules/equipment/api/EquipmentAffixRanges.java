@@ -6,10 +6,11 @@ import cn.yumis.fight.modules.affixes.api.Affix;
 public final class EquipmentAffixRanges {
     public record Range(double minimum,double maximum,double upperMinimum,double upperMaximum,boolean interval){}
     private EquipmentAffixRanges(){}
-    public static boolean percentage(Affix a){return a.operation.equals("PERCENT")||a.operation.equals("CHARACTER_PERCENT")||a.operation.equals("EQUIPMENT_RULE")&&java.util.Set.of("gem_amplification","fire_after_damage","kill_recovery","life_cost","mana_share").contains(a.parameter);}
-    public static Range reroll(Affix a,Rarity rarity,boolean gem){
+    public static boolean percentage(Affix a){return a.operation.equals("PERCENT")||a.operation.equals("CHARACTER_PERCENT")||a.operation.equals("CHARACTER_TOTAL")||a.operation.equals("EQUIPMENT_RULE")&&java.util.Set.of("armor_retaliation","gem_amplification","fire_after_damage","kill_recovery","life_cost","mana_share").contains(a.parameter);}
+    public static Range reroll(Affix a,Rarity rarity,boolean gem,int level){
         if(gem||!EquipmentRules.washable(a))return null;
         var definition=AffixDefinitions.current().affixes.get(a.id);
+        if(definition!=null)definition=cn.yumis.fight.modules.affixes.api.AffixLevelCurves.atLevel(definition,level);
         if(definition!=null&&definition.minimum()!=null){
             double scale=definition.scale()*(percentage(a)?100:1);
             return new Range(definition.minimum()*scale,definition.maximum()*scale,definition.upperMinimum()==null?0:definition.upperMinimum()*definition.scale(),definition.upperMaximum()==null?0:definition.upperMaximum()*definition.scale(),a.operation.equals("EXTRA"));

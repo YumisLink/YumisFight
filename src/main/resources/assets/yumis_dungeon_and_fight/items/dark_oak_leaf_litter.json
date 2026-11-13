@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "yumis_dungeon_and_fight:block/decorations/dark_oak_leaf_litter_4",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 4287984967
+      }
+    ]
+  }
+}

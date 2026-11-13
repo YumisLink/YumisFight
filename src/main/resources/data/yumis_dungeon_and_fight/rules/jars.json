@@ -57,7 +57,8 @@
         {"type":"named","template":"named/clown_hat","weight":11},
         {"type":"named","template":"named/crown","weight":11},
         {"type":"named","template":"named/mana_flow","weight":11},
-        {"type":"named","template":"named/mana_flower","weight":11}
+        {"type":"named","template":"named/mana_flower","weight":11},
+        {"type":"named","template":"named/pigeon_collapsing_wall","weight":11}
       ]
     }
   }

@@ -1,0 +1,8 @@
+{
+  "feature": "yumis_dungeon_and_fight:world_decorations",
+  "placement": [
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 package cn.yumis.fight.bootstrap;
 import cn.yumis.fight.modules.skills.api.client.SkillController;
+import cn.yumis.fight.modules.combat.client.ElementAccumulationHud;
 import cn.yumis.fight.modules.presentation.api.client.ClientSettings;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.UiTheme;
@@ -28,6 +29,7 @@ public final class Hud {
     // Unmodified RarityCore white texture, tinted with this project's rarity colors.
     // Source and asset license: resources/licenses/raritycore/NOTICE.txt.
     private static final Identifier RARITY_BACKGROUND=Identifier.fromNamespaceAndPath(ItemData.NS,"textures/gui/rarity/background.png");
+    private static final int TARGET_WIDTH=184,TARGET_INFO_HEIGHT=42,TARGET_ELEMENT_GAP=0;
     private Hud(){
     }
     private static void bar(GuiGraphicsExtractor g,int x,int y,int width,int height,double q,int color){
@@ -111,20 +113,16 @@ public final class Hud {
     public static void renderTarget(RenderGuiEvent.Post event){
         var mc=Minecraft.getInstance();
         var s=ClientSession.INSTANCE;
-        if(!s.ready||mc.player==null||mc.gui.hud.isHidden()||mc.gui.screen()!=null)return;
+        if(!s.ready||mc.player==null||mc.level==null||mc.gui.hud.isHidden()||mc.gui.screen()!=null)return;
         if(mc.hitResult instanceof EntityHitResult hit){
             var entity=hit.getEntity();
             if(entity instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part)entity=part.parentMob;
-            if(entity instanceof LivingEntity living&&!(entity instanceof net.minecraft.world.entity.player.Player)){
-                if(cn.yumis.fight.modules.npc.api.NpcInteractionComponent.query(living)!=null)return;
-                Target target=s.context(living);
-                if(target!=null){
-                    var g=event.getGuiGraphics();
-                    g.nextStratum();
-                    target(g,living,target);
-                }
-            }
+            if(entity instanceof LivingEntity living&&!(entity instanceof net.minecraft.world.entity.player.Player)&&cn.yumis.fight.modules.npc.api.NpcInteractionComponent.query(living)==null)s.context(living);
         }
+        Target selected=s.targets.get(s.targetHud.target());
+        if(selected==null||!s.targetHud.matches(selected.life))return;
+        var g=event.getGuiGraphics();g.nextStratum();
+        target(g,s.targetHud.name(),selected);
     }
     private static void damageMeter(GuiGraphicsExtractor g,ClientSession state){
         com.google.gson.JsonArray rows;String title;
@@ -140,7 +138,9 @@ public final class Hud {
             title=start==0?"沙袋测试 · 等待首次命中":complete?"沙袋测试 · 已结算":"沙袋测试 · 剩余 "+(long)Math.ceil((duration-elapsed)/1000d)+" 秒";
             rows=new com.google.gson.JsonArray();var row=new com.google.gson.JsonObject();row.addProperty("name",test.get("name").getAsString());row.addProperty("damage",damage);row.addProperty("dps",elapsed>0?damage/(elapsed/1000d):0);row.addProperty("share",damage>0?1:0);row.addProperty("bar",damage>0?1:0);rows.add(row);
         }
-        var font=UiFonts.font();int x=6,w=Math.min(250,Math.max(120,g.guiWidth()/2-12)),y=ClientSettings.targetPosition.equals("top_left")?(int)(65*ClientSettings.targetScale)+16:50;
+        var font=UiFonts.font();int x=6,w=Math.min(250,Math.max(120,g.guiWidth()/2-12));
+        int targetBottom=6+(int)Math.ceil((TARGET_INFO_HEIGHT+TARGET_ELEMENT_GAP+ElementAccumulationHud.HEIGHT)*targetScale(g));
+        int y=targetBottom+(ClientSettings.targetPosition.equals("top_left")?16:2);
         g.text(font,title,x+3,y,UiTheme.HUD_GOLD,false);y+=13;
         for(var value:rows){
             var row=value.getAsJsonObject();String damage=damageAmount(row.get("damage").getAsDouble()),dps=damageAmount(row.get("dps").getAsDouble())+"/s",share=String.format(java.util.Locale.ROOT,"%.1f%%",row.get("share").getAsDouble()*100);boolean narrow=font.width(damage+"  "+dps)>w-8;int height=narrow?41:29;
@@ -163,20 +163,21 @@ public final class Hud {
         }
     }
     private static String damageAmount(double value){return cn.yumis.fight.modules.presentation.api.client.NumberText.damage(value);}
-    private static void target(GuiGraphicsExtractor g,LivingEntity e,Target t){
+    private static double targetScale(GuiGraphicsExtractor g){return TARGET_WIDTH*ClientSettings.targetScale>g.guiWidth()-12?1:ClientSettings.targetScale;}
+    private static void target(GuiGraphicsExtractor g,String name,Target t){
         var s=ClientSession.INSTANCE;
         int level=t.level(s.progress.level,s.encounterSync());
-        double maximum=t.health(level),q=s.predicted(t.life),scale=ClientSettings.targetScale;
-        if(184*scale>g.guiWidth()-12)scale=1;
-        int width=(int)(184*scale),x=ClientSettings.targetPosition.equals("top_left")?6:(g.guiWidth()-width)/2;
+        double maximum=t.health(level),q=s.predicted(t.life),scale=targetScale(g);
+        int width=(int)(TARGET_WIDTH*scale),x=ClientSettings.targetPosition.equals("top_left")?6:(g.guiWidth()-width)/2;
         g.pose().pushMatrix();
         g.pose().translate(x,6);
         g.pose().scale((float)scale,(float)scale);
-        UiTheme.surface(g,0,0,184,42,5,0xff101010,0xff8b919c);
-        g.text(UiFonts.font(),e.getName().getString()+" Lv."+level,5,4,t.elite?0xffffce7d:0xffecf1f5);
+        UiTheme.surface(g,0,0,TARGET_WIDTH,TARGET_INFO_HEIGHT,5,0xff101010,0xff8b919c);
+        g.text(UiFonts.font(),name+" Lv."+level,5,4,t.elite?0xffffce7d:0xffecf1f5);
         g.text(UiFonts.font(),t.difficulty.title()+" · "+(t.kind.equals("BOSS")?"Boss":t.elite?"精英":"普通")+(t.elitePower.isEmpty()?"":" · "+switch(t.elitePower){case "strong"->"强壮";case "rage"->"狂暴";case "armor"->"坚韧";case "elemental"->"元素守护";default->"";}),5,16,0xffaab8ce);
         bar(g,5,29,174,9,q,t.kind.equals("BOSS")?0xffdfb545:0xffbe485a);
         g.text(UiFonts.font(),cn.yumis.fight.modules.presentation.api.client.NumberText.number(q*maximum)+" / "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(maximum),8,29,0xffffffff);
+        ElementAccumulationHud.render(g,t.life,t.bossOrElite(),s.serverNow(),0,TARGET_INFO_HEIGHT+TARGET_ELEMENT_GAP,TARGET_WIDTH);
         g.pose().popMatrix();
     }
     /** Foreground precedes deferred tooltips; Post would cover their text and background. */

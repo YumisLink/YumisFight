@@ -20,6 +20,8 @@ public final class EquipmentItems {
     private static final Map<ItemStack,Strings> STRINGS=new WeakHashMap<>();
     private record Strings(net.minecraft.world.item.component.CustomData data,String gear,String payload,String appearance){}
     private EquipmentItems(){}
+    /** Render-only headwear sample: no gear identity or gameplay attributes are created. */
+    public static ItemStack visualHeadwear(String appearance){ItemStack stack=item(Slot.HEAD.item(),1);string(stack,NS+"_appearance",appearance);return stack;}
     /** CustomData is immutable; an in-place stack component replacement invalidates this cheap identity check. */
     public static synchronized String metadata(ItemStack stack,String key){
         var data=stack.get(DataComponents.CUSTOM_DATA);if(data==null)return "";

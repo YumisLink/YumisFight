@@ -10,11 +10,13 @@ public final class EquipmentEffects {
         public double resistanceCap=Double.MAX_VALUE;
         public int magicSkillRanks;
         public boolean fireOnly,blockElemental,inverseResists;
-        public String goldenSource="",imprintSource="",heroSource="";
+        public String goldenSource="",imprintSource="",heroSource="",wallSource="";
+        public double armorRetaliation;
+        public int weaponElement=-1;
         public Map<String,Integer> grants=new LinkedHashMap<>();
         public Map<String,String> grantSources=new LinkedHashMap<>();
         public Snapshot copy(){
-            Snapshot copy=new Snapshot();copy.gemAmplification=gemAmplification;copy.fireAfterDamage=fireAfterDamage;copy.fireConversion=fireConversion;copy.manaShare=manaShare;copy.lifeCostRatio=lifeCostRatio;copy.killRecovery=killRecovery;copy.magicCooldownReduction=magicCooldownReduction;copy.heroDuration=heroDuration;copy.resistanceCap=resistanceCap;copy.magicSkillRanks=magicSkillRanks;copy.fireOnly=fireOnly;copy.blockElemental=blockElemental;copy.inverseResists=inverseResists;copy.goldenSource=goldenSource;copy.imprintSource=imprintSource;copy.heroSource=heroSource;copy.grants.putAll(grants);copy.grantSources.putAll(grantSources);return copy;
+            Snapshot copy=new Snapshot();copy.gemAmplification=gemAmplification;copy.fireAfterDamage=fireAfterDamage;copy.fireConversion=fireConversion;copy.manaShare=manaShare;copy.lifeCostRatio=lifeCostRatio;copy.killRecovery=killRecovery;copy.magicCooldownReduction=magicCooldownReduction;copy.heroDuration=heroDuration;copy.resistanceCap=resistanceCap;copy.magicSkillRanks=magicSkillRanks;copy.fireOnly=fireOnly;copy.blockElemental=blockElemental;copy.inverseResists=inverseResists;copy.goldenSource=goldenSource;copy.imprintSource=imprintSource;copy.heroSource=heroSource;copy.wallSource=wallSource;copy.armorRetaliation=armorRetaliation;copy.weaponElement=weaponElement;copy.grants.putAll(grants);copy.grantSources.putAll(grantSources);return copy;
         }
     }
     @FunctionalInterface public interface Rule {void apply(Snapshot target,Affix affix,Gear source);}
@@ -34,6 +36,8 @@ public final class EquipmentEffects {
         register("magic_ranks",(s,a,g)->s.magicSkillRanks+=(int)Math.round(a.value));
         register("golden_power",(s,a,g)->s.goldenSource=g.instance.toString());
         register("imprint_power",(s,a,g)->s.imprintSource=g.instance.toString());
+        register("wall_power",(s,a,g)->s.wallSource=g.instance.toString());
+        register("armor_retaliation",(s,a,g)->s.armorRetaliation=Math.max(s.armorRetaliation,a.value));
         register("hero_power",(s,a,g)->{s.heroSource=g.instance.toString();s.heroDuration=Math.max(s.heroDuration,a.value);});
         register("grant_blink",(s,a,g)->{s.grants.merge(BLINK,Math.max(1,g.level/5),Math::max);s.grantSources.put(BLINK,g.instance.toString());});
     }
@@ -42,7 +46,7 @@ public final class EquipmentEffects {
     public static Snapshot resolve(cn.yumis.fight.modules.character.api.Progress progress,List<Gear> gear,int allowance){
         Snapshot result=new Snapshot();
         for(Gear input:gear){Gear g=EquipmentResolution.resolve(input);if(!g.valid(progress,allowance))continue;
-            for(Affix a:effectiveAffixes(g))if(a.operation.equals("EQUIPMENT_RULE")){var rule=RULES.get(a.parameter);if(rule!=null)rule.apply(result,a,g);}
+            for(Affix a:effectiveAffixes(g)){if(a.operation.equals("WEAPON_ELEMENT")&&g.slot==Slot.WEAPON)result.weaponElement=a.element;else if(a.operation.equals("EQUIPMENT_RULE")){var rule=RULES.get(a.parameter);if(rule!=null)rule.apply(result,a,g);}}
         }
         return result;
     }
@@ -50,7 +54,7 @@ public final class EquipmentEffects {
     public static List<Affix> effectiveAffixes(Gear gear){
         List<Affix> result=new ArrayList<>(gear.affixes);double factor=gemMultiplier(gear);
         for(Gem gem:gear.gems)for(Affix original:gem.affixes){Affix a=EquipmentJson.copy(original,Affix.class);
-            if(Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA").contains(a.operation)){a.value*=factor;a.maximum*=factor;}
+            if(Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA","MODIFIER").contains(a.operation)){a.value*=factor;a.maximum*=factor;}
             result.add(a);
         }
         return result;

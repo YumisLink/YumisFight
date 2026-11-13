@@ -39,6 +39,11 @@ public final class JobCatalog {
         STYLES.put(id,new CombatStyle(magic,taken,awakening,"yumis_dungeon_and_fight:"+awakeningSkill));
     }
     public static CombatStyle style(String id){require(id);return STYLES.getOrDefault(id,new CombatStyle(false,.65,"",""));}
+    /** Awakening titles follow each profile's level and the character-wide qualification. */
+    public static String displayName(String jobId,int level,boolean awakened){
+        var job=require(jobId);String awakening=style(jobId).awakening();
+        return awakened&&level>=50&&!awakening.isEmpty()?awakening:job.title();
+    }
     public static boolean weaponQualified(Progress progress,String type){var qualification=QUALIFICATIONS.get(type);return qualification==null||qualification.test(progress);}
     public static boolean basic(String id){return !id.equals(NONE)&&require(id).prerequisite().isEmpty();}
     public static Set<String> weapons(String id){return WEAPONS.getOrDefault(base(id),Set.of());}

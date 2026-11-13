@@ -71,7 +71,7 @@
       "minSize": 3,
       "maxSize": 6,
       "chance": 1,
-      "attempts": 1
+      "attempts": 16
     },
     "lead": {
       "minY": -32,
@@ -79,15 +79,15 @@
       "minSize": 4,
       "maxSize": 8,
       "chance": 1,
-      "attempts": 1
+      "attempts": 15
     },
     "uranium": {
       "minY": -64,
       "maxY": 0,
       "minSize": 2,
-      "maxSize": 4,
-      "chance": 4,
-      "attempts": 1
+      "maxSize": 5,
+      "chance": 1,
+      "attempts": 3
     },
     "titanium": {
       "minY": 0,
@@ -95,15 +95,15 @@
       "minSize": 3,
       "maxSize": 6,
       "chance": 1,
-      "attempts": 1
+      "attempts": 7
     },
     "titanium_overworld": {
       "minY": -48,
       "maxY": 16,
       "minSize": 3,
       "maxSize": 6,
-      "chance": 2,
-      "attempts": 1
+      "chance": 1,
+      "attempts": 7
     },
     "orichalcum": {
       "minY": -16,
@@ -111,54 +111,54 @@
       "minSize": 4,
       "maxSize": 8,
       "chance": 1,
-      "attempts": 1
+      "attempts": 15
     },
     "vanadium": {
       "minY": -32,
       "maxY": 32,
       "minSize": 3,
       "maxSize": 6,
-      "chance": 2,
-      "attempts": 1
+      "chance": 1,
+      "attempts": 13
     },
     "molybdenum": {
       "minY": -48,
       "maxY": 16,
       "minSize": 3,
       "maxSize": 5,
-      "chance": 3,
-      "attempts": 1
+      "chance": 1,
+      "attempts": 8
     },
     "zirconium": {
       "minY": -32,
       "maxY": 32,
       "minSize": 3,
       "maxSize": 6,
-      "chance": 3,
-      "attempts": 1
+      "chance": 1,
+      "attempts": 10
     },
     "mithril": {
       "minY": -48,
       "maxY": 0,
       "minSize": 2,
       "maxSize": 5,
-      "chance": 4,
-      "attempts": 1
+      "chance": 1,
+      "attempts": 4
     },
     "niobium_tantalum": {
       "minY": -64,
       "maxY": -16,
       "minSize": 2,
-      "maxSize": 4,
-      "chance": 5,
+      "maxSize": 6,
+      "chance": 1,
       "attempts": 1
     },
     "adamantite": {
       "minY": -64,
       "maxY": -32,
-      "minSize": 2,
-      "maxSize": 4,
-      "chance": 8,
+      "minSize": 1,
+      "maxSize": 3,
+      "chance": 1,
       "attempts": 1
     },
     "iridium": {
@@ -166,7 +166,7 @@
       "maxY": -40,
       "minSize": 1,
       "maxSize": 3,
-      "chance": 16,
+      "chance": 2,
       "attempts": 1
     }
   },
@@ -427,5 +427,9 @@
     5,
     25,
     100
-  ]
+  ],
+  "magicFlowerChance": 16,
+  "magicFlowerRadius": 4,
+  "magicFlowerSpreadChance": 8,
+  "magicFlowerHeight": 1
 }

@@ -8,7 +8,7 @@ public final class MachinePlugins {
     public record Definition(String id,int installedStackLimit,Effect effect,Set<String> deviceIds) {
         public Definition {if(id==null||!id.matches("[a-z][a-z0-9_]*")||effect==null||installedStackLimit<1||installedStackLimit>64)throw new IllegalArgumentException("无效插件定义");deviceIds=Set.copyOf(deviceIds);}
         public boolean accepts(DeviceType device){
-            if(!deviceIds.isEmpty()&&!deviceIds.contains(device.id))return false;
+            if(!deviceIds.isEmpty()&&!deviceIds.contains(device.id)||effect==Effect.SPEED&&device.has(DeviceType.Capability.INFUSION))return false;
             return switch(effect){case SPEED->device.processing()||device.functional()||device.currencyUpgrader();case STORAGE->device.inputs()>0||device.outputs()||device.has(DeviceType.Capability.FLUID_PROCESSING)||device.has(DeviceType.Capability.FLUID_FUEL)||device.has(DeviceType.Capability.FLUID_STORAGE);};
         }
     }
