@@ -19,8 +19,12 @@ import java.util.*;
 public final class NpcRenderer extends MobRenderer<NpcEntity,NpcRenderer.State,PlayerModel> {
     public static final class State extends AvatarRenderState {public boolean witchHat;}
     private final PlayerModel wide,slim;
-    private final net.minecraft.world.item.ItemStack witchHat=witchHat();
-    private static net.minecraft.world.item.ItemStack witchHat(){return cn.yumis.fight.modules.equipment.api.EquipmentItems.visualHeadwear("elaina_witch_hat");}
+    private net.minecraft.world.item.ItemStack witchHat;
+    // Renderers can be created before item components are bound during resource loading.
+    private net.minecraft.world.item.ItemStack witchHat(){
+        if(witchHat==null)witchHat=cn.yumis.fight.modules.equipment.api.EquipmentItems.visualHeadwear("elaina_witch_hat");
+        return witchHat;
+    }
     private final Map<String,PlayerSkin> skins=new HashMap<>();
     private NpcDefinitions definitions;
     public NpcRenderer(EntityRendererProvider.Context context){super(context,new PlayerModel(context.bakeLayer(ModelLayers.PLAYER),false),.45f);wide=model;slim=new PlayerModel(context.bakeLayer(ModelLayers.PLAYER_SLIM),true);addLayer(new HatLayer(this));}
@@ -30,7 +34,7 @@ public final class NpcRenderer extends MobRenderer<NpcEntity,NpcRenderer.State,P
         if(definitions!=NpcDefinitions.current()){definitions=NpcDefinitions.current();skins.clear();}
         state.skin=skins.computeIfAbsent(entity.skin(),id->{var definition=NpcDefinitions.current().skins.get(id);return PlayerSkin.insecure(new ClientAsset.ResourceTexture(Identifier.fromNamespaceAndPath(ItemData.NS,"entity/npc/"+id)),null,null,definition!=null&&definition.slim()?PlayerModelType.SLIM:PlayerModelType.WIDE);});state.id=entity.getId();
         var definition=NpcInteractionComponent.query(entity);state.witchHat=definition!=null&&"witch_hat".equals(definition.headwear());
-        if(state.witchHat){itemModelResolver.updateForLiving(state.headItem,witchHat,net.minecraft.world.item.ItemDisplayContext.HEAD,entity);state.boundingBoxHeight=Math.max(state.boundingBoxHeight,3.05f*state.scale);if(state.nameTagAttachment!=null)state.nameTagAttachment=state.nameTagAttachment.add(0,state.scale,0);}
+        if(state.witchHat){itemModelResolver.updateForLiving(state.headItem,witchHat(),net.minecraft.world.item.ItemDisplayContext.HEAD,entity);state.boundingBoxHeight=Math.max(state.boundingBoxHeight,3.05f*state.scale);if(state.nameTagAttachment!=null)state.nameTagAttachment=state.nameTagAttachment.add(0,state.scale,0);}
     }
     @Override public Identifier getTextureLocation(State state){return state.skin.body().texturePath();}
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector collector,CameraRenderState camera){model=state.skin.model()==PlayerModelType.SLIM?slim:wide;super.submit(state,pose,collector,camera);}
