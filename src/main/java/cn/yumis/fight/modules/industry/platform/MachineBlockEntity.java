@@ -22,7 +22,6 @@ import java.util.*;
 /** Industry-owned inventory, tanks and immutable-at-start batch snapshot. */
 public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fight.modules.inventory.api.PersistentContainer,WorldlyContainer,MenuProvider {
     @Override public String key(){return identity.toString();}
-    @Override public void requestRecovery(){if(level instanceof ServerLevel server)IndustrialWorld.get(server).requestRecovery();}
     public MachineSlots slots(){return device().slots(tier());}
     private final List<MachineLane> productionLines=createLines();
     private List<MachineLane> createLines(){List<MachineLane> result=new ArrayList<>();for(int i=0;i<device().maximumLines();i++)result.add(new MachineLane(this,i));return result;}
@@ -52,11 +51,12 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public List<ItemStack> fuelResults=new ArrayList<>();
     public long ignitionPaid,ignitionThisTick;
     public boolean ignited;
+    public Fraction coreHeat=Fraction.ZERO,heatEnergyRemainder=Fraction.ZERO;
     public boolean structureLoaded=true;
-    private record GenerationState(int total,int remaining,long energy,String fluid,int rate,int fluidRemainder,int powerRemainder,List<ItemStack> results,long ignitionPaid,boolean ignited){}
+    private record GenerationState(int total,int remaining,long energy,String fluid,int rate,int fluidRemainder,int powerRemainder,List<ItemStack> results,long ignitionPaid,boolean ignited,Fraction coreHeat,Fraction heatEnergyRemainder){}
     private final net.neoforged.neoforge.transfer.transaction.SnapshotJournal<GenerationState> generationJournal=new net.neoforged.neoforge.transfer.transaction.SnapshotJournal<>(){
-        protected GenerationState createSnapshot(){return new GenerationState(fuelTotal,fuelRemaining,fuelEnergy,fuelFluid,fuelFluidRate,fluidRemainder,powerRemainder,new ArrayList<>(fuelResults),ignitionPaid,ignited);}
-        protected void revertToSnapshot(GenerationState s){fuelTotal=s.total;fuelRemaining=s.remaining;fuelEnergy=s.energy;fuelFluid=s.fluid;fuelFluidRate=s.rate;fluidRemainder=s.fluidRemainder;powerRemainder=s.powerRemainder;fuelResults=s.results;ignitionPaid=s.ignitionPaid;ignited=s.ignited;}
+        protected GenerationState createSnapshot(){return new GenerationState(fuelTotal,fuelRemaining,fuelEnergy,fuelFluid,fuelFluidRate,fluidRemainder,powerRemainder,new ArrayList<>(fuelResults),ignitionPaid,ignited,coreHeat,heatEnergyRemainder);}
+        protected void revertToSnapshot(GenerationState s){fuelTotal=s.total;fuelRemaining=s.remaining;fuelEnergy=s.energy;fuelFluid=s.fluid;fuelFluidRate=s.rate;fluidRemainder=s.fluidRemainder;powerRemainder=s.powerRemainder;fuelResults=s.results;ignitionPaid=s.ignitionPaid;ignited=s.ignited;coreHeat=s.coreHeat;heatEnergyRemainder=s.heatEnergyRemainder;}
         protected void onRootCommit(GenerationState previous){setChanged();}
     };
     void recordGeneration(net.neoforged.neoforge.transfer.transaction.TransactionContext tx){generationJournal.updateSnapshots(tx);}
@@ -64,6 +64,13 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public int technologyTier(){return cn.yumis.fight.modules.industry.api.IndustrialTechnology.technology(spec().id());}
     public int fluidRemainder,powerRemainder,harvestCursor;
     public long generated,consumed,overflow;
+    private final long[] consumptionSamples=new long[20],generationSamples=new long[20];
+    private int powerSample;
+    public long consumptionPerSecond,generationPerSecond;
+    void samplePower(){
+        consumptionPerSecond+=consumed-consumptionSamples[powerSample];generationPerSecond+=generated-generationSamples[powerSample];
+        consumptionSamples[powerSample]=consumed;generationSamples[powerSample]=generated;powerSample=(powerSample+1)%20;
+    }
     public boolean workedThisTick;
     private FluidStack visibleTankFluid=FluidStack.EMPTY;
     private long visibleTankAmount,visibleTankCapacity;
@@ -77,7 +84,13 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public final InventoryStore items=new InventoryStore();
     public final CurrencyUpgrader currencyUpgrade=device().currencyUpgrader()?new CurrencyUpgrader(this):null;
     public long fluidCapacity(){return Math.multiplyExact(baseFluidCapacity(),capacityMultiplier());}
-    private long baseFluidCapacity(){return device().has(DeviceType.Capability.FLUID_STORAGE)?IndustrialRules.current().tankCapacities[tier()-1]:IndustrialRules.current().fluidCapacity;}
+    private long baseFluidCapacity(){
+        var rules=IndustrialRules.current();
+        if(device().has(DeviceType.Capability.FLUID_STORAGE))return rules.tankCapacities[tier()-1];
+        // At the fivefold thermal limit, twofold cooling needs half the base per-second rate each tick.
+        if(device()==DeviceType.NUCLEAR)return Math.max(rules.fluidCapacity,Math.max((long)fuelFluidRate,rules.generators.get(DeviceType.NUCLEAR.id).fluidPerSecond())/2+2);
+        return rules.fluidCapacity;
+    }
     private void pluginsChanged(){setChanged();if(!restoringPlugins&&device().has(DeviceType.Capability.FLUID_STORAGE)&&level instanceof ServerLevel server)server.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),net.minecraft.world.level.block.Block.UPDATE_CLIENTS);}
     public int pluginCount(MachinePlugins.Effect effect){int count=0;for(int i=0;i<3;i++){var stack=plugins.getItem(i);var definition=pluginDefinition(stack);if(definition!=null&&definition.accepts(device())&&definition.effect()==effect)count+=stack.getCount();}return count;}
     public long capacityMultiplier(){return MachinePlugins.powerOfTwo(pluginCount(MachinePlugins.Effect.STORAGE));}
@@ -208,6 +221,23 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(device().has(DeviceType.Capability.REQUIRE_RECIPE))return false;
         return IndustrialProcessing.acceptsAutomaticInput(this,slot,stack);
     }
+    ResourceHandler<FluidResource> fluidsForPipe(boolean source){
+        if(device().has(DeviceType.Capability.FLUID_STORAGE))return fluids;
+        if(!device().has(DeviceType.Capability.FLUID_PROCESSING)&&!device().has(DeviceType.Capability.FLUID_FUEL))return null;
+        int output=device().fluidOutput(),stride=device().fluidTanks();
+        int[] indices=java.util.stream.IntStream.range(0,lineCount()*stride).filter(i->source?i%stride==output:i%stride<device().fluidInputs()).toArray();
+        var view=new FilteredHandler<>(fluids,indices,(i,r)->!source&&fluids.isValid(i,r),(i,r)->source,source?null:i->fluids.getAmountAsLong(i),lineCount());
+        if(!source)return view;
+        return new ResourceHandler<>(){
+            public int size(){return indices.length;}
+            public FluidResource getResource(int slot){return view.getResource(slot);}
+            public long getAmountAsLong(int slot){return fluids.availableAmount(indices[slot]);}
+            public long getCapacityAsLong(int slot,FluidResource fluid){return 0;}
+            public boolean isValid(int slot,FluidResource fluid){return false;}
+            public int insert(int slot,FluidResource fluid,int amount,TransactionContext tx){return 0;}
+            public int extract(int slot,FluidResource fluid,int amount,TransactionContext tx){return view.extract(slot,fluid,amount,tx);}
+        };
+    }
     public ResourceHandler<FluidResource> fluidsFor(Direction side){
         if(device().has(DeviceType.Capability.FLUID_STORAGE))return fluids;
         if(!device().has(DeviceType.Capability.FLUID_PROCESSING)&&!device().has(DeviceType.Capability.FLUID_FUEL))return null;
@@ -250,6 +280,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         pumpCycle.clear();functionCredit=0;
         for(var line:productionLines){if(!line.batchRecipe.isEmpty())drops.addAll(line.refundableInputs());line.clearBatch();line.selected=line.queued="";}
         energy=crystalRemaining=ignitionPaid=0;fuelRemaining=fuelTotal=0;ignited=false;fuelResults.clear();beacon="";routes.clear();
+        coreHeat=heatEnergyRemainder=Fraction.ZERO;
         for(int i=0;i<fluidTankCount();i++)fluids.empty(i);
         return drops;
     }
@@ -260,6 +291,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         for(var line:productionLines)line.save(out.child("line_"+line.index));
         pumpCycle.save(out.child("pump_cycle"));
         out.store("fuel_results",ItemStack.CODEC.listOf(),fuelResults);out.putLong("ignition_paid",ignitionPaid);out.putBoolean("ignited",ignited);
+        out.putString("core_heat",coreHeat.toString());out.putString("heat_energy_remainder",heatEnergyRemainder.toString());
         out.putInt("fuel_total",fuelTotal);out.putInt("fuel_remaining",fuelRemaining);out.putLong("fuel_energy",fuelEnergy);out.putInt("fuel_fluid_rate",fuelFluidRate);out.putString("fuel_fluid",fuelFluid);out.putInt("fluid_remainder",fluidRemainder);out.putInt("power_remainder",powerRemainder);out.putInt("harvest_cursor",harvestCursor);
     }
     @Override protected void loadAdditional(ValueInput in){
@@ -273,6 +305,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         for(var line:productionLines)line.load(in.childOrEmpty("line_"+line.index));
         pumpCycle.load(in.childOrEmpty("pump_cycle"));
         fuelResults=new ArrayList<>(in.read("fuel_results",ItemStack.CODEC.listOf()).orElse(List.of()));ignitionPaid=in.getLongOr("ignition_paid",0);ignited=in.getBooleanOr("ignited",false);
+        coreHeat=Fraction.parse(in.getStringOr("core_heat","0/1"));heatEnergyRemainder=Fraction.parse(in.getStringOr("heat_energy_remainder","0/1"));
         fuelTotal=in.getIntOr("fuel_total",0);fuelRemaining=in.getIntOr("fuel_remaining",0);fuelEnergy=in.getLongOr("fuel_energy",0);fuelFluidRate=in.getIntOr("fuel_fluid_rate",0);fuelFluid=in.getStringOr("fuel_fluid","");fluidRemainder=in.getIntOr("fluid_remainder",0);powerRemainder=in.getIntOr("power_remainder",0);harvestCursor=in.getIntOr("harvest_cursor",0);
         if(currencyUpgrade!=null)currencyUpgrade.load(in);
     }

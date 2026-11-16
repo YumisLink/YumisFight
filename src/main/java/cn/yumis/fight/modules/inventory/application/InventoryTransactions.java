@@ -2,7 +2,6 @@ package cn.yumis.fight.modules.inventory.application;
 import cn.yumis.fight.modules.presentation.api.ModText;
 import cn.yumis.fight.modules.inventory.api.InventoryPacking;
 import cn.yumis.fight.modules.inventory.api.MenuHooks;
-import cn.yumis.fight.platform.ItemData;
 
 import cn.yumis.fight.modules.inventory.api.StorageRules;
 import cn.yumis.fight.foundation.Journal;
@@ -12,9 +11,6 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.nbt.*;
-
-import java.nio.file.*;
 import java.util.*;
 public final class InventoryTransactions implements cn.yumis.fight.modules.inventory.api.InventoryOperations {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
@@ -58,9 +54,9 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             if(!entry.getKey().getItem().isEmpty())stagedDrops.add(loot.prepare(entry.getValue(),entry.getKey()));
         }
     }
-    public InventoryTransactions(Journal journal,net.minecraft.server.MinecraftServer server,cn.yumis.fight.modules.inventory.api.InventoryDrops loot,java.util.function.Consumer<ServerPlayer> profile,java.util.function.BiConsumer<ServerPlayer,String> message,CurrencyAction currencyAction){
+    public InventoryTransactions(Journal journal,cn.yumis.fight.modules.inventory.api.InventoryDrops loot,java.util.function.Consumer<ServerPlayer> profile,java.util.function.BiConsumer<ServerPlayer,String> message,CurrencyAction currencyAction){
         this.journal=journal;this.loot=loot;this.profile=profile;this.message=message;this.currencyAction=currencyAction;
-        this.containers=new ContainerParticipants(journal,server,this);
+        this.containers=new ContainerParticipants(this);
     }
     public boolean inside(){
         return inside;
@@ -104,8 +100,6 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
     }
     public void restore(ServerPlayer p){
         try{
-            containers.recoverPersistent(p);
-            Snapshot s=journal.get("inventory/"+p.getUUID(),Snapshot.class,null);
             String nativeState=p.getData(cn.yumis.fight.modules.inventory.api.InventoryContentTypes.STATE);
             if(!nativeState.isEmpty()){
                 Snapshot stored=JSON.fromJson(nativeState,Snapshot.class);
@@ -113,17 +107,7 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
                 if(stored.groups!=null)e.layout(stored.groups);
                 restoreBag(p,stored);
                 if(stored.crafting!=null)for(int i=0;i<Math.min(4,stored.crafting.size());i++)p.inventoryMenu.getSlot(i+1).set(decode(p,stored.crafting.get(i)));
-                if(s==null||!s.operation.equals(stored.operation)){
-                    p.inventoryMenu.setCarried(decode(p,stored.cursor));
-                }
             }
-            String applied=journal.get("inventoryApplied/"+p.getUUID(),String.class,"");
-            if(s!=null&&!s.operation.equals(applied)){
-                apply(p,s);
-                verify(p,s);
-                journal.put("inventoryApplied/"+p.getUUID(),s.operation);
-            }
-            if(p.containerMenu==p.inventoryMenu)containers.recoverEscrow(p);
 
         }
         catch(Exception failure){
@@ -139,23 +123,8 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         extra.bagPage=Math.clamp(snapshot.bagPage,0,Math.max(0,(extra.bagLimit()+8)/9-1));
         for(int i=0;i<snapshot.bag.size();i++)extra.bag.setItem(i,decode(p,snapshot.bag.get(i)));
     }
-    /** Only a login boundary may turn a saved cursor into player storage. Never replay this on receipt retries. */
-    public void restoreCursorAtLogin(ServerPlayer player){
-        Snapshot snapshot=journal.get("inventory/"+player.getUUID(),Snapshot.class,null);
-        if(snapshot==null||snapshot.cursor()==null||decode(player,snapshot.cursor()).isEmpty())return;
-        Map<String,JsonElement> changes=new HashMap<>();JsonObject intent=new JsonObject();intent.addProperty("loginCursor",snapshot.operation());
-        transact(player,"login-cursor/"+snapshot.operation(),intent,()->{ItemStack cursor=decode(player,snapshot.cursor());player.containerMenu.setCarried(ItemStack.EMPTY);stash(player,cursor,changes);},changes);
-    }
     public String clientStorageState(ServerPlayer p){
         var extra=MenuHooks.extra(p);JsonObject value=new JsonObject();value.addProperty("bagSchema",extra.bagSchema);value.addProperty("bagTier",extra.bagTier);value.addProperty("bagPage",extra.bagPage);return value.toString();
-    }
-    private void verify(ServerPlayer p,Snapshot snapshot)throws Exception{
-        p.setData(cn.yumis.fight.modules.inventory.api.InventoryContentTypes.STATE,JSON.toJson(snapshot));
-        p.level().getServer().getPlayerList().getPlayerIo().save(p);
-        Path path=p.level().getServer().getPlayerList().getPlayerIo().getPlayerDir().toPath().resolve(p.getStringUUID()+".dat");
-        CompoundTag nbt=NbtIo.readCompressed(path,NbtAccounter.unlimitedHeap());
-        String value=cn.yumis.fight.modules.inventory.api.InventoryContentTypes.STATE_CODEC.codec().parse(NbtOps.INSTANCE,nbt.getCompoundOrEmpty("neoforge:attachments").getCompoundOrEmpty(ItemData.NS+":state_modules_v1")).getOrThrow();
-        if(!value.equals(JSON.toJson(snapshot)))throw new IllegalStateException("原生存档回读与背包事务不一致");
     }
     public void verificationRestore(ServerPlayer player,Snapshot snapshot){
         if(!Boolean.getBoolean("ydnf.verify"))throw new IllegalStateException("verification disabled");
@@ -172,7 +141,6 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
     }
     public boolean transact(ServerPlayer p,String operation,JsonObject intent,Runnable mutation,Map<String,JsonElement> changes){return transactMachine(p,operation,intent,null,mutation,changes);}
     public boolean transactMachine(ServerPlayer p,String operation,JsonObject intent,cn.yumis.fight.modules.inventory.api.PersistentContainer target,Runnable mutation,Map<String,JsonElement> changes){
-        if(!inside)containers.recoverPersistent(p);
         if(!locks.add(p.getUUID()))throw new IllegalArgumentException("背包事务处理中");
         Snapshot before=capture(p,nativeOperation(p));
         var external=containers.capture(p,target);
@@ -194,8 +162,6 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             apply(p,before);
             containers.apply(p,external,null,null);
             Map<String,JsonElement> edits=new LinkedHashMap<>(changes);
-            containers.journal(p,operation,externalAfter,edits);
-            edits.put("inventory/"+p.getUUID(),JSON.toJsonTree(after));
             JsonObject r=new JsonObject();
             r.add("intent",intent.deepCopy());
             edits.put(key,r);
@@ -205,41 +171,34 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             loot.committed(edits.keySet());
             apply(p,after);
             containers.apply(p,external,externalAfter.values(),externalAfter.metadata());
-            verify(p,after);
-            containers.flush(p,externalAfter);
-            Map<String,JsonElement> completed=new LinkedHashMap<>();
-            completed.put("inventoryApplied/"+p.getUUID(),JSON.toJsonTree(operation));
-            containers.completed(p,operation,externalAfter,completed);
-            journal.transaction(completed);
-            p.containerMenu.broadcastFullState();
+            // Vanilla click packets reconcile after remote updates resume; custom commands still need slot updates.
+            p.containerMenu.broadcastChanges();
             if(!stagedDrops.isEmpty()){projectingDrops=true;try{loot.publishPrepared(stagedDrops);}finally{projectingDrops=false;}}
             return true;
         }
         catch(Exception error){
             if(!committed){apply(p,before);containers.apply(p,external,null,null);}
-            else p.connection.disconnect(ModText.of("背包已保存，原生恢复未完成，请重新连接："+error.getMessage()));
+            else p.connection.disconnect(ModText.of("背包事务已提交，后续处理未完成，请重新连接："+error.getMessage()));
             if(!committed&&error instanceof DropDenied){message.accept(p,"丢弃已被其他规则取消");p.containerMenu.broadcastFullState();return false;}
             if(!committed&&error instanceof NoSpace space)throw space;
             throw new IllegalStateException(error.getMessage(),error);
         }
         finally{
-            if(committed)for(var participant:external.machines())participant.machine().requestRecovery();
             inside=false;
             stagedDrops.clear();
             stagedEntities.clear();tossEvents.clear();actingPlayer=null;
             locks.remove(p.getUUID());
         }
     }
-    @Override public boolean transactContainer(String operation,JsonObject intent,cn.yumis.fight.modules.inventory.api.PersistentContainer target,Runnable mutation,Map<String,JsonElement> changes,boolean retiring){
+    @Override public boolean transactContainer(String operation,JsonObject intent,cn.yumis.fight.modules.inventory.api.PersistentContainer target,Runnable mutation,Map<String,JsonElement> changes){
         if(inside)throw new IllegalStateException("不能嵌套世界物品事务");
-        containers.recoverIndustrial();
         String identity=target.key();
         if(!containerLocks.add(identity))throw new IllegalStateException("容器事务处理中");
-        String receipt="industrialReceipt/"+identity+"/"+operation,pending="containerPending/industrial/"+identity+"/"+operation;
-        ContainerParticipants.MachineRef participant=null;
+        String receipt="industrialReceipt/"+identity+"/"+operation;
+        JsonElement before=null;
         boolean committed=false;
         try{
-            participant=containers.captureMachine(target,retiring);
+            before=target.transactionState();
             JsonElement previous=journal.get(receipt);
             if(!previous.isJsonNull()){
                 if(!previous.equals(intent))throw new IllegalArgumentException("操作号与原请求冲突");
@@ -247,31 +206,24 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             }
             mutation.run();
             JsonElement after=target.transactionState();
-            target.restoreTransactionState(participant.before());
+            target.restoreTransactionState(before);
             Map<String,JsonElement> edits=new LinkedHashMap<>(changes);
-            containers.journalMachine(pending,operation,participant,after,edits);
             edits.put(receipt,intent.deepCopy());
             journal.transaction(edits);committed=true;loot.committed(edits.keySet());
             target.restoreTransactionState(after);
-            containers.flushMachine(participant);
-            journal.put(pending,JsonNull.INSTANCE);
             return true;
         }catch(Exception failure){
-            if(!committed&&participant!=null)target.restoreTransactionState(participant.before());
+            if(!committed&&before!=null)target.restoreTransactionState(before);
             throw new IllegalStateException("世界物品事务未完成："+failure.getMessage(),failure);
         }finally{
-            if(committed)target.requestRecovery();
             containerLocks.remove(identity);
         }
     }
-    public void recoverContainers(ServerPlayer player){containers.recoverPersistent(player);}
-    public void recoverIndustrial(){containers.recoverIndustrial();}
     /** Called only after the native menu has returned its temporary inputs to the player. */
     public void finishMenu(ServerPlayer player,AbstractContainerMenu oldMenu){
-        var changes=containers.close(player,oldMenu);
-        if(inside||changes.isEmpty()&&!(oldMenu instanceof cn.yumis.fight.modules.inventory.api.CheckpointMenu))return;
+        if(inside||!ContainerParticipants.temporary(oldMenu)&&!(oldMenu instanceof cn.yumis.fight.modules.inventory.api.CheckpointMenu))return;
         JsonObject intent=new JsonObject();intent.addProperty("closedMenu",oldMenu.containerId);
-        transact(player,"menu-close/"+UUID.randomUUID(),intent,()->{},changes);
+        transact(player,"menu-close/"+UUID.randomUUID(),intent,()->{},Map.of());
     }
     public void click(ServerPlayer p,AbstractContainerMenu menu,int slot,int button,ContainerInput input){
         try{

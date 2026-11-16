@@ -1,6 +1,7 @@
 package cn.yumis.fight.mixin;
 
 import cn.yumis.fight.modules.equipment.api.client.MythicDisplay;
+import cn.yumis.fight.modules.presentation.api.client.RichTextDrawing;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -14,11 +15,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MythicGuiTextMixin {
     @Inject(method="text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;IIIZ)V",at=@At("HEAD"),cancellable=true)
     private void ydnf$sequence(Font font,FormattedCharSequence text,int x,int y,int color,boolean shadow,CallbackInfo callback){
+        if(text!=null&&RichTextDrawing.marked(text)){RichTextDrawing.line((GuiGraphicsExtractor)(Object)this,font,text,x,y,color,shadow);callback.cancel();return;}
         if(text!=null&&MythicDisplay.marked(text)){MythicDisplay.text((GuiGraphicsExtractor)(Object)this,font,text,x,y,color,shadow);callback.cancel();}
     }
     @Inject(method="text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;IIIZ)V",at=@At("HEAD"),cancellable=true)
     private void ydnf$component(Font font,Component component,int x,int y,int color,boolean shadow,CallbackInfo callback){
         if(component==null)return;var text=component.getVisualOrderText();
+        if(RichTextDrawing.marked(text)){RichTextDrawing.line((GuiGraphicsExtractor)(Object)this,font,text,x,y,color,shadow);callback.cancel();return;}
         if(MythicDisplay.marked(text)){MythicDisplay.text((GuiGraphicsExtractor)(Object)this,font,text,x,y,color,shadow);callback.cancel();}
     }
 }

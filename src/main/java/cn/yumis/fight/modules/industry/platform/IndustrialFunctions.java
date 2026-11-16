@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.industry.platform;
 import cn.yumis.fight.modules.industry.api.IndustrialRules;
+import cn.yumis.fight.modules.industry.api.HarvestArea;
 
 import cn.yumis.fight.modules.industry.api.DeviceType;
 
@@ -29,22 +30,29 @@ import java.util.*;
 
 /** Industrial module implementation; owns one scheduling responsibility. */
 public final class IndustrialFunctions {
+    private static final String HARVEST_OUTPUT_FULL="下方容器装不下完整掉落";
     public abstract static class FunctionJob {final MachineBlockEntity be;boolean done;FunctionJob(MachineBlockEntity b){be=b;}abstract long demand();abstract long run(long budget);}
     private final Map<String,FunctionJob> pendingFunctions=new HashMap<>();
     public void unload(String identity){pendingFunctions.remove(identity);}
     public void prepare(MachineBlockEntity be,List<FunctionJob> jobs){
         if(!be.running)return;
         if(be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS)){jobs.add(CrystalTransfers.prepare(be));return;}
+        if(be.device().has(DeviceType.Capability.HARVEST)){
+            var level=(ServerLevel)be.getLevel();var output=be.getBlockPos().below();
+            if(!level.hasChunkAt(output)){be.status="等待下方容器区块加载";return;}
+            if(level.getCapability(Capabilities.Item.BLOCK,output,Direction.UP)==null){be.status="下方没有可接收容器";return;}
+        }
         FunctionJob pending=pendingFunctions.get(be.identity.toString());if(pending!=null&&!pending.done){jobs.add(pending);return;}
         FunctionJob job=null;var rules=IndustrialRules.current();
         if(be.device().has(DeviceType.Capability.PUMP)){job=IndustrialFluidWork.pump(be);}
         else {
-            int width=rules.harvestSizes[be.tier()-1],area=width*width;
+            int width=HarvestArea.width(be.tier()),area=width*width;
             be.functionTime=be.functionTime.add(be.pluginSpeed().multiply(area).divide(rules.harvestPeriod));
             long whole=be.functionTime.numerator().divide(be.functionTime.denominator()).longValueExact();be.functionTime=be.functionTime.subtract(cn.yumis.fight.modules.industry.api.Fraction.of(whole));
             int checks=(int)Math.min(area,whole);List<FunctionJob> ready=new ArrayList<>();
             if(be.functionCredit==0)be.functionCost=Math.multiplyExact(rules.harvestEnergy,be.energyMultiplier());
-            for(int i=0;i<checks;i++){int at=Math.floorMod(be.harvestCursor++,area);BlockPos crop=be.getBlockPos().below().offset(at%width-width/2,0,at/width-width/2);var work=harvest(be,crop);if(work!=null)ready.add(work);}
+            for(int i=0;i<checks;i++){BlockPos crop=HarvestArea.crop(be.getBlockPos(),be.tier(),be.harvestCursor);be.harvestCursor=Math.floorMod(be.harvestCursor+1,area);var work=harvest(be,crop);if(work!=null)ready.add(work);}
+            if(ready.isEmpty()&&(checks>0||be.status.equals("未连接信标"))&&!be.status.equals(HARVEST_OUTPUT_FULL))be.status="持续扫描中，等待成熟作物或魔力草";
             if(!ready.isEmpty())job=payment(new FunctionJob(be){
                 long demand(){long result=0;for(var child:ready)if(!child.done){long n=child.demand();result=result>Long.MAX_VALUE-n?Long.MAX_VALUE:result+n;}return result;}
                 long run(long budget){long used=0;for(var child:ready)if(!child.done){long n=child.run(budget-used);if(n<0)child.done=true;else used+=n;}done=ready.stream().allMatch(child->child.done);return used==0&&done?-1:used;}
@@ -63,9 +71,39 @@ public final class IndustrialFunctions {
     }
     private FunctionJob harvest(MachineBlockEntity be,BlockPos pos){
         ServerLevel level=(ServerLevel)be.getLevel();BlockPos output=be.getBlockPos().below();if(!level.hasChunkAt(pos)||!level.hasChunkAt(output))return null;ResourceHandler<ItemResource> target=level.getCapability(Capabilities.Item.BLOCK,output,Direction.UP);if(target==null){be.status="下方没有可接收容器";return null;}
-        BlockState state=level.getBlockState(pos);String id=BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();if(!IndustrialRules.current().harvestCrops.contains(id))return null;IntegerProperty age=state.getProperties().stream().filter(p->p instanceof IntegerProperty&&p.getName().equals("age")).map(p->(IntegerProperty)p).findFirst().orElse(null);if(age==null||state.getValue(age)!=Collections.max(age.getPossibleValues()))return null;
-        List<ItemStack> drops=Block.getDrops(state,level,pos,level.getBlockEntity(pos),null,ItemStack.EMPTY);BlockState reset=state.setValue(age,Collections.min(age.getPossibleValues()));long cost=be.functionCost;
+        BlockState state=level.getBlockState(pos);String id=BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();if(!IndustrialRules.current().harvestCrops.contains(id))return null;
+        boolean magicGrass=state.getBlock() instanceof MagicGrassBlock;BlockState reset;
+        if(magicGrass)reset=Blocks.AIR.defaultBlockState();
+        else {IntegerProperty age=state.getProperties().stream().filter(p->p instanceof IntegerProperty&&p.getName().equals("age")).map(p->(IntegerProperty)p).findFirst().orElse(null);if(age==null||state.getValue(age)!=Collections.max(age.getPossibleValues()))return null;reset=state.setValue(age,Collections.min(age.getPossibleValues()));}
+        List<ItemStack> drops=Block.getDrops(state,level,pos,level.getBlockEntity(pos),null,ItemStack.EMPTY);long cost=be.functionCost;
         var outputEntity=level.getBlockEntity(output);
-        return new FunctionJob(be){long demand(){return cost;}long run(long budget){if(!level.hasChunkAt(pos)||!level.getBlockState(pos).equals(state)||!level.hasChunkAt(output)||level.getBlockEntity(output)!=outputEntity){done=true;return -1;}var receiver=level.getCapability(Capabilities.Item.BLOCK,output,Direction.UP);if(receiver==null){done=true;return -1;}try(var tx=Transaction.openRoot()){for(ItemStack s:drops)if(receiver.insert(ItemResource.of(s),s.getCount(),tx)!=s.getCount()){be.status="下方容器装不下完整掉落";return -1;}if(budget<cost){be.status="当前供能不足";return 0;}new SnapshotJournal<BlockState>(){protected BlockState createSnapshot(){return level.getBlockState(pos);}protected void revertToSnapshot(BlockState old){level.setBlock(pos,old,2);}protected void onRootCommit(BlockState old){level.sendBlockUpdated(pos,old,reset,3);}}.updateSnapshots(tx);level.setBlock(pos,reset,2);tx.commit();done=true;be.status="作物已收获并重置";return cost;}}};
+        return new FunctionJob(be){
+            long demand(){return cost;}
+            long run(long budget){
+                if(!level.hasChunkAt(pos)||!level.getBlockState(pos).equals(state)){done=true;be.status="目标已变化，继续扫描作物";return -1;}
+                if(!level.hasChunkAt(output)||level.getBlockEntity(output)!=outputEntity){done=true;be.status="下方容器已变化，等待重新扫描";return -1;}
+                var receiver=level.getCapability(Capabilities.Item.BLOCK,output,Direction.UP);
+                if(receiver==null){done=true;be.status="下方没有可接收容器";return -1;}
+                try(var tx=Transaction.openRoot()){
+                    for(ItemStack s:drops)if(receiver.insert(ItemResource.of(s),s.getCount(),tx)!=s.getCount()){be.status=HARVEST_OUTPUT_FULL;return -1;}
+                    if(budget<cost){be.status="当前供能不足，等待积累魔能";return 0;}
+                    new SnapshotJournal<BlockState>(){
+                        protected BlockState createSnapshot(){return level.getBlockState(pos);}
+                        protected void revertToSnapshot(BlockState old){level.setBlock(pos,old,Block.UPDATE_SKIP_ALL_SIDEEFFECTS);}
+                        protected void onRootCommit(BlockState old){
+                            level.markAndNotifyBlock(pos,level.getChunkAt(pos),old,reset,Block.UPDATE_ALL,Block.UPDATE_LIMIT);
+                            level.levelEvent(LevelEvent.PARTICLES_DESTROY_BLOCK,pos,Block.getId(old));
+                        }
+                    }.updateSnapshots(tx);
+                    // Publish block updates and harvest effects only after the inventory transaction commits.
+                    if(!level.setBlock(pos,reset,Block.UPDATE_SKIP_ALL_SIDEEFFECTS)||!level.getBlockState(pos).equals(reset)){
+                        be.status="植物未能收割，未收取掉落或魔能";return -1;
+                    }
+                    tx.commit();done=true;be.workedThisTick=true;
+                    be.status=magicGrass?"魔力草已清除，魔能水晶已入箱；继续扫描":"作物已收获并重置；继续扫描";
+                    return cost;
+                }
+            }
+        };
     }
 }

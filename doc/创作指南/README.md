@@ -28,7 +28,8 @@
 | `dungeons/api/ClassicEnemyKind.java`、`ClassicMove.java`；`content/ClassicDungeonRooms.java` 及各副本内容类 | 经典后续副本登记原型、六组编队与首领，精英复用本体；动作稳定ID对应原生模型片段，毫秒时长及接触相位共同驱动动作、预警与本机判定。召唤物／机关在所属副本服务维护，不计入普通编队清场数；中间复活不发布死亡回执，最终死亡沿原奖励入口。 |
 | `industry/api/MagicFlora.java` | 魔力花资源循环由草方块原生随机刻触发；先校验空位和相邻种源，再检查花的覆盖范围，不用全局扫描或定时补生。植物、液体及展示产线的制作源为 `tools/industrial_technology.py`。 |
 | `industry/api/DeviceType.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；`platform/IndustrialProcessing.java` | 新设备和工艺复用设备能力、科技目录、批次／产线结算；精度用既有 `EnergyMath`／`Fraction`，资源从正式生成源维护。 |
-| `economy/api/WorldItemTransfers.java`；`inventory/api/InventoryOperations.java` | 无人值守收取公共掉落物、从持久容器抛出物品时，复用世界物品端口与 `transactContainer`，由经济模块维护掉落账本，库存模块原子保存容器状态；提交后才更新世界投影。传送带制作源为 `tools/industrial_conveyors.py`，贴图源稿与导出入口为同目录 `industrial_conveyors.aseprite`、`draw_industrial_conveyors.lua`。 |
+| `industry/api/FluidPipes.java`；`tools/industrial_fluid_pipes.py` | 管道档位登记每段容量、机器接口流量与科技等级；Create基底和来源固定在 `industrial_fluid_pipes_create.json`，连接几何、配方和科技目录从制作源维护。`draw_industrial_fluid_pipes.lua` 与同名 Aseprite 源稿保留锁定原图、换色和方向标记图层，将图集按UV拆为16×16贴图，不缩小原像素。`--preview` 读取正式模型与贴图，以正常清晰度导出基本形状、三档材质和六方向全部连接正反视图至 `temp/fluid-pipes/`。液体通过本模块既有数量仓与事务接口转移，跨模块仍只消费公开 API。 |
+| `economy/api/WorldItemTransfers.java`；`inventory/api/InventoryOperations.java` | 无人值守收取公共掉落物、从持久容器抛出物品时，复用世界物品端口与 `transactContainer`，由经济模块维护掉落账本，库存模块统一提交变更、去重和内存回滚；提交后才更新世界投影。传送带制作源为 `tools/industrial_conveyors.py`，贴图源稿为同目录 `industrial_conveyors.aseprite`、`titanium_conveyor_frame.aseprite`，绘制入口为 `draw_industrial_conveyors.lua`；钛包边用 `metalBase` 传入原版 anvil 底图，`rimOnly=true` 仅更新包边；仅更新传送带模型／状态时使用 `--models-only`，尺寸同步生成至 `ConveyorGeometry.java`。新增放置方式复用工业模块 `ConveyorConnections` 的端口高度与坡度规则、`ConveyorRoute` 的整线校验；客户端负责选点与 A*，建造计划和扣料经既有库存 WAL 一起提交，由 `ConveyorConstructionService` 放置后完成记录；本次运行中的失败放置保留重试，区块沿原版正常保存。 |
 | `economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；`professions/api/ProfessionRewards.java` | 掉落、出售分解、通货与副职业奖励由本人客户端按原资格计算；消费与确定奖品走既有库存／WAL事务，源快照、操作号和结果一并保存。重试复用已确定结果，不新增第二套余额或发奖模型。 |
 | `economy/api/JarDefinitions.java`、`LootJarItem.java` | 单抽罐子登记奖池与权重，物品工厂使用定义ID；开罐与交付沿库存／WAL事务，演出不决定奖品。配置方法见下文。 |
 | `npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`、`NpcTutorial.java`；`economy/api/ShopDefinitions.java`、`ShopMenu.java` | NPC定义登记有序交互动作、固定皮肤／头饰和日常台词，通过组件挂到生物；伊蕾娜对白与六步引导由同一定义提供，I 内追踪器消费本机任务状态。商品登记单件物品和必须同时满足的费用，预览与本机购买共用定义。地图仅提供完成放置后的世界坐标锚点，调用NPC公开投放入口。 |
@@ -99,7 +100,7 @@
 
 `bossDropChance` 是普通副本、藏宝图、地狱+中有奖励资格的首领击杀独立投放，每位符合既有奖励资格的玩家分别判定，不继承掉落率、难度或引路石数量倍率。使用入口为背包右键，仅副本外且脱战可用；管理命令为 `/ydnf jar give <player> <definition> <count>`，数量1～64。
 
-本人客户端判断开罐资格并一次确定完整奖品，开始事务将扣罐与原奖品一并保存；本机10秒到时请求交付，服务器不再次抽取或审批。断线、死亡、换维度或正常停服交付已保存奖品，崩溃遗留在下次上线交付。背包放不下时使用普通公共掉落语义。演出独立等概率选择陪衬，最终始终停在已保存的原奖品。
+本人客户端判断开罐资格并一次确定完整奖品，开始事务将扣罐与原奖品一并保存；本机10秒到时请求交付，服务器不再次抽取或审批。断线、死亡、换维度或正常停服交付已保存奖品。背包放不下时使用普通公共掉落语义。演出独立等概率选择陪衬，最终始终停在已保存的原奖品。
 
 ## 首领专属稀有物
 

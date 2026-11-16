@@ -10,9 +10,14 @@ public final class RichTextDrawing {
     private RichTextDrawing(){}
     public static int length(FormattedCharSequence line){int[] count={0};line.accept((i,s,c)->{count[0]++;return true;});return count[0];}
     public static FormattedCharSequence prefix(FormattedCharSequence line,int characters){return sink->{int[] left={Math.max(0,characters)};return line.accept((i,s,c)->left[0]-->0&&sink.accept(i,s,c));};}
-    public static void line(GuiGraphicsExtractor g,Font font,FormattedCharSequence line,int x,int y,int color){
-        boolean[] gradient={false};line.accept((i,s,c)->{String mark=s.getInsertion();gradient[0]|=mark!=null&&mark.startsWith(RichText.GRADIENT);return true;});
-        if(!gradient[0]){g.text(font,line,x,y,color,false);return;}
+    public static boolean marked(FormattedCharSequence line){
+        boolean[] gradient={false};line.accept((i,s,c)->{String mark=s.getInsertion();gradient[0]|=mark!=null&&mark.startsWith(RichText.GRADIENT)&&mark.substring(RichText.GRADIENT.length()).matches("[a-fA-F0-9]{6}/[a-fA-F0-9]{6}");return true;});
+        return gradient[0];
+    }
+    public static void line(GuiGraphicsExtractor g,Font font,FormattedCharSequence line,int x,int y,int color){line(g,font,line,x,y,color,false);}
+    public static void line(GuiGraphicsExtractor g,Font font,FormattedCharSequence line,int x,int y,int color,boolean shadow){
+        if(!marked(line)){g.text(font,line,x,y,color,shadow);return;}
+        if(shadow){FormattedCharSequence shade=sink->line.accept((i,style,c)->sink.accept(i,style.withInsertion(null).withColor((((style.getColor()==null?color:style.getColor().getValue())&0xfcfcfc)>>2)),c));g.text(font,shade,x+1,y+1,0xff000000|((color&0xfcfcfc)>>2),false);}
         int padding=Math.max(12,font.lineHeight*2),width=font.width(line)+padding;
         for(int row=-padding;row<font.lineHeight+padding;row++){
             double t=Math.clamp(row/(double)Math.max(1,font.lineHeight-2),0,1);

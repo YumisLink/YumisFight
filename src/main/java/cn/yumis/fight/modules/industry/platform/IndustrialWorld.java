@@ -8,7 +8,6 @@ import cn.yumis.fight.modules.industry.api.DeviceType;
 import cn.yumis.fight.modules.industry.api.MineralCatalog;
 
 
-import cn.yumis.fight.modules.industry.api.IndustrialPorts;
 import com.google.gson.*;
 
 import net.minecraft.core.*;
@@ -56,7 +55,6 @@ public final class IndustrialWorld extends SavedData {
     public void wakeUpgrade(MachineBlockEntity machine){if(machine.currencyUpgrade!=null&&loaded.get(machine.identity.toString())==machine)upgradeActive.add(machine);}
     public void quietUpgrade(MachineBlockEntity machine){upgradeActive.remove(machine);}
     private boolean topologyDirty=true;
-    private boolean needsRecovery=true;
     private final IndustrialGeneration generation=new IndustrialGeneration();
     public final IndustrialOpening opening=new IndustrialOpening();
     private final ArrayDeque<Runnable> deferred=new ArrayDeque<>();
@@ -70,7 +68,6 @@ public final class IndustrialWorld extends SavedData {
     private String encode(){JsonObject root=new JsonObject();root.add("nodes",JSON.toJsonTree(nodes));root.add("cursors",JSON.toJsonTree(cursors));root.add("spills",JSON.toJsonTree(spills));return root.toString();}
     private String dimension(MachineBlockEntity be){return be.getLevel().dimension().identifier().toString();}
     public void register(MachineBlockEntity be){
-        needsRecovery=true;
         if(be.device().has(DeviceType.Capability.MINING)&&be.getLevel() instanceof ServerLevel server)IndustrialDeposits.get(server).deposit(server,be.getBlockPos().getX()>>4,be.getBlockPos().getZ()>>4);
         if(be.getLevel()==null||be.getLevel().isClientSide())return;String key=be.identity.toString();MachineBlockEntity prior=loaded.get(key);
         if(prior!=null&&prior!=be&&!prior.getBlockPos().equals(be.getBlockPos())){be.identity=UUID.randomUUID();key=be.identity.toString();be.setChanged();}
@@ -146,28 +143,26 @@ public final class IndustrialWorld extends SavedData {
     public static void tick(MinecraftServer server){get(server.overworld()).runTick(server);}
     private void runTick(MinecraftServer server){
         int count=deferred.size();for(int i=0;i<count;i++)deferred.removeFirst().run();
-        if(needsRecovery&&IndustrialPorts.ready()){IndustrialPorts.recover();needsRecovery=false;}
         IndustrialDeposits.get(server.overworld()).tick(server);
         releaseSpills(server);
         generation.beginTick();
         for(var be:new ArrayList<>(validations)){if(be.isRemoved())continue;boolean was=be.structureValid;be.structureLoaded=IndustrialStructures.loaded(be);be.structureValid=be.structureLoaded&&IndustrialStructures.missing(be).isEmpty();if(was!=be.structureValid)note(be,be.structureValid?"结构已完整":"结构不完整或区块未加载");}validations.clear();rebuild();
         Map<String,List<MachineBlockEntity>> cores=new LinkedHashMap<>(),devices=new LinkedHashMap<>();Map<String,Long> production=new HashMap<>();
         for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){
-            for(var line:be.lanes())line.beginTick();be.consumed=0;be.ignitionThisTick=0;be.workedThisTick=false;boolean connected=validBeacon(be)!=null;
+            for(var line:be.lanes())line.beginTick();be.consumed=be.generated=0;be.ignitionThisTick=0;be.workedThisTick=false;boolean connected=validBeacon(be)!=null;
             if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))cores.computeIfAbsent(components.get(be.identity.toString()),k->new ArrayList<>()).add(be);
-            if(be.device().generator()){long generated=generation.generate(be);be.generated=generated;var core=be.device().has(DeviceType.Capability.STORAGE_NETWORK)?be:validBeacon(be);if(core!=null)production.merge(components.get(core.identity.toString()),generated,Math::addExact);else be.overflow=generated;if(connected&&be.device().has(DeviceType.Capability.IGNITION))devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);}
+            if(be.device().generator()){long generated=generation.generate(be);if(be.isRemoved())continue;be.generated=generated;var core=be.device().has(DeviceType.Capability.STORAGE_NETWORK)?be:validBeacon(be);if(core!=null)production.merge(components.get(core.identity.toString()),generated,Math::addExact);else be.overflow=generated;if(connected&&be.device().has(DeviceType.Capability.IGNITION))devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);}
             else if(!be.device().has(DeviceType.Capability.STORAGE_NETWORK)){if(connected)devices.computeIfAbsent(components.get(be.beacon),k->new ArrayList<>()).add(be);else if(be.device().processing()&&be.running&&(!be.device().needsStructure()||be.structureValid)){for(var line:be.lanes())while(line.tickTime.positive()){IndustrialProcessing.prepare(line);if(line.batchRecipe.isEmpty())break;Fraction before=line.tickTime;long need=line.demand();long local=be.crystalSupply(need);long accepted=line.advance(local);be.crystalRemaining+=local-accepted;if(before.equals(line.tickTime))break;}}}
             IndustrialProcessing.output(be);
             IndustrialFluidWork.outputAdjacent(be);
-            if(be.currencyUpgrade!=null&&be.running)be.currencyUpgrade.charge(be.crystalSupply(be.currencyUpgrade.demand()));
+            if(be.currencyUpgrade!=null&&be.running)be.consumed+=be.currencyUpgrade.charge(be.crystalSupply(be.currencyUpgrade.demand()));
         }
         for(var entry:cores.entrySet())settle(entry.getKey(),entry.getValue(),devices.getOrDefault(entry.getKey(),List.of()),production.getOrDefault(entry.getKey(),0L));
         for(var be:new ArrayList<>(upgradeActive)){if(be.isRemoved()){upgradeActive.remove(be);continue;}if(be.currencyUpgrade.due()){upgradeActive.remove(be);be.currencyUpgrade.process();}}
-        for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){visual(be,be.device().has(DeviceType.Capability.STORAGE_NETWORK)?!be.isRemoved():validBeacon(be)!=null);IndustrialProcessing.output(be);IndustrialFluidWork.outputAdjacent(be);}
+        for(var be:new ArrayList<>(loaded.values()))if(!be.isRemoved()){be.samplePower();visual(be,be.device().has(DeviceType.Capability.STORAGE_NETWORK)?!be.isRemoved():validBeacon(be)!=null);IndustrialProcessing.output(be);IndustrialFluidWork.outputAdjacent(be);}
     }
     private void visual(MachineBlockEntity be,boolean connected){BlockState state=be.getBlockState();boolean active=be.device().generator()?be.currentPower>0:be.workedThisTick||be.consumed>0;if(state.getValue(MachineBlock.CONNECTED)!=connected||state.getValue(MachineBlock.ACTIVE)!=active)be.getLevel().setBlock(be.getBlockPos(),state.setValue(MachineBlock.CONNECTED,connected).setValue(MachineBlock.ACTIVE,active),2);be.syncTankDisplay();}
 
-    public void requestRecovery(){needsRecovery=true;}
     private void settle(String group,List<MachineBlockEntity> cores,List<MachineBlockEntity> devices,long generated){
         List<MachineBlockEntity> storage=new ArrayList<>(cores);
         for(var be:devices)if(be.device().has(DeviceType.Capability.ENERGY_STORAGE))storage.add(be);

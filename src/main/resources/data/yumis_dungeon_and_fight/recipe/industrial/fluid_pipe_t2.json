@@ -1,0 +1,17 @@
+{
+  "type": "yumis_dungeon_and_fight:machine_upgrade",
+  "category": "misc",
+  "pattern": [
+    "PPP",
+    "PTP",
+    "PPP"
+  ],
+  "key": {
+    "P": "yumis_dungeon_and_fight:fluid_pipe_t1",
+    "T": "yumis_dungeon_and_fight:tech_block_t2"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:fluid_pipe_t2",
+    "count": 8
+  }
+}

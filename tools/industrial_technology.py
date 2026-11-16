@@ -86,6 +86,8 @@ for _t in range(1, 7):
         NEW_CONTENT[f'tech_block_t{_t}'] = ('block', _t, f'T{_t}科技方块')
 NEW_CONTENT['industrial_upgrade_6'] = ('item', 6, 'T6科技核心')
 NEW_MACHINES = {
+    'mana_crystal_burner': (1, 1, 1, '魔能水晶燃烧器', 'coal_generator'),
+    'magnetic_confinement_chamber': (5, 6, 5, '强磁约束室', 'alchemical_reactor'),
     'heat_generator': (2, 2, 2, '热能发电机', 'thermal_generator'),
     'mana_concentrator': (2, 2, 2, '魔力液浓缩器', 'coolant_mixer'),
     'fluid_infuser': (2, 2, 2, '注液器', 'coolant_mixer'),
@@ -268,6 +270,10 @@ def catalog(specs):
         power = recipe['energy'] * 20 * speed / recipe['ticks']
         grade = next((i for i, maximum in enumerate([20,200,2000,30000,300000],1) if power <= maximum),6)
         energy_tiers['industrial/'+p.stem] = grade
+    from industrial_fluid_pipes import register_catalog
+    register_catalog(tiers, content)
+    from industrial_conveyors import register_catalog as register_conveyors
+    register_conveyors(tiers, content)
     return dict(grades=[dict(tier=t, name=NAMES[t-1], colors=PALETTES[t-1]) for t in range(1, 7)],
                 items=tiers, fluids={own(k): t for k, t in LIQUID_TIERS.items()} | {'minecraft:water': 1},
                 content=content, devices=specs, recipe_energy_tiers=energy_tiers,
@@ -303,7 +309,7 @@ def crafting(specs):
         shaped(f'machine_casing_t{t}', [' T ', 'FCF', '   '], {'T': f'tech_block_t{t}', 'C': f'industrial_upgrade_{t}', 'F': frames[t-2]})
     functions = dict(mana_crusher='minecraft:stonecutter', mana_furnace='minecraft:furnace', mineral_generator='minecraft:iron_pickaxe',
         currency_fabricator='horadric_cube', mana_forge='minecraft:blast_furnace', mana_beacon='minecraft:amethyst_block',
-        coal_generator='minecraft:smoker', solar_collector='minecraft:daylight_detector', turbine_generator='minecraft:piston',
+        coal_generator='minecraft:smoker', mana_crystal_burner='minecraft:amethyst_shard', solar_collector='minecraft:daylight_detector', turbine_generator='minecraft:piston',
         wind_generator='minecraft:lightning_rod', heat_generator='minecraft:magma_block', mana_concentrator='minecraft:cauldron', fluid_infuser='minecraft:dropper', thermal_generator='minecraft:blast_furnace', nuclear_reactor='nuclear_core',
         rtg_generator='rtg_core', coolant_mixer='minecraft:cauldron', mineral_refinery='minecraft:bucket',
         alchemical_reactor='minecraft:cauldron', water_pump='minecraft:piston', transfer_crystal='minecraft:ender_pearl',
@@ -321,7 +327,9 @@ def crafting(specs):
             shaped(key, [' C ', 'FMF', ' S '], {'C': f'machine_casing_t{grade}', 'M': previous, 'F': component, 'S': support}, guarded=True)
             d['upgrade_costs'] = {f'machine_casing_t{grade}': 1, component: 2, support: 1}
             continue
-        if kind == 'artificial_star':
+        if kind == 'magnetic_confinement_chamber':
+            shaped(key, ['SCS', 'LML', 'SCS'], {'S': 'mana_superconductor', 'C': 'superconducting_control', 'L': 'confinement_lattice', 'M': 'machine_casing_t6'})
+        elif kind == 'artificial_star':
             shaped(key, ['LCL', 'ASA', 'LCL'], {'L': 'confinement_lattice', 'C': 'superconducting_control', 'A': 'stellar_alloy', 'S': 'machine_casing_t6'})
         elif kind == 'nuclear_reactor':
             shaped(key, ['TIT', 'CSC', 'TNT'], {'T': 'tzm_alloy', 'I': 'high_purity_iridium_ingot', 'C': 'superconducting_control', 'S': 'machine_casing_t5', 'N': 'nuclear_core'})
@@ -410,7 +418,7 @@ def nuclear():
             ticks=1200, energy=6000000, fluids=[('azoth', 1000)])
     process('confinement_lattice', 'mana_forge', [('lattice_substrate', 4), ('high_purity_tantalum_ingot', 4), ('stellar_alloy', 4)], [('confinement_lattice', 4)], 5,
             ticks=1200, energy=6000000, fluids=[('penduliquid', 1000)])
-    shaped('fusion_ignition_core', [' S ', 'LCL', ' S '], {'S': 'stellar_alloy', 'L': 'confinement_lattice', 'C': 'industrial_upgrade_6'})
+    process('fusion_ignition_core', 'magnetic_confinement_chamber', [('stellar_alloy', 2), ('confinement_lattice', 2), ('industrial_upgrade_6', 1)], [('fusion_ignition_core', 1)], 5, ticks=1200, energy=60000000)
 
 
 def rules_and_processing():
@@ -497,11 +505,12 @@ def rules_and_processing():
 
 
 def icon(name, grade, block=False):
-    # Hand-authored item icons have their own Aseprite production source.
-    if not block and name in INDUSTRIAL_ITEM_ART:
-        path = ASSETS / 'textures/item' / (name + '.png')
+    # Hand-authored item and matrix art have their own Aseprite production sources.
+    matrix = block and name.startswith('tech_block_t')
+    if matrix or (not block and name in INDUSTRIAL_ITEM_ART):
+        path = ASSETS / ('textures/block' if matrix else 'textures/item') / (name + '.png')
         if not path.is_file():
-            raise FileNotFoundError('Generate industrial item art first: ' + str(path))
+            raise FileNotFoundError('Generate Aseprite industrial art first: ' + str(path))
         return
     palette = [tuple(bytes.fromhex(c)) + (255,) for c in PALETTES[grade-1]]
     pixels = [[(0, 0, 0, 0) for x in range(16)] for y in range(16)]
@@ -564,7 +573,13 @@ def resources(specs):
         write(ASSETS / 'items' / (key + '.json'), {'model': {'type': 'minecraft:model', 'model': own(('block/' if kind == 'block' else 'item/') + key)}})
         if kind == 'block':
             write(ASSETS / 'blockstates' / (key + '.json'), {'variants': {'': {'model': own('block/' + key)}}})
-            write(ASSETS / 'models/block' / (key + '.json'), {'parent': 'minecraft:block/cube_all', 'textures': {'all': own('block/' + key)}})
+            # The Aseprite exporter also owns matrix translucency; keep it on regeneration.
+            if key.startswith('tech_block_t'):
+                model = ASSETS / 'models/block' / (key + '.json')
+                if not model.is_file():
+                    raise FileNotFoundError('Export technology_blocks.aseprite first: ' + str(model))
+            else:
+                write(ASSETS / 'models/block' / (key + '.json'), {'parent': 'minecraft:block/cube_all', 'textures': {'all': own('block/' + key)}})
             write(DATA / 'loot_table/blocks' / (key + '.json'), {'type': 'minecraft:block', 'pools': [{'rolls': 1, 'entries': [{'type': 'minecraft:item', 'name': own(key)}]}]})
         else:
             write(ASSETS / 'models/item' / (key + '.json'), {'parent': 'minecraft:item/generated', 'textures': {'layer0': own('item/' + key)}})
@@ -680,20 +695,7 @@ def display_line():
     cache=Path(os.environ.get('GRADLE_USER_HOME',Path.home()/'.gradle'))/'caches/neoformruntime/artifacts/minecraft_26.2_client.jar'
     with zipfile.ZipFile(cache) as vanilla:
         def image(name):return Image.open(io.BytesIO(vanilla.read('assets/minecraft/textures/block/'+name+'.png'))).convert('RGBA')
-        grass=image('firefly_bush')
-        for y in range(grass.height):
-            for x in range(grass.width):
-                r,g,b,a=grass.getpixel((x,y));lum=.3*r+.59*g+.11*b
-                if a:grass.putpixel((x,y),(int(lum*.58),int(lum*.86),min(255,int(lum*1.18)),a))
-        grass.save(ASSETS/'textures/block/magic_grass.png')
-        (ASSETS/'textures/block/magic_grass.png.mcmeta').unlink(missing_ok=True)
-        glow=image('firefly_bush_emissive')
-        for y in range(glow.height):
-            for x in range(glow.width):
-                r,g,b,a=glow.getpixel((x,y));lum=max(r,g,b)
-                if a:glow.putpixel((x,y),(int(lum*.3),int(lum*.7),lum,a))
-        glow.save(ASSETS/'textures/block/magic_grass_emissive.png')
-        write(ASSETS/'textures/block/magic_grass_emissive.png.mcmeta',{'animation':{'frametime':3}})
+        magic_grass_textures(image)
         flower=image('poppy')
         for y in range(flower.height):
             for x in range(flower.width):
@@ -719,6 +721,95 @@ def display_line():
         path=ASSETS/f'lang/{locale}.json';lang=json.loads(path.read_text(encoding='utf-8'));lang.update(labels);write(path,lang)
 
 
+def magic_grass_textures(image):
+    """Natural green foliage with a cool blue cast; stars keep their own light layer."""
+    grass=image('firefly_bush')
+    for y in range(grass.height):
+        for x in range(grass.width):
+            r,g,b,a=grass.getpixel((x,y));lum=.3*r+.59*g+.11*b
+            if a:grass.putpixel((x,y),(round(lum*.64),round(lum*1.10),round(lum*.91),a))
+    grass.save(ASSETS/'textures/block/magic_grass.png')
+    (ASSETS/'textures/block/magic_grass.png.mcmeta').unlink(missing_ok=True)
+    glow=image('firefly_bush_emissive')
+    for y in range(glow.height):
+        for x in range(glow.width):
+            r,g,b,a=glow.getpixel((x,y));lum=max(r,g,b)
+            if a:glow.putpixel((x,y),(int(lum*.3),int(lum*.7),lum,a))
+    glow.save(ASSETS/'textures/block/magic_grass_emissive.png')
+    write(ASSETS/'textures/block/magic_grass_emissive.png.mcmeta',{'animation':{'frametime':3}})
+
+
+def crystal_burner():
+    """Targeted device generation, safe to run without rewriting other industrial assets."""
+    key = 'mana_crystal_burner'
+    shaped(key, ['MFM', 'CSC', 'MMM'], {'M': 'minecraft:copper_ingot', 'F': 'minecraft:amethyst_shard',
+        'C': 'energy_crystal_1', 'S': 'machine_casing_t1'})
+    for tier in range(1, 9):
+        process(f'fuel_{key}_{tier}', 'fuel_'+key, [(f'energy_crystal_{tier}', 1)], [], 1,
+                ticks=200 * 4**(tier-1), energy=500 * 8**(tier-1))
+    state = json.loads((ASSETS/'blockstates/coal_generator.json').read_text(encoding='utf-8'))
+    for variant in state['variants'].values():
+        variant['model'] = variant['model'].replace('coal_generator_1', key)
+    write(ASSETS/f'blockstates/{key}.json', state)
+    for suffix in ['', '_linked', '_active']:
+        model = json.loads((ASSETS/f'models/block/coal_generator_1{suffix}.json').read_text(encoding='utf-8'))
+        write(ASSETS/f'models/block/{key}{suffix}.json', model)
+    write(ASSETS/f'items/{key}.json', {'model': {'type': 'minecraft:model', 'model': own('block/'+key)}})
+    write(ASSETS/f'models/item/{key}.json', {'parent': own('block/'+key)})
+    path = ASSETS/'industry/technology.json'
+    current = json.loads(path.read_text(encoding='utf-8'))
+    spec = devices()[key]
+    spec['boxes'] = copy.deepcopy(current['devices']['coal_generator']['boxes'])
+    current['devices'][key] = spec
+    current['items'][own(key)] = 1
+    write(path, current)
+    for locale, title in [('zh_cn', '魔能水晶燃烧器'), ('en_us', 'Mana Crystal Burner')]:
+        path = ASSETS/f'lang/{locale}.json'
+        labels = json.loads(path.read_text(encoding='utf-8'));labels[f'block.{NS}.{key}'] = title;write(path, labels)
+    path = DATA/'rules/industrial.json'
+    rules = json.loads(path.read_text(encoding='utf-8'));rules['generators'][key] = dict(fluidPerSecond=0, fluid='');write(path, rules)
+
+
+def magnetic_confinement_chamber():
+    """A dedicated superconducting vessel, using existing T6 shell and coil materials."""
+    key = 'magnetic_confinement_chamber'
+    shaped(key, ['SCS', 'LML', 'SCS'], {'S': 'mana_superconductor', 'C': 'superconducting_control',
+        'L': 'confinement_lattice', 'M': 'machine_casing_t6'})
+    process('fusion_ignition_core', key, [('stellar_alloy', 2), ('confinement_lattice', 2), ('industrial_upgrade_6', 1)],
+        [('fusion_ignition_core', 1)], 5, ticks=1200, energy=60000000)
+    elements=[]
+    def box(start, end, texture):
+        elements.append(dict(from_=start, to=end, faces={side: dict(uv=[0,0,16,16], texture='#'+texture)
+            for side in ['north','south','east','west','up','down']}))
+        elements[-1]['from']=elements[-1].pop('from_')
+    box([1,0,1], [15,3,15], 'shell');box([1,13,1], [15,16,15], 'shell')
+    for x in [2,12]:
+        for z in [2,12]:box([x,3,z],[x+2,13,z+2],'shell')
+    box([5,4,5],[11,12,11],'chamber')
+    for y in [3,6,9,12]:
+        for start,end in [([2,y,2],[14,y+1,4]),([2,y,12],[14,y+1,14]),([2,y,4],[4,y+1,12]),([12,y,4],[14,y+1,12])]:box(start,end,'coil')
+    model=dict(ambientocclusion=False, render_type='minecraft:translucent',
+        textures=dict(shell=own('block/machine_casing_t6'), coil=own('block/spacetime_block'),
+            chamber='minecraft:block/glass', particle=own('block/machine_casing_t6')), elements=elements,
+        display=dict(gui=dict(rotation=[28,225,0],scale=[.8,.8,.8])))
+    write(ASSETS/f'models/block/{key}.json',model)
+    variants={}
+    for facing,angle in [('north',0),('east',90),('south',180),('west',270)]:
+        for tier in range(1,6):
+            for connected in [False,True]:
+                for active in [False,True]:variants[f'facing={facing},tier={tier},connected={str(connected).lower()},active={str(active).lower()}']=dict(model=own('block/'+key),y=angle)
+    write(ASSETS/f'blockstates/{key}.json',dict(variants=variants))
+    write(ASSETS/f'items/{key}.json',dict(model=dict(type='minecraft:model',model=own('block/'+key))))
+    write(ASSETS/f'models/item/{key}.json',dict(parent=own('block/'+key)))
+    path=ASSETS/'industry/technology.json';current=json.loads(path.read_text(encoding='utf-8'))
+    spec=devices()[key];spec['boxes']=[[1,0,1,15,16,15]];current['devices'][key]=spec;current['items'][own(key)]=6
+    current['recipe_energy_tiers']['industrial/fusion_ignition_core']=6;write(path,current)
+    for locale,title in [('zh_cn','强磁约束室'),('en_us','Magnetic Confinement Chamber')]:
+        path=ASSETS/f'lang/{locale}.json';labels=json.loads(path.read_text(encoding='utf-8'));labels[f'block.{NS}.{key}']=title;write(path,labels)
+    path=DATA/'rules/industrial.json';rules=json.loads(path.read_text(encoding='utf-8'))
+    rules.update(nuclearHeatingTicks=1200,nuclearCoolingTicks=600,nuclearExplosionStrength=6);write(path,rules)
+
+
 def generate():
     specs = devices()
     crafting(specs)
@@ -727,7 +818,11 @@ def generate():
     write(ASSETS / 'industry/technology.json', catalog(specs))
     resources(specs)
     display_line()
+    from industrial_expansion import material_animations
+    material_animations()
     write(ASSETS / 'industry/technology.json', catalog(specs))
+    crystal_burner()
+    magnetic_confinement_chamber()
 
 
 if __name__ == '__main__':

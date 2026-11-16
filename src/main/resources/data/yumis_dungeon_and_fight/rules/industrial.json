@@ -53,7 +53,8 @@
     "minecraft:carrots",
     "minecraft:potatoes",
     "minecraft:beetroots",
-    "minecraft:nether_wart"
+    "minecraft:nether_wart",
+    "yumis_dungeon_and_fight:magic_grass"
   ],
   "fluidCapacity": 20000,
   "magicGrassChance": 16,
@@ -194,6 +195,10 @@
     "artificial_star": {
       "fluidPerSecond": 100000,
       "fluid": "yumis_dungeon_and_fight:coolant"
+    },
+    "mana_crystal_burner": {
+      "fluidPerSecond": 0,
+      "fluid": ""
     }
   },
   "windBaseHeight": 60,
@@ -431,5 +436,8 @@
   "magicFlowerChance": 16,
   "magicFlowerRadius": 4,
   "magicFlowerSpreadChance": 8,
-  "magicFlowerHeight": 1
+  "magicFlowerHeight": 1,
+  "nuclearHeatingTicks": 1200,
+  "nuclearCoolingTicks": 600,
+  "nuclearExplosionStrength": 6
 }

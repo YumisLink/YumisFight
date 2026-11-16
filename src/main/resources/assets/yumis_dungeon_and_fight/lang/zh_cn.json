@@ -638,5 +638,11 @@
   "industry.yumis_dungeon_and_fight.infinite.empty": "尚未设置样本",
   "industry.yumis_dungeon_and_fight.infinite.sample": "%s × ∞",
   "block.yumis_dungeon_and_fight.conveyor_belt": "传送带",
-  "block.yumis_dungeon_and_fight.hopper_conveyor_belt": "漏斗传送带"
+  "block.yumis_dungeon_and_fight.hopper_conveyor_belt": "漏斗传送带",
+  "block.yumis_dungeon_and_fight.mana_crystal_burner": "魔能水晶燃烧器",
+  "block.yumis_dungeon_and_fight.magnetic_confinement_chamber": "强磁约束室",
+  "block.yumis_dungeon_and_fight.fluid_pipe_t1": "铜制液体管道",
+  "block.yumis_dungeon_and_fight.fluid_pipe_t2": "钒钢液体管道",
+  "block.yumis_dungeon_and_fight.fluid_pipe_t3": "铌钛合金液体管道",
+  "block.yumis_dungeon_and_fight.titanium_conveyor_belt": "钛传送带"
 }

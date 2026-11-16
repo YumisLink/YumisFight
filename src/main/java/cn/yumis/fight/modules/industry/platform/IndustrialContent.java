@@ -48,7 +48,10 @@ public final class IndustrialContent {
     public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<DisplayStandBlockEntity>> DISPLAY_STAND_BE=BES.register("display_stand",()->new BlockEntityType<>(DisplayStandBlockEntity::new,Set.of(DISPLAY_STAND.get())));
     public static final DeferredBlock<ConveyorBlock> CONVEYOR=BLOCKS.registerBlock("conveyor_belt",p->new ConveyorBlock(false,p),p->p.strength(1.5f).sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
     public static final DeferredBlock<ConveyorBlock> HOPPER_CONVEYOR=BLOCKS.registerBlock("hopper_conveyor_belt",p->new ConveyorBlock(true,p),p->p.strength(1.5f).sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
-    public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<ConveyorBlockEntity>> CONVEYOR_BE=BES.register("conveyor_belt",()->new BlockEntityType<>(ConveyorBlockEntity::new,Set.of(CONVEYOR.get(),HOPPER_CONVEYOR.get())));
+    public static final DeferredBlock<ConveyorBlock> TITANIUM_CONVEYOR=BLOCKS.registerBlock("titanium_conveyor_belt",p->new ConveyorBlock(false,3,p),p->p.strength(1.5f).sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
+    public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<ConveyorBlockEntity>> CONVEYOR_BE=BES.register("conveyor_belt",()->new BlockEntityType<>(ConveyorBlockEntity::new,Set.of(CONVEYOR.get(),HOPPER_CONVEYOR.get(),TITANIUM_CONVEYOR.get())));
+    public static final java.util.List<DeferredBlock<FluidPipeBlock>> FLUID_PIPES=java.util.stream.IntStream.rangeClosed(1,3).mapToObj(tier->BLOCKS.registerBlock(cn.yumis.fight.modules.industry.api.FluidPipes.grade(tier).id(),p->new FluidPipeBlock(tier,p),p->p.strength(1.5f).sound(SoundType.COPPER).noOcclusion().pushReaction(PushReaction.BLOCK))).toList();
+    public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<FluidPipeBlockEntity>> FLUID_PIPE_BE=BES.register("fluid_pipe",()->new BlockEntityType<>(FluidPipeBlockEntity::new,new HashSet<>(FLUID_PIPES.stream().map(DeferredBlock::get).toList())));
     public static final DeferredBlock<InfiniteSourceBlock> INFINITE_FLUID_TANK=BLOCKS.registerBlock("infinite_fluid_tank",p->new InfiniteSourceBlock(true,p),p->p.strength(3.5f).sound(SoundType.METAL).noOcclusion());
     public static final DeferredBlock<InfiniteSourceBlock> INFINITE_ITEM_BARREL=BLOCKS.registerBlock("infinite_item_barrel",p->new InfiniteSourceBlock(false,p),p->p.strength(2.5f).sound(SoundType.WOOD));
     public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<InfiniteSourceBlockEntity>> INFINITE_SOURCE_BE=BES.register("infinite_source",()->new BlockEntityType<>(InfiniteSourceBlockEntity::new,Set.of(INFINITE_FLUID_TANK.get(),INFINITE_ITEM_BARREL.get())));
@@ -90,7 +93,9 @@ public final class IndustrialContent {
         }
         ALL_BLOCKS.put("display_stand",DISPLAY_STAND);ALL_ITEMS.put("display_stand",ITEMS.registerSimpleBlockItem(DISPLAY_STAND));
         ALL_BLOCKS.put("conveyor_belt",CONVEYOR);ALL_ITEMS.put("conveyor_belt",ITEMS.registerSimpleBlockItem(CONVEYOR));
+        for(var pipe:FLUID_PIPES){String key=pipe.getId().getPath();ALL_BLOCKS.put(key,pipe);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(pipe));}
         ALL_BLOCKS.put("hopper_conveyor_belt",HOPPER_CONVEYOR);ALL_ITEMS.put("hopper_conveyor_belt",ITEMS.registerSimpleBlockItem(HOPPER_CONVEYOR));
+        ALL_BLOCKS.put("titanium_conveyor_belt",TITANIUM_CONVEYOR);ALL_ITEMS.put("titanium_conveyor_belt",ITEMS.registerSimpleBlockItem(TITANIUM_CONVEYOR));
         ALL_BLOCKS.put("infinite_fluid_tank",INFINITE_FLUID_TANK);ALL_ITEMS.put("infinite_fluid_tank",ITEMS.registerSimpleBlockItem(INFINITE_FLUID_TANK));
         ALL_BLOCKS.put("infinite_item_barrel",INFINITE_ITEM_BARREL);ALL_ITEMS.put("infinite_item_barrel",ITEMS.registerSimpleBlockItem(INFINITE_ITEM_BARREL));
         for(int i=1;i<=EnergyMath.MAX_CRYSTAL_TIER;i++)item("energy_crystal_"+i);
@@ -122,7 +127,7 @@ public final class IndustrialContent {
             String key=entry.getKey();var definition=entry.getValue().getAsJsonObject();
             if(ALL_ITEMS.containsKey(key)||LIQUIDS.containsKey(key))continue;
             switch(definition.get("kind").getAsString()){
-                case "block"->block(key,Block::new);
+                case "block"->block(key,key.startsWith("tech_block_t")?TechnologyBlock::new:Block::new);
                 case "fluid"->LIQUIDS.put(key,new Liquid(key,0xff9abccd));
                 default->item(key);
             }
@@ -141,6 +146,7 @@ public final class IndustrialContent {
     public static int crystalTier(ItemStack stack){var key=BuiltInRegistries.ITEM.getKey(stack.getItem());if(!key.getNamespace().equals(NS)||!key.getPath().startsWith("energy_crystal_"))return 0;try{int tier=Integer.parseInt(key.getPath().substring(15));return tier>=1&&tier<=EnergyMath.MAX_CRYSTAL_TIER?tier:0;}catch(NumberFormatException bad){return 0;}}
     public static void register(IEventBus bus){
         ManaStorageBagItem.registerIntake();
+        bus.addListener((RegisterCapabilitiesEvent e)->e.registerBlockEntity(Capabilities.Fluid.BLOCK,FLUID_PIPE_BE.get(),(be,side)->be.automation(side)));
         IndustrialEvents.register();
         bus.addListener((RegisterCapabilitiesEvent e)->e.registerBlockEntity(Capabilities.Item.BLOCK,CONVEYOR_BE.get(),(be,side)->be.automation(side)));
         BLOCKS.register(bus);ITEMS.register(bus);BES.register(bus);MENUS.register(bus);TYPES.register(bus);SERIALIZERS.register(bus);FLUID_TYPES.register(bus);FLUIDS.register(bus);PARTICLES.register(bus);TABS.register(bus);IndustrialWorldgen.register(bus);

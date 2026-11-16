@@ -9,6 +9,7 @@ public final class IndustryClientMessages {
     private static final Map<String,Parts> PREPARING=new LinkedHashMap<>();
     private IndustryClientMessages(){}
     public static void register(cn.yumis.fight.architecture.CommandRouter<Void,JsonObject> router){
+        router.register("industry","conveyorBuilt",(context,j)->ConveyorPlacementClient.result(j));
         router.register("industry","industrial_prepare",(context,j)->{
             long now=net.minecraft.util.Util.getMillis();PREPARING.values().removeIf(p->now-p.created>10000);String token=j.get("token").getAsString();int count=j.get("count").getAsInt(),at=j.get("part").getAsInt();if(count<1||count>1024||at<0||at>=count)return;
             if(PREPARING.size()>=8&&!PREPARING.containsKey(token))PREPARING.remove(PREPARING.keySet().iterator().next());

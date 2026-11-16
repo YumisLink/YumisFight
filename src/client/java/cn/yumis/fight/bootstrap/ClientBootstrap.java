@@ -89,6 +89,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.InfusionParticles.register(bus);
         cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
+        cn.yumis.fight.modules.industry.client.ConveyorPlacementClient.register();
         cn.yumis.fight.modules.industry.client.ManaWandClient.register(bus,stack->{var rarity=IndustrialItemDisplay.rarity(stack);return rarity==null?null:rarity.color();});
         cn.yumis.fight.modules.industry.client.ArtificialStarHazard.register(SkillController.INSTANCE::environmentDamage);
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{IndustrialItemDisplay.tooltip(event);if(IndustrialItemDisplay.rarity(event.getItemStack())==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC){int last=event.getToolTip().size()-1;event.getToolTip().set(last,cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(event.getToolTip().get(last)));}});
@@ -123,6 +124,7 @@ public final class ClientBootstrap {
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_BE.get(),IndustrialRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.DISPLAY_STAND_BE.get(),cn.yumis.fight.modules.industry.client.DisplayStandRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.CONVEYOR_BE.get(),cn.yumis.fight.modules.industry.client.ConveyorRenderer::new);
+            e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.FLUID_PIPE_BE.get(),cn.yumis.fight.modules.industry.client.FluidPipeRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.INFINITE_SOURCE_BE.get(),cn.yumis.fight.modules.industry.client.InfiniteSourceRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.WAYSTONE_PEDESTAL_ENTITY.get(),cn.yumis.fight.modules.dungeons.client.WaystonePedestalRenderer::new);
             e.registerEntityRenderer(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.CAGE.get(),CageRenderer::new);for(var type:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.entrySet()){

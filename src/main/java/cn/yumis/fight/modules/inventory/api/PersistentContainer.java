@@ -11,7 +11,6 @@ public interface PersistentContainer extends Container,TransactionParticipant<Js
     void setChanged();
     JsonElement transactionState();
     void restoreTransactionState(JsonElement value);
-    void requestRecovery();
     @Override default JsonElement snapshot(){return transactionState();}
     @Override default void restore(JsonElement value){restoreTransactionState(value);}
 }

@@ -126,6 +126,17 @@ def tint(template,color):
             if a:image.putpixel((x,y),(*[min(255,int(c*lum)) for c in target],a))
     return image
 def save_image(image,category,key):
+    if key in {'adamantite_ore','raw_adamantite','crushed_adamantite'}:
+        # Sparse refined-metal glints, leaving the ore/stone shading intact.
+        image=image.copy();rng=random.Random(key)
+        candidates=[(x,y) for y in range(1,image.height-1) for x in range(1,image.width-1)
+                    if (lambda p:p[3]>0 and p[0]>p[1]+10 and p[1]>p[2]+10)(image.getpixel((x,y)))]
+        rng.shuffle(candidates);chosen=[];gold=rgb(METALS['adamantite'][1])
+        for x,y in candidates:
+            if any(abs(x-X)+abs(y-Y)<3 for X,Y in chosen):continue
+            chosen.append((x,y));factor=[1.18,.78,1.42][len(chosen)%3]
+            image.putpixel((x,y),(*[min(255,round(c*factor)) for c in gold],255))
+            if len(chosen)>=max(4,image.width*image.height//48):break
     path=ASSETS/'textures'/category/(key+'.png');path.parent.mkdir(parents=True,exist_ok=True);image.save(path)
 def item_asset(key,color='9dd5da',template='item/titanium_ingot.png',mark=False):
     image=tint(template,color)
@@ -259,6 +270,67 @@ def assets():
 def item_asset_model(key):
     write(ASSETS/f'items/{key}.json',{'model':{'type':'minecraft:model','model':own('item/'+key)}})
     write(ASSETS/f'models/item/{key}.json',{'parent':'minecraft:item/generated','textures':{'layer0':own('item/'+key)}})
+
+def material_animations():
+    """Authored ingot surfaces with separate animated, emissive item layers."""
+    def publish(key,base,frames):
+        save_image(base,'item',key)
+        strip=Image.new('RGBA',(base.width,base.height*len(frames)))
+        for i,frame in enumerate(frames):strip.paste(frame,(0,i*base.height))
+        save_image(strip,'item',key+'_emissive')
+        write(ASSETS/f'textures/item/{key}_emissive.png.mcmeta',{'animation':{
+            'width':base.width,'height':base.height,'frametime':2}})
+        write(ASSETS/f'items/{key}.json',{'model':{'type':'minecraft:model','model':own('item/'+key)}})
+        write(ASSETS/f'models/item/{key}.json',{'parent':'minecraft:item/generated','render_type':'minecraft:translucent',
+            'textures':{'layer0':own('item/'+key),'layer1':{'sprite':own('item/'+key+'_emissive'),
+                'neoforge_data':{'light_emission':15,'ambient_occlusion':False}}}})
+
+    # Use the existing ingot silhouette, with a deep cosmic-violet ramp.
+    base=Image.open(ASSETS/'textures/item/titanium_ingot.png').convert('RGBA')
+    shades=sorted({p[:3] for p in base.getdata() if p[3]},key=lambda c:sum(c))
+    dark,mid,light=rgb('190d2d'),rgb('492471'),rgb('9860c6')
+    for y in range(base.height):
+        for x in range(base.width):
+            p=base.getpixel((x,y))
+            if not p[3]:continue
+            t=shades.index(p[:3])/(len(shades)-1);a,b=(dark,mid) if t<.5 else (mid,light);f=t*2 if t<.5 else (t-.5)*2
+            base.putpixel((x,y),(*[round(A+(B-A)*f) for A,B in zip(a,b)],p[3]))
+    surface=[(x,y) for y in range(base.height) for x in range(base.width) if base.getpixel((x,y))[3]]
+    axis=lambda x,y:x-.55*y
+    low=min(axis(x,y) for x,y in surface);high=max(axis(x,y) for x,y in surface)
+    frames=[]
+    for i in range(28):
+        glow=Image.new('RGBA',base.size);front=low-1+i*(high-low+4)/19
+        for x,y in surface:
+            behind=front-axis(x,y)
+            if 0<=behind<1.25:glow.putpixel((x,y),(145,211,255,128))
+            elif 1.25<=behind<4:
+                # A faint lilac afterglow fades just behind the blue film.
+                glow.putpixel((x,y),(181,152,235,round(46*(4-behind)/2.75)))
+        frames.append(glow)
+    publish('spacetime_ingot',base,frames)
+
+    # High-purity iridium retains its metal surface; only five pixels form each flash.
+    base=tint('item/titanium_ingot.png','ebdefe');rng=random.Random('high_purity_iridium')
+    # Leave headroom below white so the small star reads even in daylight.
+    for y in range(base.height):
+        for x in range(base.width):
+            r,g,b,a=base.getpixel((x,y))
+            if a:base.putpixel((x,y),(round(r*.86),round(g*.86),round(b*.90),a))
+    cross=[(0,0),(0,-1),(0,1),(-1,0),(1,0)]
+    centers=[(x,y) for y in range(1,base.height-1) for x in range(1,base.width-1)
+             if all(base.getpixel((x+dx,y+dy))[3] for dx,dy in cross)]
+    frames=[Image.new('RGBA',base.size) for _ in range(64)]
+    previous=None;start=2
+    while start+6<len(frames):
+        center=rng.choice([p for p in centers if p!=previous]);previous=center
+        for offset,strength in enumerate([.18,.5,1,.78,.38,.12]):
+            for dx,dy in cross:
+                color=(255,255,255) if dx==dy==0 else (237,248,255)
+                frames[start+offset].putpixel((center[0]+dx,center[1]+dy),(*color,round(255*strength)))
+        start+=rng.randint(9,13)
+    publish('high_purity_iridium_ingot',base,frames)
+
 
 def generate():
     content();assets();

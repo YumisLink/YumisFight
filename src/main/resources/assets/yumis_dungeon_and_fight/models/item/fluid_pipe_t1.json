@@ -1,0 +1,223 @@
+{
+  "parent": "minecraft:block/block",
+  "credit": "Create Team / Creators of Create",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "metal_t1": "yumis_dungeon_and_fight:block/fluid_pipe_metal_t1",
+    "rim_t1": "yumis_dungeon_and_fight:block/fluid_pipe_rim_t1",
+    "particle": "yumis_dungeon_and_fight:block/fluid_pipe_metal_t1"
+  },
+  "elements": [
+    {
+      "from": [
+        4,
+        4,
+        0
+      ],
+      "to": [
+        12,
+        12,
+        16
+      ],
+      "faces": {
+        "east": {
+          "uv": [
+            8,
+            16,
+            16,
+            0
+          ],
+          "rotation": 90,
+          "texture": "#metal_t1"
+        },
+        "west": {
+          "uv": [
+            8,
+            0,
+            16,
+            16
+          ],
+          "rotation": 90,
+          "texture": "#metal_t1"
+        },
+        "up": {
+          "uv": [
+            8,
+            16,
+            16,
+            0
+          ],
+          "texture": "#metal_t1"
+        },
+        "down": {
+          "uv": [
+            8,
+            16,
+            16,
+            0
+          ],
+          "rotation": 180,
+          "texture": "#metal_t1"
+        }
+      }
+    },
+    {
+      "from": [
+        3,
+        3,
+        0
+      ],
+      "to": [
+        13,
+        13,
+        2
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            6,
+            16,
+            16
+          ],
+          "texture": "#rim_t1"
+        },
+        "east": {
+          "uv": [
+            5.0,
+            16,
+            3.0,
+            6
+          ],
+          "texture": "#rim_t1"
+        },
+        "south": {
+          "uv": [
+            6,
+            6,
+            16,
+            16
+          ],
+          "texture": "#rim_t1"
+        },
+        "west": {
+          "uv": [
+            3.0,
+            16,
+            5.0,
+            6
+          ],
+          "texture": "#rim_t1"
+        },
+        "up": {
+          "uv": [
+            3.0,
+            6,
+            5.0,
+            16
+          ],
+          "rotation": 90,
+          "texture": "#rim_t1"
+        },
+        "down": {
+          "uv": [
+            5.0,
+            6,
+            3.0,
+            16
+          ],
+          "rotation": 90,
+          "texture": "#rim_t1"
+        }
+      }
+    },
+    {
+      "from": [
+        3,
+        3,
+        14
+      ],
+      "to": [
+        13,
+        13,
+        16
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            6,
+            16,
+            16
+          ],
+          "rotation": 180,
+          "texture": "#rim_t1"
+        },
+        "east": {
+          "uv": [
+            5.0,
+            16,
+            3.0,
+            6
+          ],
+          "rotation": 180,
+          "texture": "#rim_t1"
+        },
+        "south": {
+          "uv": [
+            6,
+            6,
+            16,
+            16
+          ],
+          "rotation": 180,
+          "texture": "#rim_t1"
+        },
+        "west": {
+          "uv": [
+            3.0,
+            16,
+            5.0,
+            6
+          ],
+          "rotation": 180,
+          "texture": "#rim_t1"
+        },
+        "up": {
+          "uv": [
+            5.0,
+            6,
+            3.0,
+            16
+          ],
+          "rotation": 90,
+          "texture": "#rim_t1"
+        },
+        "down": {
+          "uv": [
+            3.0,
+            6,
+            5.0,
+            16
+          ],
+          "rotation": 90,
+          "texture": "#rim_t1"
+        }
+      }
+    }
+  ],
+  "display": {
+    "fixed": {
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    }
+  }
+}

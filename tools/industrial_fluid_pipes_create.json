@@ -1,0 +1,3100 @@
+{
+  "credit": "Create Team / The Creators of Create",
+  "source": "https://github.com/Creators-of-Create/Create/tree/b62e837acab5e2ceeb7bfd0c9fd551c64b52dd18/src/main/resources/assets/create/models/block/fluid_pipe",
+  "commit": "b62e837acab5e2ceeb7bfd0c9fd551c64b52dd18",
+  "license": "Upstream asset license: All Rights Reserved. https://github.com/Creators-of-Create/Create/blob/b62e837acab5e2ceeb7bfd0c9fd551c64b52dd18/LICENSE.md",
+  "models": {
+    "d_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                0.0,
+                0.0,
+                4.0,
+                4.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                0.0,
+                0.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "d_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                0.0,
+                0.0,
+                4.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                4.0,
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "d_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                0.0,
+                0.0,
+                4.0,
+                4.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                0.0,
+                0.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "l_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                0.0,
+                8.0,
+                4.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                0.0,
+                4.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "l_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                0.0,
+                4.0,
+                4.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                4.0,
+                4.0,
+                0.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "l_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                0.0,
+                8.0,
+                4.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                0.0,
+                4.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ld_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                0.0,
+                16.0,
+                4.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                16.0,
+                0.0,
+                12.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ld_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                16.0,
+                0.0,
+                12.0,
+                4.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                16.0,
+                4.0,
+                12.0,
+                0.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ld_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                0.0,
+                16.0,
+                4.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                16.0,
+                0.0,
+                12.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "lr_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                8.0,
+                8.0,
+                12.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                8.0,
+                4.0,
+                12.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "lr_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                8.0,
+                4.0,
+                12.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                12.0,
+                4.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "lr_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                8.0,
+                8.0,
+                12.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                8.0,
+                4.0,
+                12.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "lu_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                4.0,
+                16.0,
+                8.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                16.0,
+                4.0,
+                12.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "lu_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                16.0,
+                4.0,
+                12.0,
+                8.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                16.0,
+                8.0,
+                12.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "lu_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                4.0,
+                16.0,
+                8.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                16.0,
+                4.0,
+                12.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "r_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                0.0,
+                4.0,
+                4.0,
+                8.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                4.0,
+                0.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "r_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                4.0,
+                0.0,
+                8.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                8.0,
+                0.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "r_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                0.0,
+                4.0,
+                4.0,
+                8.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                4.0,
+                0.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "rd_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                0.0,
+                12.0,
+                4.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                0.0,
+                8.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "rd_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                0.0,
+                8.0,
+                4.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                4.0,
+                8.0,
+                0.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "rd_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                0.0,
+                12.0,
+                4.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                0.0,
+                8.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ru_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                4.0,
+                12.0,
+                8.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                4.0,
+                8.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ru_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                4.0,
+                8.0,
+                8.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                8.0,
+                8.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ru_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                4.0,
+                12.0,
+                8.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                12.0,
+                4.0,
+                8.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "u_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                4.0,
+                8.0,
+                8.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                4.0,
+                4.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "u_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                4.0,
+                4.0,
+                8.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                8.0,
+                4.0,
+                4.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "u_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                4.0,
+                8.0,
+                8.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                8.0,
+                4.0,
+                4.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ud_x.json": {
+      "parent": "create:block/fluid_pipe/core_x",
+      "elements": [
+        {
+          "faces": {
+            "east": {
+              "texture": "#0",
+              "uv": [
+                0.0,
+                8.0,
+                4.0,
+                12.0
+              ]
+            },
+            "west": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                8.0,
+                0.0,
+                12.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ud_y.json": {
+      "parent": "create:block/fluid_pipe/core_y",
+      "elements": [
+        {
+          "faces": {
+            "down": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                8.0,
+                0.0,
+                12.0
+              ]
+            },
+            "up": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                12.0,
+                0.0,
+                8.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "ud_z.json": {
+      "parent": "create:block/fluid_pipe/core_z",
+      "elements": [
+        {
+          "faces": {
+            "north": {
+              "texture": "#0",
+              "uv": [
+                0.0,
+                8.0,
+                4.0,
+                12.0
+              ]
+            },
+            "south": {
+              "texture": "#0",
+              "uv": [
+                4.0,
+                8.0,
+                0.0,
+                12.0
+              ]
+            }
+          },
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ]
+        }
+      ]
+    },
+    "connection/down.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "name": "connection_down",
+          "from": [
+            4,
+            0,
+            4
+          ],
+          "to": [
+            12,
+            4,
+            12
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              16,
+              0,
+              -16
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                0,
+                6,
+                4,
+                8
+              ],
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                0,
+                6,
+                4,
+                8
+              ],
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                4,
+                6,
+                0,
+                8
+              ],
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                4,
+                6,
+                0,
+                8
+              ],
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "connection/east.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "name": "connection_east",
+          "from": [
+            12,
+            4,
+            4
+          ],
+          "to": [
+            16,
+            12,
+            12
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              16,
+              0,
+              -16
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                0,
+                6,
+                4,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                0,
+                8,
+                4,
+                6
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                0,
+                8,
+                4,
+                6
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                0,
+                6,
+                4,
+                8
+              ],
+              "rotation": 270,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "connection/north.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "name": "connection_north",
+          "from": [
+            4,
+            4,
+            0
+          ],
+          "to": [
+            12,
+            12,
+            4
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              0,
+              8,
+              0
+            ]
+          },
+          "faces": {
+            "east": {
+              "uv": [
+                0,
+                0,
+                4,
+                2
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                0,
+                2,
+                4,
+                0
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                0,
+                2,
+                4,
+                0
+              ],
+              "rotation": 180,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                0,
+                0,
+                4,
+                2
+              ],
+              "rotation": 180,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "connection/south.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "name": "connection_south",
+          "from": [
+            4,
+            4,
+            12
+          ],
+          "to": [
+            12,
+            12,
+            16
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              0,
+              8,
+              0
+            ]
+          },
+          "faces": {
+            "east": {
+              "uv": [
+                0,
+                6,
+                4,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                0,
+                8,
+                4,
+                6
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                0,
+                8,
+                4,
+                6
+              ],
+              "rotation": 180,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                0,
+                6,
+                4,
+                8
+              ],
+              "rotation": 180,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "connection/up.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "name": "connection_up",
+          "from": [
+            4,
+            12,
+            4
+          ],
+          "to": [
+            12,
+            16,
+            12
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              16,
+              0,
+              -16
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                0,
+                0,
+                4,
+                2
+              ],
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                0,
+                0,
+                4,
+                2
+              ],
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                4,
+                0,
+                0,
+                2
+              ],
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                4,
+                0,
+                0,
+                2
+              ],
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "connection/west.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "name": "connection_west",
+          "from": [
+            0,
+            4,
+            4
+          ],
+          "to": [
+            4,
+            12,
+            12
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              16,
+              0,
+              -16
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                0,
+                0,
+                4,
+                2
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                0,
+                2,
+                4,
+                0
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                0,
+                2,
+                4,
+                0
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                0,
+                0,
+                4,
+                2
+              ],
+              "rotation": 270,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "core_x.json": {
+      "credit": "Made with Blockbench",
+      "textures": {
+        "0": "create:block/pipes_connected",
+        "particle": "block/copper_block"
+      },
+      "elements": [
+        {
+          "name": "core_x",
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ],
+          "faces": {
+            "east": {
+              "uv": [
+                12,
+                8,
+                16,
+                12
+              ],
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                16,
+                8,
+                12,
+                12
+              ],
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "core_y.json": {
+      "credit": "Made with Blockbench",
+      "textures": {
+        "0": "create:block/pipes_connected",
+        "particle": "block/copper_block"
+      },
+      "elements": [
+        {
+          "name": "core_y",
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ],
+          "faces": {
+            "up": {
+              "uv": [
+                12,
+                12,
+                16,
+                8
+              ],
+              "rotation": 180,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                12,
+                8,
+                16,
+                12
+              ],
+              "rotation": 180,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "core_z.json": {
+      "credit": "Made with Blockbench",
+      "textures": {
+        "0": "create:block/pipes_connected",
+        "particle": "block/copper_block"
+      },
+      "elements": [
+        {
+          "name": "core_z",
+          "from": [
+            4,
+            4,
+            4
+          ],
+          "to": [
+            12,
+            12,
+            12
+          ],
+          "faces": {
+            "north": {
+              "uv": [
+                12,
+                8,
+                16,
+                12
+              ],
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                16,
+                8,
+                12,
+                12
+              ],
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "rim/down.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "from": [
+            3,
+            0,
+            3
+          ],
+          "to": [
+            13,
+            2,
+            13
+          ],
+          "faces": {
+            "north": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "rotation": 270,
+              "texture": "#0",
+              "cullface": "down"
+            }
+          }
+        }
+      ]
+    },
+    "rim/east.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "from": [
+            14,
+            3,
+            3
+          ],
+          "to": [
+            16,
+            13,
+            13
+          ],
+          "faces": {
+            "north": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#0",
+              "cullface": "east"
+            },
+            "south": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "rotation": 180,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "rim/north.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "from": [
+            3,
+            3,
+            0
+          ],
+          "to": [
+            13,
+            13,
+            2
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              8,
+              28,
+              8
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#0",
+              "cullface": "north"
+            },
+            "east": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 270,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "rotation": 270,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "rim/south.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "from": [
+            3,
+            3,
+            14
+          ],
+          "to": [
+            13,
+            13,
+            16
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              8,
+              28,
+              8
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#0",
+              "cullface": "south"
+            },
+            "west": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "rotation": 270,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 270,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "rim/up.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "from": [
+            3,
+            14,
+            3
+          ],
+          "to": [
+            13,
+            16,
+            13
+          ],
+          "faces": {
+            "north": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0",
+              "cullface": "up"
+            },
+            "down": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "rotation": 270,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "rim/west.json": {
+      "credit": "Made with Blockbench",
+      "texture_size": [
+        32,
+        32
+      ],
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "create:block/pipes"
+      },
+      "elements": [
+        {
+          "from": [
+            0,
+            3,
+            3
+          ],
+          "to": [
+            2,
+            13,
+            13
+          ],
+          "faces": {
+            "north": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#0",
+              "cullface": "west"
+            },
+            "up": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 180,
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "window.json": {
+      "credit": "Made with Blockbench",
+      "parent": "block/block",
+      "textures": {
+        "0": "create:block/glass_fluid_pipe",
+        "particle": "block/copper_block"
+      },
+      "elements": [
+        {
+          "name": "Outer",
+          "from": [
+            4,
+            0,
+            4
+          ],
+          "to": [
+            12,
+            16,
+            12
+          ],
+          "faces": {
+            "north": {
+              "uv": [
+                0,
+                16,
+                16,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                0,
+                16,
+                16,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                0,
+                8,
+                16,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                0,
+                8,
+                16,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            }
+          }
+        },
+        {
+          "name": "Inner",
+          "from": [
+            4.1,
+            0,
+            11.9
+          ],
+          "to": [
+            11.9,
+            16,
+            4.1
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              0,
+              0,
+              8
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                0,
+                16,
+                16,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                0,
+                16,
+                16,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                0,
+                8,
+                16,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                0,
+                8,
+                16,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            }
+          }
+        },
+        {
+          "from": [
+            10,
+            0,
+            4
+          ],
+          "to": [
+            6,
+            16,
+            12
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              8,
+              8,
+              8
+            ]
+          },
+          "faces": {
+            "east": {
+              "uv": [
+                0,
+                0,
+                16,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                0,
+                0,
+                16,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            }
+          }
+        },
+        {
+          "from": [
+            4,
+            0,
+            10
+          ],
+          "to": [
+            12,
+            16,
+            6
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              4,
+              0,
+              10
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                0,
+                0,
+                16,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                0,
+                0,
+                16,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "casing.json": {
+      "credit": "Made with Blockbench",
+      "textures": {
+        "0": "create:block/pipes",
+        "particle": "block/copper_block"
+      },
+      "elements": [
+        {
+          "from": [
+            3,
+            3,
+            3
+          ],
+          "to": [
+            13,
+            13,
+            13
+          ],
+          "faces": {
+            "north": {
+              "uv": [
+                1,
+                11,
+                6,
+                16
+              ],
+              "texture": "#0"
+            },
+            "east": {
+              "uv": [
+                1,
+                11,
+                6,
+                16
+              ],
+              "texture": "#0"
+            },
+            "south": {
+              "uv": [
+                1,
+                11,
+                6,
+                16
+              ],
+              "texture": "#0"
+            },
+            "west": {
+              "uv": [
+                1,
+                11,
+                6,
+                16
+              ],
+              "texture": "#0"
+            },
+            "up": {
+              "uv": [
+                1,
+                11,
+                6,
+                16
+              ],
+              "texture": "#0"
+            },
+            "down": {
+              "uv": [
+                1,
+                11,
+                6,
+                16
+              ],
+              "texture": "#0"
+            }
+          }
+        }
+      ]
+    },
+    "item.json": {
+      "credit": "Made with Blockbench",
+      "parent": "block/block",
+      "textures": {
+        "1": "create:block/pipes",
+        "particle": "block/copper_block"
+      },
+      "elements": [
+        {
+          "from": [
+            4,
+            4,
+            0
+          ],
+          "to": [
+            12,
+            12,
+            16
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              8,
+              8,
+              8
+            ]
+          },
+          "faces": {
+            "east": {
+              "uv": [
+                4,
+                8,
+                8,
+                0
+              ],
+              "rotation": 90,
+              "texture": "#1"
+            },
+            "west": {
+              "uv": [
+                4,
+                0,
+                8,
+                8
+              ],
+              "rotation": 90,
+              "texture": "#1"
+            },
+            "up": {
+              "uv": [
+                4,
+                8,
+                8,
+                0
+              ],
+              "texture": "#1"
+            },
+            "down": {
+              "uv": [
+                4,
+                8,
+                8,
+                0
+              ],
+              "rotation": 180,
+              "texture": "#1"
+            }
+          }
+        },
+        {
+          "from": [
+            3,
+            3,
+            0
+          ],
+          "to": [
+            13,
+            13,
+            2
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "y",
+            "origin": [
+              8,
+              28,
+              8
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#1"
+            },
+            "east": {
+              "uv": [
+                10.5,
+                16,
+                9.5,
+                11
+              ],
+              "texture": "#1"
+            },
+            "south": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "texture": "#1"
+            },
+            "west": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "texture": "#1"
+            },
+            "up": {
+              "uv": [
+                9.5,
+                11,
+                10.5,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#1"
+            },
+            "down": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#1"
+            }
+          }
+        },
+        {
+          "from": [
+            3,
+            3,
+            14
+          ],
+          "to": [
+            13,
+            13,
+            16
+          ],
+          "rotation": {
+            "angle": 0,
+            "axis": "x",
+            "origin": [
+              8,
+              8,
+              15
+            ]
+          },
+          "faces": {
+            "north": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "rotation": 180,
+              "texture": "#1"
+            },
+            "east": {
+              "uv": [
+                10.5,
+                16,
+                9.5,
+                11
+              ],
+              "rotation": 180,
+              "texture": "#1"
+            },
+            "south": {
+              "uv": [
+                11,
+                11,
+                16,
+                16
+              ],
+              "rotation": 180,
+              "texture": "#1"
+            },
+            "west": {
+              "uv": [
+                9.5,
+                16,
+                10.5,
+                11
+              ],
+              "rotation": 180,
+              "texture": "#1"
+            },
+            "up": {
+              "uv": [
+                10.5,
+                11,
+                9.5,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#1"
+            },
+            "down": {
+              "uv": [
+                9.5,
+                11,
+                10.5,
+                16
+              ],
+              "rotation": 90,
+              "texture": "#1"
+            }
+          }
+        }
+      ],
+      "display": {
+        "fixed": {
+          "rotation": [
+            0,
+            90,
+            0
+          ],
+          "scale": [
+            0.5,
+            0.5,
+            0.5
+          ]
+        }
+      }
+    }
+  },
+  "core_selectors": [
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/lu_x"
+      },
+      "when": {
+        "down": "false",
+        "north": "false",
+        "south": "true",
+        "up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ru_x"
+      },
+      "when": {
+        "down": "false",
+        "north": "true",
+        "south": "false",
+        "up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ld_x"
+      },
+      "when": {
+        "down": "true",
+        "north": "false",
+        "south": "true",
+        "up": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/rd_x"
+      },
+      "when": {
+        "down": "true",
+        "north": "true",
+        "south": "false",
+        "up": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ud_x"
+      },
+      "when": {
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/u_x"
+      },
+      "when": {
+        "down": "false",
+        "north": "false",
+        "south": "false",
+        "up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/d_x"
+      },
+      "when": {
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/lr_x"
+      },
+      "when": {
+        "down": "false",
+        "north": "true",
+        "south": "true",
+        "up": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/l_x"
+      },
+      "when": {
+        "down": "false",
+        "north": "false",
+        "south": "true",
+        "up": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/r_x"
+      },
+      "when": {
+        "down": "false",
+        "north": "true",
+        "south": "false",
+        "up": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/lu_y"
+      },
+      "when": {
+        "east": "true",
+        "north": "false",
+        "south": "true",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ru_y"
+      },
+      "when": {
+        "east": "false",
+        "north": "false",
+        "south": "true",
+        "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ld_y"
+      },
+      "when": {
+        "east": "true",
+        "north": "true",
+        "south": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/rd_y"
+      },
+      "when": {
+        "east": "false",
+        "north": "true",
+        "south": "false",
+        "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ud_y"
+      },
+      "when": {
+        "east": "false",
+        "north": "true",
+        "south": "true",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/u_y"
+      },
+      "when": {
+        "east": "false",
+        "north": "false",
+        "south": "true",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/d_y"
+      },
+      "when": {
+        "east": "false",
+        "north": "true",
+        "south": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/lr_y"
+      },
+      "when": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/l_y"
+      },
+      "when": {
+        "east": "true",
+        "north": "false",
+        "south": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/r_y"
+      },
+      "when": {
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/lu_z"
+      },
+      "when": {
+        "down": "false",
+        "east": "true",
+        "up": "true",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ru_z"
+      },
+      "when": {
+        "down": "false",
+        "east": "false",
+        "up": "true",
+        "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ld_z"
+      },
+      "when": {
+        "down": "true",
+        "east": "true",
+        "up": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/rd_z"
+      },
+      "when": {
+        "down": "true",
+        "east": "false",
+        "up": "false",
+        "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/ud_z"
+      },
+      "when": {
+        "down": "true",
+        "east": "false",
+        "up": "true",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/u_z"
+      },
+      "when": {
+        "down": "false",
+        "east": "false",
+        "up": "true",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/d_z"
+      },
+      "when": {
+        "down": "true",
+        "east": "false",
+        "up": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/lr_z"
+      },
+      "when": {
+        "down": "false",
+        "east": "true",
+        "up": "false",
+        "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/l_z"
+      },
+      "when": {
+        "down": "false",
+        "east": "true",
+        "up": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "create:block/fluid_pipe/r_z"
+      },
+      "when": {
+        "down": "false",
+        "east": "false",
+        "up": "false",
+        "west": "true"
+      }
+    }
+  ]
+}

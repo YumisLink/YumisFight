@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "BBB",
+    "BCB",
+    "BBB"
+  ],
+  "key": {
+    "B": "yumis_dungeon_and_fight:conveyor_belt",
+    "C": "yumis_dungeon_and_fight:industrial_upgrade_3"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:titanium_conveyor_belt",
+    "count": 8
+  }
+}

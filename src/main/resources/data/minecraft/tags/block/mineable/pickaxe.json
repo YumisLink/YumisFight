@@ -100,6 +100,10 @@
     "yumis_dungeon_and_fight:mana_concentrator",
     "yumis_dungeon_and_fight:fluid_infuser",
     "yumis_dungeon_and_fight:conveyor_belt",
-    "yumis_dungeon_and_fight:hopper_conveyor_belt"
+    "yumis_dungeon_and_fight:hopper_conveyor_belt",
+    "yumis_dungeon_and_fight:fluid_pipe_t1",
+    "yumis_dungeon_and_fight:fluid_pipe_t2",
+    "yumis_dungeon_and_fight:fluid_pipe_t3",
+    "yumis_dungeon_and_fight:titanium_conveyor_belt"
   ]
 }

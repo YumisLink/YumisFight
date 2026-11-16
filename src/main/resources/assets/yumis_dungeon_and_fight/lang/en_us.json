@@ -516,5 +516,11 @@
   "industry.yumis_dungeon_and_fight.infinite.empty": "No sample configured",
   "industry.yumis_dungeon_and_fight.infinite.sample": "%s × ∞",
   "block.yumis_dungeon_and_fight.conveyor_belt": "Conveyor Belt",
-  "block.yumis_dungeon_and_fight.hopper_conveyor_belt": "Hopper Conveyor Belt"
+  "block.yumis_dungeon_and_fight.hopper_conveyor_belt": "Hopper Conveyor Belt",
+  "block.yumis_dungeon_and_fight.mana_crystal_burner": "Mana Crystal Burner",
+  "block.yumis_dungeon_and_fight.magnetic_confinement_chamber": "Magnetic Confinement Chamber",
+  "block.yumis_dungeon_and_fight.fluid_pipe_t1": "Copper Fluid Pipe",
+  "block.yumis_dungeon_and_fight.fluid_pipe_t2": "Vanadium Steel Fluid Pipe",
+  "block.yumis_dungeon_and_fight.fluid_pipe_t3": "Niobium Titanium Fluid Pipe",
+  "block.yumis_dungeon_and_fight.titanium_conveyor_belt": "Titanium Conveyor Belt"
 }

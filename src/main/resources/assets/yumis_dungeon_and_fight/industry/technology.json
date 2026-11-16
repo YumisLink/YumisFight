@@ -441,7 +441,13 @@
     "yumis_dungeon_and_fight:infinite_power_tower": 5,
     "yumis_dungeon_and_fight:conveyor_belt": 1,
     "yumis_dungeon_and_fight:hopper_conveyor_belt": 1,
-    "minecraft:dried_kelp": 1
+    "minecraft:dried_kelp": 1,
+    "yumis_dungeon_and_fight:mana_crystal_burner": 1,
+    "yumis_dungeon_and_fight:magnetic_confinement_chamber": 6,
+    "yumis_dungeon_and_fight:fluid_pipe_t1": 1,
+    "yumis_dungeon_and_fight:fluid_pipe_t2": 2,
+    "yumis_dungeon_and_fight:fluid_pipe_t3": 4,
+    "yumis_dungeon_and_fight:titanium_conveyor_belt": 3
   },
   "fluids": {
     "yumis_dungeon_and_fight:mana_fluid": 1,
@@ -728,6 +734,26 @@
       "kind": "block",
       "tier": 1,
       "title": "漏斗传送带"
+    },
+    "fluid_pipe_t1": {
+      "kind": "block",
+      "tier": 1,
+      "title": "铜制液体管道"
+    },
+    "fluid_pipe_t2": {
+      "kind": "block",
+      "tier": 2,
+      "title": "钒钢液体管道"
+    },
+    "fluid_pipe_t3": {
+      "kind": "block",
+      "tier": 4,
+      "title": "铌钛合金液体管道"
+    },
+    "titanium_conveyor_belt": {
+      "kind": "block",
+      "tier": 3,
+      "title": "钛传送带"
     }
   },
   "devices": {
@@ -1923,6 +1949,38 @@
         ]
       ],
       "creative_only": true
+    },
+    "mana_crystal_burner": {
+      "kind": "mana_crystal_burner",
+      "tier": 1,
+      "technology": 1,
+      "processing": 1,
+      "boxes": [
+        [
+          1,
+          0,
+          1,
+          15,
+          13,
+          15
+        ]
+      ]
+    },
+    "magnetic_confinement_chamber": {
+      "kind": "magnetic_confinement_chamber",
+      "tier": 5,
+      "technology": 6,
+      "processing": 5,
+      "boxes": [
+        [
+          1,
+          0,
+          1,
+          15,
+          16,
+          15
+        ]
+      ]
     }
   },
   "recipe_energy_tiers": {
@@ -2132,7 +2190,8 @@
     "industrial/uranium_smelt_ores": 4,
     "industrial/uranium_smelt_raw_materials": 4,
     "industrial/zirconium_casing": 3,
-    "industrial/zircon_ceramic": 3
+    "industrial/zircon_ceramic": 3,
+    "industrial/fusion_ignition_core": 6
   },
   "material_items": [
     "yumis_dungeon_and_fight:copper_ore",

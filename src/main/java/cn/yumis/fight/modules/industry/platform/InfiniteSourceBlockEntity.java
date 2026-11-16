@@ -54,8 +54,6 @@ public final class InfiniteSourceBlockEntity extends BlockEntity implements Pers
         }
     }
     @Override public String key(){return identity.toString();}
-    @Override public void requestRecovery(){if(level instanceof ServerLevel server)IndustrialWorld.get(server).requestRecovery();}
-    @Override public void onLoad(){super.onLoad();requestRecovery();}
     @Override public boolean stillValid(Player player){return !isRemoved()&&level!=null&&level.hasChunkAt(worldPosition)&&level.getBlockEntity(worldPosition)==this&&player.distanceToSqr(worldPosition.getX()+.5,worldPosition.getY()+.5,worldPosition.getZ()+.5)<=64;}
     private static String text(String key){return "industry."+IndustrialContent.NS+".infinite."+key;}
     private void showSample(ServerPlayer player){

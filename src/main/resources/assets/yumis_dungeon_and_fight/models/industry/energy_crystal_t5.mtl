@@ -1,6 +1,0 @@
-newmtl crystal
-Kd 1 1 1
-map_Kd #crystal
-newmtl base
-Kd 1 1 1
-map_Kd #base

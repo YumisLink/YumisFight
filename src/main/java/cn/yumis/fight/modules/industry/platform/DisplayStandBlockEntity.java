@@ -42,8 +42,6 @@ public final class DisplayStandBlockEntity extends BlockEntity implements Persis
         };
     }
     @Override public String key(){return identity.toString();}
-    @Override public void requestRecovery(){if(level instanceof ServerLevel server)IndustrialWorld.get(server).requestRecovery();}
-    @Override public void onLoad(){super.onLoad();requestRecovery();}
     @Override public int getContainerSize(){return 2;}
     @Override public boolean isEmpty(){return getItem(0).isEmpty()&&getItem(1).isEmpty();}
     @Override public ItemStack getItem(int slot){return items.getResource(slot).toStack(items.getAmountAsInt(slot));}

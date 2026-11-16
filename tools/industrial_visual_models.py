@@ -181,39 +181,23 @@ def obj_model(name, crystal_texture, tier=1):
 
 
 def generate_energy_crystals(update_source=False):
-    """Keep energy crystals crystalline while their silhouettes grow with their tier."""
+    """Use the approved sprite in every display context, including held items."""
     meshes={}
-    gem=mesh();crystal(gem);meshes['energy_crystal']=gem;export_obj('energy_crystal',gem)
     for tier in range(1,9):
-        name='energy_crystal_t'+str(tier)
-        gem=mesh()
-        sides=6 if tier<=2 else 8
-        crystal(gem,radius=.16+.004*tier,height=.69+.022*tier,sides=sides)
-        # Every tier is still one crystal. Earlier crystals have slightly less
-        # regular facets; refined tiers become more symmetrical, not clusters.
-        for ring in range(2):
-            for i in range(sides):
-                at=1+ring*sides+i;x,y,z=gem['vertices'][at]
-                asymmetry=(8-tier)*.012*((i%3)-1)
-                ring_scale=(.92 if ring==0 else 1.0)+asymmetry
-                gem['vertices'][at]=(.5+(x-.5)*ring_scale,y,.5+(z-.5)*ring_scale)
-        x,y,z=gem['vertices'][-1]
-        gem['vertices'][-1]=(x+(8-tier)*.003,y,z)
-        meshes[name]=gem;export_obj(name,gem)
         write(ASSETS/f'models/item/energy_crystal_{tier}.json',
-              obj_model(name, f'{NS}:block/energy_crystal_facets_{tier}'))
-        icon=f'energy_crystal_{tier}_inventory'
-        write(ASSETS/f'models/item/{icon}.json',{'parent':'minecraft:item/generated',
+              {'parent':'minecraft:item/generated',
               'textures':{'layer0':f'{NS}:item/energy_crystal_{tier}'}})
-        # The approved Aseprite icon is used in inventory; the existing 3D
-        # crystal stays in the world, on stands and in the player's hand.
-        write(ASSETS/f'items/energy_crystal_{tier}.json',{'model':{'type':'minecraft:select',
-              'property':'minecraft:display_context','cases':[{'when':'gui','model':{
-                  'type':'minecraft:model','model':f'{NS}:item/{icon}'}}],
-              'fallback':{'type':'minecraft:model','model':f'{NS}:item/energy_crystal_{tier}'}}})
+        write(ASSETS/f'items/energy_crystal_{tier}.json',{'model':{
+              'type':'minecraft:model','model':f'{NS}:item/energy_crystal_{tier}'}})
+        (ASSETS/f'models/item/energy_crystal_{tier}_inventory.json').unlink(missing_ok=True)
+    for name in ['energy_crystal']+[f'energy_crystal_t{tier}' for tier in range(1,9)]:
+        for extension in ['obj','mtl']:
+            (ASSETS/f'models/industry/{name}.{extension}').unlink(missing_ok=True)
     if update_source and (SOURCE/'meshes.json').exists():
         previous=json.loads((SOURCE/'meshes.json').read_text(encoding='utf-8'))
-        previous.update(meshes);write(SOURCE/'meshes.json',previous)
+        for name in list(previous):
+            if name=='energy_crystal' or name.startswith('energy_crystal_t'):previous.pop(name)
+        write(SOURCE/'meshes.json',previous)
     return meshes
 
 

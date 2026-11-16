@@ -1,0 +1,332 @@
+{
+  "ambientocclusion": false,
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "particle": "yumis_dungeon_and_fight:block/conveyor_surface",
+    "belt": "yumis_dungeon_and_fight:block/conveyor_surface",
+    "metal": "yumis_dungeon_and_fight:block/titanium_conveyor_frame",
+    "bearing": "yumis_dungeon_and_fight:block/titanium_conveyor_frame",
+    "hopper": "minecraft:block/hopper_outside"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        4.5,
+        0
+      ],
+      "to": [
+        16,
+        5,
+        16
+      ],
+      "faces": {
+        "up": {
+          "texture": "#belt"
+        },
+        "down": {
+          "texture": "#belt"
+        },
+        "north": {
+          "texture": "#belt"
+        },
+        "south": {
+          "texture": "#belt"
+        },
+        "east": {
+          "texture": "#belt"
+        },
+        "west": {
+          "texture": "#belt"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        1,
+        4.5,
+        16
+      ],
+      "faces": {
+        "up": {
+          "texture": "#metal"
+        },
+        "down": {
+          "texture": "#metal"
+        },
+        "north": {
+          "texture": "#metal"
+        },
+        "south": {
+          "texture": "#metal"
+        },
+        "east": {
+          "texture": "#metal"
+        },
+        "west": {
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "from": [
+        15,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        4.5,
+        16
+      ],
+      "faces": {
+        "up": {
+          "texture": "#metal"
+        },
+        "down": {
+          "texture": "#metal"
+        },
+        "north": {
+          "texture": "#metal"
+        },
+        "south": {
+          "texture": "#metal"
+        },
+        "east": {
+          "texture": "#metal"
+        },
+        "west": {
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        1,
+        1
+      ],
+      "to": [
+        4,
+        3,
+        4
+      ],
+      "faces": {
+        "up": {
+          "texture": "#bearing"
+        },
+        "down": {
+          "texture": "#bearing"
+        },
+        "north": {
+          "texture": "#bearing"
+        },
+        "south": {
+          "texture": "#bearing"
+        },
+        "east": {
+          "texture": "#bearing"
+        },
+        "west": {
+          "texture": "#bearing"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        1,
+        12
+      ],
+      "to": [
+        4,
+        3,
+        15
+      ],
+      "faces": {
+        "up": {
+          "texture": "#bearing"
+        },
+        "down": {
+          "texture": "#bearing"
+        },
+        "north": {
+          "texture": "#bearing"
+        },
+        "south": {
+          "texture": "#bearing"
+        },
+        "east": {
+          "texture": "#bearing"
+        },
+        "west": {
+          "texture": "#bearing"
+        }
+      }
+    },
+    {
+      "from": [
+        12,
+        1,
+        1
+      ],
+      "to": [
+        15,
+        3,
+        4
+      ],
+      "faces": {
+        "up": {
+          "texture": "#bearing"
+        },
+        "down": {
+          "texture": "#bearing"
+        },
+        "north": {
+          "texture": "#bearing"
+        },
+        "south": {
+          "texture": "#bearing"
+        },
+        "east": {
+          "texture": "#bearing"
+        },
+        "west": {
+          "texture": "#bearing"
+        }
+      }
+    },
+    {
+      "from": [
+        12,
+        1,
+        12
+      ],
+      "to": [
+        15,
+        3,
+        15
+      ],
+      "faces": {
+        "up": {
+          "texture": "#bearing"
+        },
+        "down": {
+          "texture": "#bearing"
+        },
+        "north": {
+          "texture": "#bearing"
+        },
+        "south": {
+          "texture": "#bearing"
+        },
+        "east": {
+          "texture": "#bearing"
+        },
+        "west": {
+          "texture": "#bearing"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        2,
+        1.5
+      ],
+      "to": [
+        15,
+        3,
+        2.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#metal"
+        },
+        "down": {
+          "texture": "#metal"
+        },
+        "north": {
+          "texture": "#metal"
+        },
+        "south": {
+          "texture": "#metal"
+        },
+        "east": {
+          "texture": "#metal"
+        },
+        "west": {
+          "texture": "#metal"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        2,
+        13.5
+      ],
+      "to": [
+        15,
+        3,
+        14.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#metal"
+        },
+        "down": {
+          "texture": "#metal"
+        },
+        "north": {
+          "texture": "#metal"
+        },
+        "south": {
+          "texture": "#metal"
+        },
+        "east": {
+          "texture": "#metal"
+        },
+        "west": {
+          "texture": "#metal"
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        1,
+        0
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.3,
+        0.3,
+        0.3
+      ]
+    }
+  }
+}

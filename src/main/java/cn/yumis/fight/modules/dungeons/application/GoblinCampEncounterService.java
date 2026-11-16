@@ -80,5 +80,4 @@ final class GoblinCampEncounterService {
         if(run!=null&&id.equals(run.boss)&&dead(id)&&dungeon.status.equals("RUNNING"))owner.completeCamp(dungeon,players);
     }
     void close(Dungeon dungeon){runs.remove(dungeon.id);GoblinCampScenery.clear(owner.level(),dungeon.cell);}
-    void recover(){runs.clear();GoblinCampScenery.clear(owner.level(),null);}
 }

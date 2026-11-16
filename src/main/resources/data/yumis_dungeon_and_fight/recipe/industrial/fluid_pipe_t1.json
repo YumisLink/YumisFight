@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CCC",
+    "G G",
+    "CCC"
+  ],
+  "key": {
+    "C": "minecraft:copper_ingot",
+    "G": "minecraft:glass"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:fluid_pipe_t1",
+    "count": 8
+  }
+}

@@ -25,8 +25,10 @@ public final class IndustrialRules {
     public int[] harvestSizes={3,9,27};
     public int harvestPeriod=500;
     public long harvestEnergy=20;
-    public List<String> harvestCrops=new ArrayList<>(List.of("minecraft:wheat","minecraft:carrots","minecraft:potatoes","minecraft:beetroots","minecraft:nether_wart"));
+    public List<String> harvestCrops=new ArrayList<>(List.of("minecraft:wheat","minecraft:carrots","minecraft:potatoes","minecraft:beetroots","minecraft:nether_wart","yumis_dungeon_and_fight:magic_grass"));
     public int fluidCapacity=20000;
+    public int nuclearHeatingTicks=1200,nuclearCoolingTicks=600;
+    public double nuclearExplosionStrength=6;
     public int[] tankCapacities={64000,256000,1024000};
     public long[] accumulatorCapacities={100000,1000000,100000000,1000000000};
     public int scanTicks=40,scanCooldown=100,miningWaterRate=100,miningCoolantRate=40;
@@ -51,6 +53,7 @@ public final class IndustrialRules {
     public static IndustrialRules defaults(){
         var r=new IndustrialRules();
         r.generators.put("coal_generator",new Generator(0,""));
+        r.generators.put("mana_crystal_burner",new Generator(0,""));
         r.generators.put("turbine_generator",new Generator(1000,"minecraft:water"));
         r.generators.put("thermal_generator",new Generator(100,"yumis_dungeon_and_fight:coolant"));
         r.generators.put("nuclear_reactor",new Generator(100000,"minecraft:water"));
@@ -68,6 +71,7 @@ public final class IndustrialRules {
         IndustrialRules r=JSON.fromJson(json,IndustrialRules.class);
         if(r==null||r.version!=VERSION||r.beaconCapacity<1||r.beaconRadii.length!=5||r.furnaceSpeeds.length!=5||r.solarPeriods.length!=4||r.transferIntervals.length!=3||r.transferAmounts.length!=3||r.transferRanges.length!=3||r.transferEnergy.length!=3||r.harvestSizes.length!=3||r.harvestPeriod<1||r.harvestEnergy<0||r.fluidCapacity<1000||r.magicGrassChance<1||r.crystalDropMin<1||r.crystalDropMax<r.crystalDropMin||r.highCrystalWeight<0||r.highCrystalWeight>100||r.windHeightStep<1||r.windBasePower<0||r.windPowerStep<0||r.solarDayPower<0||r.solarEdgePower<0||r.solarRainPower<0)throw new IllegalArgumentException("无效工业规则");
         if(r.magicFlowerChance<1||r.magicFlowerSpreadChance<1||r.magicFlowerRadius<1||r.magicFlowerRadius>16||r.magicFlowerHeight<0||r.magicFlowerHeight>4)throw new IllegalArgumentException("无效魔力花生长规则");
+        if(r.nuclearHeatingTicks<1||r.nuclearCoolingTicks<1||!Double.isFinite(r.nuclearExplosionStrength)||r.nuclearExplosionStrength<=0||r.nuclearExplosionStrength>Float.MAX_VALUE)throw new IllegalArgumentException("无效核能核心温度规则");
         for(int v:r.beaconRadii)positive(v);for(int v:r.furnaceSpeeds){positive(v);if(v>128||128%v!=0)throw new IllegalArgumentException("熔炉速度必须整除128");}for(int v:r.transferIntervals)positive(v);for(int v:r.transferAmounts)positive(v);for(int v:r.harvestSizes)positive(v);
         for(long v:r.transferEnergy)if(v<0)throw new IllegalArgumentException("负搬运费用");
         if(r.processingLines.length!=5||r.tankCapacities.length!=3||r.accumulatorCapacities.length!=4||r.fluidTransferAmounts.length!=3||r.fluidTransferOperationEnergy.length!=3||r.scanTicks<1||r.scanCooldown<1||r.miningWaterRate<1||r.miningCoolantRate<1||r.pumpInterval<1||r.pumpAmount<1||r.pumpEnergy<0)throw new IllegalArgumentException("无效新增工业规则");

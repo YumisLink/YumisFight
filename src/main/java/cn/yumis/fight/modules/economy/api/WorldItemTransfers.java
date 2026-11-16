@@ -14,7 +14,7 @@ public final class WorldItemTransfers {
     }
     public interface Port {
         int collect(ItemEntity source,PersistentContainer target,ToIntFunction<ItemStack> receive);
-        void spill(PersistentContainer source,String operation,List<Emission> emissions,Runnable debit,boolean retiring);
+        void spill(PersistentContainer source,String operation,List<Emission> emissions,Runnable debit);
     }
     private static Port port;
     private WorldItemTransfers(){}
@@ -24,8 +24,8 @@ public final class WorldItemTransfers {
     public static int collect(ItemEntity source,PersistentContainer target,ToIntFunction<ItemStack> receive){
         if(port==null)return 0;return port.collect(source,target,receive);
     }
-    public static void spill(PersistentContainer source,String operation,List<Emission> emissions,Runnable debit,boolean retiring){
+    public static void spill(PersistentContainer source,String operation,List<Emission> emissions,Runnable debit){
         if(port==null)throw new IllegalStateException("世界物品接收尚未就绪");
-        port.spill(source,operation,List.copyOf(emissions),debit,retiring);
+        port.spill(source,operation,List.copyOf(emissions),debit);
     }
 }

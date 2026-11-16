@@ -1,19 +1,28 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "pattern": [
-    "HS ",
-    "LCL",
-    " S "
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "magnetic_confinement_chamber",
+  "minimum_tier": 5,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:stellar_alloy",
+      "count": 2
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:confinement_lattice",
+      "count": 2
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:industrial_upgrade_6",
+      "count": 1
+    }
   ],
-  "key": {
-    "H": "yumis_dungeon_and_fight:ignition_core_shell",
-    "S": "yumis_dungeon_and_fight:stellar_alloy",
-    "L": "yumis_dungeon_and_fight:confinement_lattice",
-    "C": "yumis_dungeon_and_fight:industrial_upgrade_6"
-  },
-  "result": {
-    "id": "yumis_dungeon_and_fight:fusion_ignition_core",
-    "count": 1
-  }
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:fusion_ignition_core",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1200,
+  "energy": 60000000
 }

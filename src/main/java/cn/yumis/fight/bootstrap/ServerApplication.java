@@ -80,6 +80,7 @@ public final class ServerApplication {
     public final cn.yumis.fight.modules.professions.application.ProfessionService professionService;
     public final cn.yumis.fight.modules.party.application.PartyService partyService;
     public final InventoryTransactions inventory;
+    private final cn.yumis.fight.modules.industry.application.ConveyorConstructionService conveyorConstruction;
     public final cn.yumis.fight.modules.economy.application.ChestService chests;
     public final JarService jars;
     public final cn.yumis.fight.modules.economy.application.ShopService shops;
@@ -150,7 +151,7 @@ public final class ServerApplication {
         professionService=new cn.yumis.fight.modules.professions.application.ProfessionService(journal);
         partyService=new cn.yumis.fight.modules.party.application.PartyService(journal,server.getPlayerList()::getPlayerByName,this::refreshAll);
         loot=cn.yumis.fight.bootstrap.RuntimeAssembly.lootService(this);
-        inventory=new InventoryTransactions(journal,server,loot,this::profile,this::message,cn.yumis.fight.bootstrap.RuntimeAssembly.currencyAction(this));
+        inventory=new InventoryTransactions(journal,loot,this::profile,this::message,cn.yumis.fight.bootstrap.RuntimeAssembly.currencyAction(this));
         equipmentLayout=new cn.yumis.fight.modules.equipment.application.EquipmentLayoutService(journal,inventory,this::profile);
         visuals=cn.yumis.fight.bootstrap.RuntimeAssembly.visualService(this);
         targets=RuntimeAssembly.targetService(this);
@@ -160,7 +161,7 @@ public final class ServerApplication {
             public void chest(ServerPlayer p,String definition,int tier,int level,net.minecraft.world.phys.Vec3 position,String instance)throws Exception{loot.privateDrop(p,cn.yumis.fight.modules.economy.application.ChestService.chest(definition,tier,level),position,instance);}
             public void publish(){loot.publish();}public void abort(){loot.abort();}
         },random);
-        dungeons.installWaystones(inventory,RuntimeAssembly.waystonePorts(this),inventory::recoverIndustrial,random);
+        dungeons.installWaystones(inventory,RuntimeAssembly.waystonePorts(this),random);
         chests=new cn.yumis.fight.modules.economy.application.ChestService(journal,inventory,RuntimeAssembly.rewardPlayers(this),loot,economyDrafts);
         jars=new JarService(journal,inventory,RuntimeAssembly.rewardPlayers(this),loot,economyDrafts,(p,message)->Network.send(p,"jarState",message));
 
@@ -182,7 +183,8 @@ public final class ServerApplication {
         progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,characters,inventory,p->session(p).progress,(p,next)->session(p).progress=next,this::profile);
         tutorials=new cn.yumis.fight.modules.npc.application.TutorialService(journal,inventory,characters,RuntimeAssembly.rewardPlayers(this),RuntimeAssembly.rewardBalance(this),p->session(p).life.generation);
         inventoryApplication=new cn.yumis.fight.modules.inventory.application.InventoryApplication(journal,inventory,p->session(p).id,this::message);
-        cn.yumis.fight.modules.industry.api.IndustrialPorts.install(inventory,inventory::recoverIndustrial,this::message);
+        cn.yumis.fight.modules.industry.api.IndustrialPorts.install(inventory,this::message);
+        conveyorConstruction=new cn.yumis.fight.modules.industry.application.ConveyorConstructionService(journal,inventory,server,p->session(p).id.toString(),(p,result)->Network.send(p,"conveyorBuilt",result));
         combatApplication=new cn.yumis.fight.modules.combat.application.CombatApplication(journal,server,this::session,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,targets::resolve,
             new cn.yumis.fight.modules.combat.api.CombatPorts.Encounters(){
                 public boolean participant(ServerPlayer p,String instance){return dungeons.participant(p,instance);}
@@ -206,8 +208,6 @@ public final class ServerApplication {
         registerCommands();
         combatApplication.training(trainingService);
         loadDefinitions();
-        dungeons.recover();
-        trainingService.recover();
         loot.recover();
     }
     public static void start(MinecraftServer server){
@@ -264,6 +264,7 @@ public final class ServerApplication {
         }
     }
     public static void registerEvents(){
+        cn.yumis.fight.modules.industry.application.ConveyorConstructionService.registerGuards(()->ready()?get().conveyorConstruction:null);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.RegisterCommandsEvent event)->IndustrialVerification.register(event));
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.RegisterCommandsEvent event)->IndustrialVisualVerification.register(event));
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent e)->{
@@ -398,8 +399,6 @@ public final class ServerApplication {
         damageMeter.forget(p);
         try{
             inventory.restore(p);
-            inventory.restoreCursorAtLogin(p);
-            jars.recover(p);
             this.equipmentLayout.reconcile(p,this.equipmentLayout.bonus(p));
             Session s=session(p);
             dungeons.reconnect(p);
@@ -550,6 +549,7 @@ public final class ServerApplication {
         finally{if(j.has("clientTransaction")){long sequence=j.get("clientTransaction").getAsLong();personalSequences.merge(p.getUUID(),sequence,Math::max);profile(p);Network.send(p,"personalCommit",Map.of("session",session(p).id.toString(),"sequence",sequence,"received",received||j.has("operation")&&journal.get("inventoryReceipt/"+p.getUUID()+"/"+j.get("operation").getAsString()).isJsonObject()&&journal.get("inventoryReceipt/"+p.getUUID()+"/"+j.get("operation").getAsString()).getAsJsonObject().get("intent").equals(j)));}}
     }
     private void registerCommands(){
+        conveyorConstruction.register(commands);
         cn.yumis.fight.modules.industry.platform.ManaStorageBagItem.register(commands,p->session(p).id.toString());
         commands.register("industry","industrialReady",(p,j)->IndustrialWorld.get(p.level()).opening.ready(p,j));
         commands.register("industry","industrialRoute",(p,j)->{if(p.containerMenu instanceof cn.yumis.fight.modules.industry.platform.IndustrialMenu menu)menu.routeAction(p,j);});
@@ -591,6 +591,7 @@ public final class ServerApplication {
 
     private void tick(){
         ticks++;
+        conveyorConstruction.tick();
         dungeons.treasure.tick();
         for(ServerPlayer p:server.getPlayerList().getPlayers())cn.yumis.fight.modules.inventory.api.RewardMenu.tick(p,inventory);
         for(ServerPlayer viewer:server.getPlayerList().getPlayers()){var sender=viewSenders.get(viewer.getUUID());if(sender!=null)sender.flush((action,packet)->Network.send(viewer,action,packet));}

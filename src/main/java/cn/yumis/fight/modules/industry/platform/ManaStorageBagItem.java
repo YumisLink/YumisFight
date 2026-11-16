@@ -79,7 +79,7 @@ public final class ManaStorageBagItem extends Item {
     public static List<Component> information(ItemStack bag){
         State state=state(bag);
         if(state==null)return List.of(Component.literal("储物袋数据异常，原数据已保留").withColor(0xff7777));
-        return List.of(Component.literal("目前魔能："+group(state.energy())).withColor(0x8fe4f5),
+        return List.of(Component.literal("目前魔能："+cn.yumis.fight.modules.industry.api.EnergyDisplay.format(state.energy())).withColor(0x8fe4f5),
             Component.literal("当前"+state.tier()+"阶水晶可取出："+group(state.available())+"个").withColor(0xffd778),
             Component.literal(GUIDE).withColor(0xaab7c9));
     }

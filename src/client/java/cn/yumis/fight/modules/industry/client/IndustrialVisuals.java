@@ -26,7 +26,7 @@ public final class IndustrialVisuals {
         beams=java.util.List.copyOf(next);beamDimension=packet.get("dimension").getAsString();expires=Math.min(packet.get("expires").getAsLong(),ClientUi.current().serverNow()+10000);
     }
     public static java.util.List<Beam> beams(){var mc=Minecraft.getInstance();if(mc.level==null||ClientUi.current().serverNow()>=expires||!mc.level.dimension().identifier().toString().equals(beamDimension)){beams=java.util.List.of();return beams;}return beams;}
-    public static void clear(){beams=java.util.List.of();expires=0;}
+    public static void clear(){beams=java.util.List.of();expires=0;HarvestRangePreview.clear();}
     public static long remaining(){return beams().isEmpty()?0:Math.max(0,expires-ClientUi.current().serverNow());}
     private IndustrialVisuals(){}
     public static int heldLight(){
@@ -46,7 +46,6 @@ public final class IndustrialVisuals {
         }
         if(!(mc.player.getMainHandItem().getItem() instanceof ManaWand)||!(mc.hitResult instanceof BlockHitResult hit)||!mc.level.hasChunkAt(hit.getBlockPos())||!(mc.level.getBlockEntity(hit.getBlockPos()) instanceof MachineBlockEntity be))return;
         if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)){double radius=IndustrialRules.current().beaconRadii[be.tier()-1];Vec3 center=Vec3.atCenterOf(be.getBlockPos());for(int i=0;i<72;i++){double a=i*Math.PI/36,c=Math.cos(a)*radius,s=Math.sin(a)*radius;cn.yumis.fight.modules.presentation.api.client.Particles.dust(center.add(c,s,0),0x88d8ef,.4f);cn.yumis.fight.modules.presentation.api.client.Particles.dust(center.add(c,0,s),0x88d8ef,.4f);cn.yumis.fight.modules.presentation.api.client.Particles.dust(center.add(0,c,s),0x88d8ef,.4f);}}
-        else if(be.device().has(DeviceType.Capability.HARVEST)){double half=IndustrialRules.current().harvestSizes[be.tier()-1]/2d;Vec3 center=Vec3.atCenterOf(be.getBlockPos().below()).add(0,-.4,0);Vec3 a=center.add(-half,0,-half),b=center.add(half,0,-half),c=center.add(half,0,half),d=center.add(-half,0,half);line(a,b,0x8be5a4);line(b,c,0x8be5a4);line(c,d,0x8be5a4);line(d,a,0x8be5a4);}
     }
     private static void line(Vec3 a,Vec3 b,int color){double distance=a.distanceTo(b);int segments=Math.max(1,Math.min(128,(int)Math.ceil(distance*2)));for(int i=0;i<=segments;i++)cn.yumis.fight.modules.presentation.api.client.Particles.dust(a.lerp(b,i/(double)segments),color,.42f);}
 }

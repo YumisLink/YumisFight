@@ -1,0 +1,199 @@
+{
+  "variants": {
+    "down=false,up=false,north=false,south=false,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/00"
+    },
+    "down=true,up=false,north=false,south=false,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/01"
+    },
+    "down=false,up=true,north=false,south=false,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/02"
+    },
+    "down=true,up=true,north=false,south=false,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/03"
+    },
+    "down=false,up=false,north=true,south=false,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/04"
+    },
+    "down=true,up=false,north=true,south=false,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/05"
+    },
+    "down=false,up=true,north=true,south=false,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/06"
+    },
+    "down=true,up=true,north=true,south=false,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/07"
+    },
+    "down=false,up=false,north=false,south=true,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/08"
+    },
+    "down=true,up=false,north=false,south=true,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/09"
+    },
+    "down=false,up=true,north=false,south=true,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/10"
+    },
+    "down=true,up=true,north=false,south=true,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/11"
+    },
+    "down=false,up=false,north=true,south=true,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/12",
+      "x": 90
+    },
+    "down=true,up=false,north=true,south=true,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/13"
+    },
+    "down=false,up=true,north=true,south=true,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/14"
+    },
+    "down=true,up=true,north=true,south=true,west=false,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/15"
+    },
+    "down=false,up=false,north=false,south=false,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/16"
+    },
+    "down=true,up=false,north=false,south=false,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/17"
+    },
+    "down=false,up=true,north=false,south=false,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/18"
+    },
+    "down=true,up=true,north=false,south=false,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/19"
+    },
+    "down=false,up=false,north=true,south=false,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/20"
+    },
+    "down=true,up=false,north=true,south=false,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/21"
+    },
+    "down=false,up=true,north=true,south=false,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/22"
+    },
+    "down=true,up=true,north=true,south=false,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/23"
+    },
+    "down=false,up=false,north=false,south=true,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/24"
+    },
+    "down=true,up=false,north=false,south=true,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/25"
+    },
+    "down=false,up=true,north=false,south=true,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/26"
+    },
+    "down=true,up=true,north=false,south=true,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/27"
+    },
+    "down=false,up=false,north=true,south=true,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/28"
+    },
+    "down=true,up=false,north=true,south=true,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/29"
+    },
+    "down=false,up=true,north=true,south=true,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/30"
+    },
+    "down=true,up=true,north=true,south=true,west=true,east=false": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/31"
+    },
+    "down=false,up=false,north=false,south=false,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/32"
+    },
+    "down=true,up=false,north=false,south=false,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/33"
+    },
+    "down=false,up=true,north=false,south=false,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/34"
+    },
+    "down=true,up=true,north=false,south=false,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/35"
+    },
+    "down=false,up=false,north=true,south=false,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/36"
+    },
+    "down=true,up=false,north=true,south=false,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/37"
+    },
+    "down=false,up=true,north=true,south=false,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/38"
+    },
+    "down=true,up=true,north=true,south=false,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/39"
+    },
+    "down=false,up=false,north=false,south=true,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/40"
+    },
+    "down=true,up=false,north=false,south=true,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/41"
+    },
+    "down=false,up=true,north=false,south=true,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/42"
+    },
+    "down=true,up=true,north=false,south=true,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/43"
+    },
+    "down=false,up=false,north=true,south=true,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/44"
+    },
+    "down=true,up=false,north=true,south=true,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/45"
+    },
+    "down=false,up=true,north=true,south=true,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/46"
+    },
+    "down=true,up=true,north=true,south=true,west=false,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/47"
+    },
+    "down=false,up=false,north=false,south=false,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/48",
+      "x": 90,
+      "y": 90
+    },
+    "down=true,up=false,north=false,south=false,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/49"
+    },
+    "down=false,up=true,north=false,south=false,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/50"
+    },
+    "down=true,up=true,north=false,south=false,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/51"
+    },
+    "down=false,up=false,north=true,south=false,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/52"
+    },
+    "down=true,up=false,north=true,south=false,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/53"
+    },
+    "down=false,up=true,north=true,south=false,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/54"
+    },
+    "down=true,up=true,north=true,south=false,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/55"
+    },
+    "down=false,up=false,north=false,south=true,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/56"
+    },
+    "down=true,up=false,north=false,south=true,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/57"
+    },
+    "down=false,up=true,north=false,south=true,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/58"
+    },
+    "down=true,up=true,north=false,south=true,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/59"
+    },
+    "down=false,up=false,north=true,south=true,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/60"
+    },
+    "down=true,up=false,north=true,south=true,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/61"
+    },
+    "down=false,up=true,north=true,south=true,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/62"
+    },
+    "down=true,up=true,north=true,south=true,west=true,east=true": {
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/63"
+    }
+  }
+}

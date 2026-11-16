@@ -1,6 +1,7 @@
 package cn.yumis.fight.mixin;
 
 import cn.yumis.fight.modules.equipment.api.client.MythicDisplay;
+import cn.yumis.fight.modules.presentation.api.client.RichTextDrawing;
 import cn.yumis.fight.modules.equipment.api.client.MythicTooltipAccess;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -16,6 +17,7 @@ public abstract class MythicTooltipTextMixin implements MythicTooltipAccess {
     @Override public FormattedCharSequence ydnf$tooltipText(){return text;}
     @Inject(method="extractText",at=@At("HEAD"),cancellable=true)
     private void ydnf$gradient(GuiGraphicsExtractor graphics,Font font,int x,int y,CallbackInfo callback){
+        if(RichTextDrawing.marked(text)){RichTextDrawing.line(graphics,font,text,x,y,0xffffffff,true);callback.cancel();return;}
         if(MythicDisplay.marked(text)){MythicDisplay.text(graphics,font,text,x,y,0xffffffff,true);callback.cancel();}
     }
 }

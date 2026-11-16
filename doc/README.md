@@ -31,7 +31,7 @@
 | 角色、职业栏与存档 | `modules/character/api/JobCatalog.java`、`CareerProfiles.java`、`CharacterChanges.java`；本机判定在客户端 `character/client/CharacterClient.java`，存档端口 `CharacterPersistence.java`，编解码在 `application/CharacterStore.java` |
 | 副本、敌人与难度 | `modules/dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；经典后续副本的敌人／动作入口为 `ClassicEnemyKind.java`、`ClassicMove.java`；地图与编队在 `content/`，专属机制在 `application/*EncounterService.java`，本机接触与演出在客户端 `dungeons/client/` |
 | 引路石、引路台与地狱+ | `modules/dungeons/api/Waystone.java`、`WaystoneRules.java`；流程在 `application/WaystoneService.java`，参数在 `rules/catalog.json` 的 `waystones`；分阶宝箱在 `rules/chests.json` |
-| 工业设备、配方、科技与结算 | `modules/industry/api/DeviceType.java`、`IndustrialRules.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；机器／产线／传送带物流在 `platform/` |
+| 工业设备、配方、科技与结算 | `modules/industry/api/DeviceType.java`、`IndustrialRules.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；机器／产线／传送带物流在 `platform/`；传送带放置与连接为 `platform/ConveyorConnections.java`、`ConveyorRoute.java`，客户端选点／寻路为 `industry/client/ConveyorPlacementClient.java`、`ConveyorPathfinder.java`，扣料与批量建造为 `application/ConveyorConstructionService.java` |
 | 副职业、经验与奖励 | `modules/professions/api/ProfessionCatalog.java`、`ProfessionRules.java`、`ProfessionRewards.java`；本机判定在客户端 `professions/client/ProfessionClient.java`，事实保存与管理奖励在 `application/ProfessionService.java` |
 | 库存、容器、接收与事务 | `modules/inventory/api/InventoryOperations.java`、`InventoryEdits.java`、`InventoryPacking.java`、`InventoryIntake.java`；事务在 `application/InventoryTransactions.java` |
 | 通货、掉落、出售与分解 | `modules/economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；无人值守世界物品收取／抛出用 `WorldItemTransfers.java`；本机操作在客户端 `economy/client/EconomyActions.java`，事实保存与世界投影在 `application/` |
@@ -42,6 +42,7 @@
 | 页面、主题、输入与通用演出 | `modules/presentation/api/`；分片染色文字 `RichText.java`，客户端 `presentation/api/client/RichTextDrawing.java`；其余绘制及页面合同查 `client/` 和 `api/client/` |
 | 野外建筑、配置地图与出生村庄 | [野外建筑生成规则](创作指南/野外建筑生成.md)；公开入口 `modules/mapgeneration/api/MapGeneration.java`、`MapBlueprint.java`；启动开关在游戏目录 `config/ydcore.toml` |
 | 魔力花与魔力草循环 | `modules/industry/api/MagicFlora.java`；植物、液体与展示产线的制作源在 `tools/industrial_technology.py` |
+| 液体管道、管网与权杖端口 | `modules/industry/api/FluidPipes.java`；本模块实现 `platform/FluidPipeBlockEntity.java`、`FluidPipeNetwork.java`，制作源 `tools/industrial_fluid_pipes.py`，贴图源 `tools/industrial_fluid_pipes.aseprite`、`draw_industrial_fluid_pipes.lua` |
 | 世界微装饰、资源循环与自然生成 | `modules/mapgeneration/api/WorldDecorations.java`；制作源 `tools/build_world_decorations.py`，方法见 [创作指南](创作指南/README.md#世界微装饰) |
 
 ## 规则、资源与工具
@@ -54,6 +55,7 @@
 | 语言、模型、图标、着色器与动作 | `src/main/resources/assets/yumis_dungeon_and_fight/`，按业务目录查找 |
 | 贴图制作、重绘与换色 | [贴图创作](创作指南/贴图创作.md) |
 | 矿石方块换色与自发光 | 可编辑源稿 `tools/industrial_ores.aseprite`，配色与等级 `tools/industrial_ore_definitions.lua`，绘制及导出入口 `tools/draw_industrial_ores.lua`、`tools/export_industrial_ores.lua` |
+| 科技方块矩阵外观 | `tools/technology_blocks.aseprite`（五帧，16×16），绘制入口 `tools/draw_technology_blocks.lua`，玻璃／发光边／内核与双层模型导出 `tools/export_technology_blocks.lua`；尺寸与光照在 `modules/industry/platform/TechnologyBlock.java` |
 | 渔获贴图源稿与导出 | `tools/fishing_catches.aseprite`（36 帧，16×16）与 `tools/export_fishing_catches.lua`；`item=<物品ID>` 导出单项，`allTiles=true` 导出全部素材到 `temp/fish-art/tiles/` |
 | 工业资源生成源 | `tools/industrial_resources.py`、`industrial_expansion.py`、`industrial_technology.py`；机械几何为 `tools/industrial_arcane_models.py`，贴图为 `industrial_arcane_art.lua`、`industrial_arcane_breathing.lua`；原版／Mekanism 底图的材料换色源为 `tools/draw_industrial_material_bases.lua`，高阶锭细节与动画源为 `tools/draw_industrial_ingot_details.lua`，共用源稿 `tools/industrial_material_bases.aseprite`（每帧16×16）；导体、组件与点火芯源为 `tools/draw_industrial_components.lua`、`tools/industrial_component_bases.aseprite`；燃料棒、胶囊与核素热源源稿为 `tools/nuclear_fuel_rods.aseprite`，魔能水晶物品图标源稿为 `tools/energy_crystals.aseprite`（均为16×16）；其余材料源为 `tools/draw_industrial_materials.lua`、`tools/industrial_materials.aseprite`（32×32，保留探矿器帧）；统一导出为 `tools/export_industrial_materials.lua`，`only=bases` 仅导出基底材料，`only=ingots` 仅导出锭类 |
 | 武器模型生成源 | `tools/build_weapon_models.py`、`tools/build_warglaive_model.py`；光剑本机发光材质源 `tools/weapon_glow_resources.py` |

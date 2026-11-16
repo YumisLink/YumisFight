@@ -21,6 +21,7 @@ public final class DeviceType {
         FORGE=processor("mana_forge",4,Speed.TIER_EXPONENTIAL,Output.RECIPE,Capability.STRUCTURE,Capability.FLUID_PROCESSING,Capability.PARALLEL,Capability.SELECT_RECIPE),
         BEACON=register("mana_beacon",true,0,1,5,Set.of(Capability.STORAGE_NETWORK),Speed.FIXED,Output.RECIPE),
         INFINITE_POWER=register("infinite_power_tower",false,0,5,5,Set.of(Capability.STORAGE_NETWORK,Capability.GENERATION),Speed.FIXED,Output.RECIPE),
+        CRYSTAL_BURNER=generator("mana_crystal_burner",1,Capability.FUEL),
         COAL=generator("coal_generator",1,Capability.FUEL),SOLAR=generator("solar_collector",1,Capability.SOLAR),
         TURBINE=generator("turbine_generator",2,Capability.FUEL,Capability.FLUID_FUEL,Capability.ROTOR,Capability.FLUID_INPUT_ALL_SIDES),WIND=generator("wind_generator",2,Capability.WIND),
         THERMAL=generator("thermal_generator",3,Capability.FUEL,Capability.FLUID_FUEL),NUCLEAR=generator("nuclear_reactor",4,Capability.FUEL,Capability.FLUID_FUEL,Capability.GENERATION_OUTPUT,Capability.FLUID_INPUT_ALL_SIDES),RTG=generator("rtg_generator",5,Capability.FUEL),
@@ -40,6 +41,7 @@ public final class DeviceType {
         SEPARATOR=register("isotopic_separator",false,4,4,4,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
         ACTIVATOR=register("isotope_activator",false,4,5,5,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
         ASSEMBLER=register("forming_assembler",false,4,3,3,Set.of(Capability.PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
+        MAGNETIC_CONFINEMENT=register("magnetic_confinement_chamber",false,4,5,5,Set.of(Capability.PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
         DISTILLER=register("thermal_distiller",false,4,3,3,Set.of(Capability.PROCESSING,Capability.FLUID_PROCESSING,Capability.GRID_ONLY,Capability.SELECT_RECIPE),Speed.FIXED,Output.RECIPE),
         STAR=register("artificial_star",false,1,5,5,Set.of(Capability.GENERATION,Capability.FUEL,Capability.FLUID_FUEL,Capability.FLUID_INPUT_ALL_SIDES,Capability.GENERATION_OUTPUT,Capability.IGNITION,Capability.STRUCTURE),Speed.FIXED,Output.RECIPE);
     private DeviceType(String id,boolean graded,int inputs,int minimumTier,int maximumTier,Set<Capability> capabilities,Speed speed,Output output){this.id=id;this.graded=graded;this.inputs=inputs;this.minimumTier=minimumTier;this.maximumTier=maximumTier;this.capabilities=Set.copyOf(capabilities);this.speed=speed;this.output=output;}

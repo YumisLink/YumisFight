@@ -3,6 +3,7 @@ import cn.yumis.fight.platform.ItemRegistry;
 import cn.yumis.fight.modules.industry.platform.MachineUpgradeRecipe;
 
 import cn.yumis.fight.modules.industry.api.IndustrialRules;
+import cn.yumis.fight.modules.industry.api.EnergyDisplay;
 import cn.yumis.fight.modules.industry.api.IndustrialRecipe;
 import cn.yumis.fight.modules.industry.platform.IndustrialContent;
 
@@ -46,7 +47,7 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         else if(operation.equals("recipes")||operation.equals("uses")){var item=BuiltInRegistries.ITEM.getValue(key.contains(":")?Identifier.parse(key):IndustrialContent.id(key));var focus=runtime.getJeiHelpers().getFocusFactory().createFocus(operation.equals("uses")?mezz.jei.api.recipe.RecipeIngredientRole.INPUT:mezz.jei.api.recipe.RecipeIngredientRole.OUTPUT,VanillaTypes.ITEM_STACK,new ItemStack(item));runtime.getRecipesGui().show(focus);}
         return result;
     }
-    private static final List<String> MACHINES=List.of("mana_crusher","mana_furnace","isotopic_separator","isotope_activator","forming_assembler","thermal_distiller","fuel_artificial_star","mineral_generator","mana_forge","coolant_mixer","mineral_refinery","alchemical_reactor","water_pump","currency_fabricator","fuel_coal_generator","fuel_turbine_generator","fuel_thermal_generator","fuel_nuclear_reactor","fuel_rtg_generator","storage_upgrade");
+    private static final List<String> MACHINES=List.of("mana_crusher","mana_furnace","isotopic_separator","isotope_activator","forming_assembler","magnetic_confinement_chamber","thermal_distiller","fuel_artificial_star","mineral_generator","mana_forge","coolant_mixer","mineral_refinery","alchemical_reactor","water_pump","currency_fabricator","fuel_coal_generator","fuel_mana_crystal_burner","fuel_turbine_generator","fuel_thermal_generator","fuel_nuclear_reactor","fuel_rtg_generator","storage_upgrade");
     private static final Map<String,IRecipeHolderType<IndustrialRecipe>> TYPES=new LinkedHashMap<>();
     static {for(String machine:MACHINES)TYPES.put(machine,IRecipeHolderType.create(IndustrialContent.id(machine)));}
     @Override public Identifier getPluginUid(){return IndustrialContent.id("industry");}
@@ -72,7 +73,7 @@ public final class IndustrialJeiPlugin implements IModPlugin {
             registration.addItemStackInfo(IndustrialContent.stack("mineral_generator_t"+tier,1),Component.literal("采矿机：圆石在任意区块均可开采；其他矿藏各自独立抽取，首次判定后固定且无限，紫水晶二级开放。只显示本级可采矿物，9格产物满则暂停。配方费用为最低等级、普通丰度、无冷却时的一批总耗能；保留机身线性速度和平方功率关系。水×1.5、冷却液×2.5，工作时耗液。玩家手挖至多T3。魔力矿每批2～8颗，80%为3阶、20%为4阶，开工锁定。"));
         }
         for(var spec:IndustrialContent.SPECS.values())if(spec.device().has(cn.yumis.fight.modules.industry.api.DeviceType.Capability.PARALLEL))registration.addItemStackInfo(IndustrialContent.stack(spec.id(),1),Component.literal("本级解锁 "+spec.device().lineCount(spec.tier())+" 条独立产线；单线相对一级速度 "+(1<<(spec.tier()-1))+" 倍。每线独立输入、输出、进度及工艺液，界面点击产线切换；自动投料分配到可接收的产线。每份配方仍按实际消耗结算，通货每份600魔能，各线独立抽取。"));
-        for(int tier=1;tier<=4;tier++)registration.addItemStackInfo(IndustrialContent.stack("mana_accumulator_t"+tier,1),Component.literal("接入信标电网，增加 "+IndustrialRules.current().accumulatorCapacities[tier-1]+" 魔能容量，初始为空，不接受水晶充能，无额外充放速度限制。断网、卸载保留本节点余额；拆除清空；原地升级保留。"));
+        for(int tier=1;tier<=4;tier++)registration.addItemStackInfo(IndustrialContent.stack("mana_accumulator_t"+tier,1),Component.literal("接入信标电网，增加 "+EnergyDisplay.format(IndustrialRules.current().accumulatorCapacities[tier-1])+" 魔能容量，初始为空，不接受水晶充能，无额外充放速度限制。断网、卸载保留本节点余额；拆除清空；原地升级保留。"));
         for(int tier=1;tier<=3;tier++){
             registration.addItemStackInfo(IndustrialContent.stack("fluid_tank_t"+tier,1),Component.literal("一罐一种液体，可存 "+IndustrialRules.current().tankCapacities[tier-1]+" mB。三档均支持全部工艺液；原地升级保留，拆除清空。"));
             registration.addItemStackInfo(IndustrialContent.stack("fluid_crystal_t"+tier,1),Component.literal("权杖移动模式先绑定水晶，再选择来源容器和目标容器。源与目标各距水晶"+(tier==3?"同维度不限距离":IndustrialRules.current().transferRanges[tier-1]+"格以内")+"；各档支持1／3／16对并行，每对成功批量操作一次固定消耗"+IndustrialRules.current().fluidTransferOperationEnergy[tier-1]+"魔能，未满批同价。未加载、缺液、满罐或类型不匹配不收费。"));
@@ -100,16 +101,16 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         @Override public void draw(RecipeHolder<IndustrialRecipe> holder,IRecipeSlotsView slots,GuiGraphicsExtractor graphics,double mouseX,double mouseY){
             var recipe=holder.value();var font=Minecraft.getInstance().font;
             if(key.startsWith("fuel_")){
-                graphics.text(font,String.format(Locale.ROOT,"%.2f 魔能/秒",recipe.energy()*20.0/recipe.ticks()),2,80,0xff444444,false);
+                graphics.text(font,EnergyDisplay.format(recipe.energy()*20.0/recipe.ticks())+" 魔能/秒",2,80,0xff444444,false);
                 graphics.text(font,String.format(Locale.ROOT,"持续 %.2f 秒",recipe.ticks()/20.0),2,93,0xff444444,false);
-                graphics.text(font,"总魔能 "+recipe.energy(),2,106,0xff444444,false);
+                graphics.text(font,"总魔能 "+EnergyDisplay.format(recipe.energy()),2,106,0xff444444,false);
             }else{
                 int energyTier=cn.yumis.fight.modules.industry.api.IndustrialTechnology.energyTier(holder.id().identifier().toString());
                 graphics.text(font,key.equals("storage_upgrade")?"背包 "+recipe.machine().substring("storage_upgrade_".length())+" 档":"工艺T"+recipe.minimumTier()+(energyTier==0?"":" · 能耗T"+energyTier),2,80,0xff444444,false);
                 double seconds=recipe.ticks()/20.0;
                 if(key.equals("mineral_generator")){var mineral=IndustrialRules.current().minerals.get(cn.yumis.fight.modules.industry.platform.IndustrialProcessing.mineralId(holder));if(mineral!=null)seconds=mineral.ticks()/(20.0*mineral.tier());}
                 graphics.text(font,String.format(Locale.ROOT,"基准 %.2f 秒",seconds),2,93,0xff444444,false);
-                graphics.text(font,"总耗能 "+recipe.energy()+" 点",2,106,0xff444444,false);
+                graphics.text(font,"总耗能 "+EnergyDisplay.format(recipe.energy())+" 点",2,106,0xff444444,false);
             }
             graphics.text(font,key.equals("currency_fabricator")?"随机1枚":key.equals("storage_upgrade")?"界面升级":"→",key.equals("currency_fabricator")?82:91,59,0xff168789,false);
         }

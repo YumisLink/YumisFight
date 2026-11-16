@@ -28,10 +28,8 @@ public final class WaystoneService implements WaystoneActions.Handler {
     private final DungeonPorts.Meter meter;
     private final InventoryOperations inventory;
     private final WaystonePorts rewards;
-    private final Runnable recovery;
     private final Random random;
     private final Map<String,Table> tables=new LinkedHashMap<>();
-    private boolean recoveryRequested;
     private static final class Table {
         String id,dimension,raw="",rules="";
         BlockPos pos;
@@ -40,8 +38,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
         final Map<UUID,Boolean> members=new LinkedHashMap<>();
         final Set<UUID> viewers=new HashSet<>();
     }
-    WaystoneService(DungeonService owner,Journal journal,MinecraftServer server,DungeonPorts.Players players,DungeonPorts.Targets targets,DungeonPorts.Meter meter,InventoryOperations inventory,WaystonePorts rewards,Runnable recovery,Random random){this.owner=owner;this.journal=journal;this.server=server;this.players=players;this.targets=targets;this.meter=meter;this.inventory=inventory;this.rewards=rewards;this.recovery=recovery;this.random=random;}
-    @Override public void recover(){recoveryRequested=true;}
+    WaystoneService(DungeonService owner,Journal journal,MinecraftServer server,DungeonPorts.Players players,DungeonPorts.Targets targets,DungeonPorts.Meter meter,InventoryOperations inventory,WaystonePorts rewards,Random random){this.owner=owner;this.journal=journal;this.server=server;this.players=players;this.targets=targets;this.meter=meter;this.inventory=inventory;this.rewards=rewards;this.random=random;}
     private WaystonePedestalBlockEntity block(Table t){var world=server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(t.dimension)));return world!=null&&world.hasChunkAt(t.pos)&&world.getBlockEntity(t.pos) instanceof WaystonePedestalBlockEntity b&&b.key().equals(t.id)?b:null;}
     private Table table(WaystonePedestalBlockEntity b){var t=tables.computeIfAbsent(b.key(),id->{var value=new Table();value.id=id;value.dimension=b.getLevel().dimension().identifier().toString();value.pos=b.getBlockPos().immutable();return value;});observe(t,b);return t;}
     private void observe(Table t,WaystonePedestalBlockEntity b){String raw=cn.yumis.fight.platform.ItemData.string(b.getItem(0),Waystone.DATA),rules=JSON.toJson(WaystoneRules.current());if(!t.raw.equals(raw)||!t.rules.equals(rules)){t.raw=raw;t.rules=rules;changed(t);}}
@@ -49,12 +46,12 @@ public final class WaystoneService implements WaystoneActions.Handler {
     @Override public boolean countingDown(WaystonePedestalBlockEntity b){var t=tables.get(b.key());return t!=null&&t.deadline>0;}
     @Override public void removed(WaystonePedestalBlockEntity b){var t=tables.remove(b.key());if(t!=null){for(UUID id:union(t)){var p=server.getPlayerList().getPlayer(id);if(p!=null)Network.send(p,"waystoneTable",Map.of("removed",true,"table",t.id));}}}
     private Set<UUID> union(Table t){Set<UUID> ids=new HashSet<>(t.viewers);ids.addAll(t.members.keySet());return ids;}
-    @Override public void open(ServerPlayer p,WaystonePedestalBlockEntity b){try{recovery.run();b.display();if(!b.stillValid(p)||p.level().dimension()!=Level.OVERWORLD)throw new IllegalArgumentException("请在主世界引路台附近操作");var t=table(b);t.viewers.add(p.getUUID());send(t,b,p,true);}catch(Exception e){players.message(p,e.getMessage());}}
+    @Override public void open(ServerPlayer p,WaystonePedestalBlockEntity b){try{b.display();if(!b.stillValid(p)||p.level().dimension()!=Level.OVERWORLD)throw new IllegalArgumentException("请在主世界引路台附近操作");var t=table(b);t.viewers.add(p.getUUID());send(t,b,p,true);}catch(Exception e){players.message(p,e.getMessage());}}
     public void command(ServerPlayer p,JsonObject j){try{
         String id=j.get("table").getAsString(),action=j.get("action").getAsString();var t=tables.get(id);if(t==null)throw new IllegalArgumentException("引路台报名已结束，请重新打开");
         if(action.equals("close")){t.viewers.remove(p.getUUID());return;}
         if(action.equals("leave")){if(t.members.remove(p.getUUID())!=null)changed(t);var b=block(t);if(b!=null)broadcast(t,b);return;}
-        var b=block(t);if(b==null||!b.stillValid(p))throw new IllegalArgumentException("请在引路台8格内操作");recover();observe(t,b);
+        var b=block(t);if(b==null||!b.stillValid(p))throw new IllegalArgumentException("请在引路台8格内操作");observe(t,b);
         if(!j.has("revision")||j.get("revision").getAsLong()!=t.revision){
             boolean openFilled=action.equals("insert")&&j.has("openAfterInsert")&&j.get("openAfterInsert").getAsBoolean()&&!b.isEmpty();
             send(t,b,p,openFilled);if(openFilled)return;throw new IllegalArgumentException("引路台内容已变化，请重新确认");
@@ -93,7 +90,6 @@ public final class WaystoneService implements WaystoneActions.Handler {
     }
     private void broadcast(Table t,WaystonePedestalBlockEntity b){for(UUID id:union(t)){var p=server.getPlayerList().getPlayer(id);if(p!=null)send(t,b,p,false);}}
     public void tick(){
-        if(recoveryRequested){recoveryRequested=false;recovery.run();}
         for(var t:new ArrayList<>(tables.values()))try{
             boolean left=t.members.keySet().removeIf(id->server.getPlayerList().getPlayer(id)==null||owner.current(id)!=null);if(left)changed(t);
             var b=block(t);if(b==null){if(t.deadline>0)changed(t);continue;}b.display();long old=t.revision;observe(t,b);if(left||old!=t.revision)broadcast(t,b);

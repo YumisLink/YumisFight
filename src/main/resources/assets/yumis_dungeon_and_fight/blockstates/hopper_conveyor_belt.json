@@ -1,19 +1,51 @@
 {
   "variants": {
-    "facing=north": {
+    "facing=north,slope=flat": {
       "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt",
       "y": 0
     },
-    "facing=east": {
+    "facing=north,slope=up": {
+      "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt_up",
+      "y": 0
+    },
+    "facing=north,slope=down": {
+      "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt_down",
+      "y": 0
+    },
+    "facing=east,slope=flat": {
       "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt",
       "y": 90
     },
-    "facing=south": {
+    "facing=east,slope=up": {
+      "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt_up",
+      "y": 90
+    },
+    "facing=east,slope=down": {
+      "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt_down",
+      "y": 90
+    },
+    "facing=south,slope=flat": {
       "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt",
       "y": 180
     },
-    "facing=west": {
+    "facing=south,slope=up": {
+      "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt_up",
+      "y": 180
+    },
+    "facing=south,slope=down": {
+      "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt_down",
+      "y": 180
+    },
+    "facing=west,slope=flat": {
       "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt",
+      "y": 270
+    },
+    "facing=west,slope=up": {
+      "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt_up",
+      "y": 270
+    },
+    "facing=west,slope=down": {
+      "model": "yumis_dungeon_and_fight:block/hopper_conveyor_belt_down",
       "y": 270
     }
   }

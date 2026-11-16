@@ -59,7 +59,7 @@ public class DungeonService {
     private boolean stopping;
     private Set<String> activeInstances=new LinkedHashSet<>();
     private boolean instanceIndexValid;
-    public void installWaystones(cn.yumis.fight.modules.inventory.api.InventoryOperations inventory,cn.yumis.fight.modules.dungeons.api.WaystonePorts rewards,Runnable recovery,Random random){waystones=new WaystoneService(this,journal,server,playerAccess,targets,meter,inventory,rewards,recovery,random);}
+    public void installWaystones(cn.yumis.fight.modules.inventory.api.InventoryOperations inventory,cn.yumis.fight.modules.dungeons.api.WaystonePorts rewards,Random random){waystones=new WaystoneService(this,journal,server,playerAccess,targets,meter,inventory,rewards,random);}
     public void installTreasure(cn.yumis.fight.modules.inventory.api.InventoryOperations inventory,cn.yumis.fight.modules.dungeons.api.TreasurePorts rewards,Random random){treasure=new TreasureHuntService(this,journal,server,playerAccess,targets,inventory,rewards,random);}
     private final DungeonPorts.Meter meter;
     private final Function<UUID,Team> team;
@@ -147,22 +147,6 @@ public class DungeonService {
         ServerLevel l=server.getLevel(DIMENSION);
         if(l==null)throw new IllegalArgumentException("地下城维度尚未加载");
         return l;
-    }
-    public void recover()throws Exception{
-        instanceIndexValid=false;
-        for(String key:journal.keys("instance/")){
-            Dungeon d=journal.get(key,Dungeon.class,null);
-            if(d!=null&&!d.status.equals("CLOSED")){
-                d.status="CLOSED";
-                journal.put(key,d);
-                forceArena(d,false);
-                for(var e:d.returns.entrySet())journal.put("return/"+e.getKey(),e.getValue());
-            }
-        }
-        activeInstances=new LinkedHashSet<>();instanceIndexValid=true;
-        ServerLevel l=server.getLevel(DIMENSION);
-        if(l!=null){goblinCamp.recover();for(Entity e:l.getAllEntities())if(e instanceof DungeonEnemy||e instanceof CageEntity)e.discard();}
-        for(ServerLevel world:server.getAllLevels())for(Entity e:world.getAllEntities())if(e instanceof DungeonEnemy mob){Dungeon d=byId(mob.instance());if(d==null||d.status.equals("CLOSED"))e.discard();}
     }
     public void request(ServerPlayer p,JsonObject j)throws Exception{
         String kind=j.get("kind").getAsString();
@@ -357,7 +341,7 @@ public class DungeonService {
                     if(!section.getBlockState(wx&15,wy&15,z&15).isAir())world.setBlock(cursor.set(wx,wy,z),Blocks.AIR.defaultBlockState(),Block.UPDATE_CLIENTS|Block.UPDATE_SUPPRESS_DROPS);
                 }
             }
-            build.accept(world,origin);world.getChunkSource().save(true);journal.put(key,layout);
+            build.accept(world,origin);journal.put(key,layout);
         }finally{for(var chunk:temporary)world.setChunkForced(chunk.x(),chunk.z(),false);}
     }
     void clearCell(int cell){

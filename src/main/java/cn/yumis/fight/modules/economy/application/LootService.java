@@ -199,12 +199,12 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
                 Drop next=copy(original,Drop.class);next.logistics=true;next.item=encodeWorld(remainder[0]);
                 edits.put("loot/"+identity,JSON.toJsonTree(next));
                 if(remainder[0].isEmpty())edits.put("lootEnd/"+identity,JSON.toJsonTree("industrial-intake"));
-            },edits,false);
+            },edits);
             if(remainder[0].isEmpty())source.discard();else{source.setItem(remainder[0]);source.setUnlimitedLifetime();}
             return accepted[0];
         }catch(Exception failure){throw new IllegalStateException("地面物品接收未完成",failure);}
     }
-    @Override public void spill(cn.yumis.fight.modules.inventory.api.PersistentContainer source,String operation,List<cn.yumis.fight.modules.economy.api.WorldItemTransfers.Emission> emissions,Runnable debit,boolean retiring){
+    @Override public void spill(cn.yumis.fight.modules.inventory.api.PersistentContainer source,String operation,List<cn.yumis.fight.modules.economy.api.WorldItemTransfers.Emission> emissions,Runnable debit){
         List<Drop> drops=new ArrayList<>();Map<String,JsonElement> edits=new LinkedHashMap<>();JsonObject intent=new JsonObject();intent.addProperty("container",source.key());
         JsonArray identities=new JsonArray(),payload=new JsonArray();int index=0;
         for(var emission:emissions){
@@ -217,9 +217,9 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             JsonObject emitted=new JsonObject();emitted.add("item",drop.item.deepCopy());emitted.addProperty("x",drop.x);emitted.addProperty("y",drop.y);emitted.addProperty("z",drop.z);emitted.addProperty("dx",drop.dx);emitted.addProperty("dy",drop.dy);emitted.addProperty("dz",drop.dz);payload.add(emitted);
         }
         intent.add("drops",identities);intent.add("payload",payload);
-        try{inventory.get().transactContainer(operation,intent,source,debit,edits,retiring);}
+        try{inventory.get().transactContainer(operation,intent,source,debit,edits);}
         finally{
-            // Also retain committed emissions if native container flushing failed after the WAL commit.
+            // Retain committed emissions if their world projection needs another attempt.
             for(Drop drop:drops)if(!journal.get("loot/"+drop.id).isJsonNull()&&publish.stream().noneMatch(queued->queued.id.equals(drop.id)))publish.add(drop);
         }
         publish();

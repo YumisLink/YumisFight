@@ -78,8 +78,6 @@ public final class JarService {
             players.message(player,(interrupted?"开罐已提前结算：":"开罐获得：")+inventory.decode(player,value.reward()).getHoverName().getString()+(drops.isEmpty()?"":"（背包已满，已生成公共掉落）"));
         }
     }
-    /** Login is after inventory recovery. A surviving record denotes a crash, never a fresh draw. */
-    public void recover(ServerPlayer player)throws IOException{finish(player,true);}
     public void interrupt(ServerPlayer player){
         try{finish(player,true);}catch(Exception failure){retryAfter.put(player.getUUID(),0L);players.message(player,"罐子原奖品已保留，结算失败："+failure.getMessage());}
     }

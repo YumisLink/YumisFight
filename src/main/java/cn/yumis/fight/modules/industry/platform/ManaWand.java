@@ -29,6 +29,10 @@ public final class ManaWand extends Item {
     @Override public InteractionResult useOn(UseOnContext context){
         var player=context.getPlayer();if(player==null||!(context.getLevel() instanceof ServerLevel level))return InteractionResult.SUCCESS;
         if(!level.mayInteract(player,context.getClickedPos()))return InteractionResult.FAIL;var stack=context.getItemInHand();var state=data(stack);int mode=Math.floorMod(state.getIntOr("wand_mode",0),2);
+        if(level.getBlockEntity(context.getClickedPos()) instanceof FluidPipeBlockEntity pipe){
+            try{pipe.configure(player,FluidPipeBlock.hitSide(context.getClickedPos(),context.getClickLocation(),context.getClickedFace()),player.isShiftKeyDown());return InteractionResult.SUCCESS;}
+            catch(IllegalArgumentException error){player.sendOverlayMessage(Component.literal(error.getMessage()));return InteractionResult.FAIL;}
+        }
         String dimension=level.dimension().identifier().toString();if(!dimension.equals(state.getStringOr("dimension",dimension)))state=reset(mode);state.putString("dimension",dimension);
         try{if(mode==0)move(context,state);else network(context,state);save(stack,state);return InteractionResult.SUCCESS;}
         catch(IllegalArgumentException error){player.sendOverlayMessage(Component.literal(error.getMessage()));return InteractionResult.FAIL;}

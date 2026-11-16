@@ -32,7 +32,7 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
     private final Map<MachineBlockEntity,RotorMotion> rotors=new WeakHashMap<>();
     private final Map<MachineBlockEntity,IndustrialFluidDisplay.Scalar> liquidLevels=new WeakHashMap<>();
     private final Map<MachineBlockEntity,InfusionVisual.Motion> infusions=new WeakHashMap<>();
-    public static final class State extends BlockEntityRenderState {final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();boolean show,iconVisible,wind,turbine,star,starActive;float angle,bob,rotorAngle,fluidFill,starAge,infusionStroke,infusionBob;int fluidTint,fluidLight,infusionTint,infusionLight;TextureAtlasSprite fluidSprite,infusionSprite;Direction facing;}
+    public static final class State extends BlockEntityRenderState {final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();boolean show,iconVisible,wind,turbine,star,starActive,magnetic;float angle,bob,rotorAngle,fluidFill,starAge,infusionStroke,infusionBob;int fluidTint,fluidLight,infusionTint,infusionLight;TextureAtlasSprite fluidSprite,infusionSprite;Direction facing;}
     public IndustrialRenderer(BlockEntityRendererProvider.Context context){items=context.itemModelResolver();}
     @Override public State createRenderState(){return new State();}
     @Override public void extractRenderState(MachineBlockEntity be,State state,float partial,Vec3 camera,ModelFeatureRenderer.CrumblingOverlay breaking){
@@ -65,9 +65,10 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
             }
         }
         if(state.wind||state.turbine)state.rotorAngle=rotors.computeIfAbsent(be,k->new RotorMotion()).sample(be.getLevel().getGameTime()+partial,be.getBlockState().getValue(MachineBlock.ACTIVE),state.wind?6:12);
-        state.iconVisible=be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS)||be.device().has(DeviceType.Capability.HARVEST);state.show=state.iconVisible||be.device().has(DeviceType.Capability.STORAGE_NETWORK);if(!state.show)return;
+        state.magnetic=be.device()==DeviceType.MAGNETIC_CONFINEMENT&&be.getBlockState().getValue(MachineBlock.ACTIVE);
+        state.iconVisible=be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS)||be.device().has(DeviceType.Capability.HARVEST);state.show=state.magnetic||state.iconVisible||be.device().has(DeviceType.Capability.STORAGE_NETWORK);if(!state.show)return;
         double age=be.getLevel().getGameTime()+partial;state.angle=(float)((age%180)*2);state.bob=(float)Math.sin((age%200)*Math.PI/100)*.045f;
-        items.updateForTopItem(state.gem,IndustrialContent.stack("energy_crystal_"+Math.min(8,be.tier()*2),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
+        items.updateForTopItem(state.gem,IndustrialContent.stack(state.magnetic?"fusion_ignition_core":"energy_crystal_"+Math.min(8,be.tier()*2),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
         if(state.iconVisible)items.updateForTopItem(state.icon,be.device().has(DeviceType.Capability.LOGISTICS)?new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE):be.device().has(DeviceType.Capability.FLUID_LOGISTICS)?new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WATER_BUCKET):IndustrialContent.stack(be.spec().id(),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
     }
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector nodes,CameraRenderState camera){
@@ -80,7 +81,7 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
             pose.translate(0,state.wind?2.45:.57,-.31);pose.mulPose(Axis.ZP.rotationDegrees(state.rotorAngle));
             ArcaneRotorMesh.submit(state.wind,pose,nodes,state.lightCoords);pose.popPose();
         }
-        if(!state.show)return;pose.pushPose();pose.translate(.5,.72+state.bob,.5);pose.mulPose(Axis.YP.rotationDegrees(state.angle));pose.scale(.8f,.8f,.8f);state.gem.submit(pose,nodes,state.lightCoords,OverlayTexture.NO_OVERLAY,0);pose.popPose();
+        if(!state.show)return;pose.pushPose();pose.translate(.5,(state.magnetic?.5:.72)+state.bob,.5);pose.mulPose(Axis.YP.rotationDegrees(state.angle));float scale=state.magnetic?.35f:.8f;pose.scale(scale,scale,scale);state.gem.submit(pose,nodes,state.magnetic?15728880:state.lightCoords,OverlayTexture.NO_OVERLAY,0);pose.popPose();
         if(state.iconVisible){pose.pushPose();pose.translate(.5,1.16+state.bob,.5);pose.mulPose(camera.orientation);pose.scale(.3f,.3f,.3f);state.icon.submit(pose,nodes,15728880,OverlayTexture.NO_OVERLAY,0);pose.popPose();}
     }
     @Override public AABB getRenderBoundingBox(MachineBlockEntity be){

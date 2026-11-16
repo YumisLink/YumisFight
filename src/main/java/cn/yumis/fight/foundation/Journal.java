@@ -8,7 +8,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.zip.CRC32;
 /** 底层架构文件：持久事务日志。修改前须用户明确授权，并逐批通过 question tool 确认已 GitHub fetch。
- * One owner per world. Publish only after a full record has reached durable storage. */
+ * One owner per world. Publish after a complete record is written; flush on orderly close. */
 public final class Journal implements AutoCloseable, UnitOfWork<JsonElement> {
     private static final Gson VALUE_JSON=new GsonBuilder().disableHtmlEscaping().create();
     private static final Gson WAL_JSON=new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
@@ -136,7 +136,6 @@ public final class Journal implements AutoCloseable, UnitOfWork<JsonElement> {
         record.flip();
         try{
             while(record.hasRemaining())channel.write(record);
-            channel.force(true);
             apply(object);
         }
         catch(IOException failure){
