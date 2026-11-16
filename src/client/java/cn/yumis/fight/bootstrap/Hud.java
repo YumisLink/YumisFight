@@ -180,14 +180,9 @@ public final class Hud {
         ElementAccumulationHud.render(g,t.life,t.bossOrElite(),s.serverNow(),0,TARGET_INFO_HEIGHT+TARGET_ELEMENT_GAP,TARGET_WIDTH);
         g.pose().popMatrix();
     }
-    /** Foreground precedes deferred tooltips; Post would cover their text and background. */
-    public static void creativeFrames(ScreenEvent.Render.Foreground event){
-        if(!(event.getScreen() instanceof CreativeModeInventoryScreen screen))return;
-        for(var slot:screen.getMenu().slots){if(!slot.isActive()||!ItemRarity.decorated(slot.getItem()))continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;cn.yumis.fight.modules.economy.api.client.RarityFrames.draw(event.getGuiGraphics(),slot.getItem(),x,y,false);}
-    }
     public static void equipment(ScreenEvent.Render.Background event){
         if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;
-        for(var slot:screen.getMenu().slots){if(!slot.isActive()||!ItemRarity.decorated(slot.getItem()))continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;cn.yumis.fight.modules.economy.api.client.RarityFrames.draw(event.getGuiGraphics(),slot.getItem(),x,y,true);}
+        for(var slot:screen.getMenu().slots){if(!slot.isActive()||!ItemRarity.decorated(slot.getItem()))continue;int x=screen.getLeftPos()+slot.x,y=screen.getTopPos()+slot.y;if(x+16<=0||y+16<=0||x>=screen.width||y>=screen.height)continue;cn.yumis.fight.modules.economy.api.client.RarityFrames.background(event.getGuiGraphics(),slot.getItem(),x,y);}
     }
 
 }

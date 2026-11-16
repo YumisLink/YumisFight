@@ -3,6 +3,8 @@
 local root=assert(app.params.root,"Pass --script-param root=<checkout>"):gsub("\\","/").."/"
 local out=root.."src/main/resources/assets/yumis_dungeon_and_fight/textures/"
 local src=root.."art/industry-refresh/"
+local nativeBases=Sprite{fromFile=root..'tools/industrial_material_bases.aseprite'}
+local based={};for _,tag in ipairs(nativeBases.tags) do based[tag.name]=true end;nativeBases:close()
 local S=32
 local palettes={
  {"262335","494351","a47c52","ead0a0","eeb76e"},
@@ -31,6 +33,7 @@ local function start()
  cel=sprite.cels[1];img=cel.image:clone()
 end
 local function finish(category,name)
+ if category=='item' and based[name] then sprite:close();return end
  cel.image=img
  sprite:saveAs(src..category.."/"..name..".aseprite")
  sprite:saveCopyAs(out..category.."/"..name..".png");sprite:close()

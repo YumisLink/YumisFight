@@ -127,13 +127,13 @@ def build():
         model = dict(type='minecraft:model', model=NS + ':item/' + key,
                      tints=[dict(type='minecraft:constant', value=colors.get(item.get('rarity'), 0xFFB84D))])
         write(ASSETS / ('items/' + key + '.json'), dict(model=model))
-    for key, name, tint in [('advanced_divine_stone', '高级神圣石', 0x98E8FF),
-                            ('perfect_divine_stone', '完美神圣石', 0xFFE9A5)]:
+    for key, name, texture in [('advanced_divine_stone', '高级神圣石', 'sheet_01/r4c1'),
+                               ('perfect_divine_stone', '完美神圣石', 'sheet_03/r3c3')]:
         labels['item.' + NS + '.' + key] = name
         write(ASSETS / ('models/item/' + key + '.json'), dict(parent='minecraft:item/generated',
-              textures={'layer0': NS + ':item/divine_stone'}))
+              textures={'layer0': NS + ':item/library/masks/' + texture}))
         write(ASSETS / ('items/' + key + '.json'), dict(model=dict(type='minecraft:model',
-              model=NS + ':item/' + key, tints=[dict(type='minecraft:constant', value=tint)])))
+              model=NS + ':item/' + key)))
     labels['block.' + NS + '.horadric_cube'] = '赫拉迪姆方块'
     labels['item.' + NS + '.horadric_cube'] = '赫拉迪姆方块'
     for language in ['zh_cn', 'en_us']:

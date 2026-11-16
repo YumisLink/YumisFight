@@ -11,6 +11,8 @@ public interface InventoryOperations {
     boolean locked(java.util.UUID player);
     boolean transact(ServerPlayer player,String operation,JsonObject intent,Runnable mutation,Map<String,JsonElement> changes);
     boolean transactMachine(ServerPlayer player,String operation,JsonObject intent,PersistentContainer container,Runnable mutation,Map<String,JsonElement> changes);
+    /** Unattended world logistics; retiring permits recovery after this particular container was removed. */
+    boolean transactContainer(String operation,JsonObject intent,PersistentContainer container,Runnable mutation,Map<String,JsonElement> changes,boolean retiring);
     JsonElement encode(ServerPlayer player,ItemStack stack);
     ItemStack decode(ServerPlayer player,JsonElement value);
     void restore(ServerPlayer player);

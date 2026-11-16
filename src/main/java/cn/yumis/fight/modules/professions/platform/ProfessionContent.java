@@ -5,7 +5,7 @@ import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.Item;
 import java.util.List;
 import static cn.yumis.fight.platform.ItemRegistry.*;
-/** 生活副职业线的材料、渔获、消耗品与鱼竿；贴图复用原版模型，不新增美术资源。 */
+/** 生活副职业线的材料、渔获、消耗品与鱼竿。 */
 public final class ProfessionContent {
     private ProfessionContent(){}
     /** 纯材料物品；顺序即创造栏与页面顺序。 */

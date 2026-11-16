@@ -1,0 +1,34 @@
+{
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 40,
+    "separation": 12,
+    "salt": 16473821
+  },
+  "structures": [
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/forest_cabin",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/herbalist_home",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/artist_home",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/mechanic_home",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/alchemist_home",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/astronomer_home",
+      "weight": 1
+    }
+  ]
+}

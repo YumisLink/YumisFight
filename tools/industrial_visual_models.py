@@ -180,12 +180,45 @@ def obj_model(name, crystal_texture, tier=1):
                          'base': f'{NS}:block/machine_side_{tier}'}, 'display': DISPLAY}
 
 
-def generate():
-    meshes = {}
-    gem = mesh(); crystal(gem); meshes['energy_crystal'] = gem; export_obj('energy_crystal', gem)
+def generate_energy_crystals(update_source=False):
+    """Keep energy crystals crystalline while their silhouettes grow with their tier."""
+    meshes={}
+    gem=mesh();crystal(gem);meshes['energy_crystal']=gem;export_obj('energy_crystal',gem)
     for tier in range(1,9):
+        name='energy_crystal_t'+str(tier)
+        gem=mesh()
+        sides=6 if tier<=2 else 8
+        crystal(gem,radius=.16+.004*tier,height=.69+.022*tier,sides=sides)
+        # Every tier is still one crystal. Earlier crystals have slightly less
+        # regular facets; refined tiers become more symmetrical, not clusters.
+        for ring in range(2):
+            for i in range(sides):
+                at=1+ring*sides+i;x,y,z=gem['vertices'][at]
+                asymmetry=(8-tier)*.012*((i%3)-1)
+                ring_scale=(.92 if ring==0 else 1.0)+asymmetry
+                gem['vertices'][at]=(.5+(x-.5)*ring_scale,y,.5+(z-.5)*ring_scale)
+        x,y,z=gem['vertices'][-1]
+        gem['vertices'][-1]=(x+(8-tier)*.003,y,z)
+        meshes[name]=gem;export_obj(name,gem)
         write(ASSETS/f'models/item/energy_crystal_{tier}.json',
-              obj_model('energy_crystal', f'{NS}:block/energy_crystal_facets_{tier}'))
+              obj_model(name, f'{NS}:block/energy_crystal_facets_{tier}'))
+        icon=f'energy_crystal_{tier}_inventory'
+        write(ASSETS/f'models/item/{icon}.json',{'parent':'minecraft:item/generated',
+              'textures':{'layer0':f'{NS}:item/energy_crystal_{tier}'}})
+        # The approved Aseprite icon is used in inventory; the existing 3D
+        # crystal stays in the world, on stands and in the player's hand.
+        write(ASSETS/f'items/energy_crystal_{tier}.json',{'model':{'type':'minecraft:select',
+              'property':'minecraft:display_context','cases':[{'when':'gui','model':{
+                  'type':'minecraft:model','model':f'{NS}:item/{icon}'}}],
+              'fallback':{'type':'minecraft:model','model':f'{NS}:item/energy_crystal_{tier}'}}})
+    if update_source and (SOURCE/'meshes.json').exists():
+        previous=json.loads((SOURCE/'meshes.json').read_text(encoding='utf-8'))
+        previous.update(meshes);write(SOURCE/'meshes.json',previous)
+    return meshes
+
+
+def generate():
+    meshes = generate_energy_crystals()
     # Static item meshes include the plinth; placed blocks retain the existing animated BER.
     for family in ('transfer_crystal','harvest_crystal','mana_beacon'):
         write(ASSETS/f'models/item/{family}_icon.json',

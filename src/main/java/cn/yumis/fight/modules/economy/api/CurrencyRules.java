@@ -77,6 +77,13 @@ public final class CurrencyRules {
         if(gear.level<1||gear.level>85)throw new IllegalArgumentException("装备等级无效");
         return Math.multiplyExact(gear.level,new long[]{1,2,5,10,25,50}[gear.rarity.ordinal()]);
     }
+    /** Prices the complete stack; equipment keeps its existing per-item price. */
+    public static long salePrice(net.minecraft.world.item.ItemStack stack){
+        if(stack.isEmpty())throw new IllegalArgumentException("空槽不可出售");
+        var gear=cn.yumis.fight.modules.equipment.api.EquipmentItems.gear(stack);
+        long unitPrice=gear!=null&&gear.rarity!=null&&gear.level>=1&&gear.level<=85?salePrice(gear):1L;
+        return Math.multiplyExact(unitPrice,stack.getCount());
+    }
     private static Tier tier(Rarity rarity,double baseWeight){
         List<Currency> currencies=DROP_POOL.stream().filter(c->c.rarity()==rarity).toList();
         if(currencies.isEmpty())throw new IllegalStateException("通货稀有度奖池为空："+rarity);

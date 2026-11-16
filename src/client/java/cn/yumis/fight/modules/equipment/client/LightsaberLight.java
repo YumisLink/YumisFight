@@ -13,17 +13,20 @@ public final class LightsaberLight {
     private static volatile Map<Long,Integer> light=Map.of();
     private static ClientLevel world;
     private static BlockPos origin;
+    private static int strength;
     private LightsaberLight(){}
     public static boolean saber(ItemStack stack){var gear=EquipmentItems.view(stack);return gear!=null&&gear.weapon()==Weapon.LIGHTSABER;}
     public static boolean localModel(net.minecraft.world.entity.LivingEntity owner,ItemDisplayContext context){var mc=Minecraft.getInstance();return owner!=null&&owner==mc.player&&(context==ItemDisplayContext.FIRST_PERSON_LEFT_HAND||context==ItemDisplayContext.FIRST_PERSON_RIGHT_HAND||context==ItemDisplayContext.THIRD_PERSON_LEFT_HAND||context==ItemDisplayContext.THIRD_PERSON_RIGHT_HAND);}
-    public static void tick(){
+    public static void tick(int additionalHeldLight){
         var mc=Minecraft.getInstance();var level=mc.level;var player=mc.player;
-        boolean enabled=level!=null&&player!=null&&player.isAlive()&&(saber(player.getMainHandItem())||saber(player.getOffhandItem()));
+        boolean present=level!=null&&player!=null&&player.isAlive();
+        int nextStrength=present?Math.max(saber(player.getMainHandItem())||saber(player.getOffhandItem())?4:0,Math.clamp(additionalHeldLight,0,15)):0;
+        boolean enabled=nextStrength>0;
         BlockPos next=enabled?BlockPos.containing(player.getEyePosition().add(player.getLookAngle().scale(.4))):null;
-        if(world==level&&Objects.equals(origin,next)&&(!enabled||level.getGameTime()%5!=0))return;
+        if(world==level&&Objects.equals(origin,next)&&strength==nextStrength&&(!enabled||level.getGameTime()%5!=0))return;
         Map<Long,Integer> updated=new HashMap<>();
         if(enabled){
-            var queue=new ArrayDeque<BlockPos>();updated.put(next.asLong(),4);queue.add(next);
+            var queue=new ArrayDeque<BlockPos>();updated.put(next.asLong(),nextStrength);queue.add(next);
             while(!queue.isEmpty()){
                 var pos=queue.removeFirst();int current=updated.get(pos.asLong());if(current<=1)continue;
                 for(Direction direction:Direction.values()){
@@ -34,10 +37,10 @@ public final class LightsaberLight {
             }
         }
         boolean changed=world!=level||!light.equals(updated);
-        var previous=origin;var previousWorld=world;light=Map.copyOf(updated);origin=next;world=level;
-        if(changed){if(previous!=null&&previousWorld==level)dirty(level,previous);if(next!=null)dirty(level,next);}
+        var previous=origin;var previousWorld=world;int previousStrength=strength;light=Map.copyOf(updated);origin=next;world=level;strength=nextStrength;
+        if(changed){if(previous!=null&&previousWorld==level)dirty(level,previous,previousStrength);if(next!=null)dirty(level,next,nextStrength);}
     }
-    private static void dirty(ClientLevel level,BlockPos pos){level.setSectionRangeDirty(SectionPos.blockToSectionCoord(pos.getX()-4),SectionPos.blockToSectionCoord(pos.getY()-4),SectionPos.blockToSectionCoord(pos.getZ()-4),SectionPos.blockToSectionCoord(pos.getX()+4),SectionPos.blockToSectionCoord(pos.getY()+4),SectionPos.blockToSectionCoord(pos.getZ()+4));}
+    private static void dirty(ClientLevel level,BlockPos pos,int radius){level.setSectionRangeDirty(SectionPos.blockToSectionCoord(pos.getX()-radius),SectionPos.blockToSectionCoord(pos.getY()-radius),SectionPos.blockToSectionCoord(pos.getZ()-radius),SectionPos.blockToSectionCoord(pos.getX()+radius),SectionPos.blockToSectionCoord(pos.getY()+radius),SectionPos.blockToSectionCoord(pos.getZ()+radius));}
     public static int block(int original,BlockPos position){return Math.max(original,light.getOrDefault(position.asLong(),0));}
     public static int packed(int original,BlockPos position){return LightCoordsUtil.pack(block(LightCoordsUtil.block(original),position),LightCoordsUtil.sky(original));}
 }

@@ -7,8 +7,10 @@ import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.attributes.api.*;
 import cn.yumis.fight.modules.inventory.api.InventoryEdits;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
+import cn.yumis.fight.platform.ItemData;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
 import java.util.function.*;
@@ -22,7 +24,17 @@ public final class DungeonActions {
         progress=p;stats=attributes;alive=living;chest=chests;rarityRoll=rarity;trainingAllowed=training;
         router.register("dungeons","dungeon",(ignored,j)->{if(j.get("kind").getAsString().equals("leave"))return;eligible(j.get("dungeon").getAsString());});
         router.register("dungeons","waystoneTable",(ignored,j)->{
-            String action=j.get("action").getAsString();if(!Set.of("insert","join","ready","start").contains(action))return;Waystone stone=action.equals("insert")?Waystone.read(Minecraft.getInstance().player.getMainHandItem()):WaystoneClient.stone(j.get("table").getAsString());if(stone==null)throw new IllegalArgumentException("请先放入引路石");eligible(stone.dungeon);
+            String action=j.get("action").getAsString();if(!Set.of("insert","join","ready","start").contains(action))return;
+            Waystone stone;
+            if(action.equals("insert")){
+                if(j.has("openAfterInsert")&&WaystoneClient.stone(j.get("table").getAsString())!=null){j.addProperty("localOnly",true);WaystoneClient.openFilledTableLater(j.get("table").getAsString());return;}
+                var hand=j.has("hand")?InteractionHand.valueOf(j.get("hand").getAsString()):InteractionHand.MAIN_HAND;
+                var held=Minecraft.getInstance().player.getItemInHand(hand);
+                if(j.has("stoneData")&&!j.get("stoneData").getAsString().equals(ItemData.string(held,Waystone.DATA)))throw new IllegalArgumentException("手中的引路石已变化，请重新操作");
+                stone=Waystone.read(held);
+            }
+            else stone=WaystoneClient.stone(j.get("table").getAsString());
+            if(stone==null)throw new IllegalArgumentException("请先放入引路石");eligible(stone.dungeon);
         });
         router.register("dungeons","waystoneReturnResult",(ignored,j)->returned(j));
         router.register("dungeons","trainingStart",(ignored,j)->{if(!trainingAllowed.getAsBoolean())throw new IllegalArgumentException("请在副本外且存活时开始训练");if(Minecraft.getInstance().level.dimension().identifier().toString().equals("yumis_dungeon_and_fight:dungeon"))throw new IllegalArgumentException("请在副本外训练");});

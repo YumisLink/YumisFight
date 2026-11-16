@@ -1,0 +1,52 @@
+{
+  "spacing_chunks": 40,
+  "separation_chunks": 12,
+  "salt": 16473821,
+  "buildings": [
+    {
+      "id": "forest_cabin",
+      "blueprint": "forest_cabin",
+      "biomes": ["forest", "flower_forest", "birch_forest", "old_growth_birch_forest", "dark_forest", "taiga", "old_growth_pine_taiga", "old_growth_spruce_taiga"],
+      "loot": "minecraft:chests/village/village_plains_house",
+      "barrels": [{"facility": "house", "pos": [13, 2, 2]}, {"facility": "house", "pos": [3, 2, 8]}, {"facility": "house", "pos": [11, 7, 3]}]
+    },
+    {
+      "id": "herbalist_home",
+      "blueprint": "building_variants/herbalist_home",
+      "biomes": ["plains", "sunflower_plains", "meadow", "forest", "flower_forest", "birch_forest", "old_growth_birch_forest", "cherry_grove"],
+      "loot": "minecraft:chests/village/village_temple",
+      "barrels": [{"facility": "herbalist_home", "pos": [10, 2, 3]}, {"facility": "herbalist_home", "pos": [3, 2, 4]}, {"facility": "herbalist_home", "pos": [10, 2, 5]}]
+    },
+    {
+      "id": "artist_home",
+      "blueprint": "building_variants/artist_home",
+      "biomes": ["plains", "sunflower_plains", "meadow", "flower_forest", "birch_forest", "cherry_grove"],
+      "loot": "minecraft:chests/village/village_cartographer",
+      "barrels": [{"facility": "artist_home", "pos": [10, 2, 2]}, {"facility": "artist_home", "pos": [3, 2, 3]}, {"facility": "artist_home", "pos": [11, 2, 15]}]
+    },
+    {
+      "id": "mechanic_home",
+      "blueprint": "building_variants/mechanic_home",
+      "biomes": ["plains", "sunflower_plains", "savanna", "savanna_plateau", "windswept_savanna", "windswept_hills", "badlands", "eroded_badlands"],
+      "loot": "minecraft:chests/village/village_toolsmith",
+      "barrels": [{"facility": "mechanic_home", "pos": [9, 2, 3]}, {"facility": "mechanic_home", "pos": [16, 2, 3]}, {"facility": "mechanic_home", "pos": [13, 7, 4]}]
+    },
+    {
+      "id": "alchemist_home",
+      "blueprint": "building_variants/alchemist_home",
+      "biomes": ["forest", "dark_forest", "pale_garden", "taiga", "old_growth_pine_taiga", "old_growth_spruce_taiga", "birch_forest"],
+      "loot": "minecraft:chests/village/village_temple",
+      "barrels": [{"facility": "alchemist_home", "pos": [4, 4, 4]}, {"facility": "alchemist_home", "pos": [10, 4, 5]}, {"facility": "alchemist_home", "pos": [5, 4, 9]}]
+    },
+    {
+      "id": "astronomer_home",
+      "blueprint": "building_variants/astronomer_home",
+      "biomes": ["plains", "sunflower_plains", "meadow", "cherry_grove", "windswept_hills", "windswept_gravelly_hills", "stony_peaks", "jagged_peaks", "frozen_peaks", "snowy_slopes", "savanna_plateau"],
+      "loot": "minecraft:chests/village/village_cartographer",
+      "altitude": 80,
+      "ground_clearance": 40,
+      "max_relief": 256,
+      "barrels": [{"facility": "astronomer_home", "pos": [17, 13, 4]}, {"facility": "astronomer_home", "pos": [19, 13, 4]}, {"facility": "astronomer_home", "pos": [13, 13, 5]}]
+    }
+  ]
+}

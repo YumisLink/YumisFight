@@ -1,12 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "yumis_dungeon_and_fight:item/perfect_divine_stone",
-    "tints": [
-      {
-        "type": "minecraft:constant",
-        "value": 16771493
-      }
-    ]
+    "model": "yumis_dungeon_and_fight:item/perfect_divine_stone"
   }
 }

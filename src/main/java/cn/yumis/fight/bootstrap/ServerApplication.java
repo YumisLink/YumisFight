@@ -170,7 +170,7 @@ public final class ServerApplication {
         nativeHits.targetAccess(trainingService::allowsNative);
         equipmentApplication=new cn.yumis.fight.modules.equipment.application.EquipmentApplication(journal,inventory,p->session(p).id,this::profile,this::message);
         equipmentContracts=new cn.yumis.fight.modules.equipment.application.EquipmentContracts(journal);
-        economyService=new cn.yumis.fight.modules.economy.application.EconomyService(journal,inventory,p->session(p).id,this::profile,equipmentContracts);
+        economyService=new cn.yumis.fight.modules.economy.application.EconomyService(journal,inventory,p->session(p).id,this::profile,equipmentContracts,economyDrafts);
         shops=new cn.yumis.fight.modules.economy.application.ShopService(journal,inventory,economyService,p->session(p).id,this::profile);
         npcs=new cn.yumis.fight.modules.npc.application.NpcService(journal);
         cn.yumis.fight.modules.npc.api.NpcSpawns.install(npcs::group);
@@ -214,6 +214,7 @@ public final class ServerApplication {
         try{
             CURRENT=new ServerApplication(server);
             cn.yumis.fight.modules.economy.api.LootEntityActions.install(CURRENT.loot::validate,CURRENT.loot::pickup);
+            cn.yumis.fight.modules.economy.api.WorldItemTransfers.install(CURRENT.loot);
             cn.yumis.fight.modules.dungeons.api.CageActions.install(CURRENT.dungeons::cageHit);
             cn.yumis.fight.modules.dungeons.api.TrainingActions.install(CURRENT.trainingService);
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install(CURRENT.dungeons.treasure::use);
@@ -252,6 +253,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.npc.api.NpcEntity.conversations(entity->false);
             cn.yumis.fight.modules.combat.api.NativeEffects.clear();
             cn.yumis.fight.modules.economy.api.LootEntityActions.clear();
+            cn.yumis.fight.modules.economy.api.WorldItemTransfers.clear();
             cn.yumis.fight.modules.dungeons.api.CageActions.clear();
             cn.yumis.fight.modules.dungeons.api.TrainingActions.clear();
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install((p,h)->{});

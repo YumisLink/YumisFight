@@ -54,7 +54,7 @@ public final class WorldDecorations {
             .displayItems((parameters,output)->ITEMS.getEntries().forEach(item->output.accept(item.get()))).build());
 
     private WorldDecorations(){}
-    public static void register(IEventBus bus){BLOCKS.register(bus);ITEMS.register(bus);BLOCK_ENTITIES.register(bus);TABS.register(bus);DecorationWorldgen.register(bus);DecorationPlacement.register();}
+    public static void register(IEventBus bus){BLOCKS.register(bus);ITEMS.register(bus);BLOCK_ENTITIES.register(bus);TABS.register(bus);DecorationWorldgen.register(bus);WildBuildingWorldgen.register(bus);DecorationPlacement.register();}
     public static Block block(String id){return Objects.requireNonNull(CONTENT.get(id),id).get();}
     public static Map<Block,Integer> leafColors(){
         Map<Block,Integer> result=new LinkedHashMap<>();

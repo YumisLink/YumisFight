@@ -1,0 +1,24 @@
+{
+  "type": "yumis_dungeon_and_fight:wild_building",
+  "biomes": [
+    "minecraft:plains",
+    "minecraft:sunflower_plains",
+    "minecraft:meadow",
+    "minecraft:cherry_grove",
+    "minecraft:windswept_hills",
+    "minecraft:windswept_gravelly_hills",
+    "minecraft:stony_peaks",
+    "minecraft:jagged_peaks",
+    "minecraft:frozen_peaks",
+    "minecraft:snowy_slopes",
+    "minecraft:savanna_plateau"
+  ],
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "none",
+  "start_pool": "yumis_dungeon_and_fight:wild_buildings/astronomer_home",
+  "height_offset": 80,
+  "floor_offset": 1,
+  "max_relief": 256,
+  "ground_clearance": 40
+}

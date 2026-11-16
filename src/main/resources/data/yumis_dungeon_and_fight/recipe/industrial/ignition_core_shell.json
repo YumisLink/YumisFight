@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " G ",
+    "G G",
+    " G "
+  ],
+  "key": {
+    "G": "minecraft:glass"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:ignition_core_shell",
+    "count": 1
+  }
+}

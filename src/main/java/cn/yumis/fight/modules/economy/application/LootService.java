@@ -27,13 +27,14 @@ import cn.yumis.fight.modules.attributes.api.Stats;
 import cn.yumis.fight.modules.dungeons.api.Target;
 import cn.yumis.fight.modules.dungeons.api.ReturnPoint;
 import com.google.gson.*;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.server.level.*;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
-public class LootService implements InventoryDrops {
+public class LootService implements InventoryDrops,cn.yumis.fight.modules.economy.api.WorldItemTransfers.Port {
     private final cn.yumis.fight.modules.character.api.CharacterPersistence characters;
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
     private static <T>T copy(T value,Class<T> type){return JSON.fromJson(JSON.toJson(value),type);}
@@ -82,6 +83,7 @@ public class LootService implements InventoryDrops {
         public String owner="",session="",dimension="",instance="";
         public double x,y,z;
         public boolean nativeToss;
+        public boolean logistics;
         public boolean durableChest;
         public double dx,dy,dz;
         public String thrower="";
@@ -168,6 +170,60 @@ public class LootService implements InventoryDrops {
         for(var drop:drops)publish.add(JSON.fromJson(drop.state(),Drop.class));
         publish();
     }
+    private JsonElement encodeWorld(ItemStack stack){return ItemStack.OPTIONAL_CODEC.encodeStart(server.registryAccess().createSerializationContext(JsonOps.INSTANCE),stack).getOrThrow();}
+    @Override public int collect(ItemEntity source,cn.yumis.fight.modules.inventory.api.PersistentContainer target,java.util.function.ToIntFunction<ItemStack> receive){
+        if(!source.isAlive()||source.getItem().isEmpty()||source.level()!=target.getLevel()||source.getTarget()!=null)return 0;
+        String id=nativeIdentity(source);
+        try{
+            if(id.isEmpty()){
+                Drop adopted=new Drop();adopted.id=source.getUUID();adopted.nativeToss=true;adopted.logistics=true;
+                adopted.dimension=source.level().dimension().identifier().toString();adopted.x=source.getX();adopted.y=source.getY();adopted.z=source.getZ();
+                var velocity=source.getDeltaMovement();adopted.dx=velocity.x;adopted.dy=velocity.y;adopted.dz=velocity.z;adopted.item=encodeWorld(source.getItem());
+                journal.put("loot/"+adopted.id,adopted);committed(List.of("loot/"+adopted.id));
+                id=adopted.id.toString();source.getPersistentData().putString("ydnf_drop",id);
+            }
+            Drop original=journal.get("loot/"+id,Drop.class,null);
+            if(original==null||!original.owner.isEmpty()||original.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+id).isJsonNull())return 0;
+            ItemStack expected=decode(original),actual=source.getItem();
+            if(!ItemStack.isSameItemSameComponents(expected,actual))return 0;
+            ItemStack offered=actual.copyWithCount(Math.min(expected.getCount(),actual.getCount()));
+            if(offered.isEmpty())return 0;
+            // Ledger quantity is authoritative when a previous durable claim preceded its projection update.
+            if(actual.getCount()>offered.getCount())source.setItem(offered.copy());
+            final String identity=id;final int[] accepted={0};final ItemStack[] remainder={offered.copy()};
+            Map<String,JsonElement> edits=new LinkedHashMap<>();JsonObject intent=new JsonObject();intent.addProperty("worldItem",id);intent.addProperty("container",target.key());
+            inventory.get().transactContainer("world-intake/"+UUID.randomUUID(),intent,target,()->{
+                accepted[0]=receive.applyAsInt(offered.copy());
+                if(accepted[0]<0||accepted[0]>offered.getCount())throw new IllegalStateException("世界物品收取数量无效");
+                remainder[0]=offered.copyWithCount(offered.getCount()-accepted[0]);
+                Drop next=copy(original,Drop.class);next.logistics=true;next.item=encodeWorld(remainder[0]);
+                edits.put("loot/"+identity,JSON.toJsonTree(next));
+                if(remainder[0].isEmpty())edits.put("lootEnd/"+identity,JSON.toJsonTree("industrial-intake"));
+            },edits,false);
+            if(remainder[0].isEmpty())source.discard();else{source.setItem(remainder[0]);source.setUnlimitedLifetime();}
+            return accepted[0];
+        }catch(Exception failure){throw new IllegalStateException("地面物品接收未完成",failure);}
+    }
+    @Override public void spill(cn.yumis.fight.modules.inventory.api.PersistentContainer source,String operation,List<cn.yumis.fight.modules.economy.api.WorldItemTransfers.Emission> emissions,Runnable debit,boolean retiring){
+        List<Drop> drops=new ArrayList<>();Map<String,JsonElement> edits=new LinkedHashMap<>();JsonObject intent=new JsonObject();intent.addProperty("container",source.key());
+        JsonArray identities=new JsonArray(),payload=new JsonArray();int index=0;
+        for(var emission:emissions){
+            if(emission.stack().isEmpty())continue;
+            Drop drop=new Drop();drop.id=UUID.nameUUIDFromBytes((source.key()+"/"+operation+"/"+index++).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            drop.nativeToss=true;drop.logistics=true;drop.pickupAt=System.currentTimeMillis()+500;
+            drop.dimension=source.getLevel().dimension().identifier().toString();drop.x=emission.position().x;drop.y=emission.position().y;drop.z=emission.position().z;
+            drop.dx=emission.velocity().x;drop.dy=emission.velocity().y;drop.dz=emission.velocity().z;drop.item=encodeWorld(emission.stack());
+            drops.add(drop);identities.add(drop.id.toString());edits.put("loot/"+drop.id,JSON.toJsonTree(drop));
+            JsonObject emitted=new JsonObject();emitted.add("item",drop.item.deepCopy());emitted.addProperty("x",drop.x);emitted.addProperty("y",drop.y);emitted.addProperty("z",drop.z);emitted.addProperty("dx",drop.dx);emitted.addProperty("dy",drop.dy);emitted.addProperty("dz",drop.dz);payload.add(emitted);
+        }
+        intent.add("drops",identities);intent.add("payload",payload);
+        try{inventory.get().transactContainer(operation,intent,source,debit,edits,retiring);}
+        finally{
+            // Also retain committed emissions if native container flushing failed after the WAL commit.
+            for(Drop drop:drops)if(!journal.get("loot/"+drop.id).isJsonNull()&&publish.stream().noneMatch(queued->queued.id.equals(drop.id)))publish.add(drop);
+        }
+        publish();
+    }
     public void privateDrop(ServerPlayer p,ItemStack stack,Vec3 pos,String instance)throws Exception{
         create(p,stack,pos,instance,true);
     }
@@ -229,7 +285,7 @@ public class LootService implements InventoryDrops {
         players.progress(player,progress);publishDrops(drops);players.profile(player);if(request.has("goldGain"))balance.notifyGain(player,request.get("goldGain").getAsLong(),balance.gold(player),balance.revision(player));
     }
     public void abort(){
-        publish.clear();
+        publish.removeIf(drop->!drop.logistics);
         rewardNotices.clear();
     }
     public void recover(){
@@ -264,30 +320,35 @@ public class LootService implements InventoryDrops {
             entity.setPickUpDelay((int)Math.clamp((drop.pickupAt-System.currentTimeMillis()+49)/50,0,32767));
             if(!drop.thrower.isEmpty())((cn.yumis.fight.mixin.ItemDropAccessor)entity).ydnf$thrower(EntityReference.of(UUID.fromString(drop.thrower)));
         }else entity.setDefaultPickUpDelay();
+        // The ledger, rather than native merging/age, owns logistics projections and their expiry.
+        if(drop.logistics)entity.setUnlimitedLifetime();
         return entity;
     }
     public void publish(){
         committed(publish.stream().map(drop->"loot/"+drop.id).toList());
-        for(Drop d:new ArrayList<>(publish)){
+        var queued=new LinkedHashMap<UUID,Drop>();for(Drop drop:publish)queued.put(drop.id,drop);publish.clear();
+        for(Drop requested:queued.values()){
+            Drop d=journal.get("loot/"+requested.id,Drop.class,null);
+            if(d==null||!journal.get("lootEnd/"+requested.id).isJsonNull()||d.expires<System.currentTimeMillis())continue;
             ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));
-            if(level==null)continue;
+            if(level==null){publish.add(d);continue;}
             ServerPlayer player=d.owner.isEmpty()?server.getPlayerList().getPlayers().stream().findFirst().orElse(null):server.getPlayerList().getPlayer(UUID.fromString(d.owner));
-            if(!d.owner.isEmpty()&&player==null)continue;
+            if(!d.owner.isEmpty()&&player==null){publish.add(d);continue;}
+            if(d.logistics&&!level.hasChunkAt(net.minecraft.core.BlockPos.containing(d.x,d.y,d.z))){publish.add(d);continue;}
             ItemStack stack=decode(d);
             if(level.getEntity(d.id)!=null)continue;
             if(d.owner.isEmpty()){
                 ItemEntity e=projection(level,d,stack);
-                level.addFreshEntity(e);
+                if(!level.addFreshEntity(e))publish.add(d);
             }
             else{
                 PrivateLoot e=new PrivateLoot(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),level);
                 e.setUUID(d.id);
                 e.initialize(d.id.toString(),d.owner,stack);
                 e.setPos(d.x,d.y,d.z);
-                level.addFreshEntity(e);
+                if(!level.addFreshEntity(e))publish.add(d);
             }
         }
-        publish.clear();
         for(var notice:rewardNotices){var player=server.getPlayerList().getPlayer(notice.player);if(player!=null)cn.yumis.fight.network.Network.send(player,"killReward",notice.fact);}
         rewardNotices.clear();
     }
@@ -397,8 +458,8 @@ public class LootService implements InventoryDrops {
         if(!publish.isEmpty())publish();
         if(System.currentTimeMillis()>=recoverAfter){
             for(int i=0;i<4&&!recover.isEmpty();i++){
-                Drop d=recover.removeFirst();
-                if(d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+d.id).isJsonNull())continue;
+                Drop queued=recover.removeFirst();Drop d=journal.get("loot/"+queued.id,Drop.class,null);
+                if(d==null||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+d.id).isJsonNull())continue;
                 ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));
                 if(level==null)continue;
                 net.minecraft.core.BlockPos pos=net.minecraft.core.BlockPos.containing(d.x,d.y,d.z);
@@ -410,7 +471,7 @@ public class LootService implements InventoryDrops {
                 Entity existing=level.getEntity(d.id);
                 if(existing==null){
                     ItemEntity item=projection(level,d,decode(d));
-                    level.addFreshEntity(item);
+                    if(!level.addFreshEntity(item))recover.addLast(d);
                 }
                 else if(existing instanceof ItemEntity item){
                     ItemStack expected=decode(d);

@@ -1,0 +1,130 @@
+{
+  "items": {
+    "76318e765bb5819d952a52ee92c11010d614ed55649f8f91e44595e0f50b8b05": {
+      "src": "./animations/76318e765bb5819d952a52ee92c11010d614ed55649f8f91e44595e0f50b8b05.png",
+      "sheet": "./animations/76318e765bb5819d952a52ee92c11010d614ed55649f8f91e44595e0f50b8b05-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "精金锭"
+    },
+    "daac77e1598fb9728d6cce556d618c3ab35975fceed25fe4833d3eda8491e35f": {
+      "src": "./animations/daac77e1598fb9728d6cce556d618c3ab35975fceed25fe4833d3eda8491e35f.png",
+      "sheet": "./animations/daac77e1598fb9728d6cce556d618c3ab35975fceed25fe4833d3eda8491e35f-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "恒辉合金"
+    },
+    "fb4fec88a3d22798d0e1a3e79a6a4549ffb8d4fbe2157cc6b5a082eda50a1d36": {
+      "src": "./animations/fb4fec88a3d22798d0e1a3e79a6a4549ffb8d4fbe2157cc6b5a082eda50a1d36.png",
+      "sheet": "./animations/fb4fec88a3d22798d0e1a3e79a6a4549ffb8d4fbe2157cc6b5a082eda50a1d36-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "高纯铱锭"
+    },
+    "0f548be67bdd6165f6a44ae41ad9276ff0c362333902fe4749de166a68f888f5": {
+      "src": "./animations/0f548be67bdd6165f6a44ae41ad9276ff0c362333902fe4749de166a68f888f5.png",
+      "sheet": "./animations/0f548be67bdd6165f6a44ae41ad9276ff0c362333902fe4749de166a68f888f5-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "高纯铌锭"
+    },
+    "585e75ea07ad3bc5ae874759499b331fedefdda3b8e13fcc4036de02116546f9": {
+      "src": "./animations/585e75ea07ad3bc5ae874759499b331fedefdda3b8e13fcc4036de02116546f9.png",
+      "sheet": "./animations/585e75ea07ad3bc5ae874759499b331fedefdda3b8e13fcc4036de02116546f9-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "高纯钽锭"
+    },
+    "0b16b916213d28360b597f68dd340cd7fee5331a93d9a2b14f725f1f27f93413": {
+      "src": "./animations/0b16b916213d28360b597f68dd340cd7fee5331a93d9a2b14f725f1f27f93413.png",
+      "sheet": "./animations/0b16b916213d28360b597f68dd340cd7fee5331a93d9a2b14f725f1f27f93413-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "铱锭"
+    },
+    "4fbc0b51a580180b83826ee7acc1de57236aaa3215e8349e82ba70fc96f08188": {
+      "src": "./animations/4fbc0b51a580180b83826ee7acc1de57236aaa3215e8349e82ba70fc96f08188.png",
+      "sheet": "./animations/4fbc0b51a580180b83826ee7acc1de57236aaa3215e8349e82ba70fc96f08188-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "秘银铌钛合金"
+    },
+    "855525087d3542d8f89a2812209ca8017b02230f52dc032240590881e6a2ca72": {
+      "src": "./animations/855525087d3542d8f89a2812209ca8017b02230f52dc032240590881e6a2ca72.png",
+      "sheet": "./animations/855525087d3542d8f89a2812209ca8017b02230f52dc032240590881e6a2ca72-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "铌锭"
+    },
+    "5ee54808f88321558a94548047f2d5abce673d3c51eada42963f2c729daa2190": {
+      "src": "./animations/5ee54808f88321558a94548047f2d5abce673d3c51eada42963f2c729daa2190.png",
+      "sheet": "./animations/5ee54808f88321558a94548047f2d5abce673d3c51eada42963f2c729daa2190-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "铌钛合金"
+    },
+    "7f95be1e751a7bcc135ece37afc25f75558cb3229b3df8623c765a8a5c504e2a": {
+      "src": "./animations/7f95be1e751a7bcc135ece37afc25f75558cb3229b3df8623c765a8a5c504e2a.png",
+      "sheet": "./animations/7f95be1e751a7bcc135ece37afc25f75558cb3229b3df8623c765a8a5c504e2a-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "时空石锭"
+    },
+    "6bd7931ca99b2123be22c672f6ce7b7bc2035affd9f421530df3f0105b03c6a4": {
+      "src": "./animations/6bd7931ca99b2123be22c672f6ce7b7bc2035affd9f421530df3f0105b03c6a4.png",
+      "sheet": "./animations/6bd7931ca99b2123be22c672f6ce7b7bc2035affd9f421530df3f0105b03c6a4-sheet.png",
+      "frames": 21,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "恒星合金"
+    },
+    "629638e3694d6ed8808588a5d75a581326a2ab0b2746218dddfc8c0ce36a0ac6": {
+      "src": "./animations/629638e3694d6ed8808588a5d75a581326a2ab0b2746218dddfc8c0ce36a0ac6.png",
+      "sheet": "./animations/629638e3694d6ed8808588a5d75a581326a2ab0b2746218dddfc8c0ce36a0ac6-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "钽锭"
+    },
+    "3a949a00c18b9787b7dc783a6cc850f0d6ebc3d74f3093c9490ab0d440be9587": {
+      "src": "./animations/3a949a00c18b9787b7dc783a6cc850f0d6ebc3d74f3093c9490ab0d440be9587.png",
+      "sheet": "./animations/3a949a00c18b9787b7dc783a6cc850f0d6ebc3d74f3093c9490ab0d440be9587-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "泰拉石锭"
+    },
+    "52d88d5dff57313d80d83b712d857314d66cda82999c271164c57ed461fd3744": {
+      "src": "./animations/52d88d5dff57313d80d83b712d857314d66cda82999c271164c57ed461fd3744.png",
+      "sheet": "./animations/52d88d5dff57313d80d83b712d857314d66cda82999c271164c57ed461fd3744-sheet.png",
+      "frames": 24,
+      "sourceFrames": 24,
+      "frameDurationMs": 100,
+      "durationMs": 2400,
+      "name": "铀锭"
+    }
+  }
+}

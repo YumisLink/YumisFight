@@ -2,11 +2,12 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    " S ",
+    "HS ",
     "LCL",
     " S "
   ],
   "key": {
+    "H": "yumis_dungeon_and_fight:ignition_core_shell",
     "S": "yumis_dungeon_and_fight:stellar_alloy",
     "L": "yumis_dungeon_and_fight:confinement_lattice",
     "C": "yumis_dungeon_and_fight:industrial_upgrade_6"

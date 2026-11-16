@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/salmon"
+    "model": "yumis_dungeon_and_fight:item/fish_salmon"
   }
 }

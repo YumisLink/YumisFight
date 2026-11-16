@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>物品清单</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div><p class="eyebrow">YUMI'S DUNGEON &amp; FIGHT</p><h1>物品清单</h1></div>
+      <div class="search-wrap"><label for="search">查找物品</label><input id="search" type="search" placeholder="输入名称或物品 ID" autocomplete="off"></div>
+    </div>
+  </header>
+  <main>
+    <section class="export" aria-labelledby="export-title">
+      <div><p class="eyebrow">EXPORT</p><h2 id="export-title">导出文本</h2><p class="muted">已勾选 <span id="selected-count">0</span> 件物品</p></div>
+      <div class="export-controls">
+        <fieldset><legend>导出内容</legend><label><input type="checkbox" id="export-name" checked> 名称</label><label><input type="checkbox" id="export-description" checked> 介绍文本</label><label><input type="checkbox" id="export-prompt"> 生图文本</label></fieldset>
+        <div class="buttons"><a class="secondary api-link" href="./agent-api.md" target="_blank" rel="noopener">Agent API</a><button id="open-changes" class="secondary" type="button">修改记录</button><button id="export-selected" class="secondary" type="button">导出勾选</button><button id="export-all" class="primary" type="button">全部导出</button></div>
+      </div>
+    </section>
+    <p id="notice" class="notice" role="status" aria-live="polite"></p>
+    <nav id="categories" class="categories" aria-label="创造背包分类"></nav>
+    <section class="catalog" aria-label="物品">
+      <div class="section-heading"><div><p class="eyebrow">ITEM CATALOG</p><h2 id="category-title">全部物品</h2></div><div class="catalog-actions"><p id="item-count" class="muted"></p><button id="select-visible" class="secondary" type="button">全选当前结果</button><button id="clear-visible" class="secondary" type="button">取消当前结果</button><button id="selection-mode" class="secondary" type="button" aria-pressed="false">选择模式</button></div></div>
+      <div class="grid-scroll"><div id="items" class="items"></div></div>
+      <p id="empty" class="empty" hidden>没有找到符合条件的物品。</p>
+    </section>
+  </main>
+
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+
+  <dialog id="item-dialog" class="dialog">
+    <form id="item-form">
+      <div class="dialog-heading"><div><p class="eyebrow">ITEM DETAILS</p><h2 id="detail-title">物品详情</h2><p id="detail-id" class="muted detail-id"></p></div><button type="button" class="close" data-close="item-dialog" aria-label="关闭">×</button></div>
+      <div class="detail-image"><img id="detail-image" alt=""><canvas id="detail-animation" role="img" hidden></canvas><div><label for="image-input" class="file-label">上传贴图</label><input id="image-input" type="file" accept="image/png" disabled><p class="muted">PNG 图片</p></div></div>
+      <label class="field">名称<input id="detail-name" maxlength="500" readonly></label>
+      <label class="field">介绍文本<textarea id="detail-description" rows="6" maxlength="30000" readonly></textarea></label>
+      <label class="field">贴图描述／生图文本<textarea id="detail-prompt" rows="5" maxlength="30000" readonly></textarea></label>
+      <p id="detail-notice" class="form-notice" role="status"></p>
+      <div class="dialog-actions"><button id="unlock" type="button" class="secondary">输入编辑口令</button><button id="save" type="submit" class="primary" disabled>保存修改</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="auth-dialog" class="dialog auth-dialog">
+    <form id="auth-form"><div class="dialog-heading"><h2>编辑口令</h2><button type="button" class="close" data-close="auth-dialog" aria-label="关闭">×</button></div><label class="field">口令<input id="password" type="password" autocomplete="current-password" required></label><p id="auth-notice" class="form-notice" role="status"></p><div class="dialog-actions"><button class="primary" type="submit">确认</button></div></form>
+  </dialog>
+
+  <dialog id="changes-dialog" class="dialog changes-dialog">
+    <div class="dialog-heading"><div><h2>修改记录</h2><p class="muted changes-subtitle">可导出给 Agent，应用后再删除记录</p></div><button type="button" class="close" data-close="changes-dialog" aria-label="关闭">×</button></div>
+    <div id="changes-list" class="changes-list"></div>
+    <p id="changes-empty" class="muted" hidden>暂无修改记录。</p>
+    <p id="changes-notice" class="form-notice" role="status"></p>
+    <div class="dialog-actions"><button id="export-changes" type="button" class="secondary" disabled>导出记录</button><button id="delete-changes" type="button" class="secondary" disabled>删除全部记录</button></div>
+  </dialog>
+</body>
+</html>

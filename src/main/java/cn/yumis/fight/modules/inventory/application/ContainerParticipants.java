@@ -27,6 +27,17 @@ final class ContainerParticipants {
     record Escrow(int menu,List<JsonElement> items){}
     record Ref(Container container,int slot,Address address,JsonElement before,boolean temporary){}
     record MachineRef(cn.yumis.fight.modules.inventory.api.PersistentContainer machine,Address address,JsonElement before){}
+    MachineRef captureMachine(cn.yumis.fight.modules.inventory.api.PersistentContainer machine,boolean retiring){
+        var pos=machine.getBlockPos();
+        return new MachineRef(machine,new Address(retiring?"industrial-release":"industrial",machine.getLevel().dimension().identifier().toString(),machine.key(),machine.getClass().getName(),pos.getX(),pos.getY(),pos.getZ(),-1),machine.transactionState());
+    }
+    void journalMachine(String key,String operation,MachineRef machine,JsonElement after,Map<String,JsonElement> edits){
+        edits.put(key,JSON.toJsonTree(new Pending("",operation,List.of(new Change(machine.address,machine.before,after)))));
+    }
+    void flushMachine(MachineRef machine){
+        if(machine.machine.getLevel() instanceof net.minecraft.server.level.ServerLevel level)level.save(null,true,false);
+        for(ServerPlayer viewer:server.getPlayerList().getPlayers())viewer.containerMenu.broadcastChanges();
+    }
     record Capture(List<Ref> refs,List<MachineRef> machines){}
     record After(List<JsonElement> values,List<Change> persistent,Escrow escrow,boolean hasTemporary,List<JsonElement> metadata){}
     private final cn.yumis.fight.foundation.Journal journal;
@@ -117,7 +128,7 @@ final class ContainerParticipants {
         recoverIndustrial();
         for(String key:journal.keys("containerPending/")){
             Pending pending=journal.get(key,Pending.class,null);if(pending==null)continue;
-            if(pending.changes.stream().anyMatch(c->c.address.kind.equals("industrial")))continue;
+            if(pending.changes.stream().anyMatch(c->industrial(c.address)))continue;
             // Private ender inventories can only be recovered when their owner is online.
             ServerPlayer codecPlayer=pending.player.equals(player.getStringUUID())?player:player.level().getServer().getPlayerList().getPlayer(UUID.fromString(pending.player));
             if(codecPlayer==null&&pending.changes.stream().anyMatch(c->c.address.kind.equals("ender")))continue;
@@ -137,15 +148,26 @@ final class ContainerParticipants {
     }
     void recoverIndustrial(){
         for(String key:journal.keys("containerPending/")){
-            Pending pending=journal.get(key,Pending.class,null);if(pending==null||pending.changes.isEmpty()||pending.changes.stream().anyMatch(c->!c.address.kind.equals("industrial")))continue;
-            boolean waiting=false;
+            Pending pending=journal.get(key,Pending.class,null);if(pending==null||pending.changes.isEmpty()||pending.changes.stream().anyMatch(c->!industrial(c.address)))continue;
+            boolean waiting=false;Set<net.minecraft.server.level.ServerLevel> flush=new HashSet<>();
             for(Change change:pending.changes){Address address=change.address;var level=server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(address.dimension)));BlockPos pos=new BlockPos(address.x,address.y,address.z);if(level==null||!level.hasChunkAt(pos)){waiting=true;continue;}
-                if(!(level.getBlockEntity(pos) instanceof cn.yumis.fight.modules.inventory.api.PersistentContainer be)||!be.key().equals(address.owner))throw new IllegalStateException("工业恢复目标已替换，已保留事务记录");
-                JsonElement actual=be.transactionState();if(actual.equals(change.after))continue;if(!actual.equals(change.before))throw new IllegalStateException("工业事务恢复冲突，未覆盖机器状态");be.restoreTransactionState(change.after);level.save(null,true,false);
+                if(!(level.getBlockEntity(pos) instanceof cn.yumis.fight.modules.inventory.api.PersistentContainer be)||!be.key().equals(address.owner)){
+                    if(address.kind.equals("industrial-release")){
+                        if(level.getBlockEntity(pos)==null&&level.getBlockState(pos).hasBlockEntity())waiting=true;
+                        continue;
+                    }
+                    throw new IllegalStateException("工业恢复目标已替换，已保留事务记录");
+                }
+                JsonElement actual=be.transactionState();
+                if(!actual.equals(change.after)){if(!actual.equals(change.before))throw new IllegalStateException("工业事务恢复冲突，未覆盖机器状态");be.restoreTransactionState(change.after);}
+                // Matching in-memory state can still precede a failed native save: flush before clearing Pending.
+                flush.add(level);
             }
+            for(var level:flush)level.save(null,true,false);
             if(!waiting)try{journal.put(key,JsonNull.INSTANCE);}catch(Exception e){throw new IllegalStateException("工业事务恢复记录保存失败",e);}
         }
     }
+    private static boolean industrial(Address address){return address.kind.equals("industrial")||address.kind.equals("industrial-release");}
     private Container resolve(ServerPlayer player,Address address){
         if(address.kind.equals("ender"))return player.getStringUUID().equals(address.owner)?player.getEnderChestInventory():null;
         var level=player.level().getServer().getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(address.dimension)));

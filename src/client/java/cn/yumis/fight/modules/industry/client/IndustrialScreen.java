@@ -25,6 +25,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     public boolean lines;
     private Button linePicker;
     private final IndustrialProgress progress=new IndustrialProgress();
+    private double displayedProgress;
     private final IndustrialFluidDisplay fluidDisplay=new IndustrialFluidDisplay();
     private record FluidGauge(String key,int tank,int x,int y,int width,int height){
         boolean contains(double mx,double my){return mx>=x&&mx<x+width&&my>=y&&my<y+height;}
@@ -82,7 +83,12 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float alpha){
         g.fill(0,0,width,height,UiTheme.OVERLAY);IndustrialUi.panel(g,leftPos,topPos,256,imageHeight);if(menu.showPlugins){UiTheme.panel(g,leftPos+272,topPos+33,40,104);g.text(UiFonts.font(),"插件",leftPos+279,topPos+39,UiTheme.TEXT,false);}
         for(var slot:menu.slots)if(slot.isActive()){int x=leftPos+slot.x,y=topPos+slot.y;IndustrialUi.slot(g,x,y);}
-        double progress=(menu.machine.device().currencyUpgrader()||menu.machine.device().has(DeviceType.Capability.IGNITION))&&menu.info.has("progress")?menu.info.get("progress").getAsDouble():this.progress.value(alpha);if(menu.machine.device().processing()||menu.machine.device().currencyUpgrader()||menu.machine.device().has(DeviceType.Capability.IGNITION)){IndustrialUi.card(g,leftPos+87,topPos+57,(leftPos+174)-(leftPos+87),(topPos+65)-(topPos+57));g.fill(leftPos+88,topPos+58,leftPos+88+(int)(85*Math.clamp(progress,0,1)),topPos+64,UiTheme.ACCENT);}
+        displayedProgress=menu.machine.device().currencyUpgrader()&&menu.info.has("progress")?menu.info.get("progress").getAsDouble():this.progress.value(alpha);
+        if(menu.machine.device().processing()||menu.machine.device().currencyUpgrader()||menu.machine.device().has(DeviceType.Capability.IGNITION)){
+            int x=leftPos+87,y=topPos+57,w=87,h=8,fill=(int)((w-2)*Math.clamp(displayedProgress,0,1));
+            IndustrialUi.card(g,x,y,w,h);
+            if(fill>0){g.enableScissor(x+1,y+1,x+1+fill,y+h-1);UiTheme.surface(g,x+1,y+1,w-2,h-2,3,UiTheme.ACCENT,UiTheme.ACCENT);g.disableScissor();}
+        }
         if(menu.info.has("preview")){ItemStack preview=ItemStack.OPTIONAL_CODEC.parse(minecraft.player.registryAccess().createSerializationContext(JsonOps.INSTANCE),menu.info.get("preview")).result().orElse(ItemStack.EMPTY);g.item(preview,leftPos+16,topPos+93);if(mx>=leftPos+14&&mx<=leftPos+34&&my>=topPos+91&&my<=topPos+111)g.setComponentTooltipForNextFrame(UiFonts.font(),Screen.getTooltipFromItem(minecraft,preview),mx,my,preview);}
         for(var gauge:fluidGauges())fluidGauge(g,gauge.key(),leftPos+gauge.x(),topPos+gauge.y(),gauge.width(),gauge.height(),mx,my);
         g.text(UiFonts.font(),"?",leftPos+242,topPos+8,UiTheme.ACCENT,false);
@@ -104,6 +110,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         boolean connected=menu.info.has("connected")&&menu.info.get("connected").getAsBoolean();g.text(UiFonts.font(),kind.has(DeviceType.Capability.STORAGE_NETWORK)?(number("network_capacity")>0?"● 信标就绪":"○ 信标未就绪"):connected?"● 信标有效":"○ 未连接",88,46,connected||kind.has(DeviceType.Capability.STORAGE_NETWORK)&&number("network_capacity")>0?UiTheme.SUCCESS:UiTheme.MUTED,false);
         if(kind.processing()||kind.currencyUpgrader()){}
         else if(kind.has(DeviceType.Capability.GENERATION_OUTPUT)){int labelX=kind.has(DeviceType.Capability.IGNITION)?16:56;g.text(UiFonts.font(),"产能 "+number("power")+"/秒",labelX,80,UiTheme.MUTED,false);g.text(UiFonts.font(),"燃料 "+seconds(number("fuel")),labelX,96,UiTheme.MUTED,false);}
+        else if(kind==DeviceType.INFINITE_POWER){g.text(UiFonts.font(),"产能 1亿魔能/tick",16,63,UiTheme.TEXT,false);g.text(UiFonts.font(),"本机储能 "+number("energy")+" / "+number("storage_capacity"),16,79,UiTheme.MUTED,false);}
         else if(kind.generator()){g.text(UiFonts.font(),"产能 "+number("power")+" 点/秒",88,63,UiTheme.MUTED,false);g.text(UiFonts.font(),"燃料余时 "+seconds(number("fuel")),88,81,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.STORAGE_NETWORK)){g.text(UiFonts.font(),"核心储能 "+number("energy"),16,64,UiTheme.MUTED,false);g.text(UiFonts.font(),"覆盖半径 "+number("radius")+" 格",16,79,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.ENERGY_STORAGE)){g.text(UiFonts.font(),"本机 "+number("energy")+" / "+number("storage_capacity"),16,68,UiTheme.TEXT,false);g.text(UiFonts.font(),"接网增加容量；断网保留余额",16,87,UiTheme.MUTED,false);}
@@ -112,6 +119,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         else {g.text(UiFonts.font(),kind.has(DeviceType.Capability.LOGISTICS)?"权杖绑定接收容器":kind.has(DeviceType.Capability.FLUID_LOGISTICS)?"权杖绑定源出口和目标入口":"成熟作物自动入下方箱",16,65,UiTheme.MUTED,false);}
         int statusX=!gauges.isEmpty()&&!centralGauges?56:8,statusWidth=centralGauges?76:248-statusX;
         g.text(UiFonts.font(),font.plainSubstrByWidth(text("status","读取设备状态"),statusWidth),statusX,111,UiTheme.GOLD,false);
+        if(kind.has(DeviceType.Capability.IGNITION))g.text(UiFonts.font(),String.format(Locale.ROOT,"点火 %.1f%%",displayedProgress*100),statusX,124,UiTheme.TEXT,false);
         if(!kind.processing()){
             String line=kind.currencyUpgrader()?"缓存 "+number("energy")+" / "+number("upgrade_capacity"):"网络 "+number("network_energy")+" / "+number("network_capacity");
             if(!centralGauges)g.text(UiFonts.font(),font.plainSubstrByWidth(line,statusWidth),statusX,124,UiTheme.MUTED,false);

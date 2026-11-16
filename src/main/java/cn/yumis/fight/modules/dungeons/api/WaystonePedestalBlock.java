@@ -2,6 +2,8 @@ package cn.yumis.fight.modules.dungeons.api;
 
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -25,6 +27,13 @@ public final class WaystonePedestalBlock extends BaseEntityBlock {
     @Override public BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext context){return context.getLevel().dimension()==Level.OVERWORLD?defaultBlockState():null;}
     @Override protected VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return Block.box(1,0,1,15,14,15);}
     @Override protected VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return getShape(state,level,pos,context);}
+    @Override public void animateTick(BlockState state,Level level,BlockPos pos,RandomSource random){
+        int quality=state.getValue(STONE);
+        if(quality==0||random.nextInt(10)!=0)return;
+        int color=cn.yumis.fight.modules.equipment.api.Rarity.values()[quality-1].color();
+        double angle=random.nextDouble()*Math.PI*2,radius=.2+random.nextDouble()*.2;
+        level.addParticle(new DustParticleOptions(color,.45f),pos.getX()+.5+Math.cos(angle)*radius,pos.getY()+.85+random.nextDouble()*.35,pos.getZ()+.5+Math.sin(angle)*radius,0,.012,0);
+    }
     @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){if(player instanceof net.minecraft.server.level.ServerPlayer p&&level.getBlockEntity(pos) instanceof WaystonePedestalBlockEntity table)WaystoneActions.open(p,table);return InteractionResult.SUCCESS;}
     @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit){return useWithoutItem(state,level,pos,player,hit);}
 }

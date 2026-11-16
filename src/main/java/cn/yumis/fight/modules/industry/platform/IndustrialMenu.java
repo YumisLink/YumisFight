@@ -39,7 +39,7 @@ public final class IndustrialMenu extends AbstractContainerMenu {
             final int slot=i;int offset=layout.offset(i);boolean input=offset>=0&&offset<be.device().inputs(),output=offset>=layout.outputOffset()&&offset<layout.outputOffset()+layout.outputs();int x=input?16+(offset%(upgrader?3:2))*18:output?184+((offset-layout.outputOffset())%3)*18:upgrader?118:64;int y=input?53+(offset/(upgrader?3:2))*18:output?53+((offset-layout.outputOffset())/3)*18:i==layout.crystal()?87:53;
             addSlot(new Slot(be,i,x,y){
                 @Override public ItemStack getItem(){var resource=be.items.getResource(slot);return resource.toStack(resource.isEmpty()?0:1);}
-                @Override public boolean isActive(){var current=be.slots();return current.lineOf(slot)==viewedLine&&(current.input(slot)||current.output(slot)&&be.device().outputs()&&!be.device().has(DeviceType.Capability.INFUSION))||slot==current.crystal()&&(be.device().processing()||be.device().currencyUpgrader())&&!be.device().has(DeviceType.Capability.GRID_ONLY)||slot==current.fuel()&&be.device().has(DeviceType.Capability.FUEL);}
+                @Override public boolean isActive(){var current=be.slots();boolean visibleOutput=current.output(slot)&&be.device().outputs()&&!be.device().has(DeviceType.Capability.INFUSION)&&(be.device()!=DeviceType.STAR||slot==current.outputStart(viewedLine)||!be.items.getResource(slot).isEmpty());return current.lineOf(slot)==viewedLine&&(current.input(slot)||visibleOutput)||slot==current.crystal()&&(be.device().processing()||be.device().currencyUpgrader())&&!be.device().has(DeviceType.Capability.GRID_ONLY)||slot==current.fuel()&&be.device().has(DeviceType.Capability.FUEL);}
                 @Override public boolean mayPlace(ItemStack s){return isActive()&&be.canPlaceItem(slot,s);}
                 @Override public boolean mayPickup(Player p){return isActive();}
                 @Override public void setChanged(){super.setChanged();if(be.currencyUpgrade!=null)be.currencyUpgrade.changed(slot);}
@@ -104,7 +104,7 @@ public final class IndustrialMenu extends AbstractContainerMenu {
         }catch(IllegalArgumentException error){if(player instanceof ServerPlayer server)server.sendOverlayMessage(net.minecraft.network.chat.Component.literal(error.getMessage()));broadcastChanges();}
     }
     @Override public ItemStack quickMoveStack(Player player,int index){
-        if(index<0||index>=slots.size()||!slots.get(index).isActive())return ItemStack.EMPTY;ItemStack source=slots.get(index).getItem();if(source.isEmpty())return ItemStack.EMPTY;ItemStack original=source.copy();
+        if(index<0||index>=slots.size()||!slots.get(index).isActive())return ItemStack.EMPTY;ItemStack source=slots.get(index).getItem();if(source.isEmpty())return ItemStack.EMPTY;ItemStack original=source.copy();long originalAmount=amount(index);
         if(index<playerStart()){
             while(amount(index)>0){ItemStack normal=source.copyWithCount((int)Math.min(source.getMaxStackSize(),amount(index)));int before=normal.getCount();
                 if(index>=machine.getContainerSize())machine.validatePluginChange(index-machine.getContainerSize(),ItemStack.EMPTY);
@@ -117,7 +117,9 @@ public final class IndustrialMenu extends AbstractContainerMenu {
                 for(int i=0;i<machine.getContainerSize()&&!source.isEmpty();i++)source.shrink(put(i,source,source.getCount()));
             }
             slots.get(index).set(source);
-        }return original;
+        }
+        // The vanilla quick-move loop retries while a nonempty stack is returned.
+        return amount(index)<originalAmount?original:ItemStack.EMPTY;
     }
     public void routeAction(ServerPlayer player,JsonObject request){
         if(!stillValid(player)||player.containerMenu!=this||request.get("menu").getAsInt()!=containerId)return;

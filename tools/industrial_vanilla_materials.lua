@@ -3,6 +3,8 @@ local root=assert(app.params.root):gsub("\\","/").."/"
 local vanilla=(app.params.vanilla or (root.."temp/industrial-vanilla")):gsub("\\","/").."/"
 local output=root.."src/main/resources/assets/yumis_dungeon_and_fight/textures/"
 local source=root.."art/industry-refresh/"
+local nativeBases=Sprite{fromFile=root..'tools/industrial_material_bases.aseprite'}
+local based={};for _,tag in ipairs(nativeBases.tags) do based[tag.name]=true end;nativeBases:close()
 local function rgb(h)return tonumber(h:sub(1,2),16),tonumber(h:sub(3,4),16),tonumber(h:sub(5,6),16)end
 local palettes={copper={"593431","be7954","efba81"},diamond={"124a50","42c8c1","c8ffff"},lead={"292d40","697288","c0c8d4"},uranium={"2b3929","8da752","dfed98"},titanium={"303c52","90a6bd","e3ecf2"},terra={"131e29","3e596e","99b8ca"},spacetime={"291d45","8b65bc","e4c6f4"},magic={"342348","9873c2","e2cafa"},coolant={"28566a","70cbd2","c6f4f3"}}
 local function tone(p,l,a)
@@ -41,6 +43,7 @@ end
 magic_grass()
 if app.params.only=="magic_grass" then return end
 local function recolor(category,name,template,palette,mask)
+ if category=='item' and based[name] then return end
  local spr=app.open(vanilla..template..".png");app.activeSprite=spr;app.command.ChangePixelFormat{format="rgb"};spr.layers[1].name="01 / vanilla silhouette"
  local base=Image(spr.width,spr.height,ColorMode.RGB);base:drawSprite(spr,1)
  local overlay=Image(spr.width,spr.height,ColorMode.RGB)
@@ -53,9 +56,7 @@ local function recolor(category,name,template,palette,mask)
 end
 for _,name in ipairs({"lead","uranium","titanium","terra","spacetime"}) do recolor("item",name.."_ingot","iron_ingot",palettes[name]) end
 for _,name in ipairs({"lead","uranium","titanium"}) do recolor("item","raw_"..name,"raw_iron",palettes[name]) end
-for _,name in ipairs({"lead","uranium","titanium","magic"}) do
- recolor("block",name=="magic" and "magic_ore" or name.."_ore","iron_ore",palettes[name],function(r,g,b)return r>g+5 and g>b+3 end)
-end
+-- Ore blocks use the separate editable industrial_ores.aseprite source and exporter.
 recolor("item","coolant_bucket","water_bucket",palettes.coolant,function(r,g,b)return b>r*1.25 and b>g*1.05 end)
 -- Components retain the established tier crystal palette; cores have functional centers.
 for tier=1,5 do
@@ -68,4 +69,7 @@ end
 for _,entry in ipairs({{"nuclear_core","cauldron"},{"rtg_core","redstone"}}) do
  recolor("item",entry[1],entry[2],entry[1]=="nuclear_core" and palettes.uranium or palettes.lead)
 end
-print("Vanilla-shaped resources: five ingots, three raw ores, four ore blocks, coolant bucket and seven components/cores.")
+print("Vanilla-shaped resources: five ingots, three raw ores, coolant bucket and seven components/cores.")
+
+-- Both native 16px material variants and retained 32px art are exported last.
+dofile(root.."tools/export_industrial_materials.lua")

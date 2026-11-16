@@ -22,6 +22,7 @@ import java.util.*;
 /** Separate, scrollable pages. Text keeps Minecraft's native size at every GUI scale. */
 public final class FightScreen extends ThemedScreen implements cn.yumis.fight.modules.presentation.api.client.PlayerPageSurface {
     private static final int PAGE_TOP_PADDING=12;
+    private static final String SIDEBAR_RENAME="重命名";
     public final int page;
     private final ClientPagePanel customPanel;
     private final ClientSession state=ClientSession.INSTANCE;
@@ -260,12 +261,13 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private boolean sidebarClick(MouseButtonEvent event){
         if(!insideSidebar(event.x(),event.y())||(event.button()!=0&&event.button()!=1))return false;
         int index=((int)event.y()-sidebarListTop()+sidebarScroll)/34;if(index<0||index>=sidebarRows.size())return true;
-        var row=sidebarRows.get(index);if(event.button()==1||event.x()>=left+sidebar-20){if(row.rename()!=null)row.rename().run();}else if(row.select()!=null&&!row.selected())row.select().run();return true;
+        var row=sidebarRows.get(index);if(event.button()==1){if(row.rename()!=null)row.rename().run();}else if(row.rename()!=null&&event.x()>=sidebarRenameX()-4)row.rename().run();else if(row.select()!=null&&!row.selected())row.select().run();return true;
     }
     private void setScroll(int value){int old=scroll;scroll=Math.clamp(value,0,Math.max(0,contentHeight-bodyHeight()));for(AbstractWidget widget:body)widget.setY(widget.getY()+old-scroll);updateVisibility();}
     private int sidebarListTop(){return bodyTop()+(bodyHeight()<240?32:142);}
     private int sidebarListHeight(){return Math.max(0,bodyTop()+bodyHeight()-sidebarListTop()-6);}
     private boolean insideSidebar(double x,double y){return !sidebarRows.isEmpty()&&sidebar>0&&x>=left+8&&x<left+sidebar+6&&y>=sidebarListTop()&&y<bodyTop()+bodyHeight()-6;}
+    private int sidebarRenameX(){return left+sidebar-5-font.width(SIDEBAR_RENAME);}
     private String shortSidebar(String value,int width){return font.width(value)<=width?value:font.plainSubstrByWidth(value,Math.max(1,width-font.width("…")))+"…";}
     private void drawSidebarRows(GuiGraphicsExtractor g,int mx,int my){
         if(sidebarRows.isEmpty())return;int start=sidebarListTop(),height=sidebarListHeight();
@@ -274,10 +276,11 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         g.enableScissor(left+8,start,left+sidebar+7,start+height);
         for(int i=0;i<sidebarRows.size();i++){var row=sidebarRows.get(i);int y=start+i*34-sidebarScroll;if(y+32<start||y>=start+height)continue;
             UiTheme.card(g,left+10,y,sidebar-8,31);if(row.selected())g.fill(left+10,y,left+12,y+31,UiTheme.ACCENT);
-            g.text(font,shortSidebar(row.title(),sidebar-40),left+15,y+5,row.select()==null?UiTheme.MUTED:row.selected()?UiTheme.ACCENT:UiTheme.TEXT,false);
+            int titleWidth=row.rename()==null?sidebar-40:sidebarRenameX()-(left+15)-4;
+            g.text(font,shortSidebar(row.title(),titleWidth),left+15,y+5,row.select()==null?UiTheme.MUTED:row.selected()?UiTheme.ACCENT:UiTheme.TEXT,false);
             g.text(font,shortSidebar(row.detail(),sidebar-24),left+15,y+18,UiTheme.MUTED,false);
-            if(row.rename()!=null)g.text(font,"改",left+sidebar-15,y+5,UiTheme.MUTED,false);
-            if(insideSidebar(mx,my)&&my>=y&&my<y+31)g.setComponentTooltipForNextFrame(font,List.of(Component.literal(row.title()),Component.literal(row.detail()),Component.literal(row.select()==null?"20级转职后解锁职业栏。":"左键切换 · 右键或点击“改”重命名")),mx,my);
+            if(row.rename()!=null)g.text(font,SIDEBAR_RENAME,sidebarRenameX(),y+5,UiTheme.MUTED,false);
+            if(insideSidebar(mx,my)&&my>=y&&my<y+31)g.setComponentTooltipForNextFrame(font,row.select()==null?List.of(Component.literal(row.title()),Component.literal(row.detail()),Component.literal("20级转职后解锁职业栏。")):List.of(Component.literal(row.title()),Component.literal(row.detail())),mx,my);
         }
         g.disableScissor();if(sidebarRows.size()*34>height){int thumb=Math.max(8,height*height/(sidebarRows.size()*34)),y=start+(height-thumb)*sidebarScroll/Math.max(1,sidebarRows.size()*34-height);g.fill(left+sidebar+4,y,left+sidebar+6,y+thumb,UiTheme.MUTED);}
     }

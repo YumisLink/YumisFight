@@ -31,10 +31,10 @@
 | 角色、职业栏与存档 | `modules/character/api/JobCatalog.java`、`CareerProfiles.java`、`CharacterChanges.java`；本机判定在客户端 `character/client/CharacterClient.java`，存档端口 `CharacterPersistence.java`，编解码在 `application/CharacterStore.java` |
 | 副本、敌人与难度 | `modules/dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；经典后续副本的敌人／动作入口为 `ClassicEnemyKind.java`、`ClassicMove.java`；地图与编队在 `content/`，专属机制在 `application/*EncounterService.java`，本机接触与演出在客户端 `dungeons/client/` |
 | 引路石、引路台与地狱+ | `modules/dungeons/api/Waystone.java`、`WaystoneRules.java`；流程在 `application/WaystoneService.java`，参数在 `rules/catalog.json` 的 `waystones`；分阶宝箱在 `rules/chests.json` |
-| 工业设备、配方、科技与结算 | `modules/industry/api/DeviceType.java`、`IndustrialRules.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；机器／产线／物流在 `platform/` |
+| 工业设备、配方、科技与结算 | `modules/industry/api/DeviceType.java`、`IndustrialRules.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；机器／产线／传送带物流在 `platform/` |
 | 副职业、经验与奖励 | `modules/professions/api/ProfessionCatalog.java`、`ProfessionRules.java`、`ProfessionRewards.java`；本机判定在客户端 `professions/client/ProfessionClient.java`，事实保存与管理奖励在 `application/ProfessionService.java` |
 | 库存、容器、接收与事务 | `modules/inventory/api/InventoryOperations.java`、`InventoryEdits.java`、`InventoryPacking.java`、`InventoryIntake.java`；事务在 `application/InventoryTransactions.java` |
-| 通货、掉落、出售与分解 | `modules/economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；本机操作在客户端 `economy/client/EconomyActions.java`，事实保存与世界投影在 `application/` |
+| 通货、掉落、出售与分解 | `modules/economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；无人值守世界物品收取／抛出用 `WorldItemTransfers.java`；本机操作在客户端 `economy/client/EconomyActions.java`，事实保存与世界投影在 `application/` |
 | 赫拉迪姆方块、工艺精华与固定宝石 | `modules/equipment/api/CraftingEssences.java`、`Gemstones.java`、`EquipmentChanges.java`；资源制作源 `tools/equipment_currency_resources.py`，效果定义见装备规则，通货登记与击败投放仍经 `CurrencyRules` |
 | NPC、对白、新手任务、商店与集市投放 | `modules/npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`、`NpcTutorial.java`；客户端 `npc/client/NpcDialogueScreen.java`、`TutorialPage.java`；商店合同 `modules/economy/api/ShopDefinitions.java`、`ShopMenu.java`；规则 `rules/npcs.json`、`rules/shops.json`，蓝图挂载见野外建筑生成规则 |
 | 单抽罐子、奖池与演出 | `modules/economy/api/JarDefinitions.java`、`LootJarItem.java`；配置 `rules/jars.json`，本机决定奖品在客户端 `economy/client/EconomyActions.java`，演出在 `JarClient.java`、`JarScreen.java`，保存与交付在主源码 `application/JarService.java` |
@@ -52,11 +52,15 @@
 | 装备、技能、工业、副本及宝箱参数 | `src/main/resources/data/yumis_dungeon_and_fight/rules/`；装备模板在相邻 `equipment/` |
 | 配方、标签、掉落与世界生成 | `src/main/resources/data/yumis_dungeon_and_fight/{recipe,tags,loot_table,worldgen}/` |
 | 语言、模型、图标、着色器与动作 | `src/main/resources/assets/yumis_dungeon_and_fight/`，按业务目录查找 |
-| 工业资源生成源 | `tools/industrial_resources.py`、`industrial_expansion.py`、`industrial_technology.py`、`industrial_arcane_art.lua`、`industrial_arcane_breathing.lua` |
+| 贴图制作、重绘与换色 | [贴图创作](创作指南/贴图创作.md) |
+| 矿石方块换色与自发光 | 可编辑源稿 `tools/industrial_ores.aseprite`，配色与等级 `tools/industrial_ore_definitions.lua`，绘制及导出入口 `tools/draw_industrial_ores.lua`、`tools/export_industrial_ores.lua` |
+| 渔获贴图源稿与导出 | `tools/fishing_catches.aseprite`（36 帧，16×16）与 `tools/export_fishing_catches.lua`；`item=<物品ID>` 导出单项，`allTiles=true` 导出全部素材到 `temp/fish-art/tiles/` |
+| 工业资源生成源 | `tools/industrial_resources.py`、`industrial_expansion.py`、`industrial_technology.py`；机械几何为 `tools/industrial_arcane_models.py`，贴图为 `industrial_arcane_art.lua`、`industrial_arcane_breathing.lua`；原版／Mekanism 底图的材料换色源为 `tools/draw_industrial_material_bases.lua`，高阶锭细节与动画源为 `tools/draw_industrial_ingot_details.lua`，共用源稿 `tools/industrial_material_bases.aseprite`（每帧16×16）；导体、组件与点火芯源为 `tools/draw_industrial_components.lua`、`tools/industrial_component_bases.aseprite`；燃料棒、胶囊与核素热源源稿为 `tools/nuclear_fuel_rods.aseprite`，魔能水晶物品图标源稿为 `tools/energy_crystals.aseprite`（均为16×16）；其余材料源为 `tools/draw_industrial_materials.lua`、`tools/industrial_materials.aseprite`（32×32，保留探矿器帧）；统一导出为 `tools/export_industrial_materials.lua`，`only=bases` 仅导出基底材料，`only=ingots` 仅导出锭类 |
 | 武器模型生成源 | `tools/build_weapon_models.py`、`tools/build_warglaive_model.py`；光剑本机发光材质源 `tools/weapon_glow_resources.py` |
 | 构建与依赖 | `build.gradle`、`gradle.properties`、`gradle/local-mods/`；本机入口见 [本机环境](本机环境.md) |
 | 正式测试与提交检查 | `src/test/java/`、`tools/check-submission.ps1`；运行和修改须遵守 AGENTS |
 | 模块边界检查 | `gradle/architecture.gradle`，属于受保护文件 |
 | Mods 同步工具 | `ModSyncTemp/`，独立于游戏运行模块 |
+| 物品清单与编辑网站 | `tools/item-catalog/`；客户端采集入口为 `src/client/java/cn/yumis/fight/verification/ItemCatalogExport.java` |
 | 既有玩家资料与演出术语 | `playerread/`，按需参考，不作为开发后自动维护项 |
 | 临时文件与验证产物 | `temp/`，不提交、不上传 |

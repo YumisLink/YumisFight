@@ -109,7 +109,8 @@ public final class MachineLane {
     public int insertOutput(ItemStack stack,TransactionContext tx){
         if(machine.device().has(DeviceType.Capability.INFUSION))return DisplayInfusion.output(this,stack,tx);
         int inserted=0;
-        for(int slot=machine.slots().outputStart(index);slot<machine.slots().outputEnd(index)&&inserted<stack.getCount();slot++)inserted+=machine.items.insert(slot,net.neoforged.neoforge.transfer.item.ItemResource.of(stack),stack.getCount()-inserted,tx);
+        int end=machine.device()==DeviceType.STAR?machine.slots().outputStart(index)+1:machine.slots().outputEnd(index);
+        for(int slot=machine.slots().outputStart(index);slot<end&&inserted<stack.getCount();slot++)inserted+=machine.items.insert(slot,net.neoforged.neoforge.transfer.item.ItemResource.of(stack),stack.getCount()-inserted,tx);
         return inserted;
     }
     /** Returns accepted energy; callers retain every unaccepted grid/local unit. */

@@ -9,7 +9,6 @@ import cn.yumis.fight.network.Network;
 import com.google.gson.*;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
-import net.minecraft.world.item.ItemStack;
 import java.util.*;
 import java.util.function.*;
 
@@ -30,10 +29,10 @@ public final class EconomyService {
         }
         public void forget(UUID player){incoming.remove(player);}
     }
-    private final Journal journal;private final InventoryOperations inventory;private final Function<ServerPlayer,UUID> sessionId;private final Consumer<ServerPlayer> profile;private final EquipmentEntitlements entitlements;
+    private final Journal journal;private final InventoryOperations inventory;private final Function<ServerPlayer,UUID> sessionId;private final Consumer<ServerPlayer> profile;private final EquipmentEntitlements entitlements;private final Drafts drafts;
     private record Quote(String session,String token,Map<String,JsonElement> items){}
     private final Map<UUID,Quote> quotes=new HashMap<>();
-    public EconomyService(Journal journal,InventoryOperations inventory,Function<ServerPlayer,UUID> sessionId,Consumer<ServerPlayer> profile,EquipmentEntitlements entitlements){this.journal=journal;this.inventory=inventory;this.sessionId=sessionId;this.profile=profile;this.entitlements=entitlements;}
+    public EconomyService(Journal journal,InventoryOperations inventory,Function<ServerPlayer,UUID> sessionId,Consumer<ServerPlayer> profile,EquipmentEntitlements entitlements,Drafts drafts){this.journal=journal;this.inventory=inventory;this.sessionId=sessionId;this.profile=profile;this.entitlements=entitlements;this.drafts=drafts;}
     public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("economy","sell",this::sell);router.register("economy","dismantle",this::dismantle);router.register("economy","saleOpen",this::saleOpen);router.register("economy","purchase",this::purchase);}
     public long gold(ServerPlayer p){return journal.get("gold/"+p.getUUID(),Long.class,0L);}
     public long goldRevision(ServerPlayer p){return journal.get("goldRevision/"+p.getUUID(),Long.class,0L);}
@@ -54,12 +53,16 @@ public final class EconomyService {
         session(p,j);if(p.containerMenu!=p.inventoryMenu)p.closeContainer();String token=UUID.randomUUID().toString();var snapshots=new LinkedHashMap<String,JsonElement>();var rows=new ArrayList<JsonObject>();
         for(int group=0;group<2;group++){boolean bag=group==1;Container container=bag?MenuHooks.extra(p).bag:p.getInventory();int limit=bag?MenuHooks.extra(p).bagLimit():36;
             for(int slot=0;slot<limit;slot++){var stack=container.getItem(slot);var row=new JsonObject();String key=(bag?"bag/":"inventory/")+slot;row.addProperty("key",key);row.addProperty("bag",bag);row.addProperty("slot",slot);row.addProperty("empty",stack.isEmpty());row.addProperty("name",stack.isEmpty()?"空槽":stack.getHoverName().getString());
-                snapshots.put(key,inventory.encode(p,stack));if(EquipmentItems.view(stack)!=null){row.add("source",inventory.encode(p,stack));row.add("item",inventory.encode(p,stack));}
-                else if(!stack.isEmpty()){var preview=new ItemStack(stack.getItem(),stack.getCount());preview.set(net.minecraft.core.component.DataComponents.ITEM_NAME,stack.getHoverName());row.add("item",inventory.encode(p,preview));}rows.add(row);
+                var source=inventory.encode(p,stack);snapshots.put(key,source);
+                if(!stack.isEmpty())row.add("source",source);
+                rows.add(row);
             }
         }
-        quotes.put(p.getUUID(),new Quote(sessionId.apply(p).toString(),token,Map.copyOf(snapshots)));var chunk=new ArrayList<JsonObject>();int size=0,part=0;
-        for(var row:rows){int length=row.toString().length();if(size+length>110000&&!chunk.isEmpty()){sendSale(p,token,part++,false,chunk);chunk=new ArrayList<>();size=0;}chunk.add(row);size+=length;}sendSale(p,token,part,true,chunk);return token;
+        quotes.put(p.getUUID(),new Quote(sessionId.apply(p).toString(),token,Map.copyOf(snapshots)));var parts=new ArrayList<JsonObject>();
+        for(var row:rows){String value=row.toString();if(value.length()<=64000){parts.add(row);continue;}int index=0;
+            for(int from=0;from<value.length();){int to=Math.min(value.length(),from+16000);if(to<value.length()&&Character.isHighSurrogate(value.charAt(to-1)))to--;var fragment=new JsonObject();fragment.addProperty("fragment",value.substring(from,to));fragment.addProperty("index",index++);fragment.addProperty("last",to==value.length());parts.add(fragment);from=to;}}
+        var chunk=new ArrayList<JsonObject>();int size=0,part=0;
+        for(var row:parts){int length=row.toString().length();if(size+length>110000&&!chunk.isEmpty()){sendSale(p,token,part++,false,chunk);chunk=new ArrayList<>();size=0;}chunk.add(row);size+=length;}sendSale(p,token,part,true,chunk);return token;
     }
     private void sendSale(ServerPlayer p,String token,int part,boolean done,List<JsonObject> rows){Network.send(p,"saleState",Map.of("session",sessionId.apply(p).toString(),"token",token,"part",part,"done",done,"menu",p.inventoryMenu.containerId,"rows",rows));}
     public void sell(ServerPlayer p,JsonObject j){selection(p,j);}
@@ -68,8 +71,9 @@ public final class EconomyService {
         if(replay(p,j)){saleOpen(p,j);return;}session(p,j);var quote=quotes.get(p.getUUID());
         if(p.containerMenu!=p.inventoryMenu||j.get("menu").getAsInt()!=p.inventoryMenu.containerId||quote==null||!quote.session.equals(sessionId.apply(p).toString())||!quote.token.equals(j.get("token").getAsString()))throw new IllegalArgumentException("库存快照已失效，请刷新");
         try{
-            for(var raw:j.getAsJsonArray("inventoryChanges")){var row=raw.getAsJsonObject();String key=row.get("area").getAsString()+"/"+row.get("slot").getAsInt();if(!Objects.equals(quote.items.get(key),row.get("before")))throw new IllegalArgumentException("源物品快照已变化");}
-            var changes=receiveBalances(p,j);boolean committed=inventory.transact(p,j.get("operation").getAsString(),j,()->{InventoryEdits.apply(p,inventory,j);if(j.has("drops"))for(var raw:j.getAsJsonArray("drops"))if(p.drop(inventory.decode(p,raw),false)==null)throw new IllegalStateException("分解掉落被取消，装备已保留");},changes);
+            var edits=drafts.value(p,j,"inventoryChanges").getAsJsonArray();var mutation=j.deepCopy();mutation.add("inventoryChanges",edits);
+            for(var raw:edits){var row=raw.getAsJsonObject();String key=row.get("area").getAsString()+"/"+row.get("slot").getAsInt();if(!Objects.equals(quote.items.get(key),row.get("before")))throw new IllegalArgumentException("源物品快照已变化");}
+            var changes=receiveBalances(p,j);boolean committed=inventory.transact(p,j.get("operation").getAsString(),j,()->{InventoryEdits.apply(p,inventory,mutation);if(j.has("drops"))for(var raw:j.getAsJsonArray("drops"))if(p.drop(inventory.decode(p,raw),false)==null)throw new IllegalStateException("分解掉落被取消，装备已保留");},changes);
             profile.accept(p);if(committed&&j.has("goldGain"))goldGain(p,j.get("goldGain").getAsLong(),gold(p),goldRevision(p));saleOpen(p,j);
         }catch(RuntimeException failure){saleOpen(p,j);throw failure;}
     }

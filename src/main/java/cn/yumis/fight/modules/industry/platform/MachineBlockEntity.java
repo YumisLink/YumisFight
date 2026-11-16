@@ -50,7 +50,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public int fuelTotal,fuelRemaining,fuelFluidRate;
     public long fuelEnergy,currentPower;public String fuelFluid="";
     public List<ItemStack> fuelResults=new ArrayList<>();
-    public long ignitionPaid;
+    public long ignitionPaid,ignitionThisTick;
     public boolean ignited;
     public boolean structureLoaded=true;
     private record GenerationState(int total,int remaining,long energy,String fluid,int rate,int fluidRemainder,int powerRemainder,List<ItemStack> results,long ignitionPaid,boolean ignited){}
@@ -67,8 +67,11 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public boolean workedThisTick;
     private FluidStack visibleTankFluid=FluidStack.EMPTY;
     private long visibleTankAmount,visibleTankCapacity;
+    private int visibleInfusionProgress,visibleInfusionRate;
+    private long visibleInfusionAt;
     private boolean tankDisplayDirty;
     private long lastTankDisplay=Long.MIN_VALUE;
+    private FluidResource lastInfusionDisplayFluid=FluidResource.EMPTY;
     public long visibleTankAmount(){return level instanceof ServerLevel?fluids.getAmountAsLong(0):visibleTankAmount;}
     public long visibleTankCapacity(){return level instanceof ServerLevel?fluidCapacity():visibleTankCapacity;}
     public final InventoryStore items=new InventoryStore();
@@ -93,7 +96,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(items!=null)for(int i=0;i<items.size();i++){var resource=items.getResource(i);long base=resource.isEmpty()?64:resource.getMaxStackSize();if(!slots().input(i)&&!slots().output(i)||base<=1)continue;if(items.getAmountAsLong(i)>Math.multiplyExact(base,multiplier))throw new IllegalArgumentException("请先取出槽位"+(i+1)+"的超额物品");}
         if(fluids!=null)for(int i=0;i<fluids.size();i++)if(fluids.getAmountAsLong(i)>Math.multiplyExact(baseFluidCapacity(),multiplier))throw new IllegalArgumentException("请先排出液槽"+(i+1)+"的超额液体");
     }
-    public long storageCapacity(){return device().has(DeviceType.Capability.STORAGE_NETWORK)?IndustrialRules.current().beaconCapacity:device().has(DeviceType.Capability.ENERGY_STORAGE)?IndustrialRules.current().accumulatorCapacities[tier()-1]:0;}
+    public long storageCapacity(){return device()==DeviceType.INFINITE_POWER?IndustrialGeneration.INFINITE_TOWER_CAPACITY:device().has(DeviceType.Capability.STORAGE_NETWORK)?IndustrialRules.current().beaconCapacity:device().has(DeviceType.Capability.ENERGY_STORAGE)?IndustrialRules.current().accumulatorCapacities[tier()-1]:0;}
     public final FluidStore fluids=new FluidStore();
     public final class FluidStore extends IndustrialResourceStore<FluidResource> {
         FluidStore(){super(fluidTankCount(),FluidResource.EMPTY,FluidResource.OPTIONAL_CODEC);}
@@ -106,7 +109,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
             if(owner.machine!=MachineBlockEntity.this||slot/device().fluidTanks()!=owner.index||amount<0||amount>owner.reservedFluid(slot))return 0;
             return super.extract(slot,resource,amount,tx);
         }
-        protected void changed(int slot){MachineBlockEntity.this.setChanged();if(device().has(DeviceType.Capability.FLUID_STORAGE))tankDisplayDirty=true;}
+        protected void changed(int slot){MachineBlockEntity.this.setChanged();if(hasFluidDisplay())tankDisplayDirty=true;}
         public void empty(int slot){set(slot,FluidResource.EMPTY,0);}
     }
     private boolean acceptsTank(int tank,FluidResource resource){
@@ -143,16 +146,30 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     public DeviceType device(){return ((MachineBlock)getBlockState().getBlock()).initial.device();}
     public int tier(){return getBlockState().getValue(MachineBlock.TIER);}
     public IndustrialContent.Spec spec(){return IndustrialContent.spec(device(),tier());}
+    private boolean hasFluidDisplay(){return device().has(DeviceType.Capability.FLUID_STORAGE)||device().has(DeviceType.Capability.INFUSION);}
     /** Client display uses only the native tank update, never an inventory/batch snapshot. */
     public FluidStack visibleTankFluid(){return level instanceof ServerLevel?fluids.getResource(0).toStack(fluids.getResource(0).isEmpty()?0:1):visibleTankFluid;}
-    public void syncTankDisplay(){if(tankDisplayDirty&&level instanceof ServerLevel server&&(lastTankDisplay==Long.MIN_VALUE||server.getGameTime()-lastTankDisplay>=5)){lastTankDisplay=server.getGameTime();tankDisplayDirty=false;server.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),net.minecraft.world.level.block.Block.UPDATE_CLIENTS);}}
+    public float visibleInfusionProgress(double time){return (float)Math.clamp((visibleInfusionProgress+visibleInfusionRate*Math.clamp(time-visibleInfusionAt,0,5))/10000d,0,1);}
+    public void syncTankDisplay(){
+        if(!tankDisplayDirty||!(level instanceof ServerLevel server))return;
+        boolean changedFluid=device().has(DeviceType.Capability.INFUSION)&&!fluids.getResource(0).equals(lastInfusionDisplayFluid);
+        if(changedFluid||lastTankDisplay==Long.MIN_VALUE||server.getGameTime()-lastTankDisplay>=5){
+            lastTankDisplay=server.getGameTime();lastInfusionDisplayFluid=fluids.getResource(0);tankDisplayDirty=false;
+            server.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+        }
+    }
     @Override public net.minecraft.nbt.CompoundTag getUpdateTag(HolderLookup.Provider registries){
         var out=TagValueOutput.createWithContext(net.minecraft.util.ProblemReporter.DISCARDING,registries);
-        if(device().has(DeviceType.Capability.FLUID_STORAGE))out.store("tank_display",FluidStack.OPTIONAL_CODEC,fluids.getResource(0).toStack(fluids.getResource(0).isEmpty()?0:1));
+        if(hasFluidDisplay())out.store("tank_display",FluidStack.OPTIONAL_CODEC,fluids.getResource(0).toStack(fluids.getResource(0).isEmpty()?0:1));
+        if(device().has(DeviceType.Capability.INFUSION)){
+            var line=lane(0);double duration=line.batchDuration.value();
+            out.putInt("infusion_progress",duration>0?(int)Math.round(10000*line.work.value()/duration):0);
+            out.putInt("infusion_rate",duration>0?(int)Math.round(10000*line.workThisTick/duration):0);
+        }
         out.putLong("tank_amount",fluids.getAmountAsLong(0));out.putLong("tank_capacity",fluidCapacity());return out.buildResult();
     }
-    @Override public net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket getUpdatePacket(){return device().has(DeviceType.Capability.FLUID_STORAGE)?net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this):null;}
-    @Override public void handleUpdateTag(ValueInput input){visibleTankFluid=input.read("tank_display",FluidStack.OPTIONAL_CODEC).orElse(FluidStack.EMPTY);visibleTankAmount=input.getLongOr("tank_amount",0);visibleTankCapacity=input.getLongOr("tank_capacity",1);}
+    @Override public net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket getUpdatePacket(){return hasFluidDisplay()?net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this):null;}
+    @Override public void handleUpdateTag(ValueInput input){visibleTankFluid=input.read("tank_display",FluidStack.OPTIONAL_CODEC).orElse(FluidStack.EMPTY);visibleTankAmount=input.getLongOr("tank_amount",0);visibleTankCapacity=input.getLongOr("tank_capacity",1);visibleInfusionProgress=input.getIntOr("infusion_progress",0);visibleInfusionRate=input.getIntOr("infusion_rate",0);visibleInfusionAt=level==null?0:level.getGameTime();}
     @Override public void onDataPacket(net.minecraft.network.Connection connection,ValueInput input){handleUpdateTag(input);}
     public JsonObject transactionState(){JsonObject j=new JsonObject();j.addProperty("tier",tier());j.addProperty("nbt",saveCustomOnly(level.registryAccess()).toString());return j;}
     public void restoreTransactionState(JsonElement value){

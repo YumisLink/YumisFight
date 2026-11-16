@@ -1,0 +1,20 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "thermal_distiller",
+  "minimum_tier": 3,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:magnesium_dust",
+      "count": 2
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:brine",
+      "amount": 1000
+    }
+  ],
+  "ticks": 400,
+  "energy": 20000
+}

@@ -31,7 +31,8 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
     private final ItemModelResolver items;
     private final Map<MachineBlockEntity,RotorMotion> rotors=new WeakHashMap<>();
     private final Map<MachineBlockEntity,IndustrialFluidDisplay.Scalar> liquidLevels=new WeakHashMap<>();
-    public static final class State extends BlockEntityRenderState {final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();boolean show,iconVisible,wind,turbine,star,starActive;float angle,bob,rotorAngle,fluidFill,starAge;int fluidTint,fluidLight;TextureAtlasSprite fluidSprite;Direction facing;}
+    private final Map<MachineBlockEntity,InfusionVisual.Motion> infusions=new WeakHashMap<>();
+    public static final class State extends BlockEntityRenderState {final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();boolean show,iconVisible,wind,turbine,star,starActive;float angle,bob,rotorAngle,fluidFill,starAge,infusionStroke,infusionBob;int fluidTint,fluidLight,infusionTint,infusionLight;TextureAtlasSprite fluidSprite,infusionSprite;Direction facing;}
     public IndustrialRenderer(BlockEntityRendererProvider.Context context){items=context.itemModelResolver();}
     @Override public State createRenderState(){return new State();}
     @Override public void extractRenderState(MachineBlockEntity be,State state,float partial,Vec3 camera,ModelFeatureRenderer.CrumblingOverlay breaking){
@@ -51,6 +52,18 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
                 state.fluidLight=LightCoordsUtil.pack(Math.max(LightCoordsUtil.block(state.lightCoords),fluid.getFluidType().getLightLevel(fluid)),LightCoordsUtil.sky(state.lightCoords));
             }
         }
+        state.infusionStroke=0;state.infusionSprite=null;
+        if(be.device().has(DeviceType.Capability.INFUSION)){
+            boolean active=be.getBlockState().getValue(MachineBlock.ACTIVE);double age=be.getLevel().getGameTime()+partial;
+            state.infusionStroke=infusions.computeIfAbsent(be,k->new InfusionVisual.Motion()).sample(age,active,be.visibleInfusionProgress(age));
+            state.infusionBob=(float)Math.sin(age*Math.PI/100)*.045f;
+            var fluid=be.visibleTankFluid();
+            if(active&&!fluid.isEmpty()){
+                var model=Minecraft.getInstance().getModelManager().getFluidStateModelSet().get(fluid.getFluid().defaultFluidState());
+                state.infusionSprite=model.stillMaterial().sprite();state.infusionTint=model.fluidTintSource()==null?-1:model.fluidTintSource().colorAsStack(fluid);
+                state.infusionLight=LightCoordsUtil.pack(Math.max(LightCoordsUtil.block(state.lightCoords),fluid.getFluidType().getLightLevel(fluid)),LightCoordsUtil.sky(state.lightCoords));
+            }
+        }
         if(state.wind||state.turbine)state.rotorAngle=rotors.computeIfAbsent(be,k->new RotorMotion()).sample(be.getLevel().getGameTime()+partial,be.getBlockState().getValue(MachineBlock.ACTIVE),state.wind?6:12);
         state.iconVisible=be.device().has(DeviceType.Capability.LOGISTICS)||be.device().has(DeviceType.Capability.FLUID_LOGISTICS)||be.device().has(DeviceType.Capability.HARVEST);state.show=state.iconVisible||be.device().has(DeviceType.Capability.STORAGE_NETWORK);if(!state.show)return;
         double age=be.getLevel().getGameTime()+partial;state.angle=(float)((age%180)*2);state.bob=(float)Math.sin((age%200)*Math.PI/100)*.045f;
@@ -60,6 +73,7 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector nodes,CameraRenderState camera){
         if(state.star)ArtificialStarMesh.submit(pose,nodes,state.lightCoords,state.starAge,state.starActive);
         if(state.fluidFill>0&&state.fluidSprite!=null)TankFluidMesh.submit(pose,nodes,state.fluidSprite,state.fluidTint,state.fluidFill,state.fluidLight);
+        if(state.infusionStroke>0||state.infusionSprite!=null)InfusionVisual.submit(pose,nodes,state.infusionStroke,state.infusionBob,state.infusionSprite,state.infusionTint,state.lightCoords,state.infusionLight);
         if(state.wind||state.turbine){
             pose.pushPose();pose.translate(.5,0,.5);
             pose.mulPose(Axis.YP.rotationDegrees(switch(state.facing){case EAST->-90;case SOUTH->180;case WEST->90;default->0;}));
@@ -71,6 +85,7 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
     }
     @Override public AABB getRenderBoundingBox(MachineBlockEntity be){
         if(be.device()==DeviceType.STAR){var pos=be.getBlockPos();return new AABB(pos.getX()-ArtificialStarPartBlock.HALF,pos.getY(),pos.getZ()-ArtificialStarPartBlock.HALF,pos.getX()+ArtificialStarPartBlock.HALF+1,pos.getY()+ArtificialStarPartBlock.HEIGHT,pos.getZ()+ArtificialStarPartBlock.HALF+1);}
+        if(be.device().has(DeviceType.Capability.INFUSION))return new AABB(be.getBlockPos()).expandTowards(0,-.5,0).inflate(.1);
         return be.device().has(DeviceType.Capability.WIND)?new AABB(be.getBlockPos()).expandTowards(0,2,0).inflate(.8,.65,.8):new AABB(be.getBlockPos()).inflate(.1);
     }
 }

@@ -1,0 +1,21 @@
+{
+  "type": "yumis_dungeon_and_fight:wild_building",
+  "biomes": [
+    "minecraft:plains",
+    "minecraft:sunflower_plains",
+    "minecraft:savanna",
+    "minecraft:savanna_plateau",
+    "minecraft:windswept_savanna",
+    "minecraft:windswept_hills",
+    "minecraft:badlands",
+    "minecraft:eroded_badlands"
+  ],
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "beard_thin",
+  "start_pool": "yumis_dungeon_and_fight:wild_buildings/mechanic_home",
+  "height_offset": -3,
+  "floor_offset": 4,
+  "max_relief": 12,
+  "ground_clearance": 0
+}

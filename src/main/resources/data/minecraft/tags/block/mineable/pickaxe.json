@@ -98,6 +98,8 @@
     "yumis_dungeon_and_fight:display_stand",
     "yumis_dungeon_and_fight:heat_generator",
     "yumis_dungeon_and_fight:mana_concentrator",
-    "yumis_dungeon_and_fight:fluid_infuser"
+    "yumis_dungeon_and_fight:fluid_infuser",
+    "yumis_dungeon_and_fight:conveyor_belt",
+    "yumis_dungeon_and_fight:hopper_conveyor_belt"
   ]
 }

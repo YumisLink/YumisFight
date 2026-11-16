@@ -11,6 +11,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.*;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.*;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import java.util.*;
@@ -54,12 +55,24 @@ public final class WaystoneService implements WaystoneActions.Handler {
         if(action.equals("close")){t.viewers.remove(p.getUUID());return;}
         if(action.equals("leave")){if(t.members.remove(p.getUUID())!=null)changed(t);var b=block(t);if(b!=null)broadcast(t,b);return;}
         var b=block(t);if(b==null||!b.stillValid(p))throw new IllegalArgumentException("请在引路台8格内操作");recover();observe(t,b);
-        if(!j.has("revision")||j.get("revision").getAsLong()!=t.revision){send(t,b,p,false);throw new IllegalArgumentException("引路台内容已变化，请重新确认");}
-        var stone=Waystone.read(b.getItem(0));
+        if(!j.has("revision")||j.get("revision").getAsLong()!=t.revision){
+            boolean openFilled=action.equals("insert")&&j.has("openAfterInsert")&&j.get("openAfterInsert").getAsBoolean()&&!b.isEmpty();
+            send(t,b,p,openFilled);if(openFilled)return;throw new IllegalArgumentException("引路台内容已变化，请重新确认");
+        }
+        var stone=Waystone.read(b.getItem(0));boolean openAfterInsert=false;
         switch(action){
             case "insert"->{
-                if(!b.isEmpty())throw new IllegalArgumentException("请先取下台上的引路石");var held=p.getMainHandItem();var next=Waystone.read(held);if(next==null)throw new IllegalArgumentException("请将引路石拿在主手");String raw=cn.yumis.fight.platform.ItemData.string(held,Waystone.DATA);var item=held.copyWithCount(1);
-                boolean committed=inventory.transactMachine(p,"waystone-table/"+j.get("operation").getAsString(),j,b,()->{if(!b.isEmpty()||!cn.yumis.fight.platform.ItemData.string(p.getMainHandItem(),Waystone.DATA).equals(raw))throw new IllegalArgumentException("引路石发生变化");b.setItem(0,item);b.inserter=p.getUUID();p.getMainHandItem().shrink(1);},Map.of());if(committed){b.display();observe(t,b);}
+                if(!b.isEmpty())throw new IllegalArgumentException("请先取下台上的引路石");
+                var hand=j.has("hand")?InteractionHand.valueOf(j.get("hand").getAsString()):InteractionHand.MAIN_HAND;
+                var held=p.getItemInHand(hand);if(Waystone.read(held)==null)throw new IllegalArgumentException("请将引路石拿在"+(hand==InteractionHand.MAIN_HAND?"主手":"副手"));
+                String raw=cn.yumis.fight.platform.ItemData.string(held,Waystone.DATA);
+                if(j.has("stoneData")&&!j.get("stoneData").getAsString().equals(raw))throw new IllegalArgumentException("手中的引路石已变化，请重新操作");
+                var item=held.copyWithCount(1);
+                boolean committed=inventory.transactMachine(p,"waystone-table/"+j.get("operation").getAsString(),j,b,()->{
+                    if(!b.isEmpty()||!ItemStack.isSameItemSameComponents(p.getItemInHand(hand),item))throw new IllegalArgumentException("引路石发生变化");
+                    b.setItem(0,item);b.inserter=p.getUUID();p.getItemInHand(hand).shrink(1);
+                },Map.of());
+                if(committed){b.display();observe(t,b);openAfterInsert=j.has("openAfterInsert")&&j.get("openAfterInsert").getAsBoolean();}
             }
             case "take"->{if(stone==null)throw new IllegalArgumentException("台上没有引路石");String raw=t.raw;var item=b.getItem(0).copy();boolean committed=inventory.transactMachine(p,"waystone-table/"+j.get("operation").getAsString(),j,b,()->{if(!cn.yumis.fight.platform.ItemData.string(b.getItem(0),Waystone.DATA).equals(raw))throw new IllegalArgumentException("台上的引路石发生变化");inventory.requireSpace(p,item);b.clearContent();},Map.of());if(committed){b.display();observe(t,b);}}
             case "join"->{if(stone==null)throw new IllegalArgumentException("请先放入引路石");if(owner.current(p.getUUID())!=null)throw new IllegalArgumentException("请先离开当前副本");if(!t.members.containsKey(p.getUUID())&&t.members.size()>=WaystoneRules.current().maximumPlayers)throw new IllegalArgumentException("本场人数已满");for(var other:tables.values())if(other!=t&&other.members.remove(p.getUUID())!=null){changed(other);var old=block(other);if(old!=null)broadcast(other,old);}if(t.members.putIfAbsent(p.getUUID(),false)==null)changed(t);}
@@ -68,6 +81,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
             default->throw new IllegalArgumentException("未知引路台操作");
         }
         broadcast(t,b);
+        if(openAfterInsert)send(t,b,p,true);
     }catch(Exception e){players.message(p,e.getMessage());}}
     private void validate(Table t,WaystonePedestalBlockEntity b){
         var stone=Waystone.read(b.getItem(0));if(stone==null||b.inserter==null)throw new IllegalArgumentException("请先插入引路石");if(!t.members.containsKey(b.inserter))throw new IllegalArgumentException("石主需要报名并准备");if(t.members.isEmpty()||t.members.size()>WaystoneRules.current().maximumPlayers||t.members.values().stream().anyMatch(v->!v))throw new IllegalArgumentException("需要所有报名者准备");

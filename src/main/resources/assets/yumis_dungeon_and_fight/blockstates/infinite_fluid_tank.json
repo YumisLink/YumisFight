@@ -1,0 +1,14 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "yumis_dungeon_and_fight:block/infinite_fluid_tank"
+      }
+    },
+    {
+      "apply": {
+        "model": "yumis_dungeon_and_fight:block/fluid_tank_glass"
+      }
+    }
+  ]
+}

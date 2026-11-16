@@ -1,6 +1,6 @@
 {
   "loader": "neoforge:obj",
-  "model": "yumis_dungeon_and_fight:models/industry/energy_crystal.obj",
+  "model": "yumis_dungeon_and_fight:models/industry/energy_crystal_t6.obj",
   "automatic_culling": false,
   "shade_quads": true,
   "flip_v": false,

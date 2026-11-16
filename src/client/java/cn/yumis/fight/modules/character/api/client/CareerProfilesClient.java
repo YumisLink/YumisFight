@@ -39,7 +39,7 @@ public final class CareerProfilesClient {
         if(page.hasSidebar())page.sidebarRows(title,List.copyOf(rows));
         else{
             page.line(title,UiTheme.GOLD);
-            for(var row:rows){int y=page.cursor();if(row.select()==null)page.line(row.title()+"："+row.detail(),UiTheme.MUTED);else{var button=page.button((row.selected()?"当前 · ":"")+row.title()+" · "+row.detail(),0,y,Math.max(80,page.contentWidth()-82),row.select());button.active=!row.selected();if(row.rename()!=null)page.button("改名",page.contentWidth()-76,y,52,row.rename());page.cursor(y+24);}}
+            for(var row:rows){int y=page.cursor();if(row.select()==null)page.line(row.title()+"："+row.detail(),UiTheme.MUTED);else{var button=page.button((row.selected()?"当前 · ":"")+row.title()+" · "+row.detail(),0,y,Math.max(80,page.contentWidth()-82),row.select());button.active=!row.selected();if(row.rename()!=null)page.button("重命名",page.contentWidth()-76,y,52,row.rename());page.cursor(y+24);}}
             page.gap();
         }
         page.line("切换需副本、训练外脱战，结束施法与全部技能冷却。",UiTheme.MUTED);

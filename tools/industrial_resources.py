@@ -137,7 +137,9 @@ tag('needs_iron_tool',[own(b) for b in ['lead_ore','magic_ore']],'block','minecr
 for key in blocks:
     if key=='magic_grass':model=magic_grass_model()
     else:model={'parent':'minecraft:block/cube_all','textures':{'all':own('block/'+key)}}
-    write(ASSETS/f'models/block/{key}.json',model);write(ASSETS/f'blockstates/{key}.json',{'variants':{'':{'model':own('block/'+key)}}})
+    # Ore models are exported from industrial_ores.aseprite, including their emissive faces.
+    if key not in {'lead_ore','uranium_ore','titanium_ore','magic_ore'}:write(ASSETS/f'models/block/{key}.json',model)
+    write(ASSETS/f'blockstates/{key}.json',{'variants':{'':{'model':own('block/'+key)}}})
     if key not in ['magic_ore','magic_grass','lead_ore','uranium_ore','titanium_ore']:write(DATA/f'loot_table/blocks/{key}.json',{'type':'minecraft:block','pools':[{'rolls':1,'entries':[{'type':'minecraft:item','name':own(key)}]}]})
 for key,(family,tier) in devices.items():
     variants={}

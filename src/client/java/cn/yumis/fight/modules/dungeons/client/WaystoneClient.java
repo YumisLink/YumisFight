@@ -9,6 +9,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionHand;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
@@ -29,12 +30,33 @@ public final class WaystoneClient {
     public static void receive(JsonObject value){
         String id=value.get("table").getAsString();if(value.has("removed")){tables.remove(id);if(enrollment!=null&&enrollment.get("table").getAsString().equals(id))enrollment=null;if(Minecraft.getInstance().gui.screen() instanceof PedestalScreen screen&&screen.id.equals(id))screen.onClose();return;}
         tables.put(id,value);if(self(value))enrollment=value;else if(enrollment!=null&&enrollment.get("table").getAsString().equals(id))enrollment=null;
-        var mc=Minecraft.getInstance();if(value.get("open").getAsBoolean()&&!(mc.gui.screen() instanceof PedestalScreen screen&&screen.id.equals(id)))mc.gui.pushScreenLayer(new PedestalScreen(id));else if(mc.gui.screen() instanceof PedestalScreen screen&&screen.id.equals(id))screen.refresh();
+        var mc=Minecraft.getInstance();
+        if(value.get("open").getAsBoolean()&&!(mc.gui.screen() instanceof PedestalScreen screen&&screen.id.equals(id))){
+            InteractionHand hand=stone(value)==null?heldStone():null;
+            if(hand!=null){send(id,"insert",hand,true);return;}
+            openTable(id);
+        }else if(mc.gui.screen() instanceof PedestalScreen screen&&screen.id.equals(id))screen.refresh();
+    }
+    private static void openTable(String id){var mc=Minecraft.getInstance();if(!(mc.gui.screen() instanceof PedestalScreen screen&&screen.id.equals(id)))mc.gui.setScreen(new PedestalScreen(id));}
+    static void openFilledTableLater(String id){
+        var mc=Minecraft.getInstance();var previous=mc.gui.screen();if(previous instanceof PedestalScreen screen&&screen.id.equals(id))return;
+        mc.schedule(()->{if(mc.gui.screen()==previous&&stone(id)!=null)openTable(id);});
     }
     public static void started(){enrollment=null;if(Minecraft.getInstance().gui.screen() instanceof PedestalScreen screen)screen.onClose();}
     public static void clear(){enrollment=null;tables.clear();}
     public static void enrollment(PlayerPageSurface page){if(enrollment!=null){var value=stone(enrollment);if(value!=null)page.line("已报名引路台 · 地狱 +"+value.tier+" · "+map(value));String id=enrollment.get("table").getAsString();page.rowButton("退出引路台报名",()->send(id,"leave"));page.gap();}}
-    private static void send(String id,String action){var state=tables.get(id);if(state==null)return;var request=ClientUi.current().operation("waystone-table");request.addProperty("table",id);request.addProperty("action",action);request.addProperty("revision",state.get("revision").getAsLong());ClientUi.current().send("waystoneTable",request);}
+    private static InteractionHand heldStone(){
+        var player=Minecraft.getInstance().player;if(player==null)return null;
+        for(var hand:List.of(InteractionHand.MAIN_HAND,InteractionHand.OFF_HAND)){var item=player.getItemInHand(hand);if(ItemData.own(item)&&ItemData.id(item).equals("waystone"))return hand;}
+        return null;
+    }
+    private static void send(String id,String action){send(id,action,null,false);}
+    private static void send(String id,String action,InteractionHand hand,boolean openAfterInsert){
+        var state=tables.get(id);if(state==null)return;var request=ClientUi.current().operation("waystone-table");
+        request.addProperty("table",id);request.addProperty("action",action);request.addProperty("revision",state.get("revision").getAsLong());
+        if(hand!=null){request.addProperty("hand",hand.name());request.addProperty("stoneData",ItemData.string(Minecraft.getInstance().player.getItemInHand(hand),Waystone.DATA));}
+        if(openAfterInsert)request.addProperty("openAfterInsert",true);ClientUi.current().send("waystoneTable",request);
+    }
     private static Waystone stone(JsonObject state){return state==null||!state.has("stone")||state.get("stone").isJsonNull()?null:JSON.fromJson(state.get("stone"),Waystone.class);}
     private static String map(Waystone stone){return DungeonCatalog.current().dungeon(stone.dungeon).name();}
     private static Component line(String text,int color){return UiFonts.decorate(Component.literal(text).withStyle(s->s.withColor(color).withItalic(false)));}
@@ -70,7 +92,8 @@ public final class WaystoneClient {
             }super.drawContents(g,mx,my,alpha);
         }
         @Override public boolean mouseScrolled(double x,double y,double sx,double sy){scroll=Math.max(0,scroll-(int)Math.signum(sy));return true;}
-        @Override public void onClose(){send(id,"close");Minecraft.getInstance().gui.popScreenLayer();}
+        @Override public void onClose(){Minecraft.getInstance().gui.setScreen(null);}
+        @Override public void removed(){send(id,"close");super.removed();}
         @Override public boolean isPauseScreen(){return false;}
     }
 }

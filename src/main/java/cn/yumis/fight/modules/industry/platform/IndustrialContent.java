@@ -46,10 +46,16 @@ public final class IndustrialContent {
     public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<MachineBlockEntity>> MACHINE_BE=BES.register("industrial",()->new BlockEntityType<>(MachineBlockEntity::new,new HashSet<>(SPECS.keySet().stream().map(k->ALL_BLOCKS.get(k).get()).toList())));
     public static final DeferredBlock<DisplayStandBlock> DISPLAY_STAND=BLOCKS.registerBlock("display_stand",DisplayStandBlock::new,p->p.strength(2.5f).sound(SoundType.METAL).noOcclusion());
     public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<DisplayStandBlockEntity>> DISPLAY_STAND_BE=BES.register("display_stand",()->new BlockEntityType<>(DisplayStandBlockEntity::new,Set.of(DISPLAY_STAND.get())));
+    public static final DeferredBlock<ConveyorBlock> CONVEYOR=BLOCKS.registerBlock("conveyor_belt",p->new ConveyorBlock(false,p),p->p.strength(1.5f).sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
+    public static final DeferredBlock<ConveyorBlock> HOPPER_CONVEYOR=BLOCKS.registerBlock("hopper_conveyor_belt",p->new ConveyorBlock(true,p),p->p.strength(1.5f).sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
+    public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<ConveyorBlockEntity>> CONVEYOR_BE=BES.register("conveyor_belt",()->new BlockEntityType<>(ConveyorBlockEntity::new,Set.of(CONVEYOR.get(),HOPPER_CONVEYOR.get())));
+    public static final DeferredBlock<InfiniteSourceBlock> INFINITE_FLUID_TANK=BLOCKS.registerBlock("infinite_fluid_tank",p->new InfiniteSourceBlock(true,p),p->p.strength(3.5f).sound(SoundType.METAL).noOcclusion());
+    public static final DeferredBlock<InfiniteSourceBlock> INFINITE_ITEM_BARREL=BLOCKS.registerBlock("infinite_item_barrel",p->new InfiniteSourceBlock(false,p),p->p.strength(2.5f).sound(SoundType.WOOD));
+    public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<InfiniteSourceBlockEntity>> INFINITE_SOURCE_BE=BES.register("infinite_source",()->new BlockEntityType<>(InfiniteSourceBlockEntity::new,Set.of(INFINITE_FLUID_TANK.get(),INFINITE_ITEM_BARREL.get())));
     public static final DeferredHolder<MenuType<?>,MenuType<ProspectorMenu>> PROSPECTOR_MENU=MENUS.register("prospector",()->IMenuTypeExtension.create(ProspectorMenu::new));
     public static final DeferredHolder<MenuType<?>,MenuType<IndustrialMenu>> MACHINE_MENU=MENUS.register("industrial",()->IMenuTypeExtension.create(IndustrialMenu::new));
     public static final DeferredHolder<MenuType<?>,MenuType<DimensionalMenu>> STORAGE_MENU=MENUS.register("dimensional_storage",()->IMenuTypeExtension.create(DimensionalMenu::new));
-    public static final DeferredHolder<FluidType,FluidType> COOLANT_TYPE=FLUID_TYPES.register("coolant",()->new FluidType(FluidType.Properties.create().density(1100).viscosity(1200).canConvertToSource(false)));
+    public static final DeferredHolder<FluidType,FluidType> COOLANT_TYPE=FLUID_TYPES.register("coolant",()->new FluidType(FluidType.Properties.create().density(1100).viscosity(1200).isWaterLike(true).canConvertToSource(false)));
     public static final DeferredHolder<Fluid,BaseFlowingFluid.Source> COOLANT=FLUIDS.register("coolant",()->new BaseFlowingFluid.Source(coolantProperties()));
     public static final DeferredHolder<Fluid,BaseFlowingFluid.Flowing> FLOWING_COOLANT=FLUIDS.register("flowing_coolant",()->new BaseFlowingFluid.Flowing(coolantProperties()));
     public static final DeferredBlock<LiquidBlock> COOLANT_BLOCK=BLOCKS.registerBlock("coolant",p->new LiquidBlock(COOLANT.get(),p),p->p.noCollision().strength(100).noLootTable().liquid().replaceable());
@@ -65,7 +71,7 @@ public final class IndustrialContent {
         public final DeferredBlock<LiquidBlock> block;
         Liquid(String id,int color){
             this.id=id;this.color=color;
-            type=FLUID_TYPES.register(id,()->new FluidType(FluidType.Properties.create().density(1200).viscosity(1500).canConvertToSource(false)));
+            type=FLUID_TYPES.register(id,()->new FluidType(FluidType.Properties.create().density(1200).viscosity(1500).isWaterLike(true).canConvertToSource(false)));
             source=FLUIDS.register(id,()->new BaseFlowingFluid.Source(properties()));
             flowing=FLUIDS.register("flowing_"+id,()->new BaseFlowingFluid.Flowing(properties()));
             block=BLOCKS.registerBlock(id,p->new LiquidBlock(source.get(),p),p->p.noCollision().strength(100).noLootTable().liquid().replaceable());
@@ -83,10 +89,15 @@ public final class IndustrialContent {
             }
         }
         ALL_BLOCKS.put("display_stand",DISPLAY_STAND);ALL_ITEMS.put("display_stand",ITEMS.registerSimpleBlockItem(DISPLAY_STAND));
+        ALL_BLOCKS.put("conveyor_belt",CONVEYOR);ALL_ITEMS.put("conveyor_belt",ITEMS.registerSimpleBlockItem(CONVEYOR));
+        ALL_BLOCKS.put("hopper_conveyor_belt",HOPPER_CONVEYOR);ALL_ITEMS.put("hopper_conveyor_belt",ITEMS.registerSimpleBlockItem(HOPPER_CONVEYOR));
+        ALL_BLOCKS.put("infinite_fluid_tank",INFINITE_FLUID_TANK);ALL_ITEMS.put("infinite_fluid_tank",ITEMS.registerSimpleBlockItem(INFINITE_FLUID_TANK));
+        ALL_BLOCKS.put("infinite_item_barrel",INFINITE_ITEM_BARREL);ALL_ITEMS.put("infinite_item_barrel",ITEMS.registerSimpleBlockItem(INFINITE_ITEM_BARREL));
         for(int i=1;i<=EnergyMath.MAX_CRYSTAL_TIER;i++)item("energy_crystal_"+i);
         ALL_ITEMS.put("mana_storage_bag",ITEMS.registerItem("mana_storage_bag",ManaStorageBagItem::new,p->p.stacksTo(1)));
         for(int i=1;i<=5;i++)item("industrial_upgrade_"+i);
         for(String key:List.of("nuclear_core","rtg_core"))item(key);
+        ALL_ITEMS.put("fusion_ignition_core",ITEMS.registerItem("fusion_ignition_core",IgnitionCoreItem::new,p->p));
         for(String metal:List.of("lead","uranium","titanium")){item("raw_"+metal);item(metal+"_ingot");block(metal+"_ore",p->new ResourceBlock(metal,p));block(metal+"_block",Block::new);}
         for(String metal:List.of("iron","copper","gold","lead","uranium","titanium"))item("crushed_"+metal);
         for(String material:List.of("terra","spacetime")){item(material+"_ingot");block(material+"_block",Block::new);}
@@ -131,7 +142,8 @@ public final class IndustrialContent {
     public static void register(IEventBus bus){
         ManaStorageBagItem.registerIntake();
         IndustrialEvents.register();
+        bus.addListener((RegisterCapabilitiesEvent e)->e.registerBlockEntity(Capabilities.Item.BLOCK,CONVEYOR_BE.get(),(be,side)->be.automation(side)));
         BLOCKS.register(bus);ITEMS.register(bus);BES.register(bus);MENUS.register(bus);TYPES.register(bus);SERIALIZERS.register(bus);FLUID_TYPES.register(bus);FLUIDS.register(bus);PARTICLES.register(bus);TABS.register(bus);IndustrialWorldgen.register(bus);
-        bus.addListener((RegisterCapabilitiesEvent e)->{e.registerBlockEntity(Capabilities.Item.BLOCK,DISPLAY_STAND_BE.get(),(be,side)->be.automation());e.registerBlockEntity(Capabilities.Item.BLOCK,MACHINE_BE.get(),(be,side)->be.itemsFor(side));e.registerBlockEntity(Capabilities.Fluid.BLOCK,MACHINE_BE.get(),(be,side)->be.fluidsFor(side));});
+        bus.addListener((RegisterCapabilitiesEvent e)->{e.registerBlockEntity(Capabilities.Item.BLOCK,DISPLAY_STAND_BE.get(),(be,side)->be.automation());e.registerBlockEntity(Capabilities.Item.BLOCK,MACHINE_BE.get(),(be,side)->be.itemsFor(side));e.registerBlockEntity(Capabilities.Fluid.BLOCK,MACHINE_BE.get(),(be,side)->be.fluidsFor(side));e.registerBlockEntity(Capabilities.Item.BLOCK,INFINITE_SOURCE_BE.get(),(be,side)->be.items());e.registerBlockEntity(Capabilities.Fluid.BLOCK,INFINITE_SOURCE_BE.get(),(be,side)->be.fluids());});
     }
 }

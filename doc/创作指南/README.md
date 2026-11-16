@@ -2,6 +2,8 @@
 
 主旨：新增前先查已有架构，优先增加内容登记、配方和参数，复用现有流程。目录根与完整入口见 [项目索引](../README.md)，平衡方法见 [数值评估](数值平衡评估.md)。
 
+制作或修改贴图（含重绘、换色、复用原版或参考素材）前，先读 [贴图创作](贴图创作.md)。
+
 ## 新增前
 
 1. 找同类内容，确认所属模块、公开接口和可复用设施；在回复中简要说明复用入口及缺少的参数。
@@ -26,6 +28,7 @@
 | `dungeons/api/ClassicEnemyKind.java`、`ClassicMove.java`；`content/ClassicDungeonRooms.java` 及各副本内容类 | 经典后续副本登记原型、六组编队与首领，精英复用本体；动作稳定ID对应原生模型片段，毫秒时长及接触相位共同驱动动作、预警与本机判定。召唤物／机关在所属副本服务维护，不计入普通编队清场数；中间复活不发布死亡回执，最终死亡沿原奖励入口。 |
 | `industry/api/MagicFlora.java` | 魔力花资源循环由草方块原生随机刻触发；先校验空位和相邻种源，再检查花的覆盖范围，不用全局扫描或定时补生。植物、液体及展示产线的制作源为 `tools/industrial_technology.py`。 |
 | `industry/api/DeviceType.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；`platform/IndustrialProcessing.java` | 新设备和工艺复用设备能力、科技目录、批次／产线结算；精度用既有 `EnergyMath`／`Fraction`，资源从正式生成源维护。 |
+| `economy/api/WorldItemTransfers.java`；`inventory/api/InventoryOperations.java` | 无人值守收取公共掉落物、从持久容器抛出物品时，复用世界物品端口与 `transactContainer`，由经济模块维护掉落账本，库存模块原子保存容器状态；提交后才更新世界投影。传送带制作源为 `tools/industrial_conveyors.py`，贴图源稿与导出入口为同目录 `industrial_conveyors.aseprite`、`draw_industrial_conveyors.lua`。 |
 | `economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；`professions/api/ProfessionRewards.java` | 掉落、出售分解、通货与副职业奖励由本人客户端按原资格计算；消费与确定奖品走既有库存／WAL事务，源快照、操作号和结果一并保存。重试复用已确定结果，不新增第二套余额或发奖模型。 |
 | `economy/api/JarDefinitions.java`、`LootJarItem.java` | 单抽罐子登记奖池与权重，物品工厂使用定义ID；开罐与交付沿库存／WAL事务，演出不决定奖品。配置方法见下文。 |
 | `npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`、`NpcTutorial.java`；`economy/api/ShopDefinitions.java`、`ShopMenu.java` | NPC定义登记有序交互动作、固定皮肤／头饰和日常台词，通过组件挂到生物；伊蕾娜对白与六步引导由同一定义提供，I 内追踪器消费本机任务状态。商品登记单件物品和必须同时满足的费用，预览与本机购买共用定义。地图仅提供完成放置后的世界坐标锚点，调用NPC公开投放入口。 |

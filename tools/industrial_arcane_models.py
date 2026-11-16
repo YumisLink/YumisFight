@@ -5,7 +5,15 @@ import json,copy
 from industrial_visual_models import ROOT,ASSETS,NS,FAMILIES,write
 SOURCE=ROOT/'art/industry-arcane'
 # Symbol panels use the body material; functional crystals retain their existing UVs.
-UV={'stone':(0,0),'gold':(16,0),'gem':(0,16),'rune':(0,0)}
+UV={'stone':(0,0),'gold':(16,0),'gem':(0,16),'rune':(0,0),'signal':(16,16)}
+
+# The display-line machines share the T2 frame, while their working cores use
+# the existing heat and liquid atlases. The same suffix selects each state.
+DISPLAY_MACHINE_CORES={
+    'heat_generator':'coal_generator_1',
+    'mana_concentrator':'coolant_mixer_2',
+    'fluid_infuser':'turbine_generator_2',
+}
 
 
 def subtract(rect,cover):
@@ -100,6 +108,34 @@ def shape(family):
         base()
         for x in [2,10]:b((x,4,5),(x+4,12,11),'gem');b((x-1,3,4),(x+5,4,12),'gold');b((x-1,12,4),(x+5,13,12),'gold')
         b((6,6,7),(10,8,9),'gold');b((6,10,6),(10,11,10),'rune')
+    elif family=='heat_generator':
+        base()
+        b((5,4,5),(11,10,11),'gem');b((6,10,6),(10,12,10),'gem')
+        for x,z in [(3,3),(11,3),(3,11),(11,11)]:b((x,3,z),(x+2,12,z+2),'gold')
+        for y in (5,7,9):
+            for x in (2,12):b((x,y,4),(x+2,y+1,12),'gold')
+        b((2,11,2),(14,12,14),'gold');b((4,12,4),(12,13,12))
+        for z in (5,10):b((5,13,z),(11,14,z+1),'gold')
+        b((5,13,7.5),(11,14,8.5),'signal')
+    elif family=='mana_concentrator':
+        base();b((4,3,4),(12,4,12));b((5,4,5),(11,10,11),'gem')
+        for x,z in [(2,2),(12,2),(2,12),(12,12)]:b((x,3,z),(x+2,12,z+2),'gold')
+        for x in (3,11):b((x,6,6),(x+2,9,10),'gold')
+        b((6,10,6),(10,12,10));b((3,12,3),(13,13,13),'gold')
+        b((5,13,5),(11,14,11));b((5,14,5),(11,15,11),'gold')
+        for z in (6,9):b((6,15,z),(10,16,z+1))
+        b((6,15,7),(10,16,9),'signal')
+    elif family=='fluid_infuser':
+        # Mounted over a display stand: the central nozzle ends at y=0.
+        b((1,14,1),(15,15,15));b((2,13,2),(14,14,14),'gold')
+        for x in (4,10):b((x,15,4),(x+2,16,12),'gold')
+        b((6,15,7),(10,16,9),'signal')
+        for x in (3,10):
+            b((x,7,5),(x+3,12,11),'gem')
+            b((x-1,6,4),(x+4,7,12),'gold');b((x-1,12,4),(x+4,13,12),'gold')
+        b((6,7,6),(10,9,10),'gold');b((5,6,5),(11,7,11))
+        b((6,4,6),(10,6,10),'gold');b((7,1,7),(9,4,9))
+        b((7,0,7),(9,1,9),'gem')
     elif family=='transfer_crystal':
         base();b((2,3,6),(4,12,10),'gold');b((12,3,6),(14,12,10),'gold');b((4,11,6),(12,13,10))
         b((3,13,7),(6,14,9),'gold');b((10,13,7),(13,14,9),'gold')
@@ -117,6 +153,7 @@ def shape(family):
 def model(family,tier,state='',boxes=None):
     texture=f'arcane/{family}_{tier}{state}'
     if family.startswith('wind_') and family not in FAMILIES:texture=f'arcane/wind_generator_2{state}'
+    if family in DISPLAY_MACHINE_CORES:texture=f'arcane/turbine_generator_2{state}'
     parts=shape(family) if boxes is None else boxes
     if boxes is None and family in FAMILIES and not any(mat in ('gem','rune') for _,_,mat in parts):
         parts.append(([6,2.9,.9],[10,4,2.9],'gem'))
@@ -124,12 +161,25 @@ def model(family,tier,state='',boxes=None):
         for i in range(min(tier,4)):
             x=3+i*3;parts.append(([x,2.5,.7],[x+2,4,2.7],'gem'))
     elements=exposed(parts)
-    if state=='_active':
-        for e in elements:
-            uv=next(iter(e['faces'].values()))['uv']
+    for e in elements:
+        face=next(iter(e['faces'].values()));uv=face['uv']
+        if family in DISPLAY_MACHINE_CORES and min(uv[0],uv[2])<8 and min(uv[1],uv[3])>=8:
+            face['texture']='#core'
+            # Sample the saturated middle of the existing crystal quadrant.
+            face['uv']=[uv[0]+2,uv[1]+1.5,uv[2]+2,uv[3]+1.5]
+        elif family in DISPLAY_MACHINE_CORES and min(uv[0],uv[2])>=8 and min(uv[1],uv[3])>=8:
+            face['texture']='#indicator'
+            # Use one state-colored texel on the mechanical bars, not the glyph.
+            face['uv']=[9.5,8.5,10,9]
+        if state=='_active':
             if min(uv[1],uv[3])>=8:
                 e['light_emission']=12;e['shade']=False
-    return {'ambientocclusion':True,'textures':{'atlas':f'{NS}:block/{texture}','particle':f'{NS}:block/{texture}'},
+    textures={'atlas':f'{NS}:block/{texture}','particle':f'{NS}:block/{texture}'}
+    if family in DISPLAY_MACHINE_CORES:
+        textures['core']=f'{NS}:block/arcane/{DISPLAY_MACHINE_CORES[family]}{state}'
+        signal='coolant_mixer_2' if family=='fluid_infuser' else DISPLAY_MACHINE_CORES[family]
+        textures['indicator']=f'{NS}:block/arcane/{signal}{state}'
+    return {'ambientocclusion':True,'textures':textures,
             'elements':elements,
             'display':{'gui':{'rotation':[28,225,0],'scale':[.8,.8,.8]},
                        'ground':{'translation':[0,3,0],'scale':[.3,.3,.3]},

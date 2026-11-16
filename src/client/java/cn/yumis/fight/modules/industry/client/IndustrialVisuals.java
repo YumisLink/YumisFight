@@ -29,6 +29,15 @@ public final class IndustrialVisuals {
     public static void clear(){beams=java.util.List.of();expires=0;}
     public static long remaining(){return beams().isEmpty()?0:Math.max(0,expires-ClientUi.current().serverNow());}
     private IndustrialVisuals(){}
+    public static int heldLight(){
+        // LambDynamicLights supplies its own Sodium-compatible light when installed.
+        if(net.neoforged.fml.ModList.get().isLoaded("lambdynlights"))return 0;
+        var player=Minecraft.getInstance().player;
+        if(player==null)return 0;
+        return player.getMainHandItem().getItem() instanceof cn.yumis.fight.modules.industry.platform.IgnitionCoreItem||
+            player.getOffhandItem().getItem() instanceof cn.yumis.fight.modules.industry.platform.IgnitionCoreItem
+            ?cn.yumis.fight.modules.industry.platform.IgnitionCoreItem.LIGHT_LEVEL:0;
+    }
     public static void tick(){
         var mc=Minecraft.getInstance();if(mc.level==null||mc.player==null||++ticks%10!=0)return;
         if(mc.player.containerMenu instanceof IndustrialMenu menu){

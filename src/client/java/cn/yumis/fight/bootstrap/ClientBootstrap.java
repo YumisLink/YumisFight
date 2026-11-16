@@ -122,6 +122,9 @@ public final class ClientBootstrap {
             e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.TRAINING_SANDBAG.get(),cn.yumis.fight.modules.dungeons.client.TrainingSandbagRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_BE.get(),IndustrialRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.DISPLAY_STAND_BE.get(),cn.yumis.fight.modules.industry.client.DisplayStandRenderer::new);
+            e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.CONVEYOR_BE.get(),cn.yumis.fight.modules.industry.client.ConveyorRenderer::new);
+            e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.INFINITE_SOURCE_BE.get(),cn.yumis.fight.modules.industry.client.InfiniteSourceRenderer::new);
+            e.registerBlockEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.WAYSTONE_PEDESTAL_ENTITY.get(),cn.yumis.fight.modules.dungeons.client.WaystonePedestalRenderer::new);
             e.registerEntityRenderer(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.CAGE.get(),CageRenderer::new);for(var type:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.entrySet()){
                 if(type.getKey().equals("golden_king"))e.registerEntityRenderer(type.getValue().get(),cn.yumis.fight.modules.dungeons.client.GoldenKingRenderer::new);
                 else if(cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"gbl/"+kind.model,kind.width));}
@@ -148,7 +151,7 @@ public final class ClientBootstrap {
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::scroll);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::interact);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
-            cn.yumis.fight.modules.npc.client.NpcClient.tick();IndustrialVisuals.tick();cn.yumis.fight.modules.equipment.client.LightsaberLight.tick();
+            cn.yumis.fight.modules.npc.client.NpcClient.tick();IndustrialVisuals.tick();cn.yumis.fight.modules.equipment.client.LightsaberLight.tick(IndustrialVisuals.heldLight());
             ClientSession.INSTANCE.tick();cn.yumis.fight.modules.npc.client.TutorialClient.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();while(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.consumeClick()){
                 var mc=Minecraft.getInstance();if(!JarClient.blocking()&&mc.player!=null&&mc.gui.screen()==null){
                     ClientSession.INSTANCE.upload();mc.gui.setScreen(new FightScreen());
@@ -193,7 +196,6 @@ public final class ClientBootstrap {
             if(ItemData.own(e.getItemStack()))e.getToolTip().replaceAll(UiFonts::decorate);
         });
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Background e)->Hud.equipment(e));
-        NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Foreground e)->Hud.creativeFrames(e));
         NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre e)->{
             if(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.matches(e.getKeyEvent())&&e.getScreen() instanceof net.minecraft.client.gui.screens.inventory.ContainerScreen screen&&screen.getTitle().getString().equals("次元背包")){
                 ClientSession.INSTANCE.upload();Minecraft.getInstance().player.closeContainer();Minecraft.getInstance().gui.setScreen(new FightScreen());e.setCanceled(true);

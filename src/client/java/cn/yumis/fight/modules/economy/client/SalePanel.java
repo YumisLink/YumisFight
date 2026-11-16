@@ -16,7 +16,7 @@ import java.util.*;
 
 /** Nine real inventory columns, a detail pane, and fixed batch totals inside the I menu. */
 public final class SalePanel implements ClientPagePanel {
-    private record Row(String key,boolean bag,int slot,boolean allowed,String name,String reason,long price,String dismantle,Rarity rarity,String identity,ItemStack preview,List<Component> details){}
+    private record Row(String key,boolean bag,int slot,boolean allowed,String name,String reason,long price,String dismantle,Rarity rarity,JsonElement identity,ItemStack preview,List<Component> details){}
     private record Cell(Row row,int x,int y){}
     private record InventoryValue(Object item,int count,Object components){}
     private final Map<String,Row> rows=new LinkedHashMap<>();
@@ -59,17 +59,19 @@ public final class SalePanel implements ClientPagePanel {
         Map<String,Row> next=new LinkedHashMap<>();var mc=Minecraft.getInstance();if(mc.player==null)return;
         for(var value:data.getAsJsonArray("rows")){
             var row=value.getAsJsonObject();String key=row.get("key").getAsString();
-            ItemStack preview=row.has("item")?ItemStack.OPTIONAL_CODEC.parse(mc.player.registryAccess().createSerializationContext(JsonOps.INSTANCE),row.get("item")).result().orElse(ItemStack.EMPTY):ItemStack.EMPTY;
+            ItemStack preview=row.has("source")?ItemStack.OPTIONAL_CODEC.parse(mc.player.registryAccess().createSerializationContext(JsonOps.INSTANCE),row.get("source")).result().orElse(ItemStack.EMPTY):ItemStack.EMPTY;
             Rarity rarity=row.has("rarity")?Rarity.valueOf(row.get("rarity").getAsString()):Rarity.COMMON;
             List<Component> lines=new ArrayList<>();Component name=Component.literal(row.get("name").getAsString());lines.add(rarity==Rarity.MYTHIC?MythicDisplay.mark(name):name);
             long price=row.has("price")?row.get("price").getAsLong():0;
             String dismantle=row.has("dismantle")?row.get("dismantle").getAsString():"";
-            if(row.has("price"))lines.add(Component.literal(dismantling?"分解："+dismantle:"售价："+price+"金币"));
+            boolean allowed=row.get(dismantling?"dismantleAllowed":"allowed").getAsBoolean();String reason=row.get(dismantling?"dismantleReason":"reason").getAsString();
+            if(preview.getCount()>1)lines.add(Component.literal("数量："+preview.getCount()));
+            if(dismantling&&row.has("dismantle"))lines.add(Component.literal("分解："+dismantle));else if(!dismantling&&row.has("price"))lines.add(Component.literal((preview.getCount()>1?"整组售价：":"售价：")+price+"金币"));
             if(dismantling&&row.has("gems")&&row.get("gems").getAsInt()>0)lines.add(Component.literal("镶嵌宝石将一并销毁").withColor(0xff8a58));
-            if(!row.get("allowed").getAsBoolean())lines.add(Component.literal(row.get("reason").getAsString()));
+            if(!allowed)lines.add(Component.literal(reason));
             if(row.has("lines"))for(var valueLine:row.getAsJsonArray("lines")){var line=valueLine.getAsJsonObject();lines.add(AffixFavorites.decorate(line.get("id").getAsString(),Component.literal(line.get("text").getAsString())));}
-            String identity=row.has("equipment")?row.get("equipment").getAsString()+":"+row.get("revision").getAsInt():"";
-            next.put(key,new Row(key,row.get("bag").getAsBoolean(),row.get("slot").getAsInt(),row.get("allowed").getAsBoolean(),row.get("name").getAsString(),row.get("reason").getAsString(),price,dismantle,rarity,identity,preview,List.copyOf(lines)));
+            JsonElement identity=row.has("source")?row.get("source"):JsonNull.INSTANCE;
+            next.put(key,new Row(key,row.get("bag").getAsBoolean(),row.get("slot").getAsInt(),allowed,row.get("name").getAsString(),reason,price,dismantle,rarity,identity,preview,List.copyOf(lines)));
         }
         selected.removeIf(key->{var old=rows.get(key);var current=next.get(key);return old==null||current==null||!current.allowed||!old.identity.equals(current.identity)||old.price!=current.price;});
         rows.clear();rows.putAll(next);quote=data;waiting=false;confirming=false;layoutDirty=true;detailKey="";sum();
@@ -113,7 +115,7 @@ public final class SalePanel implements ClientPagePanel {
         Row hovered=null;
         for(Cell slot:cells){
             var row=slot.row;boolean chosen=selected.contains(row.key);UiTheme.button(g,slot.x,slot.y,cell-2,cell-2,row.allowed,inside(mx,my,slot.x,slot.y,cell-2,cell-2),chosen);
-            if(!row.preview.isEmpty()){int iconX=slot.x+(cell-18)/2,iconY=slot.y+(cell-18)/2;g.item(row.preview,iconX,iconY);if(row.rarity==Rarity.MYTHIC)MythicDisplay.frame(g,iconX,iconY,16,16);}
+            if(!row.preview.isEmpty()){int iconX=slot.x+(cell-18)/2,iconY=slot.y+(cell-18)/2;g.item(row.preview,iconX,iconY);if(row.rarity==Rarity.MYTHIC)MythicDisplay.frame(g,iconX,iconY,16,16);if(row.preview.getCount()>1){String count=Integer.toString(row.preview.getCount());g.text(UiFonts.font(),count,iconX+17-UiFonts.font().width(count),iconY+9,UiTheme.TEXT,true);}}
             if(chosen){g.fill(slot.x,slot.y,slot.x+cell-2,slot.y+1,UiTheme.SUCCESS);g.fill(slot.x,slot.y,slot.x+1,slot.y+cell-2,UiTheme.SUCCESS);}
             if(inside(mx,my,slot.x,slot.y,cell-2,cell-2))hovered=row;
         }
@@ -122,7 +124,7 @@ public final class SalePanel implements ClientPagePanel {
         Row detail=hovered!=null?hovered:rows.get(focused);
         if(detailWidth>0){
             int w=Math.max(70,area.x()+area.width()-detailLeft-5),h=Math.max(1,gridBottom-gridTop);UiTheme.card(g,detailLeft,gridTop,w,h);
-            if(detail==null)text(g,"悬浮或点击装备查看详情",detailLeft+8,gridTop+10,UiTheme.MUTED,w-16);
+            if(detail==null)text(g,"悬浮或点击物品查看详情",detailLeft+8,gridTop+10,UiTheme.MUTED,w-16);
             else{
                 String cache=detail.key+":"+w+":"+revision;if(!cache.equals(detailKey)){List<FormattedCharSequence> lines=new ArrayList<>();for(Component line:detail.details)lines.addAll(UiFonts.font().split(line,w-16));detailLines=List.copyOf(lines);detailKey=cache;}
                 int limit=Math.max(1,(h-16)/12);detailScroll=Math.clamp(detailScroll,0,Math.max(0,detailLines.size()-limit));
@@ -132,8 +134,8 @@ public final class SalePanel implements ClientPagePanel {
             }
         }else if(detail!=null&&area.height()>=180){Component title=Component.literal(UiFonts.font().plainSubstrByWidth(detail.name,area.width()-12));MythicDisplay.text(g,UiFonts.font(),(detail.rarity==Rarity.MYTHIC?MythicDisplay.mark(title):title).getVisualOrderText(),gridLeft,gridBottom+5,UiTheme.GOLD,false);text(g,detail.allowed?(dismantling?detail.dismantle:"售价 "+detail.price+"金币"):detail.reason,gridLeft,gridBottom+18,detail.allowed?UiTheme.TEXT:UiTheme.ERROR,area.width()-12);}
         int bottom=area.y()+area.height();boolean compact=area.height()<160;int footer=compact?48:70;UiTheme.card(g,area.x()+2,bottom-footer,area.width()-4,footer-2);
-        text(g,waiting?"正在读取报价…":dirtyAt>=0?"背包已变化，正在更新报价…":compact&&confirming?(dismantling?"宝石一并销毁 · 分解":"宝石一并出售 · ")+selected.size()+"件":dismantling?"已选 "+selected.size()+" 件 · 产物公开落地":"已选 "+selected.size()+" 件 · 合计 "+total+"金币",x,bottom-(compact?43:61),confirming?UiTheme.ERROR:UiTheme.GOLD,area.width()-12);
-        if(!compact)text(g,confirming?(dismantling?"宝石一并销毁。再次确认后不可撤回。":"宝石一并出售。再次确认后不可撤回。"):"当前主手、穿戴装备与待领取物品不可处理。",x,bottom-46,confirming?UiTheme.ERROR:UiTheme.MUTED,area.width()-12);
+        text(g,waiting?"正在读取报价…":dirtyAt>=0?"背包已变化，正在更新报价…":compact&&confirming?(dismantling?"宝石一并销毁 · 分解":"物品及内容一并出售 · ")+selected.size()+"格":dismantling?"已选 "+selected.size()+" 格 · 产物公开落地":"已选 "+selected.size()+" 格 · 合计 "+total+"金币",x,bottom-(compact?43:61),confirming?UiTheme.ERROR:UiTheme.GOLD,area.width()-12);
+        if(!compact)text(g,confirming?(dismantling?"宝石一并销毁。再次确认后不可撤回。":"整组物品及其中内容一并出售。再次确认后不可撤回。"):dismantling?"当前主手与穿戴装备不可分解。":"按整组出售；穿戴装备请先放入背包。",x,bottom-46,confirming?UiTheme.ERROR:UiTheme.MUTED,area.width()-12);
         int confirmWidth=Math.min(144,Math.max(84,(area.width()-22)/2));
         button(g,confirming?(dismantling?"确定分解":"确定出售"):(dismantling?"确认分解":"确认出售"),x,bottom-26,confirmWidth,valid()&&!selected.isEmpty(),confirming,mx,my);
         button(g,confirming?"取消确认":"清空选择",x+confirmWidth+6,bottom-26,Math.min(88,Math.max(64,area.width()-confirmWidth-24)),!waiting,false,mx,my);

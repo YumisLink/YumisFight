@@ -29,6 +29,7 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
     private final CurrencyAction currencyAction;
     private final ContainerParticipants containers;
     private final Set<UUID> locks=new HashSet<>(),bags=new HashSet<>();
+    private final Set<String> containerLocks=new HashSet<>();
     private boolean inside,projectingDrops;
     public static final class NoSpace extends IllegalStateException {
         public NoSpace(){
@@ -227,6 +228,40 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             stagedDrops.clear();
             stagedEntities.clear();tossEvents.clear();actingPlayer=null;
             locks.remove(p.getUUID());
+        }
+    }
+    @Override public boolean transactContainer(String operation,JsonObject intent,cn.yumis.fight.modules.inventory.api.PersistentContainer target,Runnable mutation,Map<String,JsonElement> changes,boolean retiring){
+        if(inside)throw new IllegalStateException("不能嵌套世界物品事务");
+        containers.recoverIndustrial();
+        String identity=target.key();
+        if(!containerLocks.add(identity))throw new IllegalStateException("容器事务处理中");
+        String receipt="industrialReceipt/"+identity+"/"+operation,pending="containerPending/industrial/"+identity+"/"+operation;
+        ContainerParticipants.MachineRef participant=null;
+        boolean committed=false;
+        try{
+            participant=containers.captureMachine(target,retiring);
+            JsonElement previous=journal.get(receipt);
+            if(!previous.isJsonNull()){
+                if(!previous.equals(intent))throw new IllegalArgumentException("操作号与原请求冲突");
+                return false;
+            }
+            mutation.run();
+            JsonElement after=target.transactionState();
+            target.restoreTransactionState(participant.before());
+            Map<String,JsonElement> edits=new LinkedHashMap<>(changes);
+            containers.journalMachine(pending,operation,participant,after,edits);
+            edits.put(receipt,intent.deepCopy());
+            journal.transaction(edits);committed=true;loot.committed(edits.keySet());
+            target.restoreTransactionState(after);
+            containers.flushMachine(participant);
+            journal.put(pending,JsonNull.INSTANCE);
+            return true;
+        }catch(Exception failure){
+            if(!committed&&participant!=null)target.restoreTransactionState(participant.before());
+            throw new IllegalStateException("世界物品事务未完成："+failure.getMessage(),failure);
+        }finally{
+            if(committed)target.requestRecovery();
+            containerLocks.remove(identity);
         }
     }
     public void recoverContainers(ServerPlayer player){containers.recoverPersistent(player);}

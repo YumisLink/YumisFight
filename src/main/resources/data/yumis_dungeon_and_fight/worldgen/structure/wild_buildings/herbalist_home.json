@@ -1,0 +1,21 @@
+{
+  "type": "yumis_dungeon_and_fight:wild_building",
+  "biomes": [
+    "minecraft:plains",
+    "minecraft:sunflower_plains",
+    "minecraft:meadow",
+    "minecraft:forest",
+    "minecraft:flower_forest",
+    "minecraft:birch_forest",
+    "minecraft:old_growth_birch_forest",
+    "minecraft:cherry_grove"
+  ],
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "beard_thin",
+  "start_pool": "yumis_dungeon_and_fight:wild_buildings/herbalist_home",
+  "height_offset": -3,
+  "floor_offset": 4,
+  "max_relief": 12,
+  "ground_clearance": 0
+}

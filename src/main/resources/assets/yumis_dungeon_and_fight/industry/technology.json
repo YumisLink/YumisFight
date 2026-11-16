@@ -325,7 +325,11 @@
     "yumis_dungeon_and_fight:display_stand": 1,
     "yumis_dungeon_and_fight:magic_flower": 1,
     "yumis_dungeon_and_fight:stellar_alloy": 6,
+    "yumis_dungeon_and_fight:magnesium_dust": 3,
+    "yumis_dungeon_and_fight:magnesium_ingot": 3,
+    "yumis_dungeon_and_fight:niobium_titanium_magnesium_alloy": 6,
     "yumis_dungeon_and_fight:confinement_lattice": 6,
+    "yumis_dungeon_and_fight:ignition_core_shell": 1,
     "yumis_dungeon_and_fight:fusion_ignition_core": 6,
     "yumis_dungeon_and_fight:converted_uranium": 4,
     "yumis_dungeon_and_fight:enriched_uranium": 4,
@@ -433,7 +437,11 @@
     "minecraft:iron_pickaxe": 1,
     "minecraft:diamond_pickaxe": 2,
     "minecraft:smooth_stone_slab": 1,
-    "minecraft:magma_block": 1
+    "minecraft:magma_block": 1,
+    "yumis_dungeon_and_fight:infinite_power_tower": 5,
+    "yumis_dungeon_and_fight:conveyor_belt": 1,
+    "yumis_dungeon_and_fight:hopper_conveyor_belt": 1,
+    "minecraft:dried_kelp": 1
   },
   "fluids": {
     "yumis_dungeon_and_fight:mana_fluid": 1,
@@ -476,10 +484,30 @@
       "tier": 6,
       "title": "恒星合金"
     },
+    "magnesium_dust": {
+      "kind": "item",
+      "tier": 3,
+      "title": "镁粉"
+    },
+    "magnesium_ingot": {
+      "kind": "item",
+      "tier": 3,
+      "title": "镁锭"
+    },
+    "niobium_titanium_magnesium_alloy": {
+      "kind": "item",
+      "tier": 6,
+      "title": "铌钛镁合金"
+    },
     "confinement_lattice": {
       "kind": "item",
       "tier": 6,
       "title": "约束晶格"
+    },
+    "ignition_core_shell": {
+      "kind": "item",
+      "tier": 1,
+      "title": "点火芯外壳"
     },
     "fusion_ignition_core": {
       "kind": "item",
@@ -489,7 +517,7 @@
     "uranium_concentrate": {
       "kind": "item",
       "tier": 4,
-      "title": "铀精矿"
+      "title": "铀粉"
     },
     "converted_uranium": {
       "kind": "item",
@@ -690,6 +718,16 @@
       "kind": "item",
       "tier": 6,
       "title": "T6科技核心"
+    },
+    "conveyor_belt": {
+      "kind": "block",
+      "tier": 1,
+      "title": "传送带"
+    },
+    "hopper_conveyor_belt": {
+      "kind": "block",
+      "tier": 1,
+      "title": "漏斗传送带"
     }
   },
   "devices": {
@@ -1860,6 +1898,31 @@
           15
         ]
       ]
+    },
+    "infinite_power_tower": {
+      "kind": "infinite_power_tower",
+      "tier": 5,
+      "technology": 5,
+      "processing": 5,
+      "boxes": [
+        [
+          1,
+          0,
+          1,
+          15,
+          3,
+          15
+        ],
+        [
+          5.5,
+          3,
+          5.5,
+          10.5,
+          18,
+          10.5
+        ]
+      ],
+      "creative_only": true
     }
   },
   "recipe_energy_tiers": {
@@ -1885,6 +1948,7 @@
     "industrial/alloy_mithril_niobium_alloy": 4,
     "industrial/alloy_molybdenum_vanadium_steel": 3,
     "industrial/alloy_niobium_titanium_alloy": 4,
+    "industrial/alloy_niobium_titanium_magnesium_alloy": 6,
     "industrial/alloy_orichalcum_alloy": 1,
     "industrial/alloy_tzm_alloy": 3,
     "industrial/alloy_vanadium_steel": 1,
@@ -1901,6 +1965,7 @@
     "industrial/cobblestone_to_gravel": 1,
     "industrial/concentrate_mana_fluid": 2,
     "industrial/confinement_lattice": 6,
+    "industrial/confinement_lattice_laminated": 6,
     "industrial/convert_uranium": 4,
     "industrial/coolant": 3,
     "industrial/cool_pu238": 4,
@@ -1953,6 +2018,7 @@
     "industrial/direct_zirconium_ore": 3,
     "industrial/direct_zirconium_raw": 3,
     "industrial/empty_fuel_capsule": 3,
+    "industrial/extract_magnesium_powder": 3,
     "industrial/fusion_fuel_capsule": 6,
     "industrial/generate_adamantite": 4,
     "industrial/generate_amethyst": 2,
@@ -2028,6 +2094,7 @@
     "industrial/smelt_crushed_uranium": 4,
     "industrial/smelt_crushed_zirconium": 3,
     "industrial/smelt_iridium_concentrate": 5,
+    "industrial/smelt_magnesium_powder": 3,
     "industrial/smelt_mithril_concentrate": 3,
     "industrial/smelt_molybdenum_concentrate": 3,
     "industrial/smelt_niobium_concentrate": 4,
@@ -2207,7 +2274,10 @@
     "yumis_dungeon_and_fight:industrial_magic_stone_block",
     "yumis_dungeon_and_fight:sulfide",
     "yumis_dungeon_and_fight:magic_ore",
-    "yumis_dungeon_and_fight:energy_crystal_block_2"
+    "yumis_dungeon_and_fight:energy_crystal_block_2",
+    "yumis_dungeon_and_fight:magnesium_dust",
+    "yumis_dungeon_and_fight:magnesium_ingot",
+    "yumis_dungeon_and_fight:niobium_titanium_magnesium_alloy"
   ],
   "mineral_tiers": {
     "yumis_dungeon_and_fight:copper_ore": 1,

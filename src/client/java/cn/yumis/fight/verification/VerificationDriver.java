@@ -247,6 +247,7 @@ public final class VerificationDriver {
             case "creativeTab"->{
                 if(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen screen)((cn.yumis.fight.mixin.CreativeTabAccessor)screen).ydnf$tab(net.minecraft.core.registries.BuiltInRegistries.CREATIVE_MODE_TAB.getValue(net.minecraft.resources.Identifier.parse(j.get("tab").getAsString())));
             }
+            case "itemCatalog"->ItemCatalogExport.write(mc,mc.gameDirectory.toPath().resolve("verification"));
             case "useBlock"->{
                 var pos=new net.minecraft.core.BlockPos(j.get("x").getAsInt(),j.get("y").getAsInt(),j.get("z").getAsInt());
                 mc.gameMode.useItemOn(mc.player,net.minecraft.world.InteractionHand.MAIN_HAND,new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(pos),net.minecraft.core.Direction.UP,pos,false));

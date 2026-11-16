@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "yumis_dungeon_and_fight:item/chaos_stone"
+    "layer0": "yumis_dungeon_and_fight:item/library/masks/sheet_02/r2c2"
   }
 }
