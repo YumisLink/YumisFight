@@ -1,0 +1,26 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:small_flowers",
+    "minecraft:sunflower",
+    "minecraft:lilac",
+    "minecraft:peony",
+    "minecraft:rose_bush",
+    "minecraft:pitcher_plant",
+    "minecraft:pink_petals",
+    "minecraft:wildflowers",
+    "minecraft:short_grass",
+    "minecraft:tall_grass",
+    "minecraft:fern",
+    "minecraft:large_fern",
+    "minecraft:short_dry_grass",
+    "minecraft:tall_dry_grass",
+    "minecraft:dead_bush",
+    "minecraft:bush",
+    "minecraft:firefly_bush",
+    "yumis_dungeon_and_fight:gray_pebbles",
+    "yumis_dungeon_and_fight:dark_pebbles",
+    "yumis_dungeon_and_fight:ground_branches",
+    "yumis_dungeon_and_fight:magic_grass"
+  ]
+}

@@ -154,7 +154,7 @@ for key,(family,tier) in devices.items():
                         block_model={'textures':{'particle':own('block/machine_side_'+str(visual)),'all':own('block/machine_side_'+str(visual))},'elements':[{'from':[2,0,2],'to':[14,2,14],'faces':{f:{'texture':'#all'} for f in ['up','down','north','south','east','west']}},{'from':[5,2,5],'to':[11,4,11],'faces':{f:{'texture':'#all'} for f in ['up','down','north','south','east','west']}}]}
                     write(ASSETS/f'models/block/{model}.json',block_model)
                     variants[f'facing={facing},tier={visual},connected={str(connected).lower()},active={str(active).lower()}']={'model':own('block/'+model),'y':rot}
-    write(ASSETS/f'blockstates/{key}.json',{'variants':variants});write(ASSETS/f'models/item/{key}.json',{'parent':'minecraft:item/generated','textures':{'layer0':own('block/'+family)}} if family in ['transfer_crystal','harvest_crystal'] else {'parent':own(f'block/{family}_{tier}')})
+    write(ASSETS/f'blockstates/{key}.json',{'variants':variants});write(ASSETS/f'models/item/{key}.json',{'parent':'minecraft:item/generated','textures':{'layer0':own('item/'+key if family=='mana_beacon' else 'block/'+family)}} if family in ['transfer_crystal','harvest_crystal','mana_beacon'] else {'parent':own(f'block/{family}_{tier}')})
 for key in items+all_blocks:
     write(ASSETS/f'items/{key}.json',magic_grass_item() if key=='magic_grass' else {'model':{'type':'minecraft:model','model':own('item/'+key)}})
     if key in blocks:write(ASSETS/f'models/item/{key}.json',{'parent':own('block/'+key)})

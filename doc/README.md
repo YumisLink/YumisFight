@@ -39,10 +39,11 @@
 | NPC、对白、新手任务、商店与集市投放 | `modules/npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`、`NpcTutorial.java`；客户端 `npc/client/NpcDialogueScreen.java`、`TutorialPage.java`；商店合同 `modules/economy/api/ShopDefinitions.java`、`ShopMenu.java`；规则 `rules/npcs.json`、`rules/shops.json`，蓝图挂载见野外建筑生成规则 |
 | 单抽罐子、奖池与演出 | `modules/economy/api/JarDefinitions.java`、`LootJarItem.java`；配置 `rules/jars.json`，本机决定奖品在客户端 `economy/client/EconomyActions.java`，演出在 `JarClient.java`、`JarScreen.java`，保存与交付在主源码 `application/JarService.java` |
 | 队伍与邀请 | `modules/party/api/Team.java`、`PartyInvitation.java` |
+| 方舟守卫圈入场、参加与柱面名单 | `modules/arkguard/api/ArkGuardRing.java`、`application/ArkGuardService.java`；客户端 `arkguard/client/ArkGuardClient.java`，地图资源 `map_blueprint/ark_guard_ring.json` |
 | 页面、主题、输入与通用演出 | `modules/presentation/api/`；分片染色文字 `RichText.java`，客户端 `presentation/api/client/RichTextDrawing.java`；其余绘制及页面合同查 `client/` 和 `api/client/` |
 | 野外建筑、配置地图与出生村庄 | [野外建筑生成规则](创作指南/野外建筑生成.md)；公开入口 `modules/mapgeneration/api/MapGeneration.java`、`MapBlueprint.java`；启动开关在游戏目录 `config/ydcore.toml` |
 | 魔力花与魔力草循环 | `modules/industry/api/MagicFlora.java`；植物、液体与展示产线的制作源在 `tools/industrial_technology.py` |
-| 液体管道、管网与权杖端口 | `modules/industry/api/FluidPipes.java`；本模块实现 `platform/FluidPipeBlockEntity.java`、`FluidPipeNetwork.java`，制作源 `tools/industrial_fluid_pipes.py`，贴图源 `tools/industrial_fluid_pipes.aseprite`、`draw_industrial_fluid_pipes.lua` |
+| 液体管道、管网与权杖端口 | `modules/industry/api/FluidPipes.java`；本模块实现 `platform/FluidPipeBlockEntity.java`、`FluidPipeNetwork.java`；模型及共用尺寸源 `tools/industrial_fluid_pipes.py`、`platform/FluidPipeGeometry.java`；贴图源与导出见下方12/14手绘素材入口 |
 | 世界微装饰、资源循环与自然生成 | `modules/mapgeneration/api/WorldDecorations.java`；制作源 `tools/build_world_decorations.py`，方法见 [创作指南](创作指南/README.md#世界微装饰) |
 
 ## 规则、资源与工具
@@ -54,8 +55,10 @@
 | 配方、标签、掉落与世界生成 | `src/main/resources/data/yumis_dungeon_and_fight/{recipe,tags,loot_table,worldgen}/` |
 | 语言、模型、图标、着色器与动作 | `src/main/resources/assets/yumis_dungeon_and_fight/`，按业务目录查找 |
 | 贴图制作、重绘与换色 | [贴图创作](创作指南/贴图创作.md) |
+| 管道12/14尺寸手绘素材 | 源稿 `tools/fluid_pipe_materials_12x14.aseprite`、方向标记 `tools/fluid_pipe_ports_14x2.aseprite`；初稿绘制 `tools/draw_fluid_pipe_materials_12x14.lua`；正式导出 `tools/export_fluid_pipe_materials_12x14.lua`；切片布局 `tools/fluid_pipe_materials_12x14_layout.json` |
 | 矿石方块换色与自发光 | 可编辑源稿 `tools/industrial_ores.aseprite`，配色与等级 `tools/industrial_ore_definitions.lua`，绘制及导出入口 `tools/draw_industrial_ores.lua`、`tools/export_industrial_ores.lua` |
 | 科技方块矩阵外观 | `tools/technology_blocks.aseprite`（五帧，16×16），绘制入口 `tools/draw_technology_blocks.lua`，玻璃／发光边／内核与双层模型导出 `tools/export_technology_blocks.lua`；尺寸与光照在 `modules/industry/platform/TechnologyBlock.java` |
+| 信标塔物品图标 | `tools/mana_beacon_items.aseprite`（五帧，32×32），绘制／导出入口 `tools/draw_mana_beacon_items.lua`；`exportOnly=true` 仅导出保存的源稿，物品模型由 `tools/industrial_visual_models.py` 的 `generate_beacon_items()` 生成 |
 | 渔获贴图源稿与导出 | `tools/fishing_catches.aseprite`（36 帧，16×16）与 `tools/export_fishing_catches.lua`；`item=<物品ID>` 导出单项，`allTiles=true` 导出全部素材到 `temp/fish-art/tiles/` |
 | 工业资源生成源 | `tools/industrial_resources.py`、`industrial_expansion.py`、`industrial_technology.py`；机械几何为 `tools/industrial_arcane_models.py`，贴图为 `industrial_arcane_art.lua`、`industrial_arcane_breathing.lua`；原版／Mekanism 底图的材料换色源为 `tools/draw_industrial_material_bases.lua`，高阶锭细节与动画源为 `tools/draw_industrial_ingot_details.lua`，共用源稿 `tools/industrial_material_bases.aseprite`（每帧16×16）；导体、组件与点火芯源为 `tools/draw_industrial_components.lua`、`tools/industrial_component_bases.aseprite`；燃料棒、胶囊与核素热源源稿为 `tools/nuclear_fuel_rods.aseprite`，魔能水晶物品图标源稿为 `tools/energy_crystals.aseprite`（均为16×16）；其余材料源为 `tools/draw_industrial_materials.lua`、`tools/industrial_materials.aseprite`（32×32，保留探矿器帧）；统一导出为 `tools/export_industrial_materials.lua`，`only=bases` 仅导出基底材料，`only=ingots` 仅导出锭类 |
 | 武器模型生成源 | `tools/build_weapon_models.py`、`tools/build_warglaive_model.py`；光剑本机发光材质源 `tools/weapon_glow_resources.py` |

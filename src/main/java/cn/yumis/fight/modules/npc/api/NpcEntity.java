@@ -47,8 +47,9 @@ public final class NpcEntity extends PathfinderMob implements WorldVitalEntity {
     @Override protected void customServerAiStep(ServerLevel level){
         super.customServerAiStep(level);var definition=NpcInteractionComponent.query(this);
         if(definition!=null){String title=definition.displayName();if(getCustomName()==null||!getCustomName().getString().equals(title))setCustomName(ModText.of(title));}
-        if(trading())getNavigation().stop();else if(getNavigation().isDone()&&waitTicks>0)waitTicks--;
+        if(trading()||stationary())getNavigation().stop();else if(getNavigation().isDone()&&waitTicks>0)waitTicks--;
     }
+    private boolean stationary(){var definition=NpcInteractionComponent.query(this);return definition!=null&&definition.stationary();}
     @Override public boolean isWithinHome(BlockPos p){return isWithinHome(Vec3.atCenterOf(p));}
     @Override public boolean isWithinHome(Vec3 p){var h=getHomePosition();return !hasHome()||Math.pow(p.x-h.getX()-.5,2)+Math.pow(p.z-h.getZ()-.5,2)<=32*32;}
     @Override public boolean removeWhenFarAway(double distance){return false;}
@@ -72,7 +73,7 @@ public final class NpcEntity extends PathfinderMob implements WorldVitalEntity {
         private Path path;
         SlowWander(){setFlags(EnumSet.of(Flag.MOVE));}
         @Override public boolean canUse(){
-            if(waitTicks>0||trading()||!getNavigation().isDone())return false;
+            if(waitTicks>0||trading()||stationary()||!getNavigation().isDone())return false;
             for(int attempt=0;attempt<12;attempt++){
                 var destination=LandRandomPos.getPos(NpcEntity.this,8,3);if(destination==null||!isWithinHome(destination)||position().distanceToSqr(destination)<9||position().distanceToSqr(destination)>64)continue;
                 path=getNavigation().createPath(destination.x,destination.y,destination.z,0);if(path==null||!path.canReach())continue;
@@ -82,7 +83,7 @@ public final class NpcEntity extends PathfinderMob implements WorldVitalEntity {
             waitTicks=nextWait();return false;
         }
         @Override public void start(){getNavigation().moveTo(path,.6);}
-        @Override public boolean canContinueToUse(){return !getNavigation().isDone()&&!trading();}
+        @Override public boolean canContinueToUse(){return !getNavigation().isDone()&&!trading()&&!stationary();}
         @Override public void stop(){getNavigation().stop();waitTicks=nextWait();}
     }
 }

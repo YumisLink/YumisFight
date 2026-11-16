@@ -83,7 +83,7 @@ public class DungeonService {
         this.characters=characters;
         this.journal=journal;this.server=server;this.playerAccess=players;this.targets=targets;this.rewards=rewards;this.meter=meter;this.team=team;this.refresh=refresh;
         this.layouts=new DungeonLayouts(decorations);
-        this.goblinCamp=new GoblinCampEncounterService(this,journal,targets);
+        this.goblinCamp=new GoblinCampEncounterService(this,journal);
         this.gbl=new GblEncounterService(this,journal,players,targets);
         this.palace=new PalaceEncounterService(this,players,targets);
         this.forbidden=new ForbiddenEncounterService(this,journal,players,targets);

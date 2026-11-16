@@ -28,7 +28,7 @@
 | `dungeons/api/ClassicEnemyKind.java`、`ClassicMove.java`；`content/ClassicDungeonRooms.java` 及各副本内容类 | 经典后续副本登记原型、六组编队与首领，精英复用本体；动作稳定ID对应原生模型片段，毫秒时长及接触相位共同驱动动作、预警与本机判定。召唤物／机关在所属副本服务维护，不计入普通编队清场数；中间复活不发布死亡回执，最终死亡沿原奖励入口。 |
 | `industry/api/MagicFlora.java` | 魔力花资源循环由草方块原生随机刻触发；先校验空位和相邻种源，再检查花的覆盖范围，不用全局扫描或定时补生。植物、液体及展示产线的制作源为 `tools/industrial_technology.py`。 |
 | `industry/api/DeviceType.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；`platform/IndustrialProcessing.java` | 新设备和工艺复用设备能力、科技目录、批次／产线结算；精度用既有 `EnergyMath`／`Fraction`，资源从正式生成源维护。 |
-| `industry/api/FluidPipes.java`；`tools/industrial_fluid_pipes.py` | 管道档位登记每段容量、机器接口流量与科技等级；Create基底和来源固定在 `industrial_fluid_pipes_create.json`，连接几何、配方和科技目录从制作源维护。`draw_industrial_fluid_pipes.lua` 与同名 Aseprite 源稿保留锁定原图、换色和方向标记图层，将图集按UV拆为16×16贴图，不缩小原像素。`--preview` 读取正式模型与贴图，以正常清晰度导出基本形状、三档材质和六方向全部连接正反视图至 `temp/fluid-pipes/`。液体通过本模块既有数量仓与事务接口转移，跨模块仍只消费公开 API。 |
+| `industry/api/FluidPipes.java`；`tools/industrial_fluid_pipes.py` | 管道档位登记每段容量、机器接口流量与科技等级；连接几何、配方和科技目录从制作源维护。管身12×12，沿连接方向接满16像素；管道之间及送入机器的接口仅用第三行第一个12×2切片衔接，从机器抽取时动态显示14×14、深2的端框。尺寸及抽取端框顶点／UV同步生成至 `FluidPipeGeometry.java`，供选择形状、液体和动态渲染复用；端框与标记跟随既有机器接口状态同步，不增加连接状态组合。三档模型继承同一几何与对应材质，表面按切片原尺寸取UV，直管、转角及其他拓扑通过旋转复用标准面。`--preview` 读取正式模型与贴图，端框使用相同制作源，导出基本形状、三档材质及六方向全部连接正反视图至 `temp/fluid-pipes/`；加 `--overview-only` 仅导出基本形状与材质图。材质编辑与导出遵循下方手绘素材流程。液体通过本模块既有数量仓与事务接口转移，跨模块仍只消费公开 API。 |
 | `economy/api/WorldItemTransfers.java`；`inventory/api/InventoryOperations.java` | 无人值守收取公共掉落物、从持久容器抛出物品时，复用世界物品端口与 `transactContainer`，由经济模块维护掉落账本，库存模块统一提交变更、去重和内存回滚；提交后才更新世界投影。传送带制作源为 `tools/industrial_conveyors.py`，贴图源稿为同目录 `industrial_conveyors.aseprite`、`titanium_conveyor_frame.aseprite`，绘制入口为 `draw_industrial_conveyors.lua`；钛包边用 `metalBase` 传入原版 anvil 底图，`rimOnly=true` 仅更新包边；仅更新传送带模型／状态时使用 `--models-only`，尺寸同步生成至 `ConveyorGeometry.java`。新增放置方式复用工业模块 `ConveyorConnections` 的端口高度与坡度规则、`ConveyorRoute` 的整线校验；客户端负责选点与 A*，建造计划和扣料经既有库存 WAL 一起提交，由 `ConveyorConstructionService` 放置后完成记录；本次运行中的失败放置保留重试，区块沿原版正常保存。 |
 | `economy/api/CurrencyRules.java`、`RewardRules.java`、`ChestRewards.java`、`RewardPorts.java`；`professions/api/ProfessionRewards.java` | 掉落、出售分解、通货与副职业奖励由本人客户端按原资格计算；消费与确定奖品走既有库存／WAL事务，源快照、操作号和结果一并保存。重试复用已确定结果，不新增第二套余额或发奖模型。 |
 | `economy/api/JarDefinitions.java`、`LootJarItem.java` | 单抽罐子登记奖池与权重，物品工厂使用定义ID；开罐与交付沿库存／WAL事务，演出不决定奖品。配置方法见下文。 |
@@ -37,6 +37,8 @@
 | 客户端 `presentation/api/client/WorldQuads.java`、`EffectModels.java`、`EffectParticles.java`、`NearEffectRendering.java` | 技能和副本共用世界绘制、粒子及近身淡化；内容提供形状和时间轴，展示不授予命中、无敌或重力权限。 |
 | `mapgeneration/api/MapGeneration.java`、`MapBlueprint.java` | JSON 蓝图与原版 NBT 结构共用道路、其他地面、建筑／设施三类配置；统一规划后放置。管理员用 `/ydnf map plan <蓝图> [x y z]` 预览规划摘要、`/ydnf map generate <蓝图> [x y z]` 生成；控制台必须给坐标。 |
 | `mapgeneration/api/WorldDecorations.java` | 真实可拆装饰方块与独立创造栏；落叶复用原版增铺，碎石等保存布局，悬空碎石的外观与形状共用时间轴。制作入口见下文。 |
+
+管道手绘素材以 `tools/fluid_pipe_materials_12x14.aseprite` 的64×64图集及命名切片为准：第1～3帧保留三档金属色阶，第4帧存在时默认整帧作为母稿，亦可用 `masterFrame` 指定。第3档逐像素保留母稿，其余档位仅映射原金属色阶，保留手绘新增颜色与透明度。直线、转弯各保留一份原稿，其他朝向通过UV旋转复用；三通、四通与单向端部按各自拓扑独立登记。A3外壳取中央12×12用于断开面，A4端框仅用于从机器抽取的接口；不套用原版玻璃图。`draw_fluid_pipe_materials_12x14.lua` 仅建立初稿，已有源稿默认拒绝重画；手绘保存后运行 `export_fluid_pipe_materials_12x14.lua`，直接导出三张正式图集、`fluid_pipe_materials_12x14_layout.json` 及原尺寸分件预览，再运行模型制作源。端口方向标记独立编辑 `fluid_pipe_ports_14x2.aseprite`：抽取标记按14×2输出，送入标记仅裁掉两端各1像素空白、按12×2输出。导出过程不保存或改写用户母稿，不缩小原始像素。
 
 规则整包接主源码 `bootstrap/ApplicationRules.java` 与 `architecture/RuleStore.java` 的既有发布流程；新增内容不另建通用网络、事务或规则运行时。
 

@@ -9,6 +9,7 @@ import net.minecraft.world.level.ChunkPos;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public final class GenerationService {
@@ -16,6 +17,7 @@ public final class GenerationService {
     private final MinecraftServer server;
     private GenerationPlan pending,last;
     private MapLighting lighting;
+    private CompletableFuture<Void> lightCompletion;
     private Consumer<String> completion;
     private int waitTicks,rounds,settle;
     private boolean spawn;
@@ -25,7 +27,7 @@ public final class GenerationService {
         if(pending!=null)throw new IllegalStateException("已有地图正在完成光照检查");
         GenerationPlan plan=plan(blueprint,level,origin);
         this.pending=plan;this.last=plan;this.spawn=spawn;this.completion=reply;this.rounds=0;this.settle=0;this.waitTicks=20;
-        try {MapPlacer.place(plan);}catch(RuntimeException e){pending=null;last=null;completion=null;throw e;}
+        try {MapPlacer.place(plan);lightCompletion=awaitNativeLight(plan);}catch(RuntimeException e){pending=null;last=null;completion=null;lightCompletion=null;throw e;}
         if(plan.blueprint.settings.noHostileSpawns) {
             var unwanted=new ArrayList<net.minecraft.world.entity.Entity>();for(var entity:level.getAllEntities())if(hostile(entity)&&plan.inside(entity.blockPosition().getX(),entity.blockPosition().getZ()))unwanted.add(entity);
             unwanted.forEach(net.minecraft.world.entity.Entity::discard);plan.metrics.put("initial_hostiles_removed",unwanted.size());
@@ -37,11 +39,20 @@ public final class GenerationService {
     public void tick() {
         if(pending==null||--waitTicks>0)return;
         MapPlacer.levelLight(pending.level);
+        // hasLightWork does not include the threaded engine's queued block tasks.
+        // Keep this generation's chunks loaded through their POST_UPDATE barriers.
+        if(lightCompletion!=null&&!lightCompletion.isDone()){waitTicks=5;return;}
+        if(lightCompletion!=null&&lightCompletion.isCompletedExceptionally()){
+            try{lightCompletion.join();}catch(RuntimeException failure){LOG.error("地图原生光照未完成",failure);}
+            MapPlacer.releaseChunks(pending);
+            if(completion!=null)completion.accept("地图光照未完成，未登记为完成地图。");
+            pending=null;lighting=null;completion=null;lightCompletion=null;return;
+        }
         if(pending.level.getChunkSource().getLightEngine().hasLightWork()&&settle++<200){waitTicks=5;return;}
         if(lighting!=null) {
             int remaining=lighting.dark().size();
             if(remaining>0&&rounds++<60) {
-                int added=lighting.supplement(32);waitTicks=10;
+                int added=lighting.supplement(32);if(added>0)lightCompletion=awaitNativeLight(pending);waitTicks=10;
                 LOG.info("MAP_LIGHTING round={} dark={} added={}",rounds,remaining,added);
                 if(added>0||rounds<3)return;
             }
@@ -51,12 +62,20 @@ public final class GenerationService {
         MapPlacer.releaseChunks(pending);
         String result=pending.summary();LOG.info("MAP_COMPLETE {}",result);
         if(completion!=null)completion.accept(result);
-        pending=null;lighting=null;completion=null;
+        pending=null;lighting=null;completion=null;lightCompletion=null;
+    }
+    private static CompletableFuture<Void> awaitNativeLight(GenerationPlan plan){
+        var engine=plan.level.getChunkSource().getLightEngine();
+        List<CompletableFuture<?>> barriers=new ArrayList<>();
+        for(int x=plan.minX>>4;x<=plan.maxX>>4;x++)for(int z=plan.minZ>>4;z<=plan.maxZ>>4;z++)barriers.add(engine.waitForPendingTasks(x,z));
+        engine.tryScheduleUpdate();
+        return CompletableFuture.allOf(barriers.toArray(CompletableFuture[]::new));
     }
     public GenerationPlan last() {return last;}
+    public boolean generating(){return pending!=null;}
     public static boolean hostile(net.minecraft.world.entity.Entity entity) {return entity instanceof net.minecraft.world.entity.monster.Enemy||entity.getType().getCategory()==net.minecraft.world.entity.MobCategory.MONSTER;}
     public boolean blocksHostiles(ServerLevel level,int x,int z) {return pending!=null&&pending.level==level&&pending.blueprint.settings.noHostileSpawns&&pending.inside(x,z)||GenerationStore.blocksHostiles(level,x,z);}
-    public void close() {if(pending!=null)MapPlacer.releaseChunks(pending);}
+    public void close() {if(pending!=null)MapPlacer.releaseChunks(pending);lightCompletion=null;}
     public String inspect() {
         if(last==null)return "{}";
         var root=new com.google.gson.JsonObject();root.addProperty("blueprint",last.id.toString());root.addProperty("mode",last.mode.name());

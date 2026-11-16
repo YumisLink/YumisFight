@@ -11,6 +11,7 @@ public final class PlayerPages {
         register(new Page("professions","副职业","副职","professions","professions",true));
         register(new Page("party","战斗队伍","队伍","party","",true));
         register(new Page("dungeons","地下城","副本","dungeons","",true));
+        register(new Page("other_games","其他玩法","其他玩法","dungeons","",true));
         register(new Page("shop","商城","商城","shop","",true));
         register(new Page("bag","次元背包","背包","dimensional_bag","bag",false));
         register(new Page("sale","出售物品","出售","shop","",true));

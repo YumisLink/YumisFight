@@ -201,13 +201,24 @@ def generate_energy_crystals(update_source=False):
     return meshes
 
 
+def generate_beacon_items():
+    """Use the native tier sprites in every item display context."""
+    for tier in range(1,6):
+        name=f'mana_beacon_t{tier}'
+        write(ASSETS/f'models/item/{name}.json',
+              {'parent':'minecraft:item/generated','textures':{'layer0':f'{NS}:item/{name}'}})
+        write(ASSETS/f'items/{name}.json',
+              {'model':{'type':'minecraft:model','model':f'{NS}:item/{name}'}})
+
+
 def generate():
     meshes = generate_energy_crystals()
+    generate_beacon_items()
     # Static item meshes include the plinth; placed blocks retain the existing animated BER.
-    for family in ('transfer_crystal','harvest_crystal','mana_beacon'):
+    for family in ('transfer_crystal','harvest_crystal'):
         write(ASSETS/f'models/item/{family}_icon.json',
               {'parent':'minecraft:item/generated','textures':{'layer0':f'{NS}:block/{family}'}})
-        for tier in range(1,6 if family=='mana_beacon' else 4):
+        for tier in range(1,4):
             name=f'{family}_t{tier}'
             data=mesh();cube(data,(.125,0,.125),(.875,.125,.875))
             cube(data,(.25,.125,.25),(.75,.22,.75))
@@ -217,8 +228,6 @@ def generate():
                 cube(data,(.18,.7,.37),(.82,.78,.63))
             if family=='harvest_crystal':
                 for x,z in [(.2,.35),(.8,.35),(.5,.82)]:crystal(data,(x,.3,z),.06,.28,6)
-            if family=='mana_beacon':
-                for x,z in [(.12,.12),(.78,.12),(.12,.78),(.78,.78)]:cube(data,(x,.125,z),(x+.1,.55,z+.1))
             if tier>1 and family!='harvest_crystal':
                 crystal(data,(.23,.37,.5),.065,.3,6)
                 crystal(data,(.77,.37,.5),.065,.3,6)
@@ -237,7 +246,7 @@ def generate():
     SOURCE.mkdir(parents=True,exist_ok=True)
     write(SOURCE/'meshes.json',meshes)
     write(ASSETS/'models/block/equipment_fabricator.json',device_model('equipment_fabricator',1))
-    print('Refreshed 240 device variants, equipment fabricator, 8 crystal items and 11 crystal plinth items.')
+    print('Refreshed 240 device variants, equipment fabricator, 8 crystal items, 5 beacon sprites and 6 crystal plinth items.')
 
 
 if __name__=='__main__':

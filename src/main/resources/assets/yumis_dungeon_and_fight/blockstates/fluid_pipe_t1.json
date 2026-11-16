@@ -37,8 +37,7 @@
       "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/11"
     },
     "down=false,up=false,north=true,south=true,west=false,east=false": {
-      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/12",
-      "x": 90
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/12"
     },
     "down=true,up=false,north=true,south=true,west=false,east=false": {
       "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/13"
@@ -146,9 +145,7 @@
       "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/47"
     },
     "down=false,up=false,north=false,south=false,west=true,east=true": {
-      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/48",
-      "x": 90,
-      "y": 90
+      "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/48"
     },
     "down=true,up=false,north=false,south=false,west=true,east=true": {
       "model": "yumis_dungeon_and_fight:block/fluid_pipe_t1/49"

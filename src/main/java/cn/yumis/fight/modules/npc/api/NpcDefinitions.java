@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 
 public final class NpcDefinitions {
     public record Action(String id,String label,String type,String value) {}
-    public record Definition(String name,List<Action> actions,List<String> dialogue,String skin,String headwear,String title,boolean unique,NpcTutorial.Definition tutorial) {
+    public record Definition(String name,List<Action> actions,List<String> dialogue,String skin,String headwear,String title,boolean unique,boolean stationary,NpcTutorial.Definition tutorial) {
         public String displayName(){return title==null||title.isBlank()?name+" Lv."+NpcEntity.LEVEL:name+" · "+title;}
     }
     public record Skin(String name,String uuid,String texture,boolean slim,boolean exclusive) {}

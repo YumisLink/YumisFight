@@ -1,5 +1,30 @@
 {
   "npcs": {
+    "ark_guard_guide": {
+      "name": "方舟引导员",
+      "stationary": true,
+      "actions": [
+        {"id": "participate", "label": "我要参加守卫", "type": "ark_guard", "value": "join"},
+        {"id": "withdraw", "label": "取消参加守卫", "type": "ark_guard", "value": "withdraw"},
+        {"id": "leave", "label": "返回进入前的位置", "type": "ark_guard", "value": "leave"},
+        {"id": "chat", "label": "交流", "type": "chat", "value": ""}
+      ],
+      "dialogue": [
+        "欢迎来到方舟。四处展台各自对应一个守卫入口。",
+        "准备加入守卫时，到方舟里面来找我。"
+      ]
+    },
+    "ark_guard_attendant": {
+      "name": "方舟看台管理员",
+      "stationary": true,
+      "actions": [
+        {"id": "chat", "label": "交流", "type": "chat", "value": ""}
+      ],
+      "dialogue": [
+        "前排是招募展台，近旁的展台留给你的守卫。",
+        "这里的通道连着各个展台，记得给守卫留出位置。"
+      ]
+    },
     "mobs_merchant": {
       "name": "怪物掉落商人",
       "actions": [

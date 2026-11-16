@@ -276,8 +276,8 @@ final class ArcaneRotorMesh {
         if is_wind:display['gui']={'rotation':[18,225,0],'translation':[0,-5.8,0],'scale':[.31,.31,.31]};display['ground']={'translation':[0,3,0],'scale':[.14,.14,.14]}
         write(ASSETS/f'models/item/{family}.json',{'loader':'neoforge:obj','model':f'{NS}:models/industry/{name}.obj','automatic_culling':False,'textures':{'atlas':f'{NS}:block/arcane/{family}_{tier}','particle':f'{NS}:block/arcane/{family}_{tier}'},'display':display})
     # Static crystal items match their new plinths, with the existing true crystal mesh retained.
-    for family in ['mana_beacon','transfer_crystal','harvest_crystal']:
-        for tier in range(1,6 if family=='mana_beacon' else 4):
+    for family in ['transfer_crystal','harvest_crystal']:
+        for tier in range(1,4):
             name=f'{family}_t{tier}';base_mesh=to_mesh(model(family,tier)['elements']);gem=copy.deepcopy(meshes[name])
             base_mesh['materials']=['atlas']*len(base_mesh['faces'])
             for face,band in zip(gem['faces'],gem['bands']):

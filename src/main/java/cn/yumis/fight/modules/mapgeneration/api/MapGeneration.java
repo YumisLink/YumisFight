@@ -39,6 +39,17 @@ public final class MapGeneration {
     public static void stopped(MinecraftServer server) {var current=SERVICES.remove(server);if(current!=null)current.close();}
     public static String audit(MinecraftServer server) {return service(server).audit();}
     public static String inspect(MinecraftServer server) {return service(server).inspect();}
+    /** Prepare a shared scene once. False means callers should wait for native placement/light completion. */
+    public static boolean prepare(ServerLevel level,Identifier blueprint,BlockPos origin)throws Exception{
+        if(GenerationStore.generated(level,blueprint,origin))return true;
+        var current=service(level.getServer());
+        if(!current.generating()){
+            var previous=current.last();
+            if(previous!=null&&previous.level==level&&previous.id.equals(blueprint)&&previous.origin.equals(origin))throw new IllegalStateException("地图上次放置未完成，请检查生成日志。");
+            current.generate(blueprint,level,origin,false,s->{});
+        }
+        return false;
+    }
     public static boolean blocksHostileSpawn(net.minecraft.world.entity.Entity entity,Level level) {
         return level instanceof ServerLevel serverLevel&&GenerationService.hostile(entity)&&service(serverLevel.getServer()).blocksHostiles(serverLevel,entity.blockPosition().getX(),entity.blockPosition().getZ());
     }

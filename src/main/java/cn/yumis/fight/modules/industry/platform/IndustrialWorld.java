@@ -93,7 +93,19 @@ public final class IndustrialWorld extends SavedData {
     public void changed(ServerLevel level,BlockPos pos){for(var be:nearby(level,pos,6))if(be.device().needsStructure()&&IndustrialStructures.contains(be,pos))validations.add(be);}
     public void chunkChanged(ServerLevel level){for(var be:loaded.values())if(be.getLevel()==level&&(be.device().needsStructure()))validations.add(be);}
     public void placed(MachineBlockEntity be){
-        register(be);if(be.device().has(DeviceType.Capability.STORAGE_NETWORK))refreshCoverage(be);else discover(be);
+        register(be);if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)){refreshCoverage(be);connectNearbyBeacons(be);}else discover(be);
+    }
+    private void connectNearbyBeacons(MachineBlockEntity core){
+        // A higher-tier neighbour may reach this core from beyond its own radius.
+        int range=Arrays.stream(IndustrialRules.current().beaconRadii).max().orElse(core.radius());
+        String key=core.identity.toString();Node node=nodes.get(key);boolean changed=false;
+        for(var other:nearby((ServerLevel)core.getLevel(),core.getBlockPos(),range)){
+            if(!canLink(core,other))continue;
+            String otherKey=other.identity.toString();
+            if(node.links.add(otherKey))changed=true;
+            if(nodes.get(otherKey).links.add(key))changed=true;
+        }
+        if(changed){topologyDirty=true;reservations.clear();setDirty();note(core,"放置时已自动连接附近信标网络");}
     }
     public void refreshCoverage(MachineBlockEntity core){topologyDirty=true;for(var device:nearby((ServerLevel)core.getLevel(),core.getBlockPos(),core.radius()))discover(device);note(core,"信标覆盖已刷新");}
     public void discover(MachineBlockEntity be){
@@ -104,8 +116,12 @@ public final class IndustrialWorld extends SavedData {
     }
     public MachineBlockEntity validBeacon(MachineBlockEntity be){MachineBlockEntity core=loaded.get(be.beacon);return core!=null&&core.device().has(DeviceType.Capability.STORAGE_NETWORK)&&!core.isRemoved()&&core.getLevel()==be.getLevel()&&core.getBlockPos().distSqr(be.getBlockPos())<=core.radius()*(double)core.radius()?core:null;}
     public void bind(MachineBlockEntity core,MachineBlockEntity device){if(!core.device().has(DeviceType.Capability.STORAGE_NETWORK)||core.isRemoved()||loaded.get(core.identity.toString())!=core||device.device().has(DeviceType.Capability.STORAGE_NETWORK)||core.getLevel()!=device.getLevel()||core.getBlockPos().distSqr(device.getBlockPos())>core.radius()*(double)core.radius())throw new IllegalArgumentException("信标无效或设备超出覆盖范围");device.beacon=core.identity.toString();device.setChanged();}
+    private boolean canLink(MachineBlockEntity a,MachineBlockEntity b){
+        if(a==b||!a.device().has(DeviceType.Capability.STORAGE_NETWORK)||!b.device().has(DeviceType.Capability.STORAGE_NETWORK)||a.isRemoved()||b.isRemoved()||loaded.get(a.identity.toString())!=a||loaded.get(b.identity.toString())!=b||a.getLevel()!=b.getLevel())return false;
+        int range=Math.max(a.radius(),b.radius());return a.getBlockPos().distSqr(b.getBlockPos())<=range*(double)range;
+    }
     public void link(MachineBlockEntity a,MachineBlockEntity b){
-        int range=Math.max(a.radius(),b.radius());if(a==b||!a.device().has(DeviceType.Capability.STORAGE_NETWORK)||!b.device().has(DeviceType.Capability.STORAGE_NETWORK)||a.isRemoved()||b.isRemoved()||loaded.get(a.identity.toString())!=a||loaded.get(b.identity.toString())!=b||a.getLevel()!=b.getLevel()||a.getBlockPos().distSqr(b.getBlockPos())>range*(double)range)throw new IllegalArgumentException("信标须有效、同维度且在较大半径内");
+        if(!canLink(a,b))throw new IllegalArgumentException("信标须有效、同维度且在较大半径内");
         Node left=nodes.get(a.identity.toString()),right=nodes.get(b.identity.toString());if(!left.links.remove(b.identity.toString())){left.links.add(b.identity.toString());right.links.add(a.identity.toString());}else right.links.remove(a.identity.toString());topologyDirty=true;reservations.clear();note(a,"权杖修改信标连接");note(b,"权杖修改信标连接");setDirty();
     }
     private void rebuild(){

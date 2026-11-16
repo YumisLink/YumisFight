@@ -14,16 +14,24 @@ import net.minecraft.world.level.block.state.*;
 import net.minecraft.world.level.block.state.properties.*;
 import net.minecraft.world.phys.*;
 import net.minecraft.world.phys.shapes.*;
+import static cn.yumis.fight.modules.industry.platform.FluidPipeGeometry.*;
 
 /** Six independent, persisted connections; placement facing never chooses the fluid direction. */
 public final class FluidPipeBlock extends BaseEntityBlock {
     public static final BooleanProperty[] SIDES={BlockStateProperties.DOWN,BlockStateProperties.UP,BlockStateProperties.NORTH,BlockStateProperties.SOUTH,BlockStateProperties.WEST,BlockStateProperties.EAST};
     private static final VoxelShape[] SHAPES=new VoxelShape[64];
+    private static final VoxelShape[] EXTRACT_SHAPES=new VoxelShape[6];
     static {
+        for(Direction side:Direction.values()){
+            int x=side.getStepX(),y=side.getStepY(),z=side.getStepZ();
+            EXTRACT_SHAPES[side.ordinal()]=Block.box(x<0?0:x>0?16-PORT_DEPTH:RIM_MIN,y<0?0:y>0?16-PORT_DEPTH:RIM_MIN,z<0?0:z>0?16-PORT_DEPTH:RIM_MIN,x<0?PORT_DEPTH:x>0?16:RIM_MAX,y<0?PORT_DEPTH:y>0?16:RIM_MAX,z<0?PORT_DEPTH:z>0?16:RIM_MAX);
+        }
         for(int mask=0;mask<64;mask++){
-            boolean cased=mask==0;for(int axis=0;axis<3;axis++){int count=0;for(Direction side:Direction.values())if(side.ordinal()/2!=axis&&(mask&bit(side))!=0)count++;if(count>2)cased=true;}
-            VoxelShape shape=cased?Block.box(3,3,3,13,13,13):Block.box(4,4,4,12,12,12);
-            for(Direction side:Direction.values())if((mask&bit(side))!=0){int x=side.getStepX(),y=side.getStepY(),z=side.getStepZ();shape=Shapes.or(shape,Block.box(x<0?0:4,y<0?0:4,z<0?0:4,x>0?16:12,y>0?16:12,z>0?16:12),Block.box(x<0?0:x>0?14:3,y<0?0:y>0?14:3,z<0?0:z>0?14:3,x<0?2:x>0?16:13,y<0?2:y>0?16:13,z<0?2:z>0?16:13));}
+            VoxelShape shape=Block.box(BODY_MIN,BODY_MIN,BODY_MIN,BODY_MAX,BODY_MAX,BODY_MAX);
+            for(Direction side:Direction.values())if((mask&bit(side))!=0){
+                int x=side.getStepX(),y=side.getStepY(),z=side.getStepZ();
+                shape=Shapes.or(shape,Block.box(x<0?0:BODY_MIN,y<0?0:BODY_MIN,z<0?0:BODY_MIN,x>0?16:BODY_MAX,y>0?16:BODY_MAX,z>0?16:BODY_MAX));
+            }
             SHAPES[mask]=shape;
         }
     }
@@ -38,7 +46,11 @@ public final class FluidPipeBlock extends BaseEntityBlock {
     @Override public BlockEntity newBlockEntity(BlockPos pos,BlockState state){return new FluidPipeBlockEntity(pos,state);}
     @Override protected RenderShape getRenderShape(BlockState state){return RenderShape.MODEL;}
     @Override public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level,BlockState state,BlockEntityType<T> type){return level.isClientSide()?null:createTickerHelper(type,IndustrialContent.FLUID_PIPE_BE.get(),FluidPipeBlockEntity::tick);}
-    @Override protected VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return SHAPES[mask(state)];}
+    @Override protected VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){
+        VoxelShape shape=SHAPES[mask(state)];
+        if(level.getBlockEntity(pos) instanceof FluidPipeBlockEntity pipe){int extract=pipe.extractionMask()&mask(state);for(Direction side:Direction.values())if((extract&bit(side))!=0)shape=Shapes.or(shape,EXTRACT_SHAPES[side.ordinal()]);}
+        return shape;
+    }
     @Override protected void neighborChanged(BlockState state,Level level,BlockPos pos,Block block,net.minecraft.world.level.redstone.Orientation orientation,boolean moved){if(level.getBlockEntity(pos) instanceof FluidPipeBlockEntity pipe)pipe.refreshShape();}
     @Override public void setPlacedBy(Level level,BlockPos pos,BlockState state,LivingEntity owner,ItemStack stack){super.setPlacedBy(level,pos,state,owner,stack);if(level instanceof ServerLevel&&level.getBlockEntity(pos) instanceof FluidPipeBlockEntity pipe)pipe.initialize(owner instanceof Player p?p:null);}
     @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,net.minecraft.world.InteractionHand hand,BlockHitResult hit){return InteractionResult.PASS;}

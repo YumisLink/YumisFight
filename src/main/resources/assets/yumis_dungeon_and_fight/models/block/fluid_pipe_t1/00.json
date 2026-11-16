@@ -1,81 +1,11 @@
 {
-  "credit": "Create Team / Creators of Create; 16px atlas split and grade recolors by this project",
-  "ambientocclusion": true,
+  "credit": "12x14 Aseprite pipe materials; complete user fourth-frame design, canonical faces reused by rotation",
+  "ambientocclusion": false,
   "render_type": "minecraft:cutout",
   "textures": {
-    "junction_t1": "yumis_dungeon_and_fight:block/fluid_pipe_junction_t1",
+    "atlas": "yumis_dungeon_and_fight:block/fluid_pipe_12x14_t1",
     "particle": "yumis_dungeon_and_fight:block/fluid_pipe_metal_t1"
   },
-  "elements": [
-    {
-      "from": [
-        3,
-        3,
-        3
-      ],
-      "to": [
-        13,
-        13,
-        13
-      ],
-      "faces": {
-        "north": {
-          "uv": [
-            2,
-            6,
-            12,
-            16
-          ],
-          "texture": "#junction_t1"
-        },
-        "east": {
-          "uv": [
-            2,
-            6,
-            12,
-            16
-          ],
-          "texture": "#junction_t1"
-        },
-        "south": {
-          "uv": [
-            2,
-            6,
-            12,
-            16
-          ],
-          "texture": "#junction_t1"
-        },
-        "west": {
-          "uv": [
-            2,
-            6,
-            12,
-            16
-          ],
-          "texture": "#junction_t1"
-        },
-        "up": {
-          "uv": [
-            2,
-            6,
-            12,
-            16
-          ],
-          "texture": "#junction_t1"
-        },
-        "down": {
-          "uv": [
-            2,
-            6,
-            12,
-            16
-          ],
-          "texture": "#junction_t1"
-        }
-      }
-    }
-  ],
   "display": {
     "gui": {
       "rotation": [
@@ -106,5 +36,31 @@
         0.4
       ]
     }
-  }
+  },
+  "elements": [
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"down":{"texture":"#atlas","uv":[4.0,5.0,7.0,8.0]}}},
+    {"from":[2,2.4,2],"to":[14,2.4,14],"faces":{"up":{"texture":"#atlas","uv":[4.0,8.0,7.0,5.0]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"down":{"texture":"#atlas","uv":[11.75,4.75,14.75,7.75]}}},
+    {"from":[2,2.4,2],"to":[14,2.4,14],"faces":{"up":{"texture":"#atlas","uv":[11.75,7.75,14.75,4.75]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"up":{"texture":"#atlas","uv":[4.0,5.0,7.0,8.0]}}},
+    {"from":[2,13.6,2],"to":[14,13.6,14],"faces":{"down":{"texture":"#atlas","uv":[4.0,8.0,7.0,5.0]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"up":{"texture":"#atlas","uv":[11.75,4.75,14.75,7.75]}}},
+    {"from":[2,13.6,2],"to":[14,13.6,14],"faces":{"down":{"texture":"#atlas","uv":[11.75,7.75,14.75,4.75]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"north":{"texture":"#atlas","uv":[4.0,5.0,7.0,8.0]}}},
+    {"from":[2,2,2.4],"to":[14,14,2.4],"faces":{"south":{"texture":"#atlas","uv":[7.0,5.0,4.0,8.0]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"north":{"texture":"#atlas","uv":[11.75,4.75,14.75,7.75]}}},
+    {"from":[2,2,2.4],"to":[14,14,2.4],"faces":{"south":{"texture":"#atlas","uv":[14.75,4.75,11.75,7.75]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"south":{"texture":"#atlas","uv":[4.0,5.0,7.0,8.0]}}},
+    {"from":[2,2,13.6],"to":[14,14,13.6],"faces":{"north":{"texture":"#atlas","uv":[7.0,5.0,4.0,8.0]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"south":{"texture":"#atlas","uv":[11.75,4.75,14.75,7.75]}}},
+    {"from":[2,2,13.6],"to":[14,14,13.6],"faces":{"north":{"texture":"#atlas","uv":[14.75,4.75,11.75,7.75]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"west":{"texture":"#atlas","uv":[4.0,5.0,7.0,8.0]}}},
+    {"from":[2.4,2,2],"to":[2.4,14,14],"faces":{"east":{"texture":"#atlas","uv":[7.0,5.0,4.0,8.0]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"west":{"texture":"#atlas","uv":[11.75,4.75,14.75,7.75]}}},
+    {"from":[2.4,2,2],"to":[2.4,14,14],"faces":{"east":{"texture":"#atlas","uv":[14.75,4.75,11.75,7.75]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"east":{"texture":"#atlas","uv":[4.0,5.0,7.0,8.0]}}},
+    {"from":[13.6,2,2],"to":[13.6,14,14],"faces":{"west":{"texture":"#atlas","uv":[7.0,5.0,4.0,8.0]}}},
+    {"from":[2,2,2],"to":[14,14,14],"faces":{"east":{"texture":"#atlas","uv":[11.75,4.75,14.75,7.75]}}},
+    {"from":[13.6,2,2],"to":[13.6,14,14],"faces":{"west":{"texture":"#atlas","uv":[14.75,4.75,11.75,7.75]}}}
+  ]
 }

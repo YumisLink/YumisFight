@@ -1,7 +1,10 @@
 package cn.yumis.fight.modules.industry.platform;
 
 import net.minecraft.core.*;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.*;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import java.util.*;
@@ -10,14 +13,19 @@ import java.util.function.Function;
 /** The client planner and server builder use the same legal placement and port rules. */
 public final class ConveyorRoute {
     public static final int MAX_LENGTH=256;
+    private static final TagKey<Block> REPLACEABLE=TagKey.create(Registries.BLOCK,IndustrialContent.id("conveyor_replaceable"));
     public record Step(BlockPos pos,Direction facing){}
     public record Plan(List<Step> steps,Map<BlockPos,BlockState> states,Set<BlockPos> fresh){}
     private ConveyorRoute(){}
     public static BlockState state(Level level,BlockPos pos){return ConveyorConnections.loaded(level,pos)?level.getBlockState(pos):Blocks.AIR.defaultBlockState();}
+    public static boolean replaceable(BlockState state){
+        return !(state.getBlock() instanceof MagicFlowerBlock)&&!state.hasBlockEntity()&&state.getFluidState().isEmpty()
+            &&(state.isAir()||state.is(REPLACEABLE));
+    }
     public static boolean available(Level level,BlockPos pos){
         if(pos.getY()<level.getMinY()||pos.getY()>level.getMaxY()||!ConveyorConnections.loaded(level,pos)||!ConveyorConnections.loaded(level,pos.below())||!level.getWorldBorder().isWithinBounds(pos))return false;
         BlockState state=level.getBlockState(pos);
-        return state.isAir()&&state.getFluidState().isEmpty()&&!state.hasBlockEntity()
+        return replaceable(state)
             &&level.getBlockState(pos.below()).isFaceSturdy(level,pos.below(),Direction.UP);
     }
     public static Plan plan(Level level,List<Step> steps,ConveyorBlock block){

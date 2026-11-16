@@ -85,6 +85,7 @@ public final class ServerApplication {
     public final JarService jars;
     public final cn.yumis.fight.modules.economy.application.ShopService shops;
     public final cn.yumis.fight.modules.npc.application.NpcService npcs;
+    public final cn.yumis.fight.modules.arkguard.application.ArkGuardService arkGuard;
     public final cn.yumis.fight.modules.npc.application.TutorialService tutorials;
     private final cn.yumis.fight.modules.economy.application.EconomyService.Drafts economyDrafts=new cn.yumis.fight.modules.economy.application.EconomyService.Drafts();
     public final DungeonService dungeons;
@@ -179,6 +180,7 @@ public final class ServerApplication {
         cn.yumis.fight.modules.npc.api.NpcEntity.conversations(npcs::conversing);
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.unregister("shop");
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.register("shop",(p,e,a)->shops.open(p,e.getUUID(),a.value()));
+        arkGuard=new cn.yumis.fight.modules.arkguard.application.ArkGuardService(server,journal,p->session(p).id.toString(),(p,value)->Network.send(p,"arkGuard",value),this::message);
         nativeHits.worldDamage(worldHealth::nativeDamage);
         progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,characters,inventory,p->session(p).progress,(p,next)->session(p).progress=next,this::profile);
         tutorials=new cn.yumis.fight.modules.npc.application.TutorialService(journal,inventory,characters,RuntimeAssembly.rewardPlayers(this),RuntimeAssembly.rewardBalance(this),p->session(p).life.generation);
@@ -240,6 +242,7 @@ public final class ServerApplication {
         if(CURRENT==null)return;
         try{
             for(ServerPlayer p:CURRENT.server.getPlayerList().getPlayers()){CURRENT.jars.interrupt(p);if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu menu){menu.forfeit();CURRENT.inventory.closeCursor(p);}cn.yumis.fight.modules.inventory.api.RewardMenu.discardPending(p);CURRENT.mages.clear(p);CURRENT.savePlayer(p);}
+            CURRENT.arkGuard.close();
             CURRENT.dungeons.shutdown();
             CURRENT.journal.close();
         }
@@ -419,6 +422,7 @@ public final class ServerApplication {
         }
     }
     public void logout(ServerPlayer p){
+        arkGuard.logout(p);
         if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu menu)menu.forfeit();
         cn.yumis.fight.modules.inventory.api.RewardMenu.discardPending(p);
         trainingService.logout(p);
@@ -576,6 +580,7 @@ public final class ServerApplication {
         commands.register("dungeons","dungeon",dungeons::request);commands.register("dungeons","cageHit",dungeons::cageHit);
         commands.register("dungeons","waystoneTable",dungeons.waystones::command);commands.register("dungeons","waystoneReturnResult",dungeons.waystones::receiveReward);
         commands.register("dungeons","trainingStart",trainingService::start);
+        commands.register("arkguard","arkGuard",arkGuard::request);
         commands.register("skills","visual",visuals::receive);
         cn.yumis.fight.bootstrap.ApplicationModules.validateCommands(commands);
         commands.seal();
@@ -602,6 +607,7 @@ public final class ServerApplication {
         for(int i=0;i<size;i++)combatQueue.removeFirst().run();
         jars.tick(server.getPlayerList().getPlayers());
         trainingService.tick();
+        arkGuard.tick();
         if(ticks%5==0){
             careers.tick();
             dungeons.tick();

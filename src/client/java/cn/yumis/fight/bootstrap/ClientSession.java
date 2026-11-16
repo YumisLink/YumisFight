@@ -154,6 +154,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         send("progress",j);
     }
     public void clear(){
+        cn.yumis.fight.modules.arkguard.client.ArkGuardClient.clear();
         sentStats="";cn.yumis.fight.modules.equipment.client.EquipmentActions.clear();personalQueue.clear();personalSequence=personalAcknowledged=0;personalSent=false;personalRetries=0;cn.yumis.fight.modules.character.client.CharacterClient.clear();cn.yumis.fight.modules.professions.client.ProfessionClient.clear();cn.yumis.fight.modules.economy.client.EconomyActions.clear();cn.yumis.fight.modules.dungeons.client.DungeonActions.clear();
         cn.yumis.fight.modules.economy.client.JarClient.clear();cn.yumis.fight.modules.economy.client.ShopClient.clear();cn.yumis.fight.modules.npc.client.NpcClient.clear();
         cn.yumis.fight.modules.npc.client.TutorialClient.clear();
@@ -206,6 +207,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         cn.yumis.fight.modules.economy.client.EconomyClientMessages.register(messages);
         cn.yumis.fight.modules.skills.client.SkillsClientMessages.register(messages);
         cn.yumis.fight.modules.dungeons.client.DungeonClientMessages.register(messages,SkillController.INSTANCE::boss,SkillController.INSTANCE::cancelBoss);
+        cn.yumis.fight.modules.arkguard.client.ArkGuardClient.register(messages);
         messages.register("dungeons","treasureWeapon",(context,j)->cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.receive(j));
         messages.register("dungeons","waystoneTable",(context,j)->cn.yumis.fight.modules.dungeons.client.WaystoneClient.receive(j));
         messages.register("dungeons","waystoneStarted",(context,j)->cn.yumis.fight.modules.dungeons.client.WaystoneClient.started());

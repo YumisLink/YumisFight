@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "bounds": [
+    -60,
+    -60,
+    59,
+    59
+  ],
+  "settings": {
+    "maxRise": 1,
+    "entranceFlatRadius": 0,
+    "floatingThreshold": 0,
+    "searchRadius": 0,
+    "floatingSearchHeight": 0,
+    "mainWoodFamilies": [],
+    "accentWoodFamilies": [],
+    "roadWeights": [
+      1
+    ],
+    "roadBlocks": [
+      "minecraft:stone_bricks"
+    ],
+    "roadSlabs": [
+      "minecraft:stone_brick_slab"
+    ],
+    "roadStairs": [
+      "minecraft:stone_brick_stairs"
+    ],
+    "lighting": false,
+    "streetLightTarget": 0,
+    "noHostileSpawns": false
+  },
+  "roads": [
+    {
+      "id": "ark_approach",
+      "width": 1,
+      "points": [
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "external": false
+    }
+  ],
+  "grounds": [],
+  "facilities": [
+    {
+      "id": "ark_guard_valley",
+      "kind": "ark_guard_ring_arena",
+      "template": "yumis_dungeon_and_fight:map_blueprints/ark_guard_ring/valley",
+      "position": [
+        -60,
+        -60
+      ],
+      "referenceY": 9,
+      "entrance": [
+        0,
+        4
+      ],
+      "anchor": "road",
+      "flatten": false,
+      "platform": true,
+      "foundation": "platform",
+      "island": false,
+      "keepClear": false,
+      "lightTarget": 0,
+      "blocked": [],
+      "loot": [],
+      "npcGroups": [
+        {
+          "id": "guide",
+          "definitions": [
+            "ark_guard_guide"
+          ],
+          "anchors": [
+            {
+              "id": "guide",
+              "pos": [
+                60.0,
+                9,
+                60.75
+              ],
+              "yaw": 0.0
+            }
+          ]
+        },
+        {
+          "id": "keeper_a",
+          "definitions": [
+            "ark_guard_attendant"
+          ],
+          "anchors": [
+            {
+              "id": "keeper_a",
+              "pos": [
+                34.5,
+                9,
+                44.5
+              ],
+              "yaw": -90.0
+            }
+          ]
+        },
+        {
+          "id": "keeper_b",
+          "definitions": [
+            "ark_guard_attendant"
+          ],
+          "anchors": [
+            {
+              "id": "keeper_b",
+              "pos": [
+                75.5,
+                9,
+                34.5
+              ],
+              "yaw": 0.0
+            }
+          ]
+        },
+        {
+          "id": "keeper_c",
+          "definitions": [
+            "ark_guard_attendant"
+          ],
+          "anchors": [
+            {
+              "id": "keeper_c",
+              "pos": [
+                85.5,
+                9,
+                75.5
+              ],
+              "yaw": 90.0
+            }
+          ]
+        },
+        {
+          "id": "keeper_d",
+          "definitions": [
+            "ark_guard_attendant"
+          ],
+          "anchors": [
+            {
+              "id": "keeper_d",
+              "pos": [
+                44.5,
+                9,
+                85.5
+              ],
+              "yaw": -180.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

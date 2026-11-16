@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 
 import net.minecraft.world.level.Level;
@@ -59,7 +60,7 @@ public final class MachineBlock extends BaseEntityBlock {
         if(initial.device()==DeviceType.STAR)ArtificialStarPartBlock.removeParts(level,pos);
     }
     @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){if(!level.isClientSide()&&level.getBlockEntity(pos) instanceof MachineBlockEntity be)IndustrialWorld.get((ServerLevel)level).opening.prepare((net.minecraft.server.level.ServerPlayer)player,be);return InteractionResult.SUCCESS;}
-    @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit){if(stack.getItem() instanceof ManaWand)return InteractionResult.PASS;if(IndustrialUpgrades.recognized(stack)){if(player instanceof net.minecraft.server.level.ServerPlayer server)try{IndustrialUpgrades.use(server,hand,(MachineBlockEntity)level.getBlockEntity(pos));}catch(RuntimeException failure){cn.yumis.fight.modules.industry.api.IndustrialPorts.message(server,failure.getMessage());}return InteractionResult.SUCCESS;}if(!level.isClientSide())try(var tx=net.neoforged.neoforge.transfer.transaction.Transaction.openRoot()){if(net.neoforged.neoforge.transfer.fluid.FluidUtil.interactWithFluidHandler(player,hand,level,pos,hit.getDirection(),tx)){tx.commit();return InteractionResult.SUCCESS;}}return InteractionResult.TRY_WITH_EMPTY_HAND;}
+    @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit){if(stack.getItem() instanceof ManaWand||stack.getItem() instanceof BlockItem item&&item.getBlock() instanceof FluidPipeBlock)return InteractionResult.PASS;if(IndustrialUpgrades.recognized(stack)){if(player instanceof net.minecraft.server.level.ServerPlayer server)try{IndustrialUpgrades.use(server,hand,(MachineBlockEntity)level.getBlockEntity(pos));}catch(RuntimeException failure){cn.yumis.fight.modules.industry.api.IndustrialPorts.message(server,failure.getMessage());}return InteractionResult.SUCCESS;}if(!level.isClientSide())try(var tx=net.neoforged.neoforge.transfer.transaction.Transaction.openRoot()){if(net.neoforged.neoforge.transfer.fluid.FluidUtil.interactWithFluidHandler(player,hand,level,pos,hit.getDirection(),tx)){tx.commit();return InteractionResult.SUCCESS;}}return InteractionResult.TRY_WITH_EMPTY_HAND;}
     @Override protected List<ItemStack> getDrops(BlockState state,LootParams.Builder params){
         BlockEntity raw=params.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
         if(!(raw instanceof MachineBlockEntity be))return List.of(new ItemStack(asItem()));

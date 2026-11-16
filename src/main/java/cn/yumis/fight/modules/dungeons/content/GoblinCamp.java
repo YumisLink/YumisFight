@@ -12,12 +12,21 @@ import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.*;
 import net.minecraft.world.level.levelgen.structure.templatesystem.*;
+import net.minecraft.world.phys.AABB;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 /** Spatial content for the open forest. Encounters and scenery consume the same anchors. */
 public final class GoblinCamp {
-    public static final String VERSION="GOBLIN_FOREST_LAYOUT_1";
-    public static final DungeonLayouts.Bounds BOUNDS=new DungeonLayouts.Bounds(-90,-3,-8,89,49,191);
+    public static final String VERSION="GOBLIN_FOREST_LAYOUT_2";
+    // Ownership includes the complete overhanging crowns, beyond the added ground belt.
+    public static final DungeonLayouts.Bounds BOUNDS=new DungeonLayouts.Bounds(-104,-3,-21,102,49,205);
+    private static final DungeonLayouts.Bounds CORE_BOUNDS=new DungeonLayouts.Bounds(-90,-3,-8,89,49,191);
+    private static final DungeonLayouts.Bounds PLAYABLE_BOUNDS=new DungeonLayouts.Bounds(-87,-3,-5,86,49,188);
+    private static final BlockPos FOREST_BORDER_OFFSET=new BlockPos(-104,-3,-21);
+    private static final int SPAWN_SAFE_RADIUS=16;
     public record Area(String id,int x,int z,int radius) {
         public boolean contains(double px,double pz,double margin){
             double dx=px-x,dz=pz-z,a=Math.atan2(dz,dx);
@@ -62,6 +71,31 @@ public final class GoblinCamp {
     );}
     public static void build(ServerLevel world,BlockPos origin,DungeonPorts.CampDecorations decorations){new Builder(world,origin,decorations).build();}
 
+    /** Disperse the former second waves along clear trails, outside the arrival safety circle. */
+    public static List<BlockPos> patrolSpawns(ServerLevel world,BlockPos origin,int count,long seed){
+        var candidates=new ArrayList<BlockPos>();
+        for(int x=PLAYABLE_BOUNDS.minX()+2;x<=PLAYABLE_BOUNDS.maxX()-2;x+=2)
+            for(int z=PLAYABLE_BOUNDS.minZ()+2;z<=PLAYABLE_BOUNDS.maxZ()-2;z+=2){
+                if(x*x+(z-2)*(z-2)<SPAWN_SAFE_RADIUS*SPAWN_SAFE_RADIUS||!walking(x,z)||clearing(x,z,4))continue;
+                BlockPos at=origin.offset(x,height(x,z),z),below=at.below();
+                if(!world.getBlockState(below).isFaceSturdy(world,below,Direction.UP)||!world.getFluidState(at).isEmpty())continue;
+                if(world.noCollision(new AABB(at.getX()+.05,at.getY(),at.getZ()+.05,at.getX()+.95,at.getY()+2.4,at.getZ()+.95)))candidates.add(at);
+            }
+        Collections.shuffle(candidates,new Random(seed));
+        var positions=new ArrayList<BlockPos>();
+        while(positions.size()<count){
+            BlockPos next=null;double separation=-1;
+            for(var candidate:candidates){
+                double nearest=Double.POSITIVE_INFINITY;
+                for(var placed:positions)nearest=Math.min(nearest,candidate.distSqr(placed));
+                if(nearest>separation){next=candidate;separation=nearest;}
+            }
+            if(next==null||separation<16)throw new IllegalStateException("密林没有足够的合法分散刷怪位置");
+            positions.add(next);candidates.remove(next);
+        }
+        return List.copyOf(positions);
+    }
+
     private static double trailDistance(int x,int z){
         double best=Double.POSITIVE_INFINITY;
         for(int[][] trail:TRAILS)for(int i=1;i<trail.length;i++){
@@ -87,25 +121,22 @@ public final class GoblinCamp {
         private final DungeonPorts.CampDecorations decorations;
         private final RandomSource random=RandomSource.create(0x474F424C494EL);
         Builder(ServerLevel world,BlockPos origin,DungeonPorts.CampDecorations decorations){this.world=world;this.origin=origin;this.decorations=decorations;}
-        void build(){ground();forest();salvage();living();ritual();boss();abandonedCamps();undergrowth();}
+        void build(){ground();forest();salvage();living();ritual();boss();abandonedCamps();undergrowth();forestBorder();boundary();}
         private void ground(){
-            for(int x=BOUNDS.minX();x<=BOUNDS.maxX();x++)for(int z=BOUNDS.minZ();z<=BOUNDS.maxZ();z++){
+            for(int x=CORE_BOUNDS.minX();x<=CORE_BOUNDS.maxX();x++)for(int z=CORE_BOUNDS.minZ();z<=CORE_BOUNDS.maxZ();z++){
                 int h=height(x,z),n=pick(x/3,z/3,1,17);
                 for(int y=-3;y<h-1;y++)put(x,y,z,Blocks.DIRT);
                 Block surface=n<3?Blocks.PODZOL:n<6?Blocks.COARSE_DIRT:n==6?Blocks.MOSS_BLOCK:Blocks.GRASS_BLOCK;
                 if(trailDistance(x,z)<1.1&&pick(x/4,z/4,2,7)<3)surface=pick(x,z,3,5)==0?Blocks.DIRT_PATH:Blocks.COARSE_DIRT;
                 if(clearing(x,z,-2)&&pick(x/2,z/2,4,5)<3)surface=Blocks.COARSE_DIRT;
                 put(x,h-1,z,surface);
-                // Safety boundaries surround the forest, never the individual clearings.
-                if(x==BOUNDS.minX()||x==BOUNDS.maxX()||z==BOUNDS.minZ()||z==BOUNDS.maxZ())
-                    for(int y=h;y<49;y++)put(x,y,z,Blocks.BARRIER);
                 put(x,49,z,Blocks.BARRIER);
             }
         }
         private void forest(){
             for(int gx=-82;gx<=80;gx+=7)for(int gz=1;gz<=180;gz+=7){
                 int x=gx+pick(gx,gz,5,5)-2,z=gz+pick(gx,gz,6,5)-2;
-                if(x<BOUNDS.minX()+8||x>BOUNDS.maxX()-8||z<BOUNDS.minZ()+8||z>BOUNDS.maxZ()-8)continue;
+                if(x<CORE_BOUNDS.minX()+8||x>CORE_BOUNDS.maxX()-8||z<CORE_BOUNDS.minZ()+8||z>CORE_BOUNDS.maxZ()-8)continue;
                 if(clearing(x,z,4)||nearRuin(x,z,9)||trailDistance(x,z)<4.7||x*x+(z-2)*(z-2)<100)continue;
                 int h=height(x,z),tall=pick(x,z,7,4)==0?9+pick(x,z,8,4):14+pick(x,z,8,8);
                 tree(x,h,z,tall,pick(x,z,9,3)==0);
@@ -116,6 +147,31 @@ public final class GoblinCamp {
                 int h=height(x,z);
                 if(pick(x,z,11,3)==0)putIfAir(x,h,z,Blocks.MOSSY_COBBLESTONE);else leaves(x,h,z,Blocks.DARK_OAK_LEAVES);
                 if(pick(x,z,12,3)>0)leaves(x,h+1,z,Blocks.DARK_OAK_LEAVES);
+            }
+        }
+        private void forestBorder(){
+            var id=Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","dungeons/goblin_camp/forest_border");
+            var template=world.getStructureManager().get(id).orElseThrow(()->new IllegalStateException("缺少营地林带素材："+id));
+            var size=template.getSize();
+            if(FOREST_BORDER_OFFSET.getX()+size.getX()-1>BOUNDS.maxX()||FOREST_BORDER_OFFSET.getY()+size.getY()-1>BOUNDS.maxY()||FOREST_BORDER_OFFSET.getZ()+size.getZ()-1>BOUNDS.maxZ())
+                throw new IllegalStateException("营地林带素材超出地图范围");
+            BlockPos at=origin.offset(FOREST_BORDER_OFFSET);
+            var settings=new StructurePlaceSettings().setIgnoreEntities(true).setKnownShape(true).addProcessor(BlockIgnoreProcessor.STRUCTURE_AND_AIR);
+            if(!template.placeInWorld(world,at,at,settings,random,Block.UPDATE_CLIENTS|Block.UPDATE_SUPPRESS_DROPS))throw new IllegalStateException("营地林带放置失败："+id);
+        }
+        private void boundary(){
+            for(int x=PLAYABLE_BOUNDS.minX();x<=PLAYABLE_BOUNDS.maxX();x++){
+                boundaryColumn(x,PLAYABLE_BOUNDS.minZ());boundaryColumn(x,PLAYABLE_BOUNDS.maxZ());
+            }
+            for(int z=PLAYABLE_BOUNDS.minZ()+1;z<PLAYABLE_BOUNDS.maxZ();z++){
+                boundaryColumn(PLAYABLE_BOUNDS.minX(),z);boundaryColumn(PLAYABLE_BOUNDS.maxX(),z);
+            }
+        }
+        private void boundaryColumn(int x,int z){
+            // Keep trees, leaves and rocks intact. Top-down replacement seals both plant halves.
+            for(int y=PLAYABLE_BOUNDS.maxY()-1;y>=0;y--){
+                BlockPos at=origin.offset(x,y,z);var state=world.getBlockState(at);
+                if(state.getCollisionShape(world,at).isEmpty())put(x,y,z,Blocks.BARRIER);
             }
         }
         private void tree(int x,int y,int z,int tall,boolean dark){

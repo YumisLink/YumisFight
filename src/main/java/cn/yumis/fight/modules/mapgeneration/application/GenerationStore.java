@@ -23,6 +23,15 @@ public final class GenerationStore {
         }
         return false;
     }
+    public static boolean generated(ServerLevel level,Identifier blueprint,BlockPos origin){
+        for(Tag tag:read(level.getServer()).getListOrEmpty("instances")){
+            var item=(CompoundTag)tag;
+            if(item.getStringOr("dimension","").equals(level.dimension().identifier().toString())
+                &&item.getStringOr("blueprint","").equals(blueprint.toString())
+                &&item.getIntOr("x",0)==origin.getX()&&item.getIntOr("y",0)==origin.getY()&&item.getIntOr("z",0)==origin.getZ())return true;
+        }
+        return false;
+    }
     public static boolean blocksHostiles(ServerLevel level,int x,int z) {
         for(Tag tag:read(level.getServer()).getListOrEmpty("instances")) {
             var item=(CompoundTag)tag;

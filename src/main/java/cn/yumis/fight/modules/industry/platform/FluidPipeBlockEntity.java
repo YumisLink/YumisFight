@@ -42,10 +42,11 @@ public final class FluidPipeBlockEntity extends BlockEntity {
         void touch(TransactionContext tx){updateSnapshots(tx);}
     }
     private final Budget budget=new Budget();
-    public FluidPipeBlockEntity(BlockPos pos,BlockState state){super(IndustrialContent.FLUID_PIPE_BE.get(),pos,state);}
+    public FluidPipeBlockEntity(BlockPos pos,BlockState state){super(IndustrialContent.FLUID_PIPE_BE.get(),pos,state);Arrays.fill(modes,Port.EXTRACT.ordinal());}
     public FluidPipes.Grade grade(){return FluidPipes.grade(((FluidPipeBlock)getBlockState().getBlock()).grade);}
     public Port mode(Direction side){return (closed&FluidPipeBlock.bit(side))!=0?Port.CLOSED:Port.values()[modes[side.ordinal()]];}
     public int machineMask(){return machines;}
+    public int extractionMask(){int mask=0;for(Direction side:Direction.values())if((machines&FluidPipeBlock.bit(side))!=0&&mode(side)==Port.EXTRACT)mask|=FluidPipeBlock.bit(side);return mask&FluidPipeBlock.mask(getBlockState());}
     public FluidStack displayFluid(){return visibleFluid.isEmpty()?FluidStack.EMPTY:visibleFluid.toStack(1);}
     public long displayAmount(){return visibleAmount;}
     public long displayCapacity(){return visibleCapacity;}
@@ -62,19 +63,19 @@ public final class FluidPipeBlockEntity extends BlockEntity {
     }
     public void initialize(Player player){
         if(initialized||!(level instanceof ServerLevel))return;initialized=true;boolean conflict=false;
+        if(player!=null)Arrays.fill(modes,(player.isShiftKeyDown()?Port.INPUT:Port.EXTRACT).ordinal());
         for(Direction side:Direction.values()){
             var other=neighbor(side);if(other==null)continue;int bit=FluidPipeBlock.bit(side),opposite=FluidPipeBlock.bit(side.getOpposite());
             if((closed&bit)!=0||(other.closed&opposite)!=0)continue;
             if(!network().compatible(other.network())){closed|=bit;other.closed|=opposite;other.setChanged();conflict=true;continue;}
             invalidateNetwork();other.invalidateNetwork();linked|=bit;other.linked|=opposite;other.setChanged();other.refreshShape();
         }
-        refreshShape();setChanged();if(conflict&&player!=null)player.sendOverlayMessage(Component.literal("液体不同，交界处已保持断开；之后需用权杖手动接通"));
+        refreshShape();setChanged();sync(true);level.invalidateCapabilities(worldPosition);if(conflict&&player!=null)player.sendOverlayMessage(Component.literal("液体不同，交界处已保持断开；之后需用权杖手动接通"));
     }
-    public void configure(Player player,Direction side,boolean shift){
+    public void configure(Player player,Direction side){
         var pos=worldPosition.relative(side);if(!level.mayInteract(player,pos))throw new IllegalArgumentException("不能修改该连接");
         var other=neighbor(side);int bit=FluidPipeBlock.bit(side),opposite=FluidPipeBlock.bit(side.getOpposite());
         if(other!=null){
-            if(shift){player.sendOverlayMessage(Component.literal("管道交界处用普通右键断开／恢复"));return;}
             boolean disconnect=linked(side)&&other.linked(side.getOpposite());
             if(!disconnect&&!network().compatible(other.network()))throw new IllegalArgumentException("两侧液体不同，不能接通");
             invalidateNetwork();other.invalidateNetwork();
@@ -84,7 +85,6 @@ public final class FluidPipeBlockEntity extends BlockEntity {
             player.sendOverlayMessage(Component.literal(disconnect?"管道连接已断开":"管道连接已恢复"));return;
         }
         if(machine(side)==null)throw new IllegalArgumentException("请瞄准机器连接臂，或相邻管道的交界方向");
-        if(!shift){player.sendOverlayMessage(Component.literal("Shift右键连接臂：送入机器 → 从机器抽取 → 断开"));return;}
         modes[side.ordinal()]=(mode(side).ordinal()+1)%3;
         if(modes[side.ordinal()]==Port.CLOSED.ordinal())closed|=bit;else closed&=~bit;
         setChanged();refreshShape();sync(true);level.invalidateCapabilities(worldPosition);
@@ -161,5 +161,5 @@ public final class FluidPipeBlockEntity extends BlockEntity {
     @Override public ClientboundBlockEntityDataPacket getUpdatePacket(){return ClientboundBlockEntityDataPacket.create(this);}
     @Override public void handleUpdateTag(ValueInput in){machines=in.getIntOr("machines",0);linked=in.getIntOr("linked",0);closed=in.getIntOr("closed",0);var list=in.read("modes",Codec.INT.listOf()).orElse(List.of());for(int i=0;i<6;i++)modes[i]=i<list.size()?Math.floorMod(list.get(i),3):0;visibleFluid=in.read("display_fluid",FluidResource.OPTIONAL_CODEC).orElse(FluidResource.EMPTY);visibleAmount=in.getLongOr("amount",0);visibleCapacity=in.getLongOr("capacity",0);}
     @Override public void onDataPacket(net.minecraft.network.Connection connection,ValueInput in){handleUpdateTag(in);}
-    public List<String> information(Direction side){return List.of(Component.translatable("block."+IndustrialContent.NS+"."+grade().id()).getString(),(visibleFluid.isEmpty()?"空管网":visibleFluid.toStack(1).getHoverName().getString())+" · "+visibleAmount+" / "+visibleCapacity+" mB",FluidPipeBlock.directionName(side)+" · "+((machines&FluidPipeBlock.bit(side))!=0?mode(side).label:linked(side)?"管道已连接":"管道未连接")+" · "+grade().flow()+" mB/t","管道交界：右键 · 机器连接臂：Shift右键");}
+    public List<String> information(Direction side){return List.of(Component.translatable("block."+IndustrialContent.NS+"."+grade().id()).getString(),(visibleFluid.isEmpty()?"空管网":visibleFluid.toStack(1).getHoverName().getString())+" · "+visibleAmount+" / "+visibleCapacity+" mB",FluidPipeBlock.directionName(side)+" · "+((machines&FluidPipeBlock.bit(side))!=0?mode(side).label:linked(side)?"管道已连接":"管道未连接")+" · "+grade().flow()+" mB/t","权杖右键：机器接口切换 · 管道交界断开／恢复");}
 }

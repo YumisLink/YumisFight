@@ -6,7 +6,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import java.util.*;
 
-/** Incremental A*: a node remembers its incoming port so turns and ramps stay connected. */
+/** Incremental A*: preserve selected endpoint facings and the incoming port at every turn and ramp. */
 final class ConveyorPathfinder {
     private record Key(BlockPos pos,Direction incoming,int dy,ConveyorBlock.Slope previousSlope){}
     private record Cost(int steps,int turns) implements Comparable<Cost>{
@@ -16,6 +16,7 @@ final class ConveyorPathfinder {
     private final Level level;
     private final ConveyorBlock block;
     private final BlockPos start,end;
+    private final Direction startFacing,endFacing;
     private final Map<BlockPos,BlockState> snapshot=new HashMap<>();
     private final Map<Key,Cost> best=new HashMap<>();
     private final PriorityQueue<Node> open;
@@ -24,8 +25,8 @@ final class ConveyorPathfinder {
     private boolean done;
     private String error;
     private List<ConveyorRoute.Step> result;
-    ConveyorPathfinder(Level level,BlockPos start,BlockPos end,ConveyorBlock block){
-        this.level=level;this.start=start;this.end=end;this.block=block;
+    ConveyorPathfinder(Level level,BlockPos start,BlockPos end,ConveyorBlock block,Direction startFacing,Direction endFacing){
+        this.level=level;this.start=start;this.end=end;this.block=block;this.startFacing=startFacing;this.endFacing=endFacing;
         open=new PriorityQueue<>(Comparator.<Node>comparingInt(n->n.cost.steps+distance(n.pos))
             .thenComparingInt(n->n.cost.turns).thenComparingInt(n->distance(n.pos)).thenComparingLong(Node::order));
         if(start.equals(end)||distance(start)>=ConveyorRoute.MAX_LENGTH){fail("请选择不同的起终点，单次路线最多256段");return;}
@@ -41,9 +42,11 @@ final class ConveyorPathfinder {
     private Key key(Node n){return new Key(n.pos,n.incoming,n.dy,n.previousState==null?ConveyorBlock.Slope.FLAT:n.previousState.getValue(ConveyorBlock.SLOPE));}
     private BlockState current(Node node,BlockPos next,Direction outgoing){
         BlockState raw=state(node.pos);
-        if(ConveyorConnections.belt(raw)){
-            if(next!=null&&raw.getValue(ConveyorBlock.FACING)!=outgoing)return null;
-        }else raw=block.defaultBlockState().setValue(ConveyorBlock.FACING,outgoing);
+        if(!ConveyorConnections.belt(raw)){
+            Direction facing=node.pos.equals(start)?startFacing:node.pos.equals(end)?endFacing:outgoing;
+            raw=block.defaultBlockState().setValue(ConveyorBlock.FACING,facing);
+        }
+        if(next!=null&&raw.getValue(ConveyorBlock.FACING)!=outgoing)return null;
         final BlockState self=raw;
         BlockState adjusted=ConveyorConnections.adjusted(node.pos,raw,p->{
             if(p.equals(node.pos))return self;
@@ -99,7 +102,7 @@ final class ConveyorPathfinder {
                 if(old==null||cost.compareTo(old)<0){best.put(key,cost);open.add(candidate);}
             }
         }
-        if(open.isEmpty())fail("已加载范围内没有256段以内且有承托的可用路线");
+        if(open.isEmpty())fail("当前起终点朝向下，没有256段以内且有承托的可用路线");
     }
     private void fail(String message){done=true;error=message;}
     boolean done(){return done;}
