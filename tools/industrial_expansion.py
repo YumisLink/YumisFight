@@ -3,6 +3,7 @@ from pathlib import Path
 import json, math, random
 from PIL import Image, ImageDraw
 from industrial_arcane_models import model
+from industrial_item_art import INDUSTRIAL_ITEM_ART
 
 ROOT=Path(__file__).resolve().parents[1]
 NS='yumis_dungeon_and_fight'
@@ -185,6 +186,11 @@ def assets():
         key='high_purity_'+metal+'_ingot';item_asset(key,color,mark=True);names[f'item.{NS}.{key}']='高纯'+title+'锭'
     for key,v in ALLOYS.items():item_asset(key,v[-1],mark=True);names[f'item.{NS}.{key}']=v[0]
     for index,(key,v) in enumerate(PARTS.items()):
+        if key in INDUSTRIAL_ITEM_ART:
+            path=ASSETS/'textures/item'/(key+'.png')
+            if not path.is_file():raise FileNotFoundError('Generate industrial item art first: '+str(path))
+            item_asset_model(key);names[f'item.{NS}.{key}']=v[0]
+            continue
         color=['a7b6c9','66819c','b9b8ad','dcb278','d29b65','93e4e0','a4aad1','c0eefd'][index]
         image=Image.new('RGBA',(16,16));d=ImageDraw.Draw(image);c=rgb(color);dark=tuple(int(x*.35) for x in c)
         if key.endswith('frame'):

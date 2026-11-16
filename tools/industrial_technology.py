@@ -10,6 +10,7 @@ import struct
 import zlib
 import shutil
 from collections import Counter
+from industrial_item_art import INDUSTRIAL_ITEM_ART
 
 ROOT = Path(__file__).resolve().parents[1]
 NS = 'yumis_dungeon_and_fight'
@@ -496,6 +497,12 @@ def rules_and_processing():
 
 
 def icon(name, grade, block=False):
+    # Hand-authored item icons have their own Aseprite production source.
+    if not block and name in INDUSTRIAL_ITEM_ART:
+        path = ASSETS / 'textures/item' / (name + '.png')
+        if not path.is_file():
+            raise FileNotFoundError('Generate industrial item art first: ' + str(path))
+        return
     palette = [tuple(bytes.fromhex(c)) + (255,) for c in PALETTES[grade-1]]
     pixels = [[(0, 0, 0, 0) for x in range(16)] for y in range(16)]
     def rectangle(x0, y0, x1, y1, color, border=False):
