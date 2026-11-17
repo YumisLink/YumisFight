@@ -21,6 +21,8 @@ public final class ArkWar {
         public boolean contains(BlockPos pos){double x=pos.getX()-ORIGIN.getX()-centerX,z=pos.getZ()-ORIGIN.getZ()-centerZ;return x*x+z*z<=28*28;}
         public Vec3 shop(){return new Vec3(ORIGIN.getX()+(side<0?-10:11),ORIGIN.getY(),ORIGIN.getZ()+centerZ+.5);}
         public BlockPos readySign(){return ORIGIN.offset(side<0?-6:6,1,centerZ);}
+        public BlockPos refreshSign(){return ORIGIN.offset(side<0?-6:6,1,centerZ-1);}
+        public BlockPos upgradeSign(){return ORIGIN.offset(side<0?-6:6,1,centerZ+5);}
         public Vec3 spawn(){return Vec3.atBottomCenterOf(ORIGIN.offset(centerX,0,index<2?-73:45));}
         public List<Vec3> route(){return List.of(spawn(),Vec3.atBottomCenterOf(ORIGIN.offset(centerX,0,index<2?-17:-11)),Vec3.atBottomCenterOf(ORIGIN.offset(centerX,0,-14)),Vec3.atBottomCenterOf(ORIGIN.offset(0,0,-14)),Vec3.atBottomCenterOf(ORIGIN.offset(0,0,70)),Vec3.atBottomCenterOf(ORIGIN.offset(0,3,86)));}
         public List<BlockPos> benches(Level level){

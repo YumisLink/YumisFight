@@ -17,40 +17,52 @@ public final class CareerHud {
         if(state.progress().hasJob(JobCatalog.BERSERKER)){text=v.frenzy?"血之狂暴 · "+(state.predicted(state.own())<=.4?"低血强化20%":state.predicted(state.own())<=.7?"低血强化10%":"双刀开启"):"双刀关闭";color=0xffee7d88;}
         if(text.isBlank())return;var font=UiFonts.font();int width=font.width(text)+12;UiTheme.hud(g,center-width/2,y,(center+width/2)-(center-width/2),(y+14)-(y));g.text(font,text,center-width/2+6,y+3,color,true);
     }
-    public static void renderGauge(GuiGraphicsExtractor g,int width,int height,long now){
+    public static void renderGauge(GuiGraphicsExtractor g,int width,int height,long now,java.util.function.IntBinaryOperator extra){
         ChantClient.render(g,width,height);
-        var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;int x=(int)(width*.8),y=Math.max(24,(int)(height*.2));
+        var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;
         if(state.own().dead)return;
-        y=DemonHunterClient.hud(g,x,y);
-        if(state.progress().hasJob(JobCatalog.SUMMONER)){summons(g,width,height,state.serverNow());return;}
-        if(state.progress().hasJob(JobCatalog.SUN_MOON))y=SunMoonHud.render(g,x,y,state.serverNow());
-        if(OracleRules.rank(state.stats(),state.progress())>0)y=oracle(g,x,y,state.serverNow());
-        long overdrive=state.resources().buffs.getOrDefault(SkillCatalog.OVERDRIVE.id,0L)-now;
-        if(overdrive>0){timer(g,SkillCatalog.OVERDRIVE,x,y,overdrive,30000,0xfff6d16d);y+=68;}
-        long kalla=view.kallaUntil-state.serverNow();if(kalla>0){timer(g,SkillCatalog.require(CareerSkills.KALLA),x,y,kalla,20000,0xffb28fe5);y+=68;}
-        long eye=view.eyeUntil-state.serverNow();if(eye>0){timer(g,SkillCatalog.require(CareerSkills.EYE),x,y,eye,20000,0xffe6d19b);y+=68;}
-        long herder=MageClient.INSTANCE.summonUntil-state.serverNow();if(herder>0){timer(g,MageSkills.skill(MageSkills.HERDER),x,y,herder,120000,0xff92d49b);y+=68;}
-        if(state.progress().hasJob(JobCatalog.ASURA)&&SkillLearning.effective(state.stats(),state.progress(),SkillCatalog.require(CareerSkills.BRANDS))>0){
-            badge(g,SkillCatalog.require(CareerSkills.BRANDS),x,y,view.brands,false);y+=54;
+        DemonHunterClient.renderBeam(g);
+        if(state.progress().hasJob(JobCatalog.SUMMONER)){
+            g.pose().pushMatrix();g.pose().translate(width-8,24);g.pose().scale(.5f,.5f);g.pose().translate(8-width,-24);
+            try{summons(g,width,height,state.serverNow(),extra);}finally{g.pose().popMatrix();}
+            return;
         }
-        if(state.progress().hasJob(JobCatalog.BERSERKER)&&view.bloodUntil>0){
-            badge(g,SkillCatalog.require(CareerSkills.SWORD),x,y,view.blood,false);
-            String time="/ "+SkillResourceRules.BLOOD_CAP+"  "+seconds(view.bloodUntil-state.serverNow())+"秒";var font=UiFonts.font();g.text(font,time,x-font.width(time)/2,y+31,UiTheme.HUD_MUTED,true);y+=66;
-        }
-        var cast=SkillController.INSTANCE.cast;
-        if(cast!=null&&SkillPresentation.segmented(cast.skill)){
-            int remaining=(int)cast.parameters.get("slashes",3)-cast.segment;
-            if(remaining>0)badge(g,cast.skill,x,y,remaining,(now-cast.stageStart)*cast.speed<SkillPresentation.segmentDelay(cast.skill));
-        }
+        int x=(int)(width*.8),y=Math.max(24,(int)(height*.2));
+        if(state.progress().baseJob().equals(JobCatalog.DEMON_HUNTER))x=Math.clamp(x,80,width-78);
+        g.pose().pushMatrix();g.pose().translate(x,y);g.pose().scale(.5f,.5f);g.pose().translate(-x,-y);
+        try{
+            y=extra.applyAsInt(x,y);
+            y=DemonHunterClient.hud(g,x,y);
+            if(state.progress().hasJob(JobCatalog.SUN_MOON))y=SunMoonHud.render(g,x,y,state.serverNow());
+            if(OracleRules.rank(state.stats(),state.progress())>0)y=oracle(g,x,y,state.serverNow());
+            long overdrive=state.resources().buffs.getOrDefault(SkillCatalog.OVERDRIVE.id,0L)-now;
+            if(overdrive>0){timer(g,SkillCatalog.OVERDRIVE,x,y,overdrive,30000,0xfff6d16d);y+=68;}
+            long kalla=view.kallaUntil-state.serverNow();if(kalla>0){timer(g,SkillCatalog.require(CareerSkills.KALLA),x,y,kalla,20000,0xffb28fe5);y+=68;}
+            long eye=view.eyeUntil-state.serverNow();if(eye>0){timer(g,SkillCatalog.require(CareerSkills.EYE),x,y,eye,20000,0xffe6d19b);y+=68;}
+            long herder=MageClient.INSTANCE.summonUntil-state.serverNow();if(herder>0){timer(g,MageSkills.skill(MageSkills.HERDER),x,y,herder,120000,0xff92d49b);y+=68;}
+            if(state.progress().hasJob(JobCatalog.ASURA)&&SkillLearning.effective(state.stats(),state.progress(),SkillCatalog.require(CareerSkills.BRANDS))>0){
+                badge(g,SkillCatalog.require(CareerSkills.BRANDS),x,y,view.brands,false);y+=54;
+            }
+            if(state.progress().hasJob(JobCatalog.BERSERKER)&&view.bloodUntil>0){
+                badge(g,SkillCatalog.require(CareerSkills.SWORD),x,y,view.blood,false);
+                String time="/ "+SkillResourceRules.BLOOD_CAP+"  "+seconds(view.bloodUntil-state.serverNow())+"秒";var font=UiFonts.font();g.text(font,time,x-font.width(time)/2,y+31,UiTheme.HUD_MUTED,true);y+=66;
+            }
+            var cast=SkillController.INSTANCE.cast;
+            if(cast!=null&&SkillPresentation.segmented(cast.skill)){
+                int remaining=(int)cast.parameters.get("slashes",3)-cast.segment;
+                if(remaining>0)badge(g,cast.skill,x,y,remaining,(now-cast.stageStart)*cast.speed<SkillPresentation.segmentDelay(cast.skill));
+            }
+        }finally{g.pose().popMatrix();}
     }
-    private static void summons(GuiGraphicsExtractor g,int width,int height,long now){
+    private static void summons(GuiGraphicsExtractor g,int width,int height,long now,java.util.function.IntBinaryOperator extra){
         var army=MageClient.INSTANCE;var font=UiFonts.font();var rows=new java.util.ArrayList<String>();
         for(String id:List.of(MageSkills.HERDER,SummonerSkills.SPIRITS,SummonerSkills.LOUISE,SummonerSkills.SANDOR,SummonerSkills.KING,SummonerSkills.KASIJAS))
             if(army.army.values().stream().anyMatch(j->j.get("skill").getAsString().equals(id)&&j.get("until").getAsLong()>now))rows.add(id);
-        if(army.frenzyUntil>now)rows.add(SummonerSkills.FRENZY);if(rows.isEmpty())return;
+        if(army.frenzyUntil>now)rows.add(SummonerSkills.FRENZY);
         int panel=rows.stream().map(SkillCatalog::require).mapToInt(s->font.width(s.title)+36).max().orElse(144);
-        float scale=Math.min(1,Math.min((height-96f)/(rows.size()*32),(width-16f)/panel));
-        g.pose().pushMatrix();g.pose().translate(width-8,24);g.pose().scale(scale,scale);g.pose().translate(-panel,0);
+        float scale=rows.isEmpty()?1:Math.min(1,Math.min((height-96f)/(rows.size()*32),(width-16f)/panel));
+        int top=extra.applyAsInt(width-8-Math.round(panel*scale/2),24);if(rows.isEmpty())return;
+        g.pose().pushMatrix();g.pose().translate(width-8,top);g.pose().scale(scale,scale);g.pose().translate(-panel,0);
         for(int i=0;i<rows.size();i++){
             String id=rows.get(i);var skill=SkillCatalog.require(id);int y=i*32;
             var entries=army.army.values().stream().filter(j->j.get("skill").getAsString().equals(id)&&j.get("until").getAsLong()>now).toList();

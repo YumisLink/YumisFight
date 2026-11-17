@@ -30,7 +30,7 @@ public final class ArkRoster {
     public static ArkRoster create(String owner,String round,ArkRules rules,Random random){
         var roster=new ArkRoster();roster.owner=owner;roster.round=round;
         for(var unit:rules.units)roster.pool.put(unit.id(),rules.cardsPerUnit);
-        for(int i=0;i<rules.shopSlots;i++)roster.shop.add("");
+        for(int i=0;i<rules.shopSlots(roster.level);i++)roster.shop.add("");
         roster.refresh(rules,random,false);roster.plan(rules,random);return roster;
     }
     public ArkRoster copy(){return JSON.fromJson(JSON.toJson(this),ArkRoster.class);}
@@ -38,31 +38,33 @@ public final class ArkRoster {
     public int population(){return (int)cards.stream().filter(c->c.deployed&&!c.held).count();}
     public boolean owns(String unit){return cards.stream().anyMatch(c->c.unit.equals(unit));}
     public int upgradePrice(ArkRules rules){return level>=rules.maximumLevel?0:Math.max(0,rules.upgradeCosts[level-1]-(wave-lastUpgradeWave));}
-    public void upgrade(ArkRules rules){
+    public void upgrade(ArkRules rules,Random random){
         if(level>=rules.maximumLevel)throw new IllegalArgumentException("商店已经满级");
         int cost=upgradePrice(rules);pay(cost);level++;lastUpgradeWave=wave;
+        while(shop.size()<rules.shopSlots(level))shop.add(draw(rules,random));
     }
     public void refresh(ArkRules rules,Random random,boolean paid){
         if(paid)pay(rules.refreshCost);
         for(String id:shop)if(!id.isBlank())pool.merge(id,1,Integer::sum);
         shop.clear();
-        for(int i=0;i<rules.shopSlots;i++){
-            double total=0;double[] weights=new double[6];
-            for(int tier=1;tier<=6;tier++){
-                final int selected=tier;
-                if(rules.units.stream().anyMatch(u->u.tier()==selected&&pool.getOrDefault(u.id(),0)>0))
-                    total+=weights[tier-1]=rules.shopProbabilities[level-1][tier-1];
-            }
-            if(total==0){shop.add("");continue;}
-            double roll=random.nextDouble()*total;int tier=1;
-            for(;tier<6;tier++){if(roll<weights[tier-1])break;roll-=weights[tier-1];}
-            int selected=tier,available=rules.units.stream().filter(u->u.tier()==selected).mapToInt(u->pool.getOrDefault(u.id(),0)).sum();
-            if(available<=0){shop.add("");continue;}
-            int pick=random.nextInt(available);String chosen="";
-            for(var u:rules.units)if(u.tier()==tier){int count=pool.getOrDefault(u.id(),0);if(pick<count){chosen=u.id();break;}pick-=count;}
-            if(chosen.isBlank())throw new IllegalStateException("方舟卡池为空");
-            pool.put(chosen,pool.get(chosen)-1);shop.add(chosen);
+        for(int i=0;i<rules.shopSlots(level);i++)shop.add(draw(rules,random));
+    }
+    private String draw(ArkRules rules,Random random){
+        double total=0;double[] weights=new double[6];
+        for(int tier=1;tier<=6;tier++){
+            final int selected=tier;
+            if(rules.units.stream().anyMatch(u->u.tier()==selected&&pool.getOrDefault(u.id(),0)>0))
+                total+=weights[tier-1]=rules.shopProbabilities[level-1][tier-1];
         }
+        if(total==0)return "";
+        double roll=random.nextDouble()*total;int tier=1;
+        for(;tier<6;tier++){if(roll<weights[tier-1])break;roll-=weights[tier-1];}
+        int selected=tier,available=rules.units.stream().filter(u->u.tier()==selected).mapToInt(u->pool.getOrDefault(u.id(),0)).sum();
+        if(available<=0)return "";
+        int pick=random.nextInt(available);String chosen="";
+        for(var unit:rules.units)if(unit.tier()==tier){int count=pool.getOrDefault(unit.id(),0);if(pick<count){chosen=unit.id();break;}pick-=count;}
+        if(chosen.isBlank())throw new IllegalStateException("方舟卡池为空");
+        pool.put(chosen,pool.get(chosen)-1);return chosen;
     }
     public void buy(int slot,int benches,ArkRules rules){
         if(slot<0||slot>=shop.size()||shop.get(slot).isBlank())throw new IllegalArgumentException("商品位置为空");

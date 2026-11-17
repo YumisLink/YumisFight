@@ -20,6 +20,7 @@ final class ArkCombat {
     private final List<Zone> zones=new ArrayList<>();
     private final List<Wind> winds=new ArrayList<>();
     private final List<Ailment> ailments=new ArrayList<>();
+    private final List<Shot> shots=new ArrayList<>();
     private final Map<Actor,EnemyCast> enemyCasts=new LinkedHashMap<>();
     private long now;
     private static final class Zone {
@@ -37,6 +38,8 @@ final class ArkCombat {
         double radius,angle,coefficient,width,traveled;boolean magic,released;
         long release,activeUntil,until;Set<UUID> hit=new HashSet<>();
     }
+    private record Shot(Actor source,Actor victim,double coefficient,boolean magic,int[] elements,
+                        boolean basic,Stats stats,long arrival,Runnable followUp){}
     ArkCombat(ArkBattle battle){b=battle;}
     void start(long now){
         this.now=now;
@@ -48,7 +51,7 @@ final class ArkCombat {
         }
         for(var a:b.actors)if(a.alive())refresh(a);
     }
-    void end(){zones.clear();winds.clear();ailments.clear();enemyCasts.clear();}
+    void end(){zones.clear();winds.clear();ailments.clear();shots.clear();enemyCasts.clear();}
     void tick(long now,double dt){
         this.now=now;
         for(var a:b.actors){
@@ -60,7 +63,7 @@ final class ArkCombat {
         for(var a:List.copyOf(b.actors))if(a.alive()&&!a.core){
             if(a.enemy)enemy(a,dt);else if(a.deployed())hero(a,dt);
         }
-        enemyActions(dt);fields(dt);statusTicks();
+        enemyActions(dt);projectiles();fields(dt);statusTicks();
         while(now>=b.nextPeriodic){periodic();b.nextPeriodic+=500;}
         while(now>=b.nextTowers){towers();b.nextTowers+=1000;}
     }
@@ -168,7 +171,7 @@ final class ArkCombat {
             }
             case "ark_snake"->{
                 var targets=inRange(a,range(a),false).stream().limit((long)u.p("targets")).toList();if(targets.isEmpty())return false;
-                for(var target:targets)damage(a,target,u.p("skillDamage"),false,new int[0],false,false,null);
+                for(var target:targets)attack(a,target,u.p("skillDamage"),false,new int[0],false,0,null);
             }
             default->{return false;}
         }
@@ -184,23 +187,51 @@ final class ArkCombat {
         if(u.id().equals("ark_hanasaki")){
             for(var friend:b.friends(a.seat))if(distanceSqr(a.position(),friend.position())<=range(a)*range(a))
                 friend.flowerUntil=Math.max(friend.flowerUntil,now+(long)(u.p("hasteDuration")*1000));
+            b.effects.cast(a,-1,now,700);
         }
         boolean enhanced=u.id().equals("ark_timir")&&a.attacks%(int)u.p("attackCycle")==0;
         if(enhanced)castEvent(a);
         int hits=enhanced?(int)u.p("enhancedHits"):u.id().equals("ark_vivian")?(int)u.p("basicHits"):1;
         double coefficient=enhanced?u.p("enhancedDamage"):1;
+        boolean ranged=!ArkEffects.projectile(a).isEmpty();
         List<Actor> targets=u.id().equals("ark_vivina")&&now<a.buffUntil?inRange(a,range(a),false).stream().limit((long)u.p("targets")).toList():List.of(victim);
-        for(var target:targets)for(int hit=0;hit<hits&&target.alive();hit++){
-            int[] elements=elements(a);damage(a,target,coefficient,u.magic(),elements,true,false,null);
-            if(u.id().equals("ark_timina"))slow(target,u.p("slow"),u.p("slowDuration"));
-            if(u.has("flame_lord")&&active(a.seat,"flame_lord"))fire(a,target);
-        }
+        Runnable splash=null;
         if(ArkTraits.brute(u,a.seat.counts,a.seat.layers,b.rules)&&layer(a.seat,"brute")>120){
             double amount=a.stats.panel(u.magic())*coefficient*hits*(10+.01*layer(a.seat,"brute"))/100;
-            for(var target:b.enemies())if(distanceSqr(target.position(),victim.position())<=1)fixed(a,target,amount,false,-1,false);
+            splash=()->{for(var target:b.enemies())if(distanceSqr(target.position(),victim.position())<=1)fixed(a,target,amount,false,-1,false);};
         }
+        for(var target:targets)for(int hit=0;hit<hits&&target.alive();hit++){
+            boolean last=target==targets.getLast()&&hit==hits-1;
+            attack(a,target,coefficient,u.magic(),elements(a),true,hit,last&&ranged?splash:null);
+        }
+        if(!ranged&&splash!=null)splash.run();
         if(u.id().equals("ark_maryjanna")&&a.attacks%(int)u.p("attackCycle")==0){castEvent(a);beam(a,victim.position(),u.p("beamRadius"),u.p("beamDamage"),u.p("beamDuration")*(1+u.p("durationPerLayer")*layer(a.seat,"white_church")));}
         a.entity.swing(InteractionHand.MAIN_HAND);
+    }
+    private void attack(Actor source,Actor victim,double coefficient,boolean magic,int[] elements,boolean basic,int index,Runnable followUp){
+        String style=ArkEffects.projectile(source);
+        if(style.isEmpty()){
+            impact(new Shot(source,victim,coefficient,magic,elements,basic,null,now,null));
+            if(followUp!=null)followUp.run();return;
+        }
+        double speed=style.equals("arrow")?28:style.equals("stone")?14:18;
+        long duration=(long)(Math.clamp(ArkEffects.center(source).distanceTo(ArkEffects.center(victim))/speed,.1,1)*1000);
+        var shot=new Shot(source,victim,coefficient,magic,elements.clone(),basic,source.stats.copy(),now+duration,followUp);
+        shots.add(shot);b.effects.projectile(source,victim,style,elements.length==0?-1:elements[0],now,duration,index);
+    }
+    private void projectiles(){
+        for(var shot:List.copyOf(shots))if(now>=shot.arrival()){
+            shots.remove(shot);if(eligible(shot.victim()))impact(shot);
+            if(shot.followUp()!=null)shot.followUp().run();
+        }
+    }
+    private void impact(Shot shot){
+        var source=shot.source();var victim=shot.victim();
+        damage(source,victim,shot.coefficient(),shot.magic(),shot.elements(),shot.basic(),false,shot.stats());
+        if(shot.basic()&&source.unit!=null){
+            if(source.unit.id().equals("ark_timina"))slow(victim,source.unit.p("slow"),source.unit.p("slowDuration"));
+            if(source.unit.has("flame_lord")&&active(source.seat,"flame_lord"))fire(source,victim);
+        }
     }
     private int[] elements(Actor a){
         if(a.unit.id().equals("ark_aimiluo"))return new int[]{a.element};
@@ -210,6 +241,7 @@ final class ArkCombat {
     }
     private void castEvent(Actor a){
         var seat=a.seat;var u=a.unit;
+        int[] elements=elements(a);b.effects.cast(a,elements.length==0?-1:elements[0],now,Math.max(a.buffUntil,a.castUntil)-now);
         if(ArkTraits.beast(seat.opening,b.rules).equals("ark_ruisite"))for(String trait:u.traits())if(active(seat,trait))b.gain(seat,trait,1);
         if(active(seat,"witch_garden")&&u.has("white_church")&&active(seat,"white_church"))b.gain(seat,"white_church",2);
         if(u.id().equals("ark_yiluo"))for(String trait:u.traits())if(active(seat,trait))capped(a,"cast/"+trait,trait,(int)u.s("castGain",a.star()),(int)u.s("castCap",a.star()));
@@ -265,6 +297,7 @@ final class ArkCombat {
         Vec3 delta=victim.position().subtract(source.position());cast.direction=new Vec3(delta.x,0,delta.z).normalize();
         cast.width=kind.equals("WYVERN_CHARGE")?1.4:2;cast.release=now+windup;cast.activeUntil=cast.release+active;cast.until=cast.activeUntil+recovery;
         enemyCasts.put(source,cast);
+        if(!kind.equals("BASIC"))b.effects.cast(source,magic?0:-1,now,windup+active);
         b.afterCommit.add(()->{((DungeonEnemy)source.entity).play(kind.toLowerCase(Locale.ROOT),windup+active+recovery);source.entity.swing(InteractionHand.MAIN_HAND);});
         if(magic)b.afterCommit.add(()->b.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,cast.point.x,cast.point.y+.1,cast.point.z,12,radius*.5,.1,radius*.5,.01));
     }
@@ -292,7 +325,7 @@ final class ArkCombat {
                         cast.kind.equals("LIGHTNING")||cast.kind.equals("DISCHARGE")?d<=cast.radius:
                         source.kind.equals("goblin_thrower")||!source.target.boss()&&!source.kind.contains("wyvern")?victim==cast.victim&&d<=cast.radius:
                         d<=cast.radius&&(d<.01||new Vec3(delta.x,0,delta.z).normalize().dot(cast.direction)>=Math.cos(cast.angle));
-                    if(hit){cast.hit.add(victim.entity.getUUID());damage(source,victim,cast.coefficient,cast.magic,cast.magic?new int[]{0}:new int[0],false,false,null);if(cast.kind.equals("CAGE")&&!victim.core)stasis(victim,2);}
+                    if(hit){cast.hit.add(victim.entity.getUUID());attack(source,victim,cast.coefficient,cast.magic,cast.magic?new int[]{0}:new int[0],false,0,null);if(cast.kind.equals("CAGE")&&!victim.core)stasis(victim,2);}
                 }
                 cast.released=true;if(cast.magic)sparks(cast.point);
             }
@@ -325,6 +358,20 @@ final class ArkCombat {
     }
     private void stop(Actor a){if(a.entity instanceof Mob mob)mob.getNavigation().stop();}
     private void look(Actor a,Vec3 point){if(a.entity instanceof Mob mob)mob.getLookControl().setLookAt(point.x,point.y+1,point.z);}
+    void skillState(Actor actor,com.google.gson.JsonObject view,long time,boolean preparing){
+        var unit=actor.unit;String mode;double progress,rate=0;
+        if(!actor.deployed()){mode="备战";progress=0;}
+        else if(!preparing&&actor.castUntil>time){
+            mode="咏唱";double duration=unit.p("chant")*1000;
+            progress=1-(actor.castUntil-time)/Math.max(1,duration);rate=1/Math.max(1,duration);
+        }else if(unit.p("cooldown")>0){
+            mode=unit.skillTrigger();double duration=unit.p("cooldown")*1000/actor.cooldownRecovery;
+            if(unit.id().equals("ark_vivina"))duration+=unit.p("duration")*1000;
+            progress=preparing?1:1-Math.max(0,actor.nextSkill-time)/Math.max(1,duration);
+            if(!preparing&&actor.nextSkill>time)rate=1/Math.max(1,duration);
+        }else{mode=unit.skillTrigger();progress=0;}
+        view.addProperty("skillMode",mode);view.addProperty("skill",Math.clamp(progress,0,1));view.addProperty("skillRate",rate);
+    }
     private void slow(Actor a,double value,double seconds){if(a.slowUntil<=now||value>=a.slow){a.slow=value;a.slowUntil=now+(long)(seconds*1000);}}
     private void freeze(Actor a,double seconds){
         int index=ElementAccumulation.Kind.FREEZE.ordinal();a.target.life.elemental.until[index]=Math.max(a.target.life.elemental.until[index],now+(long)(seconds*1000));
@@ -380,7 +427,7 @@ final class ArkCombat {
             double base=Arrays.stream(components).sum();
             components[1]+=ElementAccumulation.shockDamage(base,victim.target.defense(1,true),stats.get(Stat.LIGHT),victim.target.resistances()[0]);
         }
-        double points=Arrays.stream(components).sum(),actual=settle(source,victim,points);
+        double points=Arrays.stream(components).sum(),actual=settle(source,victim,points,main.element(),main.critical(),!dot);
         if(actual<=0)return 0;
         double accepted=actual/points;
         if(!victim.target.life.dead)accumulate(source,victim,components,main.total(),basic,accepted,stats);
@@ -399,18 +446,24 @@ final class ArkCombat {
     private static void add(double[] target,double[] values){for(int i=0;i<target.length;i++)target[i]+=values[i];}
     private double derived(Actor source,Actor victim,Stats stats,double coefficient,boolean magic,int[] elements){
         if(!eligible(victim))return 0;
-        return settle(source,victim,calculate(source,victim,stats,coefficient,magic,elements).total());
+        var hit=calculate(source,victim,stats,coefficient,magic,elements);
+        return settle(source,victim,hit.total(),hit.element(),hit.critical(),false);
     }
     private double fixed(Actor source,Actor victim,double points,boolean magic,int element,boolean pure){
-        if(!eligible(victim)||points<=0)return 0;
-        if(pure)return settle(source,victim,points);
-        var stats=new Stats();stats.add(Stat.PHYSICAL_ATTACK,points);stats.add(Stat.MAGICAL_ATTACK,points);
-        return settle(source,victim,CombatRules.calculate(stats,victim.target.defense(1,magic),victim.target.resistances(),magic,element<0?new int[0]:new int[]{element},1,false,b.random).total());
+        return fixed(source,victim,points,magic,element,pure,true);
     }
-    private double settle(Actor source,Actor victim,double points){
+    private double fixed(Actor source,Actor victim,double points,boolean magic,int element,boolean pure,boolean impact){
+        if(!eligible(victim)||points<=0)return 0;
+        if(pure)return settle(source,victim,points,element,false,impact);
+        var stats=new Stats();stats.add(Stat.PHYSICAL_ATTACK,points);stats.add(Stat.MAGICAL_ATTACK,points);
+        var hit=CombatRules.calculate(stats,victim.target.defense(1,magic),victim.target.resistances(),magic,element<0?new int[0]:new int[]{element},1,false,b.random);
+        return settle(source,victim,hit.total(),hit.element(),hit.critical(),impact);
+    }
+    private double settle(Actor source,Actor victim,double points,int element,boolean critical,boolean impact){
         if(points<=0||!Double.isFinite(points)||!eligible(victim))return 0;
         var receipt=LifeRules.apply(victim.target.life,points/victim.target.health(1),false);
         if(receipt.actual()<=0)return 0;double actual=receipt.actual()*victim.target.health(1);b.changed(victim);
+        b.effects.hit(source,victim,actual,element,critical,impact,now);
         victim.lastFight=now;if(source!=null)source.lastFight=now;
         if(source!=null&&source.enemy){
             if(victim.core&&b.seats.stream().anyMatch(s->tier(s,"longevity")>=3))fixed(victim,source,actual,false,-1,true);
@@ -457,7 +510,7 @@ final class ArkCombat {
             double fraction=effect.kind==ElementAccumulation.Kind.EROSION?ElementAccumulation.erosionFraction(strong):
                 ElementAccumulation.igniteFraction(strong,victim.target.defense(1,true),effect.stats.get(Stat.FIRE),victim.target.resistances()[1],
                     ElementAccumulation.magicTaken(victim.target.life.elemental,victim.target.life,strong,now));
-            double actual=settle(effect.source,victim,fraction*victim.target.health(1));
+            double actual=settle(effect.source,victim,fraction*victim.target.health(1),effect.kind==ElementAccumulation.Kind.IGNITE?1:3,false,false);
             if(actual>0&&effect.kind==ElementAccumulation.Kind.IGNITE&&effect.source.unit!=null&&effect.source.alive())elementEvent(effect.source,victim,1);
         }
     }
@@ -480,7 +533,7 @@ final class ArkCombat {
             while(zone.next<=now&&zone.next<=zone.until){
                 zone.next+=500;
                 for(var target:b.enemies())if(zone.fire?sameBlock(zone.point,target.position()):distanceSqr(zone.point,target.position())<=zone.radius*zone.radius){
-                    if(zone.fire)fixed(zone.source,target,zone.fixed,true,1,zone.tier>=3);
+                    if(zone.fire)fixed(zone.source,target,zone.fixed,true,1,zone.tier>=3,false);
                     else damage(zone.source,target,zone.coefficient,true,new int[]{0},false,true,zone.stats);
                 }
                 Vec3 point=zone.point;
@@ -523,7 +576,7 @@ final class ArkCombat {
         }
         for(var target:b.enemies())
             if(b.friends().stream().anyMatch(a->active(a.seat,"seven_stars")&&region(a,target)&&distanceSqr(a.position(),target.position())<=range(a)*range(a)))
-                fixed(null,target,target.target.health(1)*.035,false,-1,true);
+                fixed(null,target,target.target.health(1)*.035,false,-1,true,false);
     }
     private void towers(){
         for(int side:new int[]{-1,1}){

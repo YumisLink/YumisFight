@@ -39,5 +39,5 @@ public final class ArkContentTypes {
             ||type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.SHOCK)||type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.IGNITE)
             ||type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.EROSION);
     }
-    public static void register(IEventBus bus){TYPES.register(bus);EFFECTS.register(bus);bus.addListener((EntityAttributeCreationEvent event)->{event.put(ROLE.get(),NpcEntity.attributes().build());for(var type:ENEMIES.values())event.put(type.get(),DungeonEnemy.createAttributes().build());});}
+    public static void register(IEventBus bus){TYPES.register(bus);EFFECTS.register(bus);bus.addListener((EntityAttributeCreationEvent event)->{event.put(ROLE.get(),NpcEntity.attributes().add(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE,0).build());for(var type:ENEMIES.values())event.put(type.get(),DungeonEnemy.createAttributes().build());});}
 }

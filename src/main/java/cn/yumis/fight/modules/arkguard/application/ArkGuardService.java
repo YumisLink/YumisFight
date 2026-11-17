@@ -142,12 +142,12 @@ public final class ArkGuardService {
     private void begin(){
         var seats=new ArrayList<ArkBattle.Seat>();int index=0;
         for(UUID id:registered){var p=server.getPlayerList().getPlayer(id);if(p==null||!inside(p)||!confirmed.contains(id))throw new IllegalStateException("报名名单已变化");seats.add(new ArkBattle.Seat(id,p.getScoreboardName(),index++,plans.get(id)));}
-        battle=new ArkBattle(lobby,level(),journal,lives,seats,lobbyRules,System.currentTimeMillis());
+        battle=new ArkBattle(lobby,level(),journal,lives,seats,lobbyRules,System.currentTimeMillis(),this::effects);
         for(var seat:seats){var p=server.getPlayerList().getPlayer(seat.owner);var position=seat.plot().shop();if(p!=null)p.teleportTo(level(),position.x,position.y,position.z,Set.of(),seat.plot().facing(),0,true);}
         confirmed.clear();if(scene!=null)scene.update(battle,present(),System.currentTimeMillis());
     }
     private void ownerFacts(ServerPlayer player,JsonObject request){
-        var seat=requirePhase(player,request,true);ArkRoster roster=readRoster(player,request.getAsJsonObject("roster"),battle.id,battle.wave);
+        var seat=requirePhase(player,request,false);ArkRoster roster=readRoster(player,request.getAsJsonObject("roster"),battle.id,battle.wave);
         if(roster.revision<seat.roster.revision){publish(player);return;}
         if(roster.revision==seat.roster.revision){if(!JSON.toJsonTree(roster).equals(JSON.toJsonTree(seat.roster)))throw new IllegalArgumentException("个人事实版本与原内容冲突");publish(player);return;}
         if(roster.revision!=seat.roster.revision+1)throw new IllegalArgumentException("个人事实序列不连续，请重新同步");
@@ -163,13 +163,14 @@ public final class ArkGuardService {
     private ArkRoster readRoster(ServerPlayer player,JsonObject value,String round,int wave){
         if(value==null)throw new IllegalArgumentException("缺少个人方舟事实");ArkRoster r=JSON.fromJson(value,ArkRoster.class);
         if(r==null||!player.getStringUUID().equals(r.owner)||!round.equals(r.round)||r.wave!=wave||r.revision<0||r.level<1||r.level>7
-            ||r.coins<0||r.cards==null||r.shop==null||r.shop.size()!=5||r.pool==null||r.future==null||r.future.size()!=20-wave
+            ||r.coins<0||r.cards==null||r.shop==null||r.pool==null||r.future==null||r.future.size()!=20-wave
             ||!cn.yumis.fight.modules.economy.api.CurrencyRules.ARK_COIN.id().equals(r.currency))throw new IllegalArgumentException("个人方舟事实格式无效");
         ArkRules rules=battle==null?lobbyRules:battle.rules;Set<String> tokens=new HashSet<>();
+        if(r.shop.size()!=rules.shopSlots(r.level))throw new IllegalArgumentException("商店栏位格式无效");
         for(var card:r.cards){if(card==null||!tokens.add(card.token)||card.star<1||card.star>3)throw new IllegalArgumentException("卡牌身份格式无效");UUID.fromString(card.token);rules.unit(card.unit);}
         for(String id:r.shop)if(!id.isBlank())rules.unit(id);
         Set<Integer> waves=new HashSet<>();
-        for(var frame:r.future){if(frame==null||frame.wave<=wave||frame.wave>20||!waves.add(frame.wave)||frame.coins<0||frame.pool==null||frame.shop==null||frame.shop.size()!=5)throw new IllegalArgumentException("后续事实格式无效");for(String id:frame.shop)if(!id.isBlank())rules.unit(id);}
+        for(var frame:r.future){if(frame==null||frame.wave<=wave||frame.wave>20||!waves.add(frame.wave)||frame.coins<0||frame.pool==null||frame.shop==null||frame.shop.size()!=rules.shopSlots(r.level))throw new IllegalArgumentException("后续事实格式无效");for(String id:frame.shop)if(!id.isBlank())rules.unit(id);}
         return r;
     }
     private void persistOwner(String round,UUID owner,ArkRoster roster){try{journal.put("arkWar/owners/"+round+"/"+owner,roster);}catch(Exception failure){throw new IllegalStateException("个人方舟事实保存失败",failure);}}
@@ -185,6 +186,11 @@ public final class ArkGuardService {
         if(battle!=null&&battle.presentCount(present())==0)endBattle("所有参战者已离场，本局结束");publishAll();refreshBoard();
     }
     private void publishAll(){for(var p:server.getPlayerList().getPlayers())if(inside(p)||sent.containsKey(p.getUUID()))publish(p);}
+    private void effects(JsonObject packet){
+        for(var player:server.getPlayerList().getPlayers())if(inside(player)&&!player.hasDisconnected()){
+            var personal=packet.deepCopy();personal.addProperty("session",session.apply(player));send.accept(player,personal);
+        }
+    }
     private void publish(ServerPlayer player){
         var state=new JsonObject();state.addProperty("session",session.apply(player));state.addProperty("inside",inside(player));state.addProperty("returnAvailable",!journal.get(RETURNS+player.getUUID()).isJsonNull());
         state.addProperty("waiting",waiting.contains(player.getUUID()));state.addProperty("participating",battle==null?registered.contains(player.getUUID()):battle.seat(player.getUUID())!=null);

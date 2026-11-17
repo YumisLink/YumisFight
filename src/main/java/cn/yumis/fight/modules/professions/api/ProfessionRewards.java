@@ -187,6 +187,21 @@ public final class ProfessionRewards {
         java.util.function.BiConsumer<String,Long> award=(id,xp)->{var value=changes.computeIfAbsent(id,key->source.apply(key));value.award(xp,false);value.grantTitle(id);};
         String kind=event.get("kind").getAsString();String profession=null;
         switch(kind){
+            case "herb"->{
+                var state=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("state")).getOrThrow();
+                var point=event.getAsJsonArray("pos");var pos=new net.minecraft.core.BlockPos(point.get(0).getAsInt(),point.get(1).getAsInt(),point.get(2).getAsInt());
+                var tool=HerbRules.tool(id(InventoryEdits.decode(player,event.get("tool"))));
+                int level=source.apply("farmer").level();
+                for(int i=0;i<tool.count();i++){
+                    HerbTier tier=state.getBlock() instanceof cn.yumis.fight.modules.professions.platform.NightmareVineBlock?HerbTier.ARTIFACT
+                        :state.getBlock() instanceof cn.yumis.fight.modules.professions.platform.StormVineBlock?HerbTier.MYTHIC
+                        :state.getBlock() instanceof cn.yumis.fight.modules.professions.platform.OceanHerbBlock?HerbTier.LEGENDARY
+                        :HerbRules.roll(level+tool.luck(),random.nextDouble());
+                    String herb=HerbRules.item(player.level(),pos,state,tier,random.nextDouble());
+                    drops.add(ItemRegistry.item(herb,1));award.accept("farmer",HerbRules.experience(tier));
+                }
+                if(tool.seed())drops.add(ItemRegistry.item("herb_seed",1));
+            }
             case "berry"->{var before=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("before")).getOrThrow();var after=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("after")).getOrThrow();if(mature(before)&&after.is(before.getBlock())&&after.getValue(SweetBerryBushBlock.AGE)==1)profession="farmer";}
             case "harvest"->{var state=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("state")).getOrThrow();profession=mature(state)?"farmer":ore(state)?"miner":null;}
             case "craft"->profession=craftProfession(event.get("item").getAsString());

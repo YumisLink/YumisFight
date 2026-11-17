@@ -16,4 +16,5 @@ public class Profession {
         experience=experience.add(BigInteger.valueOf(xp));
         if(!admin)coins=coins.add(BigInteger.valueOf(xp));
     }
+    public void grantTitle(String id){if((title==null||title.isBlank())&&level()>=ProfessionBonuses.MAX_LEVEL)title=ProfessionCatalog.require(id).name()+"大师";}
 }

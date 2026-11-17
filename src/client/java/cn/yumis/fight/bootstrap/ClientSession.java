@@ -340,8 +340,8 @@ if(j.has("target")&&j.has("kind")){
                     syncedSources.replace(j.get("attributeRevision").getAsLong(),sources);
                 }
                 cn.yumis.fight.modules.inventory.client.InventoryClientMessages.applyEquipment(j.get("equipmentState").getAsString());
-                stats=EquipmentStats.build(Minecraft.getInstance().player,progress,syncedSources);
-                resources.equipment=EquipmentStats.cachedEffects(Minecraft.getInstance().player,progress,syncedSources);
+                stats=EquipmentStats.build(Minecraft.getInstance().player,progress,cn.yumis.fight.modules.professions.client.AlchemyClient.attributes(syncedSources));
+                resources.equipment=EquipmentStats.cachedEffects(Minecraft.getInstance().player,progress,cn.yumis.fight.modules.professions.client.AlchemyClient.attributes(syncedSources));
                 boolean initializeResources=newerLife&&(runtime.mp<0||runtime.shield<0);
                 if(newerLife&&runtime.mp<0)resources.mp=stats.get(Stat.MP);if(newerLife&&runtime.shield<0)resources.shield=stats.get(Stat.SHIELD);
                 resources.mp=Math.clamp(resources.mp,0,stats.get(Stat.MP));resources.shield=Math.clamp(resources.shield,0,stats.get(Stat.SHIELD));
@@ -407,8 +407,8 @@ if(j.has("target")&&j.has("kind")){
             if(effect.endsWithin(0))mc.player.removeEffect(effect.getEffect());
         }
         cn.yumis.fight.modules.equipment.client.EquipmentActions.tick();cn.yumis.fight.modules.professions.client.ProfessionClient.tick();
-        stats=EquipmentStats.build(mc.player,progress,syncedSources);
-        resources.equipment=EquipmentStats.cachedEffects(mc.player,progress,syncedSources);
+        stats=EquipmentStats.build(mc.player,progress,cn.yumis.fight.modules.professions.client.AlchemyClient.attributes(syncedSources));
+        resources.equipment=EquipmentStats.cachedEffects(mc.player,progress,cn.yumis.fight.modules.professions.client.AlchemyClient.attributes(syncedSources));
         var ownStats=JSON.toJsonTree(SkillController.INSTANCE.snapshot());String nextStats=ownStats.toString();if(!nextStats.equals(sentStats)){sentStats=nextStats;var state=operation("playerStats");state.add("stats",ownStats);send("playerStats",state);}
         cn.yumis.fight.modules.combat.api.EquipmentBuffs.prune(resources,resources.equipment,now(),own.dead);
         EquipmentStats.applyMovement(mc.player,stats);
@@ -476,7 +476,7 @@ if(j.has("target")&&j.has("kind")){
     }
     public double predicted(Life life){return prediction.predicted(life);}
     public Stats weaponStats(ItemStack weapon){
-        return EquipmentStats.build(Minecraft.getInstance().player,progress,syncedSources,weapon);
+        return EquipmentStats.build(Minecraft.getInstance().player,progress,cn.yumis.fight.modules.professions.client.AlchemyClient.attributes(syncedSources),weapon);
     }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){prediction.report(life,fraction,heal,maximum,color,critical,extras);}
     public JsonObject ailment(String target,String kind){

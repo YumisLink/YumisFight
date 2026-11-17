@@ -59,6 +59,7 @@ public final class AlchemyCauldronBlock extends BaseEntityBlock {
     }
     /** 热源：火、营火、岩浆、岩浆块、灵魂火。 */
     public static boolean heatSource(BlockState state){
+        if(state.getBlock() instanceof net.minecraft.world.level.block.CampfireBlock)return state.getValue(net.minecraft.world.level.block.CampfireBlock.LIT);
         String path=net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
         return path.contains("fire")||path.contains("campfire")||path.contains("lava")||path.equals("magma_block");
     }

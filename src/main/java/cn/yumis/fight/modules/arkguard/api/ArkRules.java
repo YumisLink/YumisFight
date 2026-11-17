@@ -11,7 +11,8 @@ public final class ArkRules {
     private static final Gson JSON=new Gson();
     private static Supplier<ArkRules> source=ArkRules::defaults;
     private static final class Defaults {static final ArkRules VALUE=load();}
-    public int version,cardsPerUnit,shopSlots,refreshCost,maximumLevel,maximumTraitLayers;
+    public int version,cardsPerUnit,refreshCost,maximumLevel,maximumTraitLayers;
+    public int[] shopSlots;
     public List<Unit> units;
     public List<Trait> traits;
     public int[][] shopProbabilities;
@@ -25,6 +26,11 @@ public final class ArkRules {
         public double s(String key,int star){var values=stars.get(key);return values==null?0:values.get(star-1);}
         public double starScale(int star){return switch(star){case 1->1;case 2->1.8;case 3->3.24;default->throw new IllegalArgumentException("星级无效");};}
         public boolean has(String trait){return traits.contains(trait);}
+        public String skillTrigger(){
+            if(p("cooldown")>0)return "自动技能";
+            if(p("attackCycle")>0)return "普攻触发";
+            return switch(id){case "ark_timina","ark_hanasaki","ark_baiyan"->"普攻触发";default->"常驻被动";};
+        }
         public String describe(String template){
             var matcher=Pattern.compile("\\{([A-Za-z0-9]+)(?::(percent|stars|starsPercent))?}").matcher(template);
             return matcher.replaceAll(match->{
@@ -36,8 +42,9 @@ public final class ArkRules {
     }
     public record Trait(String id,String name,int[] thresholds,List<String> description) {}
     public static final class Enemies {
-        public int goblinFirstCount,goblinLastCount,goblinGuards,dragonGuards;
+        public int goblinFirstCount,goblinLastCount,goblinGuards,dragonGuards,earlyGrowthEndWave;
         public double dragonCountRatio,goblinHealth,dragonHealth,healthGrowth,goblinAttack,dragonAttack,attackGrowth;
+        public double lateHealthGrowth,lateAttackGrowth;
         public double goblinPhysicalDefense,dragonPhysicalDefense,magicalDefense,defensePerWave;
         public double[] goblinResists,dragonResists;
         public double bossHealth,bossHealthGrowth,bossAttack,bossAttackGrowth;
@@ -45,20 +52,25 @@ public final class ArkRules {
             int goblins=(int)Math.round(goblinFirstCount+(goblinLastCount-goblinFirstCount)*(wave-1)/19d);
             return dragon?(int)Math.round(goblins*dragonCountRatio):goblins;
         }
-        public double health(int wave,boolean dragon){return (dragon?dragonHealth:goblinHealth)*Math.pow(healthGrowth,wave-1);}
-        public double attack(int wave,boolean dragon){return (dragon?dragonAttack:goblinAttack)*Math.pow(attackGrowth,wave-1);}
+        public double health(int wave,boolean dragon){return (dragon?dragonHealth:goblinHealth)*growth(wave,healthGrowth,lateHealthGrowth);}
+        public double attack(int wave,boolean dragon){return (dragon?dragonAttack:goblinAttack)*growth(wave,attackGrowth,lateAttackGrowth);}
+        private double growth(int wave,double early,double late){
+            int first=Math.min(wave-1,earlyGrowthEndWave-1),later=Math.max(0,wave-earlyGrowthEndWave);
+            return Math.pow(early,first)*Math.pow(late,later);
+        }
         public double physicalDefense(int wave,boolean dragon){return (dragon?dragonPhysicalDefense:goblinPhysicalDefense)*(1+defensePerWave*(wave-1));}
         public double magicalDefense(int wave){return magicalDefense*(1+defensePerWave*(wave-1));}
         public double bossHealth(int wave){return bossHealth*Math.pow(bossHealthGrowth,wave-5);}
         public double bossAttack(int wave){return bossAttack*Math.pow(bossAttackGrowth,wave-5);}
         public double[] resistances(boolean dragon){return (dragon?dragonResists:goblinResists).clone();}
     }
+    public int shopSlots(int level){return shopSlots[level-1];}
     public static ArkRules current(){return source.get();}
     public static void source(Supplier<ArkRules> supplier){source=Objects.requireNonNull(supplier);}
     public static ArkRules defaults(){return Defaults.VALUE;}
     public static ArkRules parse(String json){
         ArkRules r=JSON.fromJson(json,ArkRules.class);
-        if(r==null||r.version!=1||r.units==null||r.traits==null||r.enemies==null||r.cardsPerUnit<9||r.shopSlots!=5
+        if(r==null||r.version!=2||r.units==null||r.traits==null||r.enemies==null||r.cardsPerUnit<9||r.shopSlots==null||r.shopSlots.length!=7
             ||r.refreshCost<0||r.maximumLevel!=7||r.maximumTraitLayers!=2000||r.shopProbabilities==null
             ||r.shopProbabilities.length!=7||r.populations==null||r.populations.length!=7||r.upgradeCosts==null||r.upgradeCosts.length!=6)
             throw new IllegalArgumentException("方舟内容定义无效");
@@ -74,11 +86,15 @@ public final class ArkRules {
             for(var list:u.stars().values())if(list.size()!=3||list.stream().anyMatch(v->!Double.isFinite(v)))throw new IllegalArgumentException("方舟星级参数无效");
             for(double v:u.parameters().values())if(!Double.isFinite(v))throw new IllegalArgumentException("方舟技能参数无效");
         }
-        for(int i=0;i<7;i++)if(r.shopProbabilities[i].length!=6||Arrays.stream(r.shopProbabilities[i]).anyMatch(v->v<0)
+        for(int i=0;i<7;i++)if(r.shopSlots[i]<1||r.shopSlots[i]>8||i>0&&r.shopSlots[i]<r.shopSlots[i-1]
+            ||r.shopProbabilities[i].length!=6||Arrays.stream(r.shopProbabilities[i]).anyMatch(v->v<0)
             ||Arrays.stream(r.shopProbabilities[i]).sum()!=100||r.populations[i]<1)throw new IllegalArgumentException("方舟商店概率无效");
         if(r.enemies.goblinResists==null||r.enemies.dragonResists==null||r.enemies.goblinResists.length!=4||r.enemies.dragonResists.length!=4
             ||r.enemies.goblinFirstCount<1||r.enemies.goblinLastCount>30||r.enemies.goblinGuards+1>30||r.enemies.dragonGuards+1>30)
             throw new IllegalArgumentException("方舟军团参数无效");
+        if(r.enemies.earlyGrowthEndWave<1||r.enemies.earlyGrowthEndWave>20)throw new IllegalArgumentException("方舟敌军成长分段无效");
+        for(double multiplier:new double[]{r.enemies.healthGrowth,r.enemies.attackGrowth,r.enemies.lateHealthGrowth,r.enemies.lateAttackGrowth})
+            if(!Double.isFinite(multiplier)||multiplier<=0)throw new IllegalArgumentException("方舟敌军成长倍率无效");
         return r;
     }
     private static ArkRules load(){

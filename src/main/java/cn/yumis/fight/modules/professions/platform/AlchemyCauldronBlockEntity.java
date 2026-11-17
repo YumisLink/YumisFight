@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.professions.platform;
 import cn.yumis.fight.modules.professions.api.PotionTier;
+import cn.yumis.fight.modules.professions.api.AlchemyPotions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Containers;
 import net.minecraft.world.SimpleContainer;
@@ -91,17 +92,19 @@ public final class AlchemyCauldronBlockEntity extends BlockEntity {
         for(int i=0;i<SLOTS;i++){
             if(inputs[i].isEmpty()){cook[i]=0;continue;}
             if(AlchemyRecipes.tierOf(inputs[i])==null){cook[i]=0;continue;}
-            if(cook[i]<COOK_TICKS)cook[i]++;
+            if(cook[i]<COOK_TICKS){cook[i]++;setChanged();}
         }
     }
     /** 点金棒点化：按投料组合匹配药液配方，需要满桶水（1000mb），产出 4 瓶份药液。 */
     public boolean transform(Player player){
         Level level=getLevel();
         if(level==null||level.isClientSide())return false;
-        if(!brewId.isEmpty()||water<CAPACITY)return false;
+        if(!brewId.isEmpty()||water<CAPACITY||!AlchemyCauldronBlock.heatSource(level.getBlockState(worldPosition.below())))return false;
         java.util.Map<String,Integer> herbs=new java.util.LinkedHashMap<>();
-        for(ItemStack stack:inputs){
+        for(int slot=0;slot<SLOTS;slot++){
+            ItemStack stack=inputs[slot];
             if(stack.isEmpty())continue;
+            if(cook[slot]<COOK_TICKS)return false;
             String id=net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
             if(!id.startsWith("herb_"))continue;
             herbs.merge(id,1,Integer::sum);
@@ -129,15 +132,15 @@ public final class AlchemyCauldronBlockEntity extends BlockEntity {
         String held=net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(bottle.getItem()).toString();
         String required=brewBottle.equals(AlchemyPotions.BOTTLE_GLASS)?AlchemyPotions.BOTTLE_GLASS:"yumis_dungeon_and_fight:"+brewBottle;
         if(!held.equals(required))return false;
-        ItemStack potion=cn.yumis.fight.platform.ItemRegistry.item(brewId,1);
+        String crafted=brewId;
+        ItemStack potion=cn.yumis.fight.platform.ItemRegistry.item(crafted,1);
         if(!player.getInventory().add(potion))player.drop(potion,false);
         brewAmount-=AlchemyPotions.BOTTLE_MB;
         if(brewAmount<=0){brewAmount=0;brewId="";brewBottle=AlchemyPotions.BOTTLE_GLASS;}
         if(!player.getAbilities().instabuild){
             bottle.shrink(1);
-            ItemStack empty=new ItemStack(Items.GLASS_BOTTLE);
-            if(!player.getInventory().add(empty))player.drop(empty,false);
         }
+        if(player instanceof net.minecraft.server.level.ServerPlayer server)cn.yumis.fight.modules.professions.application.ProfessionEvents.brewed(server,crafted);
         sync();
         setChanged();
         return true;
@@ -163,7 +166,7 @@ public final class AlchemyCauldronBlockEntity extends BlockEntity {
     @Override protected void saveAdditional(ValueOutput out){
         super.saveAdditional(out);
         out.putInt("alchemy_schema",1);
-        for(int i=0;i<SLOTS;i++)out.store("in"+i,ItemStack.OPTIONAL_CODEC,inputs[i]);
+        for(int i=0;i<SLOTS;i++){out.store("in"+i,ItemStack.OPTIONAL_CODEC,inputs[i]);out.putInt("cook"+i,cook[i]);}
         out.store("output",ItemStack.OPTIONAL_CODEC,output);
         out.putInt("water",water);
         out.putString("brew",brewId);
@@ -178,7 +181,7 @@ public final class AlchemyCauldronBlockEntity extends BlockEntity {
             for(int i=0;i<essence.length;i++)essence[i]=0;
             output=ItemStack.EMPTY;water=0;return;
         }
-        for(int i=0;i<SLOTS;i++)inputs[i]=in.read("in"+i,ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
+        for(int i=0;i<SLOTS;i++){inputs[i]=in.read("in"+i,ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);cook[i]=in.getIntOr("cook"+i,0);}
         output=in.read("output",ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
         water=in.getIntOr("water",0);
         brewId=in.getStringOr("brew","");

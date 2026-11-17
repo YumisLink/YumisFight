@@ -44,6 +44,7 @@ public final class ArkGuardClient {
         });
         messages.register("arkguard","arkGuard",(context,value)->{
             var ui=ClientUi.current();if(!ui.session().equals(value.get("session").getAsString()))return;
+            if(value.has("effects")){ArkVisuals.receive(value);return;}
             boolean entered=waiting&&value.get("inside").getAsBoolean();
             inside=value.get("inside").getAsBoolean();waiting=value.get("waiting").getAsBoolean();
             participating=value.get("participating").getAsBoolean();
@@ -55,7 +56,7 @@ public final class ArkGuardClient {
                 boolean changed=!round.equals(nextRound)||!stage.equals(nextStage)||!phase.equals(nextPhase);
                 if(!round.equals(nextRound)){roster=null;rules=null;selection=0;}
                 if(next.has("rules"))rules=ArkRules.parse(next.get("rules").toString());
-                round=nextRound;phase=nextPhase;stage=nextStage;war=next.deepCopy();
+                round=nextRound;phase=nextPhase;stage=nextStage;war=next.deepCopy();ArkVisuals.state(next);
                 seat=integer("seat",-1);personalReady=flag("personalReady");personalConfirmed=flag("personalConfirmed");
                 if(next.has("roster")){
                     var received=JSON.fromJson(next.get("roster"),ArkRoster.class);
@@ -72,6 +73,7 @@ public final class ArkGuardClient {
         });
     }
     public static void clear(){
+        ArkVisuals.clear();
         inside=waiting=participating=personalReady=personalConfirmed=returnAvailable=false;
         round=stage=queriedSession=lastResult="";phase="LOBBY";seat=-1;selection=0;rules=null;roster=null;
         war=new JsonObject();layers=counts=Map.of();world=null;pendingAt=nextQuery=0;menu=null;
@@ -86,6 +88,7 @@ public final class ArkGuardClient {
             ui.send("arkGuard",ui.operation("status"));
         }
         inside=ArkWar.contains(mc.player.level(),mc.player.blockPosition());
+        ArkVisuals.tick();
     }
     private static Map<String,Integer> numbers(JsonObject object,String key){
         var result=new LinkedHashMap<String,Integer>();
@@ -115,11 +118,11 @@ public final class ArkGuardClient {
         var value=ui.operation(kind);value.addProperty("round",round);ui.upload();ui.send("arkGuard",value);
         if(kind.equals("leave"))Minecraft.getInstance().gui.setScreen(null);
     }
-    private static void change(Consumer<ArkRoster> operation){
-        if(!editing()||roster==null||rules==null||plot()==null){ClientUi.current().message("仅准备阶段可以调整自己的阵容。");return;}
+    private static void change(boolean shopping,Consumer<ArkRoster> operation){
+        if(roster==null||rules==null||plot()==null||!editing()&&(!shopping||!phase.equals("BATTLE"))){ClientUi.current().message("战斗期间可以购买角色，布阵、抱起和出售请等准备阶段。");return;}
         try{
             var updated=roster.copy();operation.accept(updated);updated.revision++;updated.plan(rules,RANDOM);
-            roster=updated;counts=ArkTraits.counts(roster,rules);personalReady=false;pendingAt=ClientUi.now();
+            roster=updated;if(editing()){counts=ArkTraits.counts(roster,rules);personalReady=false;}pendingAt=ClientUi.now();
             var value=ClientUi.current().operation("owner_facts");value.addProperty("round",round);value.addProperty("stage",stage);value.add("roster",JSON.toJsonTree(roster));
             ClientUi.current().send("arkGuard",value);
         }catch(IllegalArgumentException failure){ClientUi.current().message(failure.getMessage());}
@@ -136,6 +139,10 @@ public final class ArkGuardClient {
         if(!(Minecraft.getInstance().hitResult instanceof EntityHitResult e)||!(e.getEntity() instanceof ItemFrame frame))return null;
         for(var p:ArkWar.PLOTS){int slot=p.frame(frame.position());if(slot>=0)return new int[]{p.index(),slot};}return null;
     }
+    private static ArkWar.Plot pointedSign(){
+        var hit=Minecraft.getInstance().hitResult;if(!(hit instanceof BlockHitResult block))return null;
+        var pos=block.getBlockPos();return ArkWar.PLOTS.stream().filter(plot->plot.readySign().equals(pos)||plot.refreshSign().equals(pos)||plot.upgradeSign().equals(pos)).findFirst().orElse(null);
+    }
     public static void scroll(InputEvent.MouseScrollingEvent event){
         if(!usable())return;var role=pointedRole();boolean carrying=roster!=null&&!roster.carrying.isBlank();
         if(!carrying&&(role==null||!own(role)))return;
@@ -145,26 +152,28 @@ public final class ArkGuardClient {
         if(!usable())return;var mc=Minecraft.getInstance();var frame=pointedFrame();var role=pointedRole();
         boolean carrying=roster!=null&&!roster.carrying.isBlank();
         BlockPos block=mc.hitResult instanceof BlockHitResult b?b.getBlockPos():null;
-        ArkWar.Plot sign=block==null?null:ArkWar.PLOTS.stream().filter(p->p.readySign().equals(block)).findFirst().orElse(null);
+        ArkWar.Plot sign=pointedSign();
         if(frame==null&&role==null&&!carrying&&sign==null)return;
         event.setCanceled(true);event.setSwingHand(false);
         if(!event.isUseItem()||event.getHand()!=InteractionHand.MAIN_HAND)return;
         if(frame!=null){
             if(frame[0]!=seat){ClientUi.current().message("这是其他参战者的商店。");return;}
-            if(frame[1]<5)change(r->r.buy(frame[1],plot().benches(mc.level).size(),rules));
-            else if(frame[1]==5)change(r->r.refresh(rules,RANDOM,true));
-            else if(frame[1]==6)change(r->r.upgrade(rules));
-            else ClientUi.current().message("将鼠标对准角色或羁绊，可查看详细说明。");
+            if(roster==null)return;
+            if(frame[1]>=roster.shop.size()){ClientUi.current().message("提升商店等级后解锁这个购买位。");return;}
+            change(true,r->r.buy(frame[1],plot().benches(mc.level).size(),rules));
         }else if(sign!=null){
-            if(sign.index()!=seat){ClientUi.current().message("请使用自己商店旁的准备告示牌。");return;}ready();
+            if(sign.index()!=seat){ClientUi.current().message("请使用自己商店旁的告示牌。");return;}
+            if(sign.refreshSign().equals(block))change(true,r->r.refresh(rules,RANDOM,true));
+            else if(sign.upgradeSign().equals(block))change(true,r->r.upgrade(rules,RANDOM));
+            else ready();
         }else if(carrying){
-            if(selection==1){String token=roster.carrying;change(r->r.sell(token,rules));selection=0;return;}
+            if(selection==1){String token=roster.carrying;change(false,r->r.sell(token,rules));selection=0;return;}
             if(block==null||plot()==null)return;
             int bench=plot().bench(mc.level,block);
             if(bench<0&&!plot().deployment(mc.level,block)){ClientUi.current().message("请放在自己的草地、泥土路径或磨制安山岩台阶备战位上。");return;}
-            change(r->r.place(block.getX(),block.getY(),block.getZ(),bench,rules));selection=0;
+            change(false,r->r.place(block.getX(),block.getY(),block.getZ(),bench,rules));selection=0;
         }else if(role!=null&&own(role)){
-            String token=role.cardId();if(selection==1)change(r->r.sell(token,rules));else change(r->r.pick(token));selection=0;
+            String token=role.cardId();if(selection==1)change(false,r->r.sell(token,rules));else change(false,r->r.pick(token));selection=0;
         }
     }
 
@@ -175,21 +184,26 @@ public final class ArkGuardClient {
         UiTheme.hud(g,x,y,w,17);g.text(font,text,x+6,y+4,UiTheme.HUD_GOLD,true);return true;
     }
     public static void render(GuiGraphicsExtractor g){
+        ArkVisuals.hud(g);
         var mc=Minecraft.getInstance();if(!usable()||mc.gui.hud.isHidden()||rules==null)return;
         var detail=details();
         if(!detail.isEmpty())panel(g,Math.max(8,g.guiWidth()-Math.min(315,g.guiWidth()/2)-8),8,Math.min(315,g.guiWidth()/2),detail);
     }
     private static List<Component> details(){
-        var rows=new ArrayList<Component>();var frame=pointedFrame();var role=pointedRole();
+        var rows=new ArrayList<Component>();var frame=pointedFrame();var role=pointedRole();var sign=pointedSign();
         if(frame!=null&&frame[0]==seat&&roster!=null){
             int slot=frame[1];
-            if(slot<5){String id=roster.shop.get(slot);if(!id.isBlank())unit(rows,rules.unit(id),1,null);}
-            else if(slot==5){rows.add(numeric("刷新商店 · "+rules.refreshCost+"方舟币"));rows.add(Component.literal("准备阶段每波免费刷新一次").withColor(UiTheme.HUD_MUTED));}
-            else if(slot==6){
+            if(slot<roster.shop.size()){String id=roster.shop.get(slot);if(!id.isBlank())unit(rows,rules.unit(id),1,null);}
+            else rows.add(Component.literal("提升商店等级后解锁这个购买位").withColor(GRAY));
+        }else if(sign!=null&&sign.index()==seat&&roster!=null){
+            var block=((BlockHitResult)Minecraft.getInstance().hitResult).getBlockPos();
+            if(sign.refreshSign().equals(block)){rows.add(numeric("刷新商店 · "+rules.refreshCost+"方舟币"));rows.add(Component.literal("每波准备阶段自动免费刷新一次").withColor(UiTheme.HUD_MUTED));}
+            else if(sign.upgradeSign().equals(block)){
                 rows.add(numeric("商店 "+roster.level+"级 · "+rules.populations[roster.level-1]+"人口"));
                 rows.add(numeric(roster.level>=7?"已满级":"升级费用 "+roster.upgradePrice(rules)+"方舟币 · 逐波减少1币"));
-                for(int i=0;i<7;i++)rows.add(Component.literal((i+1)+"级 "+Arrays.toString(rules.shopProbabilities[i])+" · "+rules.populations[i]+"人口").withColor(i==roster.level-1?BLUE:GRAY));
-            }else if(roster!=null)rows.add(numeric("上场 "+roster.population()+" · 备战位 "+plot().benches(Minecraft.getInstance().level).size()));
+                for(int i=0;i<7;i++)rows.add(Component.literal((i+1)+"级 "+Arrays.toString(rules.shopProbabilities[i])+" · "+rules.shopSlots(i+1)+"购买位 · "+rules.populations[i]+"人口").withColor(i==roster.level-1?BLUE:GRAY));
+            }else rows.add(numeric("上场 "+roster.population()+" · 备战位 "+plot().benches(Minecraft.getInstance().level).size()));
+            if(!editing())rows.add(Component.literal("战斗中可购买，布阵与上场合成下波生效").withColor(UiTheme.HUD_MUTED));
         }else if(role!=null){
             var definition=rules.units.stream().filter(u->u.id().equals(role.roleId())).findFirst().orElse(null);
             if(definition!=null)unit(rows,definition,role.star(),own(role)?role.cardId():null);
@@ -203,7 +217,7 @@ public final class ArkGuardClient {
                 rows.add(Component.literal("未上场："+String.join("、",rules.units.stream().filter(u->u.has(trait)&&!deployed.contains(u.id())).map(ArkRules.Unit::name).toList())).withColor(GRAY));
             }
         }
-        if(roster!=null&&!roster.carrying.isBlank()){
+        if(roster!=null&&!roster.carrying.isBlank()&&editing()){
             if(!rows.isEmpty())rows.add(Component.literal(" "));
             var card=roster.card(roster.carrying);rows.add(Component.literal("抱起："+rules.unit(card.unit).name()+" "+"★".repeat(card.star)).withColor(UiTheme.HUD_GOLD));
             rows.add(Component.literal((selection==0?"› ":"  ")+"放置到阵地／备战位").withColor(selection==0?BLUE:GRAY));
@@ -227,6 +241,7 @@ public final class ArkGuardClient {
     }
     private static void unit(List<Component> rows,ArkRules.Unit u,int star,String token){
         rows.add(Component.literal(u.name()+" "+"★".repeat(star)+" · "+u.role()).withColor(UiTheme.HUD_GOLD));
+        rows.add(Component.literal("技能类型："+u.skillTrigger()).withColor(BLUE));
         rows.add(numeric("价格 "+u.cost()+"方舟币 · "+String.join("／",u.traits().stream().map(id->rules.trait(id).name()).toList())));
         JsonObject live=token!=null&&war.has("units")&&war.getAsJsonObject("units").has(token)?war.getAsJsonObject("units").getAsJsonObject(token):null;
         rows.add(numeric("生命 "+(live==null?ArkRules.number(u.health()*u.starScale(star)):ArkRules.number(live.get("health").getAsDouble())+" / "+ArkRules.number(live.get("maximum").getAsDouble()))));
@@ -234,7 +249,7 @@ public final class ArkGuardClient {
         rows.add(numeric("物防 "+ArkRules.number(live==null?u.physicalDefense():live.get("physicalDefense").getAsDouble())+" · 魔防 "+ArkRules.number(live==null?u.magicalDefense():live.get("magicalDefense").getAsDouble())));
         rows.add(numeric("攻速 "+ArkRules.number(live==null?u.attackRate():live.get("attackRate").getAsDouble())+"次/秒 · 射程 "+ArkRules.number(live==null?u.range():live.get("range").getAsDouble())+"格"));
         for(String line:u.description())rows.add(description(u,line,star));
-        if(live!=null&&!editing())rows.add(numeric("技能冷却 "+ArkRules.number(live.get("cooldown").getAsDouble()/1000)+"秒 · 情绪 "+live.get("emotion").getAsInt()+"层"));
+        if(live!=null&&!editing())rows.add(numeric((u.p("cooldown")>0?"自动技能冷却 "+ArkRules.number(live.get("cooldown").getAsDouble()/1000)+"秒 · ":"")+"情绪 "+live.get("emotion").getAsInt()+"层"));
     }
     private static Component description(ArkRules.Unit unit,String template,int star){
         var line=Component.empty();var matcher=VALUES.matcher(template);int end=0;

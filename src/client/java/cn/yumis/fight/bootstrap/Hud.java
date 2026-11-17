@@ -50,7 +50,6 @@ public final class Hud {
         int width=g.guiWidth(),height=g.guiHeight(),center=width/2;
         damageMeter(g,s);
         cn.yumis.fight.modules.combat.client.EquipmentBuffHud.render(g,s.resources,ClientSession.now(),width-6,height-70);
-        cn.yumis.fight.modules.professions.client.AlchemyBuffHud.render(g,ClientSession.now(),width-6,height-70);
         long now=ClientSession.now();
         double health=s.predicted(s.own);
         var currentStats=SkillController.INSTANCE.snapshot();
@@ -109,7 +108,8 @@ public final class Hud {
         if(mc.gui.screen()!=null)return;
         g.nextStratum();
         cn.yumis.fight.modules.combat.client.DamageNumbers.render(g,mc,now,s.dimension,s.prediction.numbers());
-        cn.yumis.fight.modules.skills.client.CareerHud.renderGauge(g,width,height,now);
+        cn.yumis.fight.modules.skills.client.CareerHud.renderGauge(g,width,height,now,
+            (x,y)->cn.yumis.fight.modules.professions.client.AlchemyGauge.render(g,System.currentTimeMillis(),x,y));
     }
     public static void renderTarget(RenderGuiEvent.Post event){
         var mc=Minecraft.getInstance();

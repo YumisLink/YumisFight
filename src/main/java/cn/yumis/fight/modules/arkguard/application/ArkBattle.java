@@ -69,6 +69,7 @@ final class ArkBattle {
     final List<Actor> actors=new ArrayList<>();
     final Random random=new Random();
     final ArkCombat combat;
+    final ArkEffects effects;
     final Set<Actor> dirty=new LinkedHashSet<>();
     final List<Runnable> afterCommit=new ArrayList<>();
     final boolean[] dragon=new boolean[21];
@@ -80,9 +81,9 @@ final class ArkBattle {
     boolean ended,stateDirty=true;
     double towerMultiplier=1;
 
-    ArkBattle(String id,ServerLevel level,Journal journal,WorldTargets lives,List<Seat> seats,ArkRules rules,long now){
+    ArkBattle(String id,ServerLevel level,Journal journal,WorldTargets lives,List<Seat> seats,ArkRules rules,long now,java.util.function.Consumer<JsonObject> presentation){
         this.id=id;this.level=level;this.journal=journal;this.lives=lives;this.seats=seats;
-        this.rules=ArkRules.parse(JSON.toJson(rules));combat=new ArkCombat(this);
+        this.rules=ArkRules.parse(JSON.toJson(rules));combat=new ArkCombat(this);effects=new ArkEffects(this,presentation);
         holdChunks();
         try{
         for(int w=1;w<=20;w++)dragon[w]=random.nextBoolean();
@@ -92,7 +93,7 @@ final class ArkBattle {
         entity.setPos(ArkWar.CORE.getX()+.5,ArkWar.CORE.getY(),ArkWar.CORE.getZ()+.5);
         var target=target(entity,200000,0,0,0,new double[4],false,false,true);
         entity.core(target);core=new Actor(entity,null,null,null,false,true,"core",target);spawn(core);
-        for(var seat:seats)syncRoster(seat);
+        for(var seat:seats)syncRoster(seat,false);
         flush();
         }catch(RuntimeException failure){try{close();}catch(RuntimeException cleanup){failure.addSuppressed(cleanup);}throw failure;}
     }
@@ -104,7 +105,9 @@ final class ArkBattle {
     boolean editing(){return !ended&&phase.equals("PREP");}
 
     void accept(Seat seat,ArkRoster roster){
-        seat.roster=roster;seat.ready=false;syncRoster(seat);stateDirty=true;flush();
+        seat.roster=roster;
+        if(editing())seat.ready=false;
+        syncRoster(seat,!editing());stateDirty=true;flush();
     }
     void ready(Seat seat,boolean ready){seat.ready=ready;stateDirty=true;}
     void tick(long now,Set<UUID> present){
@@ -144,7 +147,7 @@ final class ArkBattle {
                 actor.target.life.elemental=new ElementAccumulation.State();actor.target.life.elemental.generation=actor.target.life.generation;
                 actor.target.life.q=1;actor.target.life.dead=false;actor.target.life.revision++;
                 if(actor.entity instanceof Mob mob){mob.setNoAi(!actor.deployed());mob.getNavigation().stop();}
-                actor.entity.setInvisible(!actor.deployed());actor.entity.setNoGravity(!actor.deployed());
+                actor.entity.setInvisible(actor.card.held);actor.entity.setNoGravity(!actor.deployed());
                 var scale=actor.entity.getAttribute(Attributes.SCALE);if(scale!=null)scale.setBaseValue(1);
                 dirty.add(actor);
             }
@@ -167,7 +170,7 @@ final class ArkBattle {
         for(var seat:seats){
             seat.roster.reach(wave);seat.ready=false;seat.rallied=false;seat.allies.clear();
             journalPut("arkWar/owners/"+id+"/"+seat.owner,seat.roster);
-            syncRoster(seat);
+            syncRoster(seat,false);
         }
         stateDirty=true;flush();
     }
@@ -188,7 +191,7 @@ final class ArkBattle {
     }
     void changed(Actor actor){dirty.add(actor);}
     void flush(){
-        if(dirty.isEmpty()&&!stateDirty){afterCommit.forEach(Runnable::run);afterCommit.clear();return;}
+        if(dirty.isEmpty()&&!stateDirty){afterCommit.forEach(Runnable::run);afterCommit.clear();effects.publish();return;}
         var changed=new LinkedHashMap<LivingEntity,Target>();
         for(var actor:dirty)changed.put(actor.entity,actor.target);
         var commit=lives.prepare(changed);
@@ -197,7 +200,7 @@ final class ArkBattle {
         }catch(Exception failure){journal.abort();throw new IllegalStateException("方舟事实提交失败",failure);}
         commit.publish();
         for(var actor:dirty)if(actor.alive())actor.entity.setHealth((float)Math.max(.001,actor.entity.getMaxHealth()*actor.target.life.q));
-        dirty.clear();stateDirty=false;afterCommit.forEach(Runnable::run);afterCommit.clear();
+        dirty.clear();stateDirty=false;afterCommit.forEach(Runnable::run);afterCommit.clear();effects.publish();
     }
     private JsonObject metadata(){
         var data=new JsonObject();data.addProperty("id",id);data.addProperty("wave",wave);data.addProperty("phase",phase);data.addProperty("stage",stage);
@@ -205,6 +208,7 @@ final class ArkBattle {
     }
     void finish(String result){this.result=result;ended=true;phase="FINISHED";stateDirty=true;flush();}
     void close(){
+        effects.clear();
         try{
             combat.end();clearActors(true);afterCommit.clear();dirty.clear();
             try{journal.begin();journal.put("arkWar/matches/"+id,JsonNull.INSTANCE);for(var seat:seats)journal.put("arkWar/owners/"+id+"/"+seat.owner,JsonNull.INSTANCE);journal.finish();}
@@ -243,20 +247,18 @@ final class ArkBattle {
         if(card.deployed)return ArkWar.standing(level,new net.minecraft.core.BlockPos(card.x,card.y,card.z));
         return seat.plot().shop();
     }
-    private void syncRoster(Seat seat){
-        var existing=new LinkedHashMap<String,Actor>();for(var actor:seat.allies)existing.put(actor.card.token,actor);
-        var removed=new ArrayList<LivingEntity>();
-        for(var actor:seat.allies)if(seat.roster.cards.stream().noneMatch(c->c.token.equals(actor.card.token))){actor.entity.discard();actors.remove(actor);dirty.remove(actor);removed.add(actor.entity);}
-        if(!removed.isEmpty())lives.release(removed);
-        seat.allies.clear();
-        for(var card:seat.roster.cards){
-            var old=existing.get(card.token);var definition=rules.unit(card.unit);
-            // A new card fact has a new life projection, including star/placement changes.
-            if(old!=null){old.entity.discard();actors.remove(old);dirty.remove(old);lives.release(List.of(old.entity));}
+    private void syncRoster(Seat seat,boolean reservesOnly){
+        // Shopping never replaces a fighting actor, even when the purchased copy merges with it.
+        var replaced=seat.allies.stream().filter(actor->!reservesOnly||!actor.deployed()).toList();
+        for(var actor:replaced){actor.entity.discard();actors.remove(actor);dirty.remove(actor);seat.allies.remove(actor);}
+        if(!replaced.isEmpty())lives.release(replaced.stream().map(actor->actor.entity).toList());
+        for(var card:seat.roster.cards)if(!reservesOnly||!card.deployed){
+            var definition=rules.unit(card.unit);
             var entity=ArkContentTypes.ROLE.get().create(level,EntitySpawnReason.COMMAND);if(entity==null)throw new IllegalStateException("无法创建角色");
             var target=target(entity,definition.health()*definition.starScale(card.star),definition.attack()*definition.starScale(card.star),
                 definition.physicalDefense(),definition.magicalDefense(),new double[4],false,false,true);
             entity.configure(seat.owner.toString(),card,definition,target);entity.setNoAi(true);entity.setNoGravity(card.held);
+            entity.setInvisible(reservesOnly&&card.held);
             var scale=entity.getAttribute(Attributes.SCALE);if(scale!=null)scale.setBaseValue(card.held?.55:1);
             Vec3 point=cardPosition(seat,card);entity.setPos(point.x,point.y,point.z);entity.setYRot(seat.plot().facing());
             var actor=new Actor(entity,seat,card,definition,false,false,"",target);seat.allies.add(actor);spawn(actor);
@@ -316,13 +318,23 @@ final class ArkBattle {
     List<Actor> friends(Seat seat){return seat.allies.stream().filter(a->a.deployed()&&a.alive()).toList();}
     void journalPut(String key,Object value){try{journal.put(key,value);}catch(Exception failure){throw new IllegalStateException(failure);}}
     JsonObject snapshot(Seat personal,Set<UUID> present){
+        long now=System.currentTimeMillis();
         var j=new JsonObject();j.addProperty("round",id);j.addProperty("phase",phase);j.addProperty("stage",stage);j.addProperty("wave",wave);j.addProperty("deadline",deadline);
+        j.addProperty("at",now);
         j.addProperty("boss",boss());j.addProperty("dragon",dragon[wave]);j.addProperty("nextDragon",wave<20&&dragon[wave+1]);j.addProperty("coreHealth",core.target.health(1)*core.target.life.q);j.addProperty("coreMaximum",core.target.health(1));
         j.addProperty("ready",readyCount(present));j.addProperty("present",presentCount(present));j.addProperty("participants",seats.size());j.addProperty("result",result);j.add("rules",JSON.toJsonTree(rules));
         j.addProperty("remaining",actors.stream().filter(a->a.enemy&&a.alive()).count());j.addProperty("unspawned",seats.stream().mapToInt(s->s.queue.size()-s.spawned).sum());
         var summaries=new JsonArray();
         for(var seat:seats){var s=new JsonObject();s.addProperty("owner",seat.owner.toString());s.addProperty("name",seat.name);s.addProperty("index",seat.index);s.addProperty("ready",seat.ready);s.addProperty("present",present.contains(seat.owner));summaries.add(s);}
         j.add("seats",summaries);
+        var displayed=new JsonArray();
+        for(var actor:actors)if(!actor.core&&actor.alive()){
+            var view=new JsonObject();view.addProperty("entity",actor.entity.getId());view.addProperty("id",actor.entity.getStringUUID());
+            view.addProperty("maximum",actor.target.health(1));view.addProperty("health",actor.target.health(1)*actor.target.life.q);
+            if(actor.unit!=null)combat.skillState(actor,view,now,editing());
+            displayed.add(view);
+        }
+        j.add("actors",displayed);
         if(personal!=null){
             j.addProperty("seat",personal.index);j.addProperty("personalReady",personal.ready);j.add("roster",JSON.toJsonTree(personal.roster));j.add("layers",JSON.toJsonTree(personal.layers));j.add("counts",JSON.toJsonTree(editing()?ArkTraits.counts(personal.roster,rules):personal.counts));
             var units=new JsonObject();

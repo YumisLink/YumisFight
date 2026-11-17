@@ -23,7 +23,7 @@ public final class ApplicationModules {
         module("npc","character","combat","dungeons","economy","equipment","inventory","presentation","skills"),
         module("party","presentation"),
         module("presentation"),
-        module("professions","inventory","presentation"),
+        module("professions","attributes","inventory","presentation"),
         module("skills","attributes","character","combat","dungeons","equipment","presentation")
     ));
     private ApplicationModules(){}

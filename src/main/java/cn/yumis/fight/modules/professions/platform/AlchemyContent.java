@@ -1,4 +1,5 @@
 package cn.yumis.fight.modules.professions.platform;
+import cn.yumis.fight.modules.professions.api.AlchemyPotions;
 import cn.yumis.fight.platform.ItemData;
 import cn.yumis.fight.platform.ItemRegistry;
 import net.minecraft.core.registries.Registries;

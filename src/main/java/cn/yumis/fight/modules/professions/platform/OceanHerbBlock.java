@@ -32,7 +32,7 @@ public class OceanHerbBlock extends HerbBushBlock implements SimpleWaterloggedBl
         BlockState below=level.getBlockState(pos.below());
         String path=BuiltInRegistries.BLOCK.getKey(below.getBlock()).getPath();
         boolean floor=path.contains("sand")||path.contains("gravel")||path.equals("dirt")||path.equals("clay")
-            ||path.contains("mud")||path.equals("grass_block")||path.equals("stone");
+            ||path.contains("mud")||path.equals("grass_block")||path.equals("stone")||path.equals("farmland");
         if(!floor)return false;
         return level.getFluidState(pos).is(FluidTags.WATER)||state.getValue(WATERLOGGED);
     }

@@ -24,7 +24,7 @@ public final class HerbSeedItem extends Item {
         BlockState clicked=level.getBlockState(pos);
         Direction face=context.getClickedFace();
         if(NightmareVineBlock.isStem(clicked))return plantVine(level,pos,face,context,HerbContent.NIGHTMARE_VINE.get().defaultBlockState());
-        if(StormVineBlock.isRock(clicked))return plantVine(level,pos,face,context,HerbContent.STORM_VINE.get().defaultBlockState());
+        if(face.getAxis().isHorizontal()&&StormVineBlock.isRock(clicked)&&cn.yumis.fight.modules.professions.api.HerbRules.stormHabitat(level,pos))return plantVine(level,pos,face,context,HerbContent.STORM_VINE.get().defaultBlockState());
         String id=BuiltInRegistries.BLOCK.getKey(clicked.getBlock()).getPath();
         boolean farmland=id.equals("farmland");
         boolean soul=id.contains("soul_soil")||id.contains("soul_sand");

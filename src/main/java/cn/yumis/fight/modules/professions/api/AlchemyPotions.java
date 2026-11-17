@@ -1,8 +1,6 @@
-package cn.yumis.fight.modules.professions.platform;
-import cn.yumis.fight.modules.attributes.api.AttributeServices;
+package cn.yumis.fight.modules.professions.api;
 import cn.yumis.fight.modules.attributes.api.AttributeSources;
 import cn.yumis.fight.modules.attributes.api.Stat;
-import net.minecraft.server.level.ServerPlayer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -194,12 +192,11 @@ public final class AlchemyPotions {
     public static boolean isMana(String potion){return potion.startsWith("potion_mana");}
     public static boolean isBuff(String potion){return BUFFS.containsKey(potion);}
     /** 写入或覆盖该类增益。 */
-    public static void applyBuff(ServerPlayer player,String potion,long now){
+    public static void applyBuff(AttributeSources sources,String potion){
         List<AttributeSources.Value> values=BUFFS.get(potion);
         if(values==null)return;
         String category=ATTACK.getOrDefault(potion,true)?"attack":"defense";
         String id=SOURCE+category;
-        var sources=AttributeServices.attributes(player.getUUID());
         synchronized(sources){
             var before=sources.snapshot();
             long revision=Math.incrementExact(sources.revision());
@@ -207,33 +204,10 @@ public final class AlchemyPotions {
             next.add(new AttributeSources.Source(id,revision,List.copyOf(values)));
             sources.replace(revision,next);
         }
-        player.getPersistentData().putLong("ydnf_buff_"+category,now+BUFF_MILLIS);
-        sync(player,potion,category,now+BUFF_MILLIS);
     }
-    /** 把合剂状态同步给客户端 HUD。 */
-    private static void sync(ServerPlayer player,String potion,String category,long expires){
-        try{
-            var j=new com.google.gson.JsonObject();
-            j.addProperty("potion",potion);
-            j.addProperty("category",category);
-            j.addProperty("expires",expires);
-            cn.yumis.fight.network.Network.send(player,"alchemyBuff",j);
-        }catch(RuntimeException ignored){
-        }
-    }
-    /** 到期移除；每刻调用。 */
-    public static void expire(ServerPlayer player,long now){
-        boolean changed=false;
-        for(String category:new String[]{"attack","defense"}){
-            String key="ydnf_buff_"+category;
-            long until=player.getPersistentData().getLongOr(key,0L);
-            if(until==0||until>now)continue;
-            player.getPersistentData().remove(key);
-            changed=true;
-            sync(player,"",category,0);
-        }
-        if(!changed)return;
-        var sources=AttributeServices.attributes(player.getUUID());
+    public static String category(String potion){return ATTACK.getOrDefault(potion,true)?"attack":"defense";}
+    /** 沿用现有整组清除规则。 */
+    public static void clearBuffs(AttributeSources sources){
         synchronized(sources){
             var before=sources.snapshot();
             if(before.stream().noneMatch(s->s.id().startsWith(SOURCE)))return;

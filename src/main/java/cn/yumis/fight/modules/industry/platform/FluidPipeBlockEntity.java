@@ -17,6 +17,7 @@ import net.minecraft.world.phys.*;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.TransferPreconditions;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.transaction.*;
 import java.util.*;
@@ -35,6 +36,16 @@ public final class FluidPipeBlockEntity extends BlockEntity {
         public long getCapacityAsLong(int slot,FluidResource resource){return grade().capacity();}
         public boolean isValid(int slot,FluidResource resource){return !resource.isEmpty();}
         protected void changed(int slot){FluidPipeBlockEntity.this.setChanged();}
+    };
+    // Directionless queries inspect the shared network without opening an automation port.
+    private final ResourceHandler<FluidResource> inspection=new ResourceHandler<>(){
+        public int size(){return 1;}
+        public FluidResource getResource(int slot){return slot!=0?FluidResource.EMPTY:level instanceof ServerLevel?network().resource():visibleFluid;}
+        public long getAmountAsLong(int slot){return slot!=0?0:level instanceof ServerLevel?network().amount():visibleAmount;}
+        public long getCapacityAsLong(int slot,FluidResource resource){return slot!=0?0:level instanceof ServerLevel?network().capacity:visibleCapacity;}
+        public boolean isValid(int slot,FluidResource resource){return slot==0&&!resource.isEmpty();}
+        public int insert(int slot,FluidResource resource,int amount,TransactionContext tx){TransferPreconditions.checkNonEmptyNonNegative(resource,amount);return 0;}
+        public int extract(int slot,FluidResource resource,int amount,TransactionContext tx){TransferPreconditions.checkNonEmptyNonNegative(resource,amount);return 0;}
     };
     private final class Budget extends SnapshotJournal<int[]> {
         protected int[] createSnapshot(){return used.clone();}
@@ -108,7 +119,7 @@ public final class FluidPipeBlockEntity extends BlockEntity {
     int remaining(Direction side){resetBudget();return grade().flow()-used[side.ordinal()];}
     void spend(Direction side,int amount,TransactionContext tx){budget.touch(tx);used[side.ordinal()]+=amount;}
     public ResourceHandler<FluidResource> automation(Direction side){
-        if(side==null)return null;
+        if(side==null)return inspection;
         return new ResourceHandler<>(){
             public int size(){return 1;}
             private boolean access(boolean insert){return available()&&level instanceof ServerLevel&&neighbor(side)==null&&mode(side)==(insert?Port.EXTRACT:Port.INPUT);}

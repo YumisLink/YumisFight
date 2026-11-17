@@ -25,7 +25,7 @@ final class ArkScene {
     private final List<List<ArkDisplays.Label>> rows=new ArrayList<>();
     private final List<List<ArkDisplays.Label>> information=new ArrayList<>();
     private final List<Entity> towers=new ArrayList<>();
-    private final Map<Integer,String> signs=new HashMap<>();
+    private final Map<BlockPos,String> signs=new HashMap<>();
     private boolean guideAnchored;
     ArkScene(ServerLevel level){
         this.level=level;for(int i=0;i<4;i++){traits[i]=new ArkDisplays.Label();rows.add(new ArrayList<>());information.add(new ArrayList<>());}
@@ -34,12 +34,13 @@ final class ArkScene {
     void update(ArkBattle battle,Set<UUID> present,long now){
         if(towers.stream().anyMatch(Entity::isRemoved)){towers.forEach(Entity::discard);towers.clear();for(int side:new int[]{-1,1})for(int y=0;y<=3;y++)towers.add(ArkDisplays.block(level,Vec3.atLowerCornerOf(ArkWar.ORIGIN.offset(side*12,y,84)),y==3?"minecraft:amethyst_block":y==2?"minecraft:sea_lantern":"minecraft:polished_deepslate",1));}
         anchorGuide();
+        for(Entity entity:level.getAllEntities())if(entity instanceof NpcEntity npc&&NpcInteractionComponent.id(npc).equals("ark_war_attendant"))npc.discard();
         for(var plot:ArkWar.PLOTS){
             var seat=battle==null?null:battle.seats.stream().filter(s->s.index==plot.index()).findFirst().orElse(null);
             for(Entity entity:level.getAllEntities())if(entity instanceof ItemFrame frame){
                 int slot=plot.frame(frame.position());if(slot<0)continue;
                 var item=offer(battle,seat,slot);if(!ItemStack.isSameItemSameComponents(frame.getItem(),item))frame.setItem(item,false);
-                frame.setInvulnerable(true);frame.setGlowingTag(seat!=null&&slot<5&&slot<seat.roster.shop.size()&&!seat.roster.shop.get(slot).isBlank()&&seat.roster.owns(seat.roster.shop.get(slot)));
+                frame.setInvulnerable(true);frame.setInvisible(seat==null||slot>=seat.roster.shop.size());frame.setGlowingTag(seat!=null&&slot<seat.roster.shop.size()&&!seat.roster.shop.get(slot).isBlank()&&seat.roster.owns(seat.roster.shop.get(slot)));
             }
             Component text=Component.literal(seat==null?"空闲阵地":seat.name+" · 羁绊").withColor(0xD9E5EB);
             var rowTexts=new ArrayList<Component>();
@@ -57,7 +58,7 @@ final class ArkScene {
             traits[plot.index()].set(level,plot.traitOrigin(),-plot.facing(),text,.45f,200);
             var labels=rows.get(plot.index());while(labels.size()<rowTexts.size())labels.add(new ArkDisplays.Label());
             for(int i=0;i<labels.size();i++)if(i<rowTexts.size())labels.get(i).set(level,plot.traitOrigin().add(0,-.12*(i+1),0),-plot.facing(),rowTexts.get(i),.45f,200);else labels.get(i).clear();
-            information(plot,battle,seat,present,now);backing(plot);sign(plot,battle,present,now);
+            information(plot,battle,seat,present,now);backing(plot);sign(plot,battle,seat,present,now);
         }
     }
     private void information(ArkWar.Plot plot,ArkBattle battle,ArkBattle.Seat seat,Set<UUID> present,long now){
@@ -73,7 +74,7 @@ final class ArkScene {
             text.add(Component.literal(battle.editing()?"已准备 "+battle.readyCount(present)+"／"+battle.presentCount(present):"场内 "+battle.actors.stream().filter(a->a.enemy&&a.alive()).count()+" · 待出场 "+battle.seats.stream().mapToInt(s->s.queue.size()-s.spawned).sum()).withColor(0xD9E5EB));
             if(seat!=null){
                 text.add(Component.literal(seat.name+" · 商店"+seat.roster.level+"级").withColor(0xD9E5EB));
-                text.add(Component.literal("人口 "+seat.roster.population()+"／"+battle.rules.populations[seat.roster.level-1]+" · 方舟币 "+seat.roster.coins).withColor(BLUE));
+                text.add(Component.literal((battle.editing()?"人口 ":"下波人口 ")+seat.roster.population()+"／"+battle.rules.populations[seat.roster.level-1]+" · 方舟币 "+seat.roster.coins).withColor(BLUE));
             }
             if(battle.editing()||battle.wave<20){
                 int wave=battle.editing()?battle.wave:battle.wave+1;boolean dragon=battle.dragon[wave],boss=wave%5==0;var e=battle.rules.enemies;
@@ -95,32 +96,39 @@ final class ArkScene {
         for(int i=0;i<labels.size();i++)if(i<text.size())labels.get(i).set(level,plot.informationOrigin().add(0,-.13*i,0),-plot.facing(),text.get(i),.42f,210);else labels.get(i).clear();
     }
     private ItemStack offer(ArkBattle battle,ArkBattle.Seat seat,int slot){
-        if(seat==null)return ItemStack.EMPTY;
-        if(slot<5){
-            String id=seat.roster.shop.get(slot);if(id.isBlank())return ItemStack.EMPTY;var unit=battle.rules.unit(id);
-            var stack=new ItemStack(Items.PAPER);stack.set(DataComponents.ITEM_MODEL,Identifier.fromNamespaceAndPath(ItemData.NS,"ark/card/"+id));
-            stack.set(DataComponents.CUSTOM_NAME,ModText.of(unit.name()+" ★ · "+unit.cost()+"方舟币").withColor(BLUE));
-            stack.set(DataComponents.LORE,new ItemLore(unit.description().stream().map(unit::describe).map(ModText::of).map(c->(Component)c).toList()));return stack;
-        }
-        var stack=new ItemStack(slot==5?Items.ENDER_PEARL:slot==6?Items.EXPERIENCE_BOTTLE:Items.BOOK);
-        String title=slot==5?"刷新商店 · "+battle.rules.refreshCost+"方舟币":slot==6?(seat.roster.level>=7?"商店已满级":"升级商店 · "+seat.roster.upgradePrice(battle.rules)+"方舟币"):"阵容信息 · "+seat.roster.population()+"/"+battle.rules.populations[seat.roster.level-1]+"人口";
-        stack.set(DataComponents.CUSTOM_NAME,ModText.of(title).withColor(BLUE));return stack;
+        if(seat==null||slot>=seat.roster.shop.size())return ItemStack.EMPTY;
+        String id=seat.roster.shop.get(slot);if(id.isBlank())return ItemStack.EMPTY;var unit=battle.rules.unit(id);
+        var stack=new ItemStack(Items.PAPER);stack.set(DataComponents.ITEM_MODEL,Identifier.fromNamespaceAndPath(ItemData.NS,"ark/card/"+id));
+        stack.set(DataComponents.CUSTOM_NAME,ModText.of(unit.name()+" ★ · "+unit.cost()+"方舟币").withColor(BLUE));
+        stack.set(DataComponents.LORE,new ItemLore(unit.description().stream().map(unit::describe).map(ModText::of).map(c->(Component)c).toList()));return stack;
     }
     private void backing(ArkWar.Plot plot){
         int x=plot.side()<0?-5:5;
         for(int offset:new int[]{-8,6})for(int z=plot.centerZ()+offset;z<=plot.centerZ()+offset+1;z++)for(int y=0;y<3;y++){var pos=ArkWar.ORIGIN.offset(x,y,z);var state=level.getBlockState(pos);if(state.isAir()||state.canBeReplaced())level.setBlock(pos,Blocks.STONE_BRICKS.defaultBlockState(),3);}
     }
-    private void sign(ArkWar.Plot plot,ArkBattle battle,Set<UUID> present,long now){
+    private void sign(ArkWar.Plot plot,ArkBattle battle,ArkBattle.Seat seat,Set<UUID> present,long now){
         String value;
         if(battle==null)value="方舟战争\n水晶旁报名\n全员确认开始\n本阵地尚未分配";
         else if(battle.editing())value="第"+battle.wave+"波准备\n剩余 "+Math.max(0,(battle.deadline-now+999)/1000)+"秒\n已准备 "+battle.readyCount(present)+"/"+battle.presentCount(present)+"\n右键准备／取消";
-        else value="第"+battle.wave+"波战斗\n"+(battle.boss()?"Boss战不限时":"剩余 "+Math.max(0,(battle.deadline-now+999)/1000)+"秒")+"\n战斗中锁定阵容\n等待本波结束";
-        var pos=plot.readySign();
-        if(!level.getBlockState(pos).is(Blocks.OAK_WALL_SIGN)){level.setBlock(pos,Blocks.OAK_WALL_SIGN.defaultBlockState().setValue(WallSignBlock.FACING,plot.side()<0?Direction.WEST:Direction.EAST),3);signs.remove(plot.index());}
-        if(value.equals(signs.get(plot.index())))return;
+        else value="第"+battle.wave+"波战斗\n"+(battle.boss()?"Boss战不限时":"剩余 "+Math.max(0,(battle.deadline-now+999)/1000)+"秒")+"\n可购买，禁止布阵\n等待本波结束";
+        sign(plot.readySign(),plot.side(),value);
+        if(seat==null){
+            sign(plot.refreshSign(),plot.side(),"刷新商店\n阵地尚未分配\n \n ");
+            sign(plot.upgradeSign(),plot.side(),"提升商店\n阵地尚未分配\n \n ");
+        }else{
+            sign(plot.refreshSign(),plot.side(),"刷新商店\n消耗 "+battle.rules.refreshCost+"方舟币\n当前 "+seat.roster.shop.size()+"个购买位\n右键刷新");
+            boolean maximum=seat.roster.level>=battle.rules.maximumLevel;
+            sign(plot.upgradeSign(),plot.side(),"提升商店\n"+(maximum?"已满级 · "+seat.roster.level+"级":seat.roster.level+" → "+(seat.roster.level+1)+"级")+"\n"+(maximum?"当前 "+seat.roster.shop.size()+"个购买位":"消耗 "+seat.roster.upgradePrice(battle.rules)+"方舟币")+"\n"+(maximum?" ":"右键升本"));
+        }
+    }
+    private void sign(BlockPos pos,int side,String value){
+        var support=pos.relative(side<0?Direction.EAST:Direction.WEST);
+        var backing=level.getBlockState(support);if(backing.isAir()||backing.canBeReplaced())level.setBlock(support,Blocks.STONE_BRICKS.defaultBlockState(),3);
+        if(!level.getBlockState(pos).is(Blocks.OAK_WALL_SIGN)){level.setBlock(pos,Blocks.OAK_WALL_SIGN.defaultBlockState().setValue(WallSignBlock.FACING,side<0?Direction.WEST:Direction.EAST),3);signs.remove(pos);}
+        if(value.equals(signs.get(pos)))return;
         if(level.getBlockEntity(pos) instanceof SignBlockEntity sign){
             var text=new SignText();String[] lines=value.split("\n");for(int i=0;i<4;i++)text=text.setMessage(i,ModText.of(lines[i]).withColor(i==0?0xE8D39B:BLUE));
-            sign.setText(text,true);sign.setText(text,false);sign.setWaxed(true);sign.setChanged();level.sendBlockUpdated(pos,level.getBlockState(pos),level.getBlockState(pos),3);signs.put(plot.index(),value);
+            sign.setText(text,true);sign.setText(text,false);sign.setWaxed(true);sign.setChanged();level.sendBlockUpdated(pos,level.getBlockState(pos),level.getBlockState(pos),3);signs.put(pos,value);
         }
     }
     private void anchorGuide(){

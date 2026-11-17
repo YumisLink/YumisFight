@@ -154,6 +154,10 @@ public final class DemonHunterClient {
         x=Math.clamp(x,80,g.guiWidth()-78);var s=resource();long now=state().serverNow();var font=UiFonts.font();
         if(s.auraUntil>now){CareerHud.timer(g,SkillCatalog.require(DemonHunterSkills.AURA),x,y,s.auraUntil-now,6000,0xffb3fa76);y+=68;}
         if(s.metamorphosisUntil>now){g.text(font,"恶魔变形 "+NumberText.number((s.metamorphosisUntil-now)/1000d)+"秒",x-69,y,0xffd5ff9c,true);y+=18;}
-        long age=beamAge();if(age>=0){long left=Math.max(0,DemonHunterChoreography.BEAM_DURATION-age);SkillCastBar.render(g,g.guiWidth(),g.guiHeight(),"眼棱 · 引导 "+String.format(Locale.ROOT,"%.1f",left/1000d)+"秒",left/(double)DemonHunterChoreography.BEAM_DURATION,0xffb3fa76);}return y;
+        return y;
+    }
+    static void renderBeam(GuiGraphicsExtractor g){
+        if(!state().progress().baseJob().equals(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER))return;
+        long age=beamAge();if(age>=0){long left=Math.max(0,DemonHunterChoreography.BEAM_DURATION-age);SkillCastBar.render(g,g.guiWidth(),g.guiHeight(),"眼棱 · 引导 "+String.format(Locale.ROOT,"%.1f",left/1000d)+"秒",left/(double)DemonHunterChoreography.BEAM_DURATION,0xffb3fa76);}
     }
 }

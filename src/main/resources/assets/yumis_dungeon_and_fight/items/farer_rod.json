@@ -1,6 +1,14 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "yumis_dungeon_and_fight:item/farer_rod"
+    "type": "minecraft:condition",
+    "property": "minecraft:fishing_rod/cast",
+    "on_false": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/farer_rod"
+    },
+    "on_true": {
+      "type": "minecraft:model",
+      "model": "yumis_dungeon_and_fight:item/farer_rod_cast"
+    }
   }
 }
