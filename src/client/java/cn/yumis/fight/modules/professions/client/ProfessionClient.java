@@ -21,6 +21,9 @@ public final class ProfessionClient {
     private static final Gson JSON=new Gson();private static final Random RANDOM=new Random();
     private static Supplier<JsonObject> view;private static Consumer<Double> healing;private static BooleanSupplier alive;
     private static final Set<String> effects=new LinkedHashSet<>();private static final Set<String> applied=new HashSet<>();
+    private static void alchemyBuff(JsonObject j){
+        AlchemyBuffHud.update(j.get("category").getAsString(),j.get("potion").getAsString(),j.get("expires").getAsLong());
+    }
     private static final Identifier SWIM=Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","styx_swim");
     private static String session="",lastEffects="";private static long nextSave,effectsSequence;private static int lastTick=-1;private static boolean floating;
     private ProfessionClient(){}
@@ -28,7 +31,7 @@ public final class ProfessionClient {
         var result=new Profession();var state=view.get();if(!state.has("professions")||!state.getAsJsonObject("professions").has(id))return result;var row=state.getAsJsonObject("professions").getAsJsonObject(id);result.experience=new BigInteger(row.get("experience").getAsString());result.coins=new BigInteger(row.get("coins").getAsString());result.title=row.get("title").getAsString();return result;
     }
     public static void install(CommandRouter<Void,JsonObject> router,Supplier<JsonObject> snapshot,Consumer<Double> heal,BooleanSupplier living){
-        view=snapshot;healing=heal;alive=living;router.register("professions","professionResult",(ignored,j)->prepare(j));router.register("professions","professionUse",(ignored,j)->consume(j));
+        view=snapshot;healing=heal;alive=living;router.register("professions","professionResult",(ignored,j)->prepare(j));router.register("professions","professionUse",(ignored,j)->consume(j));router.register("professions","alchemyBuff",(ignored,j)->alchemyBuff(j));
         GraphiteRod.HANDLER=(player,rod)->fish("lava",player,rod);FarerRod.HANDLER=(player,rod)->fish("void",player,rod);
         ProfessionConsumable.CLIENT_USE=(player,hand,effect,duration,amplifier)->{var j=ClientUi.current().operation("professionUse");j.addProperty("hand",hand.name());j.addProperty("effect",BuiltInRegistries.MOB_EFFECT.getKey(effect.value()).toString());j.addProperty("duration",duration);j.addProperty("amplifier",amplifier);ClientUi.current().send("professionUse",j);};
     }

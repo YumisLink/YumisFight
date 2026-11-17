@@ -50,6 +50,7 @@ public final class Hud {
         int width=g.guiWidth(),height=g.guiHeight(),center=width/2;
         damageMeter(g,s);
         cn.yumis.fight.modules.combat.client.EquipmentBuffHud.render(g,s.resources,ClientSession.now(),width-6,height-70);
+        cn.yumis.fight.modules.professions.client.AlchemyBuffHud.render(g,ClientSession.now(),width-6,height-70);
         long now=ClientSession.now();
         double health=s.predicted(s.own);
         var currentStats=SkillController.INSTANCE.snapshot();
