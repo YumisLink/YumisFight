@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["TGL", "NSR", "HD "],
+  "key": {
+    "T": "yumis_dungeon_and_fight:herb_terocone",
+    "G": "yumis_dungeon_and_fight:herb_golden_lotus",
+    "L": "yumis_dungeon_and_fight:herb_nightmare_vine",
+    "N": "yumis_dungeon_and_fight:herb_fire_thistle",
+    "S": "yumis_dungeon_and_fight:artifact_sickle",
+    "R": "yumis_dungeon_and_fight:herb_snow_lotus",
+    "H": "yumis_dungeon_and_fight:herb_snow_lily",
+    "D": "minecraft:obsidian"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:legendary_sickle", "count": 1}
+}

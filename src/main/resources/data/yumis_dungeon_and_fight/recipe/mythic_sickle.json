@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["GRW", "DFE", "KP "],
+  "key": {
+    "G": "yumis_dungeon_and_fight:herb_glowgrass",
+    "R": "yumis_dungeon_and_fight:herb_rockmoss",
+    "W": "yumis_dungeon_and_fight:herb_warped_bark",
+    "D": "yumis_dungeon_and_fight:herb_deathbloom",
+    "F": "yumis_dungeon_and_fight:epic_sickle",
+    "E": "yumis_dungeon_and_fight:herb_dragonblood_bamboo",
+    "K": "yumis_dungeon_and_fight:herb_blackstone_grass",
+    "P": "minecraft:nether_star"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:mythic_sickle", "count": 1}
+}

@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "yumis_dungeon_and_fight:item/fish_puffer_polluted"
+    "model": "minecraft:item/pufferfish"
   }
 }

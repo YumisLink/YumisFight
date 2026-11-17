@@ -1,0 +1,6 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": ["minecraft:jagged_peaks", "minecraft:stony_peaks", "minecraft:windswept_hills", "minecraft:windswept_gravelly_hills"],
+  "features": "yumis_dungeon_and_fight:rockmoss",
+  "step": "vegetal_decoration"
+}

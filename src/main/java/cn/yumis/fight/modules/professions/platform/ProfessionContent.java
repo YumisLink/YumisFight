@@ -5,12 +5,12 @@ import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.Item;
 import java.util.List;
 import static cn.yumis.fight.platform.ItemRegistry.*;
-/** 生活副职业线的材料、渔获、消耗品与鱼竿。 */
+/** 生活副职业线的材料、渔获、消耗品与鱼竿；贴图复用原版模型，不新增美术资源。 */
 public final class ProfessionContent {
     private ProfessionContent(){}
     /** 纯材料物品；顺序即创造栏与页面顺序。 */
     public static final List<String> MATERIAL_IDS=List.of(
-        "herb_sunleaf","herb_moonroot",
+        "herb_sunleaf","herb_moonroot","herb_emberpod","herb_tidemoss",
         "catch_riverfish","catch_pearl",
         "rune_blank","rune_ember",
         "ore_raw_chunk","ore_deep_shard",
@@ -41,8 +41,32 @@ public final class ProfessionContent {
     /** 神话级鱼竿"远行者鱼友竿"：一次六条、岩浆与虚空垂钓、钻石/黑曜石/烈焰棒/下界之星，耐久 2048。 */
     public static final int FARER_ROD_DURABILITY=2048;
     public static final String FARER_ROD_ID="farer_rod";
+    /** 镰刀：右击草药丛收割，耐久 250。 */
+    public static final String SICKLE_ID="sickle";
+    /** 稀有镰刀：一次两株 + 种子，耐久 750。 */
+    public static final String RARE_SICKLE_ID="rare_sickle";
+    /** 神器镰刀：一次三株 + 种子，耐久 2000。 */
+    public static final String ARTIFACT_SICKLE_ID="artifact_sickle";
+    /** 传说镰刀：一次四株 + 种子，耐久 4000。 */
+    public static final String LEGENDARY_SICKLE_ID="legendary_sickle";
+    /** 史诗镰刀：一次五株 + 种子，耐久 8000。 */
+    public static final String EPIC_SICKLE_ID="epic_sickle";
+    /** 神话镰刀：一次六株 + 种子，耐久 16000。 */
+    public static final String MYTHIC_SICKLE_ID="mythic_sickle";
     public static void register(){
         for(String id:MATERIAL_IDS)ALL.put(id,ITEMS.registerItem(id,Item::new));
+        for(String id:cn.yumis.fight.modules.professions.api.HerbSpecies.COMMON)ALL.put(id,ITEMS.registerItem(id,properties->new TieredHerb(properties,cn.yumis.fight.modules.professions.api.HerbTier.COMMON)));
+        for(String id:cn.yumis.fight.modules.professions.api.HerbSpecies.RARE)ALL.put(id,ITEMS.registerItem(id,properties->new TieredHerb(properties,cn.yumis.fight.modules.professions.api.HerbTier.RARE)));
+        for(String id:cn.yumis.fight.modules.professions.api.HerbSpecies.ARTIFACT)ALL.put(id,ITEMS.registerItem(id,properties->new TieredHerb(properties,cn.yumis.fight.modules.professions.api.HerbTier.ARTIFACT)));
+        for(String id:cn.yumis.fight.modules.professions.api.HerbSpecies.LEGENDARY)ALL.put(id,ITEMS.registerItem(id,properties->new TieredHerb(properties,cn.yumis.fight.modules.professions.api.HerbTier.LEGENDARY)));
+        for(String id:cn.yumis.fight.modules.professions.api.HerbSpecies.EPIC)ALL.put(id,ITEMS.registerItem(id,properties->new TieredHerb(properties,cn.yumis.fight.modules.professions.api.HerbTier.EPIC)));
+        for(String id:cn.yumis.fight.modules.professions.api.HerbSpecies.MYTHIC)ALL.put(id,ITEMS.registerItem(id,properties->new TieredHerb(properties,cn.yumis.fight.modules.professions.api.HerbTier.MYTHIC)));
+        ALL.put(SICKLE_ID,ITEMS.registerItem(SICKLE_ID,properties->new SickleItem(properties.durability(SickleItem.DURABILITY))));
+        ALL.put(RARE_SICKLE_ID,ITEMS.registerItem(RARE_SICKLE_ID,properties->new RareSickleItem(properties.durability(RareSickleItem.DURABILITY))));
+        ALL.put(ARTIFACT_SICKLE_ID,ITEMS.registerItem(ARTIFACT_SICKLE_ID,properties->new ArtifactSickleItem(properties.durability(ArtifactSickleItem.DURABILITY))));
+        ALL.put(LEGENDARY_SICKLE_ID,ITEMS.registerItem(LEGENDARY_SICKLE_ID,properties->new LegendarySickleItem(properties.durability(LegendarySickleItem.DURABILITY))));
+        ALL.put(EPIC_SICKLE_ID,ITEMS.registerItem(EPIC_SICKLE_ID,properties->new EpicSickleItem(properties.durability(EpicSickleItem.DURABILITY))));
+        ALL.put(MYTHIC_SICKLE_ID,ITEMS.registerItem(MYTHIC_SICKLE_ID,properties->new MythicSickleItem(properties.durability(MythicSickleItem.DURABILITY))));
         for(String id:cn.yumis.fight.modules.professions.api.FishSpecies.COMMON)ALL.put(id,ITEMS.registerItem(id,properties->new TieredFish(properties,FishTier.COMMON)));
         for(String id:cn.yumis.fight.modules.professions.api.FishSpecies.RARE)ALL.put(id,ITEMS.registerItem(id,properties->new TieredFish(properties,FishTier.RARE)));
         for(String id:cn.yumis.fight.modules.professions.api.FishSpecies.ARTIFACT_ALL)ALL.put(id,ITEMS.registerItem(id,properties->new TieredFish(properties,FishTier.ARTIFACT)));

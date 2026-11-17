@@ -1,0 +1,6 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": "#minecraft:is_ocean",
+  "features": "yumis_dungeon_and_fight:ocean_herb",
+  "step": "vegetal_decoration"
+}

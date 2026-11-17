@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:block/cross",
+  "textures": {"cross": "yumis_dungeon_and_fight:block/storm_vine"}
+}

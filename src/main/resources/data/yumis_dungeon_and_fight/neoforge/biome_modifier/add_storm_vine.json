@@ -1,0 +1,6 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": ["minecraft:jagged_peaks", "minecraft:stony_peaks"],
+  "features": "yumis_dungeon_and_fight:storm_vine",
+  "step": "vegetal_decoration"
+}

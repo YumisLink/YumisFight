@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["PSE", "BKR", "H  "],
+  "key": {
+    "P": "yumis_dungeon_and_fight:herb_peacebloom",
+    "S": "yumis_dungeon_and_fight:herb_silverleaf",
+    "E": "yumis_dungeon_and_fight:herb_earthroot",
+    "B": "yumis_dungeon_and_fight:herb_bruiseweed",
+    "K": "yumis_dungeon_and_fight:herb_kingsblood",
+    "H": "yumis_dungeon_and_fight:herb_heather",
+    "R": "yumis_dungeon_and_fight:sickle"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:rare_sickle", "count": 1}
+}

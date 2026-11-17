@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "heat=false,water=false": {"model": "yumis_dungeon_and_fight:block/alchemy_cauldron"},
+    "heat=false,water=true": {"model": "yumis_dungeon_and_fight:block/alchemy_cauldron"},
+    "heat=true,water=false": {"model": "yumis_dungeon_and_fight:block/alchemy_cauldron"},
+    "heat=true,water=true": {"model": "yumis_dungeon_and_fight:block/alchemy_cauldron"}
+  }
+}

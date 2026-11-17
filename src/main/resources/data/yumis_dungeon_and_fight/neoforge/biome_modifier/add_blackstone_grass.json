@@ -1,0 +1,6 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": ["minecraft:soul_sand_valley", "minecraft:nether_wastes", "minecraft:basalt_deltas"],
+  "features": "yumis_dungeon_and_fight:blackstone_grass",
+  "step": "vegetal_decoration"
+}

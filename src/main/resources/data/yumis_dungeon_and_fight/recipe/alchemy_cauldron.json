@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ICI", "I I", "SSS"],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "C": "minecraft:cauldron",
+    "S": "yumis_dungeon_and_fight:herb_seed"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:alchemy_cauldron", "count": 1}
+}

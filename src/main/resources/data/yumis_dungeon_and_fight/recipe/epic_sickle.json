@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["SWM", "LFE", "CD "],
+  "key": {
+    "S": "yumis_dungeon_and_fight:herb_starlight_wood",
+    "W": "yumis_dungeon_and_fight:herb_moonflower",
+    "M": "yumis_dungeon_and_fight:herb_sirenflower",
+    "L": "yumis_dungeon_and_fight:herb_anchor_coral",
+    "F": "yumis_dungeon_and_fight:legendary_sickle",
+    "E": "yumis_dungeon_and_fight:herb_saxifrage",
+    "C": "yumis_dungeon_and_fight:herb_elemental_flower",
+    "D": "minecraft:blaze_rod"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:epic_sickle", "count": 1}
+}

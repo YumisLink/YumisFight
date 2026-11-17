@@ -1,0 +1,10 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": [
+    "minecraft:savanna",
+    "minecraft:savanna_plateau",
+    "minecraft:windswept_savanna"
+  ],
+  "features": "yumis_dungeon_and_fight:herb_bush_savanna",
+  "step": "vegetal_decoration"
+}

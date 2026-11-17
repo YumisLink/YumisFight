@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["BGM", "ISR", "HD "],
+  "key": {
+    "B": "yumis_dungeon_and_fight:herb_blindweed",
+    "G": "yumis_dungeon_and_fight:herb_goldthorn",
+    "M": "yumis_dungeon_and_fight:herb_mushroom",
+    "I": "yumis_dungeon_and_fight:herb_icebloom",
+    "S": "yumis_dungeon_and_fight:rare_sickle",
+    "R": "yumis_dungeon_and_fight:herb_gravemoss",
+    "H": "yumis_dungeon_and_fight:herb_manathistle",
+    "D": "minecraft:diamond"
+  },
+  "result": {"id": "yumis_dungeon_and_fight:artifact_sickle", "count": 1}
+}
