@@ -150,6 +150,7 @@ public final class Hud {
         }
     }
     public static void gold(GuiGraphicsExtractor g,ClientSession state){
+        if(cn.yumis.fight.modules.arkguard.client.ArkGuardClient.coinHud(g))return;
         var font=UiFonts.font();String text="金币 "+String.format(java.util.Locale.ROOT,"%,d",state.gold.balance);
         int w=font.width(text)+12,x=g.guiWidth()-w-6,y=g.guiHeight()-23;
         if(x<g.guiWidth()/2+95)y-=35;

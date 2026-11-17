@@ -62,7 +62,7 @@ public final class ServerEvents {
         }
         );
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e)->{
-            if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof DungeonEnemy enemy){
+            if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof DungeonEnemy enemy&&!(enemy instanceof cn.yumis.fight.modules.dungeons.api.WorldTargetEntity)){
                 var instance=ServerApplication.get().dungeons.byId(enemy.instance());
                 if(instance==null||instance.status.equals("CLOSED"))e.setCanceled(true);
             }

@@ -8,6 +8,7 @@ import java.util.*;
 public final class CurrencyRules {
     public record AccountCurrency(String id,String title){}
     public static final AccountCurrency GOLD=new AccountCurrency("gold","金币");
+    public static final AccountCurrency ARK_COIN=new AccountCurrency("ark_coin","方舟币");
     public static final AccountCurrency POINTS=new AccountCurrency("points","点券");
     public static final AccountCurrency COLORLESS_CRYSTAL=new AccountCurrency("colorless_crystal","无色小晶块");
     public static final long CONTRACT_PRICE=100000,CONTRACT_DURATION=604800000;

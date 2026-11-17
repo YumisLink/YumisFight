@@ -137,6 +137,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         for(String axis:List.of("x","y","z")){double value=axis.equals("x")?point.x:axis.equals("y")?point.y:point.z;j.addProperty(axis,value);j.addProperty("p"+axis,value);j.addProperty("d"+axis,axis.equals("x")?direction.x:axis.equals("y")?direction.y:direction.z);}if(motion!=null)j.add("motion",motion);visuals.accept(p,j);Network.send(p,"visual",j);
     }
     private void applySlow(ServerPlayer owner,LivingEntity target,long occurred){
+        if(!cn.yumis.fight.modules.combat.api.CombatEffect.permitsExternalHitEffects(owner,target))return;
         long until=occurred+1500;if(until<=System.currentTimeMillis())return;
         var previous=slows.get(target.getUUID());if(previous!=null&&previous.until>=until)return;
         String kind=targets.apply(target).kind;if(kind.equals("BOSS")||kind.equals("WITHER")||target instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon||target instanceof net.minecraft.world.entity.boss.wither.WitherBoss)return;
@@ -166,7 +167,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private void depart(Source s){retiring.put(s.entity,System.currentTimeMillis()+800);s.entity.play("retreat",800);s.entity.getNavigation().stop();remove(s);}
     private void remove(Source s){pulses.removeIf(x->x.source==s);s.expires=0;summons.remove(s.entity.getUUID());sources.remove(s.id);if(!retiring.containsKey(s.entity))s.entity.discard();var p=owner(s);if(p!=null){var j=new JsonObject();j.addProperty("session",s.session);j.addProperty("generation",s.generation);j.addProperty("job",s.job);j.addProperty("dimension",s.dimension);j.addProperty("instance",s.instance);j.addProperty("source",s.id);j.addProperty("kind",s.kind.name());j.addProperty("skill",s.skill.id);j.addProperty("until",0);Network.send(p,"herderState",j);}}
     @Override public CombatPorts.Commit prepare(ServerPlayer p,LivingEntity target,JsonObject j,Receipt receipt,Life actor){
-        if(!receipt.accepted()||receipt.actual()<=0||!enemy(target))return CombatPorts.Commit.NONE;Source s=j.has("summonSource")?sources.get(j.get("summonSource").getAsString()):null;
+        if(!receipt.accepted()||receipt.actual()<=0||!enemy(target)||!cn.yumis.fight.modules.combat.api.CombatEffect.permitsExternalHitEffects(p,target))return CombatPorts.Commit.NONE;Source s=j.has("summonSource")?sources.get(j.get("summonSource").getAsString()):null;
         return new CombatPorts.Commit(){public void publish(){preferred.put(p.getUUID(),target.getUUID());if(j.has("summonSlow")&&j.get("summonSlow").getAsBoolean())applySlow(p,target,System.currentTimeMillis());if(s!=null&&s.owner.equals(p.getUUID())){if(!s.entity.isRemoved()&&target instanceof Mob mob&&!targets.apply(target).kind.equals("BOSS")&&!targets.apply(target).kind.equals("WITHER")){mob.setLastHurtByMob(s.entity);mob.setTarget(s.entity);}}}};
     }
 }

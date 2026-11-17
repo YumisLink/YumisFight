@@ -39,7 +39,7 @@
 | NPC、对白、新手任务、商店与集市投放 | `modules/npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`、`NpcTutorial.java`；客户端 `npc/client/NpcDialogueScreen.java`、`TutorialPage.java`；商店合同 `modules/economy/api/ShopDefinitions.java`、`ShopMenu.java`；规则 `rules/npcs.json`、`rules/shops.json`，蓝图挂载见野外建筑生成规则 |
 | 单抽罐子、奖池与演出 | `modules/economy/api/JarDefinitions.java`、`LootJarItem.java`；配置 `rules/jars.json`，本机决定奖品在客户端 `economy/client/EconomyActions.java`，演出在 `JarClient.java`、`JarScreen.java`，保存与交付在主源码 `application/JarService.java` |
 | 队伍与邀请 | `modules/party/api/Team.java`、`PartyInvitation.java` |
-| 方舟守卫圈入场、参加与柱面名单 | `modules/arkguard/api/ArkGuardRing.java`、`application/ArkGuardService.java`；客户端 `arkguard/client/ArkGuardClient.java`，地图资源 `map_blueprint/ark_guard_ring.json` |
+| 方舟战争 | `modules/arkguard/api/ArkWar.java`、`ArkRules.java`、`ArkRoster.java`、`ArkTraits.java`；报名与回合在 `application/ArkGuardService.java`、`ArkBattle.java`，单位战斗在 `ArkCombat.java`，现场展示在 `ArkScene.java`、`ParticipationBoard.java`，客户端 `arkguard/client/ArkGuardClient.java`；数值 `rules/ark_war.json`，地图 `map_blueprint/ark_war.json` |
 | 页面、主题、输入与通用演出 | `modules/presentation/api/`；分片染色文字 `RichText.java`，客户端 `presentation/api/client/RichTextDrawing.java`；其余绘制及页面合同查 `client/` 和 `api/client/` |
 | 野外建筑、配置地图与出生村庄 | [野外建筑生成规则](创作指南/野外建筑生成.md)；公开入口 `modules/mapgeneration/api/MapGeneration.java`、`MapBlueprint.java`；启动开关在游戏目录 `config/ydcore.toml` |
 | 魔力花与魔力草循环 | `modules/industry/api/MagicFlora.java`；植物、液体与展示产线的制作源在 `tools/industrial_technology.py` |

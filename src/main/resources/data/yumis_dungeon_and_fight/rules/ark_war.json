@@ -1,0 +1,866 @@
+{
+  "version": 1,
+  "cardsPerUnit": 12,
+  "shopSlots": 5,
+  "refreshCost": 1,
+  "maximumLevel": 7,
+  "maximumTraitLayers": 2000,
+  "units": [
+    {
+      "id": "ark_timina",
+      "name": "提米娜",
+      "role": "控制法师",
+      "health": 31500,
+      "physicalDefense": 300,
+      "magicalDefense": 650,
+      "tier": 1,
+      "cost": 2,
+      "attack": 2400,
+      "attackRate": 0.86,
+      "range": 8,
+      "magic": true,
+      "elements": [],
+      "traits": [
+        "victoria",
+        "precision"
+      ],
+      "skin": "ark_timina",
+      "parameters": {
+        "slow": 0.8,
+        "slowDuration": 3
+      },
+      "stars": {
+        "victoriaStart": [
+          3,
+          6,
+          18
+        ]
+      },
+      "description": [
+        "普攻使目标减速{slow:percent}，持续{slowDuration}秒。",
+        "开战时，已激活的维多利亚增加{victoriaStart:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_hanasaki",
+      "name": "花咲",
+      "role": "攻速辅助",
+      "health": 35000,
+      "physicalDefense": 350,
+      "magicalDefense": 700,
+      "tier": 1,
+      "cost": 2,
+      "attack": 4400,
+      "attackRate": 0.69,
+      "range": 8,
+      "magic": true,
+      "elements": [],
+      "traits": [
+        "seven_stars",
+        "chronology"
+      ],
+      "skin": "ark_hanasaki",
+      "parameters": {
+        "haste": 0.1,
+        "hasteDuration": 10,
+        "sale": 1
+      },
+      "stars": {},
+      "description": [
+        "普攻使攻击范围内本人友军（含自身）攻速提高{haste:percent}，持续{hasteDuration}秒。",
+        "出售价格固定为{sale}方舟币。"
+      ]
+    },
+    {
+      "id": "ark_aimiluo",
+      "name": "艾米萝",
+      "role": "破甲刺客",
+      "health": 50400,
+      "physicalDefense": 600,
+      "magicalDefense": 450,
+      "tier": 2,
+      "cost": 2,
+      "attack": 22400,
+      "attackRate": 0.37,
+      "range": 2,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "kalien",
+        "precision"
+      ],
+      "skin": "ark_aimiluo",
+      "parameters": {
+        "ignoreArmor": 1
+      },
+      "stars": {},
+      "description": [
+        "破魔匕首：普攻无视护甲，元素抗性仍生效。",
+        "每波随机获得光、火、冰、暗中的一种普攻元素，整波保持。"
+      ]
+    },
+    {
+      "id": "ark_baiyan",
+      "name": "白焱",
+      "role": "主坦／自疗",
+      "health": 120000,
+      "physicalDefense": 1400,
+      "magicalDefense": 1000,
+      "tier": 2,
+      "cost": 2,
+      "attack": 4200,
+      "attackRate": 0.65,
+      "range": 2,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "white_church",
+        "guardian"
+      ],
+      "skin": "ark_baiyan",
+      "parameters": {
+        "defense": 0.5,
+        "heal": 0.05
+      },
+      "stars": {
+        "churchStart": [
+          5,
+          10,
+          20
+        ]
+      },
+      "description": [
+        "纯白支援：两防额外提高{defense:percent}，持续嘲讽攻击范围内敌人；每次普攻自疗最大生命的{heal:percent}。",
+        "开战时，纯白教堂增加{churchStart:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_siliu",
+      "name": "四琉",
+      "role": "控制射手",
+      "health": 42000,
+      "physicalDefense": 400,
+      "magicalDefense": 700,
+      "tier": 3,
+      "cost": 3,
+      "attack": 7770,
+      "attackRate": 0.98,
+      "range": 8,
+      "magic": true,
+      "elements": [
+        2
+      ],
+      "traits": [
+        "arcane",
+        "winter",
+        "beast",
+        "seven_stars"
+      ],
+      "skin": "ark_siliu",
+      "parameters": {
+        "cooldown": 32,
+        "freeze": 3,
+        "bossFreeze": 1
+      },
+      "stars": {
+        "recoveryPerLayer": [
+          0.01,
+          0.02,
+          0.03
+        ]
+      },
+      "description": [
+        "冻结当前攻击目标{freeze}秒，对Boss为{bossFreeze}秒；冷却{cooldown}秒。",
+        "激活凝滞巨兽；奥术与凛冬已保存层数之和，每层使技能冷却恢复速度提高{recoveryPerLayer:starsPercent}。"
+      ]
+    },
+    {
+      "id": "ark_ruisite",
+      "name": "瑞斯特",
+      "role": "近战战士",
+      "health": 80000,
+      "physicalDefense": 1000,
+      "magicalDefense": 750,
+      "tier": 4,
+      "cost": 3,
+      "attack": 12450,
+      "attackRate": 1.17,
+      "range": 3,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "beast",
+        "kalien",
+        "longevity"
+      ],
+      "skin": "ark_ruisite",
+      "parameters": {
+        "cooldown": 80,
+        "duration": 60,
+        "attackGain": 3.3,
+        "haste": 1
+      },
+      "stars": {
+        "kalienGain": [
+          1,
+          2,
+          4
+        ],
+        "kalienCap": [
+          8,
+          16,
+          32
+        ]
+      },
+      "description": [
+        "魔化：攻击提高{attackGain:percent}，攻速提高{haste:percent}，普攻转为暗属性物理，持续{duration}秒；冷却{cooldown}秒，效果结束前不重放。",
+        "激活语龙巨兽；每次造成元素主伤害使冒险团+{kalienGain:stars}层，每波最多{kalienCap:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_benares",
+      "name": "贝娜勒斯",
+      "role": "远程射手",
+      "health": 45500,
+      "physicalDefense": 550,
+      "magicalDefense": 600,
+      "tier": 4,
+      "cost": 3,
+      "attack": 14800,
+      "attackRate": 0.43,
+      "range": 8,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "beast",
+        "precision",
+        "geology"
+      ],
+      "skin": "ark_benares",
+      "parameters": {
+        "cooldown": 35,
+        "windDamage": 3.2,
+        "windLength": 12,
+        "windHalfWidth": 1
+      },
+      "stars": {
+        "startGain": [
+          10,
+          20,
+          40
+        ]
+      },
+      "description": [
+        "普攻优先攻击最远目标。",
+        "专注之风：朝最近敌人发出狂风，前进{windLength}格，造成{windDamage:percent}无属性魔法伤害；冷却{cooldown}秒。",
+        "激活大地巨兽；开战时，自身携带且已激活的羁绊+{startGain:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_yiluo",
+      "name": "伊洛",
+      "role": "闪避刺客",
+      "health": 45500,
+      "physicalDefense": 500,
+      "magicalDefense": 500,
+      "tier": 4,
+      "cost": 3,
+      "attack": 6650,
+      "attackRate": 1.41,
+      "range": 3,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "arcane",
+        "precision"
+      ],
+      "skin": "ark_yiluo",
+      "parameters": {
+        "cooldown": 18,
+        "evasion": 0.45,
+        "control": 3,
+        "bossControl": 1
+      },
+      "stars": {
+        "castGain": [
+          4,
+          8,
+          12
+        ],
+        "castCap": [
+          12,
+          24,
+          48
+        ]
+      },
+      "description": [
+        "传送门：每段受伤有{evasion:percent}概率完全闪避。主动禁锢目标{control}秒，对Boss为{bossControl}秒；冷却{cooldown}秒。",
+        "每次施法使自身携带且已激活的羁绊+{castGain:stars}层，每波最多{castCap:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_vivian",
+      "name": "薇薇安",
+      "role": "刺客／法术爆发",
+      "health": 56000,
+      "physicalDefense": 650,
+      "magicalDefense": 650,
+      "tier": 5,
+      "cost": 4,
+      "attack": 4500,
+      "attackRate": 1.42,
+      "range": 3,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "arcane",
+        "victoria",
+        "kalien"
+      ],
+      "skin": "ark_vivian",
+      "parameters": {
+        "basicHits": 2,
+        "cooldown": 120,
+        "chant": 10,
+        "flight": 4,
+        "meteorDamage": 10.8,
+        "meteorRadius": 14
+      },
+      "stars": {
+        "attackPerLayer": [
+          0.01,
+          0.02,
+          0.03
+        ]
+      },
+      "description": [
+        "普通攻击为两段，每段使用面板攻击力。",
+        "星辰陨落：原地咏唱{chant}秒，之后{flight}秒落星；对锁定路径点{meteorRadius}格内敌人造成{meteorDamage:percent}火属性魔法伤害，以单段攻击为基数；冷却{cooldown}秒。",
+        "维多利亚与冒险团取最高已存层数，每层使自身攻击提高{attackPerLayer:starsPercent}。"
+      ]
+    },
+    {
+      "id": "ark_vivina",
+      "name": "薇薇娜",
+      "role": "多目标法师",
+      "health": 38500,
+      "physicalDefense": 350,
+      "magicalDefense": 800,
+      "tier": 5,
+      "cost": 4,
+      "attack": 3500,
+      "attackRate": 0.96,
+      "range": 6,
+      "magic": true,
+      "elements": [],
+      "traits": [
+        "fortune",
+        "victoria",
+        "kalien"
+      ],
+      "skin": "ark_vivina",
+      "parameters": {
+        "duration": 8,
+        "cooldown": 15,
+        "attackGain": 1.2,
+        "haste": 2.2,
+        "targets": 5
+      },
+      "stars": {
+        "elementGain": [
+          1,
+          2,
+          4
+        ],
+        "elementCap": [
+          12,
+          24,
+          48
+        ]
+      },
+      "description": [
+        "替身：攻击提高{attackGain:percent}，攻速提高{haste:percent}，每次普攻攻击至多{targets}个不同目标，四元素择优；持续{duration}秒，结束后冷却{cooldown}秒。",
+        "每次元素主伤害使已激活的维多利亚和冒险团各+{elementGain:stars}层，每波各最多{elementCap:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_snake",
+      "name": "斯内克",
+      "role": "射手",
+      "health": 42000,
+      "physicalDefense": 450,
+      "magicalDefense": 600,
+      "tier": 5,
+      "cost": 4,
+      "attack": 9600,
+      "attackRate": 0.8,
+      "range": 7,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "fortune",
+        "longevity",
+        "seven_stars",
+        "victoria"
+      ],
+      "skin": "ark_snake",
+      "parameters": {
+        "cooldown": 8,
+        "targets": 3,
+        "skillDamage": 2.5,
+        "emotion": 10
+      },
+      "stars": {},
+      "description": [
+        "每{cooldown}秒对至多{targets}个不同敌人，各造成{skillDamage:percent}物理伤害。",
+        "每次施法额外增加{emotion}层情绪高涨。"
+      ]
+    },
+    {
+      "id": "ark_timir",
+      "name": "提米尔",
+      "role": "中近程战士",
+      "health": 72000,
+      "physicalDefense": 850,
+      "magicalDefense": 750,
+      "tier": 6,
+      "cost": 4,
+      "attack": 12000,
+      "attackRate": 0.75,
+      "range": 4.5,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "chronology",
+        "victoria",
+        "seven_stars"
+      ],
+      "skin": "ark_timir",
+      "parameters": {
+        "attackCycle": 4,
+        "enhancedDamage": 2.25,
+        "enhancedHits": 2
+      },
+      "stars": {
+        "attackPerThree": [
+          0.01,
+          0.02,
+          0.03
+        ]
+      },
+      "description": [
+        "连续时序：每第{attackCycle}次出手强化，连续命中{enhancedHits}段，每段{enhancedDamage:percent}伤害；强化后重新储能。",
+        "维多利亚与时序已存层数先求和，每完整3层使攻击提高{attackPerThree:starsPercent}。"
+      ]
+    },
+    {
+      "id": "ark_letiya_sloth",
+      "name": "蕾缇娅·斯洛思",
+      "role": "阵营辅助",
+      "health": 42000,
+      "physicalDefense": 450,
+      "magicalDefense": 900,
+      "tier": 6,
+      "cost": 4,
+      "attack": 0,
+      "attackRate": 0,
+      "range": 99,
+      "magic": true,
+      "elements": [],
+      "traits": [
+        "witch_garden",
+        "fortune",
+        "white_church"
+      ],
+      "skin": "ark_letiya_sloth",
+      "parameters": {
+        "lightExtra": 0.1
+      },
+      "stars": {
+        "churchPerMember": [
+          2,
+          4,
+          8
+        ]
+      },
+      "description": [
+        "纯白赐福：本人纯白教堂角色的普攻、技能直接主伤害附加{lightExtra:percent}光属性魔法伤害。",
+        "激活怠惰魔女；每波结束按开战上场的纯白实体数（含自身、同名）各增加{churchPerMember:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_maryjanna",
+      "name": "玛丽珍娜",
+      "role": "持续法师",
+      "health": 42000,
+      "physicalDefense": 400,
+      "magicalDefense": 850,
+      "tier": 6,
+      "cost": 4,
+      "attack": 14700,
+      "attackRate": 0.65,
+      "range": 8,
+      "magic": true,
+      "elements": [
+        0
+      ],
+      "traits": [
+        "arcane",
+        "white_church"
+      ],
+      "skin": "ark_maryjanna",
+      "parameters": {
+        "attackCycle": 5,
+        "beamDamage": 1.75,
+        "beamRadius": 1,
+        "beamDuration": 3,
+        "durationPerLayer": 0.01
+      },
+      "stars": {},
+      "description": [
+        "圣札礼仪：每第{attackCycle}次普攻在目标位置生成光柱，半径{beamRadius}格，每秒造成{beamDamage:percent}光属性魔法伤害，基础持续{beamDuration}秒；不同光柱独立叠加。",
+        "每层纯白教堂使新光柱持续时间提高{durationPerLayer:percent}，生成时确定时长。"
+      ]
+    },
+    {
+      "id": "ark_yunyimu",
+      "name": "云亦木",
+      "role": "冷却／经济辅助",
+      "health": 45500,
+      "physicalDefense": 500,
+      "magicalDefense": 850,
+      "tier": 6,
+      "cost": 4,
+      "attack": 11330,
+      "attackRate": 0.77,
+      "range": 9,
+      "magic": true,
+      "elements": [],
+      "traits": [
+        "victoria"
+      ],
+      "skin": "ark_yunyimu",
+      "parameters": {
+        "haste": 1,
+        "cooldownExtra": 1
+      },
+      "stars": {
+        "income": [
+          2,
+          3,
+          4
+        ],
+        "coinGrowth": [
+          0.02,
+          0.04,
+          0.08
+        ]
+      },
+      "description": [
+        "自身及范围内一名当前攻击最高的本人友军获得{haste:percent}攻速，每秒额外减少{cooldownExtra}秒冷却；同技能重复来源不叠加。",
+        "每波结束获得{income:stars}方舟币；每枚当前方舟币使自身攻击与攻速各提高{coinGrowth:starsPercent}。"
+      ]
+    }
+  ],
+  "traits": [
+    {
+      "id": "fortune",
+      "name": "福星",
+      "thresholds": [
+        1,
+        2,
+        3
+      ],
+      "description": [
+        "下一准备阶段按本波档位获得额外1／2／3枚方舟币。"
+      ]
+    },
+    {
+      "id": "arcane",
+      "name": "奥术",
+      "thresholds": [
+        3
+      ],
+      "description": [
+        "3人：奥术角色直接主伤害附加(10+0.1L)%无属性魔法伤害。",
+        "L>120时替换为(25+0.25L)%附伤，忽略(40+0.01L)%魔法防御。"
+      ]
+    },
+    {
+      "id": "brute",
+      "name": "蛮力",
+      "thresholds": [
+        3
+      ],
+      "description": [
+        "3人：蛮力角色攻击提高(30+L)%。",
+        "L>120：同时惠及原始射程≤3的本人角色；每次普攻额外触发半径1格余震，按本次减防前主伤害总量的(10+0.01L)%结算物理伤害。"
+      ]
+    },
+    {
+      "id": "longevity",
+      "name": "寿星",
+      "thresholds": [
+        1,
+        2,
+        3
+      ],
+      "description": [
+        "核心生命及双塔伤害提高30%／50%／100%。",
+        "3人档：核心受到伤害后反射实际受伤100%的真实伤害。各玩家数值相加，反伤不重复反射。"
+      ]
+    },
+    {
+      "id": "seven_stars",
+      "name": "七星",
+      "thresholds": [
+        7
+      ],
+      "description": [
+        "所有本人角色攻击范围内的敌人每秒受到7%目标最大生命的真实伤害；同名效果不叠加。"
+      ]
+    },
+    {
+      "id": "precision",
+      "name": "精准",
+      "thresholds": [
+        3
+      ],
+      "description": [
+        "3人：精准角色射程增加(1+0.01L)格。",
+        "L≥120：额外惠及原始射程>6的本人角色；距离1格外每完整1格使本次伤害提高20%，8格为+140%。"
+      ]
+    },
+    {
+      "id": "geology",
+      "name": "地质",
+      "thresholds": [
+        1
+      ],
+      "description": [
+        "地质角色当前射程内敌人减速30%；与其他减速取最高。"
+      ]
+    },
+    {
+      "id": "beast",
+      "name": "巨兽",
+      "thresholds": [
+        1
+      ],
+      "description": [
+        "仅最早上场的一种巨兽生效；与魔女庭院同时在场时，两种羁绊均失效。",
+        "凝滞：普攻主伤害额外产生100%有效伤害的冻结积累，冰伤获得双份。",
+        "语龙：施法使施法者携带且已激活的羁绊各+1层。",
+        "大地：其他场上已有成员的羁绊人数+1，零成员不增加。"
+      ]
+    },
+    {
+      "id": "witch_garden",
+      "name": "魔女庭院",
+      "thresholds": [
+        1
+      ],
+      "description": [
+        "仅最早上场的一种魔女生效，与巨兽互斥。",
+        "怠惰：纯白角色施法时，已激活的纯白教堂+2层。"
+      ]
+    },
+    {
+      "id": "chronology",
+      "name": "时序",
+      "thresholds": [
+        3
+      ],
+      "description": [
+        "3人：时序角色攻速提高(10+L)%。",
+        "L≥40：同时影响其紧邻的八个方块内本人友军；同名效果不叠加。"
+      ]
+    },
+    {
+      "id": "flame_lord",
+      "name": "乘炎领",
+      "thresholds": [
+        3,
+        6,
+        9
+      ],
+      "description": [
+        "3／6／9人：所属角色攻击提高(25+L)%。普攻在目标脚下留下3秒灼燃，同格刷新且不叠伤。",
+        "每0.5秒：3人档(30000+200L)火魔法；6人档(50000+250L)火魔法并降低30%魔防；9人档(100000+500L)真实伤害并降低30%魔防。"
+      ]
+    },
+    {
+      "id": "victoria",
+      "name": "维多利亚",
+      "thresholds": [
+        3,
+        6,
+        9
+      ],
+      "description": [
+        "每波情绪E从0开始，上限300+L。",
+        "3人：每次普攻出手E+1，每层攻速+1%；脱战每秒-5。",
+        "6人：每层同时使攻击+1%，脱战每秒-2。",
+        "9人：每次普攻E+5，其他同6人档。"
+      ]
+    },
+    {
+      "id": "kalien",
+      "name": "卡利恩冒险团",
+      "thresholds": [
+        3,
+        6,
+        9
+      ],
+      "description": [
+        "3人：所属角色元素主伤害使对应元素抗性-1点，攻击提高(5+0.5L)%。",
+        "6人：命中负元素抗性目标时额外产生该次减防前主伤害30%的同元素爆炸，不递归触发自身来源。",
+        "9人：爆炸变为半径1格范围伤害。"
+      ]
+    },
+    {
+      "id": "white_church",
+      "name": "纯白教堂",
+      "thresholds": [
+        3,
+        6,
+        9
+      ],
+      "description": [
+        "3／6／9人：所属角色攻击提高20%／50%／100%；光伤变为(125+L)%／(125+L)%／(150+2L)%。",
+        "9人：纯白角色施法后生成3秒圣札光柱，每秒造成80%攻击力的光属性魔法伤害。"
+      ]
+    },
+    {
+      "id": "winter",
+      "name": "凛冬",
+      "thresholds": [
+        3
+      ],
+      "description": [
+        "3人：凛冬角色冻结积累提高(100+5L)%。",
+        "L≥40：对冻结敌人的伤害变为(220+5L)%。"
+      ]
+    },
+    {
+      "id": "guardian",
+      "name": "守护",
+      "thresholds": [
+        3,
+        6
+      ],
+      "description": [
+        "所有本人角色两防提高(30+2L)%。",
+        "6人：反射实际受到伤害100%的无属性魔法伤害，反伤不再次触发反伤。"
+      ]
+    }
+  ],
+  "shopProbabilities": [
+    [
+      100,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      75,
+      25,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      55,
+      30,
+      15,
+      0,
+      0,
+      0
+    ],
+    [
+      30,
+      35,
+      20,
+      15,
+      0,
+      0
+    ],
+    [
+      15,
+      30,
+      20,
+      20,
+      15,
+      0
+    ],
+    [
+      10,
+      10,
+      10,
+      25,
+      30,
+      15
+    ],
+    [
+      1,
+      9,
+      10,
+      25,
+      30,
+      25
+    ]
+  ],
+  "populations": [
+    6,
+    6,
+    7,
+    7,
+    8,
+    8,
+    9
+  ],
+  "upgradeCosts": [
+    6,
+    8,
+    10,
+    12,
+    14,
+    25
+  ],
+  "enemies": {
+    "goblinFirstCount": 26,
+    "goblinLastCount": 30,
+    "dragonCountRatio": 0.375,
+    "goblinHealth": 2000,
+    "dragonHealth": 4000,
+    "healthGrowth": 1.22,
+    "goblinAttack": 300,
+    "dragonAttack": 700,
+    "attackGrowth": 1.15,
+    "goblinPhysicalDefense": 120,
+    "dragonPhysicalDefense": 240,
+    "magicalDefense": 280,
+    "defensePerWave": 0.06,
+    "goblinResists": [
+      18,
+      18,
+      18,
+      30
+    ],
+    "dragonResists": [
+      48,
+      18,
+      18,
+      0
+    ],
+    "bossHealth": 200000,
+    "bossHealthGrowth": 1.25,
+    "bossAttack": 8000,
+    "bossAttackGrowth": 1.12,
+    "goblinGuards": 6,
+    "dragonGuards": 3
+  }
+}

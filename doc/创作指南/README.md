@@ -35,7 +35,8 @@
 | `npc/api/NpcInteractionComponent.java`、`NpcDefinitions.java`、`NpcSpawns.java`、`NpcTutorial.java`；`economy/api/ShopDefinitions.java`、`ShopMenu.java` | NPC定义登记有序交互动作、固定皮肤／头饰和日常台词，通过组件挂到生物；伊蕾娜对白与六步引导由同一定义提供，I 内追踪器消费本机任务状态。商品登记单件物品和必须同时满足的费用，预览与本机购买共用定义。地图仅提供完成放置后的世界坐标锚点，调用NPC公开投放入口。 |
 | `presentation/api/RichText.java`；客户端 `presentation/api/client/RichTextDrawing.java` | 对白、任务标题和目标按文字片段配置零至两个色值；沿原生字体排版，双色只作上下渐变，不借用装备的神话标记。 |
 | 客户端 `presentation/api/client/WorldQuads.java`、`EffectModels.java`、`EffectParticles.java`、`NearEffectRendering.java` | 技能和副本共用世界绘制、粒子及近身淡化；内容提供形状和时间轴，展示不授予命中、无敌或重力权限。 |
-| `mapgeneration/api/MapGeneration.java`、`MapBlueprint.java` | JSON 蓝图与原版 NBT 结构共用道路、其他地面、建筑／设施三类配置；统一规划后放置。管理员用 `/ydnf map plan <蓝图> [x y z]` 预览规划摘要、`/ydnf map generate <蓝图> [x y z]` 生成；控制台必须给坐标。 |
+| `mapgeneration/api/MapGeneration.java`、`MapBlueprint.java` | JSON 蓝图与原版 NBT 结构共用道路、其他地面、建筑／设施三类配置；统一规划后放置。管理员用 `/ydnf map plan <蓝图> [x y z]` 预览规划摘要、`/ydnf map generate <蓝图> [x y z]` 生成；控制台必须给坐标。禁止环境敌怪的场景中，玩法投放的单位通过 `spawnSceneActor` 进入世界，生命周期仍归所属玩法管理。 |
+| `dungeons/api/WorldTargetEntity.java`、`WorldTargets.java` | 固定数值的场景单位提供初始 `Target`，沿用既有正式生命、属性与元素公式；组合场景事实时使用 `prepare` 的持久化／发布提交，结束时释放生命。`WorldVitalEntity.acceptsPlayerEffects` 声明是否接收玩家附加效果；人形外观复用 `npc/api/client/NpcRendering`，既有怪物外观复用 `dungeons/api/client/DungeonMobRendering`。 |
 | `mapgeneration/api/WorldDecorations.java` | 真实可拆装饰方块与独立创造栏；落叶复用原版增铺，碎石等保存布局，悬空碎石的外观与形状共用时间轴。制作入口见下文。 |
 
 管道手绘素材以 `tools/fluid_pipe_materials_12x14.aseprite` 的64×64图集及命名切片为准：第1～3帧保留三档金属色阶，第4帧存在时默认整帧作为母稿，亦可用 `masterFrame` 指定。第3档逐像素保留母稿，其余档位仅映射原金属色阶，保留手绘新增颜色与透明度。直线、转弯各保留一份原稿，其他朝向通过UV旋转复用；三通、四通与单向端部按各自拓扑独立登记。A3外壳取中央12×12用于断开面，A4端框仅用于从机器抽取的接口；不套用原版玻璃图。`draw_fluid_pipe_materials_12x14.lua` 仅建立初稿，已有源稿默认拒绝重画；手绘保存后运行 `export_fluid_pipe_materials_12x14.lua`，直接导出三张正式图集、`fluid_pipe_materials_12x14_layout.json` 及原尺寸分件预览，再运行模型制作源。端口方向标记独立编辑 `fluid_pipe_ports_14x2.aseprite`：抽取标记按14×2输出，送入标记仅裁掉两端各1像素空白、按12×2输出。导出过程不保存或改写用户母稿，不缩小原始像素。

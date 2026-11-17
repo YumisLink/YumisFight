@@ -13,7 +13,7 @@ public final class GoblinRenderer extends MobRenderer<DungeonEnemy,GoblinRendere
         super(context,new Model(Model.layer().bakeRoot()),.4f);
     }
     private static int role(DungeonEnemy entity){
-        String name=net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).getPath();
+        String name=entity.appearance();
         return java.util.List.of("goblin","goblin_thrower","goblin_captain","goblin_shaman").indexOf(name);
     }
     public static final class State extends LivingEntityRenderState {

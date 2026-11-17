@@ -17,6 +17,7 @@ import java.util.*;
 
 /** Public application entrypoints. Map geometry and content are resource data, not village branches. */
 public final class MapGeneration {
+    private static final String SCENE_ACTOR="ydnf_map_scene_actor";
     private static final Map<MinecraftServer,GenerationService> SERVICES=new WeakHashMap<>();
     private MapGeneration() {}
     public static void registerConfig(net.neoforged.fml.ModContainer container) {MapGenerationConfig.register(container);}
@@ -53,6 +54,12 @@ public final class MapGeneration {
     public static boolean blocksHostileSpawn(net.minecraft.world.entity.Entity entity,Level level) {
         return level instanceof ServerLevel serverLevel&&GenerationService.hostile(entity)&&service(serverLevel.getServer()).blocksHostiles(serverLevel,entity.blockPosition().getX(),entity.blockPosition().getZ());
     }
+    /** Authored scene waves remain allowed inside a zone that excludes ambient hostile spawns. */
+    public static boolean spawnSceneActor(ServerLevel level,net.minecraft.world.entity.Entity entity){
+        if(entity.level()!=level)throw new IllegalArgumentException("场景单位维度不一致");
+        entity.getPersistentData().putBoolean(SCENE_ACTOR,true);return level.addFreshEntity(entity);
+    }
+    public static boolean sceneActor(net.minecraft.world.entity.Entity entity){return entity.getPersistentData().getBooleanOr(SCENE_ACTOR,false);}
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         var root=Commands.literal("map").requires(s->s.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
         for(String action:List.of("plan","generate")) {

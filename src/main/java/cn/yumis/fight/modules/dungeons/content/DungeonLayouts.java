@@ -14,7 +14,7 @@ public final class DungeonLayouts {
     private final Map<String,Layout> all;
     public DungeonLayouts(DungeonPorts.CampDecorations decorations){all=Map.ofEntries(
         Map.entry("goblin_camp",new Layout(GoblinCamp.VERSION,GoblinCamp.BOUNDS,0,2,(world,origin)->GoblinCamp.build(world,origin,decorations),(world,origin,gate,open)->{})),
-        Map.entry("dragon_tower",new Layout("YDNF_LAYOUT_2",new Bounds(-23,-2,-18,23,49,146),3,2,DragonTower::build,DragonTower::gate)),
+        Map.entry("dragon_tower",new Layout(DragonTower.VERSION,DragonTower.BOUNDS,0,1,(world,origin)->DragonTower.build(world,origin,decorations),(world,origin,gate,open)->{})),
         Map.entry("gbl_church",new Layout("GBL_LAYOUT_1",new Bounds(-23,-2,-6,23,49,GblChurch.MAX_Z),3,2,GblChurch::build,GblChurch::gate)),
         Map.entry("castle_palace",new Layout("PALACE_LAYOUT_1",new Bounds(-23,-2,-6,23,49,CastlePalace.MAX_Z),6,1,CastlePalace::build,CastlePalace::gate)),
         Map.entry("behemoth_forbidden",new Layout("FORBIDDEN_LAYOUT_1",new Bounds(-23,-2,-6,23,49,BehemothForbidden.MAX_Z),3,2,BehemothForbidden::build,BehemothForbidden::gate)),

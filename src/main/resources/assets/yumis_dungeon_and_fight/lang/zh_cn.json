@@ -644,5 +644,6 @@
   "block.yumis_dungeon_and_fight.fluid_pipe_t1": "铜制液体管道",
   "block.yumis_dungeon_and_fight.fluid_pipe_t2": "钒钢液体管道",
   "block.yumis_dungeon_and_fight.fluid_pipe_t3": "铌钛合金液体管道",
-  "block.yumis_dungeon_and_fight.titanium_conveyor_belt": "钛传送带"
+  "block.yumis_dungeon_and_fight.titanium_conveyor_belt": "钛传送带",
+  "effect.yumis_dungeon_and_fight.ark_observer": "方舟守望"
 }

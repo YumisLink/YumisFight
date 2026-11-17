@@ -13,7 +13,7 @@ public final class DragonRenderer extends MobRenderer<DungeonEnemy,DragonRendere
         super(context,new Model(Model.layer(role).bakeRoot()),.5f);
     }
     private static int role(DungeonEnemy entity){
-        String name=net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).getPath();
+        String name=entity.appearance();
         return java.util.List.of("dragonman","blue_dragonman","wyvern","blue_wyvern","lucas").indexOf(name);
     }
     public static final class State extends LivingEntityRenderState {

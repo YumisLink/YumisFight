@@ -62,5 +62,134 @@
     "model": "wide",
     "sha256": "eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56",
     "source": "https://textures.minecraft.net/texture/eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56"
+  },
+  "ark_timina": {
+    "displayName": "红叔",
+    "username": "Uncle_Red",
+    "uuid": "30ecf6ccf46f405584c4c8b980c0d6d7",
+    "model": "slim",
+    "sha256": "7d188e33fcd03ed25f94c3756bc83f1ca852d6d839678e95990dd3a94bbaf760",
+    "source": "https://textures.minecraft.net/texture/7d188e33fcd03ed25f94c3756bc83f1ca852d6d839678e95990dd3a94bbaf760",
+    "temporaryFor": "提米娜",
+    "sourcePreset": "uncle_red"
+  },
+  "ark_hanasaki": {
+    "displayName": "Grian",
+    "username": "Grian",
+    "uuid": "5f8eb73b25be4c5aa50fd27d65e30ca0",
+    "model": "slim",
+    "sha256": "fd82a31be355fae3842af8a66a208df602230a0fc748c7453e491e08377eb4c2",
+    "source": "https://textures.minecraft.net/texture/fd82a31be355fae3842af8a66a208df602230a0fc748c7453e491e08377eb4c2",
+    "temporaryFor": "花咲",
+    "sourcePreset": "grian"
+  },
+  "ark_aimiluo": {
+    "displayName": "黑猫",
+    "username": "Hei_Mao",
+    "uuid": "87cc1b9592fa448ca4fc5164b38fbc47",
+    "model": "wide",
+    "sha256": "521947f19e07d492dbc0f92042632d020accce61615a3a14e941d578e018a202",
+    "source": "https://textures.minecraft.net/texture/521947f19e07d492dbc0f92042632d020accce61615a3a14e941d578e018a202",
+    "temporaryFor": "艾米萝",
+    "sourcePreset": "hei_mao"
+  },
+  "ark_baiyan": {
+    "displayName": "Technoblade",
+    "username": "Technoblade",
+    "uuid": "b876ec32e396476ba1158438d83c67d4",
+    "model": "wide",
+    "sha256": "8c907a7f4f0c3a6c9c9b79348f7bf1993695b6d2eae2fab704a1a4d9b8288cbe",
+    "source": "https://textures.minecraft.net/texture/8c907a7f4f0c3a6c9c9b79348f7bf1993695b6d2eae2fab704a1a4d9b8288cbe",
+    "temporaryFor": "白焱",
+    "sourcePreset": "technoblade"
+  },
+  "ark_siliu": {
+    "displayName": "Dream",
+    "username": "Dream",
+    "uuid": "ec70bcaf702f4bb8b48d276fa52a780c",
+    "model": "slim",
+    "sha256": "ca93f6fc40488f1877cda94a830b54e9f6f54ab58a5453bad5c947726dd1f473",
+    "source": "https://textures.minecraft.net/texture/ca93f6fc40488f1877cda94a830b54e9f6f54ab58a5453bad5c947726dd1f473",
+    "temporaryFor": "四琉",
+    "sourcePreset": "dream"
+  },
+  "ark_ruisite": {
+    "displayName": "BadCen",
+    "username": "BadCen",
+    "uuid": "a3c7d62a311c4a28b02c1ba2e27f9e67",
+    "model": "slim",
+    "sha256": "3088b49190b15d24fe2c60ed2c42d8fae8a9eef77d03d0e8bad727ef76227d0e",
+    "source": "https://textures.minecraft.net/texture/3088b49190b15d24fe2c60ed2c42d8fae8a9eef77d03d0e8bad727ef76227d0e",
+    "temporaryFor": "瑞斯特",
+    "sourcePreset": "badcen"
+  },
+  "ark_benares": {
+    "displayName": "籽岷",
+    "username": "Zi__Min",
+    "uuid": "f4f59ac621b44bfe90ff106b64c5d599",
+    "model": "wide",
+    "sha256": "4a4f489e4f43d6b52c07d9ea85b60a9d3ea82c7929a55f0fce447aee5ad9a2a8",
+    "source": "https://textures.minecraft.net/texture/4a4f489e4f43d6b52c07d9ea85b60a9d3ea82c7929a55f0fce447aee5ad9a2a8",
+    "temporaryFor": "贝娜勒斯",
+    "sourcePreset": "zimin"
+  },
+  "ark_yiluo": {
+    "displayName": "TommyInnit",
+    "username": "TommyInnit",
+    "uuid": "e80e8194323e414298515e1bcb8a3508",
+    "model": "wide",
+    "sha256": "eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56",
+    "source": "https://textures.minecraft.net/texture/eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56",
+    "temporaryFor": "伊洛",
+    "sourcePreset": "tommyinnit"
+  },
+  "ark_vivian": {
+    "displayName": "伊蕾娜",
+    "source": "project:textures/entity/npc/elaina.png",
+    "sha256": "69d8f1b2c2787cba75dd5e5d6aa5dd037da22180f3930f616ecd0243bb631149",
+    "temporaryFor": "薇薇安",
+    "sourcePreset": "elaina"
+  },
+  "ark_vivina": {
+    "displayName": "薇薇娜",
+    "model": "wide",
+    "sha256": "b77bfca4ff607c1d72ad26867549fb7f0a9317c0811424a189d72cd0d47ca32a",
+    "source": "assets/minecraft/textures/entity/player/wide/ari.png",
+    "placeholderFor": "ark_vivina"
+  },
+  "ark_snake": {
+    "displayName": "斯内克",
+    "model": "wide",
+    "sha256": "f5b3af3440257759f074ae07b630a65195d7222241dc7af1189b954cf7fc3f76",
+    "source": "assets/minecraft/textures/entity/player/wide/kai.png",
+    "placeholderFor": "ark_snake"
+  },
+  "ark_timir": {
+    "displayName": "提米尔",
+    "model": "wide",
+    "sha256": "6e2e2d07136d057997b62ed5a256a577a7678d6f0ef05a7a402cb5096a11143d",
+    "source": "assets/minecraft/textures/entity/player/wide/efe.png",
+    "placeholderFor": "ark_timir"
+  },
+  "ark_letiya_sloth": {
+    "displayName": "蕾缇娅·斯洛思",
+    "model": "wide",
+    "sha256": "66343b7a4d6a63af1abed71437728794a9c5d5fc666a10a3cce666e5759ac3ff",
+    "source": "assets/minecraft/textures/entity/player/wide/noor.png",
+    "placeholderFor": "ark_letiya_sloth"
+  },
+  "ark_maryjanna": {
+    "displayName": "玛丽珍娜",
+    "model": "wide",
+    "sha256": "adc7f1b62cdf791096493d14c3edc8b36fd940e4bf10093fc48f461b0f0a3dba",
+    "source": "assets/minecraft/textures/entity/player/wide/zuri.png",
+    "placeholderFor": "ark_maryjanna"
+  },
+  "ark_yunyimu": {
+    "displayName": "云亦木",
+    "model": "wide",
+    "sha256": "e58a664738d0073c348265052ab60a0ebf15f271a1b6aaeec0e47c027bc7cd0e",
+    "source": "assets/minecraft/textures/entity/player/wide/makena.png",
+    "placeholderFor": "ark_yunyimu"
   }
 }

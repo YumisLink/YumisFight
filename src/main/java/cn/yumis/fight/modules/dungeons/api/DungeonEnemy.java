@@ -3,7 +3,7 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.level.Level;
 import net.minecraft.network.syncher.*;
-public final class DungeonEnemy extends Zombie {
+public class DungeonEnemy extends Zombie {
     private static final EntityDataAccessor<String> MOVE=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Long> MOVE_AT=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.LONG);
     private static final EntityDataAccessor<Long> MOVE_DURATION=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.LONG);
@@ -28,6 +28,7 @@ public final class DungeonEnemy extends Zombie {
     public boolean elite(){
         return getPersistentData().getBooleanOr("ydnf_elite",false);
     }
+    public String appearance(){return net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(getType()).getPath();}
     @Override protected void defineSynchedData(SynchedEntityData.Builder builder){super.defineSynchedData(builder);builder.define(MOVE,"");builder.define(MOVE_AT,0L);builder.define(MOVE_DURATION,0L);builder.define(GUARDED,false);}
     public void play(String move,long duration){entityData.set(MOVE,move);entityData.set(MOVE_AT,System.currentTimeMillis());entityData.set(MOVE_DURATION,duration);}
     public String move(){return entityData.get(MOVE);}
@@ -41,4 +42,6 @@ public final class DungeonEnemy extends Zombie {
         goalSelector.removeAllGoals(g->true);
         targetSelector.removeAllGoals(g->true);
     }
+    /** Content may guide movement while leaving native melee and target goals intact. */
+    public void movementGoal(net.minecraft.world.entity.ai.goal.Goal goal){goalSelector.addGoal(1,goal);}
 }

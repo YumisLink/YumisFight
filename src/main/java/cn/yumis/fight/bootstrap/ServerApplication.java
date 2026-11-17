@@ -131,6 +131,7 @@ public final class ServerApplication {
             value.add("chestDefinitions",JSON.toJsonTree(bundle.chests()));
             value.add("jarDefinitions",JSON.toJsonTree(bundle.jars()));
             value.add("shopDefinitions",JSON.toJsonTree(bundle.shops()));value.add("npcDefinitions",JSON.toJsonTree(bundle.npcs()));
+            value.add("arkWarRules",JSON.toJsonTree(bundle.arkWar()));
             wireDefinitions=value;definitionsKey=ProfileSync.digest(value);definitionsBundle=bundle;
         }
         return wireDefinitions;
@@ -180,7 +181,7 @@ public final class ServerApplication {
         cn.yumis.fight.modules.npc.api.NpcEntity.conversations(npcs::conversing);
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.unregister("shop");
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.register("shop",(p,e,a)->shops.open(p,e.getUUID(),a.value()));
-        arkGuard=new cn.yumis.fight.modules.arkguard.application.ArkGuardService(server,journal,p->session(p).id.toString(),(p,value)->Network.send(p,"arkGuard",value),this::message);
+        arkGuard=new cn.yumis.fight.modules.arkguard.application.ArkGuardService(server,journal,p->session(p).id.toString(),(p,value)->Network.send(p,"arkGuard",value),this::message,targets);
         nativeHits.worldDamage(worldHealth::nativeDamage);
         progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,characters,inventory,p->session(p).progress,(p,next)->session(p).progress=next,this::profile);
         tutorials=new cn.yumis.fight.modules.npc.application.TutorialService(journal,inventory,characters,RuntimeAssembly.rewardPlayers(this),RuntimeAssembly.rewardBalance(this),p->session(p).life.generation);
@@ -371,8 +372,11 @@ public final class ServerApplication {
             if(shopResource.isPresent())try(var reader=shopResource.get().openAsReader()){nextShops=cn.yumis.fight.modules.economy.api.ShopDefinitions.parse(JsonParser.parseReader(reader).toString());}
             var npcResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/npcs.json"));
             if(npcResource.isPresent())try(var reader=npcResource.get().openAsReader()){nextNpcs=cn.yumis.fight.modules.npc.api.NpcDefinitions.parse(JsonParser.parseReader(reader).toString());}
-            var candidate=cn.yumis.fight.bootstrap.ApplicationRules.Bundle.validated(nextCatalog,nextDungeons,nextNames,nextDefinitions,nextAffixes,nextLayout,nextIndustrial,nextSkills,nextChests,nextJars,nextShops,nextNpcs);
-            journal.transaction(Map.of("definitions/equipment",JSON.toJsonTree(candidate.equipment()),"definitions/affixes",JSON.toJsonTree(candidate.affixes()),"definitions/skills",JSON.toJsonTree(candidate.skills()),"definitions/chests",JSON.toJsonTree(candidate.chests()),"definitions/jars",JSON.toJsonTree(candidate.jars()),"definitions/shops",JSON.toJsonTree(candidate.shops()),"definitions/npcs",JSON.toJsonTree(candidate.npcs())));
+            var nextArk=cn.yumis.fight.modules.arkguard.api.ArkRules.defaults();
+            var arkResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/ark_war.json"));
+            if(arkResource.isPresent())try(var reader=arkResource.get().openAsReader()){nextArk=cn.yumis.fight.modules.arkguard.api.ArkRules.parse(JsonParser.parseReader(reader).toString());}
+            var candidate=cn.yumis.fight.bootstrap.ApplicationRules.Bundle.validated(nextCatalog,nextDungeons,nextNames,nextDefinitions,nextAffixes,nextLayout,nextIndustrial,nextSkills,nextChests,nextJars,nextShops,nextNpcs,nextArk);
+            journal.transaction(Map.of("definitions/equipment",JSON.toJsonTree(candidate.equipment()),"definitions/affixes",JSON.toJsonTree(candidate.affixes()),"definitions/skills",JSON.toJsonTree(candidate.skills()),"definitions/chests",JSON.toJsonTree(candidate.chests()),"definitions/jars",JSON.toJsonTree(candidate.jars()),"definitions/shops",JSON.toJsonTree(candidate.shops()),"definitions/npcs",JSON.toJsonTree(candidate.npcs()),"definitions/ark_war",JSON.toJsonTree(candidate.arkWar())));
             cn.yumis.fight.bootstrap.ApplicationRules.publish(candidate);
             worldDifficulty=nextDifficulty;
             rewards=nextRewards;

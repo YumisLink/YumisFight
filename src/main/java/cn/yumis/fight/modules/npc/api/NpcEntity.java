@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.function.Predicate;
 
 /** Friendly shop host; normalized vanilla health only projects the formal world life. */
-public final class NpcEntity extends PathfinderMob implements WorldVitalEntity {
+public class NpcEntity extends PathfinderMob implements WorldVitalEntity {
     public static final int LEVEL=120;
     public static final double MAXIMUM_HEALTH=10_000_000;
     private static final EntityDataAccessor<String> SKIN=SynchedEntityData.defineId(NpcEntity.class,EntityDataSerializers.STRING);
@@ -37,6 +37,12 @@ public final class NpcEntity extends PathfinderMob implements WorldVitalEntity {
     public static void rememberPlayerSource(Entity entity){if(playerOwned(entity))entity.getPersistentData().putBoolean("npc_player_source",true);}
     @Override protected void defineSynchedData(SynchedEntityData.Builder builder){super.defineSynchedData(builder);builder.define(SKIN,"zimin");}
     public String skin(){return entityData.get(SKIN);}
+    /** Public appearance binding also used by allied world actors. */
+    public void appearance(String skin){
+        if(!NpcDefinitions.current().skins.containsKey(skin))throw new IllegalArgumentException("NPC皮肤不存在："+skin);
+        entityData.set(SKIN,skin);
+    }
+    public void relocate(Vec3 position,float yaw){getNavigation().stop();setPos(position);setYRot(yaw);setYHeadRot(yaw);yBodyRot=yaw;setHomeTo(blockPosition(),32);}
     public void initialize(String definition,String skin){
         NpcInteractionComponent.attach(this,definition);entityData.set(SKIN,skin);setHomeTo(blockPosition(),32);
         setCustomName(ModText.of(NpcDefinitions.current().require(definition).displayName()));setCustomNameVisible(true);

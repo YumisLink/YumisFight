@@ -29,7 +29,7 @@ import java.nio.file.*;
 import java.util.*;
 import cn.yumis.fight.modules.dungeons.api.*;
 /** Enemy identity and encounter context, stored by the dungeon/enemy module. */
-public final class TargetService {
+public final class TargetService implements WorldTargets {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
     private final Journal journal;
@@ -38,6 +38,11 @@ public final class TargetService {
     private final java.util.function.Function<String,Dungeon> dungeons;
     public TargetService(Journal journal,Random random,java.util.function.Supplier<Difficulty> difficulty,java.util.function.Function<String,Dungeon> dungeons){this.journal=journal;this.random=random;this.difficulty=difficulty;this.dungeons=dungeons;}
     public Target resolve(LivingEntity e){
+        if(e instanceof WorldTargetEntity supplied){
+            Target world=journal.get("target/"+e.getUUID(),Target.class,null);
+            if(world==null){world=supplied.initialCombatTarget();world.id=e.getUUID();world.life.target=e.getUUID();world.dimension=e.level().dimension().identifier().toString();world.life.dimension=world.dimension;commit(Map.of(e,world));}
+            world.entityId=e.getId();return world;
+        }
         if(e instanceof TrainingSandbag bag){
             Target practice=journal.get("target/"+e.getUUID(),Target.class,null);
             if(practice==null){practice=new Target();practice.id=e.getUUID();practice.kind="TRAINING";practice.noRewards=true;practice.timedTraining=bag.timed();practice.originalLevel=1;practice.dimension=e.level().dimension().identifier().toString();practice.life.target=practice.id;practice.life.dimension=practice.dimension;try{journal.put("target/"+e.getUUID(),practice);}catch(Exception failure){throw new IllegalStateException(failure);}}
@@ -92,5 +97,36 @@ public final class TargetService {
         }
         t.entityId=e.getId();
         return t;
+    }
+    @Override public Target target(LivingEntity entity){return resolve(entity);}
+    @Override public cn.yumis.fight.modules.combat.api.CombatPorts.Commit prepare(Map<LivingEntity,Target> changes){
+        if(changes.isEmpty())return cn.yumis.fight.modules.combat.api.CombatPorts.Commit.NONE;
+        var writes=new LinkedHashMap<String,JsonElement>();
+        var projections=new LinkedHashMap<LivingEntity,JsonObject>();
+        for(var entry:changes.entrySet()){
+            if(!(entry.getKey() instanceof WorldTargetEntity)||!entry.getKey().getUUID().equals(entry.getValue().id))
+                throw new IllegalArgumentException("世界生命归属不一致");
+            writes.put("target/"+entry.getKey().getUUID(),JSON.toJsonTree(entry.getValue()));
+            writes.put("life/"+entry.getKey().getUUID(),JSON.toJsonTree(entry.getValue().life));
+            projections.put(entry.getKey(),JSON.toJsonTree(entry.getValue()).getAsJsonObject());
+        }
+        return new cn.yumis.fight.modules.combat.api.CombatPorts.Commit(){
+            @Override public void persist()throws Exception{for(var entry:writes.entrySet())journal.put(entry.getKey(),entry.getValue());}
+            @Override public void publish(){for(var entry:projections.entrySet()){var entity=entry.getKey();var value=entry.getValue();value.addProperty("entityId",entity.getId());entity.setData(cn.yumis.fight.modules.combat.api.CombatContentTypes.TARGET,value.toString());if(entity.level() instanceof ServerLevel)net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new cn.yumis.fight.network.Network.Snapshot("context",value.toString()));}}
+        };
+    }
+    @Override public void commit(Map<LivingEntity,Target> changes){
+        var change=prepare(changes);
+        try{journal.begin();change.persist();journal.finish();change.publish();}
+        catch(Exception failure){journal.abort();throw new IllegalStateException("世界生命提交失败",failure);}
+    }
+    @Override public void release(Collection<? extends LivingEntity> entities){
+        var writes=new LinkedHashMap<String,JsonElement>();
+        for(var entity:entities){
+            if(!(entity instanceof WorldTargetEntity))throw new IllegalArgumentException("不是托管世界生命");
+            writes.put("target/"+entity.getUUID(),JsonNull.INSTANCE);writes.put("life/"+entity.getUUID(),JsonNull.INSTANCE);
+            for(String key:journal.keys("ailments/"+entity.getUUID()+"/"))writes.put(key,JsonNull.INSTANCE);
+        }
+        if(!writes.isEmpty())try{journal.transaction(writes);}catch(Exception failure){throw new IllegalStateException("世界生命清理失败",failure);}
     }
 }

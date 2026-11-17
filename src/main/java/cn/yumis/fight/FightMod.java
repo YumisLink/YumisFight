@@ -39,6 +39,7 @@ public final class FightMod {
         cn.yumis.fight.modules.economy.platform.ChestContent.register();
         cn.yumis.fight.modules.economy.platform.ShopContent.register(bus);
         cn.yumis.fight.modules.npc.api.NpcContentTypes.register(bus);
+        cn.yumis.fight.modules.arkguard.api.ArkContentTypes.register(bus);
         cn.yumis.fight.modules.npc.api.NpcEntity.playerOwnedSources(e->e instanceof cn.yumis.fight.modules.skills.api.SummonedCreature summon&&summon.owner!=null);
         cn.yumis.fight.modules.economy.api.ItemRarity.external(stack->{
             var industry=cn.yumis.fight.bootstrap.IndustrialItemDisplay.rarity(stack);if(industry!=null)return industry;

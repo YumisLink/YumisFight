@@ -1,28 +1,65 @@
 {
   "npcs": {
-    "ark_guard_guide": {
-      "name": "方舟引导员",
+    "ark_war_guide": {
+      "name": "方舟战争引导员",
       "stationary": true,
       "actions": [
-        {"id": "participate", "label": "我要参加守卫", "type": "ark_guard", "value": "join"},
-        {"id": "withdraw", "label": "取消参加守卫", "type": "ark_guard", "value": "withdraw"},
-        {"id": "leave", "label": "返回进入前的位置", "type": "ark_guard", "value": "leave"},
-        {"id": "chat", "label": "交流", "type": "chat", "value": ""}
+        {
+          "id": "participate",
+          "label": "参加方舟战争",
+          "type": "ark_war",
+          "value": "join"
+        },
+        {
+          "id": "withdraw",
+          "label": "取消参加",
+          "type": "ark_war",
+          "value": "withdraw"
+        },
+        {
+          "id": "leave",
+          "label": "返回进入前的位置",
+          "type": "ark_war",
+          "value": "leave"
+        },
+        {
+          "id": "confirm_start",
+          "label": "确认开始本局",
+          "type": "ark_war",
+          "value": "confirm_start"
+        },
+        {
+          "id": "cancel_start",
+          "label": "取消开始确认",
+          "type": "ark_war",
+          "value": "cancel_start"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
       ],
       "dialogue": [
-        "欢迎来到方舟。四处展台各自对应一个守卫入口。",
-        "准备加入守卫时，到方舟里面来找我。"
+        "在水晶旁报名后，请所有报名者确认开始。本局最多四人，其他来访者可以观战。",
+        "开始时锁定参战名单。商店旁的告示牌用于每波准备，已有卡牌对应的商品框会发光。"
       ]
     },
-    "ark_guard_attendant": {
-      "name": "方舟看台管理员",
+    "ark_war_attendant": {
+      "name": "方舟展台管理员",
       "stationary": true,
       "actions": [
-        {"id": "chat", "label": "交流", "type": "chat", "value": ""}
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
       ],
       "dialogue": [
-        "前排是招募展台，近旁的展台留给你的守卫。",
-        "这里的通道连着各个展台，记得给守卫留出位置。"
+        "这里是布阵草场内侧的招募展台。",
+        "敌人会穿过草场中心，记得给守卫和行进通道留出位置。"
       ]
     },
     "mobs_merchant": {
@@ -648,6 +685,111 @@
       "uuid": "23813911-6dc2-4af9-9d41-f25fa701f041",
       "texture": "69d8f1b2c2787cba75dd5e5d6aa5dd037da22180f3930f616ecd0243bb631149",
       "slim": true,
+      "exclusive": true
+    },
+    "ark_timina": {
+      "name": "提米娜",
+      "uuid": "30ecf6ccf46f405584c4c8b980c0d6d7",
+      "texture": "7d188e33fcd03ed25f94c3756bc83f1ca852d6d839678e95990dd3a94bbaf760",
+      "slim": true,
+      "exclusive": true
+    },
+    "ark_hanasaki": {
+      "name": "花咲",
+      "uuid": "5f8eb73b25be4c5aa50fd27d65e30ca0",
+      "texture": "fd82a31be355fae3842af8a66a208df602230a0fc748c7453e491e08377eb4c2",
+      "slim": true,
+      "exclusive": true
+    },
+    "ark_aimiluo": {
+      "name": "艾米萝",
+      "uuid": "87cc1b9592fa448ca4fc5164b38fbc47",
+      "texture": "521947f19e07d492dbc0f92042632d020accce61615a3a14e941d578e018a202",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_baiyan": {
+      "name": "白焱",
+      "uuid": "b876ec32e396476ba1158438d83c67d4",
+      "texture": "8c907a7f4f0c3a6c9c9b79348f7bf1993695b6d2eae2fab704a1a4d9b8288cbe",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_siliu": {
+      "name": "四琉",
+      "uuid": "ec70bcaf702f4bb8b48d276fa52a780c",
+      "texture": "ca93f6fc40488f1877cda94a830b54e9f6f54ab58a5453bad5c947726dd1f473",
+      "slim": true,
+      "exclusive": true
+    },
+    "ark_ruisite": {
+      "name": "瑞斯特",
+      "uuid": "a3c7d62a311c4a28b02c1ba2e27f9e67",
+      "texture": "3088b49190b15d24fe2c60ed2c42d8fae8a9eef77d03d0e8bad727ef76227d0e",
+      "slim": true,
+      "exclusive": true
+    },
+    "ark_benares": {
+      "name": "贝娜勒斯",
+      "uuid": "f4f59ac621b44bfe90ff106b64c5d599",
+      "texture": "4a4f489e4f43d6b52c07d9ea85b60a9d3ea82c7929a55f0fce447aee5ad9a2a8",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_yiluo": {
+      "name": "伊洛",
+      "uuid": "e80e8194323e414298515e1bcb8a3508",
+      "texture": "eb84f22489b6b5e426fc8c0c3b51daa002179e1c2e0767a552a22fc18d574d56",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_vivian": {
+      "name": "薇薇安",
+      "uuid": "23813911-6dc2-4af9-9d41-f25fa701f041",
+      "texture": "69d8f1b2c2787cba75dd5e5d6aa5dd037da22180f3930f616ecd0243bb631149",
+      "slim": true,
+      "exclusive": true
+    },
+    "ark_vivina": {
+      "name": "薇薇娜",
+      "uuid": "30ecf6ccf46f405584c4c8b980c0d6d7",
+      "texture": "b77bfca4ff607c1d72ad26867549fb7f0a9317c0811424a189d72cd0d47ca32a",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_snake": {
+      "name": "斯内克",
+      "uuid": "5f8eb73b25be4c5aa50fd27d65e30ca0",
+      "texture": "f5b3af3440257759f074ae07b630a65195d7222241dc7af1189b954cf7fc3f76",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_timir": {
+      "name": "提米尔",
+      "uuid": "a3c7d62a311c4a28b02c1ba2e27f9e67",
+      "texture": "6e2e2d07136d057997b62ed5a256a577a7678d6f0ef05a7a402cb5096a11143d",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_letiya_sloth": {
+      "name": "蕾缇娅·斯洛思",
+      "uuid": "23813911-6dc2-4af9-9d41-f25fa701f041",
+      "texture": "66343b7a4d6a63af1abed71437728794a9c5d5fc666a10a3cce666e5759ac3ff",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_maryjanna": {
+      "name": "玛丽珍娜",
+      "uuid": "87cc1b9592fa448ca4fc5164b38fbc47",
+      "texture": "adc7f1b62cdf791096493d14c3edc8b36fd940e4bf10093fc48f461b0f0a3dba",
+      "slim": false,
+      "exclusive": true
+    },
+    "ark_yunyimu": {
+      "name": "云亦木",
+      "uuid": "f4f59ac621b44bfe90ff106b64c5d599",
+      "texture": "e58a664738d0073c348265052ab60a0ebf15f271a1b6aaeec0e47c027bc7cd0e",
+      "slim": false,
       "exclusive": true
     }
   }

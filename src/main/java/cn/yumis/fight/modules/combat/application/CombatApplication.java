@@ -126,7 +126,8 @@ public final class CombatApplication {
                 if(training==null||heal)throw new IllegalArgumentException("训练会话不可用");
                 training.validate(p,target,eventTime);
             }
-            Receipt receipt=outcomeOnly?cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life):target!=null?target.receive(fraction,heal):cn.yumis.fight.modules.combat.api.LifeRules.apply(life,fraction,heal);
+            boolean protectedWorldHeal=heal&&entity instanceof WorldVitalEntity world&&!world.acceptsPlayerEffects();
+            Receipt receipt=outcomeOnly||protectedWorldHeal?cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life):target!=null?target.receive(fraction,heal):cn.yumis.fight.modules.combat.api.LifeRules.apply(life,fraction,heal);
             Life actorLife=entity==p?life:copy(s.life,Life.class);
             CombatPorts.Commit skillCommit=skills.prepare(p,entity,j,receipt,actorLife);
             String previousBuffs=JSON.toJson(s.resources.equipmentBuffs);
@@ -178,7 +179,7 @@ public final class CombatApplication {
                     loot.death(p,entity,target);
                 }
             }
-            if(entity!=p&&j.has("ownerHealing")){double healing=j.get("ownerHealing").getAsDouble();finite(healing);if(healing<0)throw new IllegalArgumentException("恢复份额不可为负");if(healing>0)cn.yumis.fight.modules.combat.api.LifeRules.apply(actorLife,healing,true);}
+            if(entity!=p&&CombatEffect.permitsExternalHitEffects(p,entity)&&j.has("ownerHealing")){double healing=j.get("ownerHealing").getAsDouble();finite(healing);if(healing<0)throw new IllegalArgumentException("恢复份额不可为负");if(healing>0)cn.yumis.fight.modules.combat.api.LifeRules.apply(actorLife,healing,true);}
             if(entity!=p&&actorLife.revision!=s.life.revision)journal.put("life/"+p.getUUID(),actorLife);
             if(actorLife.dead){s.resources.equipmentBuffs.clear();journal.put("resources/"+p.getUUID(),s.resources);}
             ack.add("ownerLife",JSON.toJsonTree(actorLife));ack.add("equipmentBuffs",JSON.toJsonTree(s.resources.equipmentBuffs));ack.addProperty("serverNow",System.currentTimeMillis());
@@ -232,7 +233,7 @@ public final class CombatApplication {
                     entity.indicateDamage(dx,dz);
                     if(entity==p&&feedbackAttacker!=p){entity.hurtMarked=true;entity.knockback(.4,dx,dz,feedbackSource,0f);}
                 }
-                if(entity!=p&&j.has("knockback")){
+                if(entity!=p&&CombatEffect.permitsExternalHitEffects(p,entity)&&j.has("knockback")){
                     JsonObject kb=j.getAsJsonObject("knockback");
                     double strength=kb.get("strength").getAsDouble();
                     finite(strength);
@@ -296,7 +297,7 @@ public final class CombatApplication {
         journal.put(ailmentKey(state),state);return state;
     }
     public JsonObject applyAilment(ServerPlayer p,LivingEntity entity,JsonObject change,CombatTarget target)throws Exception{
-        if(target==null||target.life().dead)return null;
+        if(target==null||target.life().dead||!CombatEffect.permitsExternalHitEffects(p,entity))return null;
         String kind=change.get("kind").getAsString();
         if(!Set.of("BLEED","SHOCK","STUN").contains(kind))throw new IllegalArgumentException("未知异常类型");
         long ticks=change.get("durationTicks").getAsLong();

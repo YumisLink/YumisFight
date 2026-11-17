@@ -119,7 +119,9 @@ public final class ClientBootstrap {
         });
         bus.addListener((EntityRenderersEvent.RegisterRenderers e)->{
             for(var entry:cn.yumis.fight.modules.skills.api.SkillContentTypes.SUMMONS.entrySet())e.registerEntityRenderer(entry.getValue().get(),c->new cn.yumis.fight.modules.skills.client.SummonRenderer(c,entry.getKey()));
-            e.registerEntityRenderer(cn.yumis.fight.modules.npc.api.NpcContentTypes.NPC.get(),cn.yumis.fight.modules.npc.client.NpcRenderer::new);
+            e.registerEntityRenderer(cn.yumis.fight.modules.npc.api.NpcContentTypes.NPC.get(),cn.yumis.fight.modules.npc.api.client.NpcRendering::human);
+            e.registerEntityRenderer(cn.yumis.fight.modules.arkguard.api.ArkContentTypes.ROLE.get(),cn.yumis.fight.modules.npc.api.client.NpcRendering::human);
+            for(var entry:cn.yumis.fight.modules.arkguard.api.ArkContentTypes.ENEMIES.entrySet())e.registerEntityRenderer(entry.getValue().get(),context->cn.yumis.fight.modules.dungeons.api.client.DungeonMobRendering.basic(context,entry.getKey()));
             e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.TRAINING_SANDBAG.get(),cn.yumis.fight.modules.dungeons.client.TrainingSandbagRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.MACHINE_BE.get(),IndustrialRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.DISPLAY_STAND_BE.get(),cn.yumis.fight.modules.industry.client.DisplayStandRenderer::new);
@@ -135,9 +137,9 @@ public final class ClientBootstrap {
                 else if(cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"dark_city/"+kind.model,kind.width));}
                 else if(cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,kind.resource(),kind.width));}
                 else if(cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.PalaceEnemyRenderer(context,kind));}
-                else if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),GoblinRenderer::new);
+                else if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),context->cn.yumis.fight.modules.dungeons.api.client.DungeonMobRendering.basic(context,type.getKey()));
                 else{
-                    int role=java.util.List.of("dragonman","blue_dragonman","wyvern","blue_wyvern","lucas").indexOf(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new DragonRenderer(context,role));
+                    e.registerEntityRenderer(type.getValue().get(),context->cn.yumis.fight.modules.dungeons.api.client.DungeonMobRendering.basic(context,type.getKey()));
                 }
             }
         }
@@ -150,11 +152,14 @@ public final class ClientBootstrap {
         // Jade renders in RenderGuiEvent.Post at NORMAL; draw the target panel afterward.
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,Hud::renderTarget);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->cn.yumis.fight.modules.npc.client.NpcClient.render(event.getGuiGraphics()));
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->cn.yumis.fight.modules.arkguard.client.ArkGuardClient.render(event.getGuiGraphics()));
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST,cn.yumis.fight.modules.arkguard.client.ArkGuardClient::scroll);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST,cn.yumis.fight.modules.arkguard.client.ArkGuardClient::interact);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::scroll);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::interact);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
             cn.yumis.fight.modules.npc.client.NpcClient.tick();IndustrialVisuals.tick();cn.yumis.fight.modules.equipment.client.LightsaberLight.tick(IndustrialVisuals.heldLight());
-            ClientSession.INSTANCE.tick();cn.yumis.fight.modules.npc.client.TutorialClient.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();while(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.consumeClick()){
+            ClientSession.INSTANCE.tick();cn.yumis.fight.modules.arkguard.client.ArkGuardClient.tick();cn.yumis.fight.modules.npc.client.TutorialClient.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();while(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.consumeClick()){
                 var mc=Minecraft.getInstance();if(!JarClient.blocking()&&mc.player!=null&&mc.gui.screen()==null){
                     ClientSession.INSTANCE.upload();mc.gui.setScreen(new FightScreen());
                 }

@@ -48,6 +48,7 @@ public final class NpcClient {
         }else if(action.type().equals("chat")){
             if(definition.dialogue().isEmpty())return;int line=RANDOM.nextInt(definition.dialogue().size());var old=lastLine.get(target.getUUID());if(old!=null&&line==old&&definition.dialogue().size()>1)line=(line+1)%definition.dialogue().size();lastLine.put(target.getUUID(),line);bubbles.put(target.getUUID(),new Bubble(target.getId(),definition.dialogue().get(line),ClientUi.now()+5000));
         }else{
+            if(NpcInteractionComponent.clientAction(target,action))return;
             var request=ClientUi.current().operation("npcAction");request.addProperty("entity",target.getStringUUID());request.addProperty("action",action.id());ClientUi.current().send("npcAction",request);
         }
     }

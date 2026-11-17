@@ -1,10 +1,10 @@
 {
   "version": 1,
   "bounds": [
-    -60,
-    -60,
-    59,
-    59
+    -116,
+    -128,
+    115,
+    127
   ],
   "settings": {
     "maxRise": 1,
@@ -18,7 +18,7 @@
       1
     ],
     "roadBlocks": [
-      "minecraft:stone_bricks"
+      "minecraft:dirt_path"
     ],
     "roadSlabs": [
       "minecraft:stone_brick_slab"
@@ -28,20 +28,65 @@
     ],
     "lighting": false,
     "streetLightTarget": 0,
-    "noHostileSpawns": false
+    "noHostileSpawns": true
   },
   "roads": [
     {
+      "id": "west_fields",
+      "width": 5,
+      "points": [
+        [
+          -32,
+          -73
+        ],
+        [
+          -32,
+          45
+        ]
+      ],
+      "external": false
+    },
+    {
+      "id": "east_fields",
+      "width": 5,
+      "points": [
+        [
+          32,
+          -73
+        ],
+        [
+          32,
+          45
+        ]
+      ],
+      "external": false
+    },
+    {
+      "id": "merge",
+      "width": 5,
+      "points": [
+        [
+          -32,
+          -14
+        ],
+        [
+          32,
+          -14
+        ]
+      ],
+      "external": false
+    },
+    {
       "id": "ark_approach",
-      "width": 1,
+      "width": 5,
       "points": [
         [
           0,
-          4
+          -14
         ],
         [
           0,
-          6
+          76
         ]
       ],
       "external": false
@@ -50,17 +95,17 @@
   "grounds": [],
   "facilities": [
     {
-      "id": "ark_guard_valley",
-      "kind": "ark_guard_ring_arena",
-      "template": "yumis_dungeon_and_fight:map_blueprints/ark_guard_ring/valley",
+      "id": "ark_war_valley",
+      "kind": "ark_war_arena",
+      "template": "yumis_dungeon_and_fight:map_blueprints/ark_war/valley",
       "position": [
-        -60,
-        -60
+        -116,
+        -128
       ],
       "referenceY": 9,
       "entrance": [
         0,
-        4
+        73
       ],
       "anchor": "road",
       "flatten": false,
@@ -73,87 +118,87 @@
       "loot": [],
       "npcGroups": [
         {
-          "id": "guide",
+          "id": "shop_1",
           "definitions": [
-            "ark_guard_guide"
+            "ark_war_attendant"
           ],
           "anchors": [
             {
-              "id": "guide",
+              "id": "shop_1",
               "pos": [
-                60.0,
+                110.5,
                 9,
-                60.75
-              ],
-              "yaw": 0.0
-            }
-          ]
-        },
-        {
-          "id": "keeper_a",
-          "definitions": [
-            "ark_guard_attendant"
-          ],
-          "anchors": [
-            {
-              "id": "keeper_a",
-              "pos": [
-                34.5,
-                9,
-                44.5
-              ],
-              "yaw": -90.0
-            }
-          ]
-        },
-        {
-          "id": "keeper_b",
-          "definitions": [
-            "ark_guard_attendant"
-          ],
-          "anchors": [
-            {
-              "id": "keeper_b",
-              "pos": [
-                75.5,
-                9,
-                34.5
-              ],
-              "yaw": 0.0
-            }
-          ]
-        },
-        {
-          "id": "keeper_c",
-          "definitions": [
-            "ark_guard_attendant"
-          ],
-          "anchors": [
-            {
-              "id": "keeper_c",
-              "pos": [
-                85.5,
-                9,
-                75.5
+                82.5
               ],
               "yaw": 90.0
             }
           ]
         },
         {
-          "id": "keeper_d",
+          "id": "shop_2",
           "definitions": [
-            "ark_guard_attendant"
+            "ark_war_attendant"
           ],
           "anchors": [
             {
-              "id": "keeper_d",
+              "id": "shop_2",
               "pos": [
-                44.5,
+                122.5,
                 9,
-                85.5
+                82.5
               ],
-              "yaw": -180.0
+              "yaw": -90.0
+            }
+          ]
+        },
+        {
+          "id": "shop_3",
+          "definitions": [
+            "ark_war_attendant"
+          ],
+          "anchors": [
+            {
+              "id": "shop_3",
+              "pos": [
+                110.5,
+                9,
+                146.5
+              ],
+              "yaw": 90.0
+            }
+          ]
+        },
+        {
+          "id": "shop_4",
+          "definitions": [
+            "ark_war_attendant"
+          ],
+          "anchors": [
+            {
+              "id": "shop_4",
+              "pos": [
+                122.5,
+                9,
+                146.5
+              ],
+              "yaw": -90.0
+            }
+          ]
+        },
+        {
+          "id": "war_guide",
+          "definitions": [
+            "ark_war_guide"
+          ],
+          "anchors": [
+            {
+              "id": "war_guide",
+              "pos": [
+                112.5,
+                12,
+                213.5
+              ],
+              "yaw": 0
             }
           ]
         }

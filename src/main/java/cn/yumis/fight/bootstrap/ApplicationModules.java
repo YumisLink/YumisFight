@@ -11,7 +11,7 @@ public final class ApplicationModules {
     public static final ModuleRegistry REGISTRY=new ModuleRegistry(List.of(
         module("affixes","attributes"),
         module("attributes"),
-        module("arkguard","dungeons","mapgeneration","npc","presentation"),
+        module("arkguard","attributes","combat","dungeons","economy","mapgeneration","npc","presentation"),
         module("character","attributes","inventory","presentation"),
         module("combat","attributes","character","equipment","presentation"),
         module("dungeons","attributes","character","combat","equipment","inventory","party","presentation"),

@@ -73,7 +73,7 @@ public final class GenerationService {
     }
     public GenerationPlan last() {return last;}
     public boolean generating(){return pending!=null;}
-    public static boolean hostile(net.minecraft.world.entity.Entity entity) {return entity instanceof net.minecraft.world.entity.monster.Enemy||entity.getType().getCategory()==net.minecraft.world.entity.MobCategory.MONSTER;}
+    public static boolean hostile(net.minecraft.world.entity.Entity entity) {return !cn.yumis.fight.modules.mapgeneration.api.MapGeneration.sceneActor(entity)&&(entity instanceof net.minecraft.world.entity.monster.Enemy||entity.getType().getCategory()==net.minecraft.world.entity.MobCategory.MONSTER);}
     public boolean blocksHostiles(ServerLevel level,int x,int z) {return pending!=null&&pending.level==level&&pending.blueprint.settings.noHostileSpawns&&pending.inside(x,z)||GenerationStore.blocksHostiles(level,x,z);}
     public void close() {if(pending!=null)MapPlacer.releaseChunks(pending);lightCompletion=null;}
     public String inspect() {

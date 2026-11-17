@@ -16,7 +16,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.*;
 import java.util.*;
 
-public final class NpcRenderer extends MobRenderer<NpcEntity,NpcRenderer.State,PlayerModel> {
+public final class NpcRenderer<T extends NpcEntity> extends MobRenderer<T,NpcRenderer.State,PlayerModel> {
     public static final class State extends AvatarRenderState {public boolean witchHat;}
     private final PlayerModel wide,slim;
     private net.minecraft.world.item.ItemStack witchHat;
@@ -29,7 +29,7 @@ public final class NpcRenderer extends MobRenderer<NpcEntity,NpcRenderer.State,P
     private NpcDefinitions definitions;
     public NpcRenderer(EntityRendererProvider.Context context){super(context,new PlayerModel(context.bakeLayer(ModelLayers.PLAYER),false),.45f);wide=model;slim=new PlayerModel(context.bakeLayer(ModelLayers.PLAYER_SLIM),true);addLayer(new HatLayer(this));}
     @Override public State createRenderState(){return new State();}
-    @Override public void extractRenderState(NpcEntity entity,State state,float partial){
+    @Override public void extractRenderState(T entity,State state,float partial){
         super.extractRenderState(entity,state,partial);HumanoidMobRenderer.extractHumanoidRenderState(entity,state,partial,itemModelResolver);
         if(definitions!=NpcDefinitions.current()){definitions=NpcDefinitions.current();skins.clear();}
         state.skin=skins.computeIfAbsent(entity.skin(),id->{var definition=NpcDefinitions.current().skins.get(id);return PlayerSkin.insecure(new ClientAsset.ResourceTexture(Identifier.fromNamespaceAndPath(ItemData.NS,"entity/npc/"+id)),null,null,definition!=null&&definition.slim()?PlayerModelType.SLIM:PlayerModelType.WIDE);});state.id=entity.getId();
@@ -39,7 +39,7 @@ public final class NpcRenderer extends MobRenderer<NpcEntity,NpcRenderer.State,P
     @Override public Identifier getTextureLocation(State state){return state.skin.body().texturePath();}
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector collector,CameraRenderState camera){model=state.skin.model()==PlayerModelType.SLIM?slim:wide;super.submit(state,pose,collector,camera);}
     private static final class HatLayer extends RenderLayer<State,PlayerModel> {
-        HatLayer(NpcRenderer renderer){super(renderer);}
+        HatLayer(NpcRenderer<?> renderer){super(renderer);}
         @Override public void submit(PoseStack pose,SubmitNodeCollector collector,int light,State state,float yaw,float pitch){
             if(!state.witchHat||state.isInvisible)return;
             pose.pushPose();getParentModel().head.translateAndRotate(pose);

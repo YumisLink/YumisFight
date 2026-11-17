@@ -8,6 +8,7 @@ import java.util.*;
 public final class NpcInteractionComponent {
     @FunctionalInterface public interface ActionHandler {void execute(ServerPlayer player,LivingEntity entity,NpcDefinitions.Action action);}
     private static final Map<String,ActionHandler> ACTIONS=new LinkedHashMap<>();
+    private static final Map<String,java.util.function.BiPredicate<LivingEntity,NpcDefinitions.Action>> CLIENT_ACTIONS=new LinkedHashMap<>();
     private NpcInteractionComponent(){}
     public static void attach(LivingEntity entity,String definition){NpcDefinitions.current().require(definition);entity.setData(NpcContentTypes.BINDING,definition);}
     public static void detach(LivingEntity entity){entity.setData(NpcContentTypes.BINDING,"");}
@@ -20,4 +21,8 @@ public final class NpcInteractionComponent {
         var handler=ACTIONS.get(a.type());if(handler==null)throw new IllegalArgumentException("NPC动作未登记："+a.type());handler.execute(player,entity,a);
     }
     public static void unregister(String type){ACTIONS.remove(type);}
+    /** A personal action can publish its result from the owner before the server applies world facts. */
+    public static void registerClient(String type,java.util.function.BiPredicate<LivingEntity,NpcDefinitions.Action> handler){if(CLIENT_ACTIONS.putIfAbsent(type,Objects.requireNonNull(handler))!=null)throw new IllegalArgumentException("NPC本机动作重复："+type);}
+    public static void unregisterClient(String type){CLIENT_ACTIONS.remove(type);}
+    public static boolean clientAction(LivingEntity entity,NpcDefinitions.Action action){var handler=CLIENT_ACTIONS.get(action.type());return handler!=null&&handler.test(entity,action);}
 }

@@ -62,8 +62,10 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     }
     /** Temporary encounter source, additive with the existing armor increase; never changes health or its basis. */
     public double encounterDefenseIncrease;
+    /** Optional content bases for fixed-level world actors; negative values use the encounter defaults. */
+    public double physicalDefenseBase=-1,magicalDefenseBase=-1;
     public double waystoneHealth=1,waystoneAttack=1,waystoneDefense=1,waystoneDefenseIncrease,waystoneResistance;
-    public double defense(int level,boolean magic){return training()?0:(magic?20+5*(level-1):30+8*(level-1))*(1+(elitePower.equals("armor")?.5:0)+encounterDefenseIncrease+waystoneDefenseIncrease)*waystoneDefense*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);}
+    public double defense(int level,boolean magic){double content=magic?magicalDefenseBase:physicalDefenseBase;double base=content>=0?content:magic?20+5*(level-1):30+8*(level-1);return training()?0:base*(1+(elitePower.equals("armor")?.5:0)+encounterDefenseIncrease+waystoneDefenseIncrease)*waystoneDefense*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);}
     public double[] resistances(){double[] copy=elementalResists.clone();for(int i=0;i<4;i++)copy[i]+=waystoneResistance+(elitePower.equals("elemental")?30:0);return copy;}
     public double speciesHealth=1,speciesAttack=1;
     public Life life=new Life();

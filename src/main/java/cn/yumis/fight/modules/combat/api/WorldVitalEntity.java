@@ -7,4 +7,5 @@ public interface WorldVitalEntity {
     int combatLevel();
     double combatMaximumHealth();
     boolean rejectsNativeDamage(DamageSource source);
+    default boolean acceptsPlayerEffects(){return true;}
 }
