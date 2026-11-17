@@ -92,7 +92,7 @@ final class ArkCombat {
         s.add(Stat.HEALTH,a.healthBase);s.add(Stat.PHYSICAL_ATTACK,attack);s.add(Stat.MAGICAL_ATTACK,attack);s.add(Stat.MOVEMENT_SPEED,1);s.add(Stat.COOLDOWN_RECOVERY,1);
         if(a.unit!=null){
             var u=a.unit;var seat=a.seat;double attackGain=0,haste=0,defense=0;
-            if(u.id().equals("ark_baiyan"))defense+=u.p("defense");
+            if(u.id().equals("ark_baiyan")&&now<a.buffUntil)defense+=u.p("defense");
             if(active(seat,"guardian"))defense+=(30+2*layer(seat,"guardian"))/100d;
             s.add(Stat.PHYSICAL_DEFENSE,u.physicalDefense());s.add(Stat.MAGICAL_DEFENSE,u.magicalDefense());
             s.mut(Stat.PHYSICAL_DEFENSE,defense);s.mut(Stat.MAGICAL_DEFENSE,defense);
@@ -157,7 +157,7 @@ final class ArkCombat {
         switch(u.id()){
             case "ark_siliu"->{if(!meleeTarget)return false;freeze(victim,victim.target.boss()?u.p("bossFreeze"):u.p("freeze"));}
             case "ark_yiluo"->{if(!meleeTarget)return false;stasis(victim,victim.target.boss()?u.p("bossControl"):u.p("control"));}
-            case "ark_ruisite"->{if(now<a.buffUntil)return false;a.buffUntil=now+(long)(u.p("duration")*1000);}
+            case "ark_baiyan","ark_ruisite"->{if(now<a.buffUntil)return false;a.buffUntil=now+(long)(u.p("duration")*1000);}
             case "ark_vivina"->{if(now<a.buffUntil)return false;a.buffUntil=now+(long)(u.p("duration")*1000);}
             case "ark_benares"->{
                 var list=inRange(a,range(a),false);if(list.isEmpty())return false;
@@ -183,7 +183,7 @@ final class ArkCombat {
         var u=a.unit;a.attacks++;a.lastFight=now;victim.lastFight=now;
         if(u.has("victoria")&&active(a.seat,"victoria"))a.emotion=Math.min(300+layer(a.seat,"victoria"),a.emotion+(tier(a.seat,"victoria")>=3?5:1));
         refresh(a);
-        if(u.id().equals("ark_baiyan"))heal(a,u.p("heal"));
+        if(u.id().equals("ark_baiyan")&&now<a.buffUntil)heal(a,u.p("heal"));
         if(u.id().equals("ark_hanasaki")){
             for(var friend:b.friends(a.seat))if(distanceSqr(a.position(),friend.position())<=range(a)*range(a))
                 friend.flowerUntil=Math.max(friend.flowerUntil,now+(long)(u.p("hasteDuration")*1000));
@@ -252,7 +252,14 @@ final class ArkCombat {
         int used=a.gains.getOrDefault(source,0),amount=Math.min(gain,Math.max(0,cap-used));
         if(amount>0){a.gains.put(source,used+amount);b.gain(a.seat,trait,amount);}
     }
+    static boolean leaveField(Actor a,BlockPos position){
+        if(a.phase!=0)return false;
+        if(a.seat.plot().battlefield(position)){a.enteredField=true;return false;}
+        if(!a.enteredField)return false;
+        a.phase=1;a.target.damageImmune=true;return true;
+    }
     private void enemy(Actor a,double dt){
+        if(leaveField(a,a.entity.blockPosition())){enemyCasts.remove(a);b.changed(a);}
         if(controlled(a)){stop(a);enemyCasts.remove(a);return;}
         if(enemyCasts.containsKey(a)){stop(a);return;}
         var route=a.seat.plot().route();
@@ -261,15 +268,12 @@ final class ArkCombat {
             else{advance(a,route,3);return;}
         }
         if(a.phase==0&&a.routeIndex>=1){a.phase=1;a.target.damageImmune=true;b.changed(a);advance(a,route,3);return;}
-        List<Actor> friends=a.phase==0?b.friends(a.seat):b.friends();
-        Actor victim=friends.stream().filter(v->distanceSqr(a.position(),v.position())<=16*16)
-            .min(Comparator.comparingDouble(v->distanceSqr(a.position(),v.position()))).orElse(a.phase==2?b.core:null);
-        var tank=friends.stream().filter(v->v.unit.id().equals("ark_baiyan")&&distanceSqr(a.position(),v.position())<=range(v)*range(v))
-            .min(Comparator.comparingDouble(v->distanceSqr(a.position(),v.position()))).orElse(null);
-        if(tank!=null)victim=tank;
+        Actor victim=enemyTarget(a);
         if(victim==null){advance(a,route,1);return;}
+        var coreAccess=victim.core?ArkWar.coreAccess(a.position()):null;
+        Vec3 target=coreAccess==null?victim.position():coreAccess.contact();
         double reach=a.kind.equals("goblin_thrower")||a.kind.equals("goblin_shaman")?8:2.5;
-        double distance=distance(a.position(),victim.position());look(a,victim.position());
+        double distance=distance(a.position(),target);look(a,target);
         if(a.kind.equals("goblin_shaman")){
             if(distance<12&&ready(a,"LIGHTNING")){enemyCast(a,victim,"LIGHTNING",2,Math.PI,1200,200,1000,1.4,true,10);return;}
             if(distance<6&&ready(a,"FAN")){enemyCast(a,victim,"FAN",6,Math.PI/4,800,200,800,1.2,true,6);return;}
@@ -286,15 +290,27 @@ final class ArkCombat {
                 enemyCast(a,victim,"BASIC",reach,Math.PI/3,a.kind.equals("goblin_thrower")?400:250,200,400,1,false,a.kind.contains("wyvern")||a.kind.equals("goblin_thrower")?2:1);return;
             }
         }
-        if(distance>reach)move(a,victim.position(),1);else stop(a);
+        if(distance>reach)move(a,coreAccess==null?target:coreAccess.approach(),1,coreAccess!=null);else stop(a);
+    }
+    private Actor enemyTarget(Actor enemy){
+        List<Actor> friends=enemy.phase==0?b.friends(enemy.seat):b.friends();
+        Actor victim=friends.stream().filter(v->distanceSqr(enemy.position(),v.position())<=16*16)
+            .min(Comparator.comparingDouble(v->distanceSqr(enemy.position(),v.position()))).orElse(enemy.phase==2?b.core:null);
+        var tank=friends.stream().filter(v->v.unit.id().equals("ark_baiyan")&&now<v.buffUntil&&distanceSqr(enemy.position(),v.position())<=range(v)*range(v))
+            .min(Comparator.comparingDouble(v->distanceSqr(enemy.position(),v.position()))).orElse(null);
+        return tank==null?victim:tank;
     }
     private boolean ready(Actor a,String kind){return a.cooldowns.getOrDefault(kind,0L)<=now;}
+    private static Vec3 enemyHitPosition(Actor victim,Vec3 from){
+        return victim.core?ArkWar.coreAccess(from).contact():victim.position();
+    }
     private void enemyCast(Actor source,Actor victim,String kind,double radius,double angle,long windup,long active,long recovery,double coefficient,boolean magic,int cooldown){
         stop(source);source.lastFight=victim.lastFight=now;source.cooldowns.put(kind,now+cooldown*1000L);
         var cast=new EnemyCast();cast.source=source;cast.victim=victim;cast.kind=kind;cast.radius=radius;cast.angle=angle;
         cast.coefficient=coefficient;cast.magic=magic;cast.origin=source.position();
-        cast.point=kind.equals("CAGE")||kind.equals("LIGHTNING")?victim.position():source.position();
-        Vec3 delta=victim.position().subtract(source.position());cast.direction=new Vec3(delta.x,0,delta.z).normalize();
+        Vec3 target=enemyHitPosition(victim,cast.origin);
+        cast.point=kind.equals("CAGE")||kind.equals("LIGHTNING")?target:cast.origin;
+        Vec3 delta=target.subtract(cast.origin);cast.direction=new Vec3(delta.x,0,delta.z).normalize();
         cast.width=kind.equals("WYVERN_CHARGE")?1.4:2;cast.release=now+windup;cast.activeUntil=cast.release+active;cast.until=cast.activeUntil+recovery;
         enemyCasts.put(source,cast);
         if(!kind.equals("BASIC"))b.effects.cast(source,magic?0:-1,now,windup+active);
@@ -319,8 +335,9 @@ final class ArkCombat {
                 List<Actor> targets=new ArrayList<>(source.phase==0?b.friends(source.seat):b.friends());if(source.phase==2)targets.add(b.core);
                 for(var victim:targets){
                     if(cast.hit.contains(victim.entity.getUUID()))continue;
-                    Vec3 delta=victim.position().subtract(cast.point);double d=delta.horizontalDistance();
-                    boolean hit=charge?segmentDistance(victim.position(),start,end)<=cast.width*.5+.3:
+                    Vec3 target=enemyHitPosition(victim,cast.origin);
+                    Vec3 delta=target.subtract(cast.point);double d=delta.horizontalDistance();
+                    boolean hit=charge?segmentDistance(target,start,end)<=cast.width*.5+.3:
                         cast.kind.equals("CAGE")?Math.abs(delta.x)<=cast.radius&&Math.abs(delta.z)<=cast.radius:
                         cast.kind.equals("LIGHTNING")||cast.kind.equals("DISCHARGE")?d<=cast.radius:
                         source.kind.equals("goblin_thrower")||!source.target.boss()&&!source.kind.contains("wyvern")?victim==cast.victim&&d<=cast.radius:
@@ -334,14 +351,18 @@ final class ArkCombat {
     }
     private void advance(Actor a,List<Vec3> route,double speed){
         int next=Math.min(route.size()-1,a.routeIndex+1);Vec3 point=route.get(next);
-        if(distanceSqr(a.position(),point)<1){
+        // Navigation can stop off-centre for wider enemies, even at the exact target block.
+        if(distanceSqr(a.position(),point)<2.25){
             a.routeIndex=next;
             if(a.routeIndex>=1&&a.phase==0){a.phase=1;a.target.damageImmune=true;b.changed(a);}
             if(next<route.size()-1)point=route.get(next+1);
         }
-        move(a,point,speed);
+        move(a,point,speed,true);
     }
     private void move(Actor a,Vec3 point,double speed){
+        move(a,point,speed,false);
+    }
+    private void move(Actor a,Vec3 point,double speed,boolean waypoint){
         if(!(a.entity instanceof Mob mob))return;
         if(!a.enemy&&!a.transferred&&!a.seat.plot().contains(BlockPos.containing(point))){
             Vec3 center=new Vec3(ArkWar.ORIGIN.getX()+a.seat.plot().centerX()+.5,point.y,ArkWar.ORIGIN.getZ()+a.seat.plot().centerZ()+.5);
@@ -354,7 +375,7 @@ final class ArkCombat {
         }
         double slow=a.slowUntil>now?a.slow:0;
         for(var friend:b.friends())if(friend.unit.has("geology")&&active(friend.seat,"geology")&&a.enemy&&distanceSqr(friend.position(),a.position())<=range(friend)*range(friend))slow=Math.max(slow,.3);
-        mob.getNavigation().moveTo(point.x,point.y,point.z,speed*(1-slow));
+        mob.getNavigation().moveTo(point.x,point.y,point.z,waypoint?0:1,speed*(1-slow));
     }
     private void stop(Actor a){if(a.entity instanceof Mob mob)mob.getNavigation().stop();}
     private void look(Actor a,Vec3 point){if(a.entity instanceof Mob mob)mob.getLookControl().setLookAt(point.x,point.y+1,point.z);}
@@ -579,12 +600,13 @@ final class ArkCombat {
                 fixed(null,target,target.target.health(1)*.035,false,-1,true,false);
     }
     private void towers(){
+        double attack=(9_000+1_000*(b.wave-1))*b.towerMultiplier;
         for(int side:new int[]{-1,1}){
             Vec3 origin=Vec3.atBottomCenterOf(ArkWar.ORIGIN.offset(side*12,3,84));
             var target=b.enemies().stream().filter(a->a.phase==2&&distanceSqr(origin,a.position())<=16*16)
                 .min(Comparator.comparingDouble(a->distanceSqr(a.position(),b.core.position()))).orElse(null);
             if(target==null)continue;
-            fixed(b.core,target,3000*b.towerMultiplier,true,-1,false);
+            fixed(b.core,target,attack,true,-1,false);
             Vec3 delta=target.position().add(0,.7,0).subtract(origin);int points=Math.max(1,(int)delta.length());
             b.afterCommit.add(()->{for(int i=0;i<=points;i++){Vec3 p=origin.add(delta.scale(i/(double)points));b.level.sendParticles(ParticleTypes.END_ROD,p.x,p.y,p.z,1,0,0,0,0);}});
         }

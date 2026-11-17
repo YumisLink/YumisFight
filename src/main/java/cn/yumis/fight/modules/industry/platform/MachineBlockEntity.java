@@ -244,7 +244,20 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         int output=device().fluidOutput(),stride=device().fluidTanks();
         boolean inputSide=side!=Direction.DOWN||device().has(DeviceType.Capability.FLUID_INPUT_ALL_SIDES);
         int[] indices=java.util.stream.IntStream.range(0,lineCount()*stride).filter(i->side==null||(inputSide?i%stride<device().fluidInputs():i%stride==output)).toArray();
-        return new FilteredHandler<>(fluids,indices,(i,r)->i%stride<output&&fluids.isValid(i,r),(i,r)->i%stride==output,device().has(DeviceType.Capability.PARALLEL)&&side!=Direction.DOWN?i->fluids.getAmountAsLong(i):null,lineCount());
+        var view=new FilteredHandler<>(fluids,indices,(i,r)->i%stride<output&&fluids.isValid(i,r),(i,r)->i%stride==output,device().has(DeviceType.Capability.PARALLEL)&&side!=Direction.DOWN?i->fluids.getAmountAsLong(i):null,lineCount());
+        if(side!=null)return view;
+        // Directionless inspection must report general capacity even for output-only tanks.
+        return new ResourceHandler<>(){
+            public int size(){return view.size();}
+            public FluidResource getResource(int slot){return view.getResource(slot);}
+            public long getAmountAsLong(int slot){return view.getAmountAsLong(slot);}
+            public long getCapacityAsLong(int slot,FluidResource fluid){return fluid.isEmpty()&&slot>=0&&slot<indices.length?fluids.getCapacityAsLong(indices[slot],fluid):view.getCapacityAsLong(slot,fluid);}
+            public boolean isValid(int slot,FluidResource fluid){return view.isValid(slot,fluid);}
+            public int insert(int slot,FluidResource fluid,int amount,TransactionContext tx){return view.insert(slot,fluid,amount,tx);}
+            @Override public int insert(FluidResource fluid,int amount,TransactionContext tx){return view.insert(fluid,amount,tx);}
+            public int extract(int slot,FluidResource fluid,int amount,TransactionContext tx){return view.extract(slot,fluid,amount,tx);}
+            @Override public int extract(FluidResource fluid,int amount,TransactionContext tx){return view.extract(fluid,amount,tx);}
+        };
     }
     @Override public int getContainerSize(){return slots().size();}
     @Override public boolean isEmpty(){for(int i=0;i<getContainerSize();i++)if(!getItem(i).isEmpty())return false;return true;}

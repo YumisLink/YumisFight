@@ -44,7 +44,7 @@ final class ArkBattle {
         int emotion,attacks,routeIndex;
         int phase; // 0 personal field; 1 immune transfer route; 2 core field
         int element=-1;
-        boolean transferred,deathProjected;
+        boolean transferred,deathProjected,enteredField;
         Vec3 meteorPoint;
         UUID victim,cloudTarget;
         final Map<String,Integer> gains=new HashMap<>();

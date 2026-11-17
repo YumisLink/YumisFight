@@ -25,6 +25,20 @@ public final class AlchemyPotions {
     public static final String LIFE6="potion_life_6",MANA6="potion_mana_6",WISDOM6="potion_wisdom_6",ENERGY6="potion_energy_6";
     public static final String RESISTANCE6="potion_resistance_6",TITAN6="potion_titan_6",DEFENSE6="potion_defense_6",GIANT6="potion_giant_6";
     public static final String BOTTLE_GLASS="minecraft:glass_bottle",BOTTLE_EMERALD="emerald_bottle",BOTTLE_AMETHYST="amethyst_bottle",BOTTLE_DIAMOND="diamond_bottle";
+    private static final Map<String,PotionTier> TIERS=buildTiers();
+    private static Map<String,PotionTier> buildTiers(){
+        var result=new LinkedHashMap<String,PotionTier>();
+        var groups=List.of(
+            List.of(LIFE,MANA,WISDOM,ENERGY,RESISTANCE,TITAN,DEFENSE,GIANT),
+            List.of(LIFE2,MANA2,WISDOM2,ENERGY2,RESISTANCE2,TITAN2,DEFENSE2,GIANT2),
+            List.of(LIFE3,MANA3,WISDOM3,ENERGY3,RESISTANCE3,TITAN3,DEFENSE3,GIANT3),
+            List.of(LIFE4,MANA4,WISDOM4,ENERGY4,RESISTANCE4,TITAN4,DEFENSE4,GIANT4),
+            List.of(LIFE5,MANA5,WISDOM5,ENERGY5,RESISTANCE5,TITAN5,DEFENSE5,GIANT5),
+            List.of(LIFE6,MANA6,WISDOM6,ENERGY6,RESISTANCE6,TITAN6,DEFENSE6,GIANT6));
+        for(var tier:PotionTier.values())for(String id:groups.get(tier.ordinal()))result.put(id,tier);
+        return java.util.Collections.unmodifiableMap(result);
+    }
+    public static Map<String,PotionTier> tiers(){return TIERS;}
     public static final int BOTTLE_MB=250;
     public static final long BUFF_MILLIS=3_600_000L;
     public static final int COOLDOWN_TICKS=1200;
@@ -164,11 +178,8 @@ public final class AlchemyPotions {
     }
     /** 药液需要哪种瓶子取药。 */
     public static String bottleFor(String potion){
-        if(potion==null)return BOTTLE_GLASS;
-        if(potion.endsWith("_6"))return BOTTLE_DIAMOND;
-        if(potion.endsWith("_5"))return BOTTLE_AMETHYST;
-        if(potion.endsWith("_4"))return BOTTLE_EMERALD;
-        return BOTTLE_GLASS;
+        var tier=TIERS.get(potion);if(tier==null)return BOTTLE_GLASS;
+        return switch(tier){case LEGENDARY->BOTTLE_EMERALD;case EPIC->BOTTLE_AMETHYST;case MYTHIC->BOTTLE_DIAMOND;default->BOTTLE_GLASS;};
     }
     private static void buff(String potion,boolean attack,Stat stat,double amount){
         BUFFS.put(potion,List.of(value(stat,amount)));

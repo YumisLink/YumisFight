@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.*;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.*;
 import net.neoforged.neoforge.client.event.InputEvent;
 import java.util.*;
@@ -131,6 +132,14 @@ public final class ArkGuardClient {
         if(!editing()||roster==null)return;personalReady=!personalReady;
         var value=ClientUi.current().operation("ready");value.addProperty("round",round);value.addProperty("stage",stage);value.addProperty("value",personalReady);ClientUi.current().send("arkGuard",value);
     }
+    private static void teleport(ArkWar.SignAction action){
+        var destination=ArkWar.teleport(action,participating?seat:-1);
+        if(destination==null){ClientUi.current().message("本局尚未分配个人阵地。");return;}
+        var position=destination.position();var value=ClientUi.current().operation("teleport");
+        value.addProperty("x",position.x);value.addProperty("y",position.y);value.addProperty("z",position.z);
+        value.addProperty("yaw",destination.yaw());value.addProperty("pitch",0);
+        ClientUi.current().send("arkGuard",value);
+    }
     private static ArkRoleEntity pointedRole(){
         var hit=Minecraft.getInstance().hitResult;
         return hit instanceof EntityHitResult e&&e.getEntity() instanceof ArkRoleEntity role&&!role.roleId().equals("core")?role:null;
@@ -139,9 +148,9 @@ public final class ArkGuardClient {
         if(!(Minecraft.getInstance().hitResult instanceof EntityHitResult e)||!(e.getEntity() instanceof ItemFrame frame))return null;
         for(var p:ArkWar.PLOTS){int slot=p.frame(frame.position());if(slot>=0)return new int[]{p.index(),slot};}return null;
     }
-    private static ArkWar.Plot pointedSign(){
-        var hit=Minecraft.getInstance().hitResult;if(!(hit instanceof BlockHitResult block))return null;
-        var pos=block.getBlockPos();return ArkWar.PLOTS.stream().filter(plot->plot.readySign().equals(pos)||plot.refreshSign().equals(pos)||plot.upgradeSign().equals(pos)).findFirst().orElse(null);
+    private static ArkWar.Sign pointedSign(){
+        var mc=Minecraft.getInstance();var hit=mc.hitResult;if(!(hit instanceof BlockHitResult block)||mc.level==null||!mc.level.getBlockState(block.getBlockPos()).is(Blocks.OAK_WALL_SIGN))return null;
+        return ArkWar.signAt(block.getBlockPos());
     }
     public static void scroll(InputEvent.MouseScrollingEvent event){
         if(!usable())return;var role=pointedRole();boolean carrying=roster!=null&&!roster.carrying.isBlank();
@@ -152,7 +161,7 @@ public final class ArkGuardClient {
         if(!usable())return;var mc=Minecraft.getInstance();var frame=pointedFrame();var role=pointedRole();
         boolean carrying=roster!=null&&!roster.carrying.isBlank();
         BlockPos block=mc.hitResult instanceof BlockHitResult b?b.getBlockPos():null;
-        ArkWar.Plot sign=pointedSign();
+        ArkWar.Sign sign=pointedSign();
         if(frame==null&&role==null&&!carrying&&sign==null)return;
         event.setCanceled(true);event.setSwingHand(false);
         if(!event.isUseItem()||event.getHand()!=InteractionHand.MAIN_HAND)return;
@@ -162,10 +171,13 @@ public final class ArkGuardClient {
             if(frame[1]>=roster.shop.size()){ClientUi.current().message("提升商店等级后解锁这个购买位。");return;}
             change(true,r->r.buy(frame[1],plot().benches(mc.level).size(),rules));
         }else if(sign!=null){
-            if(sign.index()!=seat){ClientUi.current().message("请使用自己商店旁的告示牌。");return;}
-            if(sign.refreshSign().equals(block))change(true,r->r.refresh(rules,RANDOM,true));
-            else if(sign.upgradeSign().equals(block))change(true,r->r.upgrade(rules,RANDOM));
-            else ready();
+            if(sign.action().requiresOwnPlot()&&sign.plot()!=seat){ClientUi.current().message("请使用自己阵地的告示牌。");return;}
+            switch(sign.action()){
+                case REFRESH->change(true,r->r.refresh(rules,RANDOM,true));
+                case UPGRADE->change(true,r->r.upgrade(rules,RANDOM));
+                case READY->ready();
+                case CORE,HOME->teleport(sign.action());
+            }
         }else if(carrying){
             if(selection==1){String token=roster.carrying;change(false,r->r.sell(token,rules));selection=0;return;}
             if(block==null||plot()==null)return;
@@ -195,10 +207,9 @@ public final class ArkGuardClient {
             int slot=frame[1];
             if(slot<roster.shop.size()){String id=roster.shop.get(slot);if(!id.isBlank())unit(rows,rules.unit(id),1,null);}
             else rows.add(Component.literal("提升商店等级后解锁这个购买位").withColor(GRAY));
-        }else if(sign!=null&&sign.index()==seat&&roster!=null){
-            var block=((BlockHitResult)Minecraft.getInstance().hitResult).getBlockPos();
-            if(sign.refreshSign().equals(block)){rows.add(numeric("刷新商店 · "+rules.refreshCost+"方舟币"));rows.add(Component.literal("每波准备阶段自动免费刷新一次").withColor(UiTheme.HUD_MUTED));}
-            else if(sign.upgradeSign().equals(block)){
+        }else if(sign!=null&&sign.action().requiresOwnPlot()&&sign.plot()==seat&&roster!=null){
+            if(sign.action()==ArkWar.SignAction.REFRESH){rows.add(numeric("刷新商店 · "+rules.refreshCost+"方舟币"));rows.add(Component.literal("每波准备阶段自动免费刷新一次").withColor(UiTheme.HUD_MUTED));}
+            else if(sign.action()==ArkWar.SignAction.UPGRADE){
                 rows.add(numeric("商店 "+roster.level+"级 · "+rules.populations[roster.level-1]+"人口"));
                 rows.add(numeric(roster.level>=7?"已满级":"升级费用 "+roster.upgradePrice(rules)+"方舟币 · 逐波减少1币"));
                 for(int i=0;i<7;i++)rows.add(Component.literal((i+1)+"级 "+Arrays.toString(rules.shopProbabilities[i])+" · "+rules.shopSlots(i+1)+"购买位 · "+rules.populations[i]+"人口").withColor(i==roster.level-1?BLUE:GRAY));

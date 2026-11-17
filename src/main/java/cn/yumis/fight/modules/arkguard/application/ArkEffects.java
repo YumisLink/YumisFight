@@ -1,6 +1,9 @@
 package cn.yumis.fight.modules.arkguard.application;
 
+import cn.yumis.fight.modules.arkguard.api.ArkWar;
 import com.google.gson.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 import java.util.function.Consumer;
@@ -57,16 +60,29 @@ final class ArkEffects {
             if(entity.isRemoved())return;
             var damageSource=source==null?entity.damageSources().generic():entity.damageSources().mobAttack(source.entity);
             entity.hurtTime=entity.hurtDuration=10;battle.level.broadcastDamageEvent(entity,damageSource);
-            if(source==null||victim.core||!victim.alive())return;
-            Vec3 direction=victim.position().subtract(source.position());
-            direction=new Vec3(direction.x,0,direction.z).normalize();
-            double strength=(victim.target.bossOrElite()?.08:.2)*knockbackScale(victim);
-            if(strength<=0)return;
-            Vec3 destination=victim.position().add(direction.scale(strength*2));
-            boolean inside=victim.transferred||victim.enemy&&victim.phase==2?
-                cn.yumis.fight.modules.arkguard.api.ArkWar.coreArea(destination):victim.seat.plot().contains(net.minecraft.core.BlockPos.containing(destination));
-            if(inside&&direction.lengthSqr()>0){entity.indicateDamage(-direction.x,-direction.z);entity.knockback(strength,-direction.x,-direction.z,damageSource,0f);entity.hurtMarked=true;}
+            if(source!=null&&!victim.core&&victim.alive())applyKnockback(source,victim,damageSource);
         });
+    }
+    private static void applyKnockback(Actor source,Actor victim,DamageSource damageSource){
+        var entity=victim.entity;
+        Vec3 position=victim.position(),offset=position.subtract(source.position());
+        Vec3 direction=new Vec3(offset.x,0,offset.z).normalize();
+        if(direction.lengthSqr()==0)return;
+
+        var plot=victim.seat.plot();
+        boolean coreField=victim.transferred||victim.enemy&&victim.phase==2;
+        boolean outerField=!coreField&&(!victim.enemy||victim.phase==0);
+        double strength=(victim.target.bossOrElite()?.08:.2)*knockbackScale(victim);
+        if(outerField)strength*=plot.battlefieldKnockbackScale(position);
+        if(strength<=0)return;
+        Vec3 destination=position.add(direction.scale(strength*2));
+        boolean inside=coreField?ArkWar.coreArea(destination):plot.contains(BlockPos.containing(destination));
+        if(!inside)return;
+
+        entity.indicateDamage(-direction.x,-direction.z);
+        entity.knockback(strength,-direction.x,-direction.z,damageSource,0f);
+        if(outerField)entity.setDeltaMovement(plot.limitBattlefieldVelocity(position,entity.getDeltaMovement(),entity.getBbWidth()*.5));
+        entity.hurtMarked=true;
     }
     void publish(){
         if(!pending.isEmpty()){

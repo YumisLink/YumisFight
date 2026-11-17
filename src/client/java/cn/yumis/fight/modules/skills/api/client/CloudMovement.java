@@ -45,12 +45,15 @@ public final class CloudMovement {
             ||mc.player.isSpectator()||mc.player.getAbilities().flying)return true;
         if(uiOpen||cn.yumis.fight.modules.skills.client.DemonHunterClient.blocksMovement()||cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.locked())return true;
         if(!pool.ready(mc.player.tickCount))return true;
-        if(!pool.use(mc.player.tickCount,mc.player.isCreative()||state.resources().training)){state.message("体力不足（需要20）");return true;}
+        if(!use(pool,mc.player.tickCount,mc.player,mc.player.isCreative()||state.resources().training)){state.message("体力不足（需要20）");return true;}
         double yaw=Math.toRadians(mc.player.getYRot());
         var velocity=mc.options.keyJump.isDown()?new net.minecraft.world.phys.Vec3(0,1.1,0):new net.minecraft.world.phys.Vec3(-Math.sin(yaw)*1.08,.49,Math.cos(yaw)*1.08);
         mc.player.stopFallFlying();mc.player.setDeltaMovement(velocity);mc.player.setOnGround(false);mc.player.resetFallDistance();
         mc.player.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.CLOUD_STEP,Stamina.PROTECTION,0,false,false,true));
         return true;
+    }
+    static boolean use(Stamina stamina,long tick,net.minecraft.world.entity.LivingEntity player,boolean exempt){
+        return stamina.use(tick,exempt||cn.yumis.fight.modules.combat.api.CombatEffect.waivesMovementStamina(player));
     }
     public static void render(GuiGraphicsExtractor g,DeltaTracker delta){
         var mc=Minecraft.getInstance();

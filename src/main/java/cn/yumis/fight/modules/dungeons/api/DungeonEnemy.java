@@ -1,8 +1,11 @@
 package cn.yumis.fight.modules.dungeons.api;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.level.Level;
 import net.minecraft.network.syncher.*;
+import org.jspecify.annotations.Nullable;
 public class DungeonEnemy extends Zombie {
     private static final EntityDataAccessor<String> MOVE=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Long> MOVE_AT=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.LONG);
@@ -16,6 +19,22 @@ public class DungeonEnemy extends Zombie {
     @Override protected boolean isSunSensitive(){
         return false;
     }
+
+    @Override
+    protected @Nullable SoundEvent getAmbientSound() {
+        return null;
+    }
+
+    @Override
+    protected @Nullable SoundEvent getHurtSound(DamageSource source) {
+        return null;
+    }
+
+    @Override
+    protected @Nullable SoundEvent getDeathSound() {
+        return null;
+    }
+
     public int dungeonLevel(){
         return getPersistentData().getIntOr("ydnf_level",10);
     }

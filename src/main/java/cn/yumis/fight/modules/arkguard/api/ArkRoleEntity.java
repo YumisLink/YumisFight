@@ -39,5 +39,23 @@ public final class ArkRoleEntity extends NpcEntity implements WorldTargetEntity 
     @Override public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance effect){return ArkContentTypes.actorEffect(effect)&&super.canBeAffected(effect);}
     @Override public boolean shouldBeSaved(){return false;}
     @Override public boolean isPickable(){return !entityData.get(CARRIED)&&super.isPickable();}
+    @Override public boolean isPushable(){return isAlive()&&!isNoAi()&&!isInvisible()&&!roleId().isBlank();}
+    @Override protected void doPush(Entity other){
+        if(other instanceof ArkRoleEntity)super.doPush(other);
+    }
+    @Override public void push(Entity other){
+        if(!(other instanceof ArkRoleEntity ally)||ally==this||!isPushable()||!ally.isPushable())return;
+        if(Math.max(Math.abs(ally.getX()-getX()),Math.abs(ally.getZ()-getZ()))<.01
+            &&!noPhysics&&!ally.noPhysics&&!isVehicle()&&!ally.isVehicle()&&!isPassengerOfSameVehicle(ally)){
+            // Vanilla's push has no direction when two unit centers coincide.
+            double separation=getId()<ally.getId()?.05:-.05;
+            push(-separation,0,0);
+            ally.push(separation,0,0);
+        }else super.push(ally);
+    }
+    @Override public void push(double x,double y,double z){
+        var impulse=ArkWar.limitFieldContact(this,x,y,z);
+        super.push(impulse.x,impulse.y,impulse.z);
+    }
     @Override public void tick(){super.tick();if(level() instanceof ServerLevel&&tickCount>100&&roleId().isBlank())discard();}
 }

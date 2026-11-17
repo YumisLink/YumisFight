@@ -24,6 +24,7 @@ final class ArkScene {
     private final ArkDisplays.Label[] traits=new ArkDisplays.Label[4];
     private final List<List<ArkDisplays.Label>> rows=new ArrayList<>();
     private final List<List<ArkDisplays.Label>> information=new ArrayList<>();
+    private final Map<ArkWar.FieldBoard,List<ArkDisplays.Label>> fieldInformation=new HashMap<>();
     private final List<Entity> towers=new ArrayList<>();
     private final Map<BlockPos,String> signs=new HashMap<>();
     private boolean guideAnchored;
@@ -58,10 +59,12 @@ final class ArkScene {
             traits[plot.index()].set(level,plot.traitOrigin(),-plot.facing(),text,.45f,200);
             var labels=rows.get(plot.index());while(labels.size()<rowTexts.size())labels.add(new ArkDisplays.Label());
             for(int i=0;i<labels.size();i++)if(i<rowTexts.size())labels.get(i).set(level,plot.traitOrigin().add(0,-.12*(i+1),0),-plot.facing(),rowTexts.get(i),.45f,200);else labels.get(i).clear();
-            information(plot,battle,seat,present,now);backing(plot);sign(plot,battle,seat,present,now);
+            var boards=plot.fieldBoards().stream().filter(this::backing).toList();
+            information(plot,battle,seat,present,now,boards);backing(plot);sign(plot,battle,seat,present,now,boards);
         }
+        if(availableSign(ArkWar.CORE_HOME_SIGN))sign(ArkWar.CORE_HOME_SIGN,Direction.WEST,"传送自己家\n右键前往\n个人商店／阵地\n仅参战者");
     }
-    private void information(ArkWar.Plot plot,ArkBattle battle,ArkBattle.Seat seat,Set<UUID> present,long now){
+    static List<Component> informationText(ArkBattle battle,ArkBattle.Seat seat,Set<UUID> present,long now){
         var text=new ArrayList<Component>();
         if(battle==null){
             text.add(Component.literal("方舟战争 · 空闲阵地").withColor(0xE8D39B));
@@ -92,8 +95,20 @@ final class ArkScene {
                 }
             }
         }
-        var labels=information.get(plot.index());while(labels.size()<text.size())labels.add(new ArkDisplays.Label());
-        for(int i=0;i<labels.size();i++)if(i<text.size())labels.get(i).set(level,plot.informationOrigin().add(0,-.13*i,0),-plot.facing(),text.get(i),.42f,210);else labels.get(i).clear();
+        return text;
+    }
+    private void information(ArkWar.Plot plot,ArkBattle battle,ArkBattle.Seat seat,Set<UUID> present,long now,List<ArkWar.FieldBoard> boards){
+        var text=informationText(battle,seat,present,now);
+        information(information.get(plot.index()),plot.informationOrigin(),-plot.facing(),text);
+        for(var board:plot.fieldBoards()){
+            var labels=fieldInformation.computeIfAbsent(board,unused->new ArrayList<>());
+            if(boards.contains(board))information(labels,board.informationOrigin(),board.facing().toYRot(),text);
+            else labels.forEach(ArkDisplays.Label::clear);
+        }
+    }
+    private void information(List<ArkDisplays.Label> labels,Vec3 origin,float yaw,List<Component> text){
+        while(labels.size()<text.size())labels.add(new ArkDisplays.Label());
+        for(int i=0;i<labels.size();i++)if(i<text.size())labels.get(i).set(level,origin.add(0,-.13*i,0),yaw,text.get(i),.42f,210);else labels.get(i).clear();
     }
     private ItemStack offer(ArkBattle battle,ArkBattle.Seat seat,int slot){
         if(seat==null||slot>=seat.roster.shop.size())return ItemStack.EMPTY;
@@ -106,12 +121,27 @@ final class ArkScene {
         int x=plot.side()<0?-5:5;
         for(int offset:new int[]{-8,6})for(int z=plot.centerZ()+offset;z<=plot.centerZ()+offset+1;z++)for(int y=0;y<3;y++){var pos=ArkWar.ORIGIN.offset(x,y,z);var state=level.getBlockState(pos);if(state.isAir()||state.canBeReplaced())level.setBlock(pos,Blocks.STONE_BRICKS.defaultBlockState(),3);}
     }
-    private void sign(ArkWar.Plot plot,ArkBattle battle,ArkBattle.Seat seat,Set<UUID> present,long now){
-        String value;
-        if(battle==null)value="方舟战争\n水晶旁报名\n全员确认开始\n本阵地尚未分配";
-        else if(battle.editing())value="第"+battle.wave+"波准备\n剩余 "+Math.max(0,(battle.deadline-now+999)/1000)+"秒\n已准备 "+battle.readyCount(present)+"/"+battle.presentCount(present)+"\n右键准备／取消";
-        else value="第"+battle.wave+"波战斗\n"+(battle.boss()?"Boss战不限时":"剩余 "+Math.max(0,(battle.deadline-now+999)/1000)+"秒")+"\n可购买，禁止布阵\n等待本波结束";
+    private boolean backing(ArkWar.FieldBoard board){
+        for(int x=-2;x<=2;x++)for(int y=0;y<3;y++){
+            var state=level.getBlockState(board.backing(x,y));
+            if(y==0){if(!state.is(Blocks.STONE_BRICK_SLAB)&&!state.is(Blocks.STONE_BRICKS))return false;}
+            else if(!state.isAir()&&!state.canBeReplaced()&&!state.is(Blocks.STONE_BRICKS))return false;
+        }
+        for(var pos:List.of(board.readySign(),board.coreSign(),board.homeSign()))if(!availableSign(pos))return false;
+        for(int x=-2;x<=2;x++)for(int y=0;y<3;y++){
+            var pos=board.backing(x,y);if(!level.getBlockState(pos).is(Blocks.STONE_BRICKS))level.setBlock(pos,Blocks.STONE_BRICKS.defaultBlockState(),3);
+        }
+        return true;
+    }
+    private boolean availableSign(BlockPos pos){var state=level.getBlockState(pos);return state.isAir()||state.canBeReplaced()||state.is(Blocks.OAK_WALL_SIGN);}
+    private void sign(ArkWar.Plot plot,ArkBattle battle,ArkBattle.Seat seat,Set<UUID> present,long now,List<ArkWar.FieldBoard> boards){
+        String value=readySignText(battle,present,now);
         sign(plot.readySign(),plot.side(),value);
+        for(var board:boards){
+            sign(board.readySign(),board.facing(),value);
+            sign(board.coreSign(),board.facing(),"传送核心\n右键前往\n水晶集合点\n ");
+            sign(board.homeSign(),board.facing(),"传送自己家\n右键前往\n个人商店／阵地\n仅参战者");
+        }
         if(seat==null){
             sign(plot.refreshSign(),plot.side(),"刷新商店\n阵地尚未分配\n \n ");
             sign(plot.upgradeSign(),plot.side(),"提升商店\n阵地尚未分配\n \n ");
@@ -121,10 +151,21 @@ final class ArkScene {
             sign(plot.upgradeSign(),plot.side(),"提升商店\n"+(maximum?"已满级 · "+seat.roster.level+"级":seat.roster.level+" → "+(seat.roster.level+1)+"级")+"\n"+(maximum?"当前 "+seat.roster.shop.size()+"个购买位":"消耗 "+seat.roster.upgradePrice(battle.rules)+"方舟币")+"\n"+(maximum?" ":"右键升本"));
         }
     }
+    static String readySignText(ArkBattle battle,Set<UUID> present,long now){
+        if(battle==null)return "方舟战争\n水晶旁报名\n全员确认开始\n本阵地尚未分配";
+        if(battle.editing())return "第"+battle.wave+"波准备\n剩余 "+Math.max(0,(battle.deadline-now+999)/1000)+"秒\n已准备 "+battle.readyCount(present)+"/"+battle.presentCount(present)+"\n右键准备／取消";
+        return "第"+battle.wave+"波战斗\n"+(battle.boss()?"Boss战不限时":"剩余 "+Math.max(0,(battle.deadline-now+999)/1000)+"秒")+"\n可购买，禁止布阵\n等待本波结束";
+    }
     private void sign(BlockPos pos,int side,String value){
-        var support=pos.relative(side<0?Direction.EAST:Direction.WEST);
+        sign(pos,side<0?Direction.WEST:Direction.EAST,value);
+    }
+    private void sign(BlockPos pos,Direction facing,String value){
+        var support=pos.relative(facing.getOpposite());
         var backing=level.getBlockState(support);if(backing.isAir()||backing.canBeReplaced())level.setBlock(support,Blocks.STONE_BRICKS.defaultBlockState(),3);
-        if(!level.getBlockState(pos).is(Blocks.OAK_WALL_SIGN)){level.setBlock(pos,Blocks.OAK_WALL_SIGN.defaultBlockState().setValue(WallSignBlock.FACING,side<0?Direction.WEST:Direction.EAST),3);signs.remove(pos);}
+        var state=level.getBlockState(pos);
+        if(!state.is(Blocks.OAK_WALL_SIGN)){
+            level.setBlock(pos,Blocks.OAK_WALL_SIGN.defaultBlockState().setValue(WallSignBlock.FACING,facing),3);signs.remove(pos);
+        }
         if(value.equals(signs.get(pos)))return;
         if(level.getBlockEntity(pos) instanceof SignBlockEntity sign){
             var text=new SignText();String[] lines=value.split("\n");for(int i=0;i<4;i++)text=text.setMessage(i,ModText.of(lines[i]).withColor(i==0?0xE8D39B:BLUE));
@@ -137,5 +178,5 @@ final class ArkScene {
             npc.relocate(new Vec3(ArkWar.ORIGIN.getX()-3.5,ArkWar.ORIGIN.getY()+3,ArkWar.ORIGIN.getZ()+85.5),0);guideAnchored=true;return;
         }
     }
-    void close(){for(var label:traits)label.clear();rows.forEach(list->list.forEach(ArkDisplays.Label::clear));information.forEach(list->list.forEach(ArkDisplays.Label::clear));towers.forEach(Entity::discard);towers.clear();signs.clear();}
+    void close(){for(var label:traits)label.clear();rows.forEach(list->list.forEach(ArkDisplays.Label::clear));information.forEach(list->list.forEach(ArkDisplays.Label::clear));fieldInformation.values().forEach(list->list.forEach(ArkDisplays.Label::clear));fieldInformation.clear();towers.forEach(Entity::discard);towers.clear();signs.clear();}
 }

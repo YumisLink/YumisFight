@@ -18,6 +18,7 @@ import java.util.*;
 /** All tracks are disposable presentation of committed world-unit facts. */
 public final class ArkVisuals {
     private record Unit(UUID id,int entity,double maximum,double health,String mode,double skill,double rate,long at){}
+    private record Core(double maximum,double health){}
     private record Effect(String kind,String style,int entity,UUID id,int victim,UUID victimId,Vec3 from,Vec3 to,
                           long at,long duration,int element,int index,boolean chant){}
     private record Frame(List<Quad> quads,boolean fade){}
@@ -25,6 +26,7 @@ public final class ArkVisuals {
     private static final Map<Integer,Unit> units=new HashMap<>();
     private static final List<Effect> effects=new ArrayList<>();
     private static final List<DamageNumber> numbers=new ArrayList<>();
+    private static Core core;
     private static Object world;
     private static String round="",stage="";
     private ArkVisuals(){}
@@ -33,19 +35,21 @@ public final class ArkVisuals {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArkVisuals::extract);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArkVisuals::submit);
     }
-    static void clear(){units.clear();effects.clear();numbers.clear();round=stage="";world=null;}
+    static void clear(){units.clear();effects.clear();numbers.clear();core=null;round=stage="";world=null;}
     private static void world(){if(world!=Minecraft.getInstance().level){clear();world=Minecraft.getInstance().level;}}
     private static boolean inside(){
         var mc=Minecraft.getInstance();return mc.player!=null&&mc.level!=null&&ArkWar.contains(mc.level,mc.player.blockPosition());
     }
     private static void scene(JsonObject packet){
         world();String nextRound=packet.get("round").getAsString(),nextStage=packet.has("stage")?packet.get("stage").getAsString():"";
-        if(!round.equals(nextRound)){numbers.clear();effects.clear();units.clear();}
+        if(!round.equals(nextRound)){numbers.clear();effects.clear();units.clear();core=null;}
         else if(!stage.equals(nextStage)){effects.clear();units.clear();}
         round=nextRound;stage=nextStage;
     }
     static void state(JsonObject packet){
-        scene(packet);units.clear();if(!packet.has("actors"))return;
+        scene(packet);units.clear();
+        core=core(packet);
+        if(!packet.has("actors"))return;
         long at=packet.get("at").getAsLong();
         for(var value:packet.getAsJsonArray("actors")){
             var actor=value.getAsJsonObject();int id=actor.get("entity").getAsInt();
@@ -53,6 +57,11 @@ public final class ArkVisuals {
                 actor.has("skillMode")?actor.get("skillMode").getAsString():"",actor.has("skill")?actor.get("skill").getAsDouble():0,
                 actor.has("skillRate")?actor.get("skillRate").getAsDouble():0,at));
         }
+    }
+    private static Core core(JsonObject packet){
+        if(!packet.has("coreHealth")||!packet.has("coreMaximum"))return null;
+        double maximum=packet.get("coreMaximum").getAsDouble(),health=packet.get("coreHealth").getAsDouble();
+        return Double.isFinite(maximum)&&maximum>0&&Double.isFinite(health)?new Core(maximum,health):null;
     }
     static void receive(JsonObject packet){
         scene(packet);if(!inside())return;
@@ -101,6 +110,17 @@ public final class ArkVisuals {
     static void hud(GuiGraphicsExtractor graphics){
         world();var mc=Minecraft.getInstance();if(!inside()||mc.gui.hud.isHidden()||mc.gui.screen()!=null)return;
         var camera=mc.gameRenderer.mainCamera();var font=UiFonts.font();long now=ClientUi.current().serverNow();
+        if(core!=null&&mc.level.hasChunkAt(ArkWar.CORE)){
+            // The arena's crystal reaches nine blocks above its combat anchor.
+            Vec3 anchor=Vec3.atBottomCenterOf(ArkWar.CORE).add(0,9.5,0),relative=anchor.subtract(camera.position());var forward=camera.forwardVector();
+            if(relative.x*forward.x()+relative.y*forward.y()+relative.z*forward.z()>0){
+                var screen=mc.gameRenderer.projectPointToScreen(anchor);
+                if(Double.isFinite(screen.x)&&Double.isFinite(screen.y)&&Math.abs(screen.x)<=1&&Math.abs(screen.y)<=1){
+                    int width=96,x=(int)Math.round((screen.x+1)*.5*graphics.guiWidth())-width/2,y=(int)Math.round((1-screen.y)*.5*graphics.guiHeight());
+                    healthBar(graphics,x,y,width,core.health(),core.maximum(),true);
+                }
+            }
+        }
         for(var unit:units.values()){
             var actor=entity(unit.entity(),unit.id());
             if(actor==null||actor.isInvisible()||!actor.isPickable())continue;
@@ -109,12 +129,7 @@ public final class ArkVisuals {
             var screen=mc.gameRenderer.projectPointToScreen(anchor);
             if(!Double.isFinite(screen.x)||!Double.isFinite(screen.y)||Math.abs(screen.x)>1||Math.abs(screen.y)>1)continue;
             int width=62,x=(int)Math.round((screen.x+1)*.5*graphics.guiWidth())-width/2,y=(int)Math.round((1-screen.y)*.5*graphics.guiHeight());
-            double health=Math.clamp(unit.health(),0,unit.maximum());
-            bar(graphics,x,y,width,7,health/Math.max(1,unit.maximum()),0xFFBC4859);
-            String text=NumberText.damage(health)+" / "+NumberText.damage(unit.maximum());
-            float scale=Math.min(.65f,(width-4f)/Math.max(1,font.width(text)));
-            graphics.pose().pushMatrix();graphics.pose().translate(x+(width-font.width(text)*scale)/2,y+.5f);graphics.pose().scale(scale,scale);
-            graphics.text(font,text,0,0,0xFFFFFFFF,true);graphics.pose().popMatrix();
+            healthBar(graphics,x,y,width,unit.health(),unit.maximum(),false);
             if(!unit.mode().isEmpty()){
                 double skill=Math.clamp(unit.skill()+Math.clamp(now-unit.at(),0,600)*unit.rate(),0,1);
                 bar(graphics,x,y+8,width,6,skill,0xFF479EE8);
@@ -125,6 +140,17 @@ public final class ArkVisuals {
             }
         }
         DamageNumber.render(graphics,numbers);
+    }
+    private static void healthBar(GuiGraphicsExtractor graphics,int x,int y,int width,double value,double maximum,boolean precise){
+        double health=Math.clamp(value,0,maximum);
+        bar(graphics,x,y,width,7,health/Math.max(1,maximum),0xFFBC4859);
+        String text=healthText(health,maximum,precise);var font=UiFonts.font();
+        float scale=Math.min(.65f,(width-4f)/Math.max(1,font.width(text)));
+        graphics.pose().pushMatrix();graphics.pose().translate(x+(width-font.width(text)*scale)/2,y+.5f);graphics.pose().scale(scale,scale);
+        graphics.text(font,text,0,0,0xFFFFFFFF,true);graphics.pose().popMatrix();
+    }
+    private static String healthText(double health,double maximum,boolean precise){
+        return (precise?ArkRules.number(health):NumberText.damage(health))+" / "+(precise?ArkRules.number(maximum):NumberText.damage(maximum));
     }
     private static void bar(GuiGraphicsExtractor graphics,int x,int y,int width,int height,double fraction,int color){
         graphics.fill(x-1,y-1,x+width+1,y+height+1,0xE0171C29);graphics.fill(x,y,x+width,y+height,0xE03B2534);

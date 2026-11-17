@@ -68,7 +68,6 @@ public final class FishSpecies {
             case LEGENDARY->context.geode()?LEGENDARY_GEODE:context.high()?LEGENDARY_HIGH:LEGENDARY_OVERWORLD;
             case EPIC->context.soulSand()?EPIC_HAUNTED:context.monument()?EPIC_DEEP:context.snowy()?EPIC_FROZEN:EPIC_HAUNTED;
             case MYTHIC->context.inVoid()?MYTHIC_VOID:context.coral()?MYTHIC_CORAL:MYTHIC_DEFAULT;
-            default->List.of(tier.itemId());
         };
     }
     public static String itemFor(FishTier tier,double random,Context context){

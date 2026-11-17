@@ -27,6 +27,10 @@ public final class ArkEnemyEntity extends DungeonEnemy implements WorldTargetEnt
     @Override public boolean acceptsPlayerEffects(){return false;}
     @Override public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance effect){return ArkContentTypes.actorEffect(effect)&&super.canBeAffected(effect);}
     @Override public boolean shouldBeSaved(){return false;}
+    @Override public void push(double x,double y,double z){
+        var impulse=ArkWar.limitFieldContact(this,x,y,z);
+        super.push(impulse.x,impulse.y,impulse.z);
+    }
     @Override public void checkDespawn(){} // The match owns removal, including in a peaceful host world.
     @Override public void tick(){super.tick();if(level() instanceof ServerLevel&&tickCount>100&&initial==null)discard();}
 }

@@ -21,6 +21,7 @@ public final class ArkContentTypes {
         @Override public boolean preventsDamage(){return true;}
         @Override public double outgoingDamageScale(){return .001;}
         @Override public boolean externalHitEffects(){return false;}
+        @Override public boolean waivesMovementStamina(){return true;}
     }
     public static final DeferredHolder<EntityType<?>,EntityType<ArkRoleEntity>> ROLE=TYPES.register("ark_role",()->EntityType.Builder.<ArkRoleEntity>of(ArkRoleEntity::new,MobCategory.MISC).sized(.6f,1.8f).eyeHeight(1.62f).noSave().clientTrackingRange(14).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ItemData.NS,"ark_role"))));
     public static final Map<String,DeferredHolder<EntityType<?>,EntityType<ArkEnemyEntity>>> ENEMIES=new LinkedHashMap<>();

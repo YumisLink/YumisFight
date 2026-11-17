@@ -120,7 +120,9 @@
       "skin": "ark_baiyan",
       "parameters": {
         "defense": 0.5,
-        "heal": 0.05
+        "heal": 0.05,
+        "duration": 15,
+        "cooldown": 60
       },
       "stars": {
         "churchStart": [
@@ -130,7 +132,7 @@
         ]
       },
       "description": [
-        "纯白支援：两防额外提高{defense:percent}，持续嘲讽攻击范围内敌人；每次普攻自疗最大生命的{heal:percent}。",
+        "纯白支援：两防额外提高{defense:percent}，持续嘲讽攻击范围内敌人；每次普攻自疗最大生命的{heal:percent}。持续{duration}秒，冷却{cooldown}秒。",
         "开战时，纯白教堂增加{churchStart:stars}层。"
       ]
     },
@@ -834,13 +836,13 @@
     "goblinFirstCount": 26,
     "goblinLastCount": 30,
     "dragonCountRatio": 0.375,
-    "goblinHealth": 4000,
-    "dragonHealth": 8000,
+    "goblinHealth": 2000,
+    "dragonHealth": 4000,
     "healthGrowth": 1.5,
     "earlyGrowthEndWave": 10,
     "lateHealthGrowth": 1.18,
-    "goblinAttack": 600,
-    "dragonAttack": 1400,
+    "goblinAttack": 300,
+    "dragonAttack": 700,
     "attackGrowth": 1.35,
     "lateAttackGrowth": 1.08,
     "goblinPhysicalDefense": 120,
@@ -859,9 +861,9 @@
       18,
       0
     ],
-    "bossHealth": 400000,
+    "bossHealth": 200000,
     "bossHealthGrowth": 1.25,
-    "bossAttack": 16000,
+    "bossAttack": 8000,
     "bossAttackGrowth": 1.12,
     "goblinGuards": 6,
     "dragonGuards": 3

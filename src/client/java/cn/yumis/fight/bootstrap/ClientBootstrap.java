@@ -93,7 +93,10 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.industry.client.ConveyorPlacementClient.register();
         cn.yumis.fight.modules.industry.client.ManaWandClient.register(bus,stack->{var rarity=IndustrialItemDisplay.rarity(stack);return rarity==null?null:rarity.color();});
         cn.yumis.fight.modules.industry.client.ArtificialStarHazard.register(SkillController.INSTANCE::environmentDamage);
-        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{IndustrialItemDisplay.tooltip(event);if(IndustrialItemDisplay.rarity(event.getItemStack())==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC){int last=event.getToolTip().size()-1;event.getToolTip().set(last,cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(event.getToolTip().get(last)));}});
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{
+            IndustrialItemDisplay.tooltip(event);ProfessionItemDisplay.tooltip(event);
+            if(IndustrialItemDisplay.rarity(event.getItemStack())==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC||ProfessionItemDisplay.rarity(event.getItemStack())==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC){int last=event.getToolTip().size()-1;event.getToolTip().set(last,cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(event.getToolTip().get(last)));}
+        });
         cn.yumis.fight.modules.skills.client.SkillTooltip.register(bus);
         cn.yumis.fight.modules.equipment.api.client.MythicDisplay.additional(stack->cn.yumis.fight.modules.economy.api.ItemRarity.rarity(stack)==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC);
         ClientSettings.load();

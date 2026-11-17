@@ -68,6 +68,7 @@ public final class ArkGuardService {
             case "cancel_start"->{requireLobby(request);confirm(player,false,null);}
             case "owner_facts"->ownerFacts(player,request);
             case "ready"->ready(player,request);
+            case "teleport"->teleport(player,request);
             case "leave"->leave(player);
             default->throw new IllegalArgumentException("未知的方舟请求");
         }
@@ -159,6 +160,13 @@ public final class ArkGuardService {
         var seat=battle.seat(player.getUUID());if(seat==null)throw new IllegalStateException("本局为观战状态");return seat;
     }
     private void ready(ServerPlayer player,JsonObject request){var seat=requirePhase(player,request,true);battle.ready(seat,request.get("value").getAsBoolean());publishAll();}
+    private void teleport(ServerPlayer player,JsonObject request){
+        if(!inside(player))return;
+        double x=request.get("x").getAsDouble(),y=request.get("y").getAsDouble(),z=request.get("z").getAsDouble();
+        float yaw=request.get("yaw").getAsFloat(),pitch=request.get("pitch").getAsFloat();
+        if(!Double.isFinite(x)||!Double.isFinite(y)||!Double.isFinite(z)||!Float.isFinite(yaw)||!Float.isFinite(pitch))throw new IllegalArgumentException("传送位置格式无效");
+        if(!player.teleportTo(level(),x,y,z,Set.of(),yaw,pitch,true))throw new IllegalStateException("方舟传送失败");
+    }
     /** Identity/schema checks only: prices, draws, stock, merges and placements are never replayed on the server. */
     private ArkRoster readRoster(ServerPlayer player,JsonObject value,String round,int wave){
         if(value==null)throw new IllegalArgumentException("缺少个人方舟事实");ArkRoster r=JSON.fromJson(value,ArkRoster.class);

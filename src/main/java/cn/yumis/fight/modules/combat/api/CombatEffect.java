@@ -7,6 +7,7 @@ public interface CombatEffect {
     default boolean preventsDamage(){return false;}
     default double outgoingDamageScale(){return 1;}
     default boolean externalHitEffects(){return true;}
+    default boolean waivesMovementStamina(){return false;}
     static boolean protectedFromDamage(LivingEntity entity){
         if(entity==null)return false;
         return entity.getActiveEffects().stream().anyMatch(i->i.getEffect().value() instanceof CombatEffect e&&e.preventsDamage());
@@ -19,6 +20,10 @@ public interface CombatEffect {
     static boolean permitsExternalHitEffects(LivingEntity entity){
         if(entity==null)return true;
         return entity.getActiveEffects().stream().noneMatch(i->i.getEffect().value() instanceof CombatEffect e&&!e.externalHitEffects());
+    }
+    static boolean waivesMovementStamina(LivingEntity entity){
+        if(entity==null)return false;
+        return entity.getActiveEffects().stream().anyMatch(i->i.getEffect().value() instanceof CombatEffect e&&e.waivesMovementStamina());
     }
     static boolean permitsExternalHitEffects(LivingEntity owner,LivingEntity target){
         return permitsExternalHitEffects(owner)&&(!(target instanceof WorldVitalEntity world)||world.acceptsPlayerEffects());
