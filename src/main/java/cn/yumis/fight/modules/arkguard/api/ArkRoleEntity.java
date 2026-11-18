@@ -7,6 +7,7 @@ import net.minecraft.network.syncher.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 
 /** The card identity survives projections; each world entity has its own formal life. */
@@ -27,7 +28,8 @@ public final class ArkRoleEntity extends NpcEntity implements WorldTargetEntity 
     public void configure(String owner,ArkRoster.Card card,ArkRules.Unit unit,Target target){
         entityData.set(ROLE,unit.id());entityData.set(OWNER,owner);entityData.set(CARD,card.token);entityData.set(STAR,card.star);
         entityData.set(CARRIED,card.held);
-        appearance(unit.skin());setCustomName(Component.literal(unit.name()+" "+"★".repeat(card.star)));setCustomNameVisible(true);initial=target;maximum=target.health(1);
+        getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(unit.p("knockbackResistance"));
+        appearance(unit.skin());setCustomName(Component.literal(unit.name()+" "+"★".repeat(card.star)).withColor(unit.nameColor()));setCustomNameVisible(true);initial=target;maximum=target.health(1);
     }
     public void core(Target target){initial=target;maximum=target.health(1);entityData.set(ROLE,"core");setCustomName(Component.literal("方舟核心"));setCustomNameVisible(false);setInvisible(true);setNoAi(true);setNoGravity(true);}
     public void maximum(double value){maximum=value;}

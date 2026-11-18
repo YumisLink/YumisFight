@@ -24,6 +24,7 @@ public final class ArkRules {
                        Map<String,List<Double>> stars,List<String> description) {
         public double p(String key){return parameters.getOrDefault(key,0d);}
         public double s(String key,int star){var values=stars.get(key);return values==null?0:values.get(star-1);}
+        public int nameColor(){return cn.yumis.fight.modules.economy.api.ItemRarity.rankColor(tier);}
         public double starScale(int star){return switch(star){case 1->1;case 2->1.8;case 3->3.24;default->throw new IllegalArgumentException("星级无效");};}
         public boolean has(String trait){return traits.contains(trait);}
         public String skillTrigger(){

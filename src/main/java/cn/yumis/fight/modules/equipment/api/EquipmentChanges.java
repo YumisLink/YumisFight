@@ -4,6 +4,7 @@ import cn.yumis.fight.platform.ItemData;
 import com.google.gson.*;
 import cn.yumis.fight.modules.inventory.api.*;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
 import static cn.yumis.fight.modules.equipment.api.EquipmentJson.JSON;
@@ -40,12 +41,38 @@ public final class EquipmentChanges {
         var outputs=new JsonArray();outputs.add(InventoryEdits.encode(player,EquipmentItems.gear(EquipmentRules.create(slot,weapon,Rarity.COMMON,level,armor,jewelry,random))));j.add("outputs",outputs);
         var value=EquipmentJson.copy(profession,cn.yumis.fight.modules.professions.api.Profession.class);j.add("beforeProfession",JSON.toJsonTree(value));value.award(60,false);value.grantTitle("craftsman");j.add("profession",JSON.toJsonTree(value));
     }
-    public static void prepareCurrency(net.minecraft.world.entity.player.Player player,JsonObject j,Random random){
-        if(!j.has("rulesRevision")||j.get("rulesRevision").getAsLong()!=EquipmentDefinitions.current().revision)throw new IllegalArgumentException("装备规则已更新，请刷新后重试");
-        int index=j.get("slot").getAsInt();if(j.get("menu").getAsInt()!=player.containerMenu.containerId)throw new IllegalArgumentException("加工界面已变化");
-        var slot=player.containerMenu.getSlot(index);if(!SlotAccess.isWritable(slot,player))throw new IllegalArgumentException("该栏位不能加工装备");var source=slot.getItem();var gear=EquipmentItems.gear(source);var cursor=player.containerMenu.getCarried();
-        if(gear==null||!gear.instance.toString().equals(j.get("equipment").getAsString())||gear.revision!=j.get("revision").getAsInt()||!InventoryEdits.encode(player,cursor).equals(j.get("cursor")))throw new IllegalArgumentException("装备或通货已变化");
-        var value=EquipmentChanges.process(source,cursor,j.has("socket")?j.get("socket").getAsInt():-1,random);var edits=new JsonArray();edits.add(InventoryEdits.change(player,"menu",index,source,value.equipment()));edits.add(InventoryEdits.change(player,"cursor",0,cursor,value.currency()));j.add("inventoryChanges",edits);var outputs=new JsonArray();for(var item:value.outputs())outputs.add(InventoryEdits.encode(player,item));j.add("outputs",outputs);
+    public static ItemStack prepareCurrency(Player player, JsonObject request, Random random) {
+        if (!request.has("rulesRevision") || request.get("rulesRevision").getAsLong() != EquipmentDefinitions.current().revision) {
+            throw new IllegalArgumentException("装备规则已更新，请刷新后重试");
+        }
+        boolean creativeCursor = request.has("creativeCursor");
+        var menu = creativeCursor ? player.inventoryMenu : player.containerMenu;
+        int index = request.get("slot").getAsInt();
+        if (request.get("menu").getAsInt() != menu.containerId || index < 0 || index >= menu.slots.size()) {
+            throw new IllegalArgumentException("加工界面已变化");
+        }
+        var slot = menu.getSlot(index);
+        if (!SlotAccess.isWritable(slot, player)) throw new IllegalArgumentException("该栏位不能加工装备");
+        var source = slot.getItem();
+        var gear = EquipmentItems.gear(source);
+        var cursor = menu.getCarried();
+        if (gear == null || !gear.instance.toString().equals(request.get("equipment").getAsString())
+                || gear.revision != request.get("revision").getAsInt() || !InventoryEdits.encode(player, cursor).equals(request.get("cursor"))) {
+            throw new IllegalArgumentException("装备或通货已变化");
+        }
+        if (creativeCursor && gear.creativeTemplate) throw new IllegalArgumentException("装备正在初始化，请稍后重试");
+
+        int socket = request.has("socket") ? request.get("socket").getAsInt() : -1;
+        var result = process(source, cursor, socket, random);
+        var edits = new JsonArray();
+        edits.add(InventoryEdits.change(player, "menu", index, source, result.equipment()));
+        // The creative picker carries its stack on the client; the server only receives the inventory edits.
+        if (!creativeCursor) edits.add(InventoryEdits.change(player, "cursor", 0, cursor, result.currency()));
+        request.add("inventoryChanges", edits);
+        var outputs = new JsonArray();
+        for (var item : result.outputs()) outputs.add(InventoryEdits.encode(player, item));
+        request.add("outputs", outputs);
+        return result.currency();
     }
     public static void prepareCube(net.minecraft.world.entity.player.Player player,cn.yumis.fight.modules.professions.api.Profession profession,JsonObject request){
         if(!(player.containerMenu instanceof HoradricCubeMenu menu)||!menu.initialContentsReady)throw new IllegalArgumentException("请等待赫拉迪姆方块材料同步");

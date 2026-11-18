@@ -3,6 +3,7 @@ import cn.yumis.fight.modules.skills.api.client.CloudMovement;
 import cn.yumis.fight.modules.skills.api.client.SkillController;
 import cn.yumis.fight.verification.FeedbackProbe;
 import cn.yumis.fight.modules.equipment.client.CurrencyUi;
+import cn.yumis.fight.modules.equipment.client.EquipmentActions;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.equipment.api.EquipmentStats;
 import cn.yumis.fight.modules.inventory.api.MenuHooks;
@@ -115,7 +116,14 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
                 if(value.has("profileId")&&(!cn.yumis.fight.modules.character.api.client.CareerProfilesClient.active().equals(value.get("profileId").getAsString())||cn.yumis.fight.modules.character.api.client.CareerProfilesClient.revision()!=value.get("profileRevision").getAsLong()))throw new IllegalArgumentException("职业配置已变化，请重新操作");
                 value.addProperty("session",session);value.addProperty("clientTransaction",++personalSequence);
                 preparations.dispatch(null,next.action(),value);if(value.has("localOnly")){personalQueue.remove();personalRetries=0;continue;}personalSent=true;transmit(next.action(),value);return;
-            }catch(Exception failure){personalQueue.remove();cn.yumis.fight.modules.npc.client.TutorialClient.committed(next.action(),value,false);personalRetries=0;message(failure.getMessage());}
+            }catch(Exception failure){
+                personalQueue.remove();
+                if(next.action().equals("currency"))EquipmentActions.currencyFinished(value,false);
+                cn.yumis.fight.modules.npc.client.TutorialClient.committed(next.action(),value,false);
+                personalSent=false;
+                personalRetries=0;
+                message(failure.getMessage());
+            }
         }
     }
     private void personalRetire(){
@@ -123,7 +131,9 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         long sent=personalQueue.peek().value().get("clientTransaction").getAsLong();
         if(personalAcknowledged<sent||profile.get("personalSequence").getAsLong()<sent)return;
         if(!personalReceived&&personalQueue.peek().value().has("retryStorage")&&personalRetries++<3){personalSent=false;personalNext();return;}
-        var finished=personalQueue.remove();cn.yumis.fight.modules.npc.client.TutorialClient.committed(finished.action(),finished.value(),personalReceived);personalSent=false;personalRetries=0;personalNext();
+        var finished=personalQueue.remove();
+        if(finished.action().equals("currency"))EquipmentActions.currencyFinished(finished.value(),personalReceived);
+        cn.yumis.fight.modules.npc.client.TutorialClient.committed(finished.action(),finished.value(),personalReceived);personalSent=false;personalRetries=0;personalNext();
     }
     private void transmit(String action,JsonObject value){
         if(ready)cn.yumis.fight.modules.character.api.client.CareerProfilesClient.context(value);

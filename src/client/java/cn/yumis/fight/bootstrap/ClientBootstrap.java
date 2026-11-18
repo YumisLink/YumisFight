@@ -11,6 +11,8 @@ import cn.yumis.fight.modules.dungeons.client.EnemyRenderer;
 import cn.yumis.fight.modules.economy.client.LootRenderer;
 import cn.yumis.fight.modules.economy.client.JarClient;
 import cn.yumis.fight.modules.equipment.client.CurrencyUi;
+import cn.yumis.fight.modules.equipment.client.EquipmentActions;
+import cn.yumis.fight.modules.inventory.api.InventoryEdits;
 import cn.yumis.fight.modules.inventory.client.DimensionalScreen;
 import cn.yumis.fight.modules.equipment.client.FabricatorScreen;
 import cn.yumis.fight.modules.equipment.client.GemScreen;
@@ -31,14 +33,12 @@ import cn.yumis.fight.modules.skills.client.Effects;
 
 import cn.yumis.fight.network.Network;
 import cn.yumis.fight.modules.equipment.api.Gear;
-import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.*;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.gui.screens.inventory.*;
 import net.minecraft.client.renderer.entity.*;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.inventory.*;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.common.Mod;
@@ -266,38 +266,36 @@ public final class ClientBootstrap {
     }
     private static boolean currencyGesture;
     private static void currency(ScreenEvent.MouseButtonPressed.Pre e){
+        if(e.getButton()!=1)return;
+        currencyGesture=false;
         var mc=Minecraft.getInstance();
-        if(e.getButton()!=1||!(e.getScreen() instanceof AbstractContainerScreen<?> screen)||mc.player==null)return;
+        if(!(e.getScreen() instanceof AbstractContainerScreen<?> screen)||mc.player==null)return;
         if(screen instanceof cn.yumis.fight.modules.economy.client.ShopScreen shop&&shop.modal()){e.setCanceled(true);return;}
+        var s=ClientSession.INSTANCE;
+        if(!s.ready)return;
         var target=CurrencyUi.target(screen,e.getMouseX(),e.getMouseY());
         if(target==null)return;
         var menu=target.menu();
-        String cursor=ItemData.id(menu.getCarried());
-        if(!CurrencyUi.isCurrency(menu.getCarried()))return;
+        var carried=menu.getCarried();
+        if(!CurrencyUi.isCurrency(carried))return;
         Gear gear=EquipmentItems.gear(target.slot().getItem());
         if(gear==null)return;
         e.setCanceled(true);
         currencyGesture=true;
-        var s=ClientSession.INSTANCE;
+        boolean creative=screen instanceof CreativeModeInventoryScreen;
+        if(creative&&EquipmentActions.creativeCurrencyPending())return;
         var j=s.operation("currency");
+        if(creative)j.addProperty("creativeCursor",true);
         j.addProperty("session",s.session);
         j.addProperty("menu",menu.containerId);
         j.addProperty("slot",target.index());
         j.addProperty("equipment",gear.instance.toString());
         j.addProperty("revision",gear.revision);
-        j.addProperty("count",menu.getCarried().getCount());
-        j.add("cursor",net.minecraft.world.item.ItemStack.OPTIONAL_CODEC.encodeStart(mc.player.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),menu.getCarried()).getOrThrow());
-        if(cursor.equals("affix_extraction_stone")&&cn.yumis.fight.modules.equipment.api.GemExtraction.available(gear))mc.gui.pushScreenLayer(new cn.yumis.fight.modules.equipment.client.ExtractionScreen(j,gear));
-        else if(cn.yumis.fight.modules.equipment.api.Gemstones.currency(cursor)&&gear.sockets>1)mc.gui.pushScreenLayer(new GemScreen(e.getScreen(),j,gear));
+        j.addProperty("count",carried.getCount());
+        j.add("cursor",InventoryEdits.encode(mc.player,carried));
+        String currencyId=ItemData.id(carried);
+        if(currencyId.equals("affix_extraction_stone")&&cn.yumis.fight.modules.equipment.api.GemExtraction.available(gear))mc.gui.pushScreenLayer(new cn.yumis.fight.modules.equipment.client.ExtractionScreen(j,gear));
+        else if(cn.yumis.fight.modules.equipment.api.Gemstones.currency(currencyId)&&gear.sockets>1)mc.gui.pushScreenLayer(new GemScreen(e.getScreen(),j,gear));
         else s.send("currency",j);
-    }
-    public static void inventoryClick(int slot,int button,ContainerInput input){
-        var s=ClientSession.INSTANCE;
-        JsonObject j=s.operation("click");
-        j.addProperty("session",s.session);
-        j.addProperty("slot",slot);
-        j.addProperty("button",button);
-        j.addProperty("input",input.name());
-        s.send("inventoryClick",j);
     }
 }

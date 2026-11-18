@@ -104,7 +104,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
         Target probe=new Target();probe.kind="BOSS";probe.elite=true;probe.elitePower="strong";probe.partySize=t.members.size();probe.difficulty=Difficulty.HELL;apply(probe,d);
         for(double stat:new double[]{probe.health(run.monsterLevel),probe.attack(run.monsterLevel),probe.defense(run.monsterLevel,false),probe.defense(run.monsterLevel,true)})if(!Double.isFinite(stat)||stat<=0)throw new IllegalArgumentException("当前阶数与等级配置超出可计算范围，引路石未消耗");
         for(UUID id:t.members.keySet()){var p=server.getPlayerList().getPlayer(id);d.roster.add(id);d.synchronization.put(id,false);d.returns.put(id.toString(),owner.point(p));}
-        try{owner.forceArena(d,true);owner.ensureArena(DungeonCatalog.current().dungeon(d.dungeon),d.cell);owner.clearCell(d.cell);owner.resetDoors(d);}catch(Exception e){owner.forceArena(d,false);owner.clearCell(d.cell);throw e;}
+        try{owner.forceArena(d,true);owner.ensureArena(d.dungeon,d.cell);owner.clearCell(d.cell);owner.resetDoors(d);}catch(Exception e){owner.forceArena(d,false);owner.clearCell(d.cell);throw e;}
         run.startedAt=System.currentTimeMillis();Map<String,JsonElement> edits=new LinkedHashMap<>();edits.put("instance/"+d.id,JSON.toJsonTree(d));d.returns.forEach((id,point)->edits.put("return/"+id,JSON.toJsonTree(point)));
         var intent=new JsonObject();intent.addProperty("stone",stone.id.toString());intent.addProperty("table",b.key());intent.add("members",JSON.toJsonTree(d.roster));String raw=t.raw;
         boolean committed;

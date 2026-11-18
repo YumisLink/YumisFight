@@ -8,6 +8,8 @@ import static cn.yumis.fight.modules.attributes.api.AttributeNumbers.finite;
 public final class ElementAccumulation {
     public static final double THRESHOLD=.10;
     public static final long SETTLEMENT_GRACE=5000;
+    private static final long RESISTANCE_MILLIS=10_000;
+    private static final double RESISTANCE_BUILDUP=.1;
     public enum Kind {
         SHOCK("ELEMENT_SHOCK","感电",10000,5000,0xffed8d),
         IGNITE("ELEMENT_IGNITE","点燃",15000,15000,0xff8a58),
@@ -25,10 +27,26 @@ public final class ElementAccumulation {
         public long generation=1;
         public double[] buildup=new double[4];
         public long[] until=new long[4];
+        private long[] resistanceUntil=new long[4];
         public double defenseMultiplier=1;
-        public State copy(){var s=new State();s.generation=generation;s.buildup=buildup.clone();s.until=until.clone();s.defenseMultiplier=defenseMultiplier;return s;}
+        public State copy(){
+            var s=new State();
+            s.generation=generation;
+            s.buildup=buildup.clone();
+            s.until=until.clone();
+            s.resistanceUntil=resistanceUntil.clone();
+            s.defenseMultiplier=defenseMultiplier;
+            return s;
+        }
         public boolean matches(Life life){return generation==life.generation;}
         public boolean active(Kind kind,Life life,long now){return matches(life)&&until[kind.ordinal()]>now;}
+        public void endEarly(Kind kind,long now){
+            int index=kind.ordinal();
+            if(until[index]<=now)return;
+            if(resistanceUntil[index]-until[index]==RESISTANCE_MILLIS)
+                resistanceUntil[index]=Math.addExact(now,RESISTANCE_MILLIS);
+            until[index]=now;
+        }
     }
     public record Change(State state,List<Kind> triggered){public Change{triggered=List.copyOf(triggered);}}
     private ElementAccumulation(){}
@@ -47,7 +65,7 @@ public final class ElementAccumulation {
         finite(maximum);if(maximum<=0||components.length!=5)throw new IllegalArgumentException("元素伤害分量无效");
         double[] fractions=components.clone();for(int i=0;i<fractions.length;i++){finite(fractions[i]);if(fractions[i]<0)throw new IllegalArgumentException("元素伤害分量不可为负");fractions[i]/=maximum;}return fractions;
     }
-    public static Change advance(State previous,Life life,double[] components,double acceptedScale,Stats source,boolean strong,long now){
+    public static Change advance(State previous,Life life,double[] components,double acceptedScale,Stats source,boolean strong,boolean enemy,long now){
         if(components.length!=5)throw new IllegalArgumentException("元素伤害分量数量无效");
         finite(acceptedScale);if(acceptedScale<0||acceptedScale>1+Math.ulp(1d)*8)throw new IllegalArgumentException("有效伤害比例无效");
         for(double value:components){finite(value);if(value<0)throw new IllegalArgumentException("元素伤害分量不可为负");}
@@ -61,9 +79,11 @@ public final class ElementAccumulation {
                 double ratio=source.modifiers.getOrDefault(conversion(element,kind),0d);finite(ratio);
                 if(ratio<0)throw new IllegalArgumentException("积累比例不可为负");amount+=components[element+1]*ratio;
             }
+            if(enemy&&now<next.resistanceUntil[index])amount*=RESISTANCE_BUILDUP;
             next.buildup[index]+=amount*acceptedScale;finite(next.buildup[index]);
             if(next.buildup[index]+Math.ulp(THRESHOLD)*8<THRESHOLD)continue;
             next.buildup[index]=0;next.until[index]=Math.addExact(now,kind.duration(strong));
+            if(enemy)next.resistanceUntil[index]=Math.addExact(next.until[index],RESISTANCE_MILLIS);
             if(kind==Kind.EROSION)next.defenseMultiplier*=strong?.95:.90;
             triggered.add(kind);
         }

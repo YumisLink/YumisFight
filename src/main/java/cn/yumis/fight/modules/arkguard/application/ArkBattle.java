@@ -39,12 +39,13 @@ final class ArkBattle {
         Target target;
         Stats stats=new Stats();
         double healthBase,attackBase,attackDivisor,physicalBase,magicalBase;
-        double attackProgress=1,slow,cooldownRecovery=1;
-        long nextSkill,buffUntil,slowUntil,lastFight,stasisUntil,castUntil,meteorAt,poseUntil,flowerUntil;
+        double attackProgress=1,slow;
+        long slowUntil,lastFight,stasisUntil,castUntil,meteorAt,flowerUntil,sanctuaryUntil;
+        final ArkSkillClock skill=new ArkSkillClock();
         int emotion,attacks,routeIndex;
         int phase; // 0 personal field; 1 immune transfer route; 2 core field
         int element=-1;
-        boolean transferred,deathProjected,enteredField;
+        boolean transferred,deathProjected,enteredField,airborne;
         Vec3 meteorPoint;
         UUID victim,cloudTarget;
         final Map<String,Integer> gains=new HashMap<>();
@@ -56,7 +57,7 @@ final class ArkBattle {
             double current=target.speciesAttack;target.speciesAttack=1;attackDivisor=target.attack(1);target.speciesAttack=current;
         }
         boolean alive(){return !target.life.dead&&!entity.isRemoved();}
-        boolean deployed(){return card!=null&&card.deployed&&!card.held;}
+        boolean deployed(){return card!=null&&card.onField();}
         Vec3 position(){return entity.position();}
         int star(){return card==null?1:card.star;}
     }
@@ -87,7 +88,7 @@ final class ArkBattle {
         holdChunks();
         try{
         for(int w=1;w<=20;w++)dragon[w]=random.nextBoolean();
-        deadline=now+preparationMillis();lastTick=now;
+        deadline=preparationDeadline(now);lastTick=now;
         var entity=ArkContentTypes.ROLE.get().create(level,EntitySpawnReason.COMMAND);
         if(entity==null)throw new IllegalStateException("无法创建方舟生命锚点");
         entity.setPos(ArkWar.CORE.getX()+.5,ArkWar.CORE.getY(),ArkWar.CORE.getZ()+.5);
@@ -98,6 +99,7 @@ final class ArkBattle {
         }catch(RuntimeException failure){try{close();}catch(RuntimeException cleanup){failure.addSuppressed(cleanup);}throw failure;}
     }
     long preparationMillis(){return (wave*10L+30)*1000;}
+    private long preparationDeadline(long now){return seats.size()==1?0:now+preparationMillis();}
     boolean boss(){return wave%5==0;}
     Seat seat(UUID owner){return seats.stream().filter(s->s.owner.equals(owner)).findFirst().orElse(null);}
     int presentCount(Set<UUID> present){return (int)seats.stream().filter(s->present.contains(s.owner)).count();}
@@ -117,7 +119,7 @@ final class ArkBattle {
         loadLives();
         if(editing()){
             heldModels();
-            if(now>=deadline||readyCount(present)==presentCount(present))begin(now);
+            if((deadline>0&&now>=deadline)||readyCount(present)==presentCount(present))begin(now);
             flush();return;
         }
         if(!phase.equals("BATTLE"))return;
@@ -142,8 +144,9 @@ final class ArkBattle {
             seat.ready=false;seat.rallied=false;seat.opening=seat.roster.copy();seat.opening.future.clear();
             seat.counts=ArkTraits.counts(seat.opening,rules);seat.queue=army(wave,dragon[wave]);seat.spawned=0;seat.nextSpawn=now+1000;
             for(var actor:seat.allies){
-                actor.attacks=0;actor.emotion=0;actor.attackProgress=1;actor.gains.clear();actor.nextSkill=now;
-                actor.buffUntil=actor.stasisUntil=actor.castUntil=actor.meteorAt=actor.flowerUntil=0;actor.victim=null;actor.cooldownRecovery=1;
+                actor.attacks=0;actor.emotion=0;actor.attackProgress=1;actor.gains.clear();actor.skill.reset(now);
+                actor.stasisUntil=actor.castUntil=actor.meteorAt=actor.flowerUntil=actor.sanctuaryUntil=0;
+                actor.victim=null;actor.meteorPoint=null;actor.airborne=false;
                 actor.target.life.elemental=new ElementAccumulation.State();actor.target.life.elemental.generation=actor.target.life.generation;
                 actor.target.life.q=1;actor.target.life.dead=false;actor.target.life.revision++;
                 if(actor.entity instanceof Mob mob){mob.setNoAi(!actor.deployed());mob.getNavigation().stop();}
@@ -160,19 +163,29 @@ final class ArkBattle {
         combat.end();
         for(var seat:seats)for(var actor:seat.allies)if(actor.deployed()){
             if(actor.unit.id().equals("ark_letiya_sloth")){
-                long count=seat.opening.cards.stream().filter(c->c.deployed&&!c.held&&rules.unit(c.unit).has("white_church")).count();
+                long count=seat.opening.cards.stream().filter(c->c.onField()&&rules.unit(c.unit).has("white_church")).count();
                 gain(seat,"white_church",(int)(count*actor.unit.s("churchPerMember",actor.star())));
+            }
+            if(actor.unit.id().equals(ArkCombat.JOSEPHINE)){
+                var original=seat.opening.card(actor.card.token);
+                int amount=(int)actor.unit.p("endLayers");
+                gainOpeningTraits(seat,original,amount);
+                var front=seat.opening.inFrontOf(original);
+                if(front!=null)gainOpeningTraits(seat,front,amount);
             }
         }
         if(wave==20){flush();finish("第20波全部清场，方舟战争胜利");return;}
         clearActors(false);
-        wave++;phase="PREP";stage=UUID.randomUUID().toString();deadline=now+preparationMillis();
+        wave++;phase="PREP";stage=UUID.randomUUID().toString();deadline=preparationDeadline(now);
         for(var seat:seats){
             seat.roster.reach(wave);seat.ready=false;seat.rallied=false;seat.allies.clear();
             journalPut("arkWar/owners/"+id+"/"+seat.owner,seat.roster);
             syncRoster(seat,false);
         }
         stateDirty=true;flush();
+    }
+    private void gainOpeningTraits(Seat seat,ArkRoster.Card card,int amount){
+        for(String trait:rules.unit(card.unit).traits())if(ArkTraits.active(trait,seat.counts,rules))gain(seat,trait,amount);
     }
     private void loadLives(){
         for(var actor:actors)if(!actor.entity.isRemoved()){
@@ -185,7 +198,7 @@ final class ArkBattle {
         if(before!=after){seat.layers.put(trait,after);seat.layerRevision++;stateDirty=true;}
     }
     void maximum(Actor actor,double maximum){
-        double before=actor.target.health(1);if(before==maximum)return;
+        double before=actor.target.health(1);if(Math.abs(before-maximum)<=Math.ulp(maximum)*4)return;
         actor.target.speciesHealth*=maximum/before;actor.target.life.basis++;actor.target.life.revision++;dirty.add(actor);
         if(actor.entity instanceof ArkRoleEntity role)role.maximum(maximum);
     }
@@ -252,7 +265,7 @@ final class ArkBattle {
         var replaced=seat.allies.stream().filter(actor->!reservesOnly||!actor.deployed()).toList();
         for(var actor:replaced){actor.entity.discard();actors.remove(actor);dirty.remove(actor);seat.allies.remove(actor);}
         if(!replaced.isEmpty())lives.release(replaced.stream().map(actor->actor.entity).toList());
-        for(var card:seat.roster.cards)if(!reservesOnly||!card.deployed){
+        for(var card:seat.roster.cards)if(!reservesOnly||!card.onField()){
             var definition=rules.unit(card.unit);
             var entity=ArkContentTypes.ROLE.get().create(level,EntitySpawnReason.COMMAND);if(entity==null)throw new IllegalStateException("无法创建角色");
             var target=target(entity,definition.health()*definition.starScale(card.star),definition.attack()*definition.starScale(card.star),
@@ -260,7 +273,9 @@ final class ArkBattle {
             entity.configure(seat.owner.toString(),card,definition,target);entity.setNoAi(true);entity.setNoGravity(card.held);
             entity.setInvisible(reservesOnly&&card.held);
             var scale=entity.getAttribute(Attributes.SCALE);if(scale!=null)scale.setBaseValue(card.held?.55:1);
-            Vec3 point=cardPosition(seat,card);entity.setPos(point.x,point.y,point.z);entity.setYRot(seat.plot().facing());
+            Vec3 point=cardPosition(seat,card);entity.setPos(point.x,point.y,point.z);
+            float yaw=card.yaw(seat.plot().facing());
+            entity.setYRot(yaw);entity.setYBodyRot(yaw);entity.setYHeadRot(yaw);
             var actor=new Actor(entity,seat,card,definition,false,false,"",target);seat.allies.add(actor);spawn(actor);
         }
     }
@@ -280,7 +295,7 @@ final class ArkBattle {
             rules.enemies.resistances(dragon[wave]),boss,elite,false);
         entity.configure(target);entity.setCustomName(Component.literal(name(kind)));entity.setCustomNameVisible(true);
         Vec3 point=seat.plot().spawn();entity.setPos(point.x,point.y,point.z);
-        var actor=new Actor(entity,seat,null,null,true,false,kind,target);actor.nextSkill=System.currentTimeMillis();spawn(actor);
+        var actor=new Actor(entity,seat,null,null,true,false,kind,target);spawn(actor);
     }
     static double[] profile(String kind){return switch(kind){
         case "goblin_thrower"->new double[]{.8,1.2};case "goblin_captain"->new double[]{1.6,1.4};
@@ -307,7 +322,9 @@ final class ArkBattle {
             &&actors.stream().noneMatch(a->a.enemy&&a.seat==seat&&a.phase==0&&a.alive())){
             seat.rallied=true;int index=0;
             for(var actor:seat.allies)if(actor.deployed()&&actor.alive()){
-                var point=seat.plot().rally(index++);actor.entity.setPos(point.x,point.y,point.z);actor.transferred=true;
+                var point=seat.plot().rally(index++);
+                if(actor.airborne)point=point.add(0,actor.unit.p("flightHeight"),0);
+                actor.entity.setPos(point.x,point.y,point.z);actor.transferred=true;
                 if(actor.entity instanceof Mob mob)mob.getNavigation().stop();
             }
         }
@@ -330,15 +347,29 @@ final class ArkBattle {
         var displayed=new JsonArray();
         for(var actor:actors)if(!actor.core&&actor.alive()){
             var view=new JsonObject();view.addProperty("entity",actor.entity.getId());view.addProperty("id",actor.entity.getStringUUID());
-            view.addProperty("maximum",actor.target.health(1));view.addProperty("health",actor.target.health(1)*actor.target.life.q);
+            view.addProperty("maximum",actor.target.health(1));view.addProperty("health",actor.target.health(1)*actor.target.life.q);view.addProperty("enemy",actor.enemy);
             if(actor.unit!=null)combat.skillState(actor,view,now,editing());
             displayed.add(view);
         }
         j.add("actors",displayed);
         if(personal!=null){
-            j.addProperty("seat",personal.index);j.addProperty("personalReady",personal.ready);j.add("roster",JSON.toJsonTree(personal.roster));j.add("layers",JSON.toJsonTree(personal.layers));j.add("counts",JSON.toJsonTree(editing()?ArkTraits.counts(personal.roster,rules):personal.counts));
+            var counts=editing()?ArkTraits.counts(personal.roster,rules):personal.counts;
+            j.addProperty("seat",personal.index);j.addProperty("personalReady",personal.ready);j.add("roster",JSON.toJsonTree(personal.roster));j.add("layers",JSON.toJsonTree(personal.layers));j.add("counts",JSON.toJsonTree(counts));
             var units=new JsonObject();
-            for(var a:personal.allies){var s=new JsonObject();s.addProperty("health",a.target.health(1)*a.target.life.q);s.addProperty("maximum",a.target.health(1));s.addProperty("attack",editing()?a.attackBase:a.stats.panel(a.unit.magic()));s.addProperty("physicalDefense",a.target.defense(1,false));s.addProperty("magicalDefense",a.target.defense(1,true));s.addProperty("attackRate",a.unit.attackRate()*(1+a.stats.get(Stat.ATTACK_SPEED)/100));s.addProperty("range",ArkTraits.range(a.unit,editing()?ArkTraits.counts(personal.roster,rules):personal.counts,personal.layers,rules));s.addProperty("emotion",a.emotion);s.addProperty("cooldown",Math.max(0,a.nextSkill-System.currentTimeMillis()));s.addProperty("chant",Math.max(0,a.castUntil-System.currentTimeMillis()));units.add(a.card.token,s);}
+            for(var a:personal.allies){
+                var s=new JsonObject();
+                s.addProperty("health",a.target.health(1)*a.target.life.q);
+                s.addProperty("maximum",a.target.health(1));
+                s.addProperty("attack",editing()?a.attackBase:a.stats.panel(a.unit.magic()));
+                s.addProperty("physicalDefense",a.target.defense(1,false));
+                s.addProperty("magicalDefense",a.target.defense(1,true));
+                s.addProperty("attackRate",combat.attackRate(a));
+                s.addProperty("range",editing()?ArkTraits.range(a.unit,counts,personal.layers,rules):combat.range(a));
+                s.addProperty("emotion",a.emotion);
+                s.addProperty("cooldown",a.skill.cooldownRemaining(now));
+                s.addProperty("active",Math.max(0,a.skill.end()-now));
+                units.add(a.card.token,s);
+            }
             j.add("units",units);
         }
         else j.addProperty("seat",-1);

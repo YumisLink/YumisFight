@@ -175,8 +175,9 @@ public final class Hud {
         g.pose().translate(x,6);
         g.pose().scale((float)scale,(float)scale);
         UiTheme.surface(g,0,0,TARGET_WIDTH,TARGET_INFO_HEIGHT,5,0xff101010,0xff8b919c);
-        g.text(UiFonts.font(),name+" Lv."+level,5,4,t.elite?0xffffce7d:0xffecf1f5);
-        g.text(UiFonts.font(),t.difficulty.title()+" · "+(t.kind.equals("BOSS")?"Boss":t.elite?"精英":"普通")+(t.elitePower.isEmpty()?"":" · "+switch(t.elitePower){case "strong"->"强壮";case "rage"->"狂暴";case "armor"->"坚韧";case "elemental"->"元素守护";default->"";}),5,16,0xffaab8ce);
+        boolean practice=s.dungeon!=null&&s.dungeon.practice!=null&&t.instance.equals(s.dungeon.id.toString());
+        g.text(UiFonts.font(),practice?name:name+" Lv."+level,5,practice?10:4,t.elite?0xffffce7d:0xffecf1f5);
+        if(!practice)g.text(UiFonts.font(),t.difficulty.title()+" · "+(t.kind.equals("BOSS")?"Boss":t.elite?"精英":"普通")+(t.elitePower.isEmpty()?"":" · "+switch(t.elitePower){case "strong"->"强壮";case "rage"->"狂暴";case "armor"->"坚韧";case "elemental"->"元素守护";default->"";}),5,16,0xffaab8ce);
         bar(g,5,29,174,9,q,t.kind.equals("BOSS")?0xffdfb545:0xffbe485a);
         g.text(UiFonts.font(),cn.yumis.fight.modules.presentation.api.client.NumberText.number(q*maximum)+" / "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(maximum),8,29,0xffffffff);
         ElementAccumulationHud.render(g,t.life,t.bossOrElite(),s.serverNow(),0,TARGET_INFO_HEIGHT+TARGET_ELEMENT_GAP,TARGET_WIDTH);

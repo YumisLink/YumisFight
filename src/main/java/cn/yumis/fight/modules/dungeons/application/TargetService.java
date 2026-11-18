@@ -76,7 +76,7 @@ public final class TargetService implements WorldTargets {
                 t.elite=mob.elite();
                 var d=dungeons.apply(t.instance);
                 if(d!=null){
-                    t.partySize=d.treasure==null?d.roster.size():d.treasure.partySize;
+                    t.partySize=d.practice!=null?1:d.treasure==null?d.roster.size():d.treasure.partySize;
                     t.difficulty=d.difficulty;
                 }
             }

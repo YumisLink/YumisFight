@@ -6,6 +6,7 @@ import net.minecraft.world.item.ItemStack;
 import static cn.yumis.fight.platform.ItemData.*;
 import static cn.yumis.fight.modules.equipment.api.EquipmentItems.gear;
 public final class ItemRarity {private ItemRarity(){}
+    public static int rankColor(int rank){return Rarity.values()[rank-1].color();}
     private static java.util.function.Function<ItemStack,Rarity> extra=stack->null;
     public static void external(java.util.function.Function<ItemStack,Rarity> resolver){extra=java.util.Objects.requireNonNull(resolver);}
     public static boolean decorated(ItemStack stack){return !stack.isEmpty()&&(extra.apply(stack)!=null||ShopDefinitions.listed(stack)||own(stack)&&(EquipmentItems.view(stack)!=null||CurrencyRules.find(id(stack))!=null));}

@@ -4,6 +4,8 @@ import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.UiTheme;
 import cn.yumis.fight.modules.inventory.api.SlotAccess;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
+import cn.yumis.fight.modules.equipment.api.CraftingEssences;
+import cn.yumis.fight.platform.ItemData;
 
 import cn.yumis.fight.mixin.CreativeSlotAccessor;
 import net.minecraft.client.Minecraft;
@@ -69,9 +71,21 @@ public final class CurrencyUi {
             PreviewKey key=new PreviewKey(EquipmentItems.serialized(equipment),currency.getItem(),currency.getComponentsPatch(),cn.yumis.fight.modules.equipment.api.EquipmentDefinitions.current(),cn.yumis.fight.modules.affixes.api.AffixDefinitions.current(),writable,Minecraft.getInstance().getLanguageManager().getSelected());
             List<Component> preview=PREVIEWS.get(key);
             if(preview==null){var gear=EquipmentItems.gear(equipment);if(gear==null)return;List<Component> extra=new ArrayList<>();
-                extra.add(Component.literal("──────── 当前通货 ────────").withColor(0x78869c));extra.add(currency.getHoverName().copy());extra.addAll(EquipmentTooltip.currencyLines(currency));
+                extra.add(Component.literal("──────── 当前通货 ────────").withColor(0x78869c));
+                extra.add(currency.getHoverName().copy());
+                var details=EquipmentTooltip.currencyLines(currency,gear);
+                String reason=writable?EquipmentTooltip.processingReason(currency,gear):"该栏位不能加工装备";
+                boolean essence=CraftingEssences.find(ItemData.id(currency))!=null;
+                if(essence){
+                    var limit=details.getFirst().copy();
+                    if(!reason.isEmpty())limit.append(Component.literal(" · "+reason).withColor(0xff9696));
+                    extra.add(limit);
+                    extra.add(details.getLast());
+                }else extra.addAll(details);
                 if(cn.yumis.fight.modules.equipment.api.Gemstones.currency(cn.yumis.fight.platform.ItemData.id(currency))){try{var gem=cn.yumis.fight.modules.equipment.api.Gemstones.read(currency);double factor=cn.yumis.fight.modules.equipment.api.EquipmentEffects.gemMultiplier(gear);extra.add(Component.literal("镶嵌后数值 ×"+cn.yumis.fight.modules.presentation.api.client.NumberText.number(factor)).withColor(0x85e4d6));for(var original:gem.affixes){var a=cn.yumis.fight.modules.equipment.api.EquipmentJson.copy(original,cn.yumis.fight.modules.affixes.api.Affix.class);if(java.util.Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA","MODIFIER").contains(a.operation)){a.value*=factor;a.maximum*=factor;}extra.add(Component.literal(cn.yumis.fight.modules.affixes.api.AffixText.affix(a)).withColor(0x85e4d6));}}catch(RuntimeException ignored){}}
-                String reason=writable?EquipmentTooltip.processingReason(currency,gear):"该栏位不能加工装备";extra.add(Component.literal(reason.isEmpty()?"右键加工 · 消耗1枚":reason).withColor(reason.isEmpty()?0x85e4d6:0xff9696));preview=List.copyOf(extra);
+                if(!essence)
+                    extra.add(Component.literal(reason.isEmpty()?"右键加工 · 消耗1枚":reason).withColor(reason.isEmpty()?0x85e4d6:0xff9696));
+                preview=List.copyOf(extra);
                 if(key.equipment().length()<=131072){PREVIEWS.put(key,preview);while(PREVIEWS.size()>128)PREVIEWS.remove(PREVIEWS.keySet().iterator().next());}
             }
             for(Component line:preview)lines.add(line.copy());

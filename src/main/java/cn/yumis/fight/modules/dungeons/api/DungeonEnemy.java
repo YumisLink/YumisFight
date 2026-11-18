@@ -2,15 +2,18 @@ package cn.yumis.fight.modules.dungeons.api;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.goal.ZombieAttackGoal;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.level.Level;
 import net.minecraft.network.syncher.*;
+import net.minecraft.server.level.ServerLevel;
 import org.jspecify.annotations.Nullable;
 public class DungeonEnemy extends Zombie {
     private static final EntityDataAccessor<String> MOVE=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Long> MOVE_AT=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.LONG);
     private static final EntityDataAccessor<Long> MOVE_DURATION=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.LONG);
     private static final EntityDataAccessor<Boolean> GUARDED=SynchedEntityData.defineId(DungeonEnemy.class,EntityDataSerializers.BOOLEAN);
+    private boolean practiceAi;
     public DungeonEnemy(EntityType<? extends Zombie> type,Level level){
         super(type,level);
         setCanPickUpLoot(false);
@@ -18,6 +21,10 @@ public class DungeonEnemy extends Zombie {
     }
     @Override protected boolean isSunSensitive(){
         return false;
+    }
+
+    @Override protected boolean convertsInWater(){
+        return PalaceEnemyKind.of(this)==null&&super.convertsInWater();
     }
 
     @Override
@@ -60,6 +67,20 @@ public class DungeonEnemy extends Zombie {
     public void scripted(){
         goalSelector.removeAllGoals(g->true);
         targetSelector.removeAllGoals(g->true);
+    }
+    /** Practice enemies use the room's target selection and the existing native melee receipt. */
+    public void practice(){
+        if(practiceAi)return;
+        practiceAi=true;
+        getPersistentData().putBoolean("ydnf_practice_enemy",true);
+        scripted();
+        goalSelector.addGoal(1,new ZombieAttackGoal(this,1,false));
+    }
+    @Override protected boolean shouldDropLoot(ServerLevel level){
+        return !getPersistentData().getBooleanOr("ydnf_practice_enemy",false)&&super.shouldDropLoot(level);
+    }
+    @Override public boolean shouldDropExperience(){
+        return !getPersistentData().getBooleanOr("ydnf_practice_enemy",false)&&super.shouldDropExperience();
     }
     /** Content may guide movement while leaving native melee and target goals intact. */
     public void movementGoal(net.minecraft.world.entity.ai.goal.Goal goal){goalSelector.addGoal(1,goal);}

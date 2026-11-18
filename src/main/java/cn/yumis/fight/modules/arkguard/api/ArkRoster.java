@@ -16,10 +16,15 @@ public final class ArkRoster {
     public List<Future> future=new ArrayList<>();
     public static final class Card {
         public String token="",unit="";
-        public int star=1,bench=-1,x,y,z;
+        public int star=1,bench=-1,x,y,z,facing=-1;
         public long order,placedAt;
         public boolean deployed,held;
+        public boolean onField(){return deployed&&!held;}
+        public float yaw(float fallback){return facing<0?fallback:facing*90f;}
         public int copies(){return switch(star){case 1->1;case 2->3;case 3->9;default->throw new IllegalArgumentException("星级无效");};}
+    }
+    private record Position(int x,int y,int z,int bench){
+        Position(Card card){this(card.x,card.y,card.z,card.bench);}
     }
     /** Conditional future facts are prepared by the owner; the host only selects the reached wave. */
     public static final class Future {
@@ -35,7 +40,7 @@ public final class ArkRoster {
     }
     public ArkRoster copy(){return JSON.fromJson(JSON.toJson(this),ArkRoster.class);}
     public Card card(String token){return cards.stream().filter(c->c.token.equals(token)).findFirst().orElseThrow(()->new IllegalArgumentException("角色已变化"));}
-    public int population(){return (int)cards.stream().filter(c->c.deployed&&!c.held).count();}
+    public int population(){return (int)cards.stream().filter(Card::onField).count();}
     public boolean owns(String unit){return cards.stream().anyMatch(c->c.unit.equals(unit));}
     public int upgradePrice(ArkRules rules){return level>=rules.maximumLevel?0:Math.max(0,rules.upgradeCosts[level-1]-(wave-lastUpgradeWave));}
     public void upgrade(ArkRules rules,Random random){
@@ -73,7 +78,7 @@ public final class ArkRoster {
         card.bench=freeBench(benches);cards.add(card);shop.set(slot,"");merge();
         if(cards.stream().anyMatch(c->!c.deployed&&!c.held&&c.bench<0))throw new IllegalArgumentException("备战区已满，且不能立即合成");
     }
-    private int freeBench(int capacity){for(int slot=0;slot<capacity;slot++){final int s=slot;if(cards.stream().noneMatch(c->!c.deployed&&!c.held&&c.bench==s))return slot;}return -1;}
+    private int freeBench(int capacity){for(int slot=0;slot<capacity;slot++){final int s=slot;if(cards.stream().noneMatch(c->c.bench==s))return slot;}return -1;}
     private void merge(){
         boolean changed;
         do{
@@ -97,20 +102,51 @@ public final class ArkRoster {
     }
     public void pick(String token){
         if(!carrying.isBlank())throw new IllegalArgumentException("请先放下抱着的角色");
-        Card c=card(token);c.deployed=false;c.held=true;c.bench=-1;c.placedAt=0;carrying=token;
+        Card c=card(token);c.held=true;carrying=token;
     }
     /** Coordinates are support blocks. Geometry/terrain is checked by the owner's interaction before calling this. */
-    public void place(int x,int y,int z,int bench,ArkRules rules){
-        if(carrying.isBlank())throw new IllegalArgumentException("当前没有抱起的角色");Card c=card(carrying);
+    public void place(int x,int y,int z,int bench,float yaw,ArkRules rules){
+        Card c=heldCard();
         if(bench>=0){
             if(cards.stream().anyMatch(other->other!=c&&!other.held&&!other.deployed&&other.bench==bench))throw new IllegalArgumentException("该备战位已经有角色");
-            c.bench=bench;c.deployed=false;c.placedAt=0;
         }else{
             if(population()>=rules.populations[level-1])throw new IllegalArgumentException("上场人口已满");
-            if(cards.stream().anyMatch(other->other!=c&&other.deployed&&other.x==x&&other.y==y&&other.z==z))throw new IllegalArgumentException("该布阵格已经有角色");
-            c.bench=-1;c.deployed=true;c.placedAt=++nextOrder;
+            if(cards.stream().anyMatch(other->other!=c&&other.onField()&&other.x==x&&other.y==y&&other.z==z))throw new IllegalArgumentException("该布阵格已经有角色");
         }
-        c.x=x;c.y=y;c.z=z;c.held=false;carrying="";
+        put(c,new Position(x,y,z,bench),false);
+        c.facing=cardinalFacing(yaw);
+        carrying="";
+    }
+    public void swap(String token,float yaw){
+        Card held=heldCard(),other=card(token);
+        if(held==other||other.held)throw new IllegalArgumentException("请选择另一个已放置的角色");
+        Position original=new Position(held);
+        put(held,new Position(other),true);
+        put(other,original,true);
+        held.facing=cardinalFacing(yaw);
+        carrying="";
+    }
+    private Card heldCard(){
+        if(carrying.isBlank())throw new IllegalArgumentException("当前没有抱起的角色");
+        return card(carrying);
+    }
+    private void put(Card card,Position position,boolean keepOrder){
+        boolean alreadyOnField=card.deployed;
+        card.x=position.x();
+        card.y=position.y();
+        card.z=position.z();
+        card.bench=position.bench();
+        card.deployed=position.bench()<0;
+        if(!card.deployed)card.placedAt=0;
+        else if(!keepOrder||!alreadyOnField)card.placedAt=++nextOrder;
+        card.held=false;
+    }
+    public static int cardinalFacing(float yaw){return Math.floorMod(Math.round(yaw/90f),4);}
+    public Card inFrontOf(Card origin){
+        if(!origin.onField()||origin.facing<0)return null;
+        int x=origin.x+(origin.facing==3?1:origin.facing==1?-1:0);
+        int z=origin.z+(origin.facing==0?1:origin.facing==2?-1:0);
+        return cards.stream().filter(c->c.onField()&&c.x==x&&c.y==origin.y&&c.z==z).findFirst().orElse(null);
     }
     private void pay(int amount){if(amount<0||coins<amount)throw new IllegalArgumentException("方舟币不足");coins-=amount;}
     public static int basicIncome(int wave){return Math.min(12,wave+3);}

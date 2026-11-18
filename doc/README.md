@@ -30,6 +30,7 @@
 | 技能内容、学习、费用与伤害 | `modules/skills/api/SkillCatalog.java`、`SkillLearning.java`、`SkillCosts.java`、`SkillDamageRules.java`；职业内容在同目录，本机施放从客户端 `skills/client/CareerClient.java`、`skills/api/client/SkillController.java` 进入；服务器世界实体在 `skills/application/` |
 | 角色、职业栏与存档 | `modules/character/api/JobCatalog.java`、`CareerProfiles.java`、`CharacterChanges.java`；本机判定在客户端 `character/client/CharacterClient.java`，存档端口 `CharacterPersistence.java`，编解码在 `application/CharacterStore.java` |
 | 副本、敌人与难度 | `modules/dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；经典后续副本的敌人／动作入口为 `ClassicEnemyKind.java`、`ClassicMove.java`；地图与编队在 `content/`，专属机制在 `application/*EncounterService.java`，本机接触与演出在客户端 `dungeons/client/` |
+| 练功房、材料来源与循环刷新 | `modules/dungeons/api/PracticeRoom.java`、`content/PracticeLayouts.java`、`application/PracticeEncounterService.java`；客户端入口为 `dungeons/client/DungeonPage.java`，金币与公共掉落由 `modules/economy/api/RewardRules.java` 结算 |
 | 引路石、引路台与地狱+ | `modules/dungeons/api/Waystone.java`、`WaystoneRules.java`；流程在 `application/WaystoneService.java`，参数在 `rules/catalog.json` 的 `waystones`；分阶宝箱在 `rules/chests.json` |
 | 工业设备、配方、科技与结算 | `modules/industry/api/DeviceType.java`、`IndustrialRules.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；机器／产线／传送带物流在 `platform/`；传送带放置与连接为 `platform/ConveyorConnections.java`、`ConveyorRoute.java`，客户端选点／寻路为 `industry/client/ConveyorPlacementClient.java`、`ConveyorPathfinder.java`，扣料与批量建造为 `application/ConveyorConstructionService.java` |
 | 副职业、经验与奖励 | `modules/professions/api/ProfessionCatalog.java`、`ProfessionRules.java`、`ProfessionRewards.java`；炼金配方与效果定义为 `AlchemyPotions.java`；道具品质接入在 `bootstrap/ProfessionItemDisplay.java`，统一消费 `economy/api/ItemRarity.java`；本机判定在客户端 `professions/client/ProfessionClient.java`、`AlchemyClient.java`，事实保存与管理奖励在 `application/ProfessionService.java` |
@@ -55,6 +56,7 @@
 | 配方、标签、掉落与世界生成 | `src/main/resources/data/yumis_dungeon_and_fight/{recipe,tags,loot_table,worldgen}/` |
 | 语言、模型、图标、着色器与动作 | `src/main/resources/assets/yumis_dungeon_and_fight/`，按业务目录查找 |
 | 贴图制作、重绘与换色 | [贴图创作](创作指南/贴图创作.md) |
+| 哥布林王国藏宝图图标 | 源稿 `tools/goblin_treasure_map.aseprite`，用 Aseprite `-b tools/goblin_treasure_map.aseprite --save-as src/main/resources/assets/yumis_dungeon_and_fight/textures/item/goblin_treasure_map.png` 导出 |
 | 管道12/14尺寸手绘素材 | 源稿 `tools/fluid_pipe_materials_12x14.aseprite`、方向标记 `tools/fluid_pipe_ports_14x2.aseprite`；初稿绘制 `tools/draw_fluid_pipe_materials_12x14.lua`；正式导出 `tools/export_fluid_pipe_materials_12x14.lua`；切片布局 `tools/fluid_pipe_materials_12x14_layout.json` |
 | 矿石方块换色与自发光 | 可编辑源稿 `tools/industrial_ores.aseprite`，配色与等级 `tools/industrial_ore_definitions.lua`，绘制及导出入口 `tools/draw_industrial_ores.lua`、`tools/export_industrial_ores.lua` |
 | 科技方块矩阵外观 | `tools/technology_blocks.aseprite`（五帧，16×16），绘制入口 `tools/draw_technology_blocks.lua`，玻璃／发光边／内核与双层模型导出 `tools/export_technology_blocks.lua`；尺寸与光照在 `modules/industry/platform/TechnologyBlock.java` |

@@ -19,6 +19,7 @@ public final class DragonTower {
     public static final DungeonLayouts.Bounds BOUNDS=new DungeonLayouts.Bounds(-45,-6,-45,45,183,45);
     public static final int LEVELS=7,FLOOR_HEIGHT=26;
     private static final double TAU=Math.PI*2,STAIR_RADIUS=32,LANDING_HALF=.10;
+    private static final int CROWN_BRIDGE_START = 14, LANDING_BRIDGE_HALF_WIDTH = 3;
     private static final double[] PHASE={0,2.02,4.13,6.20,8.34,10.43,TAU*2};
     private static final String[] TITLES={"塔基守望庭","战备军械层","翼龙栖息层","蓝晶供能层","坍塌观测廊","龙卫残殿","鲁卡斯断裂塔冠"};
     public record Floor(int index,String title,int y,double x,double z,double rx,double rz,double angle){
@@ -41,7 +42,21 @@ public final class DragonTower {
     public static List<Floor> floors(){return FLOORS;}
     public static Vec3 landing(int floor){return new Vec3(STAIR_RADIUS*Math.cos(PHASE[floor]),floor*FLOOR_HEIGHT,STAIR_RADIUS*Math.sin(PHASE[floor]));}
     public static Vec3 entry(BlockPos origin){return landing(0).add(origin.getX()+.5,origin.getY(),origin.getZ()+.5);}
-    public static boolean arrives(int floor,Vec3 local){Vec3 p=landing(floor);return Math.abs(local.y-p.y)<3.5&&Math.hypot(local.x-p.x,local.z-p.z)<8;}
+    public static boolean arrives(int floor, Vec3 local) {
+        Vec3 landing = landing(floor);
+        return Math.abs(local.y - landing.y) < 3.5
+                && (Math.hypot(local.x - landing.x, local.z - landing.z) < 8
+                || floor == LEVELS - 1 && onCrown(local, landing));
+    }
+    private static boolean onCrown(Vec3 local, Vec3 landing) {
+        Floor crown = FLOORS.getLast();
+        if (crown.contains(local.x, local.z, 1)) return true;
+
+        Vec3 position = crown.local(local.x, local.z);
+        double bridgeEnd = crown.local(landing.x, landing.z).x;
+        return position.x >= CROWN_BRIDGE_START && position.x <= bridgeEnd
+                && Math.abs(position.z) <= LANDING_BRIDGE_HALF_WIDTH + .5;
+    }
     public static List<Vec3> spawns(int floor){
         Floor f=FLOORS.get(floor);
         return floor==6?List.of(f.at(-2,0,0)):List.of(f.at(-5,0,-4),f.at(4,0,5),f.at(-6,0,5),f.at(3,0,-7));
@@ -153,7 +168,8 @@ public final class DragonTower {
                     if(!entrance){put(x,f.y,z,Blocks.STONE_BRICKS);put(x,f.y+1,z,Blocks.COBBLESTONE_WALL);}
                 }
             }
-            bridge(f.at(f.index==6?14:6,0,0),landing(f.index),f.y,3,false);
+            bridge(f.at(f.index == LEVELS - 1 ? CROWN_BRIDGE_START : 6, 0, 0),
+                    landing(f.index), f.y, LANDING_BRIDGE_HALF_WIDTH, false);
         }
         private void catchBelow(Floor f){
             Vec3 g=gap(f);Floor lower=FLOORS.get(f.index-1);

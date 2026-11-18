@@ -32,7 +32,7 @@ public class DamageMeterService {
     }
     /** Called inside the same WAL batch as the receipt, never from a visual or client total. */
     public void record(ServerPlayer player,Target target,double fraction,long time)throws Exception{
-        Dungeon dungeon=current.apply(player.getUUID());if(dungeon==null||!dungeon.status.equals("RUNNING"))return;
+        Dungeon dungeon=current.apply(player.getUUID());if(dungeon==null||dungeon.practice!=null||!dungeon.status.equals("RUNNING"))return;
         if(target!=null&&!target.instance.equals(dungeon.id.toString()))return;
         DamageMeter meter=load(dungeon);if(meter.frozenAt>0)return;
         var entry=meter.players.computeIfAbsent(player.getStringUUID(),id->new DamageMeter.Entry());entry.name=player.getScoreboardName();entry.event(time,timing.get().delayMillis());
@@ -42,7 +42,7 @@ public class DamageMeterService {
     public void freeze(Dungeon dungeon)throws Exception{DamageMeter meter=load(dungeon);if(meter.frozenAt==0){meter.frozenAt=System.currentTimeMillis();journal.put("damageMeter/"+dungeon.id,meter);}broadcast(dungeon);}
     public void broadcast(Dungeon dungeon){for(var player:server.getPlayerList().getPlayers())if(participant.test(player,dungeon.id.toString()))send(player,dungeon);}
     public void send(ServerPlayer viewer,Dungeon dungeon){
-        JsonObject result=new JsonObject();if(dungeon==null){emit(viewer,result);return;}
+        JsonObject result=new JsonObject();if(dungeon==null||dungeon.practice!=null){emit(viewer,result);return;}
         DamageMeter meter=load(dungeon);long now=meter.frozenAt>0?meter.frozenAt:System.currentTimeMillis();
         int viewerLevel=level.applyAsInt(viewer);boolean sync=dungeon.syncFor(viewer.getUUID());
         var entries=new ArrayList<>(meter.players.entrySet());entries.removeIf(e->dungeon.withdrawn.contains(UUID.fromString(e.getKey()))||server.getPlayerList().getPlayer(UUID.fromString(e.getKey()))==null);entries.sort(Comparator.<Map.Entry<String,DamageMeter.Entry>>comparingDouble(e->e.getValue().displayed(viewerLevel,sync)).reversed().thenComparing(Map.Entry::getKey));

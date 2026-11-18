@@ -1,1 +1,6 @@
-{"model":{"type":"minecraft:model","model":"minecraft:item/map"}}
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "yumis_dungeon_and_fight:item/goblin_treasure_map"
+  }
+}

@@ -6,8 +6,11 @@ import com.google.gson.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.DoubleSupplier;
 
 /** Equipment-owned deterministic essence recipes and their application qualifications. */
 public final class CraftingEssences {
@@ -62,15 +65,70 @@ public final class CraftingEssences {
         if(!essence.family().isEmpty()&&!EquipmentAffixes.skillFamilyAllowed(g,essence.family()))throw new IllegalArgumentException("武器不符合该技能系别资格");
         if(g.affixes.stream().filter(a->!a.base).anyMatch(a->d.operation().equals("SKILL_FAMILY")?a.operation.equals("SKILL_FAMILY"):sameEffect(a,d)))throw new IllegalArgumentException("装备已有同效果词条，不能重复工艺");
         if(d.operation().equals("PERCENT")&&EquipmentAffixes.base(g,d.stat())<=0)throw new IllegalArgumentException("装备没有对应的基础属性");
-        Affix a=new Affix();a.id=d.id();a.operation=d.operation();a.stat=d.stat()==null?"":d.stat().name();a.element=d.element();a.crafted=true;a.roll=1;
-        if(a.operation.equals("SKILL_FAMILY")){a.family=essence.family();a.rank=2;a.fixed=true;}
-        else if(a.operation.equals("EXTRA")){a.value=a.baseline=.1*EquipmentRules.budget(g.level);a.maximum=a.baselineMaximum=.2*EquipmentRules.budget(g.level);}
-        else if(a.stat.equals("ATTACK_SPEED")){a.value=AttackSpeedRoll.sample(g.level,1);a.baseline=AttackSpeedRoll.sample(g.level,.8);a.baselineMaximum=AttackSpeedRoll.sample(g.level,1.2);}
-        else if(d.minimum()!=null){a.value=(d.minimum()+(d.maximum()-d.minimum())*(essence.dropOnly()?random.nextDouble():.5))*d.scale();a.baseline=a.value;}
-        else a.value=a.baseline=EquipmentAffixes.baseline(g,a);
+        Affix a=craftAffix(g,essence,d,random::nextDouble);
         AffixResolver.anchor(a,g.instance+"/"+UUID.randomUUID(),d,d.revision(),d.effectiveScale(g.level));
         g.affixes.add(a);g.rarity=Rarity.LEGENDARY;g.revision++;
         return EquipmentResolution.initialize(g);
+    }
+    public static String effectPreview(Definition essence,Gear target){
+        var definition=AffixDefinitions.current().affixes.get(essence.affix());
+        if(definition==null||!definition.active())return "效果未开放";
+        Gear gear=target;
+        if(gear==null||!essence.slots().contains(gear.slot)){
+            gear=new Gear();
+            gear.level=target==null?80:target.level;
+            gear.slot=essence.slots().getFirst();
+        }
+        var affix=craftAffix(gear,essence,definition,()->.5);
+        var range=EquipmentAffixRanges.reroll(affix,Rarity.LEGENDARY,false,gear.level);
+        if(range==null)return AffixText.affix(affix);
+        if(range.interval()){
+            String element=String.valueOf("光火冰暗".charAt(affix.element));
+            return "附加"+span(affix.value,affix.maximum,"")+"点"+element+"属性伤害（可洗 "+span(range.minimum(),range.upperMinimum(),"")
+                +" 至 "+span(range.maximum(),range.upperMaximum(),"")+"）";
+        }
+        boolean percent=EquipmentAffixRanges.percentage(affix);
+        String unit=percent||affix.stat.equals("ATTACK_SPEED")?"%":affix.stat.equals("DROP_RATE")?" 个百分点":"";
+        String interval=span(range.minimum(),range.maximum(),unit);
+        if(affix.operation.equals("WEAPON_ELEMENT")){
+            String element=String.valueOf("光火冰暗".charAt(affix.element));
+            return "赋予"+element+"属性攻击，"+AffixText.statName(definition.stat())+" +"+interval;
+        }
+        String stat=affix.operation.equals("ALL_RESIST_FLAT")?"所有元素抗性":
+            definition.stat()==null?definition.name():AffixText.statName(definition.stat());
+        String name=(affix.operation.equals("PERCENT")?"本装备":"")+stat;
+        return name+" +"+(essence.dropOnly()?interval:decimal(affix.value*(percent?100:1))+unit+"（"+interval+"）");
+    }
+    private static String span(double minimum,double maximum,String unit){
+        return decimal(minimum)+unit+"～"+decimal(maximum)+unit;
+    }
+    private static String decimal(double value){
+        return BigDecimal.valueOf(value).setScale(2,RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+    }
+    private static Affix craftAffix(Gear gear,Definition essence,AffixDefinition definition,DoubleSupplier quality){
+        var affix=new Affix();
+        affix.id=definition.id();
+        affix.operation=definition.operation();
+        affix.stat=definition.stat()==null?"":definition.stat().name();
+        affix.element=definition.element();
+        affix.crafted=true;
+        affix.roll=1;
+        if(affix.operation.equals("SKILL_FAMILY")){
+            affix.family=essence.family();
+            affix.rank=2;
+            affix.fixed=true;
+        }else if(affix.operation.equals("EXTRA")){
+            affix.value=affix.baseline=.1*EquipmentRules.budget(gear.level);
+            affix.maximum=affix.baselineMaximum=.2*EquipmentRules.budget(gear.level);
+        }else if(affix.stat.equals("ATTACK_SPEED")){
+            affix.value=AttackSpeedRoll.sample(gear.level,1);
+            affix.baseline=AttackSpeedRoll.sample(gear.level,.8);
+            affix.baselineMaximum=AttackSpeedRoll.sample(gear.level,1.2);
+        }else if(definition.minimum()!=null){
+            double roll=essence.dropOnly()?quality.getAsDouble():.5;
+            affix.value=affix.baseline=(definition.minimum()+(definition.maximum()-definition.minimum())*roll)*definition.scale();
+        }else affix.value=affix.baseline=EquipmentAffixes.baseline(gear,affix);
+        return affix;
     }
     private static boolean sameEffect(Affix a,AffixDefinition d){return a.operation.equals(d.operation())&&Objects.equals(a.stat,d.stat()==null?"":d.stat().name())&&a.element==d.element();}
 }

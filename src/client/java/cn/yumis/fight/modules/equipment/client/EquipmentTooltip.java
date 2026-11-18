@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.equipment.client;
 import cn.yumis.fight.modules.equipment.api.CraftingEssences;
 import cn.yumis.fight.modules.equipment.api.Gemstones;
 import cn.yumis.fight.modules.affixes.api.AffixDefinitions;
+import cn.yumis.fight.modules.presentation.api.ModText;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.ClientSettings;
 import cn.yumis.fight.modules.inventory.api.SlotAccess;
@@ -59,7 +60,19 @@ public final class EquipmentTooltip {
         return AffixText.affix(a);
     }
     public static List<Component> currencyLines(ItemStack stack){
+        return currencyLines(stack,null);
+    }
+    static List<Component> currencyLines(ItemStack stack,Gear target){
         String id=ItemData.id(stack);
+        var essence=CraftingEssences.find(id);
+        if(essence!=null){
+            String limit="限制：未腐化神器 · "+String.join("、",essence.slots().stream().map(Slot::title).toList());
+            var definition=AffixDefinitions.current().affixes.get(essence.affix());
+            if(!essence.family().isEmpty()&&definition!=null)limit+=" · "+definition.name()+"系武器";
+            String effect="将神器升级为传说并增加词条 · "+CraftingEssences.effectPreview(essence,target);
+            return List.of(ModText.of(limit).withStyle(style->style.withColor(0x9aa9be).withItalic(false)),
+                ModText.of(effect).withStyle(style->style.withColor(0xa6c3db).withItalic(false)));
+        }
         String effect=switch(id){
             case "transmutation_stone"->"普通装备变为稀有，并新增1条随机词条";
             case "augmentation_stone"->"稀有装备变为神器，并新增1条随机词条";
@@ -82,15 +95,12 @@ public final class EquipmentTooltip {
             case "affix_gem"->"镶嵌到宝石孔；覆盖会销毁原宝石";
             default->"";
         };
-        var essence=CraftingEssences.find(id);
-        if(essence!=null)effect="神器升为传说，保留原词条并追加"+AffixDefinitions.current().affixes.get(essence.affix()).name()+"；部位："+essence.slots().stream().map(cn.yumis.fight.modules.equipment.api.Slot::title).collect(java.util.stream.Collectors.joining("、"));
         if(Gemstones.currency(id))effect="镶嵌到宝石孔；同件不可重复同效果，覆盖会销毁原宝石";
         if(effect.isEmpty())return List.of();
         List<Component> lines=new ArrayList<>();
         var badge=currencyBadge.apply(id);
         if(badge!=null)lines.add(badge);
         lines.add(text(effect,0xa6c3db));
-        if(essence!=null){lines.add(text(essence.dropOnly()?"工艺数值随机；可用神圣石重洗，保留原装备投入":"工艺初始取中点；有范围可用神圣石重洗，升级保留分位",0xffbc78));lines.add(text(essence.dropOnly()?(id.equals("essence_alaska_wisdom")?"GBL教首领5%公共掉落；仅提高怪物击杀经验":"城主宫殿首领稀有池总计5%，四种精华等概率") :"仅在赫拉迪姆方块有序合成",0x9aa9be));}
         if(java.util.Set.of("divine_stone","advanced_divine_stone","perfect_divine_stone").contains(id))lines.add(text("各品质的明确随机区间均可重掷；基础、固定值、技能等级及宝石不重洗；锁定只防删除替换",0xffbc78));
         if(id.equals("chaos_stone"))lines.add(text("技能等级词条不可重掷、未锁定可替换；基础、固有效果、宝石及锁定词条受保护",0xffbc78));
         if(id.equals("fracturing_orb"))lines.add(text("锁定后不可删除替换；神圣石仍可重掷数值",0xffbc78));

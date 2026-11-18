@@ -4,10 +4,17 @@ import java.util.*;
 
 /** Pure roster/trait rules shared by the owner's preview and the world actors. */
 public final class ArkTraits {
+    public static final String SANCTUARY="sanctuary";
+    public record Meter(String name,int tier,int count,int threshold,int layers){
+        public String label(){
+            String rank=switch(tier){case 0->"";case 1->" I";case 2->" II";case 3->" III";default->" "+tier;};
+            return name+rank+"（"+count+"/"+threshold+"） "+layers;
+        }
+    }
     private ArkTraits(){}
     public static Map<String,Integer> counts(ArkRoster roster,ArkRules rules){
         var counts=new LinkedHashMap<String,Integer>();var unique=new HashSet<String>();
-        for(var card:roster.cards)if(card.deployed&&!card.held&&unique.add(card.unit))
+        for(var card:roster.cards)if(card.onField()&&unique.add(card.unit))
             for(String trait:rules.unit(card.unit).traits())counts.merge(trait,1,Integer::sum);
         boolean beasts=counts.getOrDefault("beast",0)>0,witches=counts.getOrDefault("witch_garden",0)>0;
         if(beasts&&witches){counts.put("beast",0);counts.put("witch_garden",0);}
@@ -27,10 +34,30 @@ public final class ArkTraits {
         return tier;
     }
     public static boolean active(String id,Map<String,Integer> counts,ArkRules rules){return tier(id,counts,rules)>0;}
-    public static List<String> present(ArkRoster roster,ArkRules rules){
-        var result=new LinkedHashSet<String>();
-        for(var card:roster.cards)if(card.deployed&&!card.held)result.addAll(rules.unit(card.unit).traits());
-        return List.copyOf(result);
+    public static double sanctuaryHealing(int layers){return (30+.5*layers)/100;}
+    public static boolean sanctuaryProtection(int layers){return layers>40;}
+    public static Meter meter(String id,Map<String,Integer> counts,Map<String,Integer> layers,ArkRules rules){
+        var trait=rules.trait(id);
+        int count=counts.getOrDefault(id,0),layersNow=layers.getOrDefault(id,0),memberTier=tier(id,counts,rules);
+        int visibleTier=memberTier;
+        if(memberTier>0){
+            boolean upgraded=switch(id){
+                case "arcane","brute"->layersNow>120;
+                case "precision"->layersNow>=120;
+                case "chronology","winter"->layersNow>=40;
+                case SANCTUARY->sanctuaryProtection(layersNow);
+                default->false;
+            };
+            if(upgraded)visibleTier=Math.max(2,memberTier);
+        }
+        var thresholds=trait.thresholds();
+        int next=thresholds[Math.min(memberTier,thresholds.length-1)];
+        return new Meter(trait.name(),visibleTier,count,next,layersNow);
+    }
+    public static List<String> displayOrder(Collection<String> ids,Map<String,Integer> counts,Map<String,Integer> layers){
+        return ids.stream().sorted(Comparator.<String>comparingInt(id->counts.getOrDefault(id,0))
+            .thenComparingInt(id->layers.getOrDefault(id,0)).reversed()
+            .thenComparing(Comparator.naturalOrder())).toList();
     }
     public static boolean brute(ArkRules.Unit unit,Map<String,Integer> counts,Map<String,Integer> layers,ArkRules rules){
         return active("brute",counts,rules)&&(unit.has("brute")||layers.getOrDefault("brute",0)>120&&unit.range()<=3);
@@ -58,6 +85,7 @@ public final class ArkTraits {
             case "winter"->{rows.add("冻结积累提高："+(100+5*l)+"%");if(l>=40)rows.add("对冻结目标伤害倍率："+(220+5*l)+"%");}
             case "guardian"->rows.add("两防提高："+(30+2*l)+"%");
             case "flame_lord"->{rows.add("攻击提高："+(25+l)+"%");rows.add("每0.5秒灼燃："+(tier>=3?100000+500L*l:tier==2?50000+250L*l:30000+200L*l));}
+            case SANCTUARY->rows.add("额外治疗："+ArkRules.number(sanctuaryHealing(l)*100)+"%原始治疗量");
             default->{}
         }
         rows.addAll(rules.trait(id).description());return rows;

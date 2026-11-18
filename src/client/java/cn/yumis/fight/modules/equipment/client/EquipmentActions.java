@@ -9,7 +9,8 @@ import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.platform.ItemData;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
 import java.util.function.*;
@@ -19,11 +20,35 @@ public final class EquipmentActions {
     private static final Random RANDOM=new Random();private static final Gson JSON=new Gson();
     private static Supplier<Progress> progress;private static Supplier<JsonObject> profile;private static Function<String,Profession> profession;
     private static final Map<String,String> initializing=new HashMap<>();
+    private record CreativeCurrency(String operation, InventoryMenu menu, ItemStack before, ItemStack after) {}
+    private static CreativeCurrency creativeCurrency;
     private EquipmentActions(){}
-    public static void clear(){initializing.clear();}
+    public static void clear(){initializing.clear();creativeCurrency=null;}
     public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<JsonObject> view,Function<String,Profession> professions){progress=p;profile=view;profession=professions;router.register("equipment","craft",(ignored,j)->craft(j));router.register("equipment","cubeCraft",(ignored,j)->EquipmentChanges.prepareCube(Minecraft.getInstance().player,profession.apply("craftsman"),j));router.register("equipment","currency",(ignored,j)->currency(j));router.register("equipment","initializeEquipment",(ignored,j)->initialize(j));}
     private static void craft(JsonObject j){EquipmentChanges.prepareCraft(Minecraft.getInstance().player,progress.get(),profile.get().get("craftAllowed").getAsBoolean(),profession.apply("craftsman"),j,RANDOM);}
-    private static void currency(JsonObject j){EquipmentChanges.prepareCurrency(Minecraft.getInstance().player,j,RANDOM);}
+    private static void currency(JsonObject request) {
+        var player = Minecraft.getInstance().player;
+        boolean creative = request.has("creativeCursor");
+        if (player == null || creative != (player.containerMenu instanceof CreativeModeInventoryScreen.ItemPickerMenu)) {
+            throw new IllegalArgumentException("加工界面已变化");
+        }
+        ItemStack remainder = EquipmentChanges.prepareCurrency(player, request, RANDOM);
+        if (creative) {
+            var menu = player.inventoryMenu;
+            creativeCurrency = new CreativeCurrency(request.get("operation").getAsString(), menu, menu.getCarried().copy(), remainder);
+        }
+    }
+    public static boolean creativeCurrencyPending() {
+        return creativeCurrency != null;
+    }
+    public static void currencyFinished(JsonObject request, boolean committed) {
+        var pending = creativeCurrency;
+        if (pending == null || !pending.operation().equals(request.get("operation").getAsString())) return;
+        creativeCurrency = null;
+        if (committed && ItemStack.matches(pending.menu().getCarried(), pending.before())) {
+            pending.menu().setCarried(pending.after());
+        }
+    }
     private static void initialize(JsonObject j){
         var player=Minecraft.getInstance().player;String area=j.get("area").getAsString();int index=j.get("slot").getAsInt();var source=InventoryEdits.source(player,area,index);ItemStack generated;
         var gear=EquipmentItems.gear(source);

@@ -175,7 +175,7 @@ public final class ArkGuardService {
             ||!cn.yumis.fight.modules.economy.api.CurrencyRules.ARK_COIN.id().equals(r.currency))throw new IllegalArgumentException("个人方舟事实格式无效");
         ArkRules rules=battle==null?lobbyRules:battle.rules;Set<String> tokens=new HashSet<>();
         if(r.shop.size()!=rules.shopSlots(r.level))throw new IllegalArgumentException("商店栏位格式无效");
-        for(var card:r.cards){if(card==null||!tokens.add(card.token)||card.star<1||card.star>3)throw new IllegalArgumentException("卡牌身份格式无效");UUID.fromString(card.token);rules.unit(card.unit);}
+        for(var card:r.cards){if(card==null||!tokens.add(card.token)||card.star<1||card.star>3||card.facing< -1||card.facing>3)throw new IllegalArgumentException("卡牌身份格式无效");UUID.fromString(card.token);rules.unit(card.unit);}
         for(String id:r.shop)if(!id.isBlank())rules.unit(id);
         Set<Integer> waves=new HashSet<>();
         for(var frame:r.future){if(frame==null||frame.wave<=wave||frame.wave>20||!waves.add(frame.wave)||frame.coins<0||frame.pool==null||frame.shop==null||frame.shop.size()!=rules.shopSlots(r.level))throw new IllegalArgumentException("后续事实格式无效");for(String id:frame.shop)if(!id.isBlank())rules.unit(id);}

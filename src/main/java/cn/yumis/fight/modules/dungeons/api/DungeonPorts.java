@@ -27,6 +27,7 @@ public final class DungeonPorts {
     public interface Rewards {
         void move(ServerPlayer player,String instance,ReturnPoint destination);
         void publish();
+        void closePractice(String instance)throws Exception;
     }
     public interface Meter {
         void join(Dungeon dungeon,ServerPlayer player)throws Exception;

@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 /** The bootstrap injects the established client hit queue without exposing another module's state. */
 public final class DungeonClientMessages {
     public static void register(CommandRouter<Void,JsonObject> router,Consumer<JsonObject> hit,Consumer<String> cancel){
+        router.register("dungeons","treasureMapClue",(context,j)->TreasureMapClient.receiveClue(j));
         router.register("dungeons","bossAction",(context,j)->{j.remove("clientContact");EnemyTelegraphs.receive(j);hit.accept(j);});
         router.register("dungeons","cancelBossAction",(context,j)->{String id=j.get("id").getAsString();EnemyTelegraphs.cancel(id);cancel.accept(id);});
         router.register("dungeons","palaceAttack",(context,j)->{PalaceVisuals.receive(j);EncounterClientContacts.receive(EncounterClientContacts.Family.PALACE,j,hit);});

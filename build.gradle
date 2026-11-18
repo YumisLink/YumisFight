@@ -10,6 +10,8 @@ base { archivesName = 'YumisDungeonAndFight' }
 layout.buildDirectory = file('temp/build')
 java { toolchain { languageVersion = JavaLanguageVersion.of(25) }; withSourcesJar() }
 sourceSets.main.java.srcDir 'src/client/java'
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 repositories { mavenCentral() }
 neoForge {
     version = '26.2.0.93'

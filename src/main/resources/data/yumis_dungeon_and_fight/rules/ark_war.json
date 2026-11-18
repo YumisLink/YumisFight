@@ -7,6 +7,246 @@
   "maximumTraitLayers": 2000,
   "units": [
     {
+      "id": "ark_priest",
+      "name": "“神父”",
+      "role": "治疗者",
+      "health": 35000,
+      "physicalDefense": 320,
+      "magicalDefense": 720,
+      "tier": 1,
+      "cost": 2,
+      "attack": 6600,
+      "attackRate": 1.17,
+      "range": 7,
+      "magic": true,
+      "elements": [],
+      "traits": [
+        "white_church",
+        "sanctuary"
+      ],
+      "skin": "ark_yunyimu",
+      "parameters": {
+        "basicHeal": 1,
+        "burstHeal": 1.55,
+        "tickHeal": 0.3,
+        "duration": 8,
+        "cooldown": 30
+      },
+      "stars": {
+        "churchGrowth": [
+          0.01,
+          0.02,
+          0.03
+        ]
+      },
+      "description": [
+        "普攻按自身攻击力的{basicHeal:percent}治疗生命比例最低的友方角色，可治疗自己。",
+        "立即为一名友方恢复{burstHeal:percent}攻击力的生命，接下来{duration}秒每秒回复{tickHeal:percent}攻击力的生命。冷却{cooldown}秒。",
+        "纯白教堂每有一层，自身攻击与最大生命提高{churchGrowth:starsPercent}。"
+      ]
+    },
+    {
+      "id": "ark_knot",
+      "name": "纽结",
+      "role": "坦克",
+      "health": 90000,
+      "physicalDefense": 1100,
+      "magicalDefense": 800,
+      "tier": 1,
+      "cost": 2,
+      "attack": 3600,
+      "attackRate": 0.72,
+      "range": 2.5,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "kalien"
+      ],
+      "skin": "ark_ruisite",
+      "parameters": {
+        "knockbackResistance": 1,
+        "defense": 0.75,
+        "defensePenalty": 0.8,
+        "duration": 55,
+        "cooldown": 110
+      },
+      "stars": {
+        "victoriaGain": [
+          1,
+          2,
+          5
+        ]
+      },
+      "description": [
+        "两防提高{defense:percent}，持续{duration}秒。随后两防总降{defensePenalty:percent}，直到再次开技能或本波结束。冷却{cooldown}秒。",
+        "技能开启及强化结束时，已激活的维多利亚各增加{victoriaGain:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_wei",
+      "name": "维伊",
+      "role": "法师",
+      "health": 39000,
+      "physicalDefense": 400,
+      "magicalDefense": 670,
+      "tier": 2,
+      "cost": 2,
+      "attack": 6300,
+      "attackRate": 0.89,
+      "range": 7,
+      "magic": true,
+      "elements": [],
+      "traits": [
+        "victoria",
+        "arcane"
+      ],
+      "skin": "ark_timina",
+      "parameters": {
+        "attackGain": 0.25,
+        "bounceRange": 3,
+        "bounceTargets": 2,
+        "duration": 35,
+        "cooldown": 80
+      },
+      "stars": {
+        "victoriaGain": [
+          1,
+          2,
+          4
+        ],
+        "victoriaCap": [
+          6,
+          12,
+          24
+        ]
+      },
+      "description": [
+        "攻击力提高{attackGain:percent}。普攻命中后，随机弹射至主目标{bounceRange}格内的至多{bounceTargets}名其他敌人。持续{duration}秒，冷却{cooldown}秒。",
+        "每击杀一个敌人，已激活的维多利亚增加{victoriaGain:stars}层，每波至多{victoriaCap:stars}层。"
+      ]
+    },
+    {
+      "id": "ark_anna",
+      "name": "安娜",
+      "role": "坦克",
+      "health": 105000,
+      "physicalDefense": 1200,
+      "magicalDefense": 1020,
+      "tier": 2,
+      "cost": 2,
+      "attack": 4200,
+      "attackRate": 0.65,
+      "range": 2.5,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "victoria",
+        "sanctuary"
+      ],
+      "skin": "ark_baiyan",
+      "parameters": {
+        "knockbackResistance": 1,
+        "chant": 10,
+        "chantReduction": 0.8,
+        "tauntRange": 2,
+        "duration": 35,
+        "healRange": 2,
+        "pulseHeal": 3.3,
+        "cooldown": 80
+      },
+      "stars": {
+        "emotionGain": [
+          1,
+          2,
+          5
+        ]
+      },
+      "description": [
+        "咏唱{chant}秒，嘲讽射程+{tauntRange}格内的敌人，受到的伤害总降{chantReduction:percent}。",
+        "随后{duration}秒进入治疗状态，按普攻节奏为射程+{healRange}格内的友方各恢复{pulseHeal:percent}攻击力的生命。冷却{cooldown}秒。",
+        "每次出手，直接回血且符合维多利亚条件的友方以及安娜获得{emotionGain:stars}层情绪高涨，各单位至多获得一次。"
+      ]
+    },
+    {
+      "id": "ark_josephine",
+      "name": "若瑟芬",
+      "role": "射手",
+      "health": 42000,
+      "physicalDefense": 430,
+      "magicalDefense": 640,
+      "tier": 3,
+      "cost": 3,
+      "attack": 8350,
+      "attackRate": 0.9,
+      "range": 8,
+      "magic": false,
+      "elements": [
+        0
+      ],
+      "traits": [
+        "white_church",
+        "chronology"
+      ],
+      "skin": "ark_siliu",
+      "parameters": {
+        "attackCycle": 25,
+        "attackGain": 0.1,
+        "skillHits": 3,
+        "skillTargets": 2,
+        "duration": 35,
+        "endLayers": 3
+      },
+      "stars": {},
+      "description": [
+        "技能外普攻{attackCycle}次后开启。攻击力提高{attackGain:percent}，普攻变为{skillHits}连击并同时攻击至多{skillTargets}名敌人，持续{duration}秒。",
+        "每波结束，按开战布阵时的朝向，为自己和前方相邻一格的友方各自已激活的羁绊增加{endLayers}层。"
+      ]
+    },
+    {
+      "id": "ark_karl_phantom",
+      "name": "卡尔的幻身",
+      "role": "射手",
+      "health": 45000,
+      "physicalDefense": 450,
+      "magicalDefense": 620,
+      "tier": 3,
+      "cost": 3,
+      "attack": 7950,
+      "attackRate": 1.02,
+      "range": 7,
+      "magic": false,
+      "elements": [],
+      "traits": [
+        "chronology",
+        "victoria"
+      ],
+      "skin": "ark_benares",
+      "parameters": {
+        "flightHeight": 2.2,
+        "rangeGain": 3,
+        "attackGain": 0.3,
+        "skillTargets": 2,
+        "duration": 15,
+        "cooldown": 25
+      },
+      "stars": {
+        "chronologyGain": [
+          1,
+          2,
+          4
+        ],
+        "chronologyCap": [
+          8,
+          16,
+          32
+        ]
+      },
+      "description": [
+        "飞到空中并移出敌人索敌列表。射程增加{rangeGain}格，攻击力提高{attackGain:percent}，同时攻击至多{skillTargets}个目标。持续{duration}秒，冷却{cooldown}秒。",
+        "飞行期间，每次普攻使时序增加{chronologyGain:stars}层，每波至多{chronologyCap:stars}层。"
+      ]
+    },
+    {
       "id": "ark_timina",
       "name": "提米娜",
       "role": "控制法师",
@@ -82,7 +322,7 @@
       "cost": 2,
       "attack": 22400,
       "attackRate": 0.37,
-      "range": 2,
+      "range": 2.5,
       "magic": false,
       "elements": [],
       "traits": [
@@ -110,7 +350,7 @@
       "cost": 2,
       "attack": 4200,
       "attackRate": 0.65,
-      "range": 2,
+      "range": 2.5,
       "magic": false,
       "elements": [],
       "traits": [
@@ -119,6 +359,7 @@
       ],
       "skin": "ark_baiyan",
       "parameters": {
+        "knockbackResistance": 1,
         "defense": 0.5,
         "heal": 0.05,
         "duration": 15,
@@ -274,7 +515,7 @@
       "elements": [],
       "traits": [
         "arcane",
-        "precision"
+        "chronology"
       ],
       "skin": "ark_yiluo",
       "parameters": {
@@ -307,11 +548,11 @@
       "health": 56000,
       "physicalDefense": 650,
       "magicalDefense": 650,
-      "tier": 5,
+      "tier": 4,
       "cost": 4,
       "attack": 4500,
       "attackRate": 1.42,
-      "range": 3,
+      "range": 4,
       "magic": false,
       "elements": [],
       "traits": [
@@ -565,6 +806,18 @@
     }
   ],
   "traits": [
+    {
+      "id": "sanctuary",
+      "name": "圣域",
+      "thresholds": [
+        3
+      ],
+      "description": [
+        "3人：圣域角色治疗时，以受疗者为中心产生半径2格的治疗爆炸。追加治疗为原始治疗量的(30+0.5L)%。",
+        "I档起满血目标也可引发爆炸，范围内的友方可叠加多个爆炸的治疗。",
+        "L＞40：受到该羁绊主治疗或范围治疗而实际回血的友方，在10秒内所受伤害总降30%。重复治疗刷新时长。"
+      ]
+    },
     {
       "id": "fortune",
       "name": "福星",

@@ -1,4 +1,6 @@
 {
+  "item.yumis_dungeon_and_fight.goblin_treasure_map": "Goblin Kingdom Treasure Map",
+  "item.yumis_dungeon_and_fight.goblin_treasure_map.opened": "Opened %s",
   "entity.yumis_dungeon_and_fight.forbidden_cultist": "Revived GBL Cultist",
   "entity.yumis_dungeon_and_fight.forbidden_female_cultist": "Revived GBL Knife Thrower",
   "entity.yumis_dungeon_and_fight.forbidden_deacon": "Revived GBL Deacon",

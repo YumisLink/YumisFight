@@ -2,7 +2,6 @@ package cn.yumis.fight.bootstrap;
 import cn.yumis.fight.verification.CombatVerification;
 import cn.yumis.fight.verification.EconomyVerification;
 import cn.yumis.fight.verification.VerificationChecks;
-import cn.yumis.fight.platform.Permissions;
 import cn.yumis.fight.modules.presentation.api.ModText;
 import cn.yumis.fight.modules.dungeons.api.DungeonEnemy;
 import cn.yumis.fight.modules.equipment.api.EquipmentLayout;
@@ -25,8 +24,11 @@ import cn.yumis.fight.modules.affixes.api.Affix;
 import cn.yumis.fight.modules.equipment.api.Gem;
 import static cn.yumis.fight.modules.combat.api.LifeRules.*;
 import com.google.gson.*;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.item.*;
 
@@ -74,11 +76,11 @@ public final class ServerEvents {
         );
         cn.yumis.fight.modules.professions.application.ProfessionEvents.register(ServerApplication::ready,()->ServerApplication.get().professionService);
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.level.block.BreakBlockEvent e)->{
-            if(e.getLevel() instanceof net.minecraft.server.level.ServerLevel l&&l.dimension()==DungeonService.DIMENSION)e.setCanceled(true);
+            if (blocksDungeonEdit(e.getLevel(), e.getPlayer())) e.setCanceled(true);
         }
         );
         NeoForge.EVENT_BUS.addListener((BlockEvent.EntityPlaceEvent e)->{
-            if(e.getLevel() instanceof net.minecraft.server.level.ServerLevel l&&l.dimension()==DungeonService.DIMENSION)e.setCanceled(true);
+            if (blocksDungeonEdit(e.getLevel(), e.getEntity())) e.setCanceled(true);
         }
         );
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST,(OnDatapackSyncEvent e)->{
@@ -98,12 +100,32 @@ public final class ServerEvents {
             if(view!=null&&view.creativeTemplate()&&original.getCount()>e.getCurrentStack().getCount())ServerApplication.get().equipmentApplication.inventoryArrived(player);
         });
     }
+    private static boolean blocksDungeonEdit(LevelAccessor level, Entity actor) {
+        return level instanceof ServerLevel world && world.dimension() == DungeonService.DIMENSION
+            && (!ServerApplication.ready() || !ServerApplication.get().dungeons.canEditBlocks(actor));
+    }
     private static void commands(RegisterCommandsEvent e){
         var root=Commands.literal("ydnf").executes(c->{
             ServerPlayer p=c.getSource().getPlayerOrException();ServerApplication.get().profile(p);c.getSource().sendSuccess(()->cn.yumis.fight.modules.presentation.api.ModText.of("按 I 打开地下城与战斗菜单"),false);return 1;
         }
         );
         root.then(cn.yumis.fight.modules.mapgeneration.api.MapGeneration.command());
+        var design = Commands.literal("design").executes(c -> {
+            boolean enabled = ServerApplication.get().dungeons.designMode();
+            c.getSource().sendSuccess(() -> ModText.of(enabled ? "副本设计模式已开启" : "副本设计模式已关闭"), false);
+            return enabled ? 1 : 0;
+        });
+        for (String mode : List.of("on", "off")) {
+            design.then(Commands.literal(mode).executes(c -> {
+                boolean enabled = mode.equals("on");
+                ServerApplication.get().dungeons.setDesignMode(enabled);
+                c.getSource().sendSuccess(() -> ModText.of(enabled ? "已开启副本设计模式" : "已关闭副本设计模式"), true);
+                return 1;
+            }));
+        }
+        root.then(Commands.literal("dungeon")
+            .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
+            .then(design));
         var equipment=Commands.literal("equipment").then(Commands.literal("claim").executes(c->{
             ServerApplication.get().handle(c.getSource().getPlayerOrException(),"claim",new JsonObject());return 1;
         }

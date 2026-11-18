@@ -25,8 +25,8 @@ public final class ArkWar {
     public record CoreAccess(Vec3 contact,Vec3 approach) {}
     public static final List<Plot> PLOTS=List.of(new Plot(0,-32,-46,-1),new Plot(1,32,-46,1),new Plot(2,-32,18,-1),new Plot(3,32,18,1));
     public enum SignAction {
-        READY, REFRESH, UPGRADE, CORE, HOME;
-        public boolean requiresOwnPlot(){return this==READY||this==REFRESH||this==UPGRADE;}
+        READY, REFRESH, UPGRADE, DISPLAY, CORE, HOME;
+        public boolean requiresOwnPlot(){return this==READY||this==REFRESH||this==UPGRADE||this==DISPLAY;}
     }
     public record Sign(SignAction action,int plot) {}
     public record Teleport(Vec3 position,float yaw) {}
@@ -34,9 +34,9 @@ public final class ArkWar {
     public record FieldBoard(int centerX,int edgeZ,Direction facing) {
         public BlockPos backing(int offset,int y){return ORIGIN.offset(centerX+offset,y,edgeZ);}
         private BlockPos sign(int offset){return backing(offset,1).relative(facing);}
-        public BlockPos readySign(){return sign(-2);}
-        public BlockPos coreSign(){return sign(-1);}
-        public BlockPos homeSign(){return sign(0);}
+        public BlockPos readySign(){return sign(-1);}
+        public BlockPos coreSign(){return sign(0);}
+        public Vec3 traitOrigin(){return new Vec3(ORIGIN.getX()+centerX-1.2,ORIGIN.getY()+2.7,ORIGIN.getZ()+edgeZ+(facing==Direction.SOUTH?1.08:-.08));}
         public Vec3 informationOrigin(){return new Vec3(ORIGIN.getX()+centerX+2,ORIGIN.getY()+2.7,ORIGIN.getZ()+edgeZ+(facing==Direction.SOUTH?1.08:-.08));}
     }
     public record Plot(int index,int centerX,int centerZ,int side) {
@@ -63,9 +63,11 @@ public final class ArkWar {
             return Math.clamp(speed,Math.min(0,(-limit-offset)*decay),Math.max(0,(limit-offset)*decay));
         }
         public Vec3 shop(){return new Vec3(ORIGIN.getX()+(side<0?-10:11),ORIGIN.getY(),ORIGIN.getZ()+centerZ+.5);}
-        public BlockPos readySign(){return ORIGIN.offset(side<0?-6:6,1,centerZ);}
+        public BlockPos readySign(){return ORIGIN.offset(side<0?-6:6,1,centerZ+5);}
         public BlockPos refreshSign(){return ORIGIN.offset(side<0?-6:6,1,centerZ-1);}
-        public BlockPos upgradeSign(){return ORIGIN.offset(side<0?-6:6,1,centerZ+5);}
+        public BlockPos upgradeSign(){return ORIGIN.offset(side<0?-6:6,1,centerZ);}
+        public BlockPos settingsPillar(){return ORIGIN.offset(side*8,0,centerZ+8);}
+        public BlockPos settingsSign(){return settingsPillar().offset(side,1,0);}
         public List<FieldBoard> fieldBoards(){
             int edge=centerZ+(index<2?-FIELD_EDGE:FIELD_EDGE);Direction facing=index<2?Direction.SOUTH:Direction.NORTH;
             return List.of(new FieldBoard(centerX-10,edge,facing),new FieldBoard(centerX+10,edge,facing));
@@ -113,11 +115,19 @@ public final class ArkWar {
             if(plot.readySign().equals(pos))return new Sign(SignAction.READY,plot.index());
             if(plot.refreshSign().equals(pos))return new Sign(SignAction.REFRESH,plot.index());
             if(plot.upgradeSign().equals(pos))return new Sign(SignAction.UPGRADE,plot.index());
+            if(plot.settingsSign().equals(pos))return new Sign(SignAction.DISPLAY,plot.index());
             for(var board:plot.fieldBoards()){
                 if(board.readySign().equals(pos))return new Sign(SignAction.READY,plot.index());
                 if(board.coreSign().equals(pos))return new Sign(SignAction.CORE,plot.index());
-                if(board.homeSign().equals(pos))return new Sign(SignAction.HOME,plot.index());
             }
+        }
+        return null;
+    }
+    public static Sign pillarAt(BlockPos pos){
+        for(var plot:PLOTS){
+            var base=plot.settingsPillar();
+            if(base.getX()==pos.getX()&&base.getZ()==pos.getZ()&&pos.getY()>=base.getY()&&pos.getY()<=base.getY()+2)
+                return new Sign(SignAction.DISPLAY,plot.index());
         }
         return null;
     }

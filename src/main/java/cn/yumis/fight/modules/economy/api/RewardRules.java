@@ -10,12 +10,18 @@ import java.util.*;
 
 /** Personal kill rewards from an already committed world death. */
 public final class RewardRules {
-    public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby){}
+    public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice){
+        public String instance(){return practice==null?target.instance:practice.instance();}
+    }
+    public record PracticeReward(String instance,PracticeRoom room,int playerLevel,int presentPlayers,double dropRate,long seed){}
     public record Drop(ItemStack item,boolean privateLoot){}
     public record Result(Progress progress,long experience,long gold,List<Drop> drops){}
+    private static final double PRACTICE_CURRENCY_CHANCE=.20;
     private RewardRules(){}
     public static Result kill(Progress current,Stats stats,UUID player,Context context,Random random){
-        var progress=CareerProfiles.copy(current);var target=context.target();var encounter=context.encounter();boolean instance=!target.instance.isEmpty(),boss=!target.kind.equals("NORMAL");var drops=new ArrayList<Drop>();
+        var progress=CareerProfiles.copy(current);
+        if(context.practice()!=null)return practice(progress,player,context);
+        var target=context.target();var encounter=context.encounter();boolean instance=!target.instance.isEmpty(),boss=!target.kind.equals("NORMAL");var drops=new ArrayList<Drop>();
         boolean participant=encounter!=null&&encounter.roster.contains(player)&&!encounter.withdrawn.contains(player);
         if(target.noRewards)return new Result(progress,0,0,List.of());
         if(instance&&boss&&player.equals(context.killer())&&encounter!=null){String poolId=encounter.treasure==null?encounter.dungeon:"treasure_"+encounter.treasure.theme;var pool=ChestDefinitions.current().bossPools.get(poolId);if(pool!=null&&random.nextDouble()<pool.chance()){var entry=ChestDefinitions.draw(pool.entries(),random);if(entry!=null)drops.add(new Drop(ChestRewards.item(entry),false));}}
@@ -40,5 +46,26 @@ public final class RewardRules {
         if(boss&&level==80&&encounter!=null&&encounter.treasure==null&&encounter.waystone==null&&random.nextDouble()<WaystoneRules.current().starterChance){var rarity=LootOdds.rarity(target.difficulty,true,false,stats.get(Stat.DROP_RATE),random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;drops.add(new Drop(Waystone.generate(1,progress.level,rarity,random).item(),true));}
         return new Result(progress,xp,gold,List.copyOf(drops));
     }
+
+    private static Result practice(Progress progress,UUID player,Context context){
+        var fact=context.practice();
+        if(fact.room().kind()==PracticeRoom.Kind.GOLD){
+            if(fact.presentPlayers()<1)return new Result(progress,0,0,List.of());
+            long singleKill=CurrencyRules.killGold(Math.clamp(fact.playerLevel(),1,80),false,false, Difficulty.NORMAL,context.settings().killGoldMultiplier());
+            long gold=Math.multiplyExact(singleKill,PracticeRoom.WAVE_SIZE)/fact.presentPlayers();
+            return new Result(progress,0,gold,List.of());
+        }
+        if(!player.equals(context.killer()))return new Result(progress,0,0,List.of());
+        // Replaying a pending death uses its original drop table, luck and random sequence.
+        var random=new Random(fact.seed());
+        if(fact.room().kind()==PracticeRoom.Kind.CURRENCY){
+            if(random.nextDouble()>=PRACTICE_CURRENCY_CHANCE)return new Result(progress,0,0,List.of());
+            var currency=CurrencyRules.rollGuaranteed(fact.dropRate(),random);
+            return new Result(progress,0,0,List.of(new Drop(ItemRegistry.item(currency.id(),1),false)));
+        }
+        var pool=fact.room().materials();
+        return new Result(progress,0,0,List.of(new Drop(EquipmentItems.material(pool.get(random.nextInt(pool.size())),1),false)));
+    }
+
     private static int multiplied(int count,double multiplier,Random random){if(count==0||multiplier==1)return count;double expected=count*multiplier;if(!Double.isFinite(expected)||expected>Integer.MAX_VALUE)throw new IllegalArgumentException("掉落数量超出可计算范围");int whole=(int)Math.floor(expected);return whole+(random.nextDouble()<expected-whole?1:0);}
 }

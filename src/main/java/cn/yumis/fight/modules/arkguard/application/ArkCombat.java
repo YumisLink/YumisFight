@@ -12,14 +12,19 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
+import java.util.function.BooleanSupplier;
 import static cn.yumis.fight.modules.arkguard.application.ArkBattle.*;
 
-/** World-entity AI and the fifteen content behaviours; no player outcome is adjudicated here. */
+/** World-entity AI and Ark unit abilities. */
 final class ArkCombat {
+    static final String JOSEPHINE="ark_josephine";
+    private static final String PRIEST="ark_priest",KNOT="ark_knot",WEI="ark_wei",ANNA="ark_anna",KARL="ark_karl_phantom";
     private final ArkBattle b;
+    private final ArkHealing healing;
     private final List<Zone> zones=new ArrayList<>();
     private final List<Wind> winds=new ArrayList<>();
     private final List<Ailment> ailments=new ArrayList<>();
+    private final List<Prayer> prayers=new ArrayList<>();
     private final List<Shot> shots=new ArrayList<>();
     private final Map<Actor,EnemyCast> enemyCasts=new LinkedHashMap<>();
     private long now;
@@ -33,14 +38,21 @@ final class ArkCombat {
     private static final class Ailment {
         Actor source,target;Stats stats;ElementAccumulation.Kind kind;long next;int remaining;
     }
+    private static final class Prayer {
+        Actor source,target;
+        double amount;
+        long next,end;
+    }
     private static final class EnemyCast {
         Actor source,victim;String kind;Vec3 origin,point,direction;
         double radius,angle,coefficient,width,traveled;boolean magic,released;
         long release,activeUntil,until;Set<UUID> hit=new HashSet<>();
     }
-    private record Shot(Actor source,Actor victim,double coefficient,boolean magic,int[] elements,
-                        boolean basic,Stats stats,long arrival,Runnable followUp){}
-    ArkCombat(ArkBattle battle){b=battle;}
+    private record Strike(Actor source,double coefficient,boolean magic,int[] elements,boolean basic,Stats stats){
+        Strike capture(){return new Strike(source,coefficient,magic,elements.clone(),basic,source.stats.copy());}
+    }
+    private record Shot(Strike strike,Actor victim,long arrival,Runnable followUp,boolean bounce){}
+    ArkCombat(ArkBattle battle){b=battle;healing=new ArkHealing(battle);}
     void start(long now){
         this.now=now;
         for(var seat:b.seats)for(var a:seat.allies)if(a.deployed()){
@@ -51,14 +63,25 @@ final class ArkCombat {
         }
         for(var a:b.actors)if(a.alive())refresh(a);
     }
-    void end(){zones.clear();winds.clear();ailments.clear();shots.clear();enemyCasts.clear();}
+    void end(){zones.clear();winds.clear();ailments.clear();prayers.clear();shots.clear();enemyCasts.clear();}
     void tick(long now,double dt){
         this.now=now;
         for(var a:b.actors){
-            if(!a.alive()&&a.castUntil>0){a.castUntil=0;a.meteorPoint=null;}
+            if(a.castUntil>0){
+                if(!a.alive()){a.castUntil=0;a.meteorPoint=null;a.skill.interrupt(now);}
+                else if(now>=a.castUntil){
+                    if(a.meteorPoint!=null)a.meteorAt=a.skill.end();
+                    a.castUntil=0;
+                }
+            }
             if(a.meteorAt>0&&now>=a.meteorAt){meteor(a);a.meteorAt=0;a.meteorPoint=null;}
+            if(a.skill.finish(now)&&a.alive()&&a.unit!=null){
+                if(a.unit.id().equals(KNOT))gainKnot(a);
+                if(a.airborne)land(a);
+            }
         }
         for(var a:b.actors)if(a.alive())refresh(a);
+        prayerTicks();
         if(now>=b.nextCloud){cloud();b.nextCloud=now+1000;}
         for(var a:List.copyOf(b.actors))if(a.alive()&&!a.core){
             if(a.enemy)enemy(a,dt);else if(a.deployed())hero(a,dt);
@@ -71,8 +94,12 @@ final class ArkCombat {
     private int tier(Seat seat,String trait){return ArkTraits.tier(trait,seat.counts,b.rules);}
     private int layer(Seat seat,String trait){return seat.layers.getOrDefault(trait,0);}
     private static double distance(Vec3 first,Vec3 second){return Math.sqrt(distanceSqr(first,second));}
-    private static double distanceSqr(Vec3 first,Vec3 second){double x=first.x-second.x,z=first.z-second.z;return x*x+z*z;}
-    private double range(Actor a){return a.unit==null?16:ArkTraits.range(a.unit,a.seat.counts,a.seat.layers,b.rules);}
+    static double distanceSqr(Vec3 first,Vec3 second){double x=first.x-second.x,z=first.z-second.z;return x*x+z*z;}
+    double range(Actor a){
+        if(a.unit==null)return 16;
+        return ArkTraits.range(a.unit,a.seat.counts,a.seat.layers,b.rules)+(a.airborne?a.unit.p("rangeGain"):0);
+    }
+    double attackRate(Actor a){return a.unit.attackRate()*(1+a.stats.get(Stat.ATTACK_SPEED)/100);}
     private boolean controlled(Actor a){return now<a.stasisUntil||a.target.life.elemental.active(ElementAccumulation.Kind.FREEZE,a.target.life,now)||CombatContentTypes.controlled(a.entity);}
     private boolean region(Actor source,Actor target){
         if(source.enemy||source.core)return true;
@@ -92,10 +119,15 @@ final class ArkCombat {
         s.add(Stat.HEALTH,a.healthBase);s.add(Stat.PHYSICAL_ATTACK,attack);s.add(Stat.MAGICAL_ATTACK,attack);s.add(Stat.MOVEMENT_SPEED,1);s.add(Stat.COOLDOWN_RECOVERY,1);
         if(a.unit!=null){
             var u=a.unit;var seat=a.seat;double attackGain=0,haste=0,defense=0;
-            if(u.id().equals("ark_baiyan")&&now<a.buffUntil)defense+=u.p("defense");
+            boolean skillActive=a.skill.active(now);
+            if(skillActive&&(u.id().equals("ark_baiyan")||u.id().equals(KNOT)))defense+=u.p("defense");
             if(active(seat,"guardian"))defense+=(30+2*layer(seat,"guardian"))/100d;
             s.add(Stat.PHYSICAL_DEFENSE,u.physicalDefense());s.add(Stat.MAGICAL_DEFENSE,u.magicalDefense());
             s.mut(Stat.PHYSICAL_DEFENSE,defense);s.mut(Stat.MAGICAL_DEFENSE,defense);
+            if(u.id().equals(KNOT)&&a.skill.hasCast()&&!skillActive){
+                s.attribute(Stat.PHYSICAL_DEFENSE).more(-u.p("defensePenalty"));
+                s.attribute(Stat.MAGICAL_DEFENSE).more(-u.p("defensePenalty"));
+            }
             if(ArkTraits.brute(u,seat.counts,seat.layers,b.rules))attackGain+=(30+layer(seat,"brute"))/100d;
             if(u.has("kalien")&&active(seat,"kalien"))attackGain+=(5+.5*layer(seat,"kalien"))/100d;
             if(u.has("flame_lord")&&active(seat,"flame_lord"))attackGain+=(25+layer(seat,"flame_lord"))/100d;
@@ -104,8 +136,16 @@ final class ArkCombat {
             if(u.id().equals("ark_vivian"))attackGain+=Math.max(layer(seat,"victoria"),layer(seat,"kalien"))*u.s("attackPerLayer",a.star());
             if(u.id().equals("ark_timir"))attackGain+=(long)((layer(seat,"victoria")+layer(seat,"chronology"))/3)*u.s("attackPerThree",a.star());
             if(u.id().equals("ark_yunyimu")){double bonus=seat.roster.coins*u.s("coinGrowth",a.star());attackGain+=bonus;haste+=bonus;}
-            if(u.id().equals("ark_ruisite")&&now<a.buffUntil){attackGain+=u.p("attackGain");haste+=u.p("haste");}
-            if(u.id().equals("ark_vivina")&&now<a.buffUntil){attackGain+=u.p("attackGain");haste+=u.p("haste");}
+            if(u.id().equals(PRIEST)){
+                double bonus=layer(seat,"white_church")*u.s("churchGrowth",a.star());
+                attackGain+=bonus;
+                s.mut(Stat.HEALTH,bonus);
+                b.maximum(a,s.get(Stat.HEALTH));
+            }
+            if(skillActive){
+                attackGain+=u.p("attackGain");
+                haste+=u.p("haste");
+            }
             if(a.flowerUntil>now)haste+=.1;
             if(active(seat,"chronology")){
                 double bonus=(10+layer(seat,"chronology"))/100d;
@@ -121,9 +161,8 @@ final class ArkCombat {
         }else{
             s.add(Stat.PHYSICAL_DEFENSE,a.physicalBase);s.add(Stat.MAGICAL_DEFENSE,a.magicalBase);
         }
-        double recovery=s.get(Stat.COOLDOWN_RECOVERY);
-        if(a.cooldownRecovery!=recovery&&a.nextSkill>now){a.nextSkill=now+(long)((a.nextSkill-now)*a.cooldownRecovery/recovery);}
-        a.cooldownRecovery=recovery;a.stats=s;
+        a.skill.recovery(s.get(Stat.COOLDOWN_RECOVERY),now);
+        a.stats=s;
         double pd=s.get(Stat.PHYSICAL_DEFENSE),md=s.get(Stat.MAGICAL_DEFENSE);
         if(a.enemy&&zones.stream().anyMatch(z->z.fire&&z.tier>=2&&z.until>now&&sameBlock(z.point,a.position())))md*=.7;
         if(a.target.physicalDefenseBase!=pd||a.target.magicalDefenseBase!=md){a.target.physicalDefenseBase=pd;a.target.magicalDefenseBase=md;b.changed(a);}
@@ -133,32 +172,70 @@ final class ArkCombat {
     private void hero(Actor a,double dt){
         if(a.unit.attackRate()<=0){stop(a);return;}
         if(controlled(a)){
-            if(a.castUntil>0){a.castUntil=0;a.meteorPoint=null;}
+            if(a.castUntil>now){a.castUntil=0;a.meteorPoint=null;a.skill.interrupt(now);}
             stop(a);return;
         }
-        if(a.castUntil>0){if(now<a.castUntil){stop(a);return;}a.meteorAt=a.castUntil+(long)(a.unit.p("flight")*1000);a.castUntil=0;}
-        if(a.meteorAt>0&&now>=a.meteorAt){meteor(a);a.meteorAt=0;a.meteorPoint=null;}
-        Actor victim=selected(a);
+        if(a.castUntil>now){stop(a);return;}
+        if(a.unit.p("basicHeal")>0){healer(a,dt);return;}
+        if(a.unit.id().equals(ANNA)&&a.skill.active(now)){
+            stop(a);
+            attackSteps(a,dt,()->{annaPulse(a);return true;});
+            return;
+        }
+        Actor victim=attackTarget(a);
         if(victim==null){a.attackProgress=Math.min(1,a.attackProgress);stop(a);return;}
         if(cast(a,victim))refresh(a);
-        if(a.castUntil>0){stop(a);return;}
+        if(a.castUntil>now){stop(a);return;}
         double reach=range(a);
-        if(distanceSqr(a.position(),victim.position())>reach*reach){move(a,victim.position(),1);a.attackProgress=Math.min(1,a.attackProgress);return;}
+        if(distanceSqr(a.position(),victim.position())>reach*reach){
+            if(a.airborne)stop(a);else move(a,victim.position(),1);
+            a.attackProgress=Math.min(1,a.attackProgress);
+            return;
+        }
         stop(a);look(a,victim.position());
-        double rate=a.unit.attackRate()*(1+a.stats.get(Stat.ATTACK_SPEED)/100);a.attackProgress+=rate*dt;
+        attackSteps(a,dt,()->{
+            Actor current=attackTarget(a);
+            if(current==null||distanceSqr(a.position(),current.position())>range(a)*range(a))return false;
+            basic(a,current);
+            return true;
+        });
+    }
+    private Actor attackTarget(Actor a){
+        if(!a.airborne)return selected(a);
+        return inRange(a,range(a),false).stream().findFirst().orElse(null);
+    }
+    private void attackSteps(Actor a,double dt,BooleanSupplier action){
+        a.attackProgress+=attackRate(a)*dt;
         while(a.attackProgress>=1&&a.alive()){
-            Actor current=selected(a);if(current==null||distanceSqr(a.position(),current.position())>range(a)*range(a)){a.attackProgress=1;break;}
-            a.attackProgress-=1;basic(a,current);refresh(a);
+            if(!action.getAsBoolean()){a.attackProgress=1;break;}
+            a.attackProgress-=1;
+            refresh(a);
         }
     }
     private boolean cast(Actor a,Actor victim){
-        var u=a.unit;if(u.p("cooldown")<=0||now<a.nextSkill)return false;
+        var u=a.unit;if(u.p("cooldown")<=0||!a.skill.ready(now))return false;
         boolean meleeTarget=distanceSqr(a.position(),victim.position())<=range(a)*range(a);
+        long duration=0;
         switch(u.id()){
             case "ark_siliu"->{if(!meleeTarget)return false;freeze(victim,victim.target.boss()?u.p("bossFreeze"):u.p("freeze"));}
             case "ark_yiluo"->{if(!meleeTarget)return false;stasis(victim,victim.target.boss()?u.p("bossControl"):u.p("control"));}
-            case "ark_baiyan","ark_ruisite"->{if(now<a.buffUntil)return false;a.buffUntil=now+(long)(u.p("duration")*1000);}
-            case "ark_vivina"->{if(now<a.buffUntil)return false;a.buffUntil=now+(long)(u.p("duration")*1000);}
+            case "ark_baiyan","ark_ruisite","ark_vivina"->duration=millis(u.p("duration"));
+            case KNOT,WEI->{
+                if(!meleeTarget)return false;
+                duration=millis(u.p("duration"));
+                if(u.id().equals(KNOT))gainKnot(a);
+            }
+            case ANNA->{
+                if(inRange(a,range(a)+u.p("tauntRange"),false).isEmpty())return false;
+                a.castUntil=now+millis(u.p("chant"));
+                duration=millis(u.p("chant")+u.p("duration"));
+            }
+            case KARL->{
+                double reach=range(a)+u.p("rangeGain");
+                if(inRange(a,reach,false).isEmpty())return false;
+                lift(a);
+                duration=millis(u.p("duration"));
+            }
             case "ark_benares"->{
                 var list=inRange(a,range(a),false);if(list.isEmpty())return false;
                 Vec3 direction=list.getFirst().position().subtract(a.position());direction=new Vec3(direction.x,0,direction.z).normalize();
@@ -167,7 +244,8 @@ final class ArkCombat {
             case "ark_vivian"->{
                 Vec3 point=nearestPath(a);
                 if(b.enemies().stream().noneMatch(e->distanceSqr(e.position(),point)<=u.p("meteorRadius")*u.p("meteorRadius")))return false;
-                a.meteorPoint=point;a.castUntil=now+(long)(u.p("chant")*1000);
+                a.meteorPoint=point;a.castUntil=now+millis(u.p("chant"));
+                duration=millis(u.p("chant")+u.p("flight"));
             }
             case "ark_snake"->{
                 var targets=inRange(a,range(a),false).stream().limit((long)u.p("targets")).toList();if(targets.isEmpty())return false;
@@ -175,15 +253,98 @@ final class ArkCombat {
             }
             default->{return false;}
         }
-        double seconds=u.p("cooldown")/a.stats.get(Stat.COOLDOWN_RECOVERY);
-        a.nextSkill=now+(long)(seconds*1000)+(u.id().equals("ark_vivina")?(long)(u.p("duration")*1000):0);
-        castEvent(a);a.entity.swing(InteractionHand.MAIN_HAND);return true;
+        startSkill(a,duration);
+        a.entity.swing(InteractionHand.MAIN_HAND);
+        return true;
     }
+    private static long millis(double seconds){return (long)(seconds*1000);}
+    private void startSkill(Actor a,long duration){
+        a.skill.start(now,duration,a.unit.p("cooldown"));
+        castEvent(a);
+    }
+    private void gainKnot(Actor a){
+        if(active(a.seat,"victoria"))b.gain(a.seat,"victoria",(int)a.unit.s("victoriaGain",a.star()));
+    }
+    private void lift(Actor a){
+        stop(a);
+        a.airborne=true;
+        a.entity.setNoGravity(true);
+        a.entity.setDeltaMovement(Vec3.ZERO);
+        a.entity.setPos(a.position().add(0,a.unit.p("flightHeight"),0));
+    }
+    private void land(Actor a){
+        a.airborne=false;
+        a.entity.setNoGravity(false);
+        a.entity.setDeltaMovement(Vec3.ZERO);
+    }
+    private Actor lowestHealth(Actor source){
+        return healing.friends(source).stream().filter(a->a.target.life.q<1)
+            .min(Comparator.<Actor>comparingDouble(a->a.target.life.q)
+                .thenComparingDouble(a->distanceSqr(source.position(),a.position())))
+            .orElse(null);
+    }
+    private void healer(Actor a,double dt){
+        var target=lowestHealth(a);
+        double range=range(a);
+        if(target==null||distanceSqr(a.position(),target.position())>range*range){
+            if(target==null)stop(a);else move(a,target.position(),1);
+            a.attackProgress=Math.min(1,a.attackProgress);
+            return;
+        }
+        stop(a);
+        look(a,target.position());
+        if(a.skill.ready(now)&&a.unit.p("cooldown")>0){
+            double attack=a.stats.panel(a.unit.magic());
+            startSkill(a,millis(a.unit.p("duration")));
+            healing.restore(a,List.of(target),attack*a.unit.p("burstHeal"),now);
+            var prayer=new Prayer();
+            prayer.source=a;prayer.target=target;prayer.amount=attack*a.unit.p("tickHeal");
+            prayer.next=now+1000;prayer.end=a.skill.end();
+            prayers.add(prayer);
+            a.entity.swing(InteractionHand.MAIN_HAND);
+        }
+        attackSteps(a,dt,()->{
+            var current=lowestHealth(a);
+            if(current==null||distanceSqr(a.position(),current.position())>range*range)return false;
+            look(a,current.position());
+            healing.restore(a,List.of(current),a.stats.panel(a.unit.magic())*a.unit.p("basicHeal"),now);
+            a.entity.swing(InteractionHand.MAIN_HAND);
+            return true;
+        });
+    }
+    private void prayerTicks(){
+        var iterator=prayers.iterator();
+        while(iterator.hasNext()){
+            var prayer=iterator.next();
+            while(prayer.target.alive()&&prayer.next<=now&&prayer.next<=prayer.end){
+                healing.restore(prayer.source,List.of(prayer.target),prayer.amount,now);
+                prayer.next+=1000;
+            }
+            if(prayer.next>prayer.end||!prayer.target.alive())iterator.remove();
+        }
+    }
+    private void annaPulse(Actor a){
+        double reach=range(a)+a.unit.p("healRange");
+        var targets=healing.friends(a).stream().filter(v->distanceSqr(a.position(),v.position())<=reach*reach).toList();
+        var restored=healing.restore(a,targets,a.stats.panel(a.unit.magic())*a.unit.p("pulseHeal"),now);
+        int emotion=(int)a.unit.s("emotionGain",a.star());
+        for(var target:restored){
+            if(target!=a&&emotionEligible(target))addEmotion(target,emotion);
+        }
+        if(!restored.isEmpty()&&emotionEligible(a))addEmotion(a,emotion);
+        a.lastFight=now;
+        a.entity.swing(InteractionHand.MAIN_HAND);
+    }
+    private boolean emotionEligible(Actor a){return a.unit.has("victoria")&&active(a.seat,"victoria");}
+    private void addEmotion(Actor a,int amount){a.emotion=Math.min(300+layer(a.seat,"victoria"),a.emotion+amount);}
     private void basic(Actor a,Actor victim){
-        var u=a.unit;a.attacks++;a.lastFight=now;victim.lastFight=now;
-        if(u.has("victoria")&&active(a.seat,"victoria"))a.emotion=Math.min(300+layer(a.seat,"victoria"),a.emotion+(tier(a.seat,"victoria")>=3?5:1));
+        var u=a.unit;
+        boolean josephine=u.id().equals(JOSEPHINE),powered=a.skill.active(now);
+        if(!josephine||!powered)a.attacks++;
+        a.lastFight=now;victim.lastFight=now;
+        if(emotionEligible(a))addEmotion(a,tier(a.seat,"victoria")>=3?5:1);
         refresh(a);
-        if(u.id().equals("ark_baiyan")&&now<a.buffUntil)heal(a,u.p("heal"));
+        if(u.id().equals("ark_baiyan")&&powered)healing.restore(a,List.of(a),a.target.health(1)*u.p("heal"),now);
         if(u.id().equals("ark_hanasaki")){
             for(var friend:b.friends(a.seat))if(distanceSqr(a.position(),friend.position())<=range(a)*range(a))
                 friend.flowerUntil=Math.max(friend.flowerUntil,now+(long)(u.p("hasteDuration")*1000));
@@ -191,10 +352,17 @@ final class ArkCombat {
         }
         boolean enhanced=u.id().equals("ark_timir")&&a.attacks%(int)u.p("attackCycle")==0;
         if(enhanced)castEvent(a);
-        int hits=enhanced?(int)u.p("enhancedHits"):u.id().equals("ark_vivian")?(int)u.p("basicHits"):1;
+        int hits=enhanced?(int)u.p("enhancedHits"):u.id().equals("ark_vivian")?(int)u.p("basicHits"):josephine&&powered?(int)u.p("skillHits"):1;
         double coefficient=enhanced?u.p("enhancedDamage"):1;
         boolean ranged=!ArkEffects.projectile(a).isEmpty();
-        List<Actor> targets=u.id().equals("ark_vivina")&&now<a.buffUntil?inRange(a,range(a),false).stream().limit((long)u.p("targets")).toList():List.of(victim);
+        List<Actor> targets=List.of(victim);
+        if(u.id().equals("ark_vivina")&&powered)targets=inRange(a,range(a),false).stream().limit((long)u.p("targets")).toList();
+        else if(powered&&(josephine||a.airborne)){
+            var multiple=new ArrayList<>(targets);
+            var extra=inRange(a,range(a),false).stream().filter(target->target!=victim).limit(Math.max(0,(long)u.p("skillTargets")-1)).toList();
+            multiple.addAll(extra);
+            targets=multiple;
+        }
         Runnable splash=null;
         if(ArkTraits.brute(u,a.seat.counts,a.seat.layers,b.rules)&&layer(a.seat,"brute")>120){
             double amount=a.stats.panel(u.magic())*coefficient*hits*(10+.01*layer(a.seat,"brute"))/100;
@@ -206,18 +374,29 @@ final class ArkCombat {
         }
         if(!ranged&&splash!=null)splash.run();
         if(u.id().equals("ark_maryjanna")&&a.attacks%(int)u.p("attackCycle")==0){castEvent(a);beam(a,victim.position(),u.p("beamRadius"),u.p("beamDamage"),u.p("beamDuration")*(1+u.p("durationPerLayer")*layer(a.seat,"white_church")));}
+        if(josephine&&!powered&&a.attacks>=u.p("attackCycle")){
+            a.attacks=0;
+            startSkill(a,millis(u.p("duration")));
+        }
+        if(a.airborne)capped(a,"chronology","chronology",(int)u.s("chronologyGain",a.star()),(int)u.s("chronologyCap",a.star()));
         a.entity.swing(InteractionHand.MAIN_HAND);
     }
     private void attack(Actor source,Actor victim,double coefficient,boolean magic,int[] elements,boolean basic,int index,Runnable followUp){
-        String style=ArkEffects.projectile(source);
+        boolean bounce=basic&&source.unit!=null&&source.unit.id().equals(WEI)&&source.skill.active(now);
+        launch(new Strike(source,coefficient,magic,elements,basic,null),victim,index,followUp,bounce,ArkEffects.center(source));
+    }
+    private void launch(Strike strike,Actor victim,int index,Runnable followUp,boolean bounce,Vec3 origin){
+        String style=ArkEffects.projectile(strike.source());
         if(style.isEmpty()){
-            impact(new Shot(source,victim,coefficient,magic,elements,basic,null,now,null));
+            impact(new Shot(strike,victim,now,null,bounce));
             if(followUp!=null)followUp.run();return;
         }
         double speed=style.equals("arrow")?28:style.equals("stone")?14:18;
-        long duration=(long)(Math.clamp(ArkEffects.center(source).distanceTo(ArkEffects.center(victim))/speed,.1,1)*1000);
-        var shot=new Shot(source,victim,coefficient,magic,elements.clone(),basic,source.stats.copy(),now+duration,followUp);
-        shots.add(shot);b.effects.projectile(source,victim,style,elements.length==0?-1:elements[0],now,duration,index);
+        long duration=millis(Math.clamp(origin.distanceTo(ArkEffects.center(victim))/speed,.1,1));
+        var captured=strike.stats()==null?strike.capture():strike;
+        var elements=strike.elements();
+        shots.add(new Shot(captured,victim,now+duration,followUp,bounce));
+        b.effects.projectile(strike.source(),victim,origin,style,elements.length==0?-1:elements[0],now,duration,index);
     }
     private void projectiles(){
         for(var shot:List.copyOf(shots))if(now>=shot.arrival()){
@@ -226,22 +405,35 @@ final class ArkCombat {
         }
     }
     private void impact(Shot shot){
-        var source=shot.source();var victim=shot.victim();
-        damage(source,victim,shot.coefficient(),shot.magic(),shot.elements(),shot.basic(),false,shot.stats());
-        if(shot.basic()&&source.unit!=null){
+        var strike=shot.strike();
+        var source=strike.source();
+        var victim=shot.victim();
+        double actual=damage(source,victim,strike.coefficient(),strike.magic(),strike.elements(),strike.basic(),false,strike.stats());
+        if(shot.bounce()&&actual>0)bounce(strike,victim);
+        if(strike.basic()&&source.unit!=null){
             if(source.unit.id().equals("ark_timina"))slow(victim,source.unit.p("slow"),source.unit.p("slowDuration"));
             if(source.unit.has("flame_lord")&&active(source.seat,"flame_lord"))fire(source,victim);
         }
     }
+    private void bounce(Strike strike,Actor center){
+        Actor source=strike.source();
+        double range=source.unit.p("bounceRange");
+        var targets=new ArrayList<>(b.enemies().stream().filter(a->a!=center&&region(source,a)
+            &&distanceSqr(a.position(),center.position())<=range*range).toList());
+        Collections.shuffle(targets,b.random);
+        int limit=Math.min(targets.size(),(int)source.unit.p("bounceTargets"));
+        Vec3 origin=ArkEffects.center(center);
+        for(int i=0;i<limit;i++)launch(strike,targets.get(i),i,null,false,origin);
+    }
     private int[] elements(Actor a){
         if(a.unit.id().equals("ark_aimiluo"))return new int[]{a.element};
-        if(a.unit.id().equals("ark_ruisite")&&now<a.buffUntil)return new int[]{3};
-        if(a.unit.id().equals("ark_vivina")&&now<a.buffUntil)return new int[]{0,1,2,3};
+        if(a.unit.id().equals("ark_ruisite")&&a.skill.active(now))return new int[]{3};
+        if(a.unit.id().equals("ark_vivina")&&a.skill.active(now))return new int[]{0,1,2,3};
         return a.unit.elements();
     }
     private void castEvent(Actor a){
         var seat=a.seat;var u=a.unit;
-        int[] elements=elements(a);b.effects.cast(a,elements.length==0?-1:elements[0],now,Math.max(a.buffUntil,a.castUntil)-now);
+        int[] elements=elements(a);b.effects.cast(a,elements.length==0?-1:elements[0],now,a.skill.end()-now);
         if(ArkTraits.beast(seat.opening,b.rules).equals("ark_ruisite"))for(String trait:u.traits())if(active(seat,trait))b.gain(seat,trait,1);
         if(active(seat,"witch_garden")&&u.has("white_church")&&active(seat,"white_church"))b.gain(seat,"white_church",2);
         if(u.id().equals("ark_yiluo"))for(String trait:u.traits())if(active(seat,trait))capped(a,"cast/"+trait,trait,(int)u.s("castGain",a.star()),(int)u.s("castCap",a.star()));
@@ -294,11 +486,19 @@ final class ArkCombat {
     }
     private Actor enemyTarget(Actor enemy){
         List<Actor> friends=enemy.phase==0?b.friends(enemy.seat):b.friends();
-        Actor victim=friends.stream().filter(v->distanceSqr(enemy.position(),v.position())<=16*16)
+        Actor victim=friends.stream().filter(v->!v.airborne&&distanceSqr(enemy.position(),v.position())<=16*16)
             .min(Comparator.comparingDouble(v->distanceSqr(enemy.position(),v.position()))).orElse(enemy.phase==2?b.core:null);
-        var tank=friends.stream().filter(v->v.unit.id().equals("ark_baiyan")&&now<v.buffUntil&&distanceSqr(enemy.position(),v.position())<=range(v)*range(v))
+        var tank=friends.stream().filter(v->{
+                double reach=tauntRange(v);
+                return !v.airborne&&reach>0&&distanceSqr(enemy.position(),v.position())<=reach*reach;
+            })
             .min(Comparator.comparingDouble(v->distanceSqr(enemy.position(),v.position()))).orElse(null);
         return tank==null?victim:tank;
+    }
+    private double tauntRange(Actor a){
+        if(a.unit.id().equals("ark_baiyan")&&a.skill.active(now))return range(a);
+        if(a.unit.id().equals(ANNA)&&a.castUntil>now)return range(a)+a.unit.p("tauntRange");
+        return 0;
     }
     private boolean ready(Actor a,String kind){return a.cooldowns.getOrDefault(kind,0L)<=now;}
     private static Vec3 enemyHitPosition(Actor victim,Vec3 from){
@@ -382,14 +582,22 @@ final class ArkCombat {
     void skillState(Actor actor,com.google.gson.JsonObject view,long time,boolean preparing){
         var unit=actor.unit;String mode;double progress,rate=0;
         if(!actor.deployed()){mode="备战";progress=0;}
-        else if(!preparing&&actor.castUntil>time){
-            mode="咏唱";double duration=unit.p("chant")*1000;
-            progress=1-(actor.castUntil-time)/Math.max(1,duration);rate=1/Math.max(1,duration);
+        else if(!preparing&&actor.skill.active(time)){
+            mode=actor.castUntil>time?"咏唱":"技能中";
+            double duration=Math.max(1,actor.skill.duration());
+            progress=(actor.skill.end()-time)/duration;
+            rate=-1/duration;
+            view.addProperty("skillEnd",actor.skill.end());
         }else if(unit.p("cooldown")>0){
-            mode=unit.skillTrigger();double duration=unit.p("cooldown")*1000/actor.cooldownRecovery;
-            if(unit.id().equals("ark_vivina"))duration+=unit.p("duration")*1000;
-            progress=preparing?1:1-Math.max(0,actor.nextSkill-time)/Math.max(1,duration);
-            if(!preparing&&actor.nextSkill>time)rate=1/Math.max(1,duration);
+            mode=unit.skillTrigger();
+            double duration=Math.max(1,actor.skill.cooldownMillis(unit.p("cooldown")));
+            long remaining=actor.skill.cooldownRemaining(time);
+            progress=preparing?1:1-remaining/duration;
+            if(!preparing&&remaining>0)rate=1/duration;
+        }else if(unit.p("attackCycle")>0){
+            mode=unit.skillTrigger();
+            int cycle=(int)unit.p("attackCycle");
+            progress=cycle>0?(actor.attacks%cycle)/(double)cycle:0;
         }else{mode=unit.skillTrigger();progress=0;}
         view.addProperty("skillMode",mode);view.addProperty("skill",Math.clamp(progress,0,1));view.addProperty("skillRate",rate);
     }
@@ -399,7 +607,6 @@ final class ArkCombat {
         a.target.life.revision++;b.changed(a);b.afterCommit.add(()->a.entity.addEffect(new MobEffectInstance(CombatContentTypes.FREEZE,(int)Math.ceil(seconds*20),0,false,true)));
     }
     private void stasis(Actor a,double seconds){a.stasisUntil=Math.max(a.stasisUntil,now+(long)(seconds*1000));b.afterCommit.add(()->a.entity.addEffect(new MobEffectInstance(CombatContentTypes.STUN,(int)Math.ceil(seconds*20),0,false,true)));}
-    private void heal(Actor a,double fraction){if(LifeRules.apply(a.target.life,fraction,true).actual()>0)b.changed(a);}
     private void sparks(Vec3 point){b.afterCommit.add(()->b.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,point.x,point.y+1,point.z,16,.7,.7,.7,.02));}
     private Vec3 nearestPath(Actor a){
         List<Vec3> path=a.transferred?List.of(Vec3.atBottomCenterOf(ArkWar.ORIGIN.offset(0,0,70)),Vec3.atBottomCenterOf(ArkWar.ORIGIN.offset(0,3,92))):a.seat.plot().route().subList(0,2);
@@ -482,10 +689,14 @@ final class ArkCombat {
     }
     private double settle(Actor source,Actor victim,double points,int element,boolean critical,boolean impact){
         if(points<=0||!Double.isFinite(points)||!eligible(victim))return 0;
+        if(victim.sanctuaryUntil>now)points*=ArkHealing.SANCTUARY_DAMAGE_TAKEN;
+        if(victim.unit!=null&&victim.unit.id().equals(ANNA)&&victim.castUntil>now)points*=1-victim.unit.p("chantReduction");
         var receipt=LifeRules.apply(victim.target.life,points/victim.target.health(1),false);
         if(receipt.actual()<=0)return 0;double actual=receipt.actual()*victim.target.health(1);b.changed(victim);
         b.effects.hit(source,victim,actual,element,critical,impact,now);
         victim.lastFight=now;if(source!=null)source.lastFight=now;
+        if(victim.enemy&&victim.target.life.dead&&source!=null&&source.unit!=null&&source.unit.id().equals(WEI)&&active(source.seat,"victoria"))
+            capped(source,"victoriaKill","victoria",(int)source.unit.s("victoriaGain",source.star()),(int)source.unit.s("victoriaCap",source.star()));
         if(source!=null&&source.enemy){
             if(victim.core&&b.seats.stream().anyMatch(s->tier(s,"longevity")>=3))fixed(victim,source,actual,false,-1,true);
             else if(victim.unit!=null&&tier(victim.seat,"guardian")>=2)fixed(victim,source,actual,true,-1,false);
@@ -502,11 +713,11 @@ final class ArkCombat {
         double maximum=victim.target.health(1);var stats=new Stats();
         double winter=source.unit!=null&&source.unit.has("winter")&&active(source.seat,"winter")?(100+5*layer(source.seat,"winter"))/100d:0;
         if(winter>0)ElementAccumulation.addConversion(stats,2,ElementAccumulation.Kind.FREEZE,winter);
-        var change=ElementAccumulation.advance(victim.target.life.elemental,victim.target.life,ElementAccumulation.fractions(components,maximum),accepted,stats,victim.target.bossOrElite(),now);
+        var change=ElementAccumulation.advance(victim.target.life.elemental,victim.target.life,ElementAccumulation.fractions(components,maximum),accepted,stats,victim.target.bossOrElite(),victim.enemy,now);
         victim.target.life.elemental=change.state();triggered(source,victim,change.triggered(),sourceStats);
         if(basic&&source.unit!=null&&ArkTraits.beast(source.seat.opening,b.rules).equals("ark_siliu")){
             var extra=new Stats();ElementAccumulation.addConversion(extra,-1,ElementAccumulation.Kind.FREEZE,1+winter);
-            change=ElementAccumulation.advance(victim.target.life.elemental,victim.target.life,new double[]{main/maximum,0,0,0,0},accepted,extra,victim.target.bossOrElite(),now);
+            change=ElementAccumulation.advance(victim.target.life.elemental,victim.target.life,new double[]{main/maximum,0,0,0,0},accepted,extra,victim.target.bossOrElite(),victim.enemy,now);
             victim.target.life.elemental=change.state();triggered(source,victim,change.triggered(),sourceStats);
         }
         victim.target.life.revision++;b.changed(victim);
@@ -587,7 +798,7 @@ final class ArkCombat {
                     .max(Comparator.<Actor>comparingDouble(a->a.stats.panel(false)).thenComparingInt(a->a==current?1:0)).orElse(null);
                 cloud.cloudTarget=chosen==null?null:chosen.entity.getUUID();affected.add(cloud);if(chosen!=null)affected.add(chosen);
             }
-            for(var a:affected)if(a.nextSkill>now&&(!a.unit.id().equals("ark_vivina")||now>=a.buffUntil))a.nextSkill=Math.max(now,a.nextSkill-1000);
+            for(var a:affected)a.skill.accelerate(1000,now);
         }
     }
     private void periodic(){

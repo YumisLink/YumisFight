@@ -22,7 +22,15 @@ public final class DungeonActions {
     private DungeonActions(){}
     public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<Stats> attributes,BooleanSupplier living,IntFunction<ItemStack> chests,DoubleFunction<Rarity> rarity,BooleanSupplier training){
         progress=p;stats=attributes;alive=living;chest=chests;rarityRoll=rarity;trainingAllowed=training;
-        router.register("dungeons","dungeon",(ignored,j)->{if(j.get("kind").getAsString().equals("leave"))return;eligible(j.get("dungeon").getAsString());});
+        router.register("dungeons","dungeon",(ignored,j)->{
+            if(j.get("kind").getAsString().equals("leave"))return;
+            String id=j.get("dungeon").getAsString();
+            if(PracticeRoom.isRoomId(id)){
+                var room=PracticeRoom.require(id);
+                if(progress.get().level<room.level())throw new IllegalArgumentException("角色等级不足");
+                if(!alive.getAsBoolean())throw new IllegalArgumentException("死亡状态不能参加挑战");
+            }else eligible(id);
+        });
         router.register("dungeons","waystoneTable",(ignored,j)->{
             String action=j.get("action").getAsString();if(!Set.of("insert","join","ready","start").contains(action))return;
             Waystone stone;

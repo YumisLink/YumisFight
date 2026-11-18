@@ -17,15 +17,35 @@ import java.util.*;
 
 /** All tracks are disposable presentation of committed world-unit facts. */
 public final class ArkVisuals {
-    private record Unit(UUID id,int entity,double maximum,double health,String mode,double skill,double rate,long at){}
+    private static final float ENEMY_HEALTH_SCALE=.75f;
+    private static final int HEAL_COLOR=0x6FF390;
+    private record Unit(UUID id,int entity,boolean enemy,double maximum,double health,String mode,double skill,double rate,long at,long skillEnd){
+        Unit health(double value){return new Unit(id,entity,enemy,maximum,value,mode,skill,rate,at,skillEnd);}
+        Unit skill(JsonObject value,long at){
+            return new Unit(id,entity,enemy,maximum,health,value.get("skillMode").getAsString(),value.get("skill").getAsDouble(),
+                value.get("skillRate").getAsDouble(),at,end(value));
+        }
+    }
     private record Core(double maximum,double health){}
+    private enum PopupKind {
+        ENEMY_DAMAGE,ALLY_DAMAGE,HEAL;
+        boolean visible(){
+            return switch(this){
+                case ENEMY_DAMAGE->ClientSettings.arkEnemyDamage;
+                case ALLY_DAMAGE->ClientSettings.arkAllyDamage;
+                case HEAL->true;
+            };
+        }
+    }
+    private record Popup(DamageNumber number,PopupKind kind){}
     private record Effect(String kind,String style,int entity,UUID id,int victim,UUID victimId,Vec3 from,Vec3 to,
-                          long at,long duration,int element,int index,boolean chant){}
+                          long at,long duration,int element,int index,boolean chant,double radius){}
     private record Frame(List<Quad> quads,boolean fade){}
     private static final ContextKey<Frame> FRAME=new ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","ark_battle"));
     private static final Map<Integer,Unit> units=new HashMap<>();
+    private static final Map<UUID,Long> healingMotes=new HashMap<>();
     private static final List<Effect> effects=new ArrayList<>();
-    private static final List<DamageNumber> numbers=new ArrayList<>();
+    private static final List<Popup> numbers=new ArrayList<>();
     private static Core core;
     private static Object world;
     private static String round="",stage="";
@@ -35,15 +55,15 @@ public final class ArkVisuals {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArkVisuals::extract);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(ArkVisuals::submit);
     }
-    static void clear(){units.clear();effects.clear();numbers.clear();core=null;round=stage="";world=null;}
+    static void clear(){units.clear();effects.clear();numbers.clear();healingMotes.clear();core=null;round=stage="";world=null;}
     private static void world(){if(world!=Minecraft.getInstance().level){clear();world=Minecraft.getInstance().level;}}
     private static boolean inside(){
         var mc=Minecraft.getInstance();return mc.player!=null&&mc.level!=null&&ArkWar.contains(mc.level,mc.player.blockPosition());
     }
     private static void scene(JsonObject packet){
         world();String nextRound=packet.get("round").getAsString(),nextStage=packet.has("stage")?packet.get("stage").getAsString():"";
-        if(!round.equals(nextRound)){numbers.clear();effects.clear();units.clear();core=null;}
-        else if(!stage.equals(nextStage)){effects.clear();units.clear();}
+        if(!stage.equals(nextStage)||!round.equals(nextRound)){effects.clear();units.clear();healingMotes.clear();}
+        if(!round.equals(nextRound)){numbers.clear();core=null;}
         round=nextRound;stage=nextStage;
     }
     static void state(JsonObject packet){
@@ -53,11 +73,12 @@ public final class ArkVisuals {
         long at=packet.get("at").getAsLong();
         for(var value:packet.getAsJsonArray("actors")){
             var actor=value.getAsJsonObject();int id=actor.get("entity").getAsInt();
-            units.put(id,new Unit(UUID.fromString(actor.get("id").getAsString()),id,actor.get("maximum").getAsDouble(),actor.get("health").getAsDouble(),
+            units.put(id,new Unit(UUID.fromString(actor.get("id").getAsString()),id,actor.get("enemy").getAsBoolean(),actor.get("maximum").getAsDouble(),actor.get("health").getAsDouble(),
                 actor.has("skillMode")?actor.get("skillMode").getAsString():"",actor.has("skill")?actor.get("skill").getAsDouble():0,
-                actor.has("skillRate")?actor.get("skillRate").getAsDouble():0,at));
+                actor.has("skillRate")?actor.get("skillRate").getAsDouble():0,at,end(actor)));
         }
     }
+    private static long end(JsonObject value){return value.has("skillEnd")?value.get("skillEnd").getAsLong():0;}
     private static Core core(JsonObject packet){
         if(!packet.has("coreHealth")||!packet.has("coreMaximum"))return null;
         double maximum=packet.get("coreMaximum").getAsDouble(),health=packet.get("coreHealth").getAsDouble();
@@ -71,22 +92,33 @@ public final class ArkVisuals {
             UUID id=UUID.fromString(event.get("target").getAsString());int entity=event.get("entity").getAsInt(),element=event.get("element").getAsInt();
             long at=event.get("at").getAsLong(),duration=kind.equals("hit")?300:event.get("duration").getAsLong();
             Vec3 point=point(event,"");
-            if(kind.equals("hit")){
+            var unit=units.get(entity);
+            boolean current=unit!=null&&unit.id().equals(id);
+            if(current&&event.has("health"))units.put(entity,unit.health(event.get("health").getAsDouble()));
+            boolean heal=kind.equals("heal");
+            if(kind.equals("hit")||heal){
                 long age=Math.max(0,serverNow-at);
-                if(age<DamageNumber.LIFETIME_MILLIS)numbers.add(new DamageNumber(event.get("amount").getAsDouble(),localNow+DamageNumber.LIFETIME_MILLIS-age,
-                    event.get("enemy").getAsBoolean()?0xFFF0CF:0xFF7777,point,mc.level.dimension().identifier().toString(),id,event.get("critical").getAsBoolean()));
-                var unit=units.get(entity);
-                if(unit!=null&&unit.id().equals(id)&&event.has("health"))units.put(entity,new Unit(id,entity,unit.maximum(),event.get("health").getAsDouble(),unit.mode(),unit.skill(),unit.rate(),unit.at()));
-                if(!event.get("impact").getAsBoolean())continue;
+                if(age<DamageNumber.LIFETIME_MILLIS){
+                    PopupKind popupKind=heal?PopupKind.HEAL:event.get("sourceEnemy").getAsBoolean()?PopupKind.ENEMY_DAMAGE:PopupKind.ALLY_DAMAGE;
+                    int color=heal?HEAL_COLOR:event.get("enemy").getAsBoolean()?0xFFF0CF:0xFF7777;
+                    var number=new DamageNumber(event.get("amount").getAsDouble(),localNow+DamageNumber.LIFETIME_MILLIS-age,
+                        color,point,mc.level.dimension().identifier().toString(),id,!heal&&event.get("critical").getAsBoolean());
+                    numbers.add(new Popup(number,popupKind));
+                }
+                if(!heal&&!event.get("impact").getAsBoolean())continue;
             }else if(kind.equals("cast")&&event.has("skillMode")){
-                var unit=units.get(entity);
-                if(unit!=null&&unit.id().equals(id))units.put(entity,new Unit(id,entity,unit.maximum(),unit.health(),event.get("skillMode").getAsString(),event.get("skill").getAsDouble(),event.get("skillRate").getAsDouble(),at));
+                if(current&&at>=unit.at())units.put(entity,unit.skill(event,at));
             }
             if(serverNow>=at+duration)continue;
+            if(heal){
+                if(healingMotes.getOrDefault(id,0L)>serverNow)continue;
+                healingMotes.put(id,at+duration);
+            }
             boolean projectile=kind.equals("projectile");
             effects.add(new Effect(kind,projectile?event.get("style").getAsString():"",entity,id,
                 projectile?event.get("victim").getAsInt():-1,projectile?UUID.fromString(event.get("victimId").getAsString()):null,
-                point,projectile?point(event,"end"):point,at,duration,element,event.has("index")?event.get("index").getAsInt():0,event.has("chant")&&event.get("chant").getAsBoolean()));
+                point,projectile?point(event,"end"):point,at,duration,element,event.has("index")?event.get("index").getAsInt():0,
+                event.has("chant")&&event.get("chant").getAsBoolean(),event.has("radius")?event.get("radius").getAsDouble():0));
         }
     }
     static void tick(){
@@ -97,7 +129,8 @@ public final class ArkVisuals {
             var actor=entity(effect.entity(),effect.id());var unit=units.get(effect.entity());
             return actor!=null&&CombatContentTypes.controlled(actor)||unit!=null&&unit.id().equals(effect.id())&&unit.at()>effect.at()&&!unit.mode().equals("咏唱");
         });
-        long localNow=ClientUi.now();numbers.removeIf(number->number.expires()<=localNow);
+        healingMotes.values().removeIf(until->until<=now);
+        long localNow=ClientUi.now();numbers.removeIf(popup->popup.number().expires()<=localNow);
     }
     private static Vec3 point(JsonObject event,String prefix){return new Vec3(event.get(prefix+"x").getAsDouble(),event.get(prefix+"y").getAsDouble(),event.get(prefix+"z").getAsDouble());}
     private static LivingEntity entity(int id,UUID uuid){
@@ -109,7 +142,11 @@ public final class ArkVisuals {
 
     static void hud(GuiGraphicsExtractor graphics){
         world();var mc=Minecraft.getInstance();if(!inside()||mc.gui.hud.isHidden()||mc.gui.screen()!=null)return;
-        var camera=mc.gameRenderer.mainCamera();var font=UiFonts.font();long now=ClientUi.current().serverNow();
+        var camera=mc.gameRenderer.mainCamera();long now=ClientUi.current().serverNow();
+        if(ClientSettings.arkEnemyHealth){
+            for(var unit:units.values())if(unit.enemy())unitBars(graphics,unit,now);
+            graphics.nextStratum();
+        }
         if(core!=null&&mc.level.hasChunkAt(ArkWar.CORE)){
             // The arena's crystal reaches nine blocks above its combat anchor.
             Vec3 anchor=Vec3.atBottomCenterOf(ArkWar.CORE).add(0,9.5,0),relative=anchor.subtract(camera.position());var forward=camera.forwardVector();
@@ -121,25 +158,47 @@ public final class ArkVisuals {
                 }
             }
         }
-        for(var unit:units.values()){
-            var actor=entity(unit.entity(),unit.id());
-            if(actor==null||actor.isInvisible()||!actor.isPickable())continue;
-            Vec3 anchor=center(actor).add(0,actor.getBbHeight()*.4+.85,0),relative=anchor.subtract(camera.position());var forward=camera.forwardVector();
-            if(relative.x*forward.x()+relative.y*forward.y()+relative.z*forward.z()<=0)continue;
-            var screen=mc.gameRenderer.projectPointToScreen(anchor);
-            if(!Double.isFinite(screen.x)||!Double.isFinite(screen.y)||Math.abs(screen.x)>1||Math.abs(screen.y)>1)continue;
-            int width=62,x=(int)Math.round((screen.x+1)*.5*graphics.guiWidth())-width/2,y=(int)Math.round((1-screen.y)*.5*graphics.guiHeight());
-            healthBar(graphics,x,y,width,unit.health(),unit.maximum(),false);
-            if(!unit.mode().isEmpty()){
-                double skill=Math.clamp(unit.skill()+Math.clamp(now-unit.at(),0,600)*unit.rate(),0,1);
-                bar(graphics,x,y+8,width,6,skill,0xFF479EE8);
-                String label=unit.mode().equals("自动技能")?(skill>=1?"自动 · 就绪":"自动 · 冷却"):unit.mode();
-                float labelScale=.55f;
-                graphics.pose().pushMatrix();graphics.pose().translate(x+(width-font.width(label)*labelScale)/2,y+8f);graphics.pose().scale(labelScale,labelScale);
-                graphics.text(font,label,0,0,0xFFFFFFFF,true);graphics.pose().popMatrix();
-            }
+        for(var unit:units.values())if(!unit.enemy())unitBars(graphics,unit,now);
+        DamageNumber.render(graphics,numbers.stream().filter(p->p.kind().visible())
+            .map(Popup::number).toList());
+    }
+    static boolean withinHealthRange(double distanceSquared){return distanceSquared<=24*24;}
+    private static void unitBars(GuiGraphicsExtractor graphics,Unit unit,long now){
+        var actor=entity(unit.entity(),unit.id());
+        if(actor==null||actor.isInvisible()||!actor.isPickable())return;
+        var mc=Minecraft.getInstance();var camera=mc.gameRenderer.mainCamera();
+        boolean healthInRange=withinHealthRange(mc.player.position().distanceToSqr(actor.position()));
+        if(unit.enemy()&&!healthInRange)return;
+        Vec3 anchor=center(actor).add(0,actor.getBbHeight()*.4+.85,0),relative=anchor.subtract(camera.position());
+        var forward=camera.forwardVector();
+        if(relative.x*forward.x()+relative.y*forward.y()+relative.z*forward.z()<=0)return;
+        var screen=mc.gameRenderer.projectPointToScreen(anchor);
+        if(!Double.isFinite(screen.x)||!Double.isFinite(screen.y)||Math.abs(screen.x)>1||Math.abs(screen.y)>1)return;
+        int width=62,y=(int)Math.round((1-screen.y)*.5*graphics.guiHeight());
+        float centerX=(float)((screen.x+1)*.5*graphics.guiWidth());
+        if(unit.enemy()){
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(centerX-width*ENEMY_HEALTH_SCALE*.5f,y);
+            graphics.pose().scale(ENEMY_HEALTH_SCALE,ENEMY_HEALTH_SCALE);
+            healthBar(graphics,0,0,width,unit.health(),unit.maximum(),false);
+            graphics.pose().popMatrix();
+            return;
         }
-        DamageNumber.render(graphics,numbers);
+        int x=Math.round(centerX)-width/2;
+        boolean healthVisible=ClientSettings.arkAllyHealth&&healthInRange;
+        if(healthVisible)healthBar(graphics,x,y,width,unit.health(),unit.maximum(),false);
+        if(unit.mode().isEmpty())return;
+        boolean active=unit.skillEnd()>now;
+        double elapsed=active?Math.max(0,now-unit.at()):Math.clamp(now-unit.at(),0,600);
+        double skill=unit.skillEnd()>0&&!active?0:Math.clamp(unit.skill()+elapsed*unit.rate(),0,1);
+        int barY=y+(healthVisible?8:0);
+        bar(graphics,x,barY,width,6,skill,active?0xFFE6B047:0xFF479EE8);
+        String label=unit.mode();
+        if(unit.skillEnd()>0&&!active)label="技能结束";
+        else if(label.equals("自动技能"))label=skill>=1?"自动 · 就绪":"自动 · 冷却";
+        var font=UiFonts.font();float labelScale=.55f;
+        graphics.pose().pushMatrix();graphics.pose().translate(x+(width-font.width(label)*labelScale)/2f,barY);
+        graphics.pose().scale(labelScale,labelScale);graphics.text(font,label,0,0,0xFFFFFFFF,true);graphics.pose().popMatrix();
     }
     private static void healthBar(GuiGraphicsExtractor graphics,int x,int y,int width,double value,double maximum,boolean precise){
         double health=Math.clamp(value,0,maximum);
@@ -159,6 +218,11 @@ public final class ArkVisuals {
 
     private static void extract(ExtractLevelRenderStateEvent event){
         world();List<Quad> quads=new ArrayList<>();long now=ClientUi.current().serverNow();
+        if(inside()&&ArkGuardClient.editing())for(var unit:units.values()){
+            if(unit.enemy())continue;
+            var actor=entity(unit.entity(),unit.id());
+            if(actor!=null&&!actor.isInvisible()&&actor.isPickable())direction(quads,actor);
+        }
         if(inside()&&ClientUi.current().ready())for(var effect:effects){
             double phase=Math.clamp((now-effect.at())/(double)effect.duration(),0,1);if(phase>=1)continue;
             int color=color(effect.element());
@@ -193,10 +257,35 @@ public final class ArkVisuals {
                     }
                     orb(quads,point,.17*(1-phase),0xFFF6DC,alpha);
                 }
+                case "heal"->{
+                    var target=entity(effect.entity(),effect.id());
+                    Vec3 from=target==null?effect.from():center(target);
+                    int alpha=(int)(230*(1-phase));
+                    for(int i=0;i<6;i++){
+                        double angle=i*Math.PI/3+phase*2;
+                        Vec3 mote=from.add(Math.cos(angle)*.45,phase*.95,Math.sin(angle)*.45);
+                        orb(quads,mote,.055,HEAL_COLOR,alpha);
+                        line(quads,mote.add(0,-.18,0),mote,.04,0x9DFFAF,alpha);
+                    }
+                }
+                case "sanctuary"->{
+                    double radius=.12+(effect.radius()-.12)*phase;
+                    int alpha=(int)(215*(1-phase));
+                    ring(quads,effect.from().add(0,-.38,0),radius,.065,0x6FF390,alpha);
+                    orb(quads,effect.from(),.22*(1-phase),0xC0FFD2,alpha);
+                }
                 default->{}
             }
         }
         event.getRenderState().setRenderData(FRAME,new Frame(List.copyOf(quads),NearEffectRendering.enabled(event.getCamera())));
+    }
+    private static void direction(List<Quad> quads,LivingEntity unit){
+        Vec3 origin=center(unit).add(0,.035-unit.getBbHeight()*.6,0);
+        Vec3 axis=Vec3.directionFromRotation(0,unit.getYRot());
+        Vec3 side=new Vec3(axis.z,0,-axis.x);
+        Vec3 base=origin.add(axis.scale(-.42)),neck=origin.add(axis.scale(.18)),tip=origin.add(axis.scale(.57));
+        face(quads,base.add(side.scale(.055)),neck.add(side.scale(.055)),neck.subtract(side.scale(.055)),base.subtract(side.scale(.055)),0x82DBFF,205);
+        face(quads,neck.add(side.scale(.18)),tip,tip,neck.subtract(side.scale(.18)),0x82DBFF,235);
     }
     private static void submit(SubmitCustomGeometryEvent event){var frame=event.getLevelRenderState().getRenderData(FRAME);if(frame!=null)WorldQuads.submit(event,frame.quads(),frame.fade());}
     private static void line(List<Quad> quads,Vec3 start,Vec3 end,double width,int color,int alpha){

@@ -22,6 +22,7 @@ public final class RewardPorts {
         boolean participant(ServerPlayer player,String instance);
         Dungeon byId(String instance);
         String currentInstance(ServerPlayer player);
+        boolean finalPracticeKill(Dungeon dungeon,UUID enemy);
     }
     public interface Balance {
         RewardSettings settings();

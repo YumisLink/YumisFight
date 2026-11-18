@@ -165,7 +165,7 @@ public final class CombatApplication {
                 var source=j.has("sourceStats")?JSON.fromJson(j.get("sourceStats"),cn.yumis.fight.modules.attributes.api.Stats.class):null;
                 var effects=j.has("sourceEffects")?JSON.fromJson(j.get("sourceEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class):null;
                 if(dot!=null&&dot.has("settleUntil")){source=JSON.fromJson(dot.getAsJsonObject("change").get("stats"),cn.yumis.fight.modules.attributes.api.Stats.class);effects=JSON.fromJson(dot.getAsJsonObject("change").get("equipment"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);}
-                long now=System.currentTimeMillis();var accumulated=ElementAccumulation.advance(life.elemental,life,components,receipt.actual()/fraction,source,target.bossOrElite(),now);life.elemental=accumulated.state();
+                long now=System.currentTimeMillis();var accumulated=ElementAccumulation.advance(life.elemental,life,components,receipt.actual()/fraction,source,target.bossOrElite(),true,now);life.elemental=accumulated.state();
                 for(var kind:accumulated.triggered())elementalAilments.add(applyElementalAilment(p,entity,life,kind,target.bossOrElite(),source,effects,now));
             }
             ack.add("elemental",JSON.toJsonTree(life.elemental));
@@ -347,7 +347,7 @@ public final class CombatApplication {
                 boolean released=elemental!=null&&life!=null&&life.generation==j.get("generation").getAsLong()&&life.elemental.until[elemental.ordinal()]==j.get("expires").getAsLong()&&life.elemental.until[elemental.ordinal()]>now;
                 Life next=released?copy(life,Life.class):life;
                 journal.begin();
-                if(released){next.elemental.until[elemental.ordinal()]=now;next.revision++;journal.put("life/"+next.target,next);if(target!=null){target.life(next);journal.put("target/"+target.id(),target);}}
+                if(released){next.elemental.endEarly(elemental,now);next.revision++;journal.put("life/"+next.target,next);if(target!=null){target.life(next);journal.put("target/"+target.id(),target);}}
                 journal.put(key,null);
                 journal.finish();
                 if(released){

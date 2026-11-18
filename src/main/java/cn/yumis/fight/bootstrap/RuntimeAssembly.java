@@ -46,6 +46,7 @@ public final class RuntimeAssembly {
     },new DungeonPorts.Rewards(){
         public void move(ServerPlayer p,String instance,ReturnPoint point){runtime.loot.move(p,instance,point);}
         public void publish(){runtime.loot.publish();}
+        public void closePractice(String instance)throws Exception{runtime.loot.closePractice(instance);}
     },new DungeonPorts.Meter(){
         public void join(Dungeon d,ServerPlayer p)throws Exception{runtime.damageMeter.join(d,p);}
         public void leave(Dungeon d,ServerPlayer p)throws Exception{runtime.damageMeter.leave(d,p);}
@@ -62,6 +63,7 @@ public final class RuntimeAssembly {
         public boolean participant(ServerPlayer p,String instance){return runtime.dungeons.participant(p,instance);}
         public Dungeon byId(String instance){return runtime.dungeons.byId(instance);}
         public String currentInstance(ServerPlayer p){var d=runtime.dungeons.current(p.getUUID());return d==null?"":d.id.toString();}
+        public boolean finalPracticeKill(Dungeon dungeon,UUID enemy){return runtime.dungeons.finalPracticeKill(dungeon,enemy);}
     },rewardBalance(runtime));}
     public static RewardPorts.Balance rewardBalance(ServerApplication runtime){return new RewardPorts.Balance(){
         public RewardSettings settings(){return runtime.rewards;}

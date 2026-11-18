@@ -5,15 +5,42 @@ import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.CastlePalace;
 import cn.yumis.fight.network.Network;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
 import java.util.*;
 import com.google.gson.*;
 
+import static cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.*;
+
 /** Palace content AI, real motion and frozen telegraphs; the recipient decides its own contacts. */
 public final class PalaceEncounterService {
     private static final Gson JSON=new Gson();
+    private static final List<List<PalaceEnemyKind>> SQUADS = List.of(
+        List.of(EXPELLER, EXPELLER, AXE_EXPELLER),
+        List.of(EXPELLER, AXE_EXPELLER, AXE_EXPELLER),
+        List.of(COMMANDER, GOLEM, GOLEM, GOLEM),
+        List.of(EXPELLER, COMMANDER, GOLEM, GOLEM),
+        List.of(EXPELLER, AXE_EXPELLER, COMMANDER, GOLEM),
+        List.of(EXPELLER, AXE_EXPELLER, GOLEM, AXION),
+        List.of(EXPELLER, EXPELLER, AXE_EXPELLER, COMMANDER, GOLEM, EXPELLER, AXE_EXPELLER, GOLEM),
+        List.of(EXPELLER, GOLEM, AXE_EXPELLER, EXPELLER, COMMANDER, GOLEM, EXPELLER, IAE),
+        List.of(EXPELLER, AXE_EXPELLER, COMMANDER, EXPELLER, GOLEM, COMMANDER, EXPELLER, AXE_EXPELLER, COMMANDER, EXPELLER),
+        List.of(SIEGHART));
+    private static final List<List<Vec3>> DRY_SPAWNS = List.of(
+        List.of(new Vec3(-30.5, 197, -60.5), new Vec3(-26.5, 197, -61.5), new Vec3(-22.5, 197, -58.5),
+            new Vec3(-18.5, 197, -61.5), new Vec3(-13.5, 197, -58.5), new Vec3(-9.5, 197, -62.5),
+            new Vec3(-5.5, 197, -59.5), new Vec3(-.5, 197, -56.5)),
+        List.of(new Vec3(-7.5, 197, -22.5), new Vec3(-2.5, 197, -21.5), new Vec3(3.5, 197, -21.5),
+            new Vec3(7.5, 197, -23.5), new Vec3(-8.5, 197, -15.5), new Vec3(8.5, 197, -15.5),
+            new Vec3(6.5, 197, -9.5), new Vec3(.5, 197, -11.5)),
+        List.of(new Vec3(-7.5, 197, 34.5), new Vec3(8.5, 197, 35.5), new Vec3(-16.5, 197, 37.5),
+            new Vec3(16.5, 197, 35.5), new Vec3(-22.5, 197, 41.5), new Vec3(22.5, 197, 39.5),
+            new Vec3(-30.5, 197, 37.5), new Vec3(30.5, 197, 39.5), new Vec3(-36.5, 197, 42.5),
+            new Vec3(36.5, 197, 42.5)),
+        List.of(new Vec3(.5, 203, 74.5)));
     private final DungeonPorts.Targets targets;
     private static final class Brain {
         final Vec3 home;final int room;
@@ -32,25 +59,70 @@ public final class PalaceEncounterService {
     private final Map<UUID,Motion> motions=new HashMap<>();
     PalaceEncounterService(DungeonService owner,DungeonPorts.Players players,DungeonPorts.Targets targets){this.owner=owner;this.players=players;this.targets=targets;}
 
+    static boolean handles(Dungeon d) {
+        return d.practice == null && d.treasure == null && CastlePalace.ID.equals(d.dungeon);
+    }
+
+    boolean waitsAtGate(Dungeon d, List<ServerPlayer> here) {
+        return here.stream().noneMatch(player -> canFight(player) && CastlePalace.reached(d.cell, d.wave + 1, player.position()));
+    }
+
+    void breathe(List<ServerPlayer> here) {
+        for (ServerPlayer player : here) {
+            if (!player.isInWater() || player.getY() > CastlePalace.SEA_LEVEL + 1) continue;
+            var current = player.getEffect(MobEffects.WATER_BREATHING);
+            if (current == null || !current.isInfiniteDuration() && current.getDuration() <= 30)
+                player.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 70, 0, true, false, false));
+        }
+    }
+
+    private boolean canFight(ServerPlayer player) {
+        return player.isAlive() && !players.session(player).life.dead
+            && !player.isSpectator() && !player.getAbilities().invulnerable;
+    }
+
     void spawn(Dungeon d){
-        String e=PalaceEnemyKind.EXPELLER.id,a=PalaceEnemyKind.AXE_EXPELLER.id,c=PalaceEnemyKind.COMMANDER.id,g=PalaceEnemyKind.GOLEM.id;
-        String[][] rooms={{e,e,e,e,e,e,a,a},{e,e,e,e,a,a,a,a},{c,c,c,c,g,g,g,g},{e,e,c,c,g,g,g,g},{e,e,a,a,c,c,g,g},{e,e,a,a,g,g,PalaceEnemyKind.AXION.id,PalaceEnemyKind.IAE.id}};
-        if(d.wave==6){owner.spawn(d,PalaceEnemyKind.SIEGHART.id,false,true,d.cell*512,80,234);return;}
-        for(int i=0;i<8;i++)owner.spawn(d,rooms[d.wave][i],d.wave==5&&i>=6,false,d.cell*512+(i%4-1.5)*4,80,d.wave*CastlePalace.SPACING+11+(i/4)*7);
+        List<PalaceEnemyKind> squad = SQUADS.get(d.wave);
+        boolean submerged = CastlePalace.submerged(d.wave);
+        for (int i = 0; i < squad.size(); i++) {
+            PalaceEnemyKind kind = squad.get(i);
+            Vec3 position = spawnPoint(d.cell, d.wave, i);
+            DungeonEnemy enemy = owner.spawn(d, kind.id, kind == AXION || kind == IAE, kind == SIEGHART,
+                position.x, position.y, position.z);
+            if (submerged) {
+                enemy.setNoGravity(true);
+                enemy.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, -1, 0, true, false, false));
+            }
+        }
+    }
+
+    static Vec3 spawnPoint(int cell, int room, int i) {
+        if (!CastlePalace.submerged(room)) {
+            Vec3 anchor = DRY_SPAWNS.get(room - CastlePalace.DECK).get(i);
+            return CastlePalace.worldPoint(cell, anchor.x, anchor.y, anchor.z);
+        }
+        if (room == 0 && i == 0) return CastlePalace.worldPoint(cell, -7.5, 98.3, -78.5);
+        return CastlePalace.ringPoint(cell, Math.toRadians(127 - i * 27), 27.4, CastlePalace.floorY(room) + .65);
     }
     public void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> here,long now){
         PalaceEnemyKind kind=PalaceEnemyKind.of(e);if(kind==null)return;
         Brain b=brains.computeIfAbsent(e.getUUID(),id->new Brain(e,d));
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
         if(now<b.busy){e.getNavigation().stop();return;}
-        if(!CastlePalace.contains(d.cell,b.room,e.position())){cancel(e.getUUID());move(e,kind,b.home,now);return;}
-        ServerPlayer p=here.stream().filter(q->q.level()==e.level()&&q.isAlive()&&!players.session(q).life.dead&&!q.isSpectator()&&!q.getAbilities().invulnerable&&CastlePalace.contains(d.cell,b.room,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
-        if(p==null){if(e.position().subtract(b.home).horizontalDistanceSqr()>4)move(e,kind,b.home,now);else e.getNavigation().stop();return;}
+        if(!CastlePalace.contains(d.cell,b.room,e.position())){
+            cancel(e.getUUID());
+            motions.remove(e.getUUID());
+            e.getNavigation().stop();
+            e.setPos(b.home);
+            return;
+        }
+        ServerPlayer p=here.stream().filter(q->q.level()==e.level()&&canFight(q)&&CastlePalace.contains(d.cell,b.room,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
+        if(p==null){if(e.position().distanceToSqr(b.home)>4)move(d,e,b,kind,b.home,now);else e.getNavigation().stop();return;}
         Vec3 direction=p.position().subtract(e.position()).multiply(1,0,1).normalize();if(direction.lengthSqr()<.001)direction=new Vec3(0,0,1);
         float yaw=(float)Math.toDegrees(Math.atan2(-direction.x,direction.z));e.setYRot(yaw);e.yBodyRot=yaw;e.getLookControl().setLookAt(p);
         double distance=e.distanceTo(p);boolean ranged=kind==PalaceEnemyKind.COMMANDER||kind==PalaceEnemyKind.IAE;
-        if(ranged&&distance<4)move(e,kind,CastlePalace.inside(d.cell,b.room,e.position().subtract(direction.scale(3))),now);
-        else if(distance>(ranged?8:2.6))move(e,kind,CastlePalace.inside(d.cell,b.room,p.position()),now);
+        if(ranged&&distance<4)move(d,e,b,kind,CastlePalace.inside(d.cell,b.room,e.position().subtract(direction.scale(3))),now);
+        else if(distance>(ranged?8:2.6))move(d,e,b,kind,CastlePalace.inside(d.cell,b.room,p.position()),now);
         else e.getNavigation().stop();
         if(now<b.next||distance>22)return;
         switch(kind){
@@ -89,10 +161,10 @@ public final class PalaceEncounterService {
     private void storm(Dungeon d,DungeonEnemy e,Brain b,List<ServerPlayer> here,long now){
         play(e,b,"rise",4000,now);e.play("rise",500);b.storm=now+15000;b.next=now+4700;
         motion(e,e.position(),0,4000,6,"FLIGHT",now);
-        List<ServerPlayer> candidates=here.stream().filter(p->p.isAlive()&&!players.session(p).life.dead&&CastlePalace.contains(d.cell,6,p.position())).toList();
+        List<ServerPlayer> candidates=here.stream().filter(p->canFight(p)&&CastlePalace.contains(d.cell,b.room,p.position())).toList();
         for(int i=0;i<6;i++){
             Vec3 anchor=candidates.isEmpty()?b.home:candidates.get(i%candidates.size()).position();double angle=i*Math.PI/3;
-            Vec3 point=CastlePalace.inside(d.cell,6,anchor.add(Math.cos(angle)*(i%2==0?0:3),0,Math.sin(angle)*(i%2==0?0:3)));
+            Vec3 point=CastlePalace.inside(d.cell,b.room,anchor.add(Math.cos(angle)*(i%2==0?0:3),0,Math.sin(angle)*(i%2==0?0:3)));
             var hit=attack(e,"LIGHTNING","CIRCLE",600,180,1.6,.25,true,0,now+400+i*400);hit.origin(point);hit.destination(point);add(hit);
         }
     }
@@ -104,10 +176,19 @@ public final class PalaceEncounterService {
     private void add(PalaceAttack attack){if(attack.group.isEmpty())attack.group=attack.id;attacks.put(attack.id,new Pending(attack));owner.broadcast(attack.instance,"palaceAttack",packet(attack));}
     private void motion(DungeonEnemy e,Vec3 to,long delay,long duration,double arc,String kind,long now){motions.put(e.getUUID(),new Motion(e.getUUID(),e.position(),to,now+delay,now+delay+duration,arc,kind));}
     private Vec3 clipMove(DungeonEnemy e,Vec3 to){Vec3 from=e.position().add(0,.8,0);var hit=owner.level().clip(new ClipContext(from,to.add(0,.8,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));if(hit.getType()==HitResult.Type.MISS)return to;Vec3 direction=to.subtract(e.position()).multiply(1,0,1).normalize();return hit.getLocation().subtract(0,.8,0).subtract(direction.scale(e.getBbWidth()*.6));}
-    private void move(DungeonEnemy e,PalaceEnemyKind kind,Vec3 to,long now){
+    private void move(Dungeon d,DungeonEnemy e,Brain brain,PalaceEnemyKind kind,Vec3 to,long now){
+        if (CastlePalace.submerged(brain.room)) {
+            e.getNavigation().stop();
+            e.setNoGravity(true);
+            e.setDeltaMovement(Vec3.ZERO);
+            Vec3 step = CastlePalace.swimStep(d.cell, brain.room, e.position(), to).subtract(e.position());
+            if (step.lengthSqr() > .0324) step = step.normalize().scale(.18);
+            e.move(MoverType.SELF, step);
+            return;
+        }
         if(kind!=PalaceEnemyKind.GOLEM){e.getNavigation().moveTo(to.x,to.y,to.z,1);return;}
         e.setNoGravity(true);e.setDeltaMovement(Vec3.ZERO);Vec3 delta=to.subtract(e.position()).multiply(1,0,1);if(delta.length()>.14)delta=delta.normalize().scale(.14);
-        double y=80.45+Math.sin(now/650d)*.08;e.move(MoverType.SELF,delta.add(0,Math.clamp(y-e.getY(),-.12,.12),0));
+        double y=to.y+.45+Math.sin(now/650d)*.08;e.move(MoverType.SELF,delta.add(0,Math.clamp(y-e.getY(),-.12,.12),0));
     }
     public void tick(List<ServerPlayer> online,long now){
         for(Motion m:new ArrayList<>(motions.values())){
@@ -119,7 +200,7 @@ public final class PalaceEncounterService {
             e.setNoGravity(true);e.setDeltaMovement(Vec3.ZERO);e.fallDistance=0;e.move(MoverType.SELF,desired.subtract(e.position()));
             if(e.position().distanceToSqr(desired)>.35){cancel(e.getUUID());continue;}
             if(m.kind.equals("FLIGHT")){String clip=now<m.start+500?"rise":now<m.end-500?"storm":"land";if(!e.move().equals(clip))e.play(clip,clip.equals("storm")?3000:500);}
-            if(now>=m.end){motions.remove(m.source);e.setNoGravity(PalaceEnemyKind.of(e)==PalaceEnemyKind.GOLEM);}
+            if(now>=m.end){motions.remove(m.source);e.setNoGravity(floatWithoutMotion(e,brains.get(m.source)));}
         }
         for(Pending pending:new ArrayList<>(attacks.values())){
             PalaceAttack a=pending.attack;Entity raw=owner.level().getEntity(a.source);Dungeon d=owner.byId(a.instance);
@@ -143,12 +224,20 @@ public final class PalaceEncounterService {
     public void cancel(UUID source){
         for(Pending pending:new ArrayList<>(attacks.values()))if(pending.attack.source.equals(source))remove(pending.attack,true);
         Entity raw=owner.level().getEntity(source);Motion old=motions.get(source);
+        Brain b=brains.get(source);
         if(raw instanceof DungeonEnemy e&&PalaceEnemyKind.of(e)!=null){
-            if(old!=null&&!old.kind.equals("SETTLE")){motions.remove(source);if(e.isAlive()&&e.getY()>80.6)motion(e,new Vec3(e.getX(),80+(PalaceEnemyKind.of(e)==PalaceEnemyKind.GOLEM?.45:0),e.getZ()),0,400,0,"SETTLE",System.currentTimeMillis());}
-            e.setNoGravity(PalaceEnemyKind.of(e)==PalaceEnemyKind.GOLEM||motions.containsKey(source));e.setAggressive(false);e.setDeltaMovement(Vec3.ZERO);e.fallDistance=0;
+            if(old!=null&&!old.kind.equals("SETTLE")){
+                motions.remove(source);
+                if(e.isAlive()&&b!=null&&!CastlePalace.submerged(b.room)&&e.getY()>b.home.y+.6)
+                    motion(e,new Vec3(e.getX(),b.home.y,e.getZ()),0,400,0,"SETTLE",System.currentTimeMillis());
+            }
+            e.setNoGravity(floatWithoutMotion(e,b)||motions.containsKey(source));e.setAggressive(false);e.setDeltaMovement(Vec3.ZERO);e.fallDistance=0;
             if(!e.move().isEmpty())e.play("",0);
         }
-        Brain b=brains.get(source);if(b!=null){b.busy=0;b.next=Math.max(b.next,System.currentTimeMillis()+400);}
+        if(b!=null){b.busy=0;b.next=Math.max(b.next,System.currentTimeMillis()+400);}
+    }
+    private static boolean floatWithoutMotion(DungeonEnemy enemy,Brain brain){
+        return PalaceEnemyKind.of(enemy)==GOLEM || brain!=null&&CastlePalace.submerged(brain.room);
     }
     public void close(Dungeon d){
         for(UUID id:new ArrayList<>(brains.keySet())){Entity raw=owner.level().getEntity(id);if(raw instanceof DungeonEnemy e&&e.instance().equals(d.id.toString())){cancel(id);brains.remove(id);motions.remove(id);}}

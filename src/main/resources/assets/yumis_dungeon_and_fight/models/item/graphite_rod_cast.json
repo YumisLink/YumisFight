@@ -1,5 +1,5 @@
 {
-  "parent": "minecraft:item/handheld",
+  "parent": "minecraft:item/handheld_rod",
   "textures": {
     "layer0": "yumis_dungeon_and_fight:item/graphite_rod_cast"
   }
