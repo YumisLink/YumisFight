@@ -121,11 +121,18 @@ public final class TargetService implements WorldTargets {
         catch(Exception failure){journal.abort();throw new IllegalStateException("世界生命提交失败",failure);}
     }
     @Override public void release(Collection<? extends LivingEntity> entities){
-        var writes=new LinkedHashMap<String,JsonElement>();
         for(var entity:entities){
             if(!(entity instanceof WorldTargetEntity))throw new IllegalArgumentException("不是托管世界生命");
-            writes.put("target/"+entity.getUUID(),JsonNull.INSTANCE);writes.put("life/"+entity.getUUID(),JsonNull.INSTANCE);
-            for(String key:journal.keys("ailments/"+entity.getUUID()+"/"))writes.put(key,JsonNull.INSTANCE);
+        }
+        releaseIds(entities.stream().map(LivingEntity::getUUID).toList());
+    }
+    @Override public void releaseIds(Collection<UUID> actors){
+        var writes=new LinkedHashMap<String,JsonElement>();
+        for(UUID actor:actors){
+            String target="target/"+actor,life="life/"+actor;
+            if(!journal.get(target).isJsonNull())writes.put(target,JsonNull.INSTANCE);
+            if(!journal.get(life).isJsonNull())writes.put(life,JsonNull.INSTANCE);
+            for(String key:journal.keys("ailments/"+actor+"/"))writes.put(key,JsonNull.INSTANCE);
         }
         if(!writes.isEmpty())try{journal.transaction(writes);}catch(Exception failure){throw new IllegalStateException("世界生命清理失败",failure);}
     }

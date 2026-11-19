@@ -41,9 +41,16 @@ public final class MachineBlock extends BaseEntityBlock {
     }
     @Override protected VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return getShape(state,level,pos,context);}
     @Override public BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext c){
+        Direction facing=c.getHorizontalDirection().getOpposite();
+        var assembly=IndustrialAssembly.of(initial.device());
+        if(assembly!=null&&!assembly.canPlace(c,facing)){
+            if(!c.getLevel().isClientSide()&&c.getPlayer()!=null)
+                c.getPlayer().sendOverlayMessage(net.minecraft.network.chat.Component.literal("整机需要"+assembly.sizeText()+"的空位。"));
+            return null;
+        }
         if(initial.device()==DeviceType.STAR&&!ArtificialStarPartBlock.canPlace(c))return null;
         if(initial.device().has(DeviceType.Capability.WIND)){if(c.getClickedPos().getY()+2>c.getLevel().getMaxY())return null;for(int i=1;i<=2;i++)if(!c.getLevel().getBlockState(c.getClickedPos().above(i)).canBeReplaced(c))return null;}
-        return defaultBlockState().setValue(FACING,c.getHorizontalDirection().getOpposite());
+        return defaultBlockState().setValue(FACING,facing);
     }
     @Override public void setPlacedBy(Level level,BlockPos pos,BlockState state,LivingEntity owner,ItemStack stack){
         super.setPlacedBy(level,pos,state,owner,stack);
@@ -58,6 +65,8 @@ public final class MachineBlock extends BaseEntityBlock {
         super.affectNeighborsAfterRemoval(state,level,pos,moved);if(level.getBlockState(pos).getBlock()==this)return;
         if(initial.device().has(DeviceType.Capability.WIND))WindGeneratorPartBlock.removeUpper(level,pos);
         if(initial.device()==DeviceType.STAR)ArtificialStarPartBlock.removeParts(level,pos);
+        var assembly=IndustrialAssembly.of(initial.device());
+        if(assembly!=null&&!level.restoringBlockSnapshots)assembly.removeParts(level,pos,state.getValue(FACING));
     }
     @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){if(!level.isClientSide()&&level.getBlockEntity(pos) instanceof MachineBlockEntity be)IndustrialWorld.get((ServerLevel)level).opening.prepare((net.minecraft.server.level.ServerPlayer)player,be);return InteractionResult.SUCCESS;}
     @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit){if(stack.getItem() instanceof ManaWand||stack.getItem() instanceof BlockItem item&&item.getBlock() instanceof FluidPipeBlock)return InteractionResult.PASS;if(IndustrialUpgrades.recognized(stack)){if(player instanceof net.minecraft.server.level.ServerPlayer server)try{IndustrialUpgrades.use(server,hand,(MachineBlockEntity)level.getBlockEntity(pos));}catch(RuntimeException failure){cn.yumis.fight.modules.industry.api.IndustrialPorts.message(server,failure.getMessage());}return InteractionResult.SUCCESS;}if(!level.isClientSide())try(var tx=net.neoforged.neoforge.transfer.transaction.Transaction.openRoot()){if(net.neoforged.neoforge.transfer.fluid.FluidUtil.interactWithFluidHandler(player,hand,level,pos,hit.getDirection(),tx)){tx.commit();return InteractionResult.SUCCESS;}}return InteractionResult.TRY_WITH_EMPTY_HAND;}

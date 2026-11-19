@@ -122,9 +122,9 @@ public final class SkillTooltip {
             }else if(!skill.passive()){
                 add(result,"面板伤害："+amount(preview.hit())+" × "+preview.slashes()+"段",UiTheme.TEXT);
                 if(preview.finisher().maximum()>0){String label=cn.yumis.fight.modules.skills.api.SkillPreviewRules.finisherLabel(skill);add(result,(label==null?"终结伤害":label)+"："+amount(preview.finisher())+(label==null?" × 1段":""),UiTheme.TEXT);}
-                if(skill==SkillCatalog.GHOST){int soul=SkillLearning.effective(stats,state.progress(),SkillCatalog.require(CareerSkills.SOUL_SLASH));add(result,"满蓄力单段："+amount(SkillPreview.damage(state.progress(),stats,skill,(parameters.get("damage",0)*2+parameters.get("soulBonus",0))*parameters.get("ghostFieldMultiplier",1),false,state.resources().equipment)),UiTheme.TEXT);}
-                else {add(result,(skill.id.equals(CareerSkills.KALLA)?"终结三剑合计：":"主技能全段命中：")+amount(preview.total()),UiTheme.ACCENT);if(skill.id.equals(CareerSkills.CRESCENT))add(result,"满蓄力三段总计："+amount(preview.total().times(3)),UiTheme.TEXT);}
-                if(skill.id.equals(CareerSkills.KALLA))add(result,"冥炎每层每0.5秒："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("flameDot",0),3,state.resources().equipment)),UiTheme.TEXT);
+                if(skill==SkillCatalog.GHOST){int soul=SkillLearning.effective(stats,state.progress(),SkillCatalog.require(CareerSkills.SOUL_SLASH));add(result,"满蓄力单段："+amount(SkillPreview.damage(state.progress(),stats,skill,(parameters.get("damage",0)*Math.max(1,parameters.get("chargeMultiplier",2))+parameters.get("soulBonus",0))*parameters.get("ghostFieldMultiplier",1),false,state.resources().equipment)),UiTheme.TEXT);}
+                else {add(result,(skill.id.equals(CareerSkills.KALLA)?"终结三剑合计：":"主技能全段命中：")+amount(preview.total()),UiTheme.ACCENT);if(skill.id.equals(CareerSkills.CRESCENT))add(result,"满蓄力总计（"+(int)Math.max(1,parameters.get("slashes",3))+"段）："+amount(preview.total().times((int)Math.max(1,parameters.get("slashes",3)))),UiTheme.TEXT);}
+                if(skill.id.equals(CareerSkills.KALLA))add(result,"冥炎每层每"+number(Math.max(.05,parameters.get("flameDotInterval",.5)))+"秒："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("flameDot",0),Math.max(1,(int)parameters.get("flameStacks",3)),state.resources().equipment)),UiTheme.TEXT);
                 if(preview.shortSwordWave().maximum()>0)add(result,"每次短剑追加剑气："+amount(preview.shortSwordWave()),UiTheme.TEXT);
                 
             }

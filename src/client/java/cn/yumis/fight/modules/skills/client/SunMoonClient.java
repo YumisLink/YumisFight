@@ -23,7 +23,7 @@ final class SunMoonClient {
         var aim=SkillTargeting.ground(p,c.parameters.get("range",16),e->e.isAlive()&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon));
         var a=new Area();a.cast=c;a.visual=UUID.randomUUID().toString();a.point=aim.point();
         if(id.equals(SunMoonSkills.PARADOX)&&aim.target()!=null){var target=SkillsClient.current().context(aim.target());if(target!=null){a.target=aim.target();a.generation=target.life.generation;}}
-        long delay=id.equals(SunMoonSkills.SUN)?350:id.equals(SunMoonSkills.CORONA)?800:id.equals(SunMoonSkills.PARADOX)?600:id.equals(SunMoonSkills.STARFALL)?250:0;a.next=ClientUi.now()+delay;
+        long delay=(long)(c.parameters.get("impactDelay",0)*1000);a.next=ClientUi.now()+delay;
         JsonObject motion=null;if(a.target!=null){motion=new JsonObject();motion.addProperty("target",a.target.getStringUUID());motion.addProperty("targetEntity",a.target.getId());motion.addProperty("targetFeet",true);motion.addProperty("range",0);motion.addProperty("velocity",0);motion.addProperty("millis",600);}
         areas.add(a);MageClient.INSTANCE.visual(c,a.visual,"START",a.point,p.getEyePosition().subtract(a.point),id.equals(SunMoonSkills.STARFALL)?2600:2000,0,motion);
     }
@@ -33,11 +33,11 @@ final class SunMoonClient {
             var c=a.cast;if(!MageClient.INSTANCE.valid(c)){areas.remove(a);continue;}
             if(a.target!=null){var target=SkillsClient.current().context(a.target);if(a.target.isAlive()&&target!=null&&!target.life.dead&&target.life.generation==a.generation)a.point=a.target.position();else a.target=null;}
             if(now<a.next)continue;if(!mc.level.hasChunkAt(BlockPos.containing(a.point))){areas.remove(a);MageClient.INSTANCE.finished(c);continue;}
-            String id=c.skill.id;double damage=c.parameters.get("damage",0),radius=c.parameters.get("radius",3);
-            if(id.equals(SunMoonSkills.STARFALL)){while(a.index<8&&now>=a.next){hit(a,a.point,radius,damage/8,2);a.index++;a.next+=250;MageClient.INSTANCE.visual(c,a.visual,"SEGMENT",a.point,Vec3.ZERO,2600,++a.sequence,null);}if(a.index<8)continue;}
-            else if(id.equals(SunMoonSkills.PARADOX)){hit(a,a.point,radius,damage/2,2);hit(a,a.point,radius,damage/2,1);}
-            else hit(a,id.equals(SunMoonSkills.CORONA)?a.point.add(0,2,0):a.point,radius,damage,1);
-            Vec3 point=id.equals(SunMoonSkills.CORONA)?a.point.add(0,2,0):a.point;MageClient.INSTANCE.visual(c,a.visual,"FINISH",point,Vec3.ZERO,id.equals(SunMoonSkills.STARFALL)?2600:2000,++a.sequence,null);areas.remove(a);MageClient.INSTANCE.finished(c);
+            String id=c.skill.id;double damage=c.parameters.get("damage",0),radius=c.parameters.get("radius",3),lift=c.parameters.get("liftHeight",2);
+            if(id.equals(SunMoonSkills.STARFALL)){int stars=(int)c.parameters.get("slashes",8);long starInterval=(long)(c.parameters.get("interval",.25)*1000);while(a.index<stars&&now>=a.next){hit(a,a.point,radius,damage/stars,2);a.index++;a.next+=starInterval;MageClient.INSTANCE.visual(c,a.visual,"SEGMENT",a.point,Vec3.ZERO,2600,++a.sequence,null);}if(a.index<stars)continue;}
+            else if(id.equals(SunMoonSkills.PARADOX)){double ice=c.parameters.get("elementSplit",.5);hit(a,a.point,radius,damage*ice,2);hit(a,a.point,radius,damage*(1-ice),1);}
+            else hit(a,id.equals(SunMoonSkills.CORONA)?a.point.add(0,lift,0):a.point,radius,damage,1);
+            Vec3 point=id.equals(SunMoonSkills.CORONA)?a.point.add(0,lift,0):a.point;MageClient.INSTANCE.visual(c,a.visual,"FINISH",point,Vec3.ZERO,id.equals(SunMoonSkills.STARFALL)?2600:2000,++a.sequence,null);areas.remove(a);MageClient.INSTANCE.finished(c);
         }
     }
     private static void hit(Area a,Vec3 center,double radius,double coefficient,int element){

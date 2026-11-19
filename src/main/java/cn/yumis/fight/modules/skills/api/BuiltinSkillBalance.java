@@ -18,38 +18,38 @@ final class BuiltinSkillBalance {
         styles();
         SkillBalance.nonDamage(SkillCatalog.MASTERY);SkillBalance.nonDamage(SkillCatalog.OVERDRIVE);SkillBalance.nonDamage(SkillCatalog.BLINK);
         for(String id:List.of(CareerSkills.KEIGA,CareerSkills.BRANDS,CareerSkills.FRENZY))SkillBalance.nonDamage(SkillCatalog.require(id));
-        SkillBalance.register(SkillCatalog.GHOST,new SkillBalanceProfile(1,0,false,false,0,(s,r,c)->List.of(hit(1,s.parameters(r).get("damage")*2))));
+        SkillBalance.register(SkillCatalog.GHOST,new SkillBalanceProfile(1,0,false,false,0,(s,r,c)->{var p=s.parameters(r);return List.of(hit(p.getOrDefault("chargeSeconds",1d),p.get("damage")*Math.max(1,p.getOrDefault("chargeMultiplier",2d))));}));
         add(SkillCatalog.TRIPLE,1,(s,r,c)->{
-            var p=s.parameters(r);int count=3+(c.mastery()?(Set.of("KATANA","LIGHTSABER").contains(c.weapon())?4:2):0);var out=new ArrayList<Hit>();
-            for(int i=0;i<count;i++){out.add(hit(i*.2+.1,p.get("damage")));if(c.mastery()&&c.weapon().equals("SHORTSWORD"))out.add(dot(i*.2+.2,p.get("damage")*.2*CareerSkills.growth(9)));}return out;
+            var p=s.parameters(r);double dash=Math.max(.05,p.getOrDefault("dashSeconds",.2));int count=(int)Math.max(1,p.getOrDefault("slashes",3d))+(c.mastery()?(Set.of("KATANA","LIGHTSABER").contains(c.weapon())?4:2):0);var out=new ArrayList<Hit>();
+            for(int i=0;i<count;i++){out.add(hit(i*dash+.1,p.get("damage")));if(c.mastery()&&c.weapon().equals("SHORTSWORD"))out.add(dot(i*dash+.2,p.get("damage")*.2*CareerSkills.growth(9)));}return out;
         });
         add(SkillCatalog.WAVE,1,(s,r,c)->List.of(hit(.1,s.parameters(r).get("damage"))));
-        add(SkillCatalog.RISING,2,(s,r,c)->List.of(hit(.15,s.parameters(r).get("damage")),hit(.3,s.parameters(r).get("finisher"))));
-        add(SkillCatalog.DRAW,3,(s,r,c)->{double damage=s.parameters(r).get("damage");return c.mastery()&&c.weapon().equals("SHORTSWORD")?List.of(hit(.4,damage),dot(.5,damage*.2*CareerSkills.growth(9))):List.of(hit(.4,damage));});
-        add(SkillCatalog.DRAGON,4,(s,r,c)->{var out=new ArrayList<Hit>();int count=4+(c.mastery()&&c.weapon().equals("LIGHTSABER")?1:0);for(int i=0;i<count;i++)out.add(hit(i*.25+.125,s.parameters(r).get("damage")));return out;});
+        add(SkillCatalog.RISING,2,(s,r,c)->{var p=s.parameters(r);double dash=Math.max(.05,p.getOrDefault("dashSeconds",.3));return List.of(hit(dash/2,p.get("damage")),hit(dash,p.get("finisher")));});
+        add(SkillCatalog.DRAW,3,(s,r,c)->{var p=s.parameters(r);double damage=p.get("damage"),draw=Math.max(.05,p.getOrDefault("drawSeconds",.4));return c.mastery()&&c.weapon().equals("SHORTSWORD")?List.of(hit(draw,damage),dot(draw+.1,damage*.2*CareerSkills.growth(9))):List.of(hit(draw,damage));});
+        add(SkillCatalog.DRAGON,4,(s,r,c)->{var out=new ArrayList<Hit>();double dash=Math.max(.05,s.parameters(r).getOrDefault("dashSeconds",.25));int count=(int)Math.max(1,s.parameters(r).getOrDefault("slashes",4d))+(c.mastery()&&c.weapon().equals("LIGHTSABER")?1:0);for(int i=0;i<count;i++)out.add(hit(i*dash+dash/2,s.parameters(r).get("damage")));return out;});
         add(SkillCatalog.DANCE,5,(s,r,c)->{
-            var p=s.parameters(r);int count=10+(c.mastery()&&Set.of("KATANA","LIGHTSABER").contains(c.weapon())?10:0);var out=new ArrayList<Hit>();double interval=Math.min(.125,1.25/count);
+            var p=s.parameters(r);int count=(int)Math.max(1,p.getOrDefault("slashes",10d))+(c.mastery()&&Set.of("KATANA","LIGHTSABER").contains(c.weapon())?10:0);var out=new ArrayList<Hit>();double interval=Math.min(.125,1.25/count);
             for(int i=0;i<count;i++){out.add(hit(i*interval,p.get("damage")));if(c.mastery()&&c.weapon().equals("SHORTSWORD"))out.add(dot(i*interval+.1,p.get("damage")*.2*CareerSkills.growth(9)));}out.add(hit(1.35,p.get("finisher")));return out;
         });
-        add(SkillCatalog.STORM,10,(s,r,c)->{var p=s.parameters(r);double duration=p.get("duration");var out=new ArrayList<Hit>();for(int i=0;i<24;i++)out.add(hit(duration*.125+i*duration*.75/24,p.get("damage")));out.add(hit(duration*.9,p.get("finisher")));return out;});
+        add(SkillCatalog.STORM,10,(s,r,c)->{var p=s.parameters(r);double duration=p.get("duration");int total=(int)Math.max(1,p.getOrDefault("slashes",24d));var out=new ArrayList<Hit>();for(int i=0;i<total;i++)out.add(hit(duration*.125+i*duration*.75/total,p.get("damage")));out.add(hit(duration*.9,p.get("finisher")));return out;});
         SkillBalance.register(SkillCatalog.require(CareerSkills.SOUL_SLASH),new SkillBalanceProfile(.5,6,false,false,0,(s,r,c)->List.of(hit(1,s.parameters(r).get("damage")))));
-        SkillBalance.register(SkillCatalog.require(CareerSkills.FIELD),new SkillBalanceProfile(2.4,0,false,false,0,(s,r,c)->{var out=new ArrayList<Hit>();var p=s.parameters(r);for(int i=1;i<=12;i++){if(r>=8)out.add(dot(i,p.get("iceDot")));if(r>=15)out.add(dot(i,p.get("darkDot")));}return out;}));
-        career(CareerSkills.TOMBSTONE,3.6,(s,r,c)->{var out=new ArrayList<Hit>();for(int i=1;i<=10;i++)out.add(hit(i*.2,s.parameters(r).get("damage")));return out;});
-        career(CareerSkills.PHANTOM,4.8,(s,r,c)->List.of(hit(.125,s.parameters(r).get("damage"))));
+        SkillBalance.register(SkillCatalog.require(CareerSkills.FIELD),new SkillBalanceProfile(2.4,0,false,false,0,(s,r,c)->{var out=new ArrayList<Hit>();var p=s.parameters(r);int ticks=(int)Math.max(1,p.getOrDefault("duration",12d)/Math.max(.05,p.getOrDefault("fieldTickInterval",1d)));for(int i=1;i<=ticks;i++){if(r>=8)out.add(dot(i,p.get("iceDot")));if(r>=15)out.add(dot(i,p.get("darkDot")));}return out;}));
+        career(CareerSkills.TOMBSTONE,3.6,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();int tombHits=(int)Math.max(1,p.getOrDefault("slashes",10d));double tombGap=Math.max(.05,p.getOrDefault("interval",.2));for(int i=1;i<=tombHits;i++)out.add(hit(i*tombGap,p.get("damage")));return out;});
+        career(CareerSkills.PHANTOM,4.8,(s,r,c)->List.of(hit(Math.max(.05,s.parameters(r).getOrDefault("dashSeconds",.25)/2),s.parameters(r).get("damage"))));
         career(CareerSkills.KALLA,6,BuiltinSkillBalance::kalla);
-        SkillBalance.register(SkillCatalog.require(CareerSkills.BLACHE),new SkillBalanceProfile(12,0,true,true,CareerSkills.blacheMut(9),(s,r,c)->List.of(hit(1.2,s.parameters(r).get("damage")))));
-        career(CareerSkills.ORB,2,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();int count=CareerSkills.orbHits(3);double damage=(p.get("damage")+3*p.get("perBrandDamage"))/count;for(int i=1;i<=count;i++)out.add(hit(.15+i*.35,damage));return out;});
-        career(CareerSkills.CRESCENT,2,(s,r,c)->{var out=new ArrayList<Hit>();for(int i=0;i<3;i++)out.add(hit(1.1+i*.05,s.parameters(r).get("damage")));return out;});
-        career(CareerSkills.ICE,3,(s,r,c)->{var out=new ArrayList<Hit>();for(int i=0;i<3;i++)out.add(hit(.1+i*.2,s.parameters(r).get("damage")));return out;});
+        SkillBalance.register(SkillCatalog.require(CareerSkills.BLACHE),new SkillBalanceProfile(12,0,true,true,CareerSkills.blacheMut(9),(s,r,c)->List.of(hit(Math.max(.05,s.parameters(r).getOrDefault("finishDelay",1.2)),s.parameters(r).get("damage")))));
+        career(CareerSkills.ORB,2,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();int count=(int)Math.max(1,Math.round(p.getOrDefault("orbBaseHits",3d)+p.getOrDefault("orbHitsPerBrand",5d)*3));double damage=(p.get("damage")+3*p.get("perBrandDamage"))/count;double tick=Math.max(.05,p.getOrDefault("orbTickInterval",SkillResourceRules.ORB_INTERVAL/1000d));for(int i=1;i<=count;i++)out.add(hit(.15+i*tick,damage));return out;});
+        career(CareerSkills.CRESCENT,2,(s,r,c)->{var out=new ArrayList<Hit>();int crescentHits=(int)Math.max(1,s.parameters(r).getOrDefault("slashes",3d));for(int i=0;i<crescentHits;i++)out.add(hit(1.1+i*.05,s.parameters(r).get("damage")));return out;});
+        career(CareerSkills.ICE,3,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();int iceHits=(int)Math.max(1,p.getOrDefault("slashes",3d));double iceGap=Math.max(.05,p.getOrDefault("interval",.2));for(int i=0;i<iceHits;i++)out.add(hit(.1+i*iceGap,p.get("damage")));return out;});
         career(CareerSkills.FIRE,4,(s,r,c)->List.of(hit(2d/3,s.parameters(r).get("damage"))));
-        career(CareerSkills.AGNI,5,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();for(int i=1;i<=SkillResourceRules.agniHits(3);i++)out.add(hit(i*SkillResourceRules.agniInterval(3),p.get("damage")));out.add(hit(3,p.get("finisher")));return out;});
+        career(CareerSkills.AGNI,5,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();double agniBase=Math.max(.05,p.getOrDefault("agniIntervalBase",.85));int agniCount=(int)Math.max(1,Math.floor(p.getOrDefault("agniBaseHits",3d)*3/agniBase));for(int i=1;i<=agniCount;i++)out.add(hit(i*agniBase/3,p.get("damage")));out.add(hit(p.getOrDefault("duration",3d),p.get("finisher")));return out;});
         career(CareerSkills.EYE,9,(s,r,c)->List.of(hit(20.8,s.parameters(r).get("damage"))));
-        career(CareerSkills.CRASH,2,(s,r,c)->List.of(hit(.5,s.parameters(r).get("damage")),hit(.5,s.parameters(r).get("finisher"))));
-        career(CareerSkills.HAND,2,(s,r,c)->List.of(hit(.35,s.parameters(r).get("damage"))));
-        career(CareerSkills.RAGE,3,(s,r,c)->{var out=new ArrayList<Hit>();for(int i=0;i<5;i++)out.add(hit(i*.15,s.parameters(r).get("damage")));return out;});
+        career(CareerSkills.CRASH,2,(s,r,c)->{var p=s.parameters(r);double hop=Math.max(.05,p.getOrDefault("hopSeconds",.5));return List.of(hit(hop,p.get("damage")),hit(hop,p.get("finisher")));});
+        career(CareerSkills.HAND,2,(s,r,c)->List.of(hit(Math.max(.05,s.parameters(r).getOrDefault("interval",.35)),s.parameters(r).get("damage"))));
+        career(CareerSkills.RAGE,3,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();int rageHits=(int)Math.max(1,p.getOrDefault("slashes",5d));double rageGap=Math.max(.05,p.getOrDefault("interval",.15));for(int i=0;i<rageHits;i++)out.add(hit(i*rageGap,p.get("damage")));return out;});
         career(CareerSkills.BLADE,4,(s,r,c)->List.of(hit(.2,s.parameters(r).get("damage")),hit(.35,s.parameters(r).get("finisher"))));
-        career(CareerSkills.ERUPTION,5,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();out.add(hit(.6,p.get("finisher")));for(int i=0;i<4;i++)out.add(hit(.6+i*.2,p.get("damage")));return out;});
-        career(CareerSkills.SWORD,10,(s,r,c)->{var p=s.parameters(r);double total=p.get("damage")+15*p.get("perBloodDamage"),delay=14*Math.max(.5,SkillBalance.basicInterval(c,true));var out=new ArrayList<Hit>();out.add(hit(delay+.3,total*.3));for(int i=0;i<5;i++)out.add(hit(delay+.6+i*.3,total*.7/5));return out;});
+        career(CareerSkills.ERUPTION,5,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();double eruptionGap=Math.max(.05,p.getOrDefault("interval",.2));int eruptionHits=(int)Math.max(1,p.getOrDefault("slashes",4d));out.add(hit(Math.max(.05,p.getOrDefault("hopSeconds",.6)),p.get("finisher")));for(int i=0;i<eruptionHits;i++)out.add(hit(.6+i*eruptionGap,p.get("damage")));return out;});
+        career(CareerSkills.SWORD,10,(s,r,c)->{var p=s.parameters(r);double total=p.get("damage")+15*p.get("perBloodDamage"),delay=14*Math.max(.5,SkillBalance.basicInterval(c,true));double share=Math.clamp(p.getOrDefault("swordFirstShare",.3),0,1);int rushes=(int)Math.max(1,p.getOrDefault("swordRushes",5d));var out=new ArrayList<Hit>();out.add(hit(delay+.3,total*share));for(int i=0;i<rushes;i++)out.add(hit(delay+.6+i*.3,total*(1-share)/rushes));return out;});
         SkillBalance.registerParameters(SkillCatalog.require(CareerSkills.EYE),values->values.put("eyeBonusMut",eyeBonus()));
     }
     static double redMultiplier(){return (1+133*1.18/100)/(1+133d/100);}
@@ -90,11 +90,11 @@ final class BuiltinSkillBalance {
         if(!(basis>0))throw new IllegalArgumentException("波动眼参考轮转没有有效伤害");eyeMut=180/basis;return eyeMut;
     }
     private static List<Hit> kalla(SkillDefinition skill,int rank,Context context){
-        var p=skill.parameters(rank);var out=new ArrayList<Hit>();double interval=SkillBalance.basicInterval(context,false),attach=.1,next=.6,expires=0;int stacks=0;
+        var p=skill.parameters(rank);var out=new ArrayList<Hit>();double interval=SkillBalance.basicInterval(context,false),attach=.1,next=.6,expires=0;int stacks=0;int flameCap=(int)Math.max(1,p.getOrDefault("flameStacks",3d));double flameWindow=Math.max(.05,p.getOrDefault("flameSeconds",3d)),flameGap=Math.max(.05,p.getOrDefault("flameDotInterval",.5)),kallaGap=Math.max(.05,p.getOrDefault("interval",.3));int terminal=(int)Math.max(1,p.getOrDefault("slashes",3d));
         while(true){
-            if(attach<19.1&&attach<=next){stacks=Math.min(3,stacks+1);expires=attach+3;attach+=interval;continue;}
-            if(next>expires)break;out.add(dot(next,p.get("flameDot")*stacks));next+=.5;
+            if(attach<19.1&&attach<=next){stacks=Math.min(flameCap,stacks+1);expires=attach+flameWindow;attach+=interval;continue;}
+            if(next>expires)break;out.add(dot(next,p.get("flameDot")*stacks));next+=flameGap;
         }
-        for(int i=0;i<3;i++)out.add(hit(19.1+i*.3,p.get("damage")));out.sort(Comparator.comparingLong(Hit::at));return out;
+        for(int i=0;i<terminal;i++)out.add(hit(19.1+i*kallaGap,p.get("damage")));out.sort(Comparator.comparingLong(Hit::at));return out;
     }
 }

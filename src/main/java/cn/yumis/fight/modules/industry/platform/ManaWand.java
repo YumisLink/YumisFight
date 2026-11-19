@@ -38,7 +38,7 @@ public final class ManaWand extends Item {
         catch(IllegalArgumentException error){player.sendOverlayMessage(Component.literal(error.getMessage()));return InteractionResult.FAIL;}
     }
     private static void move(UseOnContext context,CompoundTag state){
-        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var position=ArtificialStarPartBlock.base(level,WindGeneratorPartBlock.base(level,context.getClickedPos()));var raw=level.getBlockEntity(position);
+        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var position=IndustrialAssemblyPartBlock.base(level,ArtificialStarPartBlock.base(level,WindGeneratorPartBlock.base(level,context.getClickedPos())));var raw=level.getBlockEntity(position);
         if(raw instanceof MachineBlockEntity crystal&&(crystal.device().has(DeviceType.Capability.LOGISTICS)||crystal.device().has(DeviceType.Capability.FLUID_LOGISTICS))){state.putString("crystal",crystal.identity.toString());state.putLong("crystal_pos",position.asLong());state.remove("source");player.sendOverlayMessage(Component.literal("已绑定水晶，请选择来源容器（"+crystal.routes.size()+"/"+crystal.routeLimit()+"）"));return;}
         var crystal=IndustrialWorld.get(level).loaded.get(state.getStringOr("crystal",""));if(crystal==null||crystal.getLevel()!=level)throw new IllegalArgumentException("请先右键绑定一个移物或供液水晶");
         if(crystal.routes.size()>=crystal.routeLimit())throw new IllegalArgumentException("配对已满，请在水晶面板删除一对后再绑定");
@@ -53,13 +53,38 @@ public final class ManaWand extends Item {
         crystal.routes.add(route);crystal.setChanged();state.remove("source");player.sendOverlayMessage(Component.literal("配对完成（"+crystal.routes.size()+"/"+crystal.routeLimit()+"），可继续选择下一对来源"));
     }
     private static void network(UseOnContext context,CompoundTag state){
-        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var raw=level.getBlockEntity(ArtificialStarPartBlock.base(level,WindGeneratorPartBlock.base(level,context.getClickedPos())));if(!(raw instanceof MachineBlockEntity second))return;
+        var level=(ServerLevel)context.getLevel();var player=context.getPlayer();var raw=level.getBlockEntity(IndustrialAssemblyPartBlock.base(level,ArtificialStarPartBlock.base(level,WindGeneratorPartBlock.base(level,context.getClickedPos()))));
         var world=IndustrialWorld.get(level);String selected=state.getStringOr("first","");
-        if(selected.isEmpty()){state.putString("first",second.identity.toString());state.putLong("first_pos",second.getBlockPos().asLong());player.sendOverlayMessage(Component.literal("已选择方块，请选择信标或设备"));return;}
-        var first=world.loaded.get(selected);if(first==null||first.getLevel()!=level)throw new IllegalArgumentException("第一次选择的方块已卸载，请点击空气取消");
+        if(raw instanceof DemonAltarBlockEntity altar){
+            if(selected.isEmpty())selectNetworkEndpoint(player,state,altar.key(),altar.getBlockPos());
+            else bindAltar(level,player,state,altar,world.loaded.get(selected));
+            return;
+        }
+        if(!(raw instanceof MachineBlockEntity second))return;
+        if(selected.isEmpty()){selectNetworkEndpoint(player,state,second.key(),second.getBlockPos());return;}
+        var first=world.loaded.get(selected);
+        if(first==null){
+            var firstPos=BlockPos.of(state.getLongOr("first_pos",0));
+            if(level.hasChunkAt(firstPos)&&level.getBlockEntity(firstPos) instanceof DemonAltarBlockEntity altar&&altar.key().equals(selected)){
+                if(!level.mayInteract(player,firstPos))throw new IllegalArgumentException("第一次选择的方块不可操作");
+                bindAltar(level,player,state,altar,second);return;
+            }
+        }
+        if(first==null||first.getLevel()!=level)throw new IllegalArgumentException("第一次选择的方块已卸载，请点击空气取消");
         boolean a=first.device().has(DeviceType.Capability.STORAGE_NETWORK),b=second.device().has(DeviceType.Capability.STORAGE_NETWORK);
         if(a&&b)world.link(first,second);else if(a!=b)world.bind(a?first:second,a?second:first);else return;
         state.remove("first");state.remove("first_pos");Network.send((net.minecraft.server.level.ServerPlayer)player,"industrial_lines",world.connectionPreview(second));player.sendOverlayMessage(Component.literal("联网关系已更新"));
+    }
+    private static void selectNetworkEndpoint(Player player,CompoundTag state,String key,BlockPos pos){
+        state.putString("first",key);
+        state.putLong("first_pos",pos.asLong());
+        player.sendOverlayMessage(Component.literal("已选择方块，请选择信标或设备"));
+    }
+    private static void bindAltar(ServerLevel level,Player player,CompoundTag state,DemonAltarBlockEntity altar,MachineBlockEntity beacon){
+        altar.bind(level,beacon);
+        state.remove("first");
+        state.remove("first_pos");
+        player.sendOverlayMessage(Component.literal("魔王祭坛已绑定魔能信标"));
     }
     public static List<String> information(ItemStack stack){var state=data(stack);boolean network=state.getIntOr("wand_mode",0)==1;
         var lines=new ArrayList<String>();lines.add("魔力传输权杖 · "+(network?"联网":"移动"));

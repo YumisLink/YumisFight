@@ -60,6 +60,7 @@ public final class CraftingEssences {
     public static Gear apply(Gear original,Definition essence,Random random){
         Gear g=EquipmentResolution.resolve(original);
         if(g.corrupted||g.rarity!=Rarity.ARTIFACT)throw new IllegalArgumentException("精华仅用于未腐化的神器装备");
+        EquipmentRules.requireRoomAfterMasterCrystal(g);
         var d=AffixDefinitions.current().affixes.get(essence.affix());
         if(d==null||!d.active()||!essence.slots().contains(g.slot))throw new IllegalArgumentException("精华部位或效果未开放");
         if(!essence.family().isEmpty()&&!EquipmentAffixes.skillFamilyAllowed(g,essence.family()))throw new IllegalArgumentException("武器不符合该技能系别资格");

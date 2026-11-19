@@ -107,7 +107,7 @@ public class DungeonService {
         for(var kind:cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.values()){enemyBrains.put(kind.id,skasa::brain);}
         for(var kind:cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.values())enemyBrains.put(kind.id,darkCity::brain);
         waves.put("goblin_camp",goblinCamp::initialize);waves.put("dragon_tower",dragonTower::initialize);
-        waves.put("gbl_church",this::spawnGblWave);waves.put(CastlePalace.ID,palace::spawn);
+        waves.put(GblChurch.ID,gbl::initialize);waves.put(CastlePalace.ID,palace::spawn);
         waves.put("behemoth_forbidden",forbidden::spawn);
         waves.put("skasa",skasa::spawn);
         waves.put("dark_city",darkCity::spawn);
@@ -192,7 +192,7 @@ public class DungeonService {
         boolean created=false;
         for(String instance:activeInstanceIds()){
             Dungeon candidate=byId(instance);
-            if(candidate!=null&&candidate.treasure==null&&candidate.waystone==null&&candidate.dungeon.equals(id)&&candidate.difficulty==difficulty&&candidate.status.equals("RUNNING")&&!previousPalace(candidate)){
+            if(candidate!=null&&candidate.treasure==null&&candidate.waystone==null&&candidate.dungeon.equals(id)&&candidate.difficulty==difficulty&&candidate.status.equals("RUNNING")&&!previousPalace(candidate)&&!previousGbl(candidate)){
                 d=candidate;
                 break;
             }
@@ -300,7 +300,7 @@ public class DungeonService {
     }
     public void reconnect(ServerPlayer p)throws Exception{
         Dungeon d=current(p.getUUID());
-        if(d!=null&&previousPalace(d)){leave(p,true);return;}
+        if(d!=null&&(previousPalace(d)||previousGbl(d))){leave(p,true);return;}
         if(d!=null&&d.waystone!=null&&d.status.equals("RUNNING")){waystones.reconnect(p,d);return;}
         if(waystones!=null)waystones.updateSources(p);
         if(p.level().dimension()==DIMENSION&&current(p.getUUID())==null){
@@ -347,6 +347,9 @@ public class DungeonService {
         }else if(DragonTowerEncounterService.handles(d)){
             Vec3 entry=DragonTower.entry(new BlockPos(d.cell*512,80,0));
             teleport(p,level(),entry.x,entry.y,entry.z);p.setYRot(90);p.setXRot(0);
+        }else if(GblEncounterService.handles(d)){
+            Vec3 entry=GblChurch.entry(d.cell);
+            p.teleportTo(level(),entry.x,entry.y,entry.z,Set.of(),-90,0,true);
         }else if(PalaceEncounterService.handles(d)){
             Vec3 entry=CastlePalace.entry(d.cell);
             p.teleportTo(level(),entry.x,entry.y,entry.z,Set.of(),-24,0,true);
@@ -355,7 +358,7 @@ public class DungeonService {
     void forceArena(Dungeon d,boolean forced){
         int ox=d.cell*512;
         if(d.treasure!=null){if(d.treasure.region==0)return;for(int x=Math.floorDiv(ox-44,16);x<=Math.floorDiv(ox+44,16);x++)for(int z=-3;z<=2;z++){level().setChunkForced(x,z,forced);if(forced)level().getChunk(x,z);}return;}
-        var bounds=layouts.require(d.dungeon).bounds();
+        var bounds=layouts.require(d.dungeon).activeBounds();
         boolean skySea=PalaceEncounterService.handles(d);
         for(int x=Math.floorDiv(ox+bounds.minX(),16);x<=Math.floorDiv(ox+bounds.maxX(),16);x++)
         for(int z=Math.floorDiv(bounds.minZ(),16);z<=Math.floorDiv(bounds.maxZ(),16);z++){
@@ -371,7 +374,13 @@ public class DungeonService {
     void ensureArena(String id,int cell)throws Exception{
         var definition=layouts.require(id);
         String key="arenaCell/"+cell,layout=id+"/"+definition.version();
-        if(journal.get(key,String.class,"").equals(layout))return;
+        String placed=journal.get(key,String.class,"");
+        if(placed.equals(layout))return;
+        if(id.equals(GblChurch.ID)&&placed.equals(id+"/"+GblChurch.VERSION_BEFORE_SKY_CLOUDS)){
+            GblChurch.placeSkyClouds(level(),new BlockPos(cell*512,80,0));
+            journal.put(key,layout);
+            return;
+        }
         rebuildArena(cell,layout,definition.build());
     }
     void buildTreasureArena(int cell,String theme)throws Exception{
@@ -379,11 +388,14 @@ public class DungeonService {
     }
     private void rebuildArena(int cell,String layout,java.util.function.BiConsumer<ServerLevel,BlockPos> build)throws Exception{
         String key="arenaCell/"+cell;
-        boolean previousSkySea=journal.get(key,String.class,"").contains(palaceLayoutKey());
+        String previousLayout=journal.get(key,String.class,"");
+        boolean previousSkySea=previousLayout.contains(palaceLayoutKey());
+        boolean previousWhale=whaleLayout(previousLayout);
         String previousFootprint=previousSkySea&&!layout.equals(palaceLayoutKey())?"|"+palaceLayoutKey():"";
+        if(previousWhale&&!whaleLayout(layout))previousFootprint+="|"+gblLayoutKey();
         journal.put(key,"BUILDING/"+layout+previousFootprint);
         ServerLevel world=level();BlockPos origin=new BlockPos(cell*512,80,0);
-        var bounds=layouts.reuseBounds(previousSkySea);
+        var bounds=layouts.reuseBounds(previousSkySea,previousWhale||whaleLayout(layout));
         var temporary=new ArrayList<ChunkPos>();
         try{
             // Load the old footprint too: treasure's small footprint must not leave forest entities behind.
@@ -393,6 +405,7 @@ public class DungeonService {
                     world.getChunk(cx,cz);
                 }
             clearCell(cell);
+            if(previousWhale)GblChurch.clearScenery(world,origin);
             var cursor=new BlockPos.MutableBlockPos();
             for(int x=bounds.minX();x<=bounds.maxX();x++)for(int z=bounds.minZ();z<=bounds.maxZ();z++){
                 int wx=origin.getX()+x;var chunk=world.getChunk(Math.floorDiv(wx,16),Math.floorDiv(z,16));
@@ -474,21 +487,10 @@ public class DungeonService {
     private boolean previousPalace(Dungeon d){
         return PalaceEncounterService.handles(d)&&!journal.get("arenaCell/"+d.cell,String.class,"").equals(palaceLayoutKey());
     }
-    private void spawnGblWave(Dungeon d){
-        int ox=d.cell*512;
-            int area=GblChurch.area(d.wave);double z=area*40+14;
-            if(d.wave==6)spawn(d,"gbl_asor",false,true,ox,80,140);
-            else{
-                String[][] waves={
-                    {"gbl_cultist","gbl_cultist","gbl_cultist","gbl_female_cultist","gbl_dragon_cannon"},
-                    {"gbl_cultist","gbl_cultist","gbl_female_cultist","gbl_female_cultist","gbl_yasha"},
-                    {"gbl_female_cultist","gbl_dragon_cannon","gbl_yasha","gbl_female_cultist","gbl_dragon_cannon"},
-                    {"gbl_cultist","gbl_yasha","gbl_cultist","gbl_yasha","gbl_dragon_cannon"},
-                    {"gbl_cultist","gbl_cultist","gbl_female_cultist","gbl_yasha","gbl_fallen_priest"},
-                    {"gbl_female_cultist","gbl_yasha","gbl_female_cultist","gbl_yasha","gbl_fallen_priest"}
-                };
-                for(int i=0;i<waves[d.wave].length;i++)spawn(d,waves[d.wave][i],waves[d.wave][i].equals("gbl_fallen_priest"),false,ox+(i-2)*4,80,z+(i%2)*5);
-            }
+    private static String gblLayoutKey(){return GblChurch.ID+"/"+GblChurch.VERSION;}
+    private static boolean whaleLayout(String layout){return layout.contains(GblChurch.ID+"/"+GblChurch.VERSION_PREFIX);}
+    private boolean previousGbl(Dungeon d){
+        return GblEncounterService.handles(d)&&!journal.get("arenaCell/"+d.cell,String.class,"").equals(gblLayoutKey());
     }
     public void tick(){
         try{
@@ -499,8 +501,8 @@ public class DungeonService {
                 Dungeon d=journal.get(key,Dungeon.class,null);
                 if(d==null||d.treasure!=null)continue;
                 boolean openCamp=GoblinCampEncounterService.handles(d),openTower=DragonTowerEncounterService.handles(d);
-                boolean openPalace=PalaceEncounterService.handles(d);
-                if(!d.status.equals("RUNNING")&&!((openCamp||openTower||openPalace)&&d.status.equals("COMPLETED")))continue;
+                boolean openPalace=PalaceEncounterService.handles(d),openGbl=GblEncounterService.handles(d);
+                if(!d.status.equals("RUNNING")&&!((openCamp||openTower||openPalace||openGbl)&&d.status.equals("COMPLETED")))continue;
                 List<ServerPlayer> players=server.getPlayerList().getPlayers().stream().filter(p->participant(p,d)&&p.level().dimension()==DIMENSION).toList();
                 if(players.isEmpty()){
                     close(d);
@@ -518,7 +520,14 @@ public class DungeonService {
                     palace.breathe(players);
                     if(d.status.equals("COMPLETED"))continue;
                 }
-                if(openCamp)goblinCamp.tick(d,players,now);
+                if(openGbl){
+                    if(previousGbl(d)){
+                        for(ServerPlayer player:players)leave(player,true);
+                        continue;
+                    }
+                    if(d.status.equals("COMPLETED")||gbl.finishIfDefeated(d,players))continue;
+                }
+                else if(openCamp)goblinCamp.tick(d,players,now);
                 else if(openTower)dragonTower.tick(d,players,now);
                 else{
                 d.enemies.removeIf(id->{
@@ -540,7 +549,6 @@ public class DungeonService {
                     var layout=layouts.require(d.dungeon);
                     if((d.wave+1)%layout.wavesPerGate()==0)openDoor(d,d.wave/layout.wavesPerGate());
                     if(openPalace&&palace.waitsAtGate(d,players))continue;
-                    if(d.dungeon.equals("gbl_church")&&gbl.waitsAtGate(d,players))continue;
                     if(d.dungeon.equals("behemoth_forbidden")&&forbidden.waitsAtGate(d,players))continue;
                     if(d.dungeon.equals("skasa")&&skasa.waitsAtGate(d,players))continue;
                     if(d.dungeon.equals("dark_city")&&darkCity.waitsAtGate(d,players))continue;
@@ -816,6 +824,13 @@ public class DungeonService {
             }catch(Exception failure){throw new IllegalStateException("龙人之塔通关结算失败",failure);}
             return;
         }
+        if(completed!=null&&GblEncounterService.handles(completed)){
+            try{
+                if(fallen.boss())gbl.finishIfDefeated(completed,server.getPlayerList().getPlayers().stream()
+                    .filter(p->participant(p,completed.id.toString())&&p.level().dimension()==DIMENSION).toList());
+            }catch(Exception failure){throw new IllegalStateException("GBL 通关结算失败",failure);}
+            return;
+        }
         if(completed!=null&&completed.waystone!=null&&completed.status.equals("RUNNING")&&completed.wave==lastWave(completed)&&completed.enemies.stream().allMatch(id->{var target=journal.get("target/"+id,Target.class,null);return target!=null&&target.life.dead;})){
             try{var here=server.getPlayerList().getPlayers().stream().filter(p->participant(p,completed.id.toString())&&p.level().dimension()==DIMENSION).toList();if(here.isEmpty())close(completed);else{waystones.complete(completed,here);refresh.run();}}catch(Exception failure){throw new IllegalStateException("地狱+通关结算失败",failure);}
         }
@@ -852,7 +867,7 @@ public class DungeonService {
         for(Cage c:new ArrayList<>(cages.values()))if(c.instance.equals(d.id.toString()))removeCage(c);
     }
     void refreshCamp(){refresh.run();}
-    void completeCamp(Dungeon d,List<ServerPlayer> players)throws Exception{
+    void completeOpenDungeon(Dungeon d,List<ServerPlayer> players,String message)throws Exception{
         if(!d.status.equals("RUNNING"))return;
         if(players.isEmpty()){close(d);return;}
         if(d.waystone!=null)waystones.complete(d,players);
@@ -861,16 +876,14 @@ public class DungeonService {
             meter.freeze(d);
             journal.put("instance/"+d.id,d);
         }
-        for(var player:players)playerAccess.message(player,"落雷凯诺已被击败！可继续探索、清理营区和拾取战利品，或离开地下城。");
+        for(var player:players)playerAccess.message(player,message);
         refresh.run();
     }
+    void completeCamp(Dungeon d,List<ServerPlayer> players)throws Exception{
+        completeOpenDungeon(d,players,"落雷凯诺已被击败！可继续探索、清理营区和拾取战利品，或离开地下城。");
+    }
     void completeTower(Dungeon d,List<ServerPlayer> players)throws Exception{
-        if(!d.status.equals("RUNNING"))return;
-        if(players.isEmpty()){close(d);return;}
-        if(d.waystone!=null)waystones.complete(d,players);
-        else{d.status="COMPLETED";meter.freeze(d);journal.put("instance/"+d.id,d);}
-        for(var player:players)playerAccess.message(player,"鲁卡斯已被击败！可继续探索塔楼、清理残敌和拾取战利品，或离开地下城。");
-        refresh.run();
+        completeOpenDungeon(d,players,"鲁卡斯已被击败！可继续探索塔楼、清理残敌和拾取战利品，或离开地下城。");
     }
     public void shutdown()throws Exception{
         stopping=true;

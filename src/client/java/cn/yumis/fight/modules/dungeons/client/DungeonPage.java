@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.dungeons.client;
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.CastlePalace;
+import cn.yumis.fight.modules.dungeons.content.GblChurch;
 import cn.yumis.fight.modules.equipment.api.MaterialCatalog;
 import cn.yumis.fight.modules.presentation.api.client.*;
 import net.minecraft.client.Minecraft;
@@ -38,7 +39,8 @@ public final class DungeonPage {
         WaystoneClient.enrollment(page);
         if(current!=null&&current.waystone!=null){var run=current.waystone;page.line("地狱 +"+run.stone.tier+" · "+DungeonCatalog.current().dungeon(current.dungeon).name()+" · Lv."+run.monsterLevel);page.line(objective(current,run.settled?"已结束":"挑战中"));for(var m:run.stone.modifiers)page.line(Waystone.modifierText(m));for(String text:run.stone.rewardText())page.line(text);page.rowButton("离开地下城",leave);page.gap();}
         if(current!=null&&current.waystone==null){if(current.treasure!=null){var t=current.treasure;page.line(t.region==0?"哥布林王国 · 野外守宝战斗":"藏宝秘境 · 第"+t.region+" / 5区 · "+(t.theme.equals("palace")?"黄金王宫":t.theme.equals("tower")?"龙人之塔":"格兰之森"));page.line("Lv."+(t.baseLevel+Math.max(0,t.region-1)*2)+" · 地狱 · "+(t.cleared?"已清场":"第"+(current.wave+1)+"波"));}else{page.line("当前："+DungeonCatalog.current().dungeon(current.dungeon).name()+" · "+current.difficulty.title());page.line(objective(current,current.status));}page.rowButton("离开地下城",leave);page.gap();}
-        if(current!=null&&current.dungeon.equals("gbl_church"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.GblChurch.AREAS[cn.yumis.fight.modules.dungeons.content.GblChurch.area(current.wave)]);
+        if(current!=null&&current.dungeon.equals(GblChurch.ID)&&Minecraft.getInstance().player!=null)
+            page.line("区域："+GblChurch.area(Minecraft.getInstance().player.getZ()));
         if(current!=null&&current.dungeon.equals("behemoth_forbidden"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.BehemothForbidden.AREAS[cn.yumis.fight.modules.dungeons.content.BehemothForbidden.area(current.wave)]);
         if(current!=null&&current.dungeon.equals("skasa"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.SkasaLair.AREAS[cn.yumis.fight.modules.dungeons.content.SkasaLair.area(current.wave)]);
         int cell=(page.contentWidth()-24)/2,base=page.cursor(),pictureHeight=Math.max(42,(cell-13)/2),height=pictureHeight+43,index=0;
@@ -87,6 +89,7 @@ public final class DungeonPage {
     private static String campObjective(Dungeon dungeon){return dungeon.status.equals("COMPLETED")?"凯诺已击败 · 可继续清理营区或离开":"开放密林 · 寻找并击败落雷凯诺";}
     private static String objective(Dungeon dungeon,String status){
         if(openCamp(dungeon))return campObjective(dungeon);
+        if(dungeon.dungeon.equals(GblChurch.ID))return dungeon.status.equals("COMPLETED")?"阿索尔已击败":"探索五殿 · 击败阿索尔";
         if(dungeon.dungeon.equals(CastlePalace.ID))
             return "阶段 "+(dungeon.wave+1)+" / "+(CastlePalace.BOSS+1)+" · "+CastlePalace.roomName(dungeon.wave)+" · "+status;
         return "波次 "+(dungeon.wave+1)+" / 7 · "+status;

@@ -11,12 +11,16 @@ import java.util.function.BiConsumer;
 public final class DungeonLayouts {
     public record Bounds(int minX,int minY,int minZ,int maxX,int maxY,int maxZ){}
     @FunctionalInterface public interface Gate {void set(ServerLevel world,BlockPos origin,int gate,boolean open);}
-    public record Layout(String version,Bounds bounds,int gates,int wavesPerGate,BiConsumer<ServerLevel,BlockPos> build,Gate gate){}
+    public record Layout(String version,Bounds bounds,int gates,int wavesPerGate,BiConsumer<ServerLevel,BlockPos> build,Gate gate,Bounds activeBounds){
+        public Layout(String version,Bounds bounds,int gates,int wavesPerGate,BiConsumer<ServerLevel,BlockPos> build,Gate gate){
+            this(version,bounds,gates,wavesPerGate,build,gate,bounds);
+        }
+    }
     private final Map<String,Layout> all;
     public DungeonLayouts(DungeonPorts.CampDecorations decorations){var layouts=new HashMap<>(Map.ofEntries(
         Map.entry("goblin_camp",new Layout(GoblinCamp.VERSION,GoblinCamp.BOUNDS,0,2,(world,origin)->GoblinCamp.build(world,origin,decorations),(world,origin,gate,open)->{})),
         Map.entry("dragon_tower",new Layout(DragonTower.VERSION,DragonTower.BOUNDS,0,1,(world,origin)->DragonTower.build(world,origin,decorations),(world,origin,gate,open)->{})),
-        Map.entry("gbl_church",new Layout("GBL_LAYOUT_1",new Bounds(-23,-2,-6,23,49,GblChurch.MAX_Z),3,2,GblChurch::build,GblChurch::gate)),
+        Map.entry(GblChurch.ID,new Layout(GblChurch.VERSION,GblChurch.BOUNDS,0,1,GblChurch::build,(world,origin,gate,open)->{},GblChurch.ACTIVE_BOUNDS)),
         Map.entry(CastlePalace.ID,new Layout(CastlePalace.VERSION,CastlePalace.BOUNDS,CastlePalace.BOSS,1,CastlePalace::build,CastlePalace::gate)),
         Map.entry("behemoth_forbidden",new Layout("FORBIDDEN_LAYOUT_1",new Bounds(-23,-2,-6,23,49,BehemothForbidden.MAX_Z),3,2,BehemothForbidden::build,BehemothForbidden::gate)),
         Map.entry("skasa",new Layout("SKASA_LAYOUT_1",new Bounds(-23,-2,-6,23,49,SkasaLair.MAX_Z),3,2,SkasaLair::build,SkasaLair::gate)),
@@ -34,11 +38,12 @@ public final class DungeonLayouts {
     }
     private static Layout classic(String version,BiConsumer<ServerLevel,BlockPos> build){return new Layout(version,new Bounds(-23,-2,-6,23,49,ClassicDungeonRooms.MAX_Z),6,1,build,ClassicDungeonRooms::gate);}
     public Layout require(String id){Layout value=all.get(id);if(value==null)throw new IllegalArgumentException("该副本尚未配置场地："+id);return value;}
-    public Bounds reuseBounds(boolean previousSkySea){
+    public Bounds reuseBounds(boolean previousSkySea,boolean includesWhale){
         // The shared footprint includes the treasure arena and the former flat palace.
         Bounds result=new Bounds(-44,-2,-44,44,49,258);
         for(var entry:all.entrySet()){
             if(!previousSkySea&&entry.getKey().equals(CastlePalace.ID))continue;
+            if(!includesWhale&&entry.getKey().equals(GblChurch.ID))continue;
             Bounds b=entry.getValue().bounds;
             result=new Bounds(Math.min(result.minX,b.minX),Math.min(result.minY,b.minY),Math.min(result.minZ,b.minZ),
                 Math.max(result.maxX,b.maxX),Math.max(result.maxY,b.maxY),Math.max(result.maxZ,b.maxZ));

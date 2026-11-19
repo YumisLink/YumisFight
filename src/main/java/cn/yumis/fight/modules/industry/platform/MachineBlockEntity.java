@@ -45,6 +45,8 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         @Override public ItemStack removeItemNoUpdate(int slot){return removeItem(slot,getItem(slot).getCount());}
     };
     public long energy,crystalRemaining;public boolean running=true,structureValid;
+    String summonDebit="";
+    private boolean recoveredSummonDebit;
     public String status="未连接信标";
     public int fuelTotal,fuelRemaining,fuelFluidRate;
     public long fuelEnergy,currentPower;public String fuelFluid="";
@@ -276,7 +278,16 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
     }
     @Override public Component getDisplayName(){return Component.translatable(spec().title());}
     @Override public AbstractContainerMenu createMenu(int id,Inventory inv,Player player){return new IndustrialMenu(id,inv,this);}
-    @Override public void onLoad(){super.onLoad();if(level instanceof ServerLevel server){if(device().has(DeviceType.Capability.WIND))WindGeneratorPartBlock.ensure(server,worldPosition);IndustrialWorld.get(server).register(this);}}
+    @Override public void onLoad(){super.onLoad();if(level instanceof ServerLevel server){recoverSummonDebit();if(device().has(DeviceType.Capability.WIND))WindGeneratorPartBlock.ensure(server,worldPosition);IndustrialWorld.get(server).register(this);}}
+    void recoverSummonDebit(){
+        if(recoveredSummonDebit||!RitualEnergy.ready())return;
+        recoveredSummonDebit=true;
+        var balance=RitualEnergy.recorded(key());
+        if(balance==null||balance.operation().equals(summonDebit))return;
+        energy=Math.clamp(balance.stored(),0L,storageCapacity());
+        summonDebit=balance.operation();
+        setChanged();
+    }
     @Override public void onChunkUnloaded(){if(level instanceof ServerLevel server)IndustrialWorld.get(server).unload(this);super.onChunkUnloaded();}
     @Override public void setRemoved(){if(level instanceof ServerLevel server)IndustrialWorld.get(server).unload(this);super.setRemoved();}
     private boolean contentsDropped;
@@ -301,6 +312,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(currencyUpgrade!=null)currencyUpgrade.save(out);super.saveAdditional(out);out.putInt("module_schema",4);
         out.store("plugins",ItemStack.OPTIONAL_CODEC.listOf(),java.util.stream.IntStream.range(0,3).mapToObj(plugins::getItem).toList());out.store("routes",CrystalRoute.CODEC.listOf(),routes);out.putInt("route_cursor",routeCursor);out.putString("function_time",functionTime.toString());out.putLong("function_credit",functionCredit);out.putLong("function_cost",functionCost);
         items.serialize(out.child("inventory"));fluids.serialize(out.child("fluids"));out.putString("identity",identity.toString());out.putString("beacon",beacon);out.putLong("energy",energy);out.putLong("crystal",crystalRemaining);out.putBoolean("running",running);
+        out.putString("summon_debit",summonDebit);
         for(var line:productionLines)line.save(out.child("line_"+line.index));
         pumpCycle.save(out.child("pump_cycle"));
         out.store("fuel_results",ItemStack.CODEC.listOf(),fuelResults);out.putLong("ignition_paid",ignitionPaid);out.putBoolean("ignited",ignited);
@@ -311,6 +323,7 @@ public final class MachineBlockEntity extends BlockEntity implements cn.yumis.fi
         if(currencyUpgrade!=null)currencyUpgrade.beginLoad();super.loadAdditional(in);
         if(in.getIntOr("module_schema",0)!=4){in=in.childOrEmpty("discarded_old_module_data");identity=UUID.randomUUID();}
         items.deserialize(in.childOrEmpty("inventory"));fluids.deserialize(in.childOrEmpty("fluids"));identity=UUID.fromString(in.getStringOr("identity",identity.toString()));beacon=in.getStringOr("beacon","");energy=in.getLongOr("energy",0);crystalRemaining=in.getLongOr("crystal",0);running=in.getBooleanOr("running",true);
+        summonDebit=in.getStringOr("summon_debit","");
         var installed=in.read("plugins",ItemStack.OPTIONAL_CODEC.listOf()).orElse(List.of());
         // Inventory has already been loaded; expanding plugins must be restored before allowing a shrink.
         restoringPlugins=true;try{for(int i=0;i<3;i++)plugins.setItem(i,i<installed.size()?installed.get(i):ItemStack.EMPTY);}finally{restoringPlugins=false;}

@@ -17,6 +17,8 @@ public final class IndustrialStructures {
     public static void register(DeviceType type,Definition definition){if(!type.needsStructure()||DEFINITIONS.putIfAbsent(type.id,definition)!=null)throw new IllegalArgumentException("无效或重复工业结构");}
     private static Definition definition(MachineBlockEntity be){var value=DEFINITIONS.get(be.device().id);if(value==null)throw new IllegalArgumentException("未登记结构");return value;}
     public static List<Cell> cells(MachineBlockEntity be){
+        var assembly=IndustrialAssembly.of(be.device());
+        if(assembly!=null)return assembly.cells(be);
         if(be.device()==DeviceType.STAR){
             var cells=new ArrayList<Cell>();int half=ArtificialStarPartBlock.HALF;
             for(int y=0;y<ArtificialStarPartBlock.HEIGHT;y++)for(int z=-half;z<=half;z++)for(int x=-half;x<=half;x++)
@@ -33,6 +35,8 @@ public final class IndustrialStructures {
     public static boolean loaded(MachineBlockEntity be){return !be.device().needsStructure()||cells(be).stream().allMatch(cell->be.getLevel().hasChunkAt(cell.pos));}
     public static boolean contains(MachineBlockEntity be,BlockPos position){return cells(be).stream().anyMatch(cell->cell.pos.equals(position));}
     public static List<BlockPos> missing(MachineBlockEntity be){
+        var assembly=IndustrialAssembly.of(be.device());
+        if(assembly!=null)return assembly.missing(be);
         if(!be.device().needsStructure())return List.of();var material=structureMaterial(be);var missing=new ArrayList<BlockPos>();
         if(be.device()==DeviceType.STAR){
             for(var cell:cells(be))if(!cell.controller&&(!be.getLevel().hasChunkAt(cell.pos)||!ArtificialStarPartBlock.matches(be.getLevel().getBlockState(cell.pos),cell.x-ArtificialStarPartBlock.HALF,cell.y,cell.z-ArtificialStarPartBlock.HALF)))missing.add(cell.pos);
@@ -41,9 +45,15 @@ public final class IndustrialStructures {
         for(var cell:cells(be))if(!cell.controller&&(!be.getLevel().hasChunkAt(cell.pos)||(cell.air?!be.getLevel().getBlockState(cell.pos).isAir():!be.getLevel().getBlockState(cell.pos).is(material))))missing.add(cell.pos);
         return missing;
     }
+    public static boolean automatic(MachineBlockEntity be){return be.device()==DeviceType.STAR||IndustrialAssembly.of(be.device())!=null;}
     public static JsonObject description(MachineBlockEntity be){
-        var definition=definition(be);JsonObject result=new JsonObject();result.addProperty("size",definition.size);result.addProperty("shell_count",definition.size*definition.size*definition.size-(definition.size-2)*(definition.size-2)*(definition.size-2)-1);JsonArray list=new JsonArray();
-        if(be.device()==DeviceType.STAR){result.addProperty("automatic",true);result.addProperty("shell_count",0);}
+        var assembly=IndustrialAssembly.of(be.device());
+        int size=assembly==null?definition(be).size:assembly.layerSize();
+        JsonObject result=new JsonObject();
+        result.addProperty("size",size);
+        if(automatic(be)){result.addProperty("automatic",true);result.addProperty("shell_count",0);}
+        else result.addProperty("shell_count",size*size*size-(size-2)*(size-2)*(size-2)-1);
+        JsonArray list=new JsonArray();
         for(var cell:cells(be)){JsonObject item=new JsonObject();item.addProperty("position",cell.pos.asLong());item.addProperty("x",cell.x);item.addProperty("y",cell.y);item.addProperty("z",cell.z);item.addProperty("air",cell.air);item.addProperty("controller",cell.controller);list.add(item);}result.add("cells",list);return result;
     }
 }

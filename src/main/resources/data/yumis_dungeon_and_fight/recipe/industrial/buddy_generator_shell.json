@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PGP",
+    "VHV",
+    "PDP"
+  ],
+  "key": {
+    "P": "yumis_dungeon_and_fight:plastic",
+    "G": "minecraft:glass",
+    "V": "yumis_dungeon_and_fight:vanadium_steel",
+    "H": "yumis_dungeon_and_fight:machine_casing_t2",
+    "D": "yumis_dungeon_and_fight:mana_component"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:buddy_generator_shell",
+    "count": 1
+  }
+}

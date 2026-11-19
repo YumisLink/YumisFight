@@ -118,6 +118,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         else if(kind.has(DeviceType.Capability.STORAGE_NETWORK)){g.text(UiFonts.font(),"核心储能 "+energy("energy"),16,64,UiTheme.MUTED,false);g.text(UiFonts.font(),"覆盖半径 "+number("radius")+" 格",16,79,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.ENERGY_STORAGE)){g.text(UiFonts.font(),"本机 "+energy("energy")+" / "+energy("storage_capacity"),16,68,UiTheme.TEXT,false);g.text(UiFonts.font(),"接网增加容量；断网保留余额",16,87,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.FLUID_STORAGE)){g.text(UiFonts.font(),"一罐一种液体 · "+number("fluid_capacity")+" mB",56,66,UiTheme.TEXT,false);g.text(UiFonts.font(),"原地升级保留；拆除清空",56,84,UiTheme.MUTED,false);}
+        else if(kind==DeviceType.OIL_DRILL){g.text(UiFonts.font(),"主世界钻采",16,65,UiTheme.MUTED,false);g.text(UiFonts.font(),"底部出液",16,81,UiTheme.MUTED,false);}
         else if(kind.has(DeviceType.Capability.PUMP)){g.text(UiFonts.font(),"相邻水源",16,65,UiTheme.MUTED,false);g.text(UiFonts.font(),"六面供液",16,81,UiTheme.MUTED,false);}
         else {g.text(UiFonts.font(),kind.has(DeviceType.Capability.LOGISTICS)?"权杖绑定接收容器":kind.has(DeviceType.Capability.FLUID_LOGISTICS)?"权杖绑定源出口和目标入口":"成熟作物自动入下方箱",16,65,UiTheme.MUTED,false);}
         int statusX=!gauges.isEmpty()&&!centralGauges?56:8,statusWidth=centralGauges?76:248-statusX;

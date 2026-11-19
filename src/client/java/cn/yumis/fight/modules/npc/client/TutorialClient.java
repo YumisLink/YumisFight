@@ -6,6 +6,7 @@ import cn.yumis.fight.modules.dungeons.api.Target;
 import cn.yumis.fight.modules.economy.api.CurrencyRules;
 import cn.yumis.fight.modules.equipment.api.*;
 import cn.yumis.fight.modules.inventory.api.InventoryEdits;
+import cn.yumis.fight.modules.npc.api.AwakeningQuest;
 import cn.yumis.fight.modules.npc.api.NpcTutorial;
 import cn.yumis.fight.modules.presentation.api.RichText;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
@@ -25,11 +26,12 @@ public final class TutorialClient {
     private static final Set<String> observed=new LinkedHashSet<>();
     private static String session="",dialogue;private static int page;private static boolean starting,pending,promotionReminder;private static long nextSave;
     private TutorialClient(){}
-    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> progress,Supplier<JsonObject> profile,BooleanSupplier alive){growth=progress;view=profile;living=alive;router.register("npc","tutorial",(ignored,j)->prepare(j));}
-    public static void receive(JsonObject profile){String next=profile.get("session").getAsString();if(!next.equals(session)){clear();session=next;}}
-    public static void clear(){observed.clear();session="";dialogue=null;page=0;starting=pending=promotionReminder=false;nextSave=0;}
+    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> progress,Supplier<JsonObject> profile,BooleanSupplier alive){growth=progress;view=profile;living=alive;router.register("npc","tutorial",(ignored,j)->prepare(j));AwakeningQuestClient.install(router,progress,profile);}
+    public static void receive(JsonObject profile){String next=profile.get("session").getAsString();if(!next.equals(session)){clear();session=next;}AwakeningQuestClient.receive(profile);}
+    public static void clear(){observed.clear();session="";dialogue=null;page=0;starting=pending=promotionReminder=false;nextSave=0;AwakeningQuestClient.clear();}
     public static boolean alive(){return living!=null&&living.getAsBoolean();}
     public static boolean pending(){return pending;}
+    public static boolean awakeningAtAltar(){return AwakeningQuestClient.atMaterialStage();}
     public static boolean starting(){return starting;}
     public static NpcTutorial.State state(){var profile=view.get();return profile.has("npcTutorial")?JSON.fromJson(profile.get("npcTutorial"),NpcTutorial.State.class):new NpcTutorial.State();}
     private static NpcTutorial.State current(){var value=state();value.goals.addAll(observed);return value;}
@@ -51,6 +53,7 @@ public final class TutorialClient {
     }
     /** Called by composition only when the existing personal queue retires its matching storage receipt. */
     public static void committed(String action,JsonObject request,boolean received){
+        if(action.equals(AwakeningQuest.ACTION)){AwakeningQuestClient.committed(request,received);return;}
         if(!action.equals("tutorial"))return;
         pending=false;
         if(received){
@@ -70,6 +73,7 @@ public final class TutorialClient {
     /** A published equipment transaction fact, never a button press or an uncommitted request. */
     public static void crafted(){observed.add("craft");nextSave=0;}
     public static void tick(){
+        AwakeningQuestClient.tick();
         if(view==null||!ClientUi.current().ready()||!alive())return;observe();if(pending||ClientUi.now()<nextSave)return;
         var state=state();if(!state.started&&!starting&&dialogue==null)return;
         promotionReminder|=state.started&&NpcTutorial.current(state)==null&&!state.promotionHinted&&growth.get().level>=20&&JobCatalog.basic(growth.get().jobId());

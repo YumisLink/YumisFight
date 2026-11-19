@@ -19,7 +19,7 @@ public final class SkasaLair {
         double half=area==3?18:14;
         return new Vec3(Math.clamp(p.x,cell*512-half,cell*512+half),80,Math.clamp(p.z,area*SPACING+2,area==3?150.5:area*SPACING+30));
     }
-    public static void gate(ServerLevel world,BlockPos origin,int gate,boolean open){GblChurch.gate(world,origin,gate,open);}
+    public static void gate(ServerLevel world,BlockPos origin,int gate,boolean open){TempleRoomSequence.gate(world,origin,gate,open);}
     public static void build(ServerLevel world,BlockPos origin){
         for(int area=0;area<4;area++){
             int start=area*SPACING,size=area==3?40:32,half=size/2;

@@ -179,6 +179,59 @@
         "冒险这种事，先学会第一步就够了。",
         "选你喜欢的。旅途可没有标准答案。"
       ],
+      "awakening": {
+        "level": 50,
+        "badge": {
+          "spans": [{"text": "觉醒任务", "colors": ["#F6D46C", "#76D68A"]}]
+        },
+        "bosses": [
+          {
+            "id": "uncrowned_gardener",
+            "name": "无冠园丁",
+            "level": 30,
+            "clears": 5,
+            "materials": [{"id": "lightmoss_scion", "name": "光苔接穗", "count": 5}]
+          },
+          {
+            "id": "off_duty_matron",
+            "name": "歇工的圣母",
+            "level": 35,
+            "clears": 4,
+            "materials": [{"id": "severance_spring", "name": "圣札铜簧", "count": 4}]
+          },
+          {
+            "id": "white_reliquary",
+            "name": "白圣髑",
+            "level": 40,
+            "clears": 3,
+            "materials": [
+              {"id": "unfinished_chant_core", "name": "遗咏晶核", "count": 3},
+              {"id": "unfinished_chant_page", "name": "未竟圣页", "count": 1}
+            ]
+          },
+          {
+            "id": "debt_collector",
+            "name": "催账人",
+            "level": 45,
+            "clears": 3,
+            "materials": [{"id": "stopped_clock_gear", "name": "停表齿轮", "count": 3}]
+          },
+          {
+            "id": "fallen_scale_king",
+            "name": "坠鳞的君王",
+            "level": 50,
+            "clears": 1,
+            "materials": [{"id": "ember_scale", "name": "余火硬鳞", "count": 1}]
+          }
+        ],
+        "confession": "thousandfold_confession",
+        "towerGoal": "awakening_tower_first_clear",
+        "dialogue": [
+          {
+            "spans": [{"text": "你已经从塔上回来了。现在，试试用自己的方式掌握这股力量吧。"}]
+          }
+        ]
+      },
       "tutorial": {
         "introduction": [
           {

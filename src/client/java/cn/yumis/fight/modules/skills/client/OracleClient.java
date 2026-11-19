@@ -45,7 +45,7 @@ public final class OracleClient {
     public boolean prepare(CareerState next,SkillDefinition skill,Stats stats,long now){int rank=OracleRules.rank(stats,state().progress());if(skill.id.equals(OracleSkills.REPLICA)&&(rank<=0||next.oracle.hermes<1))throw new IllegalArgumentException("至少需要一层代行-赫尔墨斯");return rank>0&&OracleRules.succeed(next.oracle,state().progress(),skill,rank,now);}
     public SkillParameters.Snapshot parameters(SkillParameters.Snapshot input,CareerState next,long now){
         if(!OracleSkills.contains(input.skill().id))return input;var values=new LinkedHashMap<>(input.values());
-        if(input.skill().id.equals(OracleSkills.REPLICA)){int stacks=next.oracle.hermes;values.put("replicaStacks",(double)stacks);values.put("duration",stacks==9?OracleSkills.FULL_DURATION:stacks*.35);}
+        if(input.skill().id.equals(OracleSkills.REPLICA)){int stacks=next.oracle.hermes;values.put("replicaStacks",(double)stacks);values.put("duration",stacks==9?OracleSkills.FULL_DURATION:stacks*input.get("preludeStepSeconds",.35));}
         if(input.skill().id.equals(OracleSkills.SMILE)){var target=target(null,10);Vec3 point=target==null?player().position():behind(target),direction=target==null?flat(player().getLookAngle()):flat(target.position().subtract(point));values.put("oracleX",point.x);values.put("oracleY",point.y);values.put("oracleZ",point.z);values.put("oracleDX",direction.x);values.put("oracleDZ",direction.z);}
         return new SkillParameters.Snapshot(input.skill(),input.rank(),values);
     }
@@ -111,12 +111,12 @@ public final class OracleClient {
         var r=runs.get(c.id);if(r==null){x.cancel(false);return;}if(r.stepSlot>=0)player().getInventory().setSelectedSlot(r.stepSlot);
         if(r.index<0&&!next(r,now)){finish(r);x.cancel(true);return;}
         for(int transitions=0;transitions<=r.count;transitions++){
-            int index=r.index;double local=Math.min(Math.max(0,(now-r.stageAt)*speed),OracleSkills.stepDuration(index)*1000),damage=c.parameters.get("damage",0);boolean done=(now-r.stageAt)*speed>=OracleSkills.stepDuration(index)*1000;
-            if(OracleSkills.combo(index)){Vec3 from=x.player().position();if(r.target!=null){double desired=8*Math.clamp(local/(OracleSkills.COMBO_INTERVAL*1000),0,1);move(x,c,desired-r.moved);r.moved=desired;}combo(r,from,x.player().position(),done);if(!c.finisher){c.finisher=true;x.visual(c,"HIT");}}
-            else if(index==OracleSkills.FINISH_STEP){if(local>=600){if(r.target!=null){double desired=8*Math.clamp((local-600)/200,0,1);move(x,c,desired-r.moved);r.moved=desired;}c.hitIndex=index*2;x.path(c,c.origin,r.target!=null?x.player().position():c.origin.add(c.direction.scale(8)),3,3,damage*.35,.4);if(!c.finisher){c.finisher=true;c.charging=false;x.visual(c,"FINISH");}}}
+            int index=r.index;double local=Math.min(Math.max(0,(now-r.stageAt)*speed),OracleSkills.stepDuration(index,c.parameters)*1000),damage=c.parameters.get("damage",0);boolean done=(now-r.stageAt)*speed>=OracleSkills.stepDuration(index,c.parameters)*1000;
+            if(OracleSkills.combo(index)){double comboMove=Math.max(0,c.parameters.get("comboMoveDistance",8)),comboStep=Math.max(.05,c.parameters.get("comboStepSeconds",OracleSkills.COMBO_INTERVAL));Vec3 from=x.player().position();if(r.target!=null){double desired=comboMove*Math.clamp(local/(comboStep*1000),0,1);move(x,c,desired-r.moved);r.moved=desired;}combo(r,from,x.player().position(),done);if(!c.finisher){c.finisher=true;x.visual(c,"HIT");}}
+            else if(index==OracleSkills.FINISH_STEP){if(local>=600){double finisherMove=Math.max(0,c.parameters.get("comboMoveDistance",8)),finisherShare=Math.clamp(c.parameters.get("finisherShare",.35),0,1);if(r.target!=null){double desired=finisherMove*Math.clamp((local-600)/200,0,1);move(x,c,desired-r.moved);r.moved=desired;}c.hitIndex=index*2;x.path(c,c.origin,r.target!=null?x.player().position():c.origin.add(c.direction.scale(finisherMove)),3,3,damage*finisherShare,.4);if(!c.finisher){c.finisher=true;c.charging=false;x.visual(c,"FINISH");}}}
             else{int action=OracleSkills.action(c.id.hashCode(),index);double part=damage*.0625;if(r.target!=null){double desired=5*Math.clamp(local/250,0,1);move(x,c,desired-r.moved);r.moved=desired;}Vec3 end=r.target!=null?x.player().position():c.origin.add(c.direction.scale(5));c.hitIndex=index*2+c.slashes;x.path(c,c.origin,end,action==1?2.5:3,3,action==3?part*.5:part,.2);if(action==3&&local>=175&&c.slashes==0){c.slashes=1;c.hit.clear();c.hitIndex=index*2+1;x.path(c,c.origin,end,3,3,part*.5,.2);x.visual(c,"HIT");}if(!c.finisher&&local>=100){c.finisher=true;x.visual(c,action==2?"RELEASE":"HIT");}}
             if(now-c.visualTrail>=80){x.visual(c,"TRAIL");c.visualTrail=now;}if(!done)return;
-            long nextAt=r.stageAt+(long)(OracleSkills.stepDuration(index)*1000/speed);if(!next(r,nextAt)){finish(r);x.cancel(true);return;}
+            long nextAt=r.stageAt+(long)(OracleSkills.stepDuration(index,c.parameters)*1000/speed);if(!next(r,nextAt)){finish(r);x.cancel(true);return;}
         }
     }
     private LivingEntity target(LivingEntity locked,double range){

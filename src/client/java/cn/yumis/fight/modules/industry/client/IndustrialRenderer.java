@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.industry.api.RotorMotion;
 import cn.yumis.fight.modules.industry.platform.MachineBlockEntity;
 import cn.yumis.fight.modules.industry.platform.MachineBlock;
 import cn.yumis.fight.modules.industry.platform.IndustrialContent;
+import cn.yumis.fight.modules.industry.platform.IndustrialAssembly;
 import cn.yumis.fight.modules.industry.api.DeviceType;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -12,6 +13,7 @@ import com.mojang.math.Axis;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.blockentity.*;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.item.*;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -32,13 +34,32 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
     private final Map<MachineBlockEntity,RotorMotion> rotors=new WeakHashMap<>();
     private final Map<MachineBlockEntity,IndustrialFluidDisplay.Scalar> liquidLevels=new WeakHashMap<>();
     private final Map<MachineBlockEntity,InfusionVisual.Motion> infusions=new WeakHashMap<>();
-    public static final class State extends BlockEntityRenderState {final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();boolean show,iconVisible,wind,turbine,star,starActive,magnetic;float angle,bob,rotorAngle,fluidFill,starAge,infusionStroke,infusionBob;int fluidTint,fluidLight,infusionTint,infusionLight;TextureAtlasSprite fluidSprite,infusionSprite;Direction facing;}
-    public IndustrialRenderer(BlockEntityRendererProvider.Context context){items=context.itemModelResolver();}
+    private final PetrochemicalRenderer petrochemistry;
+    public static final class State extends BlockEntityRenderState {
+        final ItemStackRenderState gem=new ItemStackRenderState(),icon=new ItemStackRenderState();
+        boolean show,iconVisible,wind,turbine,star,starActive,magnetic,petroRunning,petroConnected;
+        float angle,bob,rotorAngle,fluidFill,starAge,infusionStroke,infusionBob,petroAge;
+        int fluidTint,fluidLight,infusionTint,infusionLight;
+        TextureAtlasSprite fluidSprite,infusionSprite;
+        Direction facing;
+        DeviceType petrochemical;
+        LivingEntityRenderState pig;
+    }
+    public IndustrialRenderer(BlockEntityRendererProvider.Context context){items=context.itemModelResolver();petrochemistry=new PetrochemicalRenderer(context);}
     @Override public State createRenderState(){return new State();}
     @Override public void extractRenderState(MachineBlockEntity be,State state,float partial,Vec3 camera,ModelFeatureRenderer.CrumblingOverlay breaking){
         BlockEntityRenderer.super.extractRenderState(be,state,partial,camera,breaking);
         state.wind=be.device().has(DeviceType.Capability.WIND)&&WindGeneratorPartBlock.complete(be.getLevel(),be.getBlockPos());state.turbine=be.device().has(DeviceType.Capability.ROTOR);
         state.facing=be.getBlockState().getValue(MachineBlock.FACING);
+        var device=be.device();
+        state.petrochemical=device==DeviceType.BUDDY_SHELL||device==DeviceType.BUDDY_GENERATOR||device==DeviceType.OIL_DRILL?device:null;
+        state.pig=null;
+        if(state.petrochemical!=null){
+            state.petroAge=(float)((be.getLevel().getGameTime()+partial)%960);
+            state.petroRunning=be.getBlockState().getValue(MachineBlock.ACTIVE);
+            state.petroConnected=be.getBlockState().getValue(MachineBlock.CONNECTED);
+            if(device==DeviceType.BUDDY_GENERATOR)state.pig=PetrochemicalRenderer.pigState(state.petroAge);
+        }
         state.star=be.device()==DeviceType.STAR;state.starActive=be.getBlockState().getValue(MachineBlock.ACTIVE);
         if(state.star)state.starAge=(float)((be.getLevel().getGameTime()+partial)%1440);
         state.fluidFill=0;state.fluidSprite=null;
@@ -72,6 +93,7 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
         if(state.iconVisible)items.updateForTopItem(state.icon,be.device().has(DeviceType.Capability.LOGISTICS)?new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE):be.device().has(DeviceType.Capability.FLUID_LOGISTICS)?new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.WATER_BUCKET):IndustrialContent.stack(be.spec().id(),1),ItemDisplayContext.FIXED,be.getLevel(),null,0);
     }
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector nodes,CameraRenderState camera){
+        if(state.petrochemical!=null)petrochemistry.submit(state,pose,nodes);
         if(state.star)ArtificialStarMesh.submit(pose,nodes,state.lightCoords,state.starAge,state.starActive);
         if(state.fluidFill>0&&state.fluidSprite!=null)TankFluidMesh.submit(pose,nodes,state.fluidSprite,state.fluidTint,state.fluidFill,state.fluidLight);
         if(state.infusionStroke>0||state.infusionSprite!=null)InfusionVisual.submit(pose,nodes,state.infusionStroke,state.infusionBob,state.infusionSprite,state.infusionTint,state.lightCoords,state.infusionLight);
@@ -85,6 +107,8 @@ public final class IndustrialRenderer implements BlockEntityRenderer<MachineBloc
         if(state.iconVisible){pose.pushPose();pose.translate(.5,1.16+state.bob,.5);pose.mulPose(camera.orientation);pose.scale(.3f,.3f,.3f);state.icon.submit(pose,nodes,15728880,OverlayTexture.NO_OVERLAY,0);pose.popPose();}
     }
     @Override public AABB getRenderBoundingBox(MachineBlockEntity be){
+        var assemblyBounds=IndustrialAssembly.renderBounds(be);
+        if(assemblyBounds!=null)return assemblyBounds;
         if(be.device()==DeviceType.STAR){var pos=be.getBlockPos();return new AABB(pos.getX()-ArtificialStarPartBlock.HALF,pos.getY(),pos.getZ()-ArtificialStarPartBlock.HALF,pos.getX()+ArtificialStarPartBlock.HALF+1,pos.getY()+ArtificialStarPartBlock.HEIGHT,pos.getZ()+ArtificialStarPartBlock.HALF+1);}
         if(be.device().has(DeviceType.Capability.INFUSION))return new AABB(be.getBlockPos()).expandTowards(0,-.5,0).inflate(.1);
         return be.device().has(DeviceType.Capability.WIND)?new AABB(be.getBlockPos()).expandTowards(0,2,0).inflate(.8,.65,.8):new AABB(be.getBlockPos()).inflate(.1);

@@ -488,7 +488,10 @@ if(j.has("target")&&j.has("kind")){
     public Stats weaponStats(ItemStack weapon){
         return EquipmentStats.build(Minecraft.getInstance().player,progress,cn.yumis.fight.modules.professions.client.AlchemyClient.attributes(syncedSources),weapon);
     }
-    public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){prediction.report(life,fraction,heal,maximum,color,critical,extras);}
+    public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){
+        if(heal&&life.target.equals(own.target))fraction*=cn.yumis.fight.modules.combat.api.CombatEffect.healingScale(Minecraft.getInstance().player);
+        prediction.report(life,fraction,heal,maximum,color,critical,extras);
+    }
     public JsonObject ailment(String target,String kind){
         return ailments.values().stream().filter(a->a.get("target").getAsString().equals(target)&&a.get("kind").getAsString().equals(kind)&&a.get("expires").getAsLong()>serverNow()).max(java.util.Comparator.comparingLong(a->a.get("expires").getAsLong())).orElse(null);
     }

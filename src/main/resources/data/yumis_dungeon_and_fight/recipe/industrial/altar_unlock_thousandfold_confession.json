@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "demon_altar",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:penitent_shard",
+      "count": 13
+    },
+    {
+      "ingredient": "minecraft:dark_oak_sign",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:white_candle",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:altar_token_thousandfold_confession",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1,
+  "energy": 51200
+}

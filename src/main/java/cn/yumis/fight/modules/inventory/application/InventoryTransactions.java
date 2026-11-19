@@ -250,7 +250,9 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         InventoryPacking.insert(p,copy);
         if(!copy.isEmpty())throw new NoSpace();
     }
-    private void stash(ServerPlayer p,ItemStack item,Map<String,JsonElement> changes){
+    @Override
+    public void deliverOrStash(ServerPlayer p,ItemStack item,Map<String,JsonElement> changes){
+        if(!inside||actingPlayer!=p)throw new IllegalStateException("发放物品须处于该玩家的背包事务中");
         InventoryPacking.insert(p,item);
         var bag=MenuHooks.extra(p).bag;
         for(int i=0;i<MenuHooks.extra(p).bagLimit()&&!item.isEmpty();i++)if(bag.getItem(i).isEmpty()){
@@ -276,13 +278,13 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         transact(p,"close/"+UUID.randomUUID(),j,()->{
             ItemStack cursor=p.containerMenu.getCarried();p.containerMenu.setCarried(ItemStack.EMPTY);if(craftingPresent){
                 for(int i=1;i<=4;i++){
-                    ItemStack crafted=p.inventoryMenu.getSlot(i).getItem();p.inventoryMenu.getSlot(i).set(ItemStack.EMPTY);stash(p,crafted,changes);
+                    ItemStack crafted=p.inventoryMenu.getSlot(i).getItem();p.inventoryMenu.getSlot(i).set(ItemStack.EMPTY);deliverOrStash(p,crafted,changes);
                 }
             }
             for(var input:temporary){
                 ItemStack stack=input.container().getItem(input.slot());
                 input.container().setItem(input.slot(),ItemStack.EMPTY);
-                stash(p,stack,changes);
+                deliverOrStash(p,stack,changes);
             }
             InventoryPacking.insert(p,cursor);var extra=MenuHooks.extra(p);for(int i=0;i<extra.bagLimit()&&!cursor.isEmpty();i++){
                 ItemStack stored=extra.bag.getItem(i);if(stored.isEmpty()){

@@ -18,12 +18,17 @@ import java.util.*;
 /** Private bottom dialogue. Only the shared entity's temporary conversation hold is sent to the server. */
 public final class NpcDialogueScreen extends ThemedScreen {
     private final LivingEntity entity;private final Object level;private final String dialogueKey;
+    private final boolean awakening;
     private final List<RichText> pages;private List<FormattedCharSequence> lines=List.of();
     private int page,left,top,panelWidth,panelHeight,portraitWidth,textLeft,textWidth,totalCharacters;
     private long began,heartbeat;private boolean full;private Button advance;
     public NpcDialogueScreen(LivingEntity entity){
         super(Minecraft.getInstance(),UiFonts.font(),Component.literal("与伊蕾娜交谈"),ThemeDomain.MENU);
-        this.entity=entity;level=entity.level();dialogueKey=TutorialClient.dialogueKey();pages=List.copyOf(TutorialClient.dialogue());page=Math.clamp(TutorialClient.savedPage(dialogueKey),0,pages.size()-1);
+        this.entity=entity;level=entity.level();
+        awakening=NpcTutorial.NPC.equals(NpcInteractionComponent.id(entity))&&AwakeningQuestClient.readyToReturn();
+        dialogueKey=awakening?AwakeningQuest.ACTION:TutorialClient.dialogueKey();
+        pages=List.copyOf(awakening?AwakeningQuest.definition().dialogue():TutorialClient.dialogue());
+        page=awakening?0:Math.clamp(TutorialClient.savedPage(dialogueKey),0,pages.size()-1);
     }
     @Override protected void init(){layout();hold(true);}
     private void layout(){
@@ -37,8 +42,10 @@ public final class NpcDialogueScreen extends ThemedScreen {
     private int visible(){return full?totalCharacters:(int)Math.min(totalCharacters,Math.max(0,ClientUi.now()-began)/35);}
     private void next(){
         if(visible()<totalCharacters){full=true;return;}
-        if(page+1<pages.size()){page++;TutorialClient.savePage(dialogueKey,page);layout();return;}
-        finishIntroduction();onClose();
+        if(page+1<pages.size()){page++;if(!awakening)TutorialClient.savePage(dialogueKey,page);layout();return;}
+        if(awakening)AwakeningQuestClient.finishDialogue(entity);
+        else finishIntroduction();
+        onClose();
     }
     private void finishIntroduction(){if(dialogueKey.equals("introduction")&&page==pages.size()-1)TutorialClient.start();}
     private void hold(boolean open){
@@ -47,13 +54,16 @@ public final class NpcDialogueScreen extends ThemedScreen {
     @Override public void tick(){
         if(Minecraft.getInstance().level!=level||!entity.isAlive()||!TutorialClient.alive()){onClose();return;}
         if(ClientUi.now()>=heartbeat)hold(true);
-        advance.setMessage(Component.literal(visible()<totalCharacters?"显示全文":page+1<pages.size()?"继续  ›":dialogueKey.equals("introduction")?"去试试  ›":"收起"));
+        advance.setMessage(Component.literal(visible()<totalCharacters?"显示全文":page+1<pages.size()?"继续  ›":awakening?"完成觉醒":dialogueKey.equals("introduction")?"去试试  ›":"收起"));
     }
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){g.fill(0,0,width,height,0x10000000);}
     @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float delta){
         UiTheme.panel(g,left,top,panelWidth,panelHeight);g.fill(left,top,left+panelWidth,top+1,0xffc6acff);
         if(portraitWidth>0){int pictureTop=Math.max(3,top-58),pictureBottom=top+panelHeight-3;int size=Math.max(12,Math.min((int)((pictureBottom-pictureTop)/3.15f),portraitWidth-8));InventoryScreen.renderEntityInInventoryFollowsAngle(g,left+2,pictureTop,left+portraitWidth,pictureBottom,size,.04f,.12f,.025f,entity);}
-        g.text(font,"伊蕾娜",textLeft,top+12,UiTheme.GOLD,false);g.text(font,"旅途引路人",textLeft+font.width("伊蕾娜")+10,top+12,UiTheme.MUTED,false);
+        g.text(font,"伊蕾娜",textLeft,top+12,UiTheme.GOLD,false);
+        int labelLeft=textLeft+font.width("伊蕾娜")+10;
+        if(awakening)RichTextDrawing.line(g,font,AwakeningQuest.definition().badge().component().getVisualOrderText(),labelLeft,top+12,UiTheme.GOLD);
+        else g.text(font,"旅途引路人",labelLeft,top+12,UiTheme.MUTED,false);
         String count=(page+1)+" / "+pages.size();g.text(font,count,left+panelWidth-13-font.width(count),top+12,UiTheme.MUTED,false);
         int remaining=visible(),y=top+34;
         for(var line:lines){if(y+font.lineHeight>top+panelHeight-34)break;int length=RichTextDrawing.length(line);RichTextDrawing.line(g,font,RichTextDrawing.prefix(line,remaining),textLeft,y,UiTheme.TEXT);remaining=Math.max(0,remaining-length);y+=13;}
@@ -66,7 +76,7 @@ public final class NpcDialogueScreen extends ThemedScreen {
         if(event.key()==GLFW.GLFW_KEY_SPACE||event.key()==GLFW.GLFW_KEY_ENTER||event.key()==GLFW.GLFW_KEY_KP_ENTER){next();return true;}
         return super.keyPressed(event);
     }
-    @Override public void removed(){TutorialClient.savePage(dialogueKey,page);hold(false);super.removed();}
+    @Override public void removed(){if(!awakening)TutorialClient.savePage(dialogueKey,page);hold(false);super.removed();}
     @Override public void onClose(){minecraft.gui.setScreen(null);}
     @Override public boolean isPauseScreen(){return false;}
 }

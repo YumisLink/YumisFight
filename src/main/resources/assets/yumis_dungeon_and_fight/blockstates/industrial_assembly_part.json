@@ -1,0 +1,596 @@
+{
+  "variants": {
+    "part=0,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_0",
+      "y": 0
+    },
+    "part=0,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_0",
+      "y": 90
+    },
+    "part=0,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_0",
+      "y": 180
+    },
+    "part=0,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_0",
+      "y": 270
+    },
+    "part=1,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_1",
+      "y": 0
+    },
+    "part=1,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_1",
+      "y": 90
+    },
+    "part=1,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_1",
+      "y": 180
+    },
+    "part=1,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_1",
+      "y": 270
+    },
+    "part=2,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_2",
+      "y": 0
+    },
+    "part=2,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_2",
+      "y": 90
+    },
+    "part=2,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_2",
+      "y": 180
+    },
+    "part=2,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_2",
+      "y": 270
+    },
+    "part=3,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_3",
+      "y": 0
+    },
+    "part=3,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_3",
+      "y": 90
+    },
+    "part=3,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_3",
+      "y": 180
+    },
+    "part=3,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_3",
+      "y": 270
+    },
+    "part=4,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_4",
+      "y": 0
+    },
+    "part=4,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_4",
+      "y": 90
+    },
+    "part=4,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_4",
+      "y": 180
+    },
+    "part=4,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_4",
+      "y": 270
+    },
+    "part=5,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_5",
+      "y": 0
+    },
+    "part=5,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_5",
+      "y": 90
+    },
+    "part=5,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_5",
+      "y": 180
+    },
+    "part=5,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_5",
+      "y": 270
+    },
+    "part=6,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_6",
+      "y": 0
+    },
+    "part=6,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_6",
+      "y": 90
+    },
+    "part=6,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_6",
+      "y": 180
+    },
+    "part=6,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_6",
+      "y": 270
+    },
+    "part=7,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_7",
+      "y": 0
+    },
+    "part=7,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_7",
+      "y": 90
+    },
+    "part=7,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_7",
+      "y": 180
+    },
+    "part=7,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_7",
+      "y": 270
+    },
+    "part=8,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_8",
+      "y": 0
+    },
+    "part=8,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_8",
+      "y": 90
+    },
+    "part=8,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_8",
+      "y": 180
+    },
+    "part=8,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_8",
+      "y": 270
+    },
+    "part=9,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_9",
+      "y": 0
+    },
+    "part=9,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_9",
+      "y": 90
+    },
+    "part=9,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_9",
+      "y": 180
+    },
+    "part=9,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_9",
+      "y": 270
+    },
+    "part=10,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_10",
+      "y": 0
+    },
+    "part=10,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_10",
+      "y": 90
+    },
+    "part=10,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_10",
+      "y": 180
+    },
+    "part=10,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_10",
+      "y": 270
+    },
+    "part=11,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_11",
+      "y": 0
+    },
+    "part=11,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_11",
+      "y": 90
+    },
+    "part=11,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_11",
+      "y": 180
+    },
+    "part=11,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_11",
+      "y": 270
+    },
+    "part=12,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_12",
+      "y": 0
+    },
+    "part=12,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_12",
+      "y": 90
+    },
+    "part=12,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_12",
+      "y": 180
+    },
+    "part=12,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_12",
+      "y": 270
+    },
+    "part=13,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_13",
+      "y": 0
+    },
+    "part=13,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_13",
+      "y": 90
+    },
+    "part=13,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_13",
+      "y": 180
+    },
+    "part=13,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_13",
+      "y": 270
+    },
+    "part=14,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_14",
+      "y": 0
+    },
+    "part=14,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_14",
+      "y": 90
+    },
+    "part=14,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_14",
+      "y": 180
+    },
+    "part=14,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_14",
+      "y": 270
+    },
+    "part=15,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_15",
+      "y": 0
+    },
+    "part=15,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_15",
+      "y": 90
+    },
+    "part=15,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_15",
+      "y": 180
+    },
+    "part=15,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_15",
+      "y": 270
+    },
+    "part=16,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_16",
+      "y": 0
+    },
+    "part=16,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_16",
+      "y": 90
+    },
+    "part=16,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_16",
+      "y": 180
+    },
+    "part=16,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_16",
+      "y": 270
+    },
+    "part=17,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_17",
+      "y": 0
+    },
+    "part=17,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_17",
+      "y": 90
+    },
+    "part=17,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_17",
+      "y": 180
+    },
+    "part=17,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_17",
+      "y": 270
+    },
+    "part=18,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_18",
+      "y": 0
+    },
+    "part=18,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_18",
+      "y": 90
+    },
+    "part=18,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_18",
+      "y": 180
+    },
+    "part=18,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_18",
+      "y": 270
+    },
+    "part=19,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_19",
+      "y": 0
+    },
+    "part=19,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_19",
+      "y": 90
+    },
+    "part=19,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_19",
+      "y": 180
+    },
+    "part=19,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_19",
+      "y": 270
+    },
+    "part=20,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_20",
+      "y": 0
+    },
+    "part=20,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_20",
+      "y": 90
+    },
+    "part=20,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_20",
+      "y": 180
+    },
+    "part=20,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_20",
+      "y": 270
+    },
+    "part=21,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_21",
+      "y": 0
+    },
+    "part=21,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_21",
+      "y": 90
+    },
+    "part=21,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_21",
+      "y": 180
+    },
+    "part=21,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_21",
+      "y": 270
+    },
+    "part=22,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_22",
+      "y": 0
+    },
+    "part=22,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_22",
+      "y": 90
+    },
+    "part=22,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_22",
+      "y": 180
+    },
+    "part=22,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_22",
+      "y": 270
+    },
+    "part=23,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_23",
+      "y": 0
+    },
+    "part=23,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_23",
+      "y": 90
+    },
+    "part=23,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_23",
+      "y": 180
+    },
+    "part=23,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_23",
+      "y": 270
+    },
+    "part=24,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_24",
+      "y": 0
+    },
+    "part=24,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_24",
+      "y": 90
+    },
+    "part=24,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_24",
+      "y": 180
+    },
+    "part=24,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_24",
+      "y": 270
+    },
+    "part=25,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_25",
+      "y": 0
+    },
+    "part=25,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_25",
+      "y": 90
+    },
+    "part=25,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_25",
+      "y": 180
+    },
+    "part=25,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_25",
+      "y": 270
+    },
+    "part=26,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_26",
+      "y": 0
+    },
+    "part=26,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_26",
+      "y": 90
+    },
+    "part=26,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_26",
+      "y": 180
+    },
+    "part=26,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_26",
+      "y": 270
+    },
+    "part=27,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_27",
+      "y": 0
+    },
+    "part=27,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_27",
+      "y": 90
+    },
+    "part=27,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_27",
+      "y": 180
+    },
+    "part=27,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_27",
+      "y": 270
+    },
+    "part=28,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_28",
+      "y": 0
+    },
+    "part=28,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_28",
+      "y": 90
+    },
+    "part=28,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_28",
+      "y": 180
+    },
+    "part=28,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_28",
+      "y": 270
+    },
+    "part=29,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_29",
+      "y": 0
+    },
+    "part=29,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_29",
+      "y": 90
+    },
+    "part=29,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_29",
+      "y": 180
+    },
+    "part=29,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_29",
+      "y": 270
+    },
+    "part=30,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_30",
+      "y": 0
+    },
+    "part=30,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_30",
+      "y": 90
+    },
+    "part=30,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_30",
+      "y": 180
+    },
+    "part=30,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_30",
+      "y": 270
+    },
+    "part=31,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_31",
+      "y": 0
+    },
+    "part=31,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_31",
+      "y": 90
+    },
+    "part=31,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_31",
+      "y": 180
+    },
+    "part=31,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_31",
+      "y": 270
+    },
+    "part=32,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_32",
+      "y": 0
+    },
+    "part=32,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_32",
+      "y": 90
+    },
+    "part=32,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_32",
+      "y": 180
+    },
+    "part=32,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_32",
+      "y": 270
+    },
+    "part=33,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_33",
+      "y": 0
+    },
+    "part=33,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_33",
+      "y": 90
+    },
+    "part=33,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_33",
+      "y": 180
+    },
+    "part=33,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_33",
+      "y": 270
+    },
+    "part=34,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_34",
+      "y": 0
+    },
+    "part=34,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_34",
+      "y": 90
+    },
+    "part=34,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_34",
+      "y": 180
+    },
+    "part=34,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_34",
+      "y": 270
+    },
+    "part=35,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_35",
+      "y": 0
+    },
+    "part=35,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_35",
+      "y": 90
+    },
+    "part=35,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_35",
+      "y": 180
+    },
+    "part=35,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_35",
+      "y": 270
+    },
+    "part=36,facing=north": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_36",
+      "y": 0
+    },
+    "part=36,facing=east": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_36",
+      "y": 90
+    },
+    "part=36,facing=south": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_36",
+      "y": 180
+    },
+    "part=36,facing=west": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/part_36",
+      "y": 270
+    }
+  }
+}

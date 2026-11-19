@@ -50,6 +50,7 @@ public final class AffixText {
         case "hero_power"->"击败精英获得对应力量，持续 "+v+" 秒；同类刷新，不同类共存";
         case "magic_ranks"->"魔法技能等级"+signed(a.value);
         case "magic_cooldown"->"魔法技能最终冷却时间减少 "+v+" 秒";
+        case "master_equip_level"->"装备需求等级降低 "+v+" 级";
         case "grant_blink"->"授予主动技能：闪现（可在技能页面装配）";
         case "kill_recovery"->"击杀敌人回复最大生命的 "+n+"%";
         case "life_cost"->"技能以原魔耗的 "+n+"% 消耗生命，至少保留1点生命";

@@ -5,6 +5,8 @@ import cn.yumis.fight.modules.industry.platform.MachineUpgradeRecipe;
 import cn.yumis.fight.modules.industry.api.IndustrialRules;
 import cn.yumis.fight.modules.industry.api.EnergyDisplay;
 import cn.yumis.fight.modules.industry.api.IndustrialRecipe;
+import cn.yumis.fight.modules.industry.platform.DemonAltarBlock;
+import cn.yumis.fight.modules.industry.platform.DemonAltarBlockEntity;
 import cn.yumis.fight.modules.industry.platform.IndustrialContent;
 
 import cn.yumis.fight.modules.industry.client.IndustrialRecipeCache;
@@ -47,13 +49,14 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         else if(operation.equals("recipes")||operation.equals("uses")){var item=BuiltInRegistries.ITEM.getValue(key.contains(":")?Identifier.parse(key):IndustrialContent.id(key));var focus=runtime.getJeiHelpers().getFocusFactory().createFocus(operation.equals("uses")?mezz.jei.api.recipe.RecipeIngredientRole.INPUT:mezz.jei.api.recipe.RecipeIngredientRole.OUTPUT,VanillaTypes.ITEM_STACK,new ItemStack(item));runtime.getRecipesGui().show(focus);}
         return result;
     }
-    private static final List<String> MACHINES=List.of("mana_crusher","mana_furnace","isotopic_separator","isotope_activator","forming_assembler","magnetic_confinement_chamber","thermal_distiller","fuel_artificial_star","mineral_generator","mana_forge","coolant_mixer","mineral_refinery","alchemical_reactor","water_pump","currency_fabricator","fuel_coal_generator","fuel_mana_crystal_burner","fuel_turbine_generator","fuel_thermal_generator","fuel_nuclear_reactor","fuel_rtg_generator","storage_upgrade");
+    private static final List<String> MACHINES=List.of("mana_crusher","mana_furnace","isotopic_separator","isotope_activator","forming_assembler","magnetic_confinement_chamber","thermal_distiller","fuel_artificial_star","mineral_generator","mana_forge","coolant_mixer","mineral_refinery","alchemical_reactor","water_pump","currency_fabricator","fuel_coal_generator","fuel_mana_crystal_burner","fuel_turbine_generator","fuel_thermal_generator","fuel_nuclear_reactor","fuel_rtg_generator","storage_upgrade",DemonAltarBlock.ID);
     private static final Map<String,IRecipeHolderType<IndustrialRecipe>> TYPES=new LinkedHashMap<>();
     static {for(String machine:MACHINES)TYPES.put(machine,IRecipeHolderType.create(IndustrialContent.id(machine)));}
     @Override public Identifier getPluginUid(){return IndustrialContent.id("industry");}
     private static String group(IndustrialRecipe recipe){return recipe.machine().startsWith("storage_upgrade_")?"storage_upgrade":recipe.machine();}
     private static List<ItemStack> machines(String category){
         if(category.equals("storage_upgrade"))return List.of(new ItemStack(Items.CHEST));
+        if(category.equals(DemonAltarBlock.ID))return List.of(IndustrialContent.stack(DemonAltarBlock.ID,1));
         String kind=category.startsWith("fuel_")?category.substring(5):category;
         return IndustrialContent.SPECS.values().stream().filter(s->s.device().id.equals(kind)).map(s->IndustrialContent.stack(s.id(),1)).toList();
     }
@@ -63,8 +66,10 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         registration.addItemStackInfo(IndustrialContent.stack("speed_plugin",1),Component.literal("每件使速度×1.5、单批耗能×2，逐件乘算。背包堆叠64、机内每格8。适用加工、采矿、通货升级、抽水、收获与水晶运输，发电机暂不适用。"));
         registration.addItemStackInfo(IndustrialContent.stack("water_pump",1),Component.literal("接网且相邻任一面有水源时抽水，不移除水源。出水缓存自动供给六面相邻设备的入液口，紧贴涡轮任一面即可直接供水；满罐时保留余水。远距离送水仍可使用供液水晶。"));
         registration.addItemStackInfo(IndustrialContent.stack("mana_storage_bag",1),Component.literal("随身携带时，新获得的1至8阶魔能水晶自动转为魔能，满背包也可拾取。每升一阶所需魔能为前一阶的8倍，存取无损。\n手持Shift＋滚轮切换取出等级；右键取1个，Shift＋右键取64个，魔能或空间不足时整次取消。取出的水晶可留在背包使用。\n魔能跟随袋子保存，多袋按主手、副手、背包顺序收纳。4根线、4张皮革和1枚1阶水晶在工作台合成。"));
+        registration.addItemStackInfo(IndustrialContent.stack(DemonAltarBlock.ID,1),Component.translatable("demon_altar."+IndustrialContent.NS+".info"));
         var recipes=IndustrialRecipeCache.recipes.byType(IndustrialContent.RECIPE_TYPE.get());
-        for(String key:MACHINES)registration.addRecipes(TYPES.get(key),recipes.stream().filter(h->group(h.value()).equals(key)).toList());
+        for(String key:MACHINES)registration.addRecipes(TYPES.get(key),recipes.stream().filter(h->group(h.value()).equals(key))
+            .filter(h->!key.equals(DemonAltarBlock.ID)||DemonAltarBlockEntity.supports(h.value())).toList());
         for(var spec:IndustrialContent.SPECS.values())if(spec.tier()<spec.device().maximumTier())registration.addItemStackInfo(IndustrialContent.stack(spec.id(),1),Component.literal("手持下一档科技机外壳右键，消耗该工作台升级配方中除前级设备外的材料；原地升级保留内容。工作台升级仅接受空设备，拆除会清空液体和余能。"));
         registration.addItemStackInfo(IndustrialContent.stack("coolant_mixer",1),Component.literal("T3冷却液工艺，基础每5秒产1B、每秒耗能500。支持超速芯片：每件速度×1.5、单批耗能×2；按带液体设备逐步反应和产出。"));
         for(String key:List.of("solar_collector","wind_generator"))registration.addItemStackInfo(IndustrialContent.stack(key,1),Component.literal(key.equals("wind_generator")?"露天三格风机；最低高度 "+IndustrialRules.current().windBaseHeight+"，基础产能 "+IndustrialRules.current().windBasePower+" 点/秒。":"露天日曜设备；白天产能 "+IndustrialRules.current().solarDayPower+" 点/秒，夜间或雷暴停止。"));
@@ -100,6 +105,12 @@ public final class IndustrialJeiPlugin implements IModPlugin {
         }
         @Override public void draw(RecipeHolder<IndustrialRecipe> holder,IRecipeSlotsView slots,GuiGraphicsExtractor graphics,double mouseX,double mouseY){
             var recipe=holder.value();var font=Minecraft.getInstance().font;
+            if(key.equals(DemonAltarBlock.ID)){
+                graphics.text(font,"→",86,22,0xff168789,false);
+                graphics.text(font,Component.translatable("demon_altar."+IndustrialContent.NS+".jei_cost",String.format(Locale.ROOT,"%,d",recipe.energy())),2,80,0xff444444,false);
+                graphics.text(font,Component.translatable("demon_altar."+IndustrialContent.NS+".jei_use"),2,95,0xff444444,false);
+                return;
+            }
             if(key.startsWith("fuel_")){
                 graphics.text(font,EnergyDisplay.format(recipe.energy()*20.0/recipe.ticks())+" 魔能/秒",2,80,0xff444444,false);
                 graphics.text(font,String.format(Locale.ROOT,"持续 %.2f 秒",recipe.ticks()/20.0),2,93,0xff444444,false);

@@ -9,8 +9,10 @@ import math
 import struct
 import zlib
 import shutil
+import sys
 from collections import Counter
 from industrial_item_art import INDUSTRIAL_ITEM_ART
+import industrial_petrochemistry as petrochemistry
 
 ROOT = Path(__file__).resolve().parents[1]
 NS = 'yumis_dungeon_and_fight'
@@ -44,6 +46,7 @@ PART_TIERS = dict(zircon_ceramic=3, vanadium_steel=2, molybdenum_vanadium_steel=
     energy_crystal_block_2=1, equipment_fabricator=1)
 LIQUID_TIERS = dict(mana_fluid=1, concentrated_mana_fluid=2, coolant=3, alkahest=3, spent_solvent=3, blazing_fluid=3,
     ceruleum=2, shimmer=3, azoth=4, penduliquid=4, heavy_water=3, brine=2)
+LIQUID_TIERS.update(dict.fromkeys(petrochemistry.LIQUIDS, 2))
 NEW_CONTENT = {
     'display_stand': ('block', 1, '展示台'),
     'magic_flower': ('block', 1, '魔力花'),
@@ -85,6 +88,7 @@ for _t in range(1, 7):
     if _t > 1:
         NEW_CONTENT[f'tech_block_t{_t}'] = ('block', _t, f'T{_t}科技方块')
 NEW_CONTENT['industrial_upgrade_6'] = ('item', 6, 'T6科技核心')
+NEW_CONTENT.update(petrochemistry.CONTENT)
 NEW_MACHINES = {
     'mana_crystal_burner': (1, 1, 1, '魔能水晶燃烧器', 'coal_generator'),
     'magnetic_confinement_chamber': (5, 6, 5, '强磁约束室', 'alchemical_reactor'),
@@ -106,6 +110,10 @@ def own(key):
 def write(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+
+def read_json(path):
+    return json.loads(path.read_text(encoding='utf-8'))
 
 
 def png_chunk(key, data):
@@ -218,7 +226,20 @@ def devices():
             d['boxes'] = [[2,0,2,14,3,14] if family == 'harvest_crystal' else [1,0,1,15,3,15], [5.5,3,5.5,10.5,18,10.5]]
         else:
             d['boxes'] = [bounds.get(family,[1,0,1,15,16,15])]
+    result.update(petrochemistry.devices())
     return result
+
+
+def energy_tier(recipe):
+    machine = recipe['machine']
+    minimum = recipe.get('minimum_tier', 1)
+    speed = 1
+    if machine in ['mana_forge', 'mana_crusher', 'currency_fabricator']:
+        speed = 1 << (minimum - 1)
+    elif machine == 'mana_furnace':
+        speed = [4, 8, 16, 32, 64][minimum - 1]
+    power = recipe['energy'] * 20 * speed / recipe['ticks']
+    return next((i for i, maximum in enumerate([20, 200, 2000, 30000, 300000], 1) if power <= maximum), 6)
 
 
 def catalog(specs):
@@ -266,10 +287,7 @@ def catalog(specs):
         machine = recipe.get('machine', '')
         if recipe.get('type') != own('industrial') or machine.startswith('fuel_'):
             continue
-        speed = 1 << (recipe.get('minimum_tier', 1)-1) if machine in ['mana_forge','mana_crusher','currency_fabricator'] else [4,8,16,32,64][recipe.get('minimum_tier',1)-1] if machine == 'mana_furnace' else 1
-        power = recipe['energy'] * 20 * speed / recipe['ticks']
-        grade = next((i for i, maximum in enumerate([20,200,2000,30000,300000],1) if power <= maximum),6)
-        energy_tiers['industrial/'+p.stem] = grade
+        energy_tiers['industrial/'+p.stem] = energy_tier(recipe)
     from industrial_fluid_pipes import register_catalog
     register_catalog(tiers, content)
     from industrial_conveyors import register_catalog as register_conveyors
@@ -277,7 +295,7 @@ def catalog(specs):
     return dict(grades=[dict(tier=t, name=NAMES[t-1], colors=PALETTES[t-1]) for t in range(1, 7)],
                 items=tiers, fluids={own(k): t for k, t in LIQUID_TIERS.items()} | {'minecraft:water': 1},
                 content=content, devices=specs, recipe_energy_tiers=energy_tiers,
-                material_items=[k for k in tiers if any(k==own(form) for metal in METAL_TIERS for form in [metal+'_ore','raw_'+metal,'crushed_'+metal,metal+'_concentrate',metal+'_ingot',metal+'_block','high_purity_'+metal+'_ingot']) or k in {own(key) for key in PART_TIERS if 'alloy' in key or key in ['vanadium_steel','molybdenum_vanadium_steel','zircon_ceramic','industrial_magic_stone','industrial_magic_stone_block','magic_ore','sulfide','energy_crystal_block_2']}],
+                material_items=[k for k in tiers if k==own('plastic') or any(k==own(form) for metal in METAL_TIERS for form in [metal+'_ore','raw_'+metal,'crushed_'+metal,metal+'_concentrate',metal+'_ingot',metal+'_block','high_purity_'+metal+'_ingot']) or k in {own(key) for key in PART_TIERS if 'alloy' in key or key in ['vanadium_steel','molybdenum_vanadium_steel','zircon_ceramic','industrial_magic_stone','industrial_magic_stone_block','magic_ore','sulfide','energy_crystal_block_2']}],
                 mineral_tiers={k:v for k,v in tiers.items() if any(k==own(form) for metal in METAL_TIERS for form in [metal+'_ore','raw_'+metal,'crushed_'+metal,metal+'_concentrate',metal+'_ingot','high_purity_'+metal+'_ingot'])})
 
 
@@ -318,6 +336,8 @@ def crafting(specs):
         isotope_activator='superconducting_control', forming_assembler='minecraft:piston', thermal_distiller='zircon_ceramic')
     stage_metals = ['minecraft:copper_ingot', 'vanadium_steel', 'tzm_alloy', 'adamantite_titanium_alloy', 'henghui_alloy', 'stellar_alloy']
     for key, d in specs.items():
+        if key in petrochemistry.MACHINES:
+            continue
         kind, t, grade = d['kind'], d['tier'], d['technology']
         previous = f'{kind}_t{t-1}'
         if previous in specs:
@@ -481,7 +501,7 @@ def rules_and_processing():
     for p in RECIPES.glob('*.json'):
         r = json.loads(p.read_text(encoding='utf-8'))
         machine = r.get('machine','')
-        if r.get('type') != own('industrial') or machine.startswith('fuel_') or machine in ['mineral_generator','water_pump','coolant_mixer'] or machine.startswith('storage_upgrade_'):
+        if r.get('type') != own('industrial') or machine.startswith('fuel_') or machine in ['mineral_generator','water_pump','coolant_mixer'] or machine.startswith('storage_upgrade_') or p.stem in petrochemistry.PROCESS_NAMES:
             continue
         source_grade = max([input_grade(n['ingredient']) for n in r.get('ingredients',[])] + [1])
         product_grade = max([item_tiers.get(n['id'],1) for n in r.get('results',[])] + [1])
@@ -562,6 +582,8 @@ def resources(specs):
             else:grade = spec['technology']
         recolor_atlas(path,grade)
     for key, (kind, grade, title) in NEW_CONTENT.items():
+        if key in petrochemistry.CONTENT:
+            continue
         if kind == 'fluid':
             # Standard liquid rendering reuses water geometry; the registered fluid supplies its tint.
             write(ASSETS / 'items' / (key + '_bucket.json'), {'model': {'type': 'minecraft:model', 'model': own('item/' + key + '_bucket')}})
@@ -611,6 +633,8 @@ def resources(specs):
         path = ASSETS / 'lang' / (locale + '.json')
         lang = json.loads(path.read_text(encoding='utf-8'))
         for key, (kind, grade, title) in NEW_CONTENT.items():
+            if key in petrochemistry.CONTENT:
+                continue
             if kind == 'fluid':
                 lang.pop('fluid.' + NS + '.' + key, None)
                 lang['fluid_type.' + NS + '.' + key] = title
@@ -810,11 +834,74 @@ def magnetic_confinement_chamber():
     rules.update(nuclearHeatingTicks=1200,nuclearCoolingTicks=600,nuclearExplosionStrength=6);write(path,rules)
 
 
+def demon_altar():
+    key = 'demon_altar'
+    shaped(key, ['OCO', 'BEB', 'OOO'], {
+        'O': 'minecraft:obsidian', 'C': 'energy_crystal_2',
+        'B': 'minecraft:polished_blackstone_bricks', 'E': 'minecraft:crying_obsidian',
+    })
+    process('altar_advanced_divine', key, [('exalted_stone', 8), ('divine_stone', 5)],
+            [('advanced_divine_stone', 1)], 1, ticks=1, energy=100_000)
+    process('altar_unlock_uncrowned_gardener', key, [('magic_flower', 2), ('minecraft:dead_bush', 1), ('minecraft:glowstone_dust', 2)],
+            [('altar_token_uncrowned_gardener', 1)], 1, ticks=1, energy=800)
+    process('altar_unlock_off_duty_matron', key, [('minecraft:white_wool', 7), ('part_gear', 1), ('minecraft:gold_nugget', 2)],
+            [('altar_token_off_duty_matron', 1)], 1, ticks=1, energy=3_200)
+    process('altar_unlock_white_reliquary', key, [('minecraft:bone_block', 1), ('minecraft:amethyst_shard', 6), ('part_crystal_lens', 1), ('minecraft:paper', 1)],
+            [('altar_token_white_reliquary', 1)], 1, ticks=1, energy=6_400)
+    process('altar_unlock_debt_collector', key, [('minecraft:clock', 1), ('minecraft:compass', 1), ('minecraft:paper', 2)],
+            [('altar_token_debt_collector', 1)], 1, ticks=1, energy=12_800)
+    process('altar_unlock_fallen_scale_king', key, [('warm_dragon_scale', 1), ('rune_ember', 1), ('minecraft:charcoal', 4)],
+            [('altar_token_fallen_scale_king', 1)], 1, ticks=1, energy=25_600)
+    process('altar_unlock_thousandfold_confession', key, [('penitent_shard', 13), ('minecraft:dark_oak_sign', 1), ('minecraft:white_candle', 1)],
+            [('altar_token_thousandfold_confession', 1)], 1, ticks=1, energy=51_200)
+    process('altar_set_extraction', key, [('silent_chip', 6), ('minecraft:crying_obsidian', 2)],
+            [('set_extraction_stone', 1)], 1, ticks=1, energy=6_400)
+
+    def element(low, high, side, surface=None):
+        faces = {face: {'texture': '#' + side} for face in ['north', 'south', 'east', 'west', 'up', 'down']}
+        if surface is not None:
+            faces['up'] = {'texture': '#' + surface}
+        return {'from': low, 'to': high, 'faces': faces}
+
+    textures = {
+        'base': 'minecraft:block/polished_blackstone',
+        'bricks': 'minecraft:block/polished_blackstone_bricks',
+        'carved': 'minecraft:block/chiseled_polished_blackstone',
+        'core': 'minecraft:block/crying_obsidian',
+        'rim': 'minecraft:block/gilded_blackstone',
+        'seal': 'minecraft:block/respawn_anchor_top_off',
+        'particle': 'minecraft:block/polished_blackstone',
+    }
+    elements = [
+        element([1, 0, 1], [15, 2, 15], 'base'),
+        element([2, 2, 2], [14, 4, 14], 'bricks'),
+        element([4, 4, 4], [12, 7, 12], 'carved'),
+        element([3, 7, 3], [13, 9, 13], 'core'),
+        element([1, 9, 1], [15, 11, 15], 'rim', 'base'),
+        element([2, 11, 2], [14, 12, 14], 'base', 'seal'),
+    ]
+    model = own('block/' + key)
+    write(ASSETS / f'models/block/{key}.json', {'parent': 'minecraft:block/block', 'textures': textures, 'elements': elements})
+    write(ASSETS / f'blockstates/{key}.json', {'variants': {'': {'model': model}}})
+    write(ASSETS / f'items/{key}.json', {'model': {'type': 'minecraft:model', 'model': model}})
+    write(DATA / f'loot_table/blocks/{key}.json', {
+        'type': 'minecraft:block',
+        'pools': [{'rolls': 1, 'entries': [{'type': 'minecraft:item', 'name': own(key)}],
+                   'conditions': [{'condition': 'minecraft:survives_explosion'}]}],
+    })
+    tag_path = RES / 'data/minecraft/tags/block/mineable/pickaxe.json'
+    tag = read_json(tag_path)
+    if own(key) not in tag['values']:
+        tag['values'].append(own(key))
+        write(tag_path, tag)
+
+
 def generate():
     specs = devices()
     crafting(specs)
     nuclear()
     rules_and_processing()
+    petrochemistry.recipes(shaped, process)
     write(ASSETS / 'industry/technology.json', catalog(specs))
     resources(specs)
     display_line()
@@ -823,7 +910,37 @@ def generate():
     write(ASSETS / 'industry/technology.json', catalog(specs))
     crystal_burner()
     magnetic_confinement_chamber()
+    petrochemistry.resources(ASSETS, RES, own, write, read_json)
+    demon_altar()
+
+
+def generate_petrochemistry():
+    path = ASSETS / 'industry/technology.json'
+    current = read_json(path)
+    specs = petrochemistry.devices()
+    petrochemistry.recipes(shaped, process)
+    current['devices'].update(specs)
+    for key, spec in specs.items():
+        current['items'][own(key)] = spec['technology']
+    for key, (kind, tier, title) in petrochemistry.CONTENT.items():
+        current['content'][key] = dict(kind=kind, tier=tier, title=title)
+        if kind == 'fluid':
+            current['fluids'][own(key)] = tier
+            current['items'][own(key + '_bucket')] = tier
+        else:
+            current['items'][own(key)] = tier
+    if own('plastic') not in current['material_items']:
+        current['material_items'].append(own('plastic'))
+    for key in petrochemistry.PROCESS_NAMES:
+        current['recipe_energy_tiers']['industrial/' + key] = energy_tier(read_json(RECIPES / (key + '.json')))
+    write(path, current)
+    petrochemistry.resources(ASSETS, RES, own, write, read_json)
 
 
 if __name__ == '__main__':
-    generate()
+    if sys.argv[1:] == ['--petrochemistry-only']:
+        generate_petrochemistry()
+    elif sys.argv[1:] == ['--altar-only']:
+        demon_altar()
+    else:
+        generate()

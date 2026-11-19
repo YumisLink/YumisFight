@@ -1,0 +1,19 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_refinery",
+  "minimum_tier": 2,
+  "ingredients": [],
+  "results": [],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:crude_oil",
+      "amount": 1000
+    }
+  ],
+  "ticks": 200,
+  "energy": 1200,
+  "fluid_result": {
+    "id": "yumis_dungeon_and_fight:naphtha",
+    "amount": 500
+  }
+}

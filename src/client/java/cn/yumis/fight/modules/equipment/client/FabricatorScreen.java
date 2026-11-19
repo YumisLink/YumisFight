@@ -33,6 +33,7 @@ public final class FabricatorScreen extends ThemedContainerScreen<FabricatorMenu
     private ArmorType armorType=ArmorType.UNTYPED;
     private JewelryType jewelryType=JewelryType.UNTYPED;
     private int level=1;
+    private String alternative="";
     private List<MaterialCatalog.Need> needs=List.of();
     public FabricatorScreen(FabricatorMenu menu,Inventory inv,Component title){
         super(menu,inv,title,176,208,ThemeDomain.MACHINE);
@@ -58,8 +59,18 @@ public final class FabricatorScreen extends ThemedContainerScreen<FabricatorMenu
             level=Math.min(80,Math.min(EquipmentClient.current().progress().level,level+1));controls();
         }
         ).bounds(leftPos+101,topPos+31,20,18).build(ThemedButton::new));
+        var options=MaterialCatalog.current().alternatives(slot,level);
+        var recipeIds=new ArrayList<String>();recipeIds.add("");
+        for(var option:options)recipeIds.add(option.id());
+        if(!recipeIds.contains(alternative))alternative="";
+        if(!options.isEmpty()){
+            var button=addRenderableWidget(Button.builder(Component.literal(alternative.isEmpty()?"地区料":"专材"),b->{
+                alternative=recipeIds.get((recipeIds.indexOf(alternative)+1)%recipeIds.size());controls();
+            }).bounds(leftPos+126,topPos+31,43,18).build(ThemedButton::new));
+            button.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("切换地区材料与祭坛专材")));
+        }
         try{
-            needs=MaterialCatalog.current().recipe(slot,level);
+            needs=MaterialCatalog.current().recipe(slot,level,alternative);
         }
         catch(IllegalArgumentException e){
             needs=List.of();
@@ -81,6 +92,7 @@ public final class FabricatorScreen extends ThemedContainerScreen<FabricatorMenu
         j.addProperty("armorType",armorType.name());
         j.addProperty("jewelryType",jewelryType.name());
         j.addProperty("level",level);
+        if(!alternative.isEmpty())j.addProperty("recipe",alternative);
         s.send("craft",j);
     }
     private ItemStack preview(MaterialCatalog.Need n){

@@ -25,23 +25,24 @@ final class AsuraClient {
         long now=ClientUi.now();var player=Minecraft.getInstance().player;
         if(source!=null&&eyeUntil>0){
             if(!aura.equals(source.id)){aura=source.id;pulses=0;}
-            while(pulses<20&&now-source.start>=(pulses+1)*1000L){
+            int auraCap=(int)Math.max(1,source.parameters.get("auraPulses",20));while(pulses<auraCap&&now-source.start>=(pulses+1)*1000L){
                 SkillCast pulse=derived(source);pulse.dot=true;pulse.hitIndex=pulses++;pulse.center=player.position();
-                for(var target:SkillController.INSTANCE.targets(player.getBoundingBox().inflate(AsuraRules.AURA_RADIUS,4,AsuraRules.AURA_RADIUS)))
-                    if(target.position().subtract(player.position()).horizontalDistanceSqr()<=AsuraRules.AURA_RADIUS*AsuraRules.AURA_RADIUS&&Math.abs(target.getY()-player.getY())<=4&&SkillController.INSTANCE.sight(player.getEyePosition(),target.getBoundingBox().getCenter()))context.hit(pulse,target,source.parameters.get("damage",0)*AsuraRules.AURA_RATIO);
+                double auraRadius=Math.max(.5,source.parameters.get("auraRadius",AsuraRules.AURA_RADIUS));
+                for(var target:SkillController.INSTANCE.targets(player.getBoundingBox().inflate(auraRadius,4,auraRadius)))
+                    if(target.position().subtract(player.position()).horizontalDistanceSqr()<=auraRadius*auraRadius&&Math.abs(target.getY()-player.getY())<=4&&SkillController.INSTANCE.sight(player.getEyePosition(),target.getBoundingBox().getCenter()))context.hit(pulse,target,source.parameters.get("damage",0)*source.parameters.get("auraRatio",AsuraRules.AURA_RATIO));
             }
         }
         for(var gear:new ArrayList<>(gears)){
             while(gear.distance<gear.range&&now>=gear.next){
-                Vec3 from=gear.position,to=from.add(gear.cast.direction.scale(Math.min(AsuraRules.GEAR_SPEED*.05,gear.range-gear.distance)));gear.next+=50;
+                double gearSpeed=Math.max(1,gear.cast.parameters.get("gearSpeed",AsuraRules.GEAR_SPEED));Vec3 from=gear.position,to=from.add(gear.cast.direction.scale(Math.min(gearSpeed*.05,gear.range-gear.distance)));gear.next+=50;
                 if(!SkillController.INSTANCE.sight(from,to)){gear.distance=gear.range;break;}
                 gear.position=to;gear.distance+=from.distanceTo(to);gear.cast.center=to;
                 for(var target:SkillController.INSTANCE.targets(new AABB(from,to).inflate(.75))){
                     if(gear.hit.contains(target.getUUID())||!SkillController.INSTANCE.sight(from,target.getBoundingBox().getCenter()))continue;
-                    if(context.hit(gear.cast,target,gear.cast.parameters.get("damage",0)*AsuraRules.GEAR_RATIO))gear.hit.add(target.getUUID());
+                    if(context.hit(gear.cast,target,gear.cast.parameters.get("damage",0)*gear.cast.parameters.get("gearRatio",AsuraRules.GEAR_RATIO)))gear.hit.add(target.getUUID());
                 }
             }
-            if(gear.distance>=gear.range||now-gear.cast.start>30000){visual(gear,"CANCEL");TrainingCombat.release(gear.cast.id,gear.cast.eyeGear);gears.remove(gear);}
+            double gearSpeed=Math.max(1,gear.cast.parameters.get("gearSpeed",AsuraRules.GEAR_SPEED));long gearLife=(long)(Math.max(30,2*gear.cast.parameters.get("gearRange",AsuraRules.GEAR_RANGE)/gearSpeed)*1000);if(gear.distance>=gear.range||now-gear.cast.start>gearLife){visual(gear,"CANCEL");TrainingCombat.release(gear.cast.id,gear.cast.eyeGear);gears.remove(gear);}
             else if(now-gear.lastVisual>=150){visual(gear,"TRAIL");gear.lastVisual=now;}
         }
     }
@@ -51,6 +52,6 @@ final class AsuraClient {
         String id=UUID.nameUUIDFromBytes((gear.cast.eyeGear+"/eye").getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
         JsonObject j=new JsonObject();j.addProperty("caster",player.getStringUUID());j.addProperty("session",state.session());j.addProperty("generation",state.own().generation);j.addProperty("id",id);j.addProperty("kind",AsuraRules.GEAR_VISUAL);j.addProperty("phase",phase);j.addProperty("sequence",gear.sequence++);j.addProperty("startedAt",gear.started);j.addProperty("at",state.serverNow());j.addProperty("duration",4000);j.addProperty("seed",id.hashCode());j.addProperty("cosmeticOnly",true);j.addProperty("color",CareerRules.EYE_COLOR);
         j.addProperty("x",gear.cast.origin.x);j.addProperty("y",gear.cast.origin.y);j.addProperty("z",gear.cast.origin.z);j.addProperty("px",gear.position.x);j.addProperty("py",gear.position.y);j.addProperty("pz",gear.position.z);j.addProperty("dx",gear.cast.direction.x);j.addProperty("dy",gear.cast.direction.y);j.addProperty("dz",gear.cast.direction.z);
-        if(phase.equals("START")){var motion=SkillController.motion(gear.range,gear.range/AsuraRules.GEAR_SPEED*1000,false);motion.addProperty("at",gear.started);j.add("motion",motion);}Effects.receive(j);state.send("visual",j);
+        if(phase.equals("START")){double gearSpeed=Math.max(1,gear.cast.parameters.get("gearSpeed",AsuraRules.GEAR_SPEED));var motion=SkillController.motion(gear.range,gear.range/gearSpeed*1000,false);motion.addProperty("at",gear.started);j.add("motion",motion);}Effects.receive(j);state.send("visual",j);
     }
 }

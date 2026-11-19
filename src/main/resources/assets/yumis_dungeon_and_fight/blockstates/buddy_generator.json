@@ -1,0 +1,36 @@
+{
+  "variants": {
+    "facing=north,active=false": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/buddy_generator",
+      "y": 0
+    },
+    "facing=east,active=false": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/buddy_generator",
+      "y": 90
+    },
+    "facing=south,active=false": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/buddy_generator",
+      "y": 180
+    },
+    "facing=west,active=false": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/buddy_generator",
+      "y": 270
+    },
+    "facing=north,active=true": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/buddy_generator_active",
+      "y": 0
+    },
+    "facing=east,active=true": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/buddy_generator_active",
+      "y": 90
+    },
+    "facing=south,active=true": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/buddy_generator_active",
+      "y": 180
+    },
+    "facing=west,active=true": {
+      "model": "yumis_dungeon_and_fight:block/petrochemistry/buddy_generator_active",
+      "y": 270
+    }
+  }
+}

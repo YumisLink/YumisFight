@@ -24,7 +24,8 @@ public final class ApplicationModules {
         module("party","presentation"),
         module("presentation"),
         module("professions","attributes","inventory","presentation"),
-        module("skills","attributes","character","combat","dungeons","equipment","presentation")
+        module("skills","attributes","character","combat","dungeons","equipment","presentation","talents"),
+        module("talents","attributes","character","combat","presentation")
     ));
     private ApplicationModules(){}
     private static ModuleDescriptor module(String id,String... dependencies){return new ModuleDescriptor(id,Set.of(dependencies));}

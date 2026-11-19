@@ -38,7 +38,7 @@ public final class MageClient {
         install();var starter=SPELLS.get(cast.skill.id);if(starter==null)return false;
         cast.stats=cast.stats.copy();cast.stats.modifiers.put("sourceLevel",(double)SkillsClient.current().progress().level);
         TrainingCombat.begin(cast.id,cast.skill.title);TrainingCombat.hold(cast.id,"mage",ClientUi.now()+Math.max(20000,(long)(cast.parameters.get("summonDuration",0)*1000)));
-        try{starter.accept(cast);if(SunMoonSkills.contains(cast.skill.id)){var view=CareerClient.INSTANCE.view;view.sunMoon=SunMoonRules.released(view.sunMoon,cast.skill,cast.parameters.rank(),SkillsClient.current().progress().awakened());CareerClient.INSTANCE.publish();}}
+        try{starter.accept(cast);if(SunMoonSkills.contains(cast.skill.id)){var view=CareerClient.INSTANCE.view;view.sunMoon=SunMoonRules.released(view.sunMoon,cast.skill,cast.parameters.rank(),SkillsClient.current().progress().awakened(),cast.parameters,cast.stats);CareerClient.INSTANCE.publish();}}
         catch(RuntimeException failure){finished(cast);SkillsClient.current().message(Objects.toString(failure.getMessage(),"技能执行失败"));}
         return true;
     }

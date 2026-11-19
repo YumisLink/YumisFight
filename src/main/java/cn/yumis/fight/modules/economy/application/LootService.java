@@ -13,6 +13,9 @@ import cn.yumis.fight.modules.economy.api.LootOdds;
 import cn.yumis.fight.modules.economy.api.RewardRules;
 import cn.yumis.fight.modules.dungeons.api.Dungeon;
 import cn.yumis.fight.modules.dungeons.api.PracticeRoom;
+import cn.yumis.fight.modules.dungeons.api.RitualClear;
+import cn.yumis.fight.modules.dungeons.api.RitualPorts;
+import cn.yumis.fight.modules.dungeons.api.Difficulty;
 
 import cn.yumis.fight.modules.economy.api.RewardPorts;
 import cn.yumis.fight.modules.inventory.api.InventoryOperations;
@@ -105,6 +108,33 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
     private final List<Drop> publish=new ArrayList<>();
     private record RewardNotice(UUID player,JsonElement fact){}
     private final List<RewardNotice> rewardNotices=new ArrayList<>();
+    private java.util.function.Predicate<String> ritualUnlocked=id->true;
+
+    public void ritualUnlocks(java.util.function.Predicate<String> unlocked){ritualUnlocked=unlocked;}
+
+    public RitualPorts.ClearCommit prepareRitual(RitualClear clear,String material,Set<UUID> pagePlayers,String page) {
+        var target=new Target();
+        target.id=UUID.fromString(clear.runId());
+        target.life.target=target.id;
+        target.originalLevel=clear.level();
+        target.fixedLevel=true;
+        target.dimension=clear.dimension();
+        target.kind="BOSS";
+        target.difficulty=Difficulty.WARRIOR;
+        var writes=new LinkedHashMap<String,JsonElement>();
+        var notices=new ArrayList<RewardNotice>();
+        for(String participant:clear.participants()){
+            UUID player=UUID.fromString(participant);
+            String id=RitualClear.idOf(clear.runId(),participant);
+            var bonus=new RewardRules.RitualReward(material,pagePlayers.contains(player)?page:"");
+            var context=new RewardRules.Context(id,player,target,null,balance.settings(),clear.dimension(),
+                clear.x(),clear.y(),clear.z(),Set.of(player),null,bonus,null);
+            var fact=JSON.toJsonTree(context);
+            writes.put("personalKill/"+player+"/"+id,fact);
+            notices.add(new RewardNotice(player,fact));
+        }
+        return new RitualPorts.ClearCommit(Map.copyOf(writes),()->rewardNotices.addAll(notices));
+    }
     private final ArrayDeque<Drop> recover=new ArrayDeque<>();
     private Map<UUID,Long> activeDrops=new LinkedHashMap<>();
     private Set<UUID> persistentDrops=new LinkedHashSet<>();
@@ -262,11 +292,20 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             return;
         }
         var nearby=new LinkedHashSet<UUID>();for(var player:server.getPlayerList().getPlayers())if(player.level()==entity.level()&&player.distanceToSqr(entity)<=4096)nearby.add(player.getUUID());
-        var context=new RewardRules.Context(target.id+"/"+target.life.generation,killer.getUUID(),target,encounter,balance.settings(),entity.level().dimension().identifier().toString(),entity.getX(),entity.getY(),entity.getZ(),Set.copyOf(nearby),null);
+        var context=new RewardRules.Context(target.id+"/"+target.life.generation,killer.getUUID(),target,encounter,balance.settings(),entity.level().dimension().identifier().toString(),entity.getX(),entity.getY(),entity.getZ(),Set.copyOf(nearby),null,null,ritualSupply(target,encounter));
         var fact=JSON.toJsonTree(context);
         for(var player:server.getPlayerList().getPlayers())if(nearby.contains(player.getUUID())||player==killer){
             offerReward(player.getUUID(),context.id(),fact);
         }
+    }
+
+    private RewardRules.Supply ritualSupply(Target target,Dungeon encounter){
+        if(encounter==null||encounter.treasure!=null||encounter.waystone!=null||!target.boss())return null;
+        return switch(encounter.dungeon){
+            case "skasa" -> ritualUnlocked.test("fallen_scale_king")?null:new RewardRules.Supply("warm_dragon_scale",1);
+            case "gbl_church" -> ritualUnlocked.test("thousandfold_confession")?null:new RewardRules.Supply("penitent_shard",13);
+            default -> null;
+        };
     }
 
     private void practiceDeath(ServerPlayer killer,LivingEntity entity,Target target,Dungeon encounter)throws Exception{
@@ -329,17 +368,27 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         if(!JSON.toJsonTree(players.progress(player)).equals(request.get("beforeProgress")))throw new IllegalArgumentException("角色存储快照已变化");
         var progress=JSON.fromJson(request.get("progress"),Progress.class);var edits=new LinkedHashMap<>(characters.writes(player.getUUID(),progress));edits.putAll(balance.receive(player,request));edits.put(key,request.deepCopy());edits.put("personalKill/"+player.getUUID()+"/"+context.id(),JsonNull.INSTANCE);
         var drops=new ArrayList<Drop>();
+        var direct=new ArrayList<ItemStack>();
         boolean practice=context.practice()!=null;
         for(var raw:practice&&!practiceOpen(context.instance())?new JsonArray():request.getAsJsonArray("rewardDrops")){
-            var row=raw.getAsJsonObject();var drop=new Drop();boolean privateLoot=row.get("privateLoot").getAsBoolean();
+            var row=raw.getAsJsonObject();
+            var received=inventory.get().decode(player,row.get("item"));
+            if(context.ritual()!=null||context.supply()!=null&&cn.yumis.fight.platform.ItemData.own(received)
+                    &&context.supply().item().equals(cn.yumis.fight.platform.ItemData.id(received))){
+                direct.add(received);
+                continue;
+            }
+            var drop=new Drop();boolean privateLoot=row.get("privateLoot").getAsBoolean();
             if(privateLoot){drop.owner=player.getStringUUID();drop.session=players.session(player).toString();}
             drop.practice=practice;
             drop.dimension=context.dimension();drop.instance=context.instance();drop.x=context.x();drop.y=context.y()+.4;drop.z=context.z();drop.item=row.get("item").deepCopy();
-            var stack=inventory.get().decode(player,drop.item);drop.durableChest=cn.yumis.fight.platform.ItemData.own(stack)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(stack));if(drop.durableChest)drop.expires=Long.MAX_VALUE;
+            drop.durableChest=cn.yumis.fight.platform.ItemData.own(received)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(received));if(drop.durableChest)drop.expires=Long.MAX_VALUE;
             if(privateLoot&&!drop.instance.isEmpty()&&!drop.instance.equals(encounters.currentInstance(player))){drop.dimension=player.level().dimension().identifier().toString();drop.instance="";drop.x=player.getX();drop.y=player.getY()+.4;drop.z=player.getZ();}
             drops.add(drop);edits.put("loot/"+drop.id,JSON.toJsonTree(drop));
         }
-        try{inventory.get().transact(player,request.get("operation").getAsString(),request,()->{},edits);}catch(RuntimeException failure){if(journal.get(key).equals(request))players.progress(player,characters.read(player.getUUID()));throw failure;}
+        try{inventory.get().transact(player,request.get("operation").getAsString(),request,()->{
+            for(var item:direct)inventory.get().deliverOrStash(player,item,edits);
+        },edits);}catch(RuntimeException failure){if(journal.get(key).equals(request))players.progress(player,characters.read(player.getUUID()));throw failure;}
         players.progress(player,progress);publishDrops(drops);players.profile(player);if(request.has("goldGain"))balance.notifyGain(player,request.get("goldGain").getAsLong(),balance.gold(player),balance.revision(player));
     }
     public void abort(){

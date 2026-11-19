@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "demon_altar",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "minecraft:white_wool",
+      "count": 7
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:part_gear",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:gold_nugget",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:altar_token_off_duty_matron",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1,
+  "energy": 3200
+}

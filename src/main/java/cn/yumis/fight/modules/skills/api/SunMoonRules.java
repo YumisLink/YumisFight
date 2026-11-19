@@ -7,7 +7,13 @@ import cn.yumis.fight.modules.character.api.*;
 public final class SunMoonRules {
     private static final double[] SUN_DAMAGE={0,.5,1.3,2.5},MOON_REGEN={0,1,10,100},REVERSE_SPEED={0,.3,.8,2};
     private SunMoonRules(){}
-    public static double sunDamage(int rank,int stacks){return rank<=0?0:SUN_DAMAGE[Math.clamp(stacks,0,3)]*Math.pow(1.12,rank-1);}
+    /** Layers past the calibrated third extrapolate linearly, so equipment-raised caps keep growing smoothly. */
+    public static double sunStackMut(int stacks){return stacks<=3?SUN_DAMAGE[Math.clamp(stacks,0,3)]:SUN_DAMAGE[3]+1.2*(stacks-3);}
+    public static double moonRegen(int stacks){return stacks<=3?MOON_REGEN[Math.clamp(stacks,0,3)]:MOON_REGEN[3]+90*(stacks-3);}
+    public static double reverseSpeed(int stacks){return stacks<=3?REVERSE_SPEED[Math.clamp(stacks,0,3)]:REVERSE_SPEED[3]+1.2*(stacks-3);}
+    public static double sunDamage(int rank,int stacks){return rank<=0?0:sunStackMut(stacks)*Math.pow(1.12,rank-1);}
+    /** Equipment raises the heart cap through the sunMoonStackCap modifier; one layer minimum always applies. */
+    public static int stackCap(Stats stats){return Math.max(1,stats.modifiers.getOrDefault("sunMoonStackCap",3d).intValue());}
     public static int moonHearts(int rank){return rank>=10?3:rank>=5?2:1;}
     public static int refluxHarmony(int rank){return 3+(rank>=5?1:0)+(rank>=10?1:0);}
     public static String unavailableReason(SkillDefinition skill,int heart,int stacks){
@@ -19,16 +25,16 @@ public final class SunMoonRules {
         if(!progress.hasJob(JobCatalog.SUN_MOON))return source;var result=source.copy();
         result.modifiers.put("sunMoonHeart",(double)state.heart);result.modifiers.put("sunMoonStacks",(double)state.stacks);result.modifiers.put("sunMoonHarmony",(double)state.harmony);result.modifiers.put("sunMoonParadox",(double)state.paradox);
         result.modifiers.put("sunMoonCycleRank",(double)SkillLearning.effective(source,progress,SkillCatalog.require(SunMoonSkills.CYCLE)));
-        if(state.heart==2)result.mut(Stat.MANA_REGENERATION,MOON_REGEN[Math.clamp(state.stacks,0,3)]);
+        if(state.heart==2)result.mut(Stat.MANA_REGENERATION,moonRegen(state.stacks));
         if(state.heart==1&&state.stacks>0)result.modifiers.put("manaRecoveryBlocked",1d);
         return result;
     }
     public static Stats forCast(Stats source,SkillDefinition skill){
         if(!SunMoonSkills.contains(skill.id))return source;var result=source.copy();
-        int heart=source.modifiers.getOrDefault("sunMoonHeart",0d).intValue(),stacks=Math.clamp(source.modifiers.getOrDefault("sunMoonStacks",0d).intValue(),0,3),harmony=source.modifiers.getOrDefault("sunMoonHarmony",0d).intValue();
+        int heart=source.modifiers.getOrDefault("sunMoonHeart",0d).intValue(),stacks=Math.clamp(source.modifiers.getOrDefault("sunMoonStacks",0d).intValue(),0,stackCap(source)),harmony=source.modifiers.getOrDefault("sunMoonHarmony",0d).intValue();
         int aspect=skill.aspect==SkillDefinition.Aspect.SUN?1:skill.aspect==SkillDefinition.Aspect.MOON?2:0;
         boolean reverse=aspect>0&&heart>0&&heart!=aspect&&stacks>0;
-        double damage=aspect==1&&heart==1?sunDamage(source.modifiers.getOrDefault("sunMoonCycleRank",1d).intValue(),stacks):0,speed=reverse?REVERSE_SPEED[stacks]:0,penalty=reverse?(aspect==1?.2:.6):1;
+        double damage=aspect==1&&heart==1?sunDamage(source.modifiers.getOrDefault("sunMoonCycleRank",1d).intValue(),stacks):0,speed=reverse?reverseSpeed(stacks):0,penalty=reverse?(aspect==1?.2:.6):1;
         result.modifier("final").mut+=damage-result.modifiers.getOrDefault("sunMoonDamageApplied",0d);
         result.mut(Stat.CAST_SPEED,speed-result.modifiers.getOrDefault("sunMoonSpeedApplied",0d));
         result.modifier("skillProduct").alls*=penalty/result.modifiers.getOrDefault("sunMoonPenaltyApplied",1d);
@@ -46,16 +52,18 @@ public final class SunMoonRules {
         if(prepared.modifiers.getOrDefault("sunMoonUseHarmony",0d)>0){if(next.harmony<=0)throw new IllegalArgumentException("调和状态已改变");next.harmony--;}
         next.revision++;return next;
     }
-    public static SunMoonState released(SunMoonState state,SkillDefinition skill,int rank,boolean awakened){
+    public static SunMoonState released(SunMoonState state,SkillDefinition skill,int rank,boolean awakened,SkillParameters.Snapshot parameters,Stats stats){
         var next=state.copy();int aspect=skill.aspect==SkillDefinition.Aspect.SUN?1:skill.aspect==SkillDefinition.Aspect.MOON?2:0;
+        int cap=stackCap(stats);
         if(aspect>0&&!skill.id.equals(SunMoonSkills.CORONA)&&!skill.id.equals(SunMoonSkills.STARFALL)){
             boolean reverse=next.heart>0&&next.heart!=aspect;
-            if(reverse&&next.stacks==3&&awakened)next.paradox=1;
-            int gained=skill.id.equals(SunMoonSkills.REFLUX)||skill.id.equals(SunMoonSkills.FLARE)?3:skill.id.equals(SunMoonSkills.MOON)?moonHearts(rank):1;
-            next.stacks=Math.min(3,(reverse?0:next.stacks)+gained);next.heart=aspect;
+            if(reverse&&next.stacks>=cap&&awakened)next.paradox=1;
+            int bonus=(int)parameters.get("heartGrantBonus",0);
+            int gained=skill.id.equals(SunMoonSkills.REFLUX)||skill.id.equals(SunMoonSkills.FLARE)?3+bonus:skill.id.equals(SunMoonSkills.MOON)?moonHearts(rank)+bonus:1+bonus;
+            next.stacks=Math.min(cap,(reverse?0:next.stacks)+gained);next.heart=aspect;
         }
-        if(skill.id.equals(SunMoonSkills.REFLUX))next.harmony=Math.max(next.harmony,refluxHarmony(rank));
-        if(skill.id.equals(SunMoonSkills.STARFALL))next.harmony=Math.max(next.harmony,3);
+        if(skill.id.equals(SunMoonSkills.REFLUX))next.harmony=Math.max(next.harmony,refluxHarmony(rank)+(int)parameters.get("harmonyGrantBonus",0));
+        if(skill.id.equals(SunMoonSkills.STARFALL))next.harmony=Math.max(next.harmony,3+(int)parameters.get("harmonyGrantBonus",0));
         next.revision++;return next;
     }
 }

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "OCO",
+    "BEB",
+    "OOO"
+  ],
+  "key": {
+    "O": "minecraft:obsidian",
+    "C": "yumis_dungeon_and_fight:energy_crystal_2",
+    "B": "minecraft:polished_blackstone_bricks",
+    "E": "minecraft:crying_obsidian"
+  },
+  "result": {
+    "id": "yumis_dungeon_and_fight:demon_altar",
+    "count": 1
+  }
+}

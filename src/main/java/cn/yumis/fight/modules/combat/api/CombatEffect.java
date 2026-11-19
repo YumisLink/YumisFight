@@ -6,11 +6,18 @@ import net.minecraft.world.entity.LivingEntity;
 public interface CombatEffect {
     default boolean preventsDamage(){return false;}
     default double outgoingDamageScale(){return 1;}
+    default double receivedHealingScale(){return 1;}
     default boolean externalHitEffects(){return true;}
     default boolean waivesMovementStamina(){return false;}
     static boolean protectedFromDamage(LivingEntity entity){
         if(entity==null)return false;
         return entity.getActiveEffects().stream().anyMatch(i->i.getEffect().value() instanceof CombatEffect e&&e.preventsDamage());
+    }
+    /** Owner-judged healing submitted by the local client is scaled by every active declarative effect. */
+    static double healingScale(LivingEntity entity){
+        if(entity==null)return 1;double scale=1;
+        for(var i:entity.getActiveEffects())if(i.getEffect().value() instanceof CombatEffect e)scale*=e.receivedHealingScale();
+        return scale;
     }
     static double outgoingScale(LivingEntity entity){
         if(entity==null)return 1;double scale=1;

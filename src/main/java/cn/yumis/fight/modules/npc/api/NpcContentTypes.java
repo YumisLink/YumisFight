@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.npc.api;
 
 import cn.yumis.fight.platform.ItemData;
+import cn.yumis.fight.platform.ItemRegistry;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -17,5 +18,8 @@ public final class NpcContentTypes {
     private static final DeferredRegister<EntityType<?>> ENTITIES=DeferredRegister.create(Registries.ENTITY_TYPE,ItemData.NS);
     public static final DeferredHolder<EntityType<?>,EntityType<NpcEntity>> NPC=ENTITIES.register("npc",()->EntityType.Builder.<NpcEntity>of(NpcEntity::new,MobCategory.MISC).sized(.6f,1.8f).eyeHeight(1.62f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ItemData.NS,"npc"))));
     private NpcContentTypes(){}
-    public static void register(IEventBus bus){ATTACHMENTS.register(bus);ENTITIES.register(bus);bus.addListener((EntityAttributeCreationEvent event)->event.put(NPC.get(),NpcEntity.attributes().build()));}
+    public static void register(IEventBus bus){
+        ItemRegistry.ALL.put(AwakeningQuest.CHANT_PAGE,ItemRegistry.ITEMS.registerSimpleItem(AwakeningQuest.CHANT_PAGE));
+        ATTACHMENTS.register(bus);ENTITIES.register(bus);bus.addListener((EntityAttributeCreationEvent event)->event.put(NPC.get(),NpcEntity.attributes().build()));
+    }
 }

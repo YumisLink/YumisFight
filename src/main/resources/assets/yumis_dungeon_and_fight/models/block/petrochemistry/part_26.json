@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "atlas": "yumis_dungeon_and_fight:block/petrochemistry/atlas",
+    "particle": "yumis_dungeon_and_fight:block/petrochemistry/atlas"
+  },
+  "elements": []
+}

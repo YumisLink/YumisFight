@@ -22,6 +22,7 @@ public final class OracleSkills {
         add(SMILE,"举刃对笑",40,60,.22,12,1,false,4,2,.6);
         add(RIFT,"空间斩裂",45,80,.26,12,1,false,5,1,.65);
         add(REPLICA,"Furioso-Replica",50,100,.35,90,1,false,8,FINISH_STEP*2+1,FULL_DURATION);
+        SkillCatalog.require(REPLICA).formParameter("preludeStepSeconds",.35).formParameter("comboStepSeconds",.1).formParameter("comboMoveDistance",8).formParameter("finisherShare",.35);
     }
     private static void add(String id,String name,int unlock,int sp,double mp,double cd,double coefficient,boolean passive,double range,int hits,double duration){
         var skill=SkillCatalog.register(new SkillDefinition(id,name,"SWORD",JobCatalog.ORACLE,unlock,sp,mp,cd,coefficient,passive,Map.of("range",range,"slashes",(double)hits,"duration",duration,"finisher",0d)));
@@ -55,6 +56,8 @@ public final class OracleSkills {
     public static boolean contains(String id){return id.equals(WILL)||id.equals(REPLICA)||ACTIONS.contains(id);}
     public static int action(int seed,int index){var random=new Random(seed);int previous=-1;for(int i=0;i<=index;i++){int next=random.nextInt(previous<0?5:4);if(previous>=0&&next>=previous)next++;previous=next;}return previous;}
     public static boolean combo(int index){return index>=PRELUDE_STEPS&&index<FINISH_STEP;}
-    public static double stepAt(int index){return index<PRELUDE_STEPS?index*.35:combo(index)?2.8+(index-PRELUDE_STEPS)*COMBO_INTERVAL:3.6;}
-    public static double stepDuration(int index){return index<PRELUDE_STEPS?.35:combo(index)?COMBO_INTERVAL:1.15;}
+    public static double stepAt(int index){return stepAt(index,null);}
+    public static double stepAt(int index,SkillParameters.Snapshot p){double prelude=p==null?.35:p.get("preludeStepSeconds",.35),comboStep=p==null?COMBO_INTERVAL:p.get("comboStepSeconds",COMBO_INTERVAL);return index<PRELUDE_STEPS?index*prelude:combo(index)?PRELUDE_STEPS*prelude+(index-PRELUDE_STEPS)*comboStep:PRELUDE_STEPS*prelude+COMBO_STEPS*comboStep;}
+    public static double stepDuration(int index){return stepDuration(index,null);}
+    public static double stepDuration(int index,SkillParameters.Snapshot p){return index<PRELUDE_STEPS?(p==null?.35:p.get("preludeStepSeconds",.35)):combo(index)?(p==null?COMBO_INTERVAL:p.get("comboStepSeconds",COMBO_INTERVAL)):1.15;}
 }

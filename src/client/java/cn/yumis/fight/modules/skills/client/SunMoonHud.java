@@ -10,8 +10,9 @@ final class SunMoonHud {
     private SunMoonHud(){}
     static int render(GuiGraphicsExtractor g,int x,int y,long now){
         var s=CareerClient.INSTANCE.view.sunMoon;
-        row(g,s.heart==1?"sun_heart":s.heart==2?"moon_heart":"sun_moon_cycle",s.heart==1?"日曜心":s.heart==2?"月弦心":"日月流转",s.stacks+" / 3",x,y,s.heart==1?0xffffbd67:0xffb5e0ff,false,now);y+=46;
-        var state=cn.yumis.fight.modules.skills.api.client.SkillsClient.current();int harmony=SunMoonRules.refluxHarmony(SkillLearning.effective(state.stats(),state.progress(),SkillCatalog.require(SunMoonSkills.REFLUX)));
+        var state=cn.yumis.fight.modules.skills.api.client.SkillsClient.current();int cap=SunMoonRules.stackCap(state.stats());
+        row(g,s.heart==1?"sun_heart":s.heart==2?"moon_heart":"sun_moon_cycle",s.heart==1?"日曜心":s.heart==2?"月弦心":"日月流转",s.stacks+" / "+cap,x,y,s.heart==1?0xffffbd67:0xffb5e0ff,false,now);y+=46;
+        int harmony=SunMoonRules.refluxHarmony(SkillLearning.effective(state.stats(),state.progress(),SkillCatalog.require(SunMoonSkills.REFLUX)));
         row(g,"harmony","调和",s.harmony+" / "+Math.max(s.harmony,harmony),x,y,0xffd6c6ff,false,now);y+=46;
         row(g,"paradox","悖论",s.paradox>0?"就绪":"0 / 1",x,y,0xffffd9e2,s.paradox>0,now);return y+46;
     }

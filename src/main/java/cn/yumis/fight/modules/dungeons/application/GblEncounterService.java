@@ -8,6 +8,7 @@ import cn.yumis.fight.network.Network;
 import com.google.gson.*;
 import net.minecraft.server.level.*;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
 import java.util.*;
@@ -20,9 +21,11 @@ public final class GblEncounterService {
     private final DungeonPorts.Players players;
     private final DungeonPorts.Targets targets;
     private static final class Brain {
-        final Vec3 home;final int area;
-        long busy,next,auraReady,slamReady;int step;
-        Brain(DungeonEnemy enemy,Dungeon dungeon){home=enemy.position();area=GblChurch.area(dungeon.wave);}
+        final Vec3 home;
+        UUID target;
+        long busy,next,auraReady,slamReady,pathAt;
+        int step;
+        Brain(DungeonEnemy enemy){home=enemy.position();}
     }
     private static final class Pending {
         final GblAttack attack;long previous;
@@ -34,60 +37,102 @@ public final class GblEncounterService {
     private final Map<String,Pending> attacks=new LinkedHashMap<>();
     private final Map<UUID,Leap> leaps=new HashMap<>();
     private final Map<UUID,Aura> auras=new HashMap<>();
-    private final Map<UUID,Integer> announced=new HashMap<>();
+    private final Map<UUID,UUID> bosses=new HashMap<>();
     private final Set<UUID> protectedEnemies=new HashSet<>();
 
     GblEncounterService(DungeonService owner,Journal journal,DungeonPorts.Players players,DungeonPorts.Targets targets){this.owner=owner;this.journal=journal;this.players=players;this.targets=targets;}
-    public boolean waitsAtGate(Dungeon d,List<ServerPlayer> here){
-        if(d.wave%2!=1)return false;
-        int area=(d.wave+1)/2;
-        if(announced.getOrDefault(d.id,0)<area){announced.put(d.id,area);for(var p:here)players.message(p,"区域清场，前往"+GblChurch.AREAS[area]+"。");}
-        return here.stream().noneMatch(p->GblChurch.contains(d.cell,area,p.getX(),p.getZ()));
+    static boolean handles(Dungeon d){return d.treasure==null&&d.practice==null&&GblChurch.ID.equals(d.dungeon);}
+
+    void initialize(Dungeon d){
+        if(bosses.containsKey(d.id))return;
+        try{
+            for(var mob:GblChurch.SPAWNS){
+                var enemy=owner.spawn(d,mob.kind().id,mob.elite(),mob.boss(),d.cell*512+mob.x()+.5,mob.y(),mob.z()+.5);
+                var follow=enemy.getAttribute(Attributes.FOLLOW_RANGE);
+                if(follow!=null)follow.setBaseValue(56);
+                if(mob.boss())bosses.put(d.id,enemy.getUUID());
+            }
+        }catch(RuntimeException failure){
+            try{owner.close(d);}catch(Exception cleanup){failure.addSuppressed(cleanup);}
+            throw failure;
+        }
+    }
+
+    boolean finishIfDefeated(Dungeon d,List<ServerPlayer> here)throws Exception{
+        UUID boss=bosses.get(d.id);
+        if(boss==null||!d.status.equals("RUNNING"))return false;
+        Target target=journal.get("target/"+boss,Target.class,null);
+        if(target==null||!target.life.dead)return false;
+        owner.completeOpenDungeon(d,here,"阿索尔已被击败！可拾取战利品或离开地下城。");
+        for(UUID id:d.enemies){
+            if(owner.level().getEntity(id) instanceof DungeonEnemy enemy)enemy.getNavigation().stop();
+            cancel(id);
+        }
+        return true;
     }
     public void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> here,long now){
         var kind=GblEnemyKind.of(e);if(kind==null)return;
-        Brain state=brains.computeIfAbsent(e.getUUID(),id->new Brain(e,d));
+        Brain state=brains.computeIfAbsent(e.getUUID(),id->new Brain(e));
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
-        if(e.position().distanceToSqr(state.home)>24*24){cancel(e.getUUID());e.getNavigation().moveTo(state.home.x,state.home.y,state.home.z,1.1);return;}
         if(now<state.busy){e.getNavigation().stop();return;}
-        ServerPlayer p=here.stream().filter(q->!players.session(q).life.dead&&q.isAlive()&&!q.isSpectator()&&!q.getAbilities().invulnerable).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
-        if(p==null){if(e.position().distanceToSqr(state.home)>4)e.getNavigation().moveTo(state.home.x,state.home.y,state.home.z,1);else e.getNavigation().stop();return;}
+        ServerPlayer p=here.stream().filter(q->q.getUUID().equals(state.target)&&eligible(q)).findFirst().orElse(null);
+        if(p==null){
+            p=here.stream().filter(q->eligible(q)&&e.distanceToSqr(q)<=18*18&&e.hasLineOfSight(q))
+                .min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
+            state.target=p==null?null:p.getUUID();
+        }
+        if(p==null){
+            if(e.position().distanceToSqr(state.home)>4)move(d,e,state,state.home,1,now);
+            else e.getNavigation().stop();
+            return;
+        }
         e.getLookControl().setLookAt(p);double distance=e.distanceTo(p);
+        boolean seen=e.hasLineOfSight(p);
         Vec3 direction=p.position().subtract(e.position()).multiply(1,0,1).normalize();
         if(direction.lengthSqr()<.001)direction=new Vec3(0,0,1);
         float yaw=(float)Math.toDegrees(Math.atan2(-direction.x,direction.z));e.setYRot(yaw);e.yBodyRot=yaw;
         boolean ranged=kind==GblEnemyKind.FEMALE_CULTIST||kind==GblEnemyKind.FALLEN_PRIEST;
-        if(kind==GblEnemyKind.DRAGON_CANNON){e.getNavigation().stop();e.setDeltaMovement(Vec3.ZERO);}
-        else if(ranged&&distance<4){Vec3 away=e.position().subtract(p.position()).normalize();Vec3 to=inside(d,state.area,e.position().add(away.scale(3)));e.getNavigation().moveTo(to.x,to.y,to.z,1);}
-        else if(distance>(ranged?8:kind==GblEnemyKind.ASOR?7:1.9))e.getNavigation().moveTo(p,kind==GblEnemyKind.YASHA?1.1:1);
-        else e.getNavigation().stop();
-        if(kind==GblEnemyKind.DRAGON_CANNON&&now>=state.busy&&now<state.next&&!e.move().equals("reload"))e.play("reload",state.next-now);
-        if(now<state.next||distance>18)return;
+        double range=kind==GblEnemyKind.DRAGON_CANNON?12:ranged?8:kind==GblEnemyKind.ASOR?7:1.9;
+        if(!seen||distance>range){
+            move(d,e,state,p.position(),kind==GblEnemyKind.YASHA?1.1:kind==GblEnemyKind.DRAGON_CANNON?.83:1,now);
+        }else if(ranged&&distance<4){
+            move(d,e,state,ground(e.position().subtract(direction.scale(3)),e.position()),1,now);
+        }else{
+            e.getNavigation().stop();
+            if(kind==GblEnemyKind.DRAGON_CANNON)e.setDeltaMovement(Vec3.ZERO);
+        }
+        if(kind==GblEnemyKind.DRAGON_CANNON&&seen&&distance<=range&&now<state.next&&!e.move().equals("reload"))e.play("reload",state.next-now);
+        if(now<state.next||!seen||distance>18||kind==GblEnemyKind.DRAGON_CANNON&&distance>range)return;
         switch(kind){
             case CULTIST -> {if(distance<2.4){play(e,state,"stab",1250,now);sector(e,p,350,200,2.5,Math.PI/3,1);}}
             case FEMALE_CULTIST -> {if(distance<13){play(e,state,"throw",1400,now);projectile(e,p,"KNIFE",450,700,13,1,false,-1,0);}}
             case DRAGON_CANNON -> {
                 boolean lob=state.step++%2==1;play(e,state,lob?"lob_shot":"straight_shot",lob?2200:1800,now);
-                if(lob){var a=attack(e,"CANNON_LOB","LOB",700,1100,1.9,1.3,false,-1);a.origin(e.position().add(0,1,0));setDestination(a,inside(d,state.area,p.position()));add(a);}
+                if(lob){var a=attack(e,"CANNON_LOB","LOB",700,1100,1.9,1.3,false,-1);a.origin(e.position().add(0,1,0));setDestination(a,ground(p.position(),p.position()));add(a);}
                 else projectile(e,p,"CANNONBALL",600,800,15,1.2,false,-1,0);
                 state.next=state.busy+1800;
             }
             case YASHA -> {
-                if(distance>3&&distance<8&&state.step++%2==0){play(e,state,"pounce",1700,now);leap(d,e,p,state,450,700,1.1);impact(e,"POUNCE",1150,180,landing(e),2,1.35,false);}
+                if(distance>3&&distance<8&&state.step++%2==0){play(e,state,"pounce",1700,now);leap(e,p,450,700,1.1);impact(e,"POUNCE",1150,180,landing(e),2,1.35,false);}
                 else if(distance<3){play(e,state,"claw",1450,now);sector(e,p,440,150,2.8,Math.PI/2,.6);sector(e,p,850,150,2.8,Math.PI/2,.6);}
             }
             case FALLEN_PRIEST -> {
                 if(now>=state.auraReady){play(e,state,"defense_aura",2400,now);auras.put(e.getUUID(),new Aura(e.getUUID(),e.instance(),now+500,now+4500));state.auraReady=now+12000;}
-                else if(distance<3.5&&now>=state.slamReady){play(e,state,"jump_slam",2000,now);leap(d,e,e.position(),state,450,800,1);impact(e,"PRIEST_SLAM",1300,200,e.position(),3.5,1.2,true);state.slamReady=now+7000;}
+                else if(distance<3.5&&now>=state.slamReady){play(e,state,"jump_slam",2000,now);leap(e,e.position(),450,800,1);impact(e,"PRIEST_SLAM",1300,200,e.position(),3.5,1.2,true);state.slamReady=now+7000;}
                 else if(distance<13){play(e,state,"triple_needles",2000,now);for(int i=0;i<3;i++)projectile(e,p,"NEEDLE",480+i*300,650,13,.5,false,-1,(i-1)*.09);}
             }
             case ASOR -> {
                 int move=state.step++%3;
                 if(move==0){play(e,state,"needle_burst",2200,now);for(int i=0;i<6;i++)projectile(e,p,"ASOR_NEEDLE",530+i*165,650,15,.4,false,-1,(i-2.5)*.065);}
-                else if(move==1){play(e,state,"shockwave",2300,now);leap(d,e,e.position(),state,550,950,1.4);var a=attack(e,"ASOR_WAVE","WAVE",1500,800,8,1.6,true,-1);a.origin(e.position());a.width=1.15;add(a);}
+                else if(move==1){play(e,state,"shockwave",2300,now);leap(e,e.position(),550,950,1.4);var a=attack(e,"ASOR_WAVE","WAVE",1500,800,8,1.6,true,-1);a.origin(e.position());a.width=1.15;add(a);}
                 else{
                     play(e,state,"goddess_spears",3000,now);Vec3 side=new Vec3(direction.z,0,-direction.x);
-                    for(int i=0;i<5;i++){Vec3 to=inside(d,state.area,p.position().add(side.scale((i-2)*2.1)));var a=attack(e,"GODDESS_SPEAR","SPEAR",1150+i*200,180,1.4,.85,true,0);a.origin(to);setDestination(a,to);add(a);}
+                    for(int i=0;i<5;i++){
+                        Vec3 to=ground(p.position().add(side.scale((i-2)*2.1)),null);
+                        if(to==null)continue;
+                        var a=attack(e,"GODDESS_SPEAR","SPEAR",1150+i*200,180,1.4,.85,true,0);
+                        a.origin(to);setDestination(a,to);add(a);
+                    }
                 }
                 state.next=state.busy+700;
             }
@@ -106,9 +151,16 @@ public final class GblEncounterService {
     }
     private void impact(DungeonEnemy e,String kind,long windup,long active,Vec3 point,double radius,double coefficient,boolean magic){var a=attack(e,kind,"IMPACT",windup,active,radius,coefficient,magic,-1);a.origin(point);setDestination(a,point);add(a);}
     private void add(GblAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"gblAttack",packet(a,false));}
-    private Vec3 inside(Dungeon d,int area,Vec3 point){double half=area==3?17:13;return new Vec3(Math.clamp(point.x,d.cell*512-half,d.cell*512+half),80,Math.clamp(point.z,area*40+3,area*40+(area==3?36:29)));}
-    private void leap(Dungeon d,DungeonEnemy e,ServerPlayer p,Brain b,long delay,long duration,double height){Vec3 delta=p.position().subtract(e.position()).multiply(1,0,1);if(delta.length()>5)delta=delta.normalize().scale(5);leap(d,e,e.position().add(delta),b,delay,duration,height);}
-    private void leap(Dungeon d,DungeonEnemy e,Vec3 destination,Brain b,long delay,long duration,double height){long start=System.currentTimeMillis()+delay;Vec3 to=inside(d,b.area,destination);leaps.put(e.getUUID(),new Leap(e.getUUID(),e.position(),to,start,start+duration,height));}
+    private boolean eligible(ServerPlayer p){return p.isAlive()&&!p.isSpectator()&&!p.getAbilities().invulnerable&&!players.session(p).life.dead;}
+    private void move(Dungeon d,DungeonEnemy enemy,Brain state,Vec3 target,double speed,long now){
+        if(now<state.pathAt)return;
+        Vec3 next=GblChurch.route(d.cell,enemy.position(),target);
+        enemy.getNavigation().moveTo(next.x,next.y,next.z,speed);
+        state.pathAt=now+300;
+    }
+    private Vec3 ground(Vec3 point,Vec3 fallback){return GblChurch.ground(owner.level(),point,fallback);}
+    private void leap(DungeonEnemy e,ServerPlayer p,long delay,long duration,double height){Vec3 delta=p.position().subtract(e.position()).multiply(1,0,1);if(delta.length()>5)delta=delta.normalize().scale(5);leap(e,e.position().add(delta),delay,duration,height);}
+    private void leap(DungeonEnemy e,Vec3 destination,long delay,long duration,double height){long start=System.currentTimeMillis()+delay;Vec3 to=ground(destination,e.position());leaps.put(e.getUUID(),new Leap(e.getUUID(),e.position(),to,start,start+duration,height));}
     private Vec3 landing(DungeonEnemy e){Leap leap=leaps.get(e.getUUID());return leap==null?e.position():leap.to;}
 
     public void tick(List<ServerPlayer> online,long now)throws Exception{
@@ -160,6 +212,6 @@ public final class GblEncounterService {
     }
     public void close(Dungeon d){
         for(UUID id:new ArrayList<>(brains.keySet())){Entity e=owner.level().getEntity(id);if(e instanceof DungeonEnemy mob&&mob.instance().equals(d.id.toString())){cancel(id);brains.remove(id);protectedEnemies.remove(id);}}
-        announced.remove(d.id);
+        bosses.remove(d.id);
     }
 }

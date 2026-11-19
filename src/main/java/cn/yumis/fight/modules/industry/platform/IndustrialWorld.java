@@ -18,6 +18,7 @@ import net.minecraft.server.level.*;
 
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.crafting.*;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.*;
 
@@ -110,11 +111,35 @@ public final class IndustrialWorld extends SavedData {
     public void refreshCoverage(MachineBlockEntity core){topologyDirty=true;for(var device:nearby((ServerLevel)core.getLevel(),core.getBlockPos(),core.radius()))discover(device);note(core,"信标覆盖已刷新");}
     public void discover(MachineBlockEntity be){
         if(be.device().has(DeviceType.Capability.STORAGE_NETWORK)||validBeacon(be)!=null)return;
-        int range=Arrays.stream(IndustrialRules.current().beaconRadii).max().orElse(32);MachineBlockEntity best=null;double dist=Double.MAX_VALUE;
-        for(var other:nearby((ServerLevel)be.getLevel(),be.getBlockPos(),range))if(other.device().has(DeviceType.Capability.STORAGE_NETWORK)&&!other.isRemoved()){double d=be.getBlockPos().distSqr(other.getBlockPos());if(d<=other.radius()*(double)other.radius()&&(d<dist||d==dist&&best!=null&&other.identity.compareTo(best.identity)<0)){best=other;dist=d;}}
+        var best=nearestBeacon((ServerLevel)be.getLevel(),be.getBlockPos());
         if(best!=null){be.beacon=best.identity.toString();be.setChanged();}
     }
-    public MachineBlockEntity validBeacon(MachineBlockEntity be){MachineBlockEntity core=loaded.get(be.beacon);return core!=null&&core.device().has(DeviceType.Capability.STORAGE_NETWORK)&&!core.isRemoved()&&core.getLevel()==be.getLevel()&&core.getBlockPos().distSqr(be.getBlockPos())<=core.radius()*(double)core.radius()?core:null;}
+    MachineBlockEntity nearestBeacon(ServerLevel level, BlockPos pos) {
+        int range = Arrays.stream(IndustrialRules.current().beaconRadii).max().orElse(32);
+        MachineBlockEntity best = null;
+        double distance = Double.MAX_VALUE;
+        for (var core : nearby(level, pos, range)) {
+            if (!covers(core, level, pos)) continue;
+            double candidate = pos.distSqr(core.getBlockPos());
+            if (best == null || candidate < distance || candidate == distance && core.identity.compareTo(best.identity) < 0) {
+                best = core;
+                distance = candidate;
+            }
+        }
+        return best;
+    }
+
+    private static boolean covers(MachineBlockEntity core, Level level, BlockPos pos) {
+        return core.device().has(DeviceType.Capability.STORAGE_NETWORK) && !core.isRemoved() && core.getLevel() == level
+            && core.getBlockPos().distSqr(pos) <= core.radius() * (double) core.radius();
+    }
+
+    MachineBlockEntity validBeacon(Level level, BlockPos pos, String key) {
+        var core = loaded.get(key);
+        return core != null && covers(core, level, pos) ? core : null;
+    }
+
+    public MachineBlockEntity validBeacon(MachineBlockEntity be){return validBeacon(be.getLevel(),be.getBlockPos(),be.beacon);}
     public void bind(MachineBlockEntity core,MachineBlockEntity device){if(!core.device().has(DeviceType.Capability.STORAGE_NETWORK)||core.isRemoved()||loaded.get(core.identity.toString())!=core||device.device().has(DeviceType.Capability.STORAGE_NETWORK)||core.getLevel()!=device.getLevel()||core.getBlockPos().distSqr(device.getBlockPos())>core.radius()*(double)core.radius())throw new IllegalArgumentException("信标无效或设备超出覆盖范围");device.beacon=core.identity.toString();device.setChanged();}
     private boolean canLink(MachineBlockEntity a,MachineBlockEntity b){
         if(a==b||!a.device().has(DeviceType.Capability.STORAGE_NETWORK)||!b.device().has(DeviceType.Capability.STORAGE_NETWORK)||a.isRemoved()||b.isRemoved()||loaded.get(a.identity.toString())!=a||loaded.get(b.identity.toString())!=b||a.getLevel()!=b.getLevel())return false;
@@ -179,12 +204,125 @@ public final class IndustrialWorld extends SavedData {
     }
     private void visual(MachineBlockEntity be,boolean connected){BlockState state=be.getBlockState();boolean active=be.device().generator()?be.currentPower>0:be.workedThisTick||be.consumed>0;if(state.getValue(MachineBlock.CONNECTED)!=connected||state.getValue(MachineBlock.ACTIVE)!=active)be.getLevel().setBlock(be.getBlockPos(),state.setValue(MachineBlock.CONNECTED,connected).setValue(MachineBlock.ACTIVE,active),2);be.syncTankDisplay();}
 
+    private Reservation activeReservation(String group, long stored) {
+        Reservation reservation = reservations.get(group);
+        if (reservation == null || reservation.credit() > stored) return null;
+        var device = loaded.get(reservation.device());
+        return device != null && device.running && validBeacon(device) != null && Objects.equals(components.get(device.beacon), group)
+            ? reservation : null;
+    }
+
+    private boolean storesForGroup(MachineBlockEntity node, String group) {
+        if (node.isRemoved()) return false;
+        if (node.device().has(DeviceType.Capability.STORAGE_NETWORK)) {
+            return Objects.equals(components.get(node.key()), group);
+        }
+        return node.device().has(DeviceType.Capability.ENERGY_STORAGE) && validBeacon(node) != null
+            && Objects.equals(components.get(node.beacon), group);
+    }
+
+    private record EnergyDebit(MachineBlockEntity node, long before, long amount, String priorOperation) {}
+
+    private List<MachineBlockEntity> networkStorage(String group) {
+        return loaded.values().stream().filter(node -> storesForGroup(node, group)).toList();
+    }
+
+    record GridMana(boolean connected, long stored, long capacity, long generatedPerSecond) {
+        private static final GridMana DISCONNECTED = new GridMana(false, 0, 0, 0);
+    }
+
+    private MachineBlockEntity gridBeacon(MachineBlockEntity machine) {
+        return machine.device().has(DeviceType.Capability.STORAGE_NETWORK) ? machine : validBeacon(machine);
+    }
+
+    GridMana gridMana(MachineBlockEntity machine) {
+        var beacon = gridBeacon(machine);
+        if (beacon == null) return GridMana.DISCONNECTED;
+        rebuild();
+        return gridMana(components.get(beacon.key()));
+    }
+
+    private GridMana gridMana(String group) {
+        if (group == null) return GridMana.DISCONNECTED;
+        long stored = 0;
+        long capacity = 0;
+        for (var node : loaded.values()) {
+            if (!storesForGroup(node, group)) continue;
+            stored += node.energy;
+            capacity += node.storageCapacity();
+        }
+        var sample = totals.get(group);
+        return new GridMana(true, stored, capacity, sample == null ? 0 : sample.lastGenerated);
+    }
+
+    private long availableStoredEnergy(String group, List<MachineBlockEntity> storage) {
+        long stored = 0;
+        for (var node : storage) stored = Math.addExact(stored, node.energy);
+        Reservation reservation = activeReservation(group, stored);
+        return stored - (reservation == null ? 0 : reservation.credit());
+    }
+
+    long availableStoredEnergy(MachineBlockEntity beacon) {
+        rebuild();
+        String group = components.get(beacon.key());
+        return group == null ? 0 : availableStoredEnergy(group, networkStorage(group));
+    }
+
+    /** Pays a complete one-shot demand from loaded storage in the caller's transaction. */
+    boolean spendStoredEnergy(MachineBlockEntity beacon, long amount, TransactionContext transaction) {
+        return spendStoredEnergy(beacon,amount,transaction,null,null);
+    }
+
+    boolean spendStoredEnergy(MachineBlockEntity beacon,long amount,TransactionContext transaction,
+                              String operation,Map<String,com.google.gson.JsonElement> writes) {
+        rebuild();
+        String group = components.get(beacon.key());
+        if (group == null) return false;
+        var storage = networkStorage(group);
+        storage.forEach(MachineBlockEntity::recoverSummonDebit);
+        if (amount > availableStoredEnergy(group, storage)) return false;
+        // Draw from the beacons before the accumulators, just as in the network tick.
+        var ordered = storage.stream().sorted(Comparator.comparing(node -> !node.device().has(DeviceType.Capability.STORAGE_NETWORK))).toList();
+        List<EnergyDebit> debits = new ArrayList<>();
+        long remaining = amount;
+        for (var node : ordered) {
+            if (remaining == 0) break;
+            long debit = Math.min(remaining, node.energy);
+            if (debit > 0) debits.add(new EnergyDebit(node, node.energy, debit, node.summonDebit));
+            remaining -= debit;
+        }
+        var payment = new SnapshotJournal<List<EnergyDebit>>() {
+            @Override protected List<EnergyDebit> createSnapshot() { return debits; }
+            @Override protected void revertToSnapshot(List<EnergyDebit> snapshot) {
+                for (var debit : snapshot) {
+                    debit.node().energy = debit.before();
+                    debit.node().summonDebit = debit.priorOperation();
+                }
+            }
+            @Override protected void onRootCommit(List<EnergyDebit> snapshot) {
+                for (var debit : snapshot) debit.node().setChanged();
+                totals.computeIfAbsent(group, key -> new Totals()).consumed += amount;
+            }
+        };
+        payment.updateSnapshots(transaction);
+        for (var debit : debits) {
+            var node = debit.node();
+            node.energy -= debit.amount();
+            if(operation!=null){
+                node.summonDebit=operation;
+                RitualEnergy.record(writes,node.key(),operation,node.energy);
+            }
+        }
+        return true;
+    }
+
     private void settle(String group,List<MachineBlockEntity> cores,List<MachineBlockEntity> devices,long generated){
         List<MachineBlockEntity> storage=new ArrayList<>(cores);
         for(var be:devices)if(be.device().has(DeviceType.Capability.ENERGY_STORAGE))storage.add(be);
+        storage.forEach(MachineBlockEntity::recoverSummonDebit);
         long stored=0,capacity=0;for(var node:storage){stored=Math.addExact(stored,node.energy);capacity=Math.addExact(capacity,node.storageCapacity());}long available=Math.addExact(stored,generated),used=0;
-        Reservation reservation=reservations.get(group);if(reservation!=null&&(!loaded.containsKey(reservation.device)||!loaded.get(reservation.device).running||validBeacon(loaded.get(reservation.device))==null||!Objects.equals(components.get(loaded.get(reservation.device).beacon),group)))reservation=null;
-        long held=reservation==null?0:reservation.credit;String owner=reservation==null?"":reservation.device;if(held>stored){held=0;owner="";}
+        Reservation reservation=activeReservation(group,stored);
+        long held=reservation==null?0:reservation.credit;String owner=reservation==null?"":reservation.device;
         List<IndustrialFunctions.FunctionJob> jobs=new ArrayList<>();for(var be:devices){if(be.device().functional())functions.prepare(be,jobs);else if(be.currencyUpgrade!=null&&be.running&&be.currencyUpgrade.demand()>0)jobs.add(new IndustrialFunctions.FunctionJob(be){long demand(){return be.currencyUpgrade.demand();}long run(long budget){long used=be.currencyUpgrade.charge(budget);be.currencyUpgrade.finishPaid();done=!be.currencyUpgrade.pending();return used;}});}
         while(true){
             List<MachineLane> processors=devices.stream().filter(b->b.device().processing()&&b.running&&(!b.device().needsStructure()||b.structureValid)).flatMap(b->b.lanes().stream()).filter(line->line.tickTime.positive()).toList();for(var line:processors)IndustrialProcessing.prepare(line);
@@ -219,7 +357,22 @@ public final class IndustrialWorld extends SavedData {
         j.addProperty("progress_rate",be.device().has(DeviceType.Capability.IGNITION)?be.ignitionThisTick/(double)IndustrialGeneration.IGNITION_ENERGY:duration==0||!be.running||!line.canFinish()||line.batchRecipe.isEmpty()?0:line.workThisTick/duration);
         j.addProperty("fluid_capacity",be.fluidCapacity());j.addProperty("storage_capacity",be.storageCapacity());
         for(int tank=0;tank<be.device().fluidTanks();tank++){int actual=line.fluidTank(tank);var fluid=be.fluids.getResource(actual);String prefix=tank==be.device().fluidOutput()?"fluid_out":tank==0?"fluid_in":"fluid_in2";j.addProperty(prefix,be.fluids.getAmountAsLong(actual));j.addProperty(prefix+"_reserved",be.fluids.reservedAmount(actual));j.addProperty(prefix+"_id",fluid.isEmpty()?"":BuiltInRegistries.FLUID.getKey(fluid.getFluid()).toString());j.addProperty(prefix+"_name",fluid.isEmpty()?"空":fluid.toStack(1).getHoverName().getString());}
-        MachineBlockEntity core=be.device().has(DeviceType.Capability.STORAGE_NETWORK)?be:validBeacon(be);if(core!=null){String group=components.get(core.identity.toString());long balance=0,capacity=0;for(var other:loaded.values())if(!other.isRemoved()&&(other.device().has(DeviceType.Capability.STORAGE_NETWORK)&&Objects.equals(components.get(other.identity.toString()),group)||other.device().has(DeviceType.Capability.ENERGY_STORAGE)&&validBeacon(other)!=null&&Objects.equals(components.get(other.beacon),group))){balance+=other.energy;capacity+=other.storageCapacity();}j.addProperty("network_energy",balance);j.addProperty("network_capacity",capacity);Totals t=totals.get(group);if(t!=null){j.addProperty("generated",t.lastGenerated);j.addProperty("consumed",t.lastConsumed);j.addProperty("overflow",t.lastOverflow);}j.addProperty("member_change",memberReasons.getOrDefault(core.identity.toString(),"网络成员已恢复"));j.addProperty("radius",core.radius());}
+        var core = gridBeacon(be);
+        if (core != null) {
+            rebuild();
+            String group = components.get(core.key());
+            GridMana mana = gridMana(group);
+            j.addProperty("network_energy", mana.stored());
+            j.addProperty("network_capacity", mana.capacity());
+            Totals sample = totals.get(group);
+            if (sample != null) {
+                j.addProperty("generated", mana.generatedPerSecond());
+                j.addProperty("consumed", sample.lastConsumed);
+                j.addProperty("overflow", sample.lastOverflow);
+            }
+            j.addProperty("member_change", memberReasons.getOrDefault(core.key(), "网络成员已恢复"));
+            j.addProperty("radius", core.radius());
+        }
         JsonArray list=new JsonArray();for(var r:IndustrialProcessing.choices(be)){
             JsonObject entry=new JsonObject();entry.addProperty("id",r.id().identifier().toString());entry.addProperty("tier",r.value().minimumTier());entry.addProperty("seconds",r.value().ticks()/20.0);entry.addProperty("energy",r.value().energy());entry.addProperty("energy_tier",cn.yumis.fight.modules.industry.api.IndustrialTechnology.energyTier(r.id().identifier().toString()));
             String ingredients=r.value().ingredients().stream().map(n->n.count()+" × "+n.ingredient().items().limit(3).map(h->new ItemStack(h.value()).getHoverName().getString()).reduce((a,b)->a+" / "+b).orElse("缺少兼容材料")).reduce((a,b)->a+"；"+b).orElse("无需物品原料");

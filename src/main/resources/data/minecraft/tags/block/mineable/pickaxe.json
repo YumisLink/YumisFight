@@ -104,6 +104,11 @@
     "yumis_dungeon_and_fight:fluid_pipe_t1",
     "yumis_dungeon_and_fight:fluid_pipe_t2",
     "yumis_dungeon_and_fight:fluid_pipe_t3",
-    "yumis_dungeon_and_fight:titanium_conveyor_belt"
+    "yumis_dungeon_and_fight:titanium_conveyor_belt",
+    "yumis_dungeon_and_fight:buddy_generator_shell",
+    "yumis_dungeon_and_fight:buddy_generator",
+    "yumis_dungeon_and_fight:oil_drill",
+    "yumis_dungeon_and_fight:industrial_assembly_part",
+    "yumis_dungeon_and_fight:demon_altar"
   ]
 }

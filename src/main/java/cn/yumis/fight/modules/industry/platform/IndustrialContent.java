@@ -46,6 +46,10 @@ public final class IndustrialContent {
     public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<MachineBlockEntity>> MACHINE_BE=BES.register("industrial",()->new BlockEntityType<>(MachineBlockEntity::new,new HashSet<>(SPECS.keySet().stream().map(k->ALL_BLOCKS.get(k).get()).toList())));
     public static final DeferredBlock<DisplayStandBlock> DISPLAY_STAND=BLOCKS.registerBlock("display_stand",DisplayStandBlock::new,p->p.strength(2.5f).sound(SoundType.METAL).noOcclusion());
     public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<DisplayStandBlockEntity>> DISPLAY_STAND_BE=BES.register("display_stand",()->new BlockEntityType<>(DisplayStandBlockEntity::new,Set.of(DISPLAY_STAND.get())));
+    public static final DeferredBlock<DemonAltarBlock> DEMON_ALTAR=BLOCKS.registerBlock(DemonAltarBlock.ID,DemonAltarBlock::new,
+        p->p.strength(4.0f).sound(SoundType.STONE).requiresCorrectToolForDrops().noOcclusion().pushReaction(PushReaction.BLOCK));
+    public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<DemonAltarBlockEntity>> DEMON_ALTAR_BE=BES.register(DemonAltarBlock.ID,
+        ()->new BlockEntityType<>(DemonAltarBlockEntity::new,Set.of(DEMON_ALTAR.get())));
     public static final DeferredBlock<ConveyorBlock> CONVEYOR=BLOCKS.registerBlock("conveyor_belt",p->new ConveyorBlock(false,p),p->p.strength(1.5f).sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
     public static final DeferredBlock<ConveyorBlock> HOPPER_CONVEYOR=BLOCKS.registerBlock("hopper_conveyor_belt",p->new ConveyorBlock(true,p),p->p.strength(1.5f).sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
     public static final DeferredBlock<ConveyorBlock> TITANIUM_CONVEYOR=BLOCKS.registerBlock("titanium_conveyor_belt",p->new ConveyorBlock(false,3,p),p->p.strength(1.5f).sound(SoundType.METAL).noOcclusion().pushReaction(PushReaction.BLOCK));
@@ -64,6 +68,8 @@ public final class IndustrialContent {
     public static final DeferredBlock<LiquidBlock> COOLANT_BLOCK=BLOCKS.registerBlock("coolant",p->new LiquidBlock(COOLANT.get(),p),p->p.noCollision().strength(100).noLootTable().liquid().replaceable());
     public static final DeferredBlock<WindGeneratorPartBlock> WIND_PART=BLOCKS.registerBlock("wind_generator_part",WindGeneratorPartBlock::new,p->p.strength(3.5f).sound(SoundType.STONE).noOcclusion().pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK));
     public static final DeferredBlock<ArtificialStarPartBlock> STAR_PART=BLOCKS.registerBlock("artificial_star_part",ArtificialStarPartBlock::new,p->p.strength(3.5f).sound(SoundType.METAL).noOcclusion().dynamicShape().noLootTable().pushReaction(PushReaction.BLOCK));
+    static final DeferredBlock<IndustrialAssemblyPartBlock> ASSEMBLY_PART=BLOCKS.registerBlock("industrial_assembly_part",
+        IndustrialAssemblyPartBlock::new,p->p.strength(3.5f).sound(SoundType.METAL).noOcclusion().noLootTable().pushReaction(PushReaction.BLOCK));
     public static final DeferredHolder<CreativeModeTab,CreativeModeTab> TAB=TABS.register("industry",()->CreativeModeTab.builder().title(net.minecraft.network.chat.Component.literal("AYD-工业")).icon(()->stack("mana_crusher_t1",1)).displayItems((p,out)->ALL_ITEMS.forEach((key,value)->{if(!key.matches("energy_crystal_[6-8]")&&!cn.yumis.fight.modules.industry.api.IndustrialTechnology.materialItem(id(key).toString()))out.accept(value.get());})).build());
     public static final Map<String,Liquid> LIQUIDS=new LinkedHashMap<>();
     public static final class Liquid {
@@ -88,10 +94,24 @@ public final class IndustrialContent {
             for(int i=1;i<=count;i++){
                 int tier=kind.minimumTier()+i-1;
                 String key=kind.id+(kind.graded||kind.maximumTier()>kind.minimumTier()?"_t"+tier:"");Spec spec=new Spec(key,kind,tier);SPECS.put(key,spec);
-                var block=BLOCKS.registerBlock(key,p->new MachineBlock(spec,p),p->{p.strength(3.5f).sound(SoundType.METAL).noOcclusion();if(kind.currencyUpgrader())p.lightLevel(state->state.getValue(MachineBlock.ACTIVE)?7:0);if(kind.has(DeviceType.Capability.WIND)||kind==DeviceType.STAR)p.pushReaction(PushReaction.BLOCK);return p;});ALL_BLOCKS.put(key,block);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(block));
+                boolean assembled=IndustrialAssembly.of(kind)!=null;
+                var block=BLOCKS.registerBlock(key,p->new MachineBlock(spec,p),p->{
+                    p.strength(3.5f).sound(SoundType.METAL).noOcclusion();
+                    if(kind.currencyUpgrader())p.lightLevel(state->state.getValue(MachineBlock.ACTIVE)?7:0);
+                    if(assembled||kind.has(DeviceType.Capability.WIND)||kind==DeviceType.STAR)p.pushReaction(PushReaction.BLOCK);
+                    return p;
+                });
+                ALL_BLOCKS.put(key,block);
+                boolean shell=kind==DeviceType.BUDDY_SHELL;
+                ALL_ITEMS.put(key,assembled
+                    ?ITEMS.registerItem(key,p->new IndustrialAssemblyItem(block.get(),shell,p),
+                        p->p.useBlockDescriptionPrefix().stacksTo(shell?1:64))
+                    :ITEMS.registerSimpleBlockItem(block));
             }
         }
         ALL_BLOCKS.put("display_stand",DISPLAY_STAND);ALL_ITEMS.put("display_stand",ITEMS.registerSimpleBlockItem(DISPLAY_STAND));
+        ALL_BLOCKS.put(DemonAltarBlock.ID,DEMON_ALTAR);
+        ALL_ITEMS.put(DemonAltarBlock.ID,ITEMS.registerSimpleBlockItem(DEMON_ALTAR));
         ALL_BLOCKS.put("conveyor_belt",CONVEYOR);ALL_ITEMS.put("conveyor_belt",ITEMS.registerSimpleBlockItem(CONVEYOR));
         for(var pipe:FLUID_PIPES){String key=pipe.getId().getPath();ALL_BLOCKS.put(key,pipe);ALL_ITEMS.put(key,ITEMS.registerSimpleBlockItem(pipe));}
         ALL_BLOCKS.put("hopper_conveyor_belt",HOPPER_CONVEYOR);ALL_ITEMS.put("hopper_conveyor_belt",ITEMS.registerSimpleBlockItem(HOPPER_CONVEYOR));
@@ -119,8 +139,8 @@ public final class IndustrialContent {
         for(String metal:List.of("niobium","tantalum","iridium","mithril"))item("high_purity_"+metal+"_ingot");
         for(String key:List.of("zircon_ceramic","vanadium_steel","molybdenum_vanadium_steel","tzm_alloy","orichalcum_alloy","niobium_titanium_alloy","mithril_niobium_alloy","adamantite_titanium_alloy","composite_conductor","henghui_alloy","lattice_substrate","mana_superconductor","basic_frame","reinforced_frame","heatproof_frame","precision_frame","mana_component","mithril_mana_component","control_component","superconducting_control"))item(key);
         for(int i=1;i<=5;i++){final int tier=i;String key="prospector_t"+i;ALL_ITEMS.put(key,ITEMS.registerItem(key,p->new ProspectorItem(tier,p),p->p.stacksTo(1)));}
-        String[] liquids={"alkahest","blazing_fluid","ceruleum","shimmer","azoth","penduliquid","spent_solvent","mana_fluid","concentrated_mana_fluid"};
-        int[] colors={0xff963d63,0xffff722c,0xff38d8bb,0xffac93ef,0xff5a89e8,0xffb5e9ef,0xff62584b,0xff58baff,0xff3659e8};
+        String[] liquids={"alkahest","blazing_fluid","ceruleum","shimmer","azoth","penduliquid","spent_solvent","mana_fluid","concentrated_mana_fluid","crude_oil","naphtha","liquid_ethylene"};
+        int[] colors={0xff963d63,0xffff722c,0xff38d8bb,0xffac93ef,0xff5a89e8,0xffb5e9ef,0xff62584b,0xff58baff,0xff3659e8,0xff392b30,0xffc9914d,0xff9fddf4};
         for(int i=0;i<liquids.length;i++)LIQUIDS.put(liquids[i],new Liquid(liquids[i],colors[i]));
         for(String liquid:List.of("mana_fluid","concentrated_mana_fluid","shimmer"))INFUSION_DROPS.put(liquid,PARTICLES.register("infusion_"+liquid,()->new net.minecraft.core.particles.SimpleParticleType(false)));
         for(var entry:cn.yumis.fight.modules.industry.api.IndustrialTechnology.content().entrySet()){

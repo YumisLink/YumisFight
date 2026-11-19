@@ -560,7 +560,7 @@ public final class SkillController {
         var actor=JSON.fromJson(JSON.toJson(state().own()),Life.class);double actorBefore=actor.q=state().predicted(state().own());
         var receipt=new cn.yumis.fight.modules.combat.api.Receipt(true,"",actual,remaining,target.life.revision+1,"");
         if(external)cn.yumis.fight.modules.combat.api.EquipmentHitEffects.apply(target,receipt,!dot&&!extra.has("effect")&&(hitSource==null||hitSource.summonSource.isEmpty()),stats,snapshot().get(Stat.HEALTH),equipment,actor,state().resources(),maximum,now);
-        if(actor.q>actorBefore)extra.addProperty("ownerHealing",actor.q-actorBefore);
+        if(actor.q>actorBefore)extra.addProperty("ownerHealing",(actor.q-actorBefore)*cn.yumis.fight.modules.combat.api.CombatEffect.healingScale(Minecraft.getInstance().player));
         if(actual>0&&!equipment.wallSource.isEmpty()&&equipment.wallSource.equals(state().resources().equipment.wallSource)&&(basic&&!passive||hitSource!=null&&hitSource.summonSource.isEmpty())){
             String action=hitSource!=null?hitSource.id:!basicCycle.isEmpty()?basicCycle:nativeContext!=null&&nativeContext.has("nativeRoot")?nativeContext.get("nativeRoot").getAsString():"attack/"+Minecraft.getInstance().player.tickCount;
             wallActions.values().removeIf(until->until<now);
@@ -921,6 +921,19 @@ public final class SkillController {
     private void receiveBossHit(JsonObject j,Target boss){
         var p=Minecraft.getInstance().player;
         if(invulnerable()||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(p)||p.getAbilities().invulnerable||p.isSpectator()||CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble))return;
+        if(j.has("ritualStunTicks")&&!cn.yumis.fight.modules.skills.client.DemonHunterClient.steadfast())
+            p.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN,j.get("ritualStunTicks").getAsInt()));
+        if(j.has("ritualRootTicks"))
+            p.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.RITUAL_ROOT,j.get("ritualRootTicks").getAsInt()));
+        if(j.has("ritualSlowTicks"))
+            p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOWNESS,j.get("ritualSlowTicks").getAsInt(),j.get("ritualSlowAmplifier").getAsInt()));
+        if(j.has("ritualDebtTicks")){
+            var effect=cn.yumis.fight.modules.combat.api.CombatContentTypes.RITUAL_DEBT;
+            var previous=p.getEffect(effect);
+            p.addEffect(new net.minecraft.world.effect.MobEffectInstance(effect,j.get("ritualDebtTicks").getAsInt(),previous==null?0:Math.min(2,1+previous.getAmplifier())));
+        }
+        if(j.has("ritualHealDownTicks"))
+            p.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.HEAL_DOWN,j.get("ritualHealDownTicks").getAsInt()));
         int level=boss.level(state().progress().level,state().encounterSync());
         JsonObject feedback=new JsonObject();feedback.addProperty("feedbackEntity",boss.id.toString());
         if(j.has("treasureHit"))feedback.addProperty("treasureAction",j.get("id").getAsString());
@@ -928,6 +941,7 @@ public final class SkillController {
         if(j.has("occurredAt"))feedback.add("occurredAt",j.get("occurredAt"));
         if(j.has("selfStunTicks")){feedback.add("selfStunTicks",j.get("selfStunTicks"));feedback.add("controlId",j.get("controlId"));}
         double points=boss.attack(level)*j.get("coefficient").getAsDouble();int element=j.get("element").getAsInt();
+        if(points<=0)return;
         double[] components=monsterComponents(points,j.get("magic").getAsBoolean(),element,level);
         double multiplier=NativeEquipmentRules.receivedMultiplier(p,"bossAction",false,false,false);for(int i=0;i<components.length;i++)components[i]*=multiplier;
         double maximum=snapshot().get(Stat.HEALTH);double[] fractions=ElementAccumulation.fractions(components,maximum);double fraction=points>0?minimumEnemyFraction(fractions,maximum,element):Arrays.stream(fractions).sum();feedback.add("damageComponents",JSON.toJsonTree(fractions));

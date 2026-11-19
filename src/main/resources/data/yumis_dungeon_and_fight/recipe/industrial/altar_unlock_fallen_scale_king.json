@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "demon_altar",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:warm_dragon_scale",
+      "count": 1
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:rune_ember",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:charcoal",
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:altar_token_fallen_scale_king",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1,
+  "energy": 25600
+}

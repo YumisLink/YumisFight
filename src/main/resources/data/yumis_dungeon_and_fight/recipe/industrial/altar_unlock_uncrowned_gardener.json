@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "demon_altar",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:magic_flower",
+      "count": 2
+    },
+    {
+      "ingredient": "minecraft:dead_bush",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:glowstone_dust",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:altar_token_uncrowned_gardener",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1,
+  "energy": 800
+}

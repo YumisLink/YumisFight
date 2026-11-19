@@ -10,6 +10,10 @@ import cn.yumis.fight.modules.affixes.api.Affix;
 
 import static cn.yumis.fight.modules.equipment.api.EquipmentJson.copy;
 public final class EquipmentRules {
+    public static final String MASTER_CRYSTAL = "master_crystal";
+    static final String MASTER_LEVEL_AFFIX = "crafted/master_equip_level";
+    private static final int MAXIMUM_AFFIXES = 6;
+
     private EquipmentRules(){
     }
     public static Gear create(Slot slot,Weapon weapon,Rarity rarity,int level,Random random){
@@ -88,8 +92,35 @@ public final class EquipmentRules {
         appendRandom(g,random,false);
     }
     private static void appendRandom(Gear g,Random random,boolean allowDuplicates){
+        requireRoomAfterMasterCrystal(g);
         g.affixes.add(cn.yumis.fight.modules.affixes.api.AffixGeneration.sample(generationItem(g),allowDuplicates,random));
     }
+    static void requireRoomAfterMasterCrystal(Gear gear) {
+        if (gear.masterAffix() != null && gear.nonBaseAffixCount() >= MAXIMUM_AFFIXES) {
+            throw new IllegalArgumentException("装备词条已满六条");
+        }
+    }
+
+    private static void applyMasterCrystal(Gear gear) {
+        if (gear.creativeTemplate) throw new IllegalArgumentException("请先初始化装备");
+        if (gear.masterAffix() != null) throw new IllegalArgumentException("此装备已有大师词条");
+        if (gear.nonBaseAffixCount() >= MAXIMUM_AFFIXES) throw new IllegalArgumentException("装备词条已满六条");
+        var definition = AffixDefinitions.current().affixes.get(MASTER_LEVEL_AFFIX);
+        if (definition == null || !definition.active() || definition.fixedValue() == null) {
+            throw new IllegalArgumentException("大师词条定义未开放");
+        }
+        var affix = new Affix();
+        affix.id = definition.id();
+        affix.operation = definition.operation();
+        affix.parameter = "master_equip_level";
+        affix.element = definition.element();
+        affix.value = affix.baseline = definition.fixedValue();
+        affix.fixed = true;
+        affix.crafted = true;
+        AffixResolver.anchor(affix, gear.instance + "/" + affix.id, definition, definition.revision(), definition.effectiveScale(gear.level));
+        gear.affixes.add(affix);
+    }
+
     static cn.yumis.fight.modules.affixes.api.AffixGeneration.Item generationItem(Gear g){
         return new cn.yumis.fight.modules.affixes.api.AffixGeneration.Item(){
             public boolean weapon(){return g.slot==Slot.WEAPON;}
@@ -109,6 +140,7 @@ public final class EquipmentRules {
         if(g.corrupted)throw new IllegalArgumentException("腐化装备仅允许继续镶嵌宝石");
         var essence=CraftingEssences.find(currency);if(essence!=null)return CraftingEssences.apply(g,essence,random);
         switch(currency){
+            case MASTER_CRYSTAL -> applyMasterCrystal(g);
             case "transmutation_stone"->{
                 if(g.rarity!=Rarity.COMMON)throw new IllegalArgumentException("仅普通装备可蜕变");
                 g.rarity=Rarity.RARE;
@@ -125,7 +157,7 @@ public final class EquipmentRules {
                 appendRandom(g,random);
             }
             case "exalted_stone"->{
-                if(g.rarity!=Rarity.LEGENDARY||g.affixes.stream().filter(a->!a.base).count()>=6)throw new IllegalArgumentException("仅未满六条的传说装备可加工");
+                if(g.rarity!=Rarity.LEGENDARY||g.nonBaseAffixCount()>=MAXIMUM_AFFIXES)throw new IllegalArgumentException("仅未满六条的传说装备可加工");
                 appendRandom(g,random);
             }
             case "stripping_stone"->{

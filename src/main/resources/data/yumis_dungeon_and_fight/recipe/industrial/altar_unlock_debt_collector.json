@@ -1,0 +1,28 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "demon_altar",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "minecraft:clock",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:compass",
+      "count": 1
+    },
+    {
+      "ingredient": "minecraft:paper",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:altar_token_debt_collector",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1,
+  "energy": 12800
+}

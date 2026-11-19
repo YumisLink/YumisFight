@@ -78,6 +78,7 @@ public final class EquipmentTooltip {
             case "augmentation_stone"->"稀有装备变为神器，并新增1条随机词条";
             case "regal_stone"->"神器装备变为传说，并新增1条随机词条";
             case "exalted_stone"->"传说装备新增1条随机词条，最多6条";
+            case EquipmentRules.MASTER_CRYSTAL->"新增大师词条，装备需求等级降低20级。每件限用一次，最多6条词条";
             case "delezie_blood"->"不可逆腐化：加孔、等级−5～+5、刷新词条各自独立20%，可同时发生；之后仅可继续镶嵌宝石";
             case "advanced_divine_stone"->"重洗数值为原区间最高60%（0～100变40～100）";
             case "perfect_divine_stone"->"重洗数值为原区间最高30%（0～100变70～100）；暂不投放";
@@ -225,7 +226,10 @@ public final class EquipmentTooltip {
         // Keep vanilla enchantments, lore and component descriptions supplied by other mods.
         if(g.corrupted)out.add(text("腐化 · 禁止常规加工，仍可镶嵌、出售、整件分解",0xff7070));
         Component quality=text(g.rarity.title(),g.rarity.color());if(g.rarity==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC)quality=cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(quality);
-        out.add(Component.empty().append(quality).append(text(" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.armor()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.jewelry()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.title())+" · 需求 Lv."+g.level,g.rarity.color())));
+        int required = g.requiredLevel();
+        String levelLabel = required == g.level ? " · 需求 Lv." + required : " · 装备 Lv." + g.level + " · 需求 Lv." + required;
+        out.add(Component.empty().append(quality).append(text(" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.armor()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.jewelry()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.title())+levelLabel,g.rarity.color())));
+        if (required < g.slot.minimum()) out.add(text("槽位开放 Lv." + g.slot.minimum(),0x9aa9be));
         if(!valid)out.add(text("等级或职业条件不足，装备属性不生效",0xff7272));
         boolean weapon=g.slot==Slot.WEAPON;
         boolean baseValues=shift();

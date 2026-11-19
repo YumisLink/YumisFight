@@ -21,6 +21,13 @@ public final class SunMoonSkills {
         add(CORONA,"日冕",40,60,27,0,1.8,4,1,SkillDefinition.Aspect.SUN,false);
         add(STARFALL,"月见星辉",45,80,40,0,2.5,4,8,SkillDefinition.Aspect.MOON,false);
         add(PARADOX,"悖论",50,100,0,0,0,1,2,SkillDefinition.Aspect.NONE,false);
+        SkillCatalog.require(MOON).formParameter("heartGrantBonus",0);
+        SkillCatalog.require(SUN).formParameter("heartGrantBonus",0).formParameter("impactDelay",.35);
+        SkillCatalog.require(REFLUX).formParameter("harmonyGrantBonus",0);
+        SkillCatalog.require(FLARE).formParameter("heartGrantBonus",0);
+        SkillCatalog.require(CORONA).formParameter("impactDelay",.8).formParameter("liftHeight",2);
+        SkillCatalog.require(STARFALL).formParameter("harmonyGrantBonus",0).formParameter("impactDelay",.25);
+        SkillCatalog.require(PARADOX).formParameter("impactDelay",.6).formParameter("elementSplit",.5);
     }
     private static SkillDefinition add(String id,String title,int level,int sp,double mp,double cd,double chant,double radius,int hits,SkillDefinition.Aspect aspect,boolean passive){
         var skill=new SkillDefinition(id,title,"ELEMENT",JobCatalog.SUN_MOON,level,sp,mp/(100+14d*(level-1)),cd,hits==0?0:1,passive,Map.of("range",16d,"radius",radius,"slashes",(double)Math.max(1,hits),"duration",chant,"interval",id.equals(STARFALL)?.25:0d));

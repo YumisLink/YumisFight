@@ -44,10 +44,11 @@ public final class SkillBehaviors {
         registerStart(SkillCatalog.OVERDRIVE.id,(x,c,now)->{x.buff("yumis_dungeon_and_fight:overdrive",now+30000);x.absorption("overdrivePower",.15*Math.pow(1.12,c.parameters.rank()-1));});
         register(List.of(SkillCatalog.GHOST),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
-                if(c.release||elapsed>=3000){
+                double chargeSeconds=Math.max(.05,c.parameters.get("chargeSeconds",1)),chargeSpan=Math.max(50,chargeSeconds*1000);long chargedMs=(long)chargeSpan;
+                if(c.release||elapsed>=(long)(c.parameters.get("maxChargeSeconds",3)*1000)){
                     x.visual(c,"RELEASE");
-                    double charge=1+Math.min(1,elapsed/1000d);
-                    double coefficient=c.parameters.get("damage",1.6)*charge+(elapsed>=1000?c.parameters.get("soulBonus",0):0);if(elapsed>=1000)coefficient*=c.parameters.get("ghostFieldMultiplier",1);
+                    double charge=1+Math.min(1,elapsed/chargeSpan)*(Math.max(1,c.parameters.get("chargeMultiplier",2))-1);
+                    double coefficient=c.parameters.get("damage",1.6)*charge+(elapsed>=chargedMs?c.parameters.get("soulBonus",0):0);if(elapsed>=chargedMs)coefficient*=c.parameters.get("ghostFieldMultiplier",1);
                     x.slash(c,c.parameters.get("range",3),3,2,coefficient,.4,false);
                     x.cancel(true);
                 }
@@ -55,7 +56,7 @@ public final class SkillBehaviors {
         });
         register(List.of(SkillCatalog.TRIPLE,SkillCatalog.DRAGON),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
-                double duration=c.skill==SkillCatalog.TRIPLE?.2:.25,length=c.skill==SkillCatalog.TRIPLE?2.5:4;
+                double duration=c.parameters.get("dashSeconds",c.skill==SkillCatalog.TRIPLE?.2:.25),length=Math.max(.5,c.parameters.get("dashDistance",c.skill==SkillCatalog.TRIPLE?2.5:4));
                 x.buff("movementProtection",now+500);
                 if(stage<=duration*1000||c.moved<length){
                     if(now-c.visualTrail>=100){
@@ -92,8 +93,8 @@ public final class SkillBehaviors {
                     c.visualTrail=now;
                 }
                 x.buff("movementProtection",now+500);
-                if(!c.finisher){double desired=4*Math.min(1,elapsed/300d);double move=Math.max(0,desired-c.moved);p.move(MoverType.SELF,c.direction.scale(move));c.moved+=move;}
-                if(elapsed<300){
+                double risingSpan=Math.max(50,c.parameters.get("dashSeconds",.3)*1000);if(!c.finisher){double desired=Math.max(.5,c.parameters.get("dashDistance",4))*Math.min(1,elapsed/risingSpan);double move=Math.max(0,desired-c.moved);p.move(MoverType.SELF,c.direction.scale(move));c.moved+=move;}
+                if(elapsed<risingSpan){
                     x.slash(c,1.5,2,2,c.parameters.get("damage",1.6),.5,false);
                 }
                 else if(!c.finisher){
@@ -102,18 +103,18 @@ public final class SkillBehaviors {
                     c.hit.clear();
                     x.slash(c,2,2,3,c.parameters.get("finisher",2.4),.6,false);
                 }
-                if(elapsed>=700)x.cancel(true);
+                if(elapsed>=risingSpan+400)x.cancel(true);
             
         });
         register(List.of(SkillCatalog.DRAW),(x,c,now,elapsed,stage,speed)->{
             c.sweepDegrees=360;
-            if(elapsed>=400&&!c.release){c.release=true;c.hitIndex=0;x.slash(c,c.parameters.get("range",5),5,3,c.parameters.get("damage",1),.4,true);x.visual(c,"RELEASE");if(c.stats.weaponType.equals("SHORTSWORD"))x.passive(c);}
+            long drawMs=(long)(Math.max(.05,c.parameters.get("drawSeconds",.4))*1000);if(elapsed>=drawMs&&!c.release){c.release=true;c.hitIndex=0;x.slash(c,c.parameters.get("range",5),5,3,c.parameters.get("damage",1),.4,true);x.visual(c,"RELEASE");if(c.stats.weaponType.equals("SHORTSWORD"))x.passive(c);}
             boolean light=Set.of("LIGHTSABER","KATANA").contains(c.stats.weaponType)&&SkillLearning.effective(c.stats,cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress(),SkillCatalog.MASTERY)>0;
-            if(elapsed>=550&&light&&!c.finisher){
+            if(elapsed>=drawMs+150&&light&&!c.finisher){
                 c.finisher=true;c.hit.clear();c.hitIndex=1;c.elementOverride=0;c.passiveDamage=true;c.suppressEquipment=true;Stats original=c.stats;c.stats=original.copy();c.stats.modifiers.put("crit",0d);
                 x.slash(c,c.parameters.get("range",5),5,3,c.parameters.get("damage",1)*.2,0,true);x.visual(c,"HIT");c.stats=original;c.elementOverride=-2;c.passiveDamage=false;c.suppressEquipment=false;
             }
-            if(elapsed>=800)x.cancel(true);
+            if(elapsed>=drawMs+400)x.cancel(true);
         });
         register(List.of(SkillCatalog.DANCE),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
@@ -126,7 +127,7 @@ public final class SkillBehaviors {
                     c.slashes++;
                 }
                 if(elapsed>=schedule.durationMillis()){
-                    x.wave(p.position().add(0,.8,0),c.direction,8,3,2,c.stats,c.skill,c.parameters.get("finisher",5),false,false);
+                    x.wave(p.position().add(0,.8,0),c.direction,Math.max(.5,c.parameters.get("finisherRange",8)),3,2,c.stats,c.skill,c.parameters.get("finisher",5),false,false);
                     x.cancel(true);
                 }
             
@@ -135,9 +136,10 @@ public final class SkillBehaviors {
             var p=x.player();
                 p.setPos(c.origin);
                 p.setDeltaMovement(Vec3.ZERO);
-                int total=(int)c.parameters.get("slashes",24);
+                int total=(int)Math.max(1,c.parameters.get("slashes",24));
                 double duration=c.parameters.get("duration",8)*1000;
-                int due=Math.min(total,Math.max(0,(int)((elapsed-duration*.125)/(duration*.75/total))+1));
+                long deployMs=(long)(Math.max(.05,c.parameters.get("stormDeploy",1))*1000);double slashGapMs=Math.max(50,c.parameters.get("stormInterval",.25)*1000);
+                int due=Math.min(total,Math.max(0,(int)((elapsed-deployMs)/slashGapMs)+1));
                 while(c.slashes<due){
                     c.hit.clear();
                     x.area(c,c.parameters.get("range",5),c.parameters.get("damage",1),true);
@@ -166,12 +168,13 @@ public final class SkillBehaviors {
     private static Vec3 blink(){
         var p=net.minecraft.client.Minecraft.getInstance().player;
         Vec3 origin=p.position(),direction=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z).normalize();if(direction.lengthSqr()<.001)throw new IllegalArgumentException("没有有效前进方向");
-        double limit=5;
-        for(double height: new double[]{.1,p.getBbHeight()*.5,p.getEyeHeight()}){Vec3 start=origin.add(0,height,0);var obstruction=p.level().clip(new net.minecraft.world.level.ClipContext(start,start.add(direction.scale(5)),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,p));if(obstruction.getType()!=net.minecraft.world.phys.HitResult.Type.MISS)limit=Math.min(limit,Math.max(0,start.distanceTo(obstruction.getLocation())-p.getBbWidth()*.5-.02));}
+        var blinkState=cn.yumis.fight.modules.skills.api.client.SkillsClient.current();double blinkRange=Math.max(.5,SkillParameters.forCast(p.getUUID(),SkillCatalog.BLINK,Math.max(1,SkillLearning.effective(blinkState.stats(),blinkState.progress(),SkillCatalog.BLINK)),blinkState.stats().parameters).get("range",5));
+        double limit=blinkRange;
+        for(double height: new double[]{.1,p.getBbHeight()*.5,p.getEyeHeight()}){Vec3 start=origin.add(0,height,0);var obstruction=p.level().clip(new net.minecraft.world.level.ClipContext(start,start.add(direction.scale(blinkRange)),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,p));if(obstruction.getType()!=net.minecraft.world.phys.HitResult.Type.MISS)limit=Math.min(limit,Math.max(0,start.distanceTo(obstruction.getLocation())-p.getBbWidth()*.5-.02));}
         for(double distance=limit;distance>=.25;distance-=.25){Vec3 desired=origin.add(direction.scale(distance));var floor=p.level().clip(new net.minecraft.world.level.ClipContext(desired.add(0,1,0),desired.add(0,-4.99,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,p));if(floor.getType()==net.minecraft.world.phys.HitResult.Type.MISS)continue;Vec3 point=floor.getLocation().add(0,.001,0);net.minecraft.core.BlockPos pos=net.minecraft.core.BlockPos.containing(point);
-            if(origin.distanceToSqr(point)>25||!p.level().hasChunkAt(pos)||!p.level().getWorldBorder().isWithinBounds(pos))continue;net.minecraft.world.phys.AABB box=p.getBoundingBox().move(point.subtract(origin));
+            if(origin.distanceToSqr(point)>blinkRange*blinkRange||!p.level().hasChunkAt(pos)||!p.level().getWorldBorder().isWithinBounds(pos))continue;net.minecraft.world.phys.AABB box=p.getBoundingBox().move(point.subtract(origin));
             if(p.level().noCollision(p,box)&&!p.level().containsAnyLiquid(box)&&p.level().getBlockState(net.minecraft.core.BlockPos.containing(point.add(0,-.02,0))).blocksMotion())return point;
         }
-        throw new IllegalArgumentException("前方5格内没有可落地位置");
+        throw new IllegalArgumentException("前方"+cn.yumis.fight.modules.presentation.api.client.NumberText.number(blinkRange)+"格内没有可落地位置");
     }
 }

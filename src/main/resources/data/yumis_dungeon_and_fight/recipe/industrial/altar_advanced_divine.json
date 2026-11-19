@@ -1,0 +1,24 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "demon_altar",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:exalted_stone",
+      "count": 8
+    },
+    {
+      "ingredient": "yumis_dungeon_and_fight:divine_stone",
+      "count": 5
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:advanced_divine_stone",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1,
+  "energy": 100000
+}

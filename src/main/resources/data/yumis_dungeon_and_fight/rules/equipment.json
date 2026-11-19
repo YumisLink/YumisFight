@@ -1181,6 +1181,15 @@
       "description": null,
       "fixedValue": 15
     },
+    "crafted/master_equip_level": {
+      "id": "crafted/master_equip_level",
+      "name": "大师词条",
+      "operation": "EQUIPMENT_RULE",
+      "group": "crafted",
+      "element": -1,
+      "revision": 1,
+      "fixedValue": 20
+    },
     "crafted/strength": {
       "id": "crafted/strength",
       "name": "工艺之力量",

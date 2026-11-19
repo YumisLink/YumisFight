@@ -19,7 +19,9 @@ final class IndustrialFluidWork {
         int first=Math.floorMod(level.getGameTime(),directions.length);
         for(int i=0;i<directions.length;i++){
             if(be.fluids.availableAmount(be.device().fluidOutput())<=0)break;
-            var side=directions[(first+i)%directions.length];var position=be.getBlockPos().relative(side);
+            var side=directions[(first+i)%directions.length];
+            if(be.device()==DeviceType.OIL_DRILL&&side!=Direction.DOWN)continue;
+            var position=be.getBlockPos().relative(side);
             if(!level.hasChunkAt(position))continue;
             var target=level.getCapability(Capabilities.Fluid.BLOCK,position,side.getOpposite());if(target==null||target==source)continue;
             try(var tx=Transaction.openRoot()){
@@ -39,6 +41,7 @@ final class IndustrialFluidWork {
     private static boolean water(ServerLevel level,BlockPos machine){for(Direction side:Direction.values()){var pos=machine.relative(side);if(level.hasChunkAt(pos)&&level.getFluidState(pos).isSource()&&level.getFluidState(pos).getType()==Fluids.WATER)return true;}return false;}
     static IndustrialFunctions.FunctionJob pump(MachineBlockEntity be){
         var level=(ServerLevel)be.getLevel();
+        if(be.device()==DeviceType.OIL_DRILL)return drill(be,level);
         if(!water(level,be.getBlockPos())){be.status="相邻六面需要水源";return null;}
         var resource=FluidResource.of(Fluids.WATER);int tank=be.device().fluidOutput();var c=be.pumpCycle;c.begin(be);
         return new IndustrialFunctions.FunctionJob(be){
@@ -71,6 +74,42 @@ final class IndustrialFluidWork {
                     if(offered<need)break;
                 }
                 done=true;be.status=total>0?"正在抽水 · 本tick "+total+" mB":"出水缓存已满或等待供能";return spent;
+            }
+        };
+    }
+
+    private static IndustrialFunctions.FunctionJob drill(MachineBlockEntity be, ServerLevel level) {
+        if (!level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)) {
+            be.status = "需要在主世界钻采";
+            return null;
+        }
+        if (!be.structureValid) {
+            be.status = be.structureLoaded ? "结构不完整" : "结构区块未加载，已暂停";
+            return null;
+        }
+        var oil = FluidResource.of(IndustrialContent.LIQUIDS.get("crude_oil").source.get());
+        int tank = be.device().fluidOutput();
+        int demand = (int) Math.min(5, be.fluids.getCapacityAsLong(tank, oil) - be.fluids.getAmountAsLong(tank));
+        if (demand <= 0) {
+            be.status = "原油罐已满";
+            return null;
+        }
+        be.status = "等待供能";
+        return new IndustrialFunctions.FunctionJob(be) {
+            long demand() { return demand; }
+
+            long run(long budget) {
+                done = true;
+                int offered = (int) Math.min(budget, demand);
+                if (offered <= 0) return 0;
+                try (var tx = Transaction.openRoot()) {
+                    int produced = be.fluids.insert(tank, oil, offered, tx);
+                    if (produced <= 0) return 0;
+                    tx.commit();
+                    be.workedThisTick = true;
+                    be.status = "正在钻采原油";
+                    return produced;
+                }
             }
         };
     }

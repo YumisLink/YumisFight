@@ -12,7 +12,13 @@ java { toolchain { languageVersion = JavaLanguageVersion.of(25) }; withSourcesJa
 sourceSets.main.java.srcDir 'src/client/java'
 sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
 sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
-repositories { mavenCentral() }
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepository { maven { url = 'https://api.modrinth.com/maven' } }
+        filter { includeModule('maven.modrinth', 'jade') }
+    }
+}
 neoForge {
     version = '26.2.0.93'
     runs {
@@ -30,6 +36,7 @@ dependencies {
     runtimeOnly files('gradle/local-mods/jei-26.2-neoforge-30.48.0.242.jar')
     compileOnly files('gradle/local-mods/curios-neoforge-16.0.0+26.2.jar')
     runtimeOnly files('gradle/local-mods/curios-neoforge-16.0.0+26.2.jar')
+    compileOnly('maven.modrinth:jade:26.2.10+neoforge') { transitive = false }
     testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
     testImplementation 'com.google.code.gson:gson:2.14.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.4'

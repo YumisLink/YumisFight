@@ -6,7 +6,7 @@ import java.util.*;
 /** Character-owned index. Only inactive entries contain growth; the active Progress is authoritative. */
 public final class CareerProfiles {
     private static final Gson JSON=new Gson();
-    private static final List<String> GROWTH=List.of("level","experience","sp","strength","intelligence","spirit","job","skills","slots","sync","dungeonSync");
+    private static final List<String> GROWTH=List.of("level","experience","sp","strength","intelligence","spirit","job","skills","slots","sync","dungeonSync","talentAxis","talentNodes");
     public int schema=1,capacity=8;
     public String activeId;
     public long revision;
@@ -75,10 +75,11 @@ public final class CareerProfiles {
         }
     }
     public static void storedProgress(Progress p){
-        if(p==null||p.job==null||p.skills==null||p.slots==null||p.slots.length!=Progress.SLOT_COUNT||p.completedJobQuests==null)throw new IllegalStateException("角色存档字段缺失");JobCatalog.require(p.jobId());for(String slot:p.slots)if(slot==null)throw new IllegalStateException("技能配置存档字段缺失");
+        if(p==null||p.job==null||p.skills==null||p.slots==null||p.slots.length!=Progress.SLOT_COUNT||p.completedJobQuests==null||p.talentNodes==null)throw new IllegalStateException("角色存档字段缺失");JobCatalog.require(p.jobId());for(String slot:p.slots)if(slot==null)throw new IllegalStateException("技能配置存档字段缺失");
     }
     public static void validateProgress(Progress p){
-        if(p==null||p.level<1||p.level>CharacterRules.MAX_LEVEL||p.experience<0||p.sp<0||p.strength<0||p.intelligence<0||p.spirit<0||p.free()<0||p.skills==null||p.slots==null||p.slots.length!=Progress.SLOT_COUNT||p.completedJobQuests==null)throw new IllegalStateException("角色成长存档不完整");
+        if(p==null||p.level<1||p.level>CharacterRules.MAX_LEVEL||p.experience<0||p.sp<0||p.strength<0||p.intelligence<0||p.spirit<0||p.free()<0||p.skills==null||p.slots==null||p.slots.length!=Progress.SLOT_COUNT||p.completedJobQuests==null||p.talentNodes==null)throw new IllegalStateException("角色成长存档不完整");
+        if(p.talentNodes.size()+(p.talentAxis!=null?1:0)>p.level/5)throw new IllegalStateException("天赋点数超限");
         JobCatalog.require(p.jobId());for(String slot:p.slots)if(slot==null)throw new IllegalStateException("技能配置存档不完整");
     }
     public JsonObject view(Progress active){

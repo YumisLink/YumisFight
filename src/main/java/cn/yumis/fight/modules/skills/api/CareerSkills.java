@@ -39,6 +39,20 @@ public final class CareerSkills {
         SkillCatalog.require(SWORD).damageParameter("perBloodDamage",1.6);
         SkillCatalog.require(FIELD).damageParameter("iceDot",.25).damageParameter("darkDot",.20);
         SkillCatalog.require(KALLA).damageParameter("flameDot",.10);
+        SkillCatalog.require(FIELD).formParameter("fieldRadius",5).formParameter("fieldTickInterval",1).formParameter("controlSeconds",.5);
+        SkillCatalog.require(PHANTOM).formParameter("dashDistance",8).formParameter("dashSeconds",.25).formParameter("invulnerableMillis",250).formParameter("controlSeconds",.5);
+        SkillCatalog.require(KALLA).formParameter("flameStacks",3).formParameter("flameSeconds",3).formParameter("flameDotInterval",.5).formParameter("boltRange",10);
+        SkillCatalog.require(BLACHE).formParameter("finishDelay",1.2);
+        SkillCatalog.require(CRESCENT).formParameter("crescentChargeSeconds",1);
+        SkillCatalog.require(ORB).formParameter("orbBaseHits",3).formParameter("orbHitsPerBrand",5).formParameter("orbTickInterval",SkillResourceRules.ORB_INTERVAL/1000d);
+        SkillCatalog.require(AGNI).formParameter("agniControlSeconds",3).formParameter("agniBaseHits",3).formParameter("agniIntervalBase",.85).formParameter("controlSeconds",3);
+        SkillCatalog.require(EYE).formParameter("auraPulses",20).formParameter("auraRadius",8).formParameter("auraRatio",AsuraRules.AURA_RATIO).formParameter("gearRange",10).formParameter("gearSpeed",3).formParameter("gearRatio",AsuraRules.GEAR_RATIO);
+        SkillCatalog.require(CRASH).formParameter("hopDistance",3).formParameter("hopSeconds",.5).formParameter("hopHeight",1.2);
+        SkillCatalog.require(ERUPTION).formParameter("hopDistance",6).formParameter("hopSeconds",.6).formParameter("hopHeight",2);
+        SkillCatalog.require(SWORD).formParameter("swordFirstShare",.3).formParameter("swordRushes",5).formParameter("bloodCap",20).formParameter("bloodInterval",.5);
+        SkillCatalog.require(ICE).formParameter("controlSeconds",1.5);
+        SkillCatalog.require(HAND).formParameter("controlSeconds",.3);
+        SkillCatalog.require(BRANDS).formParameter("brandCap",5).formParameter("brandInterval",5);
     }
     private static void add(String id,String title,String job,String family,int unlock,double mp,double cd,double coefficient,boolean passive,int element,int color,double range,int hits,double finish,double interval,double duration,boolean charging,boolean invulnerable,double hp){
         int sp=unlock==20?30:unlock==25?40:unlock<40?50:unlock==40?60:100;

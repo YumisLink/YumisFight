@@ -7,6 +7,10 @@ import cn.yumis.fight.modules.economy.api.RewardSettings;
 import cn.yumis.fight.modules.economy.application.LootService;
 import cn.yumis.fight.modules.dungeons.application.DungeonService;
 import cn.yumis.fight.modules.dungeons.application.DamageMeterService;
+import cn.yumis.fight.modules.dungeons.application.RitualEncounterService;
+import cn.yumis.fight.modules.industry.api.IndustrialRituals;
+import cn.yumis.fight.modules.industry.platform.DemonAltarBlockEntity;
+import cn.yumis.fight.modules.npc.api.AwakeningQuest;
 import cn.yumis.fight.modules.skills.application.VisualService;
 import cn.yumis.fight.modules.combat.application.NativeHits;
 
@@ -16,6 +20,8 @@ import cn.yumis.fight.modules.economy.api.RewardPorts;
 import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.attributes.api.Stats;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import java.util.*;
 /** Composition of narrow module ports. No gameplay decisions belong here. */
@@ -76,4 +82,46 @@ public final class RuntimeAssembly {
         public Map<String,com.google.gson.JsonElement> drop(UUID player,net.minecraft.world.item.ItemStack stack,ReturnPoint point,String instance){var drop=runtime.loot.preparePersistent(player,stack,point,instance);return Map.of("loot/"+drop.id,new com.google.gson.Gson().toJsonTree(drop));}
         public void publish(){runtime.loot.publishPersistent();}
     };}
+
+    private static DemonAltarBlockEntity altar(ServerLevel level,BlockPos position){
+        return level.hasChunkAt(position)&&level.getBlockEntity(position) instanceof DemonAltarBlockEntity found&&!found.isRemoved()?found:null;
+    }
+
+    public static RitualEncounterService rituals(ServerApplication runtime){
+        cn.yumis.fight.modules.industry.platform.RitualEnergy.install(runtime.journal);
+        var service=new RitualEncounterService(runtime.journal,runtime.server,runtime.inventory,runtime.targets,new RitualPorts.AltarPower(){
+            @Override public String identity(ServerLevel level,BlockPos pos){var altar=altar(level,pos);return altar==null?"":altar.key();}
+            @Override public boolean usable(ServerPlayer player,BlockPos pos){var altar=altar(player.level(),pos);return altar!=null&&altar.stillValid(player);}
+            @Override public boolean commitSummon(ServerLevel level,BlockPos pos,long cost,String runId,Map<String,com.google.gson.JsonElement> writes)throws Exception{
+                var altar=altar(level,pos);
+                return altar!=null&&altar.commitSummonEnergy(level,cost,runId,writes);
+            }
+        },(clear,material)->{
+            var players=new LinkedHashSet<UUID>();
+            for(String id:clear.participants())players.add(UUID.fromString(id));
+            var quest=runtime.awakeningQuests.prepareAltarClear(UUID.fromString(clear.runId()),clear.bossId(),clear.ending().equals("surrender"),players);
+            var rewards=runtime.loot.prepareRitual(clear,material,quest.chantPagePlayers(),AwakeningQuest.CHANT_PAGE);
+            var writes=new LinkedHashMap<>(quest.writes());
+            writes.putAll(rewards.writes());
+            return new RitualPorts.ClearCommit(writes,()->{rewards.publish().run();quest.publish().run();runtime.loot.publish();});
+        },cn.yumis.fight.modules.mapgeneration.api.MapGeneration::spawnSceneActor,runtime.random);
+        runtime.loot.ritualUnlocks(service::unlocked);
+        return service;
+    }
+
+    public static void installRitualPorts(RitualEncounterService service){
+        IndustrialRituals.install(new IndustrialRituals.Handler(){
+            @Override public void unlock(ServerPlayer player,ServerLevel level,BlockPos pos,net.minecraft.world.item.ItemStack stack){service.unlock(player,pos,stack);}
+            @Override public void summonMenu(ServerPlayer player,ServerLevel level,BlockPos pos,long storedMana,boolean connected,long grid){service.sendMenu(player,level,pos,storedMana,connected,grid);}
+        });
+        RitualBossEntity.wire(service::bossInteract);
+        RitualMechanismEntity.wire(service::mechanismInteract);
+    }
+
+    public static void clearRitualPorts(){
+        IndustrialRituals.clear();
+        RitualBossEntity.wire((player,boss)->false);
+        RitualMechanismEntity.wire((player,mechanism)->false);
+        cn.yumis.fight.modules.industry.platform.RitualEnergy.install(null);
+    }
 }

@@ -14,7 +14,9 @@ import java.util.*;
 import cn.yumis.fight.modules.attributes.api.*;
 /** Attribute aggregation order is owned here; affix effects arrive through accumulation ports. */
 public final class EquipmentAttributes {
+    private static volatile java.util.function.BiConsumer<Progress,Stats> characterEffects=(progress,stats)->{};
     private EquipmentAttributes(){}
+    public static void characterEffects(java.util.function.BiConsumer<Progress,Stats> effect){characterEffects=Objects.requireNonNull(effect);}
     public static Stats stats(Progress progress,List<Gear> equipped){return stats(progress,equipped,new cn.yumis.fight.modules.attributes.api.AttributeSources(),0,ignored->{});}
     public static Stats stats(Progress p,List<Gear> equipped,cn.yumis.fight.modules.attributes.api.AttributeSources sources,int allowance,java.util.function.Consumer<Stats> nativeItems){
         Stats s=new Stats();
@@ -60,6 +62,7 @@ public final class EquipmentAttributes {
         products.forEach((stat,factor)->s.attribute(stat).alls*=factor);
         for(var pair:Map.of(Stat.STRENGTH,"strengthRatio",Stat.INTELLIGENCE,"intelligenceRatio",Stat.PHYSICAL_ATTACK,"physicalAttackRatio",Stat.MAGICAL_ATTACK,"magicalAttackRatio").entrySet())s.mut(pair.getKey(),s.modifiers.getOrDefault(pair.getValue(),0d));
         sources.applyCharacter(s);
+        characterEffects.accept(p,s);
         for(Gear g:equipped)if(g.valid(p,allowance)&&MageBlood.is(g))MageBlood.apply(cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(g),s);
         s.attribute(Stat.MP).fadd+=2*s.get(Stat.SPIRIT);
         s.attribute(Stat.MAGICAL_DEFENSE).fadd+=2*s.get(Stat.SPIRIT);

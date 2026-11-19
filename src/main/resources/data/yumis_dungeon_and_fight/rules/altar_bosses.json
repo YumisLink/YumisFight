@@ -1,0 +1,285 @@
+{
+  "version": 1,
+  "defaults": {
+    "countdownSeconds": 3,
+    "limitSeconds": 480,
+    "noSurvivorSeconds": 10,
+    "healthMultiplier": 6.9
+  },
+  "bosses": [
+    {
+      "id": "uncrowned_gardener",
+      "name": "无冠园丁",
+      "grade": "C",
+      "level": 30,
+      "token": "altar_token_uncrowned_gardener",
+      "material": "lightmoss_scion",
+      "craftMana": 800,
+      "summonMana": 1600,
+      "arena": {"radius": 12, "spawnAhead": 6, "clearance": {"length": 3, "width": 3, "height": 4}},
+      "speed": 3.2,
+      "intro": "那就由你来结果吧",
+      "moves": [
+        {
+          "id": "spring_patrol", "animation": "spring_patrol", "cooldownMs": 5000, "durationMs": 2000,
+          "contactMs": [900], "target": "front",
+          "shape": {"type": "lane", "length": 8, "width": 2.5},
+          "hitLimit": 1, "damage": {"coefficient": 1.0, "type": "magic", "element": "light"},
+          "slowSeconds": 3
+        },
+        {
+          "id": "prune", "animation": "prune", "cooldownMs": 11000, "durationMs": 1900,
+          "contactMs": [1100], "target": "front",
+          "shape": {"type": "fan", "range": 4.5, "angle": 120},
+          "hitLimit": 1, "damage": {"coefficient": 1.25, "type": "physical", "element": "none"}
+        },
+        {
+          "id": "layer_root", "animation": "layer_root", "cooldownMs": 16000, "durationMs": 5400,
+          "contactMs": [1400, 2400, 3400, 4400], "target": "nearest",
+          "shape": {"type": "circle", "radius": 2},
+          "hitLimit": 1, "damage": {"coefficient": 0.16, "type": "physical", "element": "none"},
+          "rootSeconds": 4, "spawnClone": true
+        },
+        {
+          "id": "force_bloom", "animation": "force_bloom", "trigger": "lanterns_full", "durationMs": 2600,
+          "contactMs": [1800], "target": "all",
+          "shape": {"type": "circle", "radius": 9},
+          "hitLimit": 1, "damage": {"coefficient": 1.55, "type": "magic", "element": "light"},
+          "blocksBehindCover": true, "extinguishLanterns": true
+        }
+      ],
+      "ending": {
+        "id": "graft", "phase": "afterHalf", "windowMove": "prune_open",
+        "mechanisms": ["ritual_sprout", "ritual_hedge", "ritual_root_knot"]
+      }
+    },
+    {
+      "id": "off_duty_matron",
+      "name": "歇工的圣母",
+      "grade": "C+",
+      "level": 35,
+      "token": "altar_token_off_duty_matron",
+      "material": "severance_spring",
+      "craftMana": 3200,
+      "summonMana": 3200,
+      "arena": {"radius": 14, "spawnAhead": 6, "clearance": {"length": 4, "width": 4, "height": 5}},
+      "speed": 2.7,
+      "intro": "最后一班家务，做完了就该歇了",
+      "moves": [
+        {
+          "id": "chores_broom", "animation": "chores_broom", "cooldownMs": 5500, "durationMs": 1800,
+          "contactMs": [1000], "target": "front",
+          "shape": {"type": "fan", "range": 4, "angle": 90},
+          "hitLimit": 1, "damage": {"coefficient": 1.1, "type": "physical", "element": "none"},
+          "group": "chores"
+        },
+        {
+          "id": "chores_iron", "animation": "chores_iron", "cooldownMs": 5500, "durationMs": 1800,
+          "contactMs": [1000], "target": "front",
+          "shape": {"type": "lane", "length": 10, "width": 1.5},
+          "hitLimit": 1, "damage": {"coefficient": 1.1, "type": "magic", "element": "fire"},
+          "group": "chores"
+        },
+        {
+          "id": "chores_ladle", "animation": "chores_ladle", "cooldownMs": 5500, "durationMs": 1800,
+          "contactMs": [1000], "target": "random",
+          "shape": {"type": "circle", "radius": 2},
+          "hitLimit": 1, "damage": {"coefficient": 1.1, "type": "magic", "element": "fire"},
+          "group": "chores"
+        },
+        {
+          "id": "lament", "animation": "lament", "cooldownMs": 12000, "durationMs": 2050,
+          "contactMs": [1250], "target": "all",
+          "shape": {"type": "circle", "radius": 6},
+          "hitLimit": 1, "damage": {"coefficient": 0.8, "type": "magic", "element": "dark"},
+          "healDownPercent": 40, "healDownSeconds": 3
+        },
+        {
+          "id": "shift_handover", "animation": "shift_handover", "phase": "afterHalf", "cooldownMs": 14000, "durationMs": 4400,
+          "contactMs": [4400], "target": "nearest",
+          "shape": {"type": "circle", "radius": 2},
+          "hitLimit": 1, "damage": {"coefficient": 1.15, "type": "physical", "element": "none"},
+          "rootSeconds": 3, "spawnPullLine": true
+        }
+      ],
+      "windIntervalMs": 5000, "windSlots": 7, "replayMove": "chores",
+      "ending": {
+        "id": "severance", "phase": "afterHalf", "windowSeconds": 5,
+        "mechanisms": ["ritual_spring", "ritual_pull_line"]
+      }
+    },
+    {
+      "id": "white_reliquary",
+      "name": "白圣髑",
+      "grade": "B-",
+      "level": 40,
+      "token": "altar_token_white_reliquary",
+      "material": "unfinished_chant_core",
+      "craftMana": 6400,
+      "summonMana": 6400,
+      "arena": {"radius": 15, "spawnAhead": 6, "clearance": {"length": 3, "width": 3, "height": 4}},
+      "speed": 2.4,
+      "intro": "……咏唱未曾完卷",
+      "moves": [
+        {
+          "id": "lasting_chant", "animation": "lasting_chant", "trigger": "chant", "durationMs": 3000,
+          "contactMs": [2200], "target": "all",
+          "shape": {"type": "circle", "radius": 14},
+          "hitLimit": 1, "damage": {"coefficient": 1.85, "type": "magic", "element": "ice"},
+          "safeSpots": ["anti_magic"]
+        },
+        {
+          "id": "compress", "animation": "compress", "cooldownMs": 9000, "durationMs": 2200,
+          "contactMs": [1400], "target": "farthest",
+          "shape": {"type": "circle", "radius": 2.5},
+          "hitLimit": 1, "damage": {"coefficient": 1.35, "type": "magic", "element": "ice"}
+        },
+        {
+          "id": "crystal_ring", "animation": "crystal_ring", "cooldownMs": 7000, "durationMs": 1900,
+          "contactMs": [900], "target": "all",
+          "shape": {"type": "ring", "radius": 5},
+          "hitLimit": 1, "damage": {"coefficient": 1.1, "type": "physical", "element": "none"},
+          "linger": {"ms": 4000, "tickMs": 1000, "perTickCoefficient": 0.25, "hitLimit": 2, "type": "magic", "element": "ice"}
+        },
+        {
+          "id": "recrystallize", "animation": "recrystallize", "trigger": "healthStep", "steps": [70, 40],
+          "durationMs": 4000, "contactMs": [], "chantBoost": 12
+        }
+      ],
+      "chantPerSecond": 2.5, "chantDamageRegression": 1.25,
+      "ending": {
+        "id": "surrender", "phase": "resonance", "mechanisms": ["ritual_resonance", "ritual_anti_magic"]
+      }
+    },
+    {
+      "id": "debt_collector",
+      "name": "催账人",
+      "grade": "B",
+      "level": 45,
+      "token": "altar_token_debt_collector",
+      "material": "stopped_clock_gear",
+      "craftMana": 12800,
+      "summonMana": 12800,
+      "arena": {"radius": 15, "spawnAhead": 6, "clearance": {"length": 3, "width": 3, "height": 4}},
+      "speed": 3.0,
+      "intro": "账目不会烂，只会生息",
+      "shell": {"steps": [75, 50, 25], "borrowSeconds": 2, "settleSeconds": 6},
+      "moves": [
+        {
+          "id": "collect_interest", "animation": "collect_interest", "cooldownMs": 7000, "durationMs": 1800,
+          "contactMs": [1000], "target": "front",
+          "shape": {"type": "fan", "range": 4, "angle": 90},
+          "hitLimit": 1, "damage": {"coefficient": 0.95, "type": "magic", "element": "dark"},
+          "debtSlowPercent": 10, "debtSlowStacks": 3, "debtSlowSeconds": 6
+        },
+        {
+          "id": "stop_clock", "animation": "stop_clock", "trigger": "everyRound", "roundMs": 18000, "durationMs": 2600,
+          "contactMs": [1800], "target": "all",
+          "shape": {"type": "circle", "radius": 9},
+          "hitLimit": 1, "damage": {"coefficient": 0, "type": "physical", "element": "none"},
+          "freezeSeconds": 1, "exposeBrokenWatchMs": 4000
+        },
+        {
+          "id": "bad_debt", "animation": "bad_debt", "phase": "after90s", "cooldownMs": 12000, "durationMs": 2100,
+          "contactMs": [1300], "target": "random",
+          "shape": {"type": "lane", "length": 10, "width": 1.5},
+          "hitLimit": 1, "damage": {"coefficient": 1.1, "type": "magic", "element": "dark"}
+        }
+      ],
+      "ending": {
+        "id": "settle_account", "mechanisms": ["ritual_broken_watch", "ritual_empty_pan"]
+      }
+    },
+    {
+      "id": "fallen_scale_king",
+      "name": "坠鳞的君王",
+      "grade": "B+",
+      "level": 50,
+      "token": "altar_token_fallen_scale_king",
+      "material": "ember_scale",
+      "craftMana": 25600,
+      "summonMana": 25600,
+      "arena": {"radius": 18, "spawnAhead": 9, "clearance": {"length": 5, "width": 5, "height": 6}},
+      "speed": 4.0,
+      "intro": "它读完了每一块碑",
+      "moves": [
+        {
+          "id": "burn_script", "animation": "burn_script", "cooldownMs": 15000, "durationMs": 2150,
+          "contactMs": [1350], "target": "front",
+          "shape": {"type": "double_lane", "length": 12, "width": 2, "spacing": 3},
+          "hitLimit": 1, "damage": {"coefficient": 0, "type": "physical", "element": "none"},
+          "linger": {"ms": 5000, "tickMs": 1000, "perTickCoefficient": 0.34, "hitLimit": 3, "type": "magic", "element": "fire"},
+          "ashSeconds": 10
+        },
+        {
+          "id": "scale_rain", "animation": "scale_rain", "trigger": "burnout", "durationMs": 3500,
+          "contactMs": [1600, 2150, 2700], "target": "all",
+          "shape": {"type": "circle", "radius": 18},
+          "hitLimit": 3, "damage": {"coefficient": 0.42, "type": "magic", "element": "fire"},
+          "safeSpots": ["ash", "bonfire"]
+        },
+        {
+          "id": "falling_step", "animation": "falling_step", "trigger": "first35", "cooldownMs": 26000, "durationMs": 3200,
+          "contactMs": [2400], "target": "lastReader",
+          "shape": {"type": "circle", "radius": 5},
+          "hitLimit": 1, "damage": {"coefficient": 1.9, "type": "magic", "element": "fire"},
+          "groundedMs": 4500
+        }
+      ],
+      "ending": {
+        "id": "farewell", "windowMove": "falling_step",
+        "mechanisms": ["ritual_campfire", "ritual_stele", "ritual_stele", "ritual_stele"]
+      }
+    },
+    {
+      "id": "thousandfold_confession",
+      "name": "千室告解",
+      "grade": "A-",
+      "level": 55,
+      "token": "altar_token_thousandfold_confession",
+      "material": "silent_chip",
+      "craftMana": 51200,
+      "summonMana": 51200,
+      "arena": {"radius": 16, "spawnAhead": 6, "clearance": {"length": 5, "width": 5, "height": 6}},
+      "speed": 2.2,
+      "intro": "第十三间，还空着",
+      "shell": {"steps": [70, 40, 10], "chipsPerStep": [4, 4, 5]},
+      "chip": {"durabilityPercent": 1.25, "repairPercent": 0.5},
+      "moves": [
+        {
+          "id": "read_guilt", "animation": "read_guilt", "cooldownMs": 12000, "durationMs": 1800,
+          "contactMs": [1000], "target": "random",
+          "shape": {"type": "single"},
+          "hitLimit": 1, "damage": {"coefficient": 0, "type": "physical", "element": "none"},
+          "markSeconds": 0
+        },
+        {
+          "id": "absolve", "animation": "absolve", "trigger": "marked", "durationMs": 2800,
+          "contactMs": [2000], "target": "marked",
+          "shape": {"type": "line_to_target", "breakable": true},
+          "hitLimit": 1, "damage": {"coefficient": 0, "type": "physical", "element": "none"},
+          "sitSeconds": 3, "saveSeconds": 2, "spawnPullLine": true
+        },
+        {
+          "id": "litany", "animation": "litany", "cooldownMs": 22000, "durationMs": 3100,
+          "contactMs": [1500, 2300], "target": "all",
+          "shape": {"type": "circle", "radius": 10},
+          "hitLimit": 2, "damage": {"coefficient": 0.55, "type": "magic", "element": "dark"},
+          "blocksBehindCover": true
+        },
+        {
+          "id": "chamber_open", "animation": "chamber_open", "trigger": "healthStep",
+          "steps": [70, 40, 10], "durationMs": 2400, "contactMs": []
+        },
+        {
+          "id": "listener_rises", "animation": "listener_rises", "trigger": "allChipsBroken",
+          "durationMs": 0, "contactMs": [],
+          "windowSeconds": 8, "missDamage": {"coefficient": 1.65, "type": "magic", "element": "dark", "radius": 12}
+        }
+      ],
+      "ending": {
+        "id": "dismissal", "mechanisms": ["ritual_confessional", "ritual_pull_line"]
+      }
+    }
+  ]
+}

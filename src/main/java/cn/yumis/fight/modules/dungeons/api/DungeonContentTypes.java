@@ -19,6 +19,8 @@ public final class DungeonContentTypes {
     public static final DeferredItem<net.minecraft.world.item.Item> TRAINING_SANDBAG_ITEM=cn.yumis.fight.platform.ItemRegistry.ITEMS.registerItem("training_sandbag",p->new TrainingSandbagItem(p.stacksTo(16)));
     public static final DeferredHolder<EntityType<?>,EntityType<CageEntity>> CAGE=ENTITIES.register("lightning_cage",()->EntityType.Builder.<CageEntity>of(CageEntity::new,MobCategory.MISC).sized(3,2.5f).noSave().clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,"lightning_cage"))));
     public static final Map<String,DeferredHolder<EntityType<?>,EntityType<DungeonEnemy>>> ENEMIES=new LinkedHashMap<>();
+    /** Temporary ritual mechanisms; the run owns their lifecycle and they never join ordinary encounter clears. */
+    public static final Map<String,DeferredHolder<EntityType<?>,EntityType<RitualMechanismEntity>>> MECHANISMS=new LinkedHashMap<>();
     public static final DeferredItem<net.minecraft.world.item.Item> TREASURE_MAP=cn.yumis.fight.platform.ItemRegistry.ITEMS.registerItem("goblin_treasure_map",TreasureMapItem::new);
     public static final DeferredItem<net.minecraft.world.item.Item> WAYSTONE=cn.yumis.fight.platform.ItemRegistry.ITEMS.registerItem("waystone",WaystoneItem::new);
     public static final DeferredRegister.Blocks BLOCKS=DeferredRegister.createBlocks(ID);
@@ -36,10 +38,31 @@ public final class DungeonContentTypes {
         for(var kind:GblEnemyKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));
     }
     static {for(var kind:PalaceEnemyKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(kind.width,kind.height).eyeHeight(kind.height*.78f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));}
-    public static void register(IEventBus bus){ENTITIES.register(bus);BLOCKS.register(bus);BLOCK_ENTITIES.register(bus);WaystoneActions.registerEvents();cn.yumis.fight.platform.ItemRegistry.ALL.put("waystone",WAYSTONE);cn.yumis.fight.platform.ItemRegistry.ALL.put("waystone_pedestal",WAYSTONE_PEDESTAL_ITEM);cn.yumis.fight.platform.ItemRegistry.ALL.put("goblin_treasure_map",TREASURE_MAP);cn.yumis.fight.platform.ItemRegistry.ALL.put("training_sandbag",TRAINING_SANDBAG_ITEM);bus.addListener((EntityAttributeCreationEvent e)->{e.put(TRAINING_SANDBAG.get(),TrainingSandbag.createAttributes().build());for(var type:ENEMIES.values())e.put(type.get(),DungeonEnemy.createAttributes().build());});}
+    public static void register(IEventBus bus){ENTITIES.register(bus);BLOCKS.register(bus);BLOCK_ENTITIES.register(bus);WaystoneActions.registerEvents();cn.yumis.fight.platform.ItemRegistry.ALL.put("waystone",WAYSTONE);cn.yumis.fight.platform.ItemRegistry.ALL.put("waystone_pedestal",WAYSTONE_PEDESTAL_ITEM);cn.yumis.fight.platform.ItemRegistry.ALL.put("goblin_treasure_map",TREASURE_MAP);cn.yumis.fight.platform.ItemRegistry.ALL.put("training_sandbag",TRAINING_SANDBAG_ITEM);bus.addListener((EntityAttributeCreationEvent e)->{e.put(TRAINING_SANDBAG.get(),TrainingSandbag.createAttributes().build());for(var type:ENEMIES.values())e.put(type.get(),DungeonEnemy.createAttributes().build());for(var type:MECHANISMS.values())e.put(type.get(),DungeonEnemy.createAttributes().build());});}
 
     static {for(var kind:ForbiddenEnemyKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));}
     static {for(var kind:SkasaEnemyKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(16).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));}
     static {for(var kind:DarkCityEnemyKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(14).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));}
     static {for(var kind:ClassicEnemyKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(kind==ClassicEnemyKind.TIME_RIFT_YOUNG_SKASA?18:14).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));}
+    static {for(var kind:AltarBossKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of((type,level)->new RitualBossEntity(type,level),MobCategory.MISC).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(16).fireImmune().build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));}
+    static {
+        var sizes=List.of(
+            new java.util.AbstractMap.SimpleEntry<>("ritual_fake_branch",new float[]{.6f,1f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_hedge",new float[]{1.2f,1.6f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_root_knot",new float[]{.8f,.7f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_sprout",new float[]{.5f,1.2f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_spring",new float[]{.5f,1.5f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_eye_coin",new float[]{.45f,.45f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_pull_line",new float[]{.4f,.4f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_anti_magic",new float[]{3.5f,.8f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_resonance",new float[]{2.5f,1.8f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_broken_watch",new float[]{.7f,.6f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_empty_pan",new float[]{1.6f,1.6f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_campfire",new float[]{.9f,.9f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_stele",new float[]{.7f,2.2f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_confessional",new float[]{1.4f,2.6f}),
+            new java.util.AbstractMap.SimpleEntry<>("ritual_shard",new float[]{.5f,.9f})
+        );
+        for(var entry:sizes)MECHANISMS.put(entry.getKey(),ENTITIES.register(entry.getKey(),()->EntityType.Builder.<RitualMechanismEntity>of(RitualMechanismEntity::new,MobCategory.MISC).sized(entry.getValue()[0],entry.getValue()[1]).eyeHeight(entry.getValue()[1]*.75f).clientTrackingRange(10).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,entry.getKey())))));
+    }
 }

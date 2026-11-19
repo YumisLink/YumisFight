@@ -91,6 +91,12 @@
       "texture": "terranium"
     }
   },
+  "alternatives": [
+    {"id": "gardener_chest", "minimum": 30, "maximum": 34, "slots": ["CHEST"], "ingredient": {"id": "yumis_dungeon_and_fight:lightmoss_scion", "count": 4}},
+    {"id": "matron_armor", "minimum": 35, "maximum": 39, "slots": ["HEAD", "FEET"], "ingredient": {"id": "yumis_dungeon_and_fight:severance_spring", "count": 2}},
+    {"id": "reliquary_jewelry", "minimum": 40, "maximum": 44, "slots": ["BRACELET", "NECKLACE", "RING"], "ingredient": {"id": "yumis_dungeon_and_fight:unfinished_chant_core", "count": 2}},
+    {"id": "king_legs", "minimum": 50, "maximum": 54, "slots": ["LEGS"], "ingredient": {"id": "yumis_dungeon_and_fight:ember_scale", "count": 3}}
+  ],
   "regions": [
     {
       "minimum": 1,

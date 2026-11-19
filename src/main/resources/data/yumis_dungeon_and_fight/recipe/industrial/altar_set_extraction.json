@@ -1,0 +1,24 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "demon_altar",
+  "minimum_tier": 1,
+  "ingredients": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:silent_chip",
+      "count": 6
+    },
+    {
+      "ingredient": "minecraft:crying_obsidian",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:set_extraction_stone",
+      "count": 1
+    }
+  ],
+  "fluid_inputs": [],
+  "ticks": 1,
+  "energy": 6400
+}

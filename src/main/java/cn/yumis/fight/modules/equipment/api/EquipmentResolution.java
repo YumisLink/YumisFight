@@ -18,13 +18,13 @@ public final class EquipmentResolution {
     private static long definitionRevision=-1,lookups,hits,decodes;
     private static int characters;
     /** The render path only sees this immutable projection; no mutable Gear escapes the cache. */
-    public record View(Rarity rarity,String appearance,int level,Slot slot,Weapon weapon,UUID instance,int revision,boolean creativeTemplate){
-        public boolean valid(cn.yumis.fight.modules.character.api.Progress progress,int allowance){return Gear.valid(level,slot,weapon,progress,allowance);}
+    public record View(Rarity rarity,String appearance,int level,int requiredLevel,Slot slot,Weapon weapon,UUID instance,int revision,boolean creativeTemplate){
+        public boolean valid(cn.yumis.fight.modules.character.api.Progress progress,int allowance){return Gear.valid(requiredLevel,slot,weapon,progress,allowance);}
     }
     private static final class Entry {
         private final Gear snapshot;
         private final View view;
-        private Entry(Gear value){snapshot=value;view=value==null?null:new View(value.rarity,EquipmentTemplates.appearance(value),value.level,value.slot,value.weapon,value.instance,value.revision,value.creativeTemplate);}
+        private Entry(Gear value){snapshot=value;view=value==null?null:new View(value.rarity,EquipmentTemplates.appearance(value),value.level,value.requiredLevel(),value.slot,value.weapon,value.instance,value.revision,value.creativeTemplate);}
         private Gear detached(){return snapshot==null?null:EquipmentCopies.gear(snapshot);}
     }
     public record CacheMetrics(long lookups,long hits,long decodes,int entries,int characters){}

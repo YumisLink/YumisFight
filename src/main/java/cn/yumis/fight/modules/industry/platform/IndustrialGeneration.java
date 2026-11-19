@@ -39,12 +39,18 @@ public final class IndustrialGeneration {
     public static boolean skyVisible(ServerLevel level,BlockPos machine){var chunk=level.getChunkSource().getChunkNow(machine.getX()>>4,machine.getZ()>>4);return chunk!=null&&machine.getY()+1>=chunk.getSkyLightSources().getLowestSourceY(machine.getX()&15,machine.getZ()&15);}
     public long generate(MachineBlockEntity be){
         be.currentPower=0;
+        if(be.device()==DeviceType.BUDDY_SHELL){be.status="未装载";return 0;}
         if(be.device()==DeviceType.NUCLEAR&&be.coreHeat.compareTo(Fraction.of(1))>=0){overheat(be);return 0;}
         if(!be.running){be.status="已停止";return 0;}ServerLevel level=(ServerLevel)be.getLevel();IndustrialRules rules=IndustrialRules.current();
         if(be.device()==DeviceType.INFINITE_POWER){be.currentPower=INFINITE_TOWER_GENERATION*20;be.status="无限供能 · 每tick 1亿魔能";return INFINITE_TOWER_GENERATION;}
         if(be.device().needsStructure()){
             if(!be.structureLoaded){be.status="结构区块未加载，已暂停";return 0;}
             if(!be.structureValid){extinguish(be);be.status="结构不完整";return 0;}
+        }
+        if(be.device()==DeviceType.BUDDY_GENERATOR){
+            be.currentPower=600;
+            be.status=be.getBlockState().getValue(MachineBlock.CONNECTED)?"群友 · 600 魔能/秒":"群友 · 未连接信标";
+            return be.currentPower/20;
         }
         if(be.device().has(DeviceType.Capability.IGNITION)&&!be.ignited){be.status="等待点火";return 0;}
         if(be.device().has(DeviceType.Capability.SOLAR)||be.device().has(DeviceType.Capability.WIND)){Environment env=environments.computeIfAbsent(level,l->new Environment(l.getDefaultClockTime(),l.isRaining(),l.isThundering(),l.dimensionType().hasSkyLight(),l.dimensionType().hasSkyLight()&&!l.dimensionType().hasFixedTime()&&l.dimensionType().defaultClock().isPresent()));if(be.device().has(DeviceType.Capability.WIND)&&!WindGeneratorPartBlock.complete(level,be.getBlockPos())&&!WindGeneratorPartBlock.ensure(level,be.getBlockPos())){be.status="风机需要上方两格空间";return 0;}boolean sky=skyVisible(level,be.device().has(DeviceType.Capability.WIND)?be.getBlockPos().above(2):be.getBlockPos());long power=0;if(be.device().has(DeviceType.Capability.WIND)){int y=be.getBlockPos().getY();if(sky&&env.skylight&&y>=rules.windBaseHeight)power=rules.windBasePower+(long)Math.floorDiv(y-rules.windBaseHeight,rules.windHeightStep)*rules.windPowerStep;}else{int state=EnergyMath.solar(env.time,env.rain,env.thunder,sky,env.solar,rules.solarPeriods);power=state==0?0:env.rain?rules.solarRainPower:state==2?rules.solarDayPower:rules.solarEdgePower;}be.currentPower=power;long whole=(power+be.powerRemainder)/20;be.powerRemainder=(int)((power+be.powerRemainder)%20);be.status=power>0?"发能 "+EnergyDisplay.format(power)+" 点/秒":"当前环境不满足发电条件";be.setChanged();return whole;}

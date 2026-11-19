@@ -10,10 +10,15 @@ import java.util.*;
 
 /** Personal kill rewards from an already committed world death. */
 public final class RewardRules {
-    public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice){
+    public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply){
+        public Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice){
+            this(id,killer,target,encounter,settings,dimension,x,y,z,nearby,practice,null,null);
+        }
         public String instance(){return practice==null?target.instance:practice.instance();}
     }
     public record PracticeReward(String instance,PracticeRoom room,int playerLevel,int presentPlayers,double dropRate,long seed){}
+    public record RitualReward(String material,String secondaryMaterial){}
+    public record Supply(String item,int count){}
     public record Drop(ItemStack item,boolean privateLoot){}
     public record Result(Progress progress,long experience,long gold,List<Drop> drops){}
     private static final double PRACTICE_CURRENCY_CHANCE=.20;
@@ -22,6 +27,7 @@ public final class RewardRules {
         var progress=CareerProfiles.copy(current);
         if(context.practice()!=null)return practice(progress,player,context);
         var target=context.target();var encounter=context.encounter();boolean instance=!target.instance.isEmpty(),boss=!target.kind.equals("NORMAL");var drops=new ArrayList<Drop>();
+        boolean ritual=context.ritual()!=null, personal=instance||ritual;
         boolean participant=encounter!=null&&encounter.roster.contains(player)&&!encounter.withdrawn.contains(player);
         if(target.noRewards)return new Result(progress,0,0,List.of());
         if(instance&&boss&&player.equals(context.killer())&&encounter!=null){String poolId=encounter.treasure==null?encounter.dungeon:"treasure_"+encounter.treasure.theme;var pool=ChestDefinitions.current().bossPools.get(poolId);if(pool!=null&&random.nextDouble()<pool.chance()){var entry=ChestDefinitions.draw(pool.entries(),random);if(entry!=null)drops.add(new Drop(ChestRewards.item(entry),false));}}
@@ -38,10 +44,16 @@ public final class RewardRules {
         for(int i=0;i<count;i++){
             var rarity=LootOdds.rarity(target.difficulty,boss,boss&&!instance,luck,random);var eligible=new ArrayList<>(List.of(Slot.BRACELET,Slot.NECKLACE,Slot.RING));for(var slot:List.of(Slot.SUB_EQUIPMENT,Slot.MAGIC_STONE,Slot.EARRING))if(progress.level>=slot.minimum()&&level>=slot.minimum())eligible.add(slot);
             double group=random.nextDouble();Slot slot=rarity==Rarity.MYTHIC?(group<.5?Slot.WEAPON:eligible.get(random.nextInt(eligible.size()))):group<.2?Slot.WEAPON:group<.6?Slot.values()[1+random.nextInt(4)]:eligible.get(random.nextInt(eligible.size()));if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;
-            var gear=EquipmentTemplates.createStandard(slot,Weapon.standard().get(random.nextInt(Weapon.standard().size())),rarity,Math.clamp(level,1,80),random);gear.source=target.life.target+"/"+target.life.generation;drops.add(new Drop(EquipmentItems.gear(gear),instance));
+            var gear=EquipmentTemplates.createStandard(slot,Weapon.standard().get(random.nextInt(Weapon.standard().size())),rarity,Math.clamp(level,1,80),random);gear.source=target.life.target+"/"+target.life.generation;drops.add(new Drop(EquipmentItems.gear(gear),personal));
         }
-        var currency=CurrencyRules.roll(luck,random);if(currency!=null)for(int i=0,n=multiplied(1,quantityMultiplier,random);i<n;i++)drops.add(new Drop(ItemRegistry.item(currency.id(),1),instance));
-        var gem=CurrencyRules.rollGem(target.elite,boss,luck,random);if(gem!=null)drops.add(new Drop(Gemstones.item(gem),instance));
+        var currency=CurrencyRules.roll(luck,random);if(currency!=null)for(int i=0,n=multiplied(1,quantityMultiplier,random);i<n;i++)drops.add(new Drop(ItemRegistry.item(currency.id(),1),personal));
+        if(ritual){
+            drops.add(new Drop(ItemRegistry.item(context.ritual().material(),1+random.nextInt(3)),true));
+            if(!context.ritual().secondaryMaterial().isEmpty())drops.add(new Drop(ItemRegistry.item(context.ritual().secondaryMaterial(),1),true));
+        }else{
+            var gem=CurrencyRules.rollGem(target.elite,boss,luck,random);if(gem!=null)drops.add(new Drop(Gemstones.item(gem),instance));
+        }
+        if(context.supply()!=null)drops.add(new Drop(ItemRegistry.item(context.supply().item(),context.supply().count()),true));
         if(instance){var def=DungeonCatalog.current().dungeon(encounter.dungeon);int rolls=multiplied(boss?4:target.elite?2:random.nextDouble()<.2?1:0,quantityMultiplier,random);for(int i=0;i<rolls;i++)drops.add(new Drop(EquipmentItems.material(def.materials().get(random.nextInt(def.materials().size())),1),true));}
         if(boss&&level==80&&encounter!=null&&encounter.treasure==null&&encounter.waystone==null&&random.nextDouble()<WaystoneRules.current().starterChance){var rarity=LootOdds.rarity(target.difficulty,true,false,stats.get(Stat.DROP_RATE),random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;drops.add(new Drop(Waystone.generate(1,progress.level,rarity,random).item(),true));}
         return new Result(progress,xp,gold,List.copyOf(drops));

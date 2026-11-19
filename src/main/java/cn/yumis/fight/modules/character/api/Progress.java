@@ -23,6 +23,8 @@ public class Progress {
     public void promote(String id){JobCatalog.require(id);job=id;}
     public Map<String,Integer> skills=new LinkedHashMap<>();
     public String[] slots=new String[SLOT_COUNT];
+    public String talentAxis;
+    public LinkedHashSet<String> talentNodes=new LinkedHashSet<>();
     public Progress(){
         Arrays.fill(slots,"");
     }

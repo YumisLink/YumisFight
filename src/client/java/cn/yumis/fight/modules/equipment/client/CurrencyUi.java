@@ -4,6 +4,7 @@ import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.UiTheme;
 import cn.yumis.fight.modules.inventory.api.SlotAccess;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
+import cn.yumis.fight.modules.equipment.api.EquipmentRules;
 import cn.yumis.fight.modules.equipment.api.CraftingEssences;
 import cn.yumis.fight.platform.ItemData;
 
@@ -82,6 +83,11 @@ public final class CurrencyUi {
                     extra.add(limit);
                     extra.add(details.getLast());
                 }else extra.addAll(details);
+                if (reason.isEmpty() && EquipmentRules.MASTER_CRYSTAL.equals(ItemData.id(currency))) {
+                    int next = EquipmentRules.process(gear, EquipmentRules.MASTER_CRYSTAL, new java.util.Random(0)).requiredLevel();
+                    extra.add(Component.literal("穿戴需求 Lv." + gear.requiredLevel() + " → Lv." + next).withColor(0x85e4d6));
+                    if (next < gear.slot.minimum()) extra.add(Component.literal("槽位开放 Lv." + gear.slot.minimum()).withColor(0x9aa9be));
+                }
                 if(cn.yumis.fight.modules.equipment.api.Gemstones.currency(cn.yumis.fight.platform.ItemData.id(currency))){try{var gem=cn.yumis.fight.modules.equipment.api.Gemstones.read(currency);double factor=cn.yumis.fight.modules.equipment.api.EquipmentEffects.gemMultiplier(gear);extra.add(Component.literal("镶嵌后数值 ×"+cn.yumis.fight.modules.presentation.api.client.NumberText.number(factor)).withColor(0x85e4d6));for(var original:gem.affixes){var a=cn.yumis.fight.modules.equipment.api.EquipmentJson.copy(original,cn.yumis.fight.modules.affixes.api.Affix.class);if(java.util.Set.of("FLAT","PERCENT","CHARACTER_PERCENT","ALL_RESIST_FLAT","EXTRA","MODIFIER").contains(a.operation)){a.value*=factor;a.maximum*=factor;}extra.add(Component.literal(cn.yumis.fight.modules.affixes.api.AffixText.affix(a)).withColor(0x85e4d6));}}catch(RuntimeException ignored){}}
                 if(!essence)
                     extra.add(Component.literal(reason.isEmpty()?"右键加工 · 消耗1枚":reason).withColor(reason.isEmpty()?0x85e4d6:0xff9696));

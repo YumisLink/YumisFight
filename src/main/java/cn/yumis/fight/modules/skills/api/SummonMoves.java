@@ -21,16 +21,17 @@ public final class SummonMoves {
     private SummonMoves(){}
     public static Move require(String id){return Objects.requireNonNull(MOVES.get(id),id);}
     public static Move find(String id){return MOVES.get(id);}
-    public static List<Cue> cues(SummonKind kind,int rank,long duration,double speed){
+    public static List<Cue> cues(SummonKind kind,SkillParameters.Snapshot p,long duration,double speed){
+        int rank=p.rank();
         var result=new ArrayList<Cue>();
         if(kind==SummonKind.HERDER){
-            var attacks=MageSkills.attacks(rank,duration,speed);int volley=0,swings=0;
+            var attacks=MageSkills.attacks(p,duration,speed);int volley=0,swings=0,heavyEvery=Math.max(1,(int)p.get("heavyEvery",3)),bombEvery=Math.max(1,(int)p.get("bombEvery",3));
             for(int i=0;i<attacks.size();i++){
                 var a=attacks.get(i);
-                if(!a.stone()){result.add(new Cue(a.at(),++swings%3==0?"heavy":"club",1,false));continue;}
+                if(!a.stone()){result.add(new Cue(a.at(),++swings%heavyEvery==0?"heavy":"club",1,false));continue;}
                 int count=1;
-                while(i+1<attacks.size()&&attacks.get(i+1).stone()&&attacks.get(i+1).at()-attacks.get(i).at()<=Math.max(10,Math.round(200/speed))){i++;count++;}
-                result.add(new Cue(a.at(),++volley%3==0?"bomb":count>1?"triple_throw":"stone",count,true));
+                while(i+1<attacks.size()&&attacks.get(i+1).stone()&&attacks.get(i+1).at()-attacks.get(i).at()<=Math.max(10,Math.round(p.get("stoneGap",.2)*1000/speed))){i++;count++;}
+                result.add(new Cue(a.at(),++volley%bombEvery==0?"bomb":count>1?"triple_throw":"stone",count,true));
             }
         }else {
             int n=0,basic=0;double step=kind.interval*1000/(kind==SummonKind.KASIJAS?1:Math.max(.01,speed));

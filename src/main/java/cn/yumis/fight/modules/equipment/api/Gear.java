@@ -23,8 +23,27 @@ public class Gear {
     public String savedName="";
     public List<Affix> affixes=new ArrayList<>();
     public List<Gem> gems=new ArrayList<>();
-    public boolean valid(Progress p,int allowance){
-        return valid(level,slot,weapon,p,allowance);
+
+    long nonBaseAffixCount() {
+        return affixes.stream().filter(affix -> !affix.base).count();
     }
-    static boolean valid(int level,Slot slot,Weapon weapon,Progress p,int allowance){return level<=p.level+allowance&&p.level>=slot.minimum()&&(slot!=Slot.WEAPON||cn.yumis.fight.modules.character.api.JobCatalog.weaponQualified(p,weapon.name()));}
+
+    Affix masterAffix() {
+        for (Affix affix : affixes) {
+            if (!affix.base && affix.fixed && affix.crafted && EquipmentRules.MASTER_LEVEL_AFFIX.equals(affix.id)) {
+                return affix;
+            }
+        }
+        return null;
+    }
+
+    public int requiredLevel() {
+        Affix master = masterAffix();
+        return master == null ? level : Math.max(1, level - (int) Math.round(master.value));
+    }
+
+    public boolean valid(Progress p,int allowance){
+        return valid(requiredLevel(),slot,weapon,p,allowance);
+    }
+    static boolean valid(int requiredLevel,Slot slot,Weapon weapon,Progress p,int allowance){return requiredLevel<=p.level+allowance&&p.level>=slot.minimum()&&(slot!=Slot.WEAPON||cn.yumis.fight.modules.character.api.JobCatalog.weaponQualified(p,weapon.name()));}
 }

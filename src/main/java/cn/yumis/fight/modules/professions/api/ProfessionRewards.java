@@ -216,7 +216,11 @@ public final class ProfessionRewards {
                     if(tier==FishTier.EPIC&&!context.epicAvailable())tier=FishTier.LEGENDARY;award.accept("fisherman",FishingRules.experience(tier));
                     var treasure=treasureRod(hands)?treasure(random,obsidianRod(hands),blazeRod(hands),netherStarRod(hands)):ItemStack.EMPTY;
                     drops.add(treasure.isEmpty()?ItemRegistry.item(FishSpecies.itemFor(tier,random.nextDouble(),context),1):treasure);
-                }}else{award.accept("fisherman",ProfessionCatalog.require("fisherman").operationExperience());if(random.nextDouble()<ProfessionBonuses.fishingLuck(level))drops.add(ItemRegistry.item(random.nextDouble()<.2?"catch_pearl":"catch_riverfish",1));}
+                }
+                    // The crystal lens used by the ritual altar needs a pearl from an ordinary water catch.
+                    if(kind.equals("fishing")&&random.nextDouble()<ProfessionBonuses.fishingLuck(level)*.20)
+                        drops.add(ItemRegistry.item("catch_pearl",1));
+                }else{award.accept("fisherman",ProfessionCatalog.require("fisherman").operationExperience());if(random.nextDouble()<ProfessionBonuses.fishingLuck(level))drops.add(ItemRegistry.item(random.nextDouble()<.2?"catch_pearl":"catch_riverfish",1));}
             }
             default->throw new IllegalArgumentException("未知生活事件");
         }

@@ -1,0 +1,2452 @@
+{
+ "axes": [
+  {
+   "id": "fury",
+   "title": "暴怒"
+  },
+  {
+   "id": "wind",
+   "title": "疾风"
+  },
+  {
+   "id": "element",
+   "title": "元素"
+  },
+  {
+   "id": "iron",
+   "title": "铁壁"
+  },
+  {
+   "id": "arcane",
+   "title": "秘仪"
+  },
+  {
+   "id": "spirit",
+   "title": "灵伴"
+  }
+ ],
+ "lines": [
+  {
+   "id": "fury_a",
+   "axis": "fury",
+   "title": "重创"
+  },
+  {
+   "id": "fury_b",
+   "axis": "fury",
+   "title": "背水"
+  },
+  {
+   "id": "wind_a",
+   "axis": "wind",
+   "title": "风驰"
+  },
+  {
+   "id": "wind_b",
+   "axis": "wind",
+   "title": "轻影"
+  },
+  {
+   "id": "element_a",
+   "axis": "element",
+   "title": "引燃"
+  },
+  {
+   "id": "element_b",
+   "axis": "element",
+   "title": "凝霜"
+  },
+  {
+   "id": "iron_a",
+   "axis": "iron",
+   "title": "磐石"
+  },
+  {
+   "id": "iron_b",
+   "axis": "iron",
+   "title": "不屈"
+  },
+  {
+   "id": "arcane_a",
+   "axis": "arcane",
+   "title": "魔能涌流"
+  },
+  {
+   "id": "arcane_b",
+   "axis": "arcane",
+   "title": "秘法共鸣"
+  },
+  {
+   "id": "spirit_a",
+   "axis": "spirit",
+   "title": "灵契"
+  },
+  {
+   "id": "spirit_b",
+   "axis": "spirit",
+   "title": "同调"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "fury_a_1",
+   "line": "fury_a",
+   "position": 1,
+   "tier": "basic",
+   "title": "会心",
+   "effects": [
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "fury_a_2",
+   "line": "fury_a",
+   "position": 2,
+   "tier": "basic",
+   "title": "锐锋",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_ATTACK",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "fury_a_3",
+   "line": "fury_a",
+   "position": 3,
+   "tier": "basic",
+   "title": "猎势",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetLifeAbove",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_a_4",
+   "line": "fury_a",
+   "position": 4,
+   "tier": "capstone",
+   "title": "致命",
+   "effects": [
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0
+    },
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "critEvent",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_a_5",
+   "line": "fury_a",
+   "position": 5,
+   "tier": "deep",
+   "title": "洞察",
+   "effects": [
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "fury_a_6",
+   "line": "fury_a",
+   "position": 6,
+   "tier": "deep",
+   "title": "暴虐",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "critEvent",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_a_7",
+   "line": "fury_a",
+   "position": 7,
+   "tier": "deep",
+   "title": "连贯",
+   "effects": [
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_a_8",
+   "line": "fury_a",
+   "position": 8,
+   "tier": "deep",
+   "title": "收割",
+   "effects": [
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_a_9",
+   "line": "fury_a",
+   "position": 9,
+   "tier": "deep",
+   "title": "弱点洞悉",
+   "effects": [
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetAilment",
+      "threshold": 0,
+      "tag": "ANY"
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_a_10",
+   "line": "fury_a",
+   "position": 10,
+   "tier": "apex",
+   "title": "绝命",
+   "effects": [
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0
+    },
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "critEvent",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_b_1",
+   "line": "fury_b",
+   "position": 1,
+   "tier": "basic",
+   "title": "血怒",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_b_2",
+   "line": "fury_b",
+   "position": 2,
+   "tier": "basic",
+   "title": "绝境",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "ATTACK_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "mut",
+     "key": "CAST_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_b_3",
+   "line": "fury_b",
+   "position": 3,
+   "tier": "basic",
+   "title": "汲血",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "LIFE_STEAL",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "fury_b_4",
+   "line": "fury_b",
+   "position": 4,
+   "tier": "capstone",
+   "title": "孤注",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_b_5",
+   "line": "fury_b",
+   "position": 5,
+   "tier": "deep",
+   "title": "嗜战",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "LIFE_STEAL",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "fury_b_6",
+   "line": "fury_b",
+   "position": 6,
+   "tier": "deep",
+   "title": "淬怒",
+   "effects": [
+    {
+     "channel": "killHeal",
+     "key": "",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "fury_b_7",
+   "line": "fury_b",
+   "position": 7,
+   "tier": "deep",
+   "title": "燃血",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "LIFE_STEAL",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_b_8",
+   "line": "fury_b",
+   "position": 8,
+   "tier": "deep",
+   "title": "舍身",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "HEALTH",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_ATTACK",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "fury_b_9",
+   "line": "fury_b",
+   "position": 9,
+   "tier": "deep",
+   "title": "血勇",
+   "effects": [
+    {
+     "channel": "crit",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "fury_b_10",
+   "line": "fury_b",
+   "position": 10,
+   "tier": "apex",
+   "title": "背水一战",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "wind_a_1",
+   "line": "wind_a",
+   "position": 1,
+   "tier": "basic",
+   "title": "迅捷",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "ATTACK_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_a_2",
+   "line": "wind_a",
+   "position": 2,
+   "tier": "basic",
+   "title": "疾流",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "CAST_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_a_3",
+   "line": "wind_a",
+   "position": 3,
+   "tier": "basic",
+   "title": "疾走",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MOVEMENT_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_a_4",
+   "line": "wind_a",
+   "position": 4,
+   "tier": "capstone",
+   "title": "乘势",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "ATTACK_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "mut",
+     "key": "MOVEMENT_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "wind_a_5",
+   "line": "wind_a",
+   "position": 5,
+   "tier": "deep",
+   "title": "连贯",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "ATTACK_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_a_6",
+   "line": "wind_a",
+   "position": 6,
+   "tier": "deep",
+   "title": "回转",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "COOLDOWN_RECOVERY",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_a_7",
+   "line": "wind_a",
+   "position": 7,
+   "tier": "deep",
+   "title": "破空",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "CAST_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_a_8",
+   "line": "wind_a",
+   "position": 8,
+   "tier": "deep",
+   "title": "捷足",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "killWindow",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "STAMINA_RECOVERY",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_a_9",
+   "line": "wind_a",
+   "position": 9,
+   "tier": "deep",
+   "title": "澎湃",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "COOLDOWN_RECOVERY",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "wind_a_10",
+   "line": "wind_a",
+   "position": 10,
+   "tier": "apex",
+   "title": "音速",
+   "effects": [
+    {
+     "channel": "total",
+     "key": "ATTACK_SPEED",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "CAST_SPEED",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "MOVEMENT_SPEED",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "COOLDOWN_RECOVERY",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "wind_b_1",
+   "line": "wind_b",
+   "position": 1,
+   "tier": "basic",
+   "title": "轻步",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "EVASION",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_b_2",
+   "line": "wind_b",
+   "position": 2,
+   "tier": "basic",
+   "title": "疾风步",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MOVEMENT_SPEED",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "STAMINA_RECOVERY",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_b_3",
+   "line": "wind_b",
+   "position": 3,
+   "tier": "basic",
+   "title": "灵巧",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "EVASION",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_b_4",
+   "line": "wind_b",
+   "position": 4,
+   "tier": "capstone",
+   "title": "影风",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "EVASION",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MOVEMENT_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "lastDodgeWithin",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "wind_b_5",
+   "line": "wind_b",
+   "position": 5,
+   "tier": "deep",
+   "title": "矫健",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "STAMINA",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_b_6",
+   "line": "wind_b",
+   "position": 6,
+   "tier": "deep",
+   "title": "逸势",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "STAMINA_RECOVERY",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_b_7",
+   "line": "wind_b",
+   "position": 7,
+   "tier": "deep",
+   "title": "疾影",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "EVASION",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_b_8",
+   "line": "wind_b",
+   "position": 8,
+   "tier": "deep",
+   "title": "轻羽",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MOVEMENT_SPEED",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "CAST_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "wind_b_9",
+   "line": "wind_b",
+   "position": 9,
+   "tier": "deep",
+   "title": "避风",
+   "effects": [
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "lastDodgeWithin",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "wind_b_10",
+   "line": "wind_b",
+   "position": 10,
+   "tier": "apex",
+   "title": "风神",
+   "effects": [
+    {
+     "channel": "total",
+     "key": "EVASION",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "MOVEMENT_SPEED",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "STAMINA_RECOVERY",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_a_1",
+   "line": "element_a",
+   "position": 1,
+   "tier": "basic",
+   "title": "点火",
+   "effects": [
+    {
+     "channel": "conversion",
+     "key": "-1:ELEMENT_IGNITE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_a_2",
+   "line": "element_a",
+   "position": 2,
+   "tier": "basic",
+   "title": "助燃",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "FIRE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_a_3",
+   "line": "element_a",
+   "position": 3,
+   "tier": "basic",
+   "title": "燎原",
+   "effects": [
+    {
+     "channel": "conversion",
+     "key": "0,2,3:ELEMENT_IGNITE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_a_4",
+   "line": "element_a",
+   "position": 4,
+   "tier": "capstone",
+   "title": "焚天",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetAilment",
+      "threshold": 0,
+      "tag": "ELEMENT_IGNITE"
+     }
+    }
+   ]
+  },
+  {
+   "id": "element_a_5",
+   "line": "element_a",
+   "position": 5,
+   "tier": "deep",
+   "title": "炎刃",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "FIRE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_a_6",
+   "line": "element_a",
+   "position": 6,
+   "tier": "deep",
+   "title": "炽灼",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "FIRE",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "CAST_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_a_7",
+   "line": "element_a",
+   "position": 7,
+   "tier": "deep",
+   "title": "余烬",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "FIRE",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0,
+      "tag": "ELEMENT_IGNITE"
+     }
+    }
+   ]
+  },
+  {
+   "id": "element_a_8",
+   "line": "element_a",
+   "position": 8,
+   "tier": "deep",
+   "title": "炎势",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetAilment",
+      "threshold": 0,
+      "tag": "ELEMENT_SHOCK"
+     }
+    }
+   ]
+  },
+  {
+   "id": "element_a_9",
+   "line": "element_a",
+   "position": 9,
+   "tier": "deep",
+   "title": "野火",
+   "effects": [
+    {
+     "channel": "conversion",
+     "key": "-1:ELEMENT_IGNITE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_a_10",
+   "line": "element_a",
+   "position": 10,
+   "tier": "apex",
+   "title": "烈焰风暴",
+   "effects": [
+    {
+     "channel": "conversion",
+     "key": "ALL:ELEMENT_IGNITE",
+     "value": 0
+    },
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetAilment",
+      "threshold": 0,
+      "tag": "ELEMENT_IGNITE"
+     }
+    },
+    {
+     "channel": "total",
+     "key": "FIRE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_b_1",
+   "line": "element_b",
+   "position": 1,
+   "tier": "basic",
+   "title": "结霜",
+   "effects": [
+    {
+     "channel": "conversion",
+     "key": "-1:ELEMENT_FREEZE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_b_2",
+   "line": "element_b",
+   "position": 2,
+   "tier": "basic",
+   "title": "寒锋",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "ICE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_b_3",
+   "line": "element_b",
+   "position": 3,
+   "tier": "basic",
+   "title": "冻雨",
+   "effects": [
+    {
+     "channel": "conversion",
+     "key": "0,1,3:ELEMENT_FREEZE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_b_4",
+   "line": "element_b",
+   "position": 4,
+   "tier": "capstone",
+   "title": "碎冰",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetAilment",
+      "threshold": 0,
+      "tag": "ELEMENT_FREEZE"
+     }
+    }
+   ]
+  },
+  {
+   "id": "element_b_5",
+   "line": "element_b",
+   "position": 5,
+   "tier": "deep",
+   "title": "霜刃",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "ICE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_b_6",
+   "line": "element_b",
+   "position": 6,
+   "tier": "deep",
+   "title": "凛寒",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "ICE",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "CAST_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_b_7",
+   "line": "element_b",
+   "position": 7,
+   "tier": "deep",
+   "title": "雪葬",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "ICE",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0,
+      "tag": "ELEMENT_FREEZE"
+     }
+    }
+   ]
+  },
+  {
+   "id": "element_b_8",
+   "line": "element_b",
+   "position": 8,
+   "tier": "deep",
+   "title": "霜蚀",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetAilment",
+      "threshold": 0,
+      "tag": "ELEMENT_EROSION"
+     }
+    }
+   ]
+  },
+  {
+   "id": "element_b_9",
+   "line": "element_b",
+   "position": 9,
+   "tier": "deep",
+   "title": "极寒",
+   "effects": [
+    {
+     "channel": "conversion",
+     "key": "-1:ELEMENT_FREEZE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "element_b_10",
+   "line": "element_b",
+   "position": 10,
+   "tier": "apex",
+   "title": "绝对零度",
+   "effects": [
+    {
+     "channel": "conversion",
+     "key": "ALL:ELEMENT_FREEZE",
+     "value": 0
+    },
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "targetAilment",
+      "threshold": 0,
+      "tag": "ELEMENT_FREEZE"
+     }
+    },
+    {
+     "channel": "total",
+     "key": "ICE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_1",
+   "line": "iron_a",
+   "position": 1,
+   "tier": "basic",
+   "title": "石肤",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "SHIELD",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_2",
+   "line": "iron_a",
+   "position": 2,
+   "tier": "basic",
+   "title": "迅壁",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "SHIELD_REGENERATION",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "SHIELD_COOLDOWN_RECOVERY",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_3",
+   "line": "iron_a",
+   "position": 3,
+   "tier": "basic",
+   "title": "玄甲",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MAGICAL_DEFENSE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_4",
+   "line": "iron_a",
+   "position": 4,
+   "tier": "capstone",
+   "title": "磐守",
+   "effects": [
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "shieldActive",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "mut",
+     "key": "SHIELD",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_5",
+   "line": "iron_a",
+   "position": 5,
+   "tier": "deep",
+   "title": "固壁",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "SHIELD",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_6",
+   "line": "iron_a",
+   "position": 6,
+   "tier": "deep",
+   "title": "岩躯",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_DEFENSE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_7",
+   "line": "iron_a",
+   "position": 7,
+   "tier": "deep",
+   "title": "铁幕",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MAGICAL_DEFENSE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_8",
+   "line": "iron_a",
+   "position": 8,
+   "tier": "deep",
+   "title": "峻岩",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "LIGHT_RESIST",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "FIRE_RESIST",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "ICE_RESIST",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "DARK_RESIST",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_a_9",
+   "line": "iron_a",
+   "position": 9,
+   "tier": "deep",
+   "title": "恒壁",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "shieldActive",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "iron_a_10",
+   "line": "iron_a",
+   "position": 10,
+   "tier": "apex",
+   "title": "山岳",
+   "effects": [
+    {
+     "channel": "total",
+     "key": "SHIELD",
+     "value": 0
+    },
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "shieldActive",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "total",
+     "key": "PHYSICAL_DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "MAGICAL_DEFENSE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_b_1",
+   "line": "iron_b",
+   "position": 1,
+   "tier": "basic",
+   "title": "坚韧",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "HEALTH",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_b_2",
+   "line": "iron_b",
+   "position": 2,
+   "tier": "basic",
+   "title": "淬愈",
+   "effects": [
+    {
+     "channel": "killHeal",
+     "key": "",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_b_3",
+   "line": "iron_b",
+   "position": 3,
+   "tier": "basic",
+   "title": "灰岩壁",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "LIGHT_RESIST",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "FIRE_RESIST",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "ICE_RESIST",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "DARK_RESIST",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_b_4",
+   "line": "iron_b",
+   "position": 4,
+   "tier": "capstone",
+   "title": "不屈",
+   "effects": [
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_DEFENSE",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "mut",
+     "key": "MAGICAL_DEFENSE",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "iron_b_5",
+   "line": "iron_b",
+   "position": 5,
+   "tier": "deep",
+   "title": "磐命",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "HEALTH",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_b_6",
+   "line": "iron_b",
+   "position": 6,
+   "tier": "deep",
+   "title": "沉甲",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MAGICAL_DEFENSE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_b_7",
+   "line": "iron_b",
+   "position": 7,
+   "tier": "deep",
+   "title": "淬体",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "LIFE_STEAL",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_b_8",
+   "line": "iron_b",
+   "position": 8,
+   "tier": "deep",
+   "title": "恒愈",
+   "effects": [
+    {
+     "channel": "killHeal",
+     "key": "",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "iron_b_9",
+   "line": "iron_b",
+   "position": 9,
+   "tier": "deep",
+   "title": "背水铁壁",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "LIGHT_RESIST",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "add",
+     "key": "FIRE_RESIST",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "add",
+     "key": "ICE_RESIST",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "add",
+     "key": "DARK_RESIST",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "iron_b_10",
+   "line": "iron_b",
+   "position": 10,
+   "tier": "apex",
+   "title": "不动如山",
+   "effects": [
+    {
+     "channel": "total",
+     "key": "HEALTH",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "PHYSICAL_DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "MAGICAL_DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfLifeBelow",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_1",
+   "line": "arcane_a",
+   "position": 1,
+   "tier": "basic",
+   "title": "涌流",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MP",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_2",
+   "line": "arcane_a",
+   "position": 2,
+   "tier": "basic",
+   "title": "润泽",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MANA_REGENERATION",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_3",
+   "line": "arcane_a",
+   "position": 3,
+   "tier": "basic",
+   "title": "循环",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "COOLDOWN_RECOVERY",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_4",
+   "line": "arcane_a",
+   "position": 4,
+   "tier": "capstone",
+   "title": "溢能",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfMpAbove",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_5",
+   "line": "arcane_a",
+   "position": 5,
+   "tier": "deep",
+   "title": "深涌",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MP",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_6",
+   "line": "arcane_a",
+   "position": 6,
+   "tier": "deep",
+   "title": "长流",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MANA_REGENERATION",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_7",
+   "line": "arcane_a",
+   "position": 7,
+   "tier": "deep",
+   "title": "快转",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "COOLDOWN_RECOVERY",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_8",
+   "line": "arcane_a",
+   "position": 8,
+   "tier": "deep",
+   "title": "灵潮",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "CAST_SPEED",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MANA_REGENERATION",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_9",
+   "line": "arcane_a",
+   "position": 9,
+   "tier": "deep",
+   "title": "满溢",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "CAST_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "selfMpAbove",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "arcane_a_10",
+   "line": "arcane_a",
+   "position": 10,
+   "tier": "apex",
+   "title": "永动",
+   "effects": [
+    {
+     "channel": "total",
+     "key": "COOLDOWN_RECOVERY",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "MP",
+     "value": 0
+    },
+    {
+     "channel": "total",
+     "key": "MANA_REGENERATION",
+     "value": 0
+    },
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "selfMpAbove",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_1",
+   "line": "arcane_b",
+   "position": 1,
+   "tier": "basic",
+   "title": "全能",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_ATTACK",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MAGICAL_ATTACK",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_2",
+   "line": "arcane_b",
+   "position": 2,
+   "tier": "basic",
+   "title": "睿智",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "INTELLIGENCE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_3",
+   "line": "arcane_b",
+   "position": 3,
+   "tier": "basic",
+   "title": "星辉",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "EXPERIENCE_GAIN",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_4",
+   "line": "arcane_b",
+   "position": 4,
+   "tier": "capstone",
+   "title": "万象",
+   "effects": [
+    {
+     "channel": "count",
+     "key": "line",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_5",
+   "line": "arcane_b",
+   "position": 5,
+   "tier": "deep",
+   "title": "神意",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_ATTACK",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MAGICAL_ATTACK",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_6",
+   "line": "arcane_b",
+   "position": 6,
+   "tier": "deep",
+   "title": "睿思",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "INTELLIGENCE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_7",
+   "line": "arcane_b",
+   "position": 7,
+   "tier": "deep",
+   "title": "鉴识",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "DROP_RATE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_8",
+   "line": "arcane_b",
+   "position": 8,
+   "tier": "deep",
+   "title": "共鸣",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_9",
+   "line": "arcane_b",
+   "position": 9,
+   "tier": "deep",
+   "title": "博闻",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "EXPERIENCE_GAIN",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "DROP_RATE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "arcane_b_10",
+   "line": "arcane_b",
+   "position": 10,
+   "tier": "apex",
+   "title": "众生万象",
+   "effects": [
+    {
+     "channel": "count",
+     "key": "capstone",
+     "value": 0
+    },
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_1",
+   "line": "spirit_a",
+   "position": 1,
+   "tier": "basic",
+   "title": "契约",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonInherit/HEALTH",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_2",
+   "line": "spirit_a",
+   "position": 2,
+   "tier": "basic",
+   "title": "淬灵",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonInherit/DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "param",
+     "key": "summonInherit/RESIST",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_3",
+   "line": "spirit_a",
+   "position": 3,
+   "tier": "basic",
+   "title": "灵刃",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonDamage",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_4",
+   "line": "spirit_a",
+   "position": 4,
+   "tier": "capstone",
+   "title": "兽王",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonInherit/HEALTH",
+     "value": 0
+    },
+    {
+     "channel": "param",
+     "key": "summonInherit/DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "param",
+     "key": "summonDamage",
+     "value": 0
+    },
+    {
+     "channel": "param",
+     "key": "summonDuration",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_5",
+   "line": "spirit_a",
+   "position": 5,
+   "tier": "deep",
+   "title": "固契",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonInherit/HEALTH",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_6",
+   "line": "spirit_a",
+   "position": 6,
+   "tier": "deep",
+   "title": "灵甲",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonInherit/DEFENSE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_7",
+   "line": "spirit_a",
+   "position": 7,
+   "tier": "deep",
+   "title": "长契",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonDuration",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_8",
+   "line": "spirit_a",
+   "position": 8,
+   "tier": "deep",
+   "title": "灵威",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonDamage",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_9",
+   "line": "spirit_a",
+   "position": 9,
+   "tier": "deep",
+   "title": "群心",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MANA_REGENERATION",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "spirit_a_10",
+   "line": "spirit_a",
+   "position": 10,
+   "tier": "apex",
+   "title": "万兽之王",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonInherit/HEALTH",
+     "value": 0
+    },
+    {
+     "channel": "param",
+     "key": "summonInherit/DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "param",
+     "key": "summonInherit/RESIST",
+     "value": 0
+    },
+    {
+     "channel": "param",
+     "key": "summonDamage",
+     "value": 0
+    },
+    {
+     "channel": "param",
+     "key": "summonDuration",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_1",
+   "line": "spirit_b",
+   "position": 1,
+   "tier": "basic",
+   "title": "血契",
+   "effects": [
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_2",
+   "line": "spirit_b",
+   "position": 2,
+   "tier": "basic",
+   "title": "灵流",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonMana",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_3",
+   "line": "spirit_b",
+   "position": 3,
+   "tier": "basic",
+   "title": "元素同调",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonElement",
+     "value": -1
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_4",
+   "line": "spirit_b",
+   "position": 4,
+   "tier": "capstone",
+   "title": "同生",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "param",
+     "key": "summonDamage",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_5",
+   "line": "spirit_b",
+   "position": 5,
+   "tier": "deep",
+   "title": "灵护",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "LIGHT_RESIST",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "add",
+     "key": "FIRE_RESIST",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "add",
+     "key": "ICE_RESIST",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "add",
+     "key": "DARK_RESIST",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_6",
+   "line": "spirit_b",
+   "position": 6,
+   "tier": "deep",
+   "title": "同律",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "ATTACK_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "lastKillWithin",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_7",
+   "line": "spirit_b",
+   "position": 7,
+   "tier": "deep",
+   "title": "灵引",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonAggro",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_8",
+   "line": "spirit_b",
+   "position": 8,
+   "tier": "deep",
+   "title": "心契",
+   "effects": [
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_9",
+   "line": "spirit_b",
+   "position": 9,
+   "tier": "deep",
+   "title": "合鸣",
+   "effects": [
+    {
+     "channel": "killHeal",
+     "key": "summon",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "spirit_b_10",
+   "line": "spirit_b",
+   "position": 10,
+   "tier": "apex",
+   "title": "万灵同鸣",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0
+    },
+    {
+     "channel": "taken",
+     "key": "",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "mut",
+     "key": "ATTACK_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    },
+    {
+     "channel": "mut",
+     "key": "MOVEMENT_SPEED",
+     "value": 0,
+     "condition": {
+      "kind": "summonActive",
+      "threshold": 0
+     }
+    }
+   ]
+  }
+ ],
+ "births": [
+  {
+   "id": "origin_fury",
+   "axis": "fury",
+   "title": "原怒",
+   "effects": [
+    {
+     "channel": "final",
+     "key": "",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "origin_wind",
+   "axis": "wind",
+   "title": "原风",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "ATTACK_SPEED",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MOVEMENT_SPEED",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "origin_element",
+   "axis": "element",
+   "title": "原素",
+   "effects": [
+    {
+     "channel": "add",
+     "key": "LIGHT",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "FIRE",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "ICE",
+     "value": 0
+    },
+    {
+     "channel": "add",
+     "key": "DARK",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "origin_iron",
+   "axis": "iron",
+   "title": "原壁",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "PHYSICAL_DEFENSE",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MAGICAL_DEFENSE",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "origin_arcane",
+   "axis": "arcane",
+   "title": "原智",
+   "effects": [
+    {
+     "channel": "mut",
+     "key": "MP",
+     "value": 0
+    },
+    {
+     "channel": "mut",
+     "key": "MANA_REGENERATION",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "origin_spirit",
+   "axis": "spirit",
+   "title": "原契",
+   "effects": [
+    {
+     "channel": "param",
+     "key": "summonDamage",
+     "value": 0
+    }
+   ]
+  }
+ ]
+}

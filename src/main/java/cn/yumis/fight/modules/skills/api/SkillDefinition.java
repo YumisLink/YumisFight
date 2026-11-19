@@ -41,6 +41,8 @@ public final class SkillDefinition {
     public int mp(int rank){return rank<=0?0:(int)Math.round((100+14*(unlock-1))*mpRatio*Math.pow(1.08,rank-1));}
     public String icon(){return id.substring(id.indexOf(':')+1);}
     public SkillDefinition damageParameter(String key,double value){if(!Double.isFinite(value)||value<0)throw new IllegalArgumentException("Invalid damage parameter");parameters.put(key,value);damageParameters.add(key);return this;}
+    /** Form parameters never rank-grow and never take the balance scale; equipment can modify them per cast. */
+    public SkillDefinition formParameter(String key,double value){if(!Double.isFinite(value)||value<0)throw new IllegalArgumentException("Invalid form parameter: "+key);parameters.put(key,value);return this;}
     public java.util.Set<String> damageParameters(){return java.util.Set.copyOf(damageParameters);}
     public Map<String,Double> parameters(int rank){var result=new java.util.LinkedHashMap<>(parameters);result.put("damage",coefficient);double growth=Math.pow(1.12,Math.max(0,rank-1));for(String key:damageParameters)result.computeIfPresent(key,(k,v)->v*growth);return result;}
     @Override public String toString(){return id;}

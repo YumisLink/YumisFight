@@ -8,15 +8,15 @@ import net.minecraft.world.phys.Vec3;
 
 /** The GBL four-area footprint, rebuilt as a level-floored temple inside Behemoth. */
 public final class BehemothForbidden {
-    public static final int SPACING=GblChurch.SPACING,MAX_Z=GblChurch.MAX_Z;
+    public static final int SPACING=TempleRoomSequence.SPACING,MAX_Z=TempleRoomSequence.MAX_Z;
     public static final String[] AREAS={"入口神殿","复活回廊","禁咒内殿","审判祭坛"};
     public static int area(int wave){return Math.min(3,wave/2);}
-    public static boolean contains(int cell,int area,Vec3 p){return GblChurch.contains(cell,area,p.x,p.z);}
+    public static boolean contains(int cell,int area,Vec3 p){return TempleRoomSequence.contains(cell,area,p.x,p.z);}
     public static Vec3 inside(int cell,int area,Vec3 p){
         double half=area==3?17:13;
         return new Vec3(Math.clamp(p.x,cell*512-half,cell*512+half),80,Math.clamp(p.z,area*SPACING+3,area*SPACING+(area==3?36:29)));
     }
-    public static void gate(ServerLevel world,BlockPos origin,int gate,boolean open){GblChurch.gate(world,origin,gate,open);}
+    public static void gate(ServerLevel world,BlockPos origin,int gate,boolean open){TempleRoomSequence.gate(world,origin,gate,open);}
     public static void build(ServerLevel world,BlockPos origin){
         for(int area=0;area<4;area++){
             int start=area*SPACING,size=area==3?40:32,half=size/2;

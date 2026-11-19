@@ -1,0 +1,20 @@
+{
+  "type": "yumis_dungeon_and_fight:industrial",
+  "machine": "mineral_refinery",
+  "minimum_tier": 2,
+  "ingredients": [],
+  "results": [
+    {
+      "id": "yumis_dungeon_and_fight:plastic",
+      "count": 4
+    }
+  ],
+  "fluid_inputs": [
+    {
+      "ingredient": "yumis_dungeon_and_fight:liquid_ethylene",
+      "amount": 250
+    }
+  ],
+  "ticks": 200,
+  "energy": 1600
+}

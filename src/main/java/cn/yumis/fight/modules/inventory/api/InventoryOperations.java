@@ -17,6 +17,8 @@ public interface InventoryOperations {
     ItemStack decode(ServerPlayer player,JsonElement value);
     void restore(ServerPlayer player);
     void requireSpace(ServerPlayer player,ItemStack stack);
+    /** Delivers a transaction output, recording any overflow in the existing waiting inventory. */
+    void deliverOrStash(ServerPlayer player,ItemStack stack,Map<String,JsonElement> changes);
     void closeCursor(ServerPlayer player);
     void click(ServerPlayer player,AbstractContainerMenu menu,int slot,int button,ContainerInput input);
 }

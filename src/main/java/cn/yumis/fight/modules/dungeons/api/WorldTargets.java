@@ -9,4 +9,5 @@ public interface WorldTargets {
     cn.yumis.fight.modules.combat.api.CombatPorts.Commit prepare(Map<LivingEntity,Target> changes);
     void commit(Map<LivingEntity,Target> changes);
     void release(Collection<? extends LivingEntity> entities);
+    void releaseIds(Collection<UUID> actors);
 }

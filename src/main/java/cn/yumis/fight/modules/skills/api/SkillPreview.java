@@ -64,12 +64,12 @@ public final class SkillPreview {
         Damage hit=count==0?new Damage(0,0):SkillPreviewRules.hitPhase(skill)!=null?phaseDamage(progress,stats,skill,coefficient,SkillPreviewRules.hitPhase(skill),effects):damage(progress,stats,skill,coefficient,false,effects);
         if(skill.id.equals(MageSkills.HERDER)){
             var inherited=SummonerSkills.inherit(stats,SummonKind.HERDER,SkillLearning.effective(stats,progress,SkillCatalog.require(SummonerSkills.MASTERY)));var melee=damage(progress,inherited,skill,parameters.get("damage",0),false,effects);var stone=damage(progress,inherited,skill,parameters.get("stoneDamage",0),false,effects);Damage total=new Damage(0,0);
-            for(var action:SummonMoves.cues(SummonKind.HERDER,parameters.rank(),120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus((action.stone()?stone:melee).times(action.share()));
+            for(var action:SummonMoves.cues(SummonKind.HERDER,parameters,120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus((action.stone()?stone:melee).times(action.share()));
             hit=total;
         }
         if(SummonerSkills.contains(skill.id)&&!SummonerSkills.kinds(skill.id).isEmpty()){
             Damage total=new Damage(0,0);int masteryRank=SkillLearning.effective(stats,progress,SkillCatalog.require(SummonerSkills.MASTERY));
-            for(var kind:SummonerSkills.kinds(skill.id)){var inherited=SummonerSkills.inherit(stats,kind,masteryRank);double speed=Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100);for(var action:SummonMoves.cues(kind,parameters.rank(),120000,speed)){inherited.modifiers.put("summonElement",(double)SummonMoves.require(action.move()).element());total=total.plus(damage(progress,inherited,skill,parameters.get("damage",0)*action.share(),false,effects));}}
+            for(var kind:SummonerSkills.kinds(skill.id)){var inherited=SummonerSkills.inherit(stats,kind,masteryRank);double speed=Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100);for(var action:SummonMoves.cues(kind,parameters,120000,speed)){inherited.modifiers.put("summonElement",(double)SummonMoves.require(action.move()).element());total=total.plus(damage(progress,inherited,skill,parameters.get("damage",0)*action.share(),false,effects));}}
             hit=total;
         }
         Damage finisher=pattern!=null&&pattern.finisher()>0?damage(progress,stats,skill,pattern.finisher(),false,effects):definition.finisher()?damage(progress,stats,skill,parameters.get("finisher",0),false,effects):new Damage(0,0);

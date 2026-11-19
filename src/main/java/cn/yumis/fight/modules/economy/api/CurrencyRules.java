@@ -22,6 +22,7 @@ public final class CurrencyRules {
         new Currency("delezie_blood",Rarity.RARE,true),
         new Currency("regal_stone",Rarity.ARTIFACT,true),
         new Currency("exalted_stone",Rarity.LEGENDARY,true),
+        new Currency(cn.yumis.fight.modules.equipment.api.EquipmentRules.MASTER_CRYSTAL,Rarity.LEGENDARY,false),
         new Currency("stripping_stone",Rarity.LEGENDARY,true),
         new Currency("divine_stone",Rarity.EPIC,true),
         new Currency("advanced_divine_stone",Rarity.EPIC,false),
@@ -35,7 +36,21 @@ public final class CurrencyRules {
         new Currency("affix_extraction_stone",Rarity.LEGENDARY,false),
         new Currency("affix_gem",Rarity.ARTIFACT,false),
         new Currency("epic_upgrade_stone",Rarity.EPIC,false),
-        new Currency("mythic_upgrade_stone",Rarity.MYTHIC,false)
+        new Currency("mythic_upgrade_stone",Rarity.MYTHIC,false),
+        new Currency("altar_token_uncrowned_gardener",Rarity.ARTIFACT,false),
+        new Currency("altar_token_off_duty_matron",Rarity.ARTIFACT,false),
+        new Currency("altar_token_white_reliquary",Rarity.ARTIFACT,false),
+        new Currency("altar_token_debt_collector",Rarity.ARTIFACT,false),
+        new Currency("altar_token_fallen_scale_king",Rarity.ARTIFACT,false),
+        new Currency("altar_token_thousandfold_confession",Rarity.ARTIFACT,false),
+        new Currency("warm_dragon_scale",Rarity.ARTIFACT,false),
+        new Currency("penitent_shard",Rarity.ARTIFACT,false),
+        new Currency("lightmoss_scion",Rarity.LEGENDARY,false),
+        new Currency("severance_spring",Rarity.LEGENDARY,false),
+        new Currency("unfinished_chant_core",Rarity.LEGENDARY,false),
+        new Currency("stopped_clock_gear",Rarity.LEGENDARY,false),
+        new Currency("ember_scale",Rarity.LEGENDARY,false),
+        new Currency("silent_chip",Rarity.LEGENDARY,false)
     ));
     private static List<Currency> catalog(List<Currency> base){
         var all=new ArrayList<>(base);
