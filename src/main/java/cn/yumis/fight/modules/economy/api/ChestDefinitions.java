@@ -8,7 +8,9 @@ import cn.yumis.fight.modules.equipment.api.*;
 /** Data-pack chest registry. Chest tiers are not equipment rarities. */
 public final class ChestDefinitions {
     public static final List<String> TIERS=List.of("青铜","白银","黄金","钻石","神器","传说","史诗","神话","太初","最终");
-    public record Entry(String item,int count,double weight){}
+    public record Entry(String item,int count,double weight,String template){
+        public Entry(String item,int count,double weight){this(item,count,weight,null);}
+    }
     public record Definition(String name,boolean enabled,int equipmentBase,int equipmentPerTier,int currencyBase,int currencyPerTier,List<Entry> fixed,List<Entry> special,int specialRolls){}
     public record SpecialPool(double chance,List<Entry> entries){}
     public record WaystoneChest(String name,int currencyMinimum,int currencyMaximum,boolean inheritDropRate,List<Entry> fixed,List<Entry> special,int specialRolls){}
@@ -29,6 +31,8 @@ public final class ChestDefinitions {
         for(String id:List.of("goblin_camp","dragon_tower","castle_palace","treasure_forest","treasure_tower","treasure_palace"))d.bossPools.put(id,pool);
         d.bossRarePools.put("gbl_church",new SpecialPool(.05,List.of(new Entry("essence_alaska_wisdom",1,1))));
         d.bossRarePools.put("castle_palace",new SpecialPool(.05,List.of(new Entry("essence_pinocchio",1,1),new Entry("essence_sieghart",1,1),new Entry("essence_delezie",1,1),new Entry("essence_skasa",1,1))));
+        d.bossPools.put("yumis_dungeon_and_fight:karl",new SpecialPool(1,List.of(new Entry("yumis_dungeon_and_fight:karl_token",1,1))));
+        d.bossRarePools.put("yumis_dungeon_and_fight:karl",new SpecialPool(.05,List.of(new Entry(null,1,1,"named/karl_phantom_sword"))));
         d.todo=List.of("深渊派对挑战函用途", "哥布林王国宝箱正式掉落", "挖宝专属史诗和神话装备及掉率", "其他特殊道具");
         return d;
     }
@@ -49,7 +53,12 @@ public final class ChestDefinitions {
     }
     private static void validate(List<Entry> entries){
         for(var e:entries){
-            if(e==null||e.item()==null||e.count()<1||e.count()>4096||!Double.isFinite(e.weight())||e.weight()<0)throw new IllegalArgumentException("无效宝箱奖励");
+            if(e==null||e.count()<1||e.count()>4096||!Double.isFinite(e.weight())||e.weight()<0)throw new IllegalArgumentException("无效宝箱奖励");
+            if(e.template()!=null){
+                if(e.item()!=null||e.count()!=1||NamedEquipment.find(e.template())==null)throw new IllegalArgumentException("无效具名装备奖励："+e.template());
+                continue;
+            }
+            if(e.item()==null)throw new IllegalArgumentException("无效宝箱奖励");
             if(e.item().contains(":")){var id=net.minecraft.resources.Identifier.parse(e.item());if(!net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(id)||id.equals(net.minecraft.resources.Identifier.withDefaultNamespace("air")))throw new IllegalArgumentException("未知奖励物品："+id);}
             else if(!e.item().equals("goblin_treasure_map")&&!e.item().equals("abyss_invitation")&&!e.item().equals("colorless_crystal")&&CurrencyRules.find(e.item())==null)throw new IllegalArgumentException("未登记奖励："+e.item());
         }

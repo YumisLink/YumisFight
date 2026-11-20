@@ -1,0 +1,37 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": {"type": "minecraft:uniform", "min": 2, "max": 4},
+      "entries": [
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:katana", "weight": 14, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "weapon", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:katana", "weight": 4, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "weapon", "rarity": "rare", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:head_armor", "weight": 3, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "head", "armor": "heavy", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:head_armor", "weight": 1, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "head", "armor": "heavy", "rarity": "rare", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:chest_armor", "weight": 3, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "chest", "armor": "heavy", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:chest_armor", "weight": 1, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "chest", "armor": "heavy", "rarity": "rare", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:legs_armor", "weight": 3, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "legs", "armor": "heavy", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:legs_armor", "weight": 1, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "legs", "armor": "heavy", "rarity": "rare", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:feet_armor", "weight": 3, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "feet", "armor": "heavy", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:feet_armor", "weight": 1, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "feet", "armor": "heavy", "rarity": "rare", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:head_armor", "weight": 3, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "head", "armor": "plate", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:head_armor", "weight": 1, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "head", "armor": "plate", "rarity": "rare", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:chest_armor", "weight": 3, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "chest", "armor": "plate", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:chest_armor", "weight": 1, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "chest", "armor": "plate", "rarity": "rare", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:legs_armor", "weight": 3, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "legs", "armor": "plate", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:legs_armor", "weight": 1, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "legs", "armor": "plate", "rarity": "rare", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:feet_armor", "weight": 3, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "feet", "armor": "plate", "min_level": 1, "max_level": 10}]},
+        {"type": "minecraft:item", "name": "yumis_dungeon_and_fight:feet_armor", "weight": 1, "functions": [{"function": "yumis_dungeon_and_fight:roll_equipment", "slot": "feet", "armor": "plate", "rarity": "rare", "min_level": 1, "max_level": 10}]}
+      ]
+    },
+    {
+      "rolls": {"type": "minecraft:uniform", "min": 1, "max": 2},
+      "entries": [
+        {"type": "minecraft:item", "name": "minecraft:bread", "weight": 4, "functions": [{"function": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 1, "max": 3}}]},
+        {"type": "minecraft:item", "name": "minecraft:apple", "weight": 3, "functions": [{"function": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 1, "max": 3}}]},
+        {"type": "minecraft:item", "name": "minecraft:torch", "weight": 4, "functions": [{"function": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 2, "max": 4}}]},
+        {"type": "minecraft:item", "name": "minecraft:iron_ingot", "weight": 2, "functions": [{"function": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 1, "max": 2}}]}
+      ]
+    }
+  ]
+}

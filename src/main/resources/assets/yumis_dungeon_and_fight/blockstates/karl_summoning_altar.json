@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": {"model": "yumis_dungeon_and_fight:block/karl_summoning_altar"},
+    "facing=east": {"model": "yumis_dungeon_and_fight:block/karl_summoning_altar", "y": 90},
+    "facing=south": {"model": "yumis_dungeon_and_fight:block/karl_summoning_altar", "y": 180},
+    "facing=west": {"model": "yumis_dungeon_and_fight:block/karl_summoning_altar", "y": 270}
+  }
+}

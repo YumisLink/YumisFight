@@ -95,78 +95,78 @@ public final class PracticeLayouts {
             (x,z) -> Math.abs(x)<=19 && Math.abs(z)<=19 && Math.abs(x)+Math.abs(z)<=32, 12,
             Blocks.POLISHED_GRANITE, Blocks.SMOOTH_QUARTZ, Blocks.TUFF_BRICKS, PracticeLayouts::martialHall,
             // The enemy marker stays empty: the encounter service draws each mob from PracticeMobs per spawn.
-            "", -11,18, 11,18, -11,40, 11,40));
+            ""));
         rooms.put(PracticeRoom.GOLD.id(), arena(
             (x,z) -> Math.abs(x)<=19 && Math.abs(z)<=19, 12,
             Blocks.POLISHED_ANDESITE, Blocks.CUT_COPPER.waxed().unaffected(), Blocks.DEEPSLATE_BRICKS, PracticeLayouts::mint,
-            "goblin_captain", -11,18, 11,18, -11,40, 11,40));
+            "goblin_captain"));
         rooms.put(PracticeRoom.CURRENCY.id(), arena(
             (x,z) -> Math.abs(x)<=22 && Math.abs(z)<=13 || Math.abs(x)<=11 && Math.abs(z)<=18, 11,
             Blocks.POLISHED_DEEPSLATE, Blocks.POLISHED_BLACKSTONE, Blocks.DEEPSLATE_BRICKS, PracticeLayouts::engraving,
-            ClassicEnemyKind.MYSTERIOUS_AWARENESS_SPACE_SOLDIER.id, -14,22, 14,22, -14,36, 14,36));
+            ClassicEnemyKind.MYSTERIOUS_AWARENESS_SPACE_SOLDIER.id));
 
         material(rooms, "goblin_camp", arena(
             (x,z) -> Math.abs(x)<=19 && Math.abs(z)<=17 && (z>=-9 || Math.abs(x)<=12), 9,
             Blocks.ANDESITE, Blocks.SPRUCE_PLANKS, Blocks.TUFF_BRICKS, PracticeLayouts::goblinFoundry,
-            "goblin", -8,17, 8,17, -11,39, 11,39));
+            "goblin"));
         material(rooms, "dragon_tower", arena(
             (x,z) -> Math.abs(x)<=19 && Math.abs(z)<=19 && Math.abs(x)+Math.abs(z)<=30, 14,
             Blocks.POLISHED_DIORITE, Blocks.CUT_COPPER.waxed().unaffected(), Blocks.TUFF_BRICKS, PracticeLayouts::towerLift,
-            "dragonman", -10,18, 10,18, -10,41, 10,41));
+            "dragonman"));
         material(rooms, "castle_palace", arena(
             (x,z) -> Math.abs(x)<=24 && Math.abs(z)<=12 || Math.abs(x)<=8 && Math.abs(z)<=17, 12,
             Blocks.POLISHED_ANDESITE, Blocks.SMOOTH_QUARTZ, Blocks.QUARTZ_BRICKS, PracticeLayouts::palaceGallery,
-            PalaceEnemyKind.EXPELLER.id, -16,21, 16,21, -16,37, 16,37));
+            PalaceEnemyKind.EXPELLER.id));
         material(rooms, "gbl_church", arena(
             (x,z) -> Math.abs(x)<=8 && Math.abs(z)<=19 || Math.abs(x)<=22 && Math.abs(z)<=9, 13,
             Blocks.STONE_BRICKS, Blocks.POLISHED_ANDESITE, Blocks.DEEPSLATE_BRICKS, PracticeLayouts::reliquary,
-            GblEnemyKind.CULTIST.id, -14,27, 14,27, -4,17, 4,41));
+            GblEnemyKind.CULTIST.id));
         material(rooms, "behemoth_forbidden", arena(
             (x,z) -> z>=-12 && ellipse(x,z-1,23,18), 11,
             Blocks.TUFF, Blocks.POLISHED_BASALT, Blocks.DEEPSLATE_BRICKS, PracticeLayouts::ribCavern,
-            ForbiddenEnemyKind.CULTIST.id, -9,21, 9,21, -12,37, 12,37));
+            ForbiddenEnemyKind.CULTIST.id));
         material(rooms, "dark_city", arena(
             (x,z) -> Math.abs(x)<=24 && (Math.abs(x)>=8 && Math.abs(z)<=13 || Math.abs(z)<=5), 10,
             Blocks.POLISHED_BLACKSTONE, Blocks.CHISELED_DEEPSLATE, Blocks.BLACKSTONE, PracticeLayouts::boneVault,
-            DarkCityEnemyKind.HEADLESS_SKELETON.id, -16,21, 16,21, -16,37, 16,37));
+            DarkCityEnemyKind.HEADLESS_SKELETON.id));
         material(rooms, "skasa", arena(
             (x,z) -> Math.abs(z)<=18 && ellipse(x,z,16+z/3,19), 12,
             Blocks.POLISHED_DIORITE, Blocks.CALCITE, Blocks.PACKED_ICE, PracticeLayouts::iceCave,
-            SkasaEnemyKind.MALE_WARRIOR.id, -7,21, 7,21, -11,37, 11,37));
+            SkasaEnemyKind.MALE_WARRIOR.id));
         material(rooms, "moonlight_tavern", arena(
             (x,z) -> Math.abs(z)<=16 && x>=-18+z/4 && x<=18+z/3, 9,
             Blocks.SPRUCE_PLANKS, Blocks.DARK_OAK_PLANKS, Blocks.MUD_BRICKS, PracticeLayouts::tavernCellar,
-            ClassicEnemyKind.MOONLIGHT_TAVERN_CITY_THUG.id, -10,18, 9,18, -9,40, 13,40));
+            ClassicEnemyKind.MOONLIGHT_TAVERN_CITY_THUG.id));
         material(rooms, "hamelin", arena(
             (x,z) -> x>=-22 && x<=8 && z>=-15 && z<=-2 || Math.abs(x)<=11 && Math.abs(z)<=6
                 || x>=-8 && x<=22 && z>=2 && z<=17, 9,
             Blocks.MUD_BRICKS, Blocks.COBBLED_DEEPSLATE, Blocks.MOSSY_COBBLESTONE, PracticeLayouts::crookedCourts,
-            ClassicEnemyKind.HAMELIN_MAD_THIEF.id, -14,20, 4,20, -4,39, 14,39));
+            ClassicEnemyKind.HAMELIN_MAD_THIEF.id));
         material(rooms, "pursuit", arena(
             (x,z) -> z>=-14 && z<=18 && Math.abs(x)<=(z<2?15:25-(z-2)), 10,
             Blocks.SMOOTH_STONE, Blocks.IRON_BLOCK, Blocks.DEEPSLATE_BRICKS, PracticeLayouts::armory,
-            ClassicEnemyKind.PURSUIT_CARTEL_SOLDIER.id, -10,18, 10,18, -12,36, 12,36));
+            ClassicEnemyKind.PURSUIT_CARTEL_SOLDIER.id));
         material(rooms, "sea_train", arena(
             (x,z) -> Math.abs(x)<=19 && z>=-18 && z<=20, 11,
             Blocks.POLISHED_ANDESITE, Blocks.DARK_PRISMARINE, Blocks.SPRUCE_PLANKS, PracticeLayouts::freightPlatforms,
-            ClassicEnemyKind.SEA_TRAIN_CROC_SPEARMAN.id, -10,18, 10,18, -10,41, 10,41));
+            ClassicEnemyKind.SEA_TRAIN_CROC_SPEARMAN.id));
         material(rooms, "time_rift", arena(
             (x,z) -> Math.abs(x)<=21 && Math.abs(z)<=18
                 && (Math.abs(x)>=9 || Math.abs(z)>=9 || Math.abs(x)<=3 || Math.abs(z)<=3), 13,
             Blocks.POLISHED_BLACKSTONE, Blocks.CHISELED_TUFF_BRICKS, Blocks.DEEPSLATE_TILES, PracticeLayouts::timeGates,
-            ClassicEnemyKind.TIME_RIFT_IMPERIAL_SOLDIER.id, -13,19, 13,19, -13,39, 13,39));
+            ClassicEnemyKind.TIME_RIFT_IMPERIAL_SOLDIER.id));
         material(rooms, "mysterious_awareness", arena(
             (x,z) -> z>=-15 && z<=17 && Math.abs(x)<=10+(z+15)/2 && ellipse(x,z+6,30,26), 12,
             Blocks.SMOOTH_QUARTZ, Blocks.PURPUR_BLOCK, Blocks.QUARTZ_BRICKS, PracticeLayouts::memoryArchive,
-            ClassicEnemyKind.MYSTERIOUS_AWARENESS_AXE_PUPPET.id, -8,21, 8,21, -14,40, 14,40));
+            ClassicEnemyKind.MYSTERIOUS_AWARENESS_AXE_PUPPET.id));
         material(rooms, "grandi", arena(
             (x,z) -> Math.abs(x)<=23 && Math.abs(z)<=16 && (Math.abs(x)>=9 || Math.abs(z)<=6), 12,
             Blocks.POLISHED_DEEPSLATE, Blocks.CUT_COPPER.waxed().unaffected(), Blocks.DEEPSLATE_BRICKS, PracticeLayouts::generatorHall,
-            ClassicEnemyKind.GRANDI_ASSAULT_GRANITE.id, -16,20, 16,20, -16,38, 16,38));
+            ClassicEnemyKind.GRANDI_ASSAULT_GRANITE.id));
         material(rooms, "central_park", arena(
             (x,z) -> ellipse(x+8,z+5,14,15) || ellipse(x-8,z-6,14,15), 11,
             Blocks.TUFF, Blocks.MOSSY_STONE_BRICKS, Blocks.ROOTED_DIRT, PracticeLayouts::rootCaverns,
-            ClassicEnemyKind.CENTRAL_PARK_GIZA_GUARD.id, -12,18, 1,25, -3,34, 13,41));
+            ClassicEnemyKind.CENTRAL_PARK_GIZA_GUARD.id));
         return Map.copyOf(rooms);
     }
 
@@ -175,11 +175,12 @@ public final class PracticeLayouts {
     }
 
     private static Arena arena(FloorPlan floor, int height, Block paving, Block inlay, Block wall,
-                                Consumer<Builder> details, String enemy, int... clusters) {
+                                Consumer<Builder> details, String enemy) {
+        // Every room type summons its whole wave as a 3-wide, 4-deep pack centered on the combat floor's exact center.
         var spawns = new ArrayList<Spawn>(PracticeRoom.WAVE_SIZE);
-        for (int i = 0; i < clusters.length; i += 2) {
+        for (int[] cluster : new int[][]{{0, CENTER_Z - 3}, {0, CENTER_Z - 1}, {0, CENTER_Z + 1}, {0, CENTER_Z + 3}}) {
             for (int dx : new int[]{-2,0,2}) {
-                spawns.add(new Spawn(new BlockPos(clusters[i]+dx,0,clusters[i+1]),enemy));
+                spawns.add(new Spawn(new BlockPos(cluster[0]+dx,0,cluster[1]),enemy));
             }
         }
         return new Arena(floor,height,new Palette(paving,inlay,wall),details,List.copyOf(spawns));

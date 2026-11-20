@@ -42,6 +42,8 @@ public final class AffixText {
         case "wall_power"->"普攻或技能造成伤害时每次最多获得1层护甲，每层提高1%，最多1000层；15秒脱战清空";
         case "gem_amplification"->"本武器镶嵌宝石的数值效果提高 "+n+"%";
         case "fire_after_damage"->"造成伤害后，额外造成相当于该次伤害 "+n+"% 的火属性伤害（另算防御与火强化／火抗）";
+        case "neutral_physical_after_damage"->"造成伤害时，附加相当于该次伤害 "+n+"% 的无属性物理伤害";
+        case "phantom_guard"->"被攻击时，有 "+n+"% 概率抵挡本次伤害，并以物理攻击面板的 "+integer(AffixEffects.PHANTOM_COUNTER_COEFFICIENT*100)+"% 反击一次";
         case "fire_conversion"->"保留火强化，其余元素强化按 "+n+"% 转为火强化";
         case "fire_only"->"无元素伤害转为火；只允许含火的元素伤害，混合元素仅保留火";
         case "block_elemental"->"无法造成带元素的伤害；无元素物理／魔法伤害保留";

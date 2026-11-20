@@ -25,6 +25,15 @@ class ProgressMovementTest {
         assertThrows(IllegalArgumentException.class,()->SkillLearning.learn(p,SkillCatalog.GHOST,2));
     }
 
+    @Test void earnExperienceGrantsTheBaseAmountAtLowLevels(){
+        Progress p=new Progress();
+        assertEquals(100,p.earnExperience(100));
+        assertEquals(100,p.experience);assertEquals(1,p.level);assertEquals(15,p.sp);
+        assertEquals(250,p.earnExperience(250));
+        assertEquals(50,p.experience);assertEquals(2,p.level);assertEquals(30,p.sp);
+        assertThrows(IllegalArgumentException.class,()->p.earnExperience(-1));
+    }
+
     @Test void fiveLeapsExhaustPoolAndCooldownCannotBeSkipped(){
         Stamina s=new Stamina();
         for(int i=0;i<5;i++)assertTrue(s.use(i*5,false));

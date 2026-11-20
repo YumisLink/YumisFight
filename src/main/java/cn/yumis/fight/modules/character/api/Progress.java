@@ -39,9 +39,8 @@ public class Progress {
         for(int i=0;i<slots.length;i++)if(slots[i]==null)slots[i]="";
     }
     public long earnExperience(long base){
-        long amount=Math.multiplyExact(base,level<=10?5:1);
-        grant(amount);
-        return amount;
+        grant(base);
+        return base;
     }
     public void grant(long amount){
         if(amount<0)throw new IllegalArgumentException("经验不可为负");

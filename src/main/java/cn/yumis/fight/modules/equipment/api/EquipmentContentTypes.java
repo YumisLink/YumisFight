@@ -1,7 +1,10 @@
 package cn.yumis.fight.modules.equipment.api;
+import cn.yumis.fight.modules.equipment.platform.RollEquipmentLoot;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.*;
 import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.entity.*;
@@ -16,10 +19,13 @@ import cn.yumis.fight.platform.ItemData;
 public final class EquipmentContentTypes {
     private static final String ID=ItemData.NS;
     public static final DeferredRegister.Blocks BLOCKS=DeferredRegister.createBlocks(ID);
+    private static final DeferredRegister<MapCodec<? extends LootItemFunction>> LOOT_FUNCTIONS =
+        DeferredRegister.create(Registries.LOOT_FUNCTION_TYPE, ID);
+    static { LOOT_FUNCTIONS.register("roll_equipment", () -> RollEquipmentLoot.CODEC); }
     public static final DeferredBlock<FabricatorBlock> FABRICATOR=BLOCKS.registerBlock("equipment_fabricator",FabricatorBlock::new,p->p.strength(3).sound(SoundType.METAL));
     public static final DeferredBlock<HoradricCubeBlock> HORADRIC_CUBE=BLOCKS.registerBlock("horadric_cube",HoradricCubeBlock::new,p->p.strength(5,1200).sound(SoundType.STONE));
     public static final DeferredRegister<MenuType<?>> MENUS=DeferredRegister.create(Registries.MENU,ID);
     public static final DeferredHolder<MenuType<?>,MenuType<FabricatorMenu>> FABRICATOR_MENU=MENUS.register("fabricator",()->new MenuType<>(FabricatorMenu::new,FeatureFlags.DEFAULT_FLAGS));
     public static final DeferredHolder<MenuType<?>,MenuType<HoradricCubeMenu>> HORADRIC_CUBE_MENU=MENUS.register("horadric_cube",()->new MenuType<>(HoradricCubeMenu::new,FeatureFlags.DEFAULT_FLAGS));
-    public static void register(IEventBus bus){BLOCKS.register(bus);MENUS.register(bus);cn.yumis.fight.platform.ItemRegistry.ITEMS.registerSimpleBlockItem(FABRICATOR);cn.yumis.fight.platform.ItemRegistry.ITEMS.registerSimpleBlockItem(HORADRIC_CUBE);}
+    public static void register(IEventBus bus){BLOCKS.register(bus);MENUS.register(bus);LOOT_FUNCTIONS.register(bus);cn.yumis.fight.platform.ItemRegistry.ITEMS.registerSimpleBlockItem(FABRICATOR);cn.yumis.fight.platform.ItemRegistry.ITEMS.registerSimpleBlockItem(HORADRIC_CUBE);}
 }

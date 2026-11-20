@@ -81,7 +81,7 @@ public final class DungeonPage {
             return;
         }
         page.rowButton(PracticeRoom.MOB.name(),()->join.accept(PracticeRoom.MOB));
-        page.line("随机刷新各副本小怪，等级跟随本人，血量3倍，掉落与副本内击杀一致。",UiTheme.MUTED);
+        page.line("随机刷新各副本小怪，等级跟随本人，血量3倍，掉落与副本内击杀一致，经验降为四分之一。",UiTheme.MUTED);
         page.rowButton(PracticeRoom.GOLD.name(),()->join.accept(PracticeRoom.GOLD));
         page.line("每波结算金币，按当时在场人数分成。",UiTheme.MUTED);
         page.rowButton(PracticeRoom.CURRENCY.name(),()->join.accept(PracticeRoom.CURRENCY));
@@ -100,8 +100,8 @@ public final class DungeonPage {
         if(openCamp(dungeon))return campObjective(dungeon);
         if(dungeon.dungeon.equals(GblChurch.ID))return dungeon.status.equals("COMPLETED")?"阿索尔已击败":"探索五殿 · 击败阿索尔";
         if(AwakeningTower.find(dungeon.dungeon)!=null)return dungeon.status.equals("COMPLETED")?"觉醒塔已通关":"进入战场 · 击败鲁卡斯";
-        if(dungeon.dungeon.equals(CastlePalace.ID))
-            return "阶段 "+(dungeon.wave+1)+" / "+(CastlePalace.BOSS+1)+" · "+CastlePalace.roomName(dungeon.wave)+" · "+status;
+        if(CastlePalace.handles(dungeon))return dungeon.status.equals("COMPLETED")?"城主宫殿已通关"
+            :"清理宫殿 · 已到达 "+dungeon.palaceRooms.size()+" / "+CastlePalace.ROOM_COUNT+" 个区域";
         return "波次 "+(dungeon.wave+1)+" / 7 · "+status;
     }
     private static final class Choice extends ThemedScreen {

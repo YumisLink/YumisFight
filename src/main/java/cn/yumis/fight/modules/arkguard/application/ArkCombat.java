@@ -378,7 +378,8 @@ final class ArkCombat {
             a.attacks=0;
             startSkill(a,millis(u.p("duration")));
         }
-        if(a.airborne)capped(a,"chronology","chronology",(int)u.s("chronologyGain",a.star()),(int)u.s("chronologyCap",a.star()));
+        if(a.airborne&&active(a.seat,"chronology"))
+            capped(a,"chronology","chronology",(int)u.s("chronologyGain",a.star()),(int)u.s("chronologyCap",a.star()));
         a.entity.swing(InteractionHand.MAIN_HAND);
     }
     private void attack(Actor source,Actor victim,double coefficient,boolean magic,int[] elements,boolean basic,int index,Runnable followUp){

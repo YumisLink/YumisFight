@@ -6,7 +6,7 @@ import cn.yumis.fight.modules.affixes.api.Affix;
 public final class EquipmentAffixRanges {
     public record Range(double minimum,double maximum,double upperMinimum,double upperMaximum,boolean interval){}
     private EquipmentAffixRanges(){}
-    public static boolean percentage(Affix a){return a.operation.equals("PERCENT")||a.operation.equals("CHARACTER_PERCENT")||a.operation.equals("CHARACTER_TOTAL")||a.operation.equals("EQUIPMENT_RULE")&&java.util.Set.of("armor_retaliation","gem_amplification","fire_after_damage","kill_recovery","life_cost","mana_share").contains(a.parameter);}
+    public static boolean percentage(Affix a){return a.operation.equals("PERCENT")||a.operation.equals("CHARACTER_PERCENT")||a.operation.equals("CHARACTER_TOTAL")||a.operation.equals("EQUIPMENT_RULE")&&java.util.Set.of("armor_retaliation","gem_amplification","fire_after_damage","neutral_physical_after_damage","phantom_guard","kill_recovery","life_cost","mana_share").contains(a.parameter);}
     public static Range reroll(Affix a,Rarity rarity,boolean gem,int level){
         if(gem||!EquipmentRules.washable(a))return null;
         var definition=AffixDefinitions.current().affixes.get(a.id);

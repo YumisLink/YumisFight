@@ -1,19 +1,54 @@
 package cn.yumis.fight.modules.npc.client;
 
+import cn.yumis.fight.modules.equipment.api.Rarity;
+import cn.yumis.fight.modules.equipment.api.client.MythicDisplay;
 import cn.yumis.fight.modules.npc.api.NpcTutorial;
+import cn.yumis.fight.modules.presentation.api.RichText;
 import cn.yumis.fight.modules.presentation.api.client.*;
+import java.util.List;
 
 /** A player-wide guide tracker inside the existing I menu. */
 public final class TutorialPage {
+    enum QuestType {
+        SIDE(Rarity.COMMON),
+        BEGINNER(Rarity.LEGENDARY),
+        MAIN(Rarity.EPIC),
+        CAREER(Rarity.MYTHIC);
+
+        private final List<String> titleColors;
+
+        QuestType(Rarity rarity) {
+            titleColors = rarity == Rarity.MYTHIC
+                    ? List.of("#%06x".formatted(MythicDisplay.GOLD), "#%06x".formatted(MythicDisplay.PINK))
+                    : List.of("#%06x".formatted(rarity.color()));
+        }
+    }
+
     private static java.lang.ref.WeakReference<PlayerPageSurface> open=new java.lang.ref.WeakReference<>(null);
     private TutorialPage(){}
     static void refresh(){var page=open.get();if(page!=null&&page.screen()==net.minecraft.client.Minecraft.getInstance().gui.screen())page.rebuild();}
+
+    static boolean questHeader(PlayerPageSurface page, String id, String title, QuestType type) {
+        boolean collapsed = ClientSettings.questCollapsed(id);
+        String suffix = collapsed ? "  ▲" : "  ▼";
+        var button = page.button(title + suffix, 0, page.cursor(), page.contentWidth() - 24, () -> {
+            ClientSettings.toggleQuestCollapsed(id);
+            page.rebuild();
+        });
+        if (button instanceof ThemedButton themed) {
+            var label = new RichText(List.of(new RichText.Span(title, type.titleColors)));
+            themed.setLabelWithSuffix(label, suffix);
+        }
+        page.cursor(page.cursor() + button.getHeight() + 4);
+        return !collapsed;
+    }
+
     public static void render(PlayerPageSurface page){
         open=new java.lang.ref.WeakReference<>(page);
         AwakeningQuestClient.render(page);
         PromotionQuestClient.render(page);
+        if (!questHeader(page, "elaina_tutorial", "伊蕾娜的旅途指引", QuestType.BEGINNER)) return;
         var state=TutorialClient.state();var definition=NpcTutorial.definition();
-        page.line("伊蕾娜的旅途指引",UiTheme.GOLD);
         if(!state.started){page.line(TutorialClient.starting()?"正在记录旅途指引…":"与伊蕾娜交谈，听完开场后会自动接取第一课。",UiTheme.TEXT);page.line("她在新手村树洞里；未生成新手村时，会出现在世界公共出生点附近。",UiTheme.MUTED);return;}
         var step=NpcTutorial.current(state);
         page.line("已提交 "+state.claimed.size()+" / "+definition.steps().size()+" · 所有职业配置共用进度",UiTheme.MUTED);page.gap();

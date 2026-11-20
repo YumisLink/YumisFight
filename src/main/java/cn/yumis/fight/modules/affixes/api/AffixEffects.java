@@ -6,6 +6,7 @@ import java.util.function.*;
 
 /** Effect registration belongs to affixes. Equipment only supplies accumulation ports. */
 public final class AffixEffects {
+    public static final double PHANTOM_COUNTER_COEFFICIENT=2.2;
     public interface ItemSink {void flat(Stat stat,double value);void percent(Stat stat,double value);void finalAdd(Stat stat,double value);}
     public interface CharacterSink {
         void extra(Affix affix);

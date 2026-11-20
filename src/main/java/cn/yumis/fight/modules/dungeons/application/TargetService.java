@@ -70,6 +70,7 @@ public final class TargetService implements WorldTargets {
             }
             else if(e instanceof DungeonEnemy mob){
                 t.originalLevel=mob.dungeonLevel();
+                t.fixedLevel=mob.fixedLevel();
                 t.instance=mob.instance();
                 t.life.instance=t.instance;
                 t.kind=mob.boss()?"BOSS":"NORMAL";

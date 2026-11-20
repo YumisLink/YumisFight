@@ -37,7 +37,7 @@ class CurrencyRulesTest {
         }
     }
 
-    @Test void rarityProbabilityIsSharedEquallyInsteadOfGrowingWithItemCount(){
+    @Test void rarityProbabilityIsSharedEquallyAndStaysValidAtExtremeDropRates(){
         double[] probabilities=CurrencyRules.probabilities(0);
         for(var tier:CurrencyRules.DROP_TIERS){
             double total=0;
@@ -50,12 +50,9 @@ class CurrencyRulesTest {
         }
         assertEquals(.05,probabilities[CurrencyRules.DROP_POOL.indexOf(CurrencyRules.find("chaos_stone"))],1e-12);
         assertEquals(.015,probabilities[CurrencyRules.DROP_POOL.indexOf(CurrencyRules.find("fracturing_orb"))],1e-12);
-    }
-
-    @Test void veryLargeFiniteDropRateStillProducesValidProbabilities(){
-        double[] probabilities=CurrencyRules.probabilities(Double.MAX_VALUE);
-        assertEquals(1,Arrays.stream(probabilities).sum(),1e-12);
-        for(double probability:probabilities)assertTrue(Double.isFinite(probability)&&probability>=0);
+        double[] extreme=CurrencyRules.probabilities(Double.MAX_VALUE);
+        assertEquals(1,Arrays.stream(extreme).sum(),1e-12);
+        for(double probability:extreme)assertTrue(Double.isFinite(probability)&&probability>=0);
         assertThrows(IllegalArgumentException.class,()->CurrencyRules.probabilities(Double.NaN));
     }
 }

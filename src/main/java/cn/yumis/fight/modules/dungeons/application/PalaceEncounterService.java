@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.dungeons.application;
 
+import cn.yumis.fight.foundation.Journal;
 import cn.yumis.fight.modules.combat.api.CombatContentTypes;
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.CastlePalace;
@@ -18,6 +19,7 @@ import static cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.*;
 /** Palace content AI, real motion and frozen telegraphs; the recipient decides its own contacts. */
 public final class PalaceEncounterService {
     private static final Gson JSON=new Gson();
+    private static final String ROOM_TAG = "ydnf_palace_room";
     private static final List<List<PalaceEnemyKind>> SQUADS = List.of(
         List.of(EXPELLER, EXPELLER, AXE_EXPELLER),
         List.of(EXPELLER, AXE_EXPELLER, AXE_EXPELLER),
@@ -45,7 +47,7 @@ public final class PalaceEncounterService {
     private static final class Brain {
         final Vec3 home;final int room;
         long busy,next,heavy,storm;int step;
-        Brain(DungeonEnemy e,Dungeon d){home=e.position();room=d.wave;busy=e.moveAt()+e.moveDuration();next=busy+Math.floorMod(e.getUUID().hashCode(),450);}
+        Brain(DungeonEnemy e,int room){home=e.position();this.room=room;busy=e.moveAt()+e.moveDuration();next=busy+Math.floorMod(e.getUUID().hashCode(),450);}
     }
     private static final class Pending {
         final PalaceAttack attack;long previous;
@@ -53,19 +55,12 @@ public final class PalaceEncounterService {
     }
     private record Motion(UUID source,Vec3 from,Vec3 to,long start,long end,double arc,String kind){}
     private final DungeonService owner;
+    private final Journal journal;
     private final DungeonPorts.Players players;
     private final Map<UUID,Brain> brains=new HashMap<>();
     private final Map<String,Pending> attacks=new LinkedHashMap<>();
     private final Map<UUID,Motion> motions=new HashMap<>();
-    PalaceEncounterService(DungeonService owner,DungeonPorts.Players players,DungeonPorts.Targets targets){this.owner=owner;this.players=players;this.targets=targets;}
-
-    static boolean handles(Dungeon d) {
-        return d.practice == null && d.treasure == null && CastlePalace.ID.equals(d.dungeon);
-    }
-
-    boolean waitsAtGate(Dungeon d, List<ServerPlayer> here) {
-        return here.stream().noneMatch(player -> canFight(player) && CastlePalace.reached(d.cell, d.wave + 1, player.position()));
-    }
+    PalaceEncounterService(DungeonService owner,Journal journal,DungeonPorts.Players players,DungeonPorts.Targets targets){this.owner=owner;this.journal=journal;this.players=players;this.targets=targets;}
 
     void breathe(List<ServerPlayer> here) {
         for (ServerPlayer player : here) {
@@ -81,14 +76,53 @@ public final class PalaceEncounterService {
             && !player.isSpectator() && !player.getAbilities().invulnerable;
     }
 
-    void spawn(Dungeon d){
-        List<PalaceEnemyKind> squad = SQUADS.get(d.wave);
-        boolean submerged = CastlePalace.submerged(d.wave);
+    boolean spawnArrivals(Dungeon d, List<ServerPlayer> here) throws Exception {
+        if (d.palaceRooms.size() == CastlePalace.ROOM_COUNT) return false;
+        var arrived = new LinkedHashSet<Integer>();
+        for (ServerPlayer player : here) {
+            if (!canFight(player)) continue;
+            int room = CastlePalace.roomAt(d.cell, player.position());
+            if (room >= 0 && !d.palaceRooms.contains(room)) arrived.add(room);
+        }
+        if (arrived.isEmpty()) return false;
+
+        var existing = Set.copyOf(d.enemies);
+        journal.begin();
+        try {
+            for (int room : arrived) spawn(d, room);
+            d.palaceRooms.addAll(arrived);
+            journal.put("instance/" + d.id, d);
+            journal.finish();
+        } catch (Exception failure) {
+            journal.abort();
+            d.palaceRooms.removeAll(arrived);
+            d.enemies.removeIf(id -> {
+                if (existing.contains(id)) return false;
+                Entity enemy = owner.level().getEntity(id);
+                if (enemy != null) enemy.discard();
+                return true;
+            });
+            throw failure;
+        }
+        return true;
+    }
+
+    boolean finishIfDefeated(Dungeon d, List<ServerPlayer> here) throws Exception {
+        if (!d.status.equals("RUNNING") || d.palaceRooms.size() != CastlePalace.ROOM_COUNT
+            || !d.enemies.stream().allMatch(owner::defeated)) return false;
+        owner.completeOpenDungeon(d, here, "地下城通关！可拾取战利品或返回。");
+        return true;
+    }
+
+    private void spawn(Dungeon d, int room) {
+        List<PalaceEnemyKind> squad = SQUADS.get(room);
+        boolean submerged = CastlePalace.submerged(room);
         for (int i = 0; i < squad.size(); i++) {
             PalaceEnemyKind kind = squad.get(i);
-            Vec3 position = spawnPoint(d.cell, d.wave, i);
+            Vec3 position = spawnPoint(d.cell, room, i);
             DungeonEnemy enemy = owner.spawn(d, kind.id, kind == AXION || kind == IAE, kind == SIEGHART,
                 position.x, position.y, position.z);
+            enemy.getPersistentData().putInt(ROOM_TAG, room);
             if (submerged) {
                 enemy.setNoGravity(true);
                 enemy.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, -1, 0, true, false, false));
@@ -105,8 +139,10 @@ public final class PalaceEncounterService {
         return CastlePalace.ringPoint(cell, Math.toRadians(127 - i * 27), 27.4, CastlePalace.floorY(room) + .65);
     }
     public void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> here,long now){
-        PalaceEnemyKind kind=PalaceEnemyKind.of(e);if(kind==null)return;
-        Brain b=brains.computeIfAbsent(e.getUUID(),id->new Brain(e,d));
+        PalaceEnemyKind kind=PalaceEnemyKind.of(e);
+        int room=e.getPersistentData().getIntOr(ROOM_TAG,-1);
+        if(kind==null||room<0||room>=CastlePalace.ROOM_COUNT)return;
+        Brain b=brains.computeIfAbsent(e.getUUID(),id->new Brain(e,room));
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
         if(now<b.busy){e.getNavigation().stop();return;}
         if(!CastlePalace.contains(d.cell,b.room,e.position())){
@@ -219,7 +255,17 @@ public final class PalaceEncounterService {
         }
         for(var entry:new ArrayList<>(brains.entrySet())){Entity raw=owner.level().getEntity(entry.getKey());if(!(raw instanceof DungeonEnemy e)||!e.isAlive()){brains.remove(entry.getKey());continue;}if(now>=entry.getValue().busy&&e.isAggressive())e.setAggressive(false);}
     }
-    private JsonObject packet(PalaceAttack a){var frame=JSON.toJsonTree(a).getAsJsonObject();var dungeon=owner.byId(a.instance);var brain=brains.get(a.source);if(dungeon!=null){frame.addProperty("cell",dungeon.cell);frame.addProperty("area",brain==null?dungeon.wave:brain.room);}frame.addProperty("contactUntil",System.currentTimeMillis());var raw=owner.level().getEntity(a.source);if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));return frame;}
+    private JsonObject packet(PalaceAttack a){
+        var frame=JSON.toJsonTree(a).getAsJsonObject();
+        var dungeon=owner.byId(a.instance);
+        var brain=brains.get(a.source);
+        if(dungeon!=null)frame.addProperty("cell",dungeon.cell);
+        if(brain!=null)frame.addProperty("area",brain.room);
+        frame.addProperty("contactUntil",System.currentTimeMillis());
+        var raw=owner.level().getEntity(a.source);
+        if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));
+        return frame;
+    }
     private void remove(PalaceAttack a,boolean cancelled){if(attacks.remove(a.id)==null)return;a.remove=true;a.cancelled=cancelled;owner.broadcast(a.instance,"palaceAttack",packet(a));}
     public void track(ServerPlayer p){for(Pending pending:attacks.values())if(owner.participant(p,pending.attack.instance))Network.send(p,"palaceAttack",packet(pending.attack));}
     public void cancel(UUID source){

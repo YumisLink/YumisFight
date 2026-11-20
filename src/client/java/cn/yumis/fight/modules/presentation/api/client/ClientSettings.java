@@ -1,9 +1,15 @@
 package cn.yumis.fight.modules.presentation.api.client;
 
 import cn.yumis.fight.modules.mining.api.VeinMining;
+import com.google.gson.Gson;
 import java.nio.file.*;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.*;
 public final class ClientSettings {
+    private static final Gson JSON = new Gson();
+    private static final Pattern COLLAPSED_QUESTS_LINE = Pattern.compile("(?m)^collapsedQuests\\h*=\\h*(\\[[^\\r\\n]*\\])\\h*$");
+    private static final Set<String> collapsedQuests = new TreeSet<>();
     public static String panel="medium",targetPosition="top_center";
     public static String uiFont="modern";
     public static final int MAX_DAMAGE_SCALE=4;
@@ -25,10 +31,18 @@ public final class ClientSettings {
     public static void toggleGlobalTheme(){globalTheme=globalTheme.equals("dark")?"light":"dark";save();UiTheme.preferencesChanged();}
     public static void follow(ThemeDomain domain,boolean enabled){String current=theme(domain);if(domain==ThemeDomain.MENU){menuTheme=current;menuFollowsTheme=enabled;}else if(domain==ThemeDomain.MACHINE){machineTheme=current;machineFollowsTheme=enabled;}save();UiTheme.preferencesChanged();}
     public static void toggleDomain(ThemeDomain domain){String next=theme(domain).equals("dark")?"light":"dark";if(domain==ThemeDomain.MENU){menuFollowsTheme=false;menuTheme=next;}else if(domain==ThemeDomain.MACHINE){machineFollowsTheme=false;machineTheme=next;}save();UiTheme.preferencesChanged();}
+    public static boolean questCollapsed(String id) {
+        return collapsedQuests.contains(id);
+    }
+    public static void toggleQuestCollapsed(String id) {
+        if (!collapsedQuests.remove(id)) collapsedQuests.add(id);
+        save();
+    }
     private static Path path(){
         return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("yumis_dungeon_and_fight-modules-v1-client.toml");
     }
     public static void load(){
+        collapsedQuests.clear();
         try{
             if(!Files.exists(path())){
                 save();
@@ -60,6 +74,12 @@ public final class ClientSettings {
             if(!java.util.Set.of("small","medium","large").contains(panel))panel="medium";
             if(damageScale<1||damageScale>MAX_DAMAGE_SCALE)damageScale=2;
             if(targetScale!=1&&targetScale!=1.5&&targetScale!=2)targetScale=1;
+            var quests = COLLAPSED_QUESTS_LINE.matcher(s);
+            if (quests.find()) {
+                for (String id : JSON.fromJson(quests.group(1), String[].class)) {
+                    if (id != null && !id.isBlank()) collapsedQuests.add(id);
+                }
+            }
         }
         catch(Exception e){
             ClientUi.current().message("设置读取失败："+e.getMessage());
@@ -84,7 +104,8 @@ public final class ClientSettings {
                 +"arkEnemyHealth="+arkEnemyHealth+"\narkAllyHealth="+arkAllyHealth+"\narkEnemyDamage="+arkEnemyDamage+"\narkAllyDamage="+arkAllyDamage+"\n"
                 +"enemyHealthDistance="+enemyHealthDistance+"\nenemyHealthPerspective="+enemyHealthPerspective+"\nattackNeutralMobs="+attackNeutralMobs+"\n"
                 +"veinMiningLimit="+veinMiningLimit+"\n"
-                +"menuShortcutDefaultsApplied="+menuShortcutDefaultsApplied+"\n");
+                +"menuShortcutDefaultsApplied="+menuShortcutDefaultsApplied+"\n"
+                +"collapsedQuests="+JSON.toJson(collapsedQuests)+"\n");
         }
         catch(Exception e){
             ClientUi.current().message("设置保存失败："+e.getMessage());

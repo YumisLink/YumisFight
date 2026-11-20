@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.dungeons.content;
 
+import cn.yumis.fight.modules.dungeons.api.Dungeon;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -8,32 +9,27 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.List;
 
 /** Spatial contract for the flooded tower, sky sea, bridge and palace island. */
 public final class CastlePalace {
     public static final String ID = "castle_palace";
     public static final String VERSION_PREFIX = "PALACE_SKY_SEA_";
-    public static final String VERSION = VERSION_PREFIX + "3";
+    public static final String VERSION = VERSION_PREFIX + "4";
     public static final int DECK = 6, BRIDGE = 7, COURT = 8, BOSS = 9;
+    public static final int ROOM_COUNT = BOSS + 1;
     public static final int SEA_LEVEL = 192;
     public static final DungeonLayouts.Bounds BOUNDS = new DungeonLayouts.Bounds(-128, 3, -128, 127, 169, 127);
     private static final int TOWER_Z = -78;
     private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_SUPPRESS_DROPS | Block.UPDATE_KNOWN_SHAPE;
     private static final String MAP = "/data/yumis_dungeon_and_fight/dungeon_map/castle_palace.nbt";
-    private static final List<String> ROOMS = List.of("前庭", "斧兵厅", "傀儡厅", "浮游回廊", "王宫长廊", "指挥厅",
-        "出水平台", "跨海战台", "宫前广场", "城主大厅");
-
-    public static String roomName(int room) {
-        return ROOMS.get(Math.clamp(room, 0, BOSS));
+    public static boolean handles(Dungeon dungeon) {
+        return dungeon != null && dungeon.practice == null && dungeon.treasure == null && ID.equals(dungeon.dungeon);
     }
 
     public static boolean submerged(int room) {
@@ -81,17 +77,10 @@ public final class CastlePalace {
         };
     }
 
-    public static boolean reached(int cell, int room, Vec3 point) {
-        if (!contains(cell, room, point)) return false;
-        double x = point.x - cell * 512;
-        if (submerged(room)) return x < -19 && point.z <= -57;
-        return switch (room) {
-            case DECK -> x <= -20;
-            case BRIDGE -> point.z < -18;
-            case COURT -> point.z < 42 && Math.abs(x) < 18;
-            case BOSS -> point.z < 61 && Math.abs(x) < 10;
-            default -> false;
-        };
+    public static int roomAt(int cell, Vec3 point) {
+        for (int room = 0; room < ROOM_COUNT; room++)
+            if (contains(cell, room, point)) return room;
+        return -1;
     }
 
     public static Vec3 inside(int cell, int room, Vec3 point) {
@@ -163,32 +152,6 @@ public final class CastlePalace {
                 throw new IllegalStateException("城主宫殿结构超出场次范围");
             for (int dx = 0; dx < width; dx++)
                 world.setBlock(cursor.set(origin.getX() + x + dx, origin.getY() + y, origin.getZ() + z), state, FLAGS);
-        }
-    }
-
-    public static void gate(ServerLevel world, BlockPos origin, int stage, boolean open) {
-        if (submerged(stage)) {
-            BlockState state = open ? Blocks.WATER.defaultBlockState() : Blocks.IRON_BARS.defaultBlockState()
-                .setValue(BlockStateProperties.NORTH, true).setValue(BlockStateProperties.SOUTH, true)
-                .setValue(BlockStateProperties.WATERLOGGED, true);
-            for (int z = -69; z <= -66; z++)
-                for (int y = floorY(stage); y < floorY(stage) + 5; y++)
-                    world.setBlock(origin.offset(31, y - 80, z), state, FLAGS);
-            return;
-        }
-        BlockState state = open ? Blocks.AIR.defaultBlockState() : Blocks.IRON_BARS.defaultBlockState()
-            .setValue(BlockStateProperties.EAST, true).setValue(BlockStateProperties.WEST, true);
-        if (stage == DECK || stage == BRIDGE) {
-            int z = stage == DECK ? -54 : -2;
-            for (int x = -4; x <= 4; x++)
-                for (int y = 197; y <= 202; y++)
-                    world.setBlock(origin.offset(x, y - 80, z), state, FLAGS);
-        } else if (stage == COURT) {
-            for (int x = -9; x <= 9; x++) {
-                int height = 21 - Math.max(0, Math.abs(x) - 3);
-                for (int i = 0; i < height; i++)
-                    world.setBlock(origin.offset(x, floorY(BOSS) - 80 + i, 47), state, FLAGS);
-            }
         }
     }
 

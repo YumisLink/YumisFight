@@ -9,9 +9,9 @@ public final class CharacterAttributes {
         double n=p.level-1;
         s.add(Stat.HEALTH,100+20*n);
         s.add(Stat.MP,80+10*n);
-        s.add(Stat.STRENGTH,20+3*n+p.strength);
-        s.add(Stat.INTELLIGENCE,15+2*n+p.intelligence);
-        s.add(Stat.SPIRIT,10+2*n+p.spirit);
+        s.add(Stat.STRENGTH,20+p.strength);
+        s.add(Stat.INTELLIGENCE,15+p.intelligence);
+        s.add(Stat.SPIRIT,10+p.spirit);
         s.add(Stat.PHYSICAL_ATTACK,5+n);
         s.add(Stat.MAGICAL_ATTACK,5+n);
         s.add(Stat.PHYSICAL_DEFENSE,20);

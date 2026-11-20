@@ -99,7 +99,7 @@ public class DungeonService {
         this.goblinCamp=new GoblinCampEncounterService(this,journal);
         this.dragonTower=new DragonTowerEncounterService(this,journal,players);
         this.gbl=new GblEncounterService(this,journal,players,targets);
-        this.palace=new PalaceEncounterService(this,players,targets);
+        this.palace=new PalaceEncounterService(this,journal,players,targets);
         this.forbidden=new ForbiddenEncounterService(this,journal,players,targets);
         this.skasa=new SkasaEncounterService(this,journal,players,targets);
         this.darkCity=new DarkCityEncounterService(this,journal,players,targets);
@@ -113,7 +113,7 @@ public class DungeonService {
         for(var kind:cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.values()){enemyBrains.put(kind.id,skasa::brain);}
         for(var kind:cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.values())enemyBrains.put(kind.id,darkCity::brain);
         waves.put("goblin_camp",goblinCamp::initialize);waves.put("dragon_tower",dragonTower::initialize);
-        waves.put(GblChurch.ID,gbl::initialize);waves.put(CastlePalace.ID,palace::spawn);
+        waves.put(GblChurch.ID,gbl::initialize);
         waves.put("behemoth_forbidden",forbidden::spawn);
         waves.put("skasa",skasa::spawn);
         waves.put("dark_city",darkCity::spawn);
@@ -274,7 +274,7 @@ public class DungeonService {
         playerAccess.session(p).life.instance=d.id.toString();
         playerAccess.session(p).life.dimension=DIMENSION.identifier().toString();
         enter(d,p);
-        if(d.enemies.isEmpty()&&d.wave==0)spawnWave(d);
+        if(!CastlePalace.handles(d)&&d.enemies.isEmpty()&&d.wave==0)spawnWave(d);
         for(ServerPlayer player:server.getPlayerList().getPlayers())if(participant(player,d)){
             playerAccess.profile(player);
             for(Entity e:level().getAllEntities())if(e instanceof DungeonEnemy enemy&&enemy.instance().equals(d.id.toString()))targets.context(player,enemy);
@@ -377,7 +377,7 @@ public class DungeonService {
         }else if(GblEncounterService.handles(d)){
             Vec3 entry=GblChurch.entry(d.cell);
             p.teleportTo(level(),entry.x,entry.y,entry.z,Set.of(),-90,0,true);
-        }else if(PalaceEncounterService.handles(d)){
+        }else if(CastlePalace.handles(d)){
             Vec3 entry=CastlePalace.entry(d.cell);
             p.teleportTo(level(),entry.x,entry.y,entry.z,Set.of(),-24,0,true);
         }else if(awakeningTower!=null){
@@ -389,7 +389,7 @@ public class DungeonService {
         int ox=d.cell*512;
         if(d.treasure!=null){if(d.treasure.region==0)return;for(int x=Math.floorDiv(ox-44,16);x<=Math.floorDiv(ox+44,16);x++)for(int z=-3;z<=2;z++){level().setChunkForced(x,z,forced);if(forced)level().getChunk(x,z);}return;}
         var bounds=layouts.require(d.dungeon).activeBounds();
-        boolean skySea=PalaceEncounterService.handles(d);
+        boolean skySea=CastlePalace.handles(d);
         for(int x=Math.floorDiv(ox+bounds.minX(),16);x<=Math.floorDiv(ox+bounds.maxX(),16);x++)
         for(int z=Math.floorDiv(bounds.minZ(),16);z<=Math.floorDiv(bounds.maxZ(),16);z++){
             if(skySea&&!CastlePalace.keepsChunk(x-Math.floorDiv(ox,16),z))continue;
@@ -514,18 +514,23 @@ public class DungeonService {
         spawn.accept(d);journal.put("instance/"+d.id,d);refresh.run();
     }
     private static int lastWave(Dungeon d){
-        if(AwakeningTower.find(d.dungeon)!=null)return 0;
-        return PalaceEncounterService.handles(d)?CastlePalace.BOSS:6;
+        return AwakeningTower.find(d.dungeon)!=null?0:6;
     }
     private static String palaceLayoutKey(){return CastlePalace.ID+"/"+CastlePalace.VERSION;}
     private static boolean skySeaLayout(String layout){return layout.contains(CastlePalace.ID+"/"+CastlePalace.VERSION_PREFIX);}
     private boolean previousPalace(Dungeon d){
-        return PalaceEncounterService.handles(d)&&!journal.get("arenaCell/"+d.cell,String.class,"").equals(palaceLayoutKey());
+        return CastlePalace.handles(d)&&!journal.get("arenaCell/"+d.cell,String.class,"").equals(palaceLayoutKey());
     }
     private static String gblLayoutKey(){return GblChurch.ID+"/"+GblChurch.VERSION;}
     private static boolean whaleLayout(String layout){return layout.contains(GblChurch.ID+"/"+GblChurch.VERSION_PREFIX);}
     private boolean previousGbl(Dungeon d){
         return GblEncounterService.handles(d)&&!journal.get("arenaCell/"+d.cell,String.class,"").equals(gblLayoutKey());
+    }
+    boolean defeated(UUID id){
+        Entity entity=level().getEntity(id);
+        if(entity!=null&&!entity.isAlive())return true;
+        Target stored=journal.get("target/"+id,Target.class,null);
+        return stored!=null&&stored.life.dead;
     }
     public void tick(){
         try{
@@ -536,7 +541,7 @@ public class DungeonService {
                 Dungeon d=journal.get(key,Dungeon.class,null);
                 if(d==null||d.treasure!=null)continue;
                 boolean openCamp=GoblinCampEncounterService.handles(d),openTower=DragonTowerEncounterService.handles(d);
-                boolean openPalace=PalaceEncounterService.handles(d),openGbl=GblEncounterService.handles(d);
+                boolean openPalace=CastlePalace.handles(d),openGbl=GblEncounterService.handles(d);
                 if(!d.status.equals("RUNNING")&&!((openCamp||openTower||openPalace||openGbl)&&d.status.equals("COMPLETED")))continue;
                 List<ServerPlayer> players=server.getPlayerList().getPlayers().stream().filter(p->participant(p,d)&&p.level().dimension()==DIMENSION).toList();
                 if(players.isEmpty()){
@@ -554,8 +559,10 @@ public class DungeonService {
                     }
                     palace.breathe(players);
                     if(d.status.equals("COMPLETED"))continue;
+                    if(palace.spawnArrivals(d,players))refresh.run();
+                    if(palace.finishIfDefeated(d,players))continue;
                 }
-                if(openGbl){
+                else if(openGbl){
                     if(previousGbl(d)){
                         for(ServerPlayer player:players)leave(player,true);
                         continue;
@@ -566,12 +573,7 @@ public class DungeonService {
                 else if(openCamp)goblinCamp.tick(d,players,now);
                 else if(openTower)dragonTower.tick(d,players,now);
                 else{
-                d.enemies.removeIf(id->{
-                    Target stored=journal.get("target/"+id,Target.class,null);
-                    Entity e=level().getEntity(id);
-                    return stored!=null&&stored.life.dead||e!=null&&!e.isAlive();
-                }
-                );
+                d.enemies.removeIf(this::defeated);
                 if(d.enemies.isEmpty()){
                     if(d.wave==lastWave(d)){
                         if(d.waystone!=null){waystones.complete(d,players);refresh.run();continue;}
@@ -597,7 +599,6 @@ public class DungeonService {
                     }
                     var layout=layouts.require(d.dungeon);
                     if((d.wave+1)%layout.wavesPerGate()==0)openDoor(d,d.wave/layout.wavesPerGate());
-                    if(openPalace&&palace.waitsAtGate(d,players))continue;
                     if(d.dungeon.equals("behemoth_forbidden")&&forbidden.waitsAtGate(d,players))continue;
                     if(d.dungeon.equals("skasa")&&skasa.waitsAtGate(d,players))continue;
                     if(d.dungeon.equals("dark_city")&&darkCity.waitsAtGate(d,players))continue;
@@ -892,6 +893,14 @@ public class DungeonService {
                 if(fallen.boss())gbl.finishIfDefeated(completed,server.getPlayerList().getPlayers().stream()
                     .filter(p->participant(p,completed.id.toString())&&p.level().dimension()==DIMENSION).toList());
             }catch(Exception failure){throw new IllegalStateException("GBL 通关结算失败",failure);}
+            return;
+        }
+        if(CastlePalace.handles(completed)){
+            try{
+                var here=server.getPlayerList().getPlayers().stream()
+                    .filter(p->participant(p,completed)&&p.level().dimension()==DIMENSION).toList();
+                palace.finishIfDefeated(completed,here);
+            }catch(Exception failure){throw new IllegalStateException("城主宫殿通关结算失败",failure);}
             return;
         }
         if(completed!=null&&AwakeningTower.find(completed.dungeon)!=null&&completed.enemies.contains(boss)){

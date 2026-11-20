@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.skills.api;
 import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.combat.api.CombatRules;
+import cn.yumis.fight.modules.combat.api.EquipmentDamage;
 
 
 import cn.yumis.fight.modules.character.api.Progress;
@@ -50,7 +51,12 @@ public final class SkillPreview {
         var high=CombatRules.panel(stats,magic,elements,coefficient,!passive,true);
         if(!allowed){low=low.withMain(0);high=high.withMain(0);}
         double minimum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(low,stats,skill,mastery,false,passive,1).total(),maximum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(high,stats,skill,mastery,false,passive,1).total();
-        return new Damage(minimum+(append?cn.yumis.fight.modules.combat.api.EquipmentDamage.append(minimum,stats,effects,0,new double[4]):0),maximum+(append?cn.yumis.fight.modules.combat.api.EquipmentDamage.append(maximum,stats,effects,0,new double[4]):0));
+        if(append){
+            double[] resist=new double[4];
+            minimum+=EquipmentDamage.append(minimum,stats,effects,0,resist)+EquipmentDamage.appendNeutralPhysical(minimum,effects,0,resist);
+            maximum+=EquipmentDamage.append(maximum,stats,effects,0,resist)+EquipmentDamage.appendNeutralPhysical(maximum,effects,0,resist);
+        }
+        return new Damage(minimum,maximum);
     }
     public static Preview resolve(Progress progress,Stats stats,SkillDefinition skill,SkillParameters.Snapshot parameters,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.castDamage(SunMoonRules.forCast(stats,skill),parameters);

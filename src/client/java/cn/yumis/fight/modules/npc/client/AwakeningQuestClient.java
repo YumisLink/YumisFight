@@ -232,7 +232,7 @@ final class AwakeningQuestClient {
     static void render(PlayerPageSurface page) {
         if (view == null || state.stage() == Stage.LOCKED) return;
         var definition = AwakeningQuest.definition();
-        page.line(definition.badge(), UiTheme.GOLD);
+        if (!TutorialPage.questHeader(page, AwakeningQuest.ACTION, definition.badge().plain(), TutorialPage.QuestType.CAREER)) return;
         if (state.stage() == Stage.COMPLETE) {
             page.line("已觉醒 · 已发放大师水晶 4/4", UiTheme.ACCENT);
             page.gap();

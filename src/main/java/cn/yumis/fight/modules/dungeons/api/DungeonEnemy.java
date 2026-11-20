@@ -45,6 +45,7 @@ public class DungeonEnemy extends Zombie {
     public int dungeonLevel(){
         return getPersistentData().getIntOr("ydnf_level",10);
     }
+    public boolean fixedLevel(){return false;}
     public String instance(){
         return getPersistentData().getStringOr("ydnf_instance","");
     }

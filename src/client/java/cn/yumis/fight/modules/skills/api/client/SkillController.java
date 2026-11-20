@@ -11,8 +11,11 @@ import cn.yumis.fight.modules.skills.client.Effects;
 import cn.yumis.fight.modules.skills.api.SkillPreview;
 import cn.yumis.fight.modules.combat.api.CombatTiming;
 import cn.yumis.fight.modules.combat.api.CombatRules;
+import cn.yumis.fight.modules.combat.api.CombatEffect;
 import cn.yumis.fight.modules.combat.api.ElementAccumulation;
+import cn.yumis.fight.modules.combat.api.EquipmentDamage;
 import cn.yumis.fight.modules.combat.api.Life;
+import cn.yumis.fight.modules.combat.api.client.DamageAnalysis;
 import cn.yumis.fight.modules.talents.client.TalentCombat;
 import cn.yumis.fight.modules.skills.api.WeaponSkills;
 import cn.yumis.fight.modules.equipment.api.WeaponTraits;
@@ -33,6 +36,7 @@ import cn.yumis.fight.modules.dungeons.api.Target;
 import static cn.yumis.fight.modules.combat.api.LifeRules.*;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.sounds.SoundEvents;
 
 import net.minecraft.world.entity.*;
 import cn.yumis.fight.modules.combat.api.ManagedEntities;
@@ -474,8 +478,8 @@ public final class SkillController {
         if(nativeContext==null&&basic&&stats.modifiers.getOrDefault("basicDark",0d)>0)elements=new int[]{3};
         if(nativeContext==null&&basic&&SkillLearning.effective(stats,state().progress(),SkillCatalog.require(cn.yumis.fight.modules.skills.api.CareerSkills.KEIGA))>0)elements=new int[]{3};
         double n=level-1;
-        double defense=target.defense(level,magic);
-        if(external&&cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.view.green(entity.getX(),entity.getY(),entity.getZ(),state().serverNow()))defense*=.85;
+        double defenseScale=external&&cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.view.green(entity.getX(),entity.getY(),entity.getZ(),state().serverNow())?.85:1;
+        double defense=target.defense(level,magic)*defenseScale;
         double[] resist=cn.yumis.fight.modules.combat.api.EquipmentDamage.resistances(equipment,target.resistances());
         boolean mainAllowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,elements);
         elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(equipment,elements);
@@ -559,14 +563,23 @@ public final class SkillController {
                 ailment.addProperty("fraction",ailment.get("fraction").getAsDouble()*scale);
             }
         }
-        if(external&&!dot&&(hitSource==null||!hitSource.suppressEquipment)){double appended=cn.yumis.fight.modules.combat.api.EquipmentDamage.append(damage,stats,equipment,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist);damage+=appended;components[2]+=appended;}
+        boolean appendEquipment=external&&!dot&&(hitSource==null||!hitSource.suppressEquipment);
+        double primaryDamage=damage;
+        double defenseRemaining=1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1);
+        if(appendEquipment){double appended=EquipmentDamage.append(damage,stats,equipment,defense*defenseRemaining,resist);damage+=appended;components[2]+=appended;}
         if(!dot&&target.life.elemental.active(ElementAccumulation.Kind.SHOCK,target.life,state().serverNow())&&cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,new int[]{0})){
             double added=ElementAccumulation.shockDamage(damage,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),stats.get(Stat.LIGHT),resist[0]);damage+=added;components[1]+=added;
         }
         if(magic){
             double received=ElementAccumulation.magicTaken(target.life.elemental,target.life,target.bossOrElite(),state().serverNow());
             damage*=received;for(int i=0;i<components.length;i++)components[i]*=received;
+            primaryDamage*=received;
             if(extra.has("ailment")&&extra.getAsJsonObject("ailment").has("fraction")){var ailment=extra.getAsJsonObject("ailment");ailment.addProperty("fraction",ailment.get("fraction").getAsDouble()*received);}
+        }
+        if(appendEquipment&&equipment.neutralPhysicalAfterDamage>0){
+            double physicalDefense=magic?target.defense(level,false)*defenseScale:defense;
+            double appended=EquipmentDamage.appendNeutralPhysical(primaryDamage,equipment,physicalDefense*defenseRemaining,resist);
+            damage+=appended;components[0]+=appended;
         }
         double outgoing=cn.yumis.fight.modules.combat.api.CombatEffect.outgoingScale(Minecraft.getInstance().player);
         damage*=outgoing;for(int i=0;i<components.length;i++)components[i]*=outgoing;
@@ -717,8 +730,8 @@ public final class SkillController {
         if(j.get("source").getAsString().equals("fall")&&Minecraft.getInstance().player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.CLOUD_STEP)){nativeOutcome(j,"IMMUNE");return;}
         double fraction;boolean enemyAttack=false;int enemyElement=-1;
         double[] componentFractions=new double[5];
-        if(j.has("attacker")){
-            Target attacker=JSON.fromJson(j.get("attacker"),Target.class);
+        Target attacker=j.has("attacker")?JSON.fromJson(j.get("attacker"),Target.class):null;
+        if(attacker!=null){
             int level=attacker.level(state().progress().level,state().encounterSync());
             double points=attacker.attack(level);
             int element=nativeElement(j.get("source").getAsString());
@@ -771,11 +784,14 @@ public final class SkillController {
         fraction*=received;for(int i=0;i<componentFractions.length;i++)componentFractions[i]*=received;
         if(enemyAttack)fraction=minimumEnemyFraction(componentFractions,snapshot().get(Stat.HEALTH),enemyElement);
         if(fraction<=0){nativeOutcome(j,"IMMUNE");return;}
-        if(j.has("directAttack")&&j.get("directAttack").getAsBoolean()&&CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble)){TalentCombat.dodged();nativeOutcome(j,"DODGE");return;}
         JsonObject feedback=new JsonObject();
-        feedback.add("damageComponents",JSON.toJsonTree(componentFractions));
         if(j.has("nativeRoot"))feedback.add("nativeRoot",j.get("nativeRoot"));
-        if(j.has("attacker"))feedback.addProperty("retaliationTarget",j.getAsJsonObject("attacker").get("id").getAsString());
+        if(attacker!=null)feedback.addProperty("retaliationTarget",attacker.id.toString());
+        if(j.has("directAttack")&&j.get("directAttack").getAsBoolean()){
+            if(attacker!=null&&guardCounter(attacker,feedback))return;
+            if(CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble)){TalentCombat.dodged();nativeOutcome(j,"DODGE");return;}
+        }
+        feedback.add("damageComponents",JSON.toJsonTree(componentFractions));
         ownDamage(fraction,feedback);
     }
     private void nativeOutcome(JsonObject source,String outcome){
@@ -869,20 +885,42 @@ public final class SkillController {
         }
     }
     private void retaliate(UUID attacker){
-        var mc=Minecraft.getInstance();var effects=state().resources().equipment;
-        if(effects.armorRetaliation<=0||mc.level==null)return;
-        var target=state().targets().get(attacker);if(target==null||target.life.dead||target.damageImmune||state().predicted(target.life)<=0)return;
-        if(!(mc.level.getEntity(target.entityId) instanceof LivingEntity entity)||!attacker.equals(entity.getUUID()))return;
-        if(!cn.yumis.fight.modules.combat.api.CombatEffect.permitsExternalHitEffects(mc.player,entity))return;
+        var effects=state().resources().equipment;
+        if(effects.armorRetaliation<=0)return;
         Stats stats=snapshot();double raw=stats.get(Stat.PHYSICAL_DEFENSE)*effects.armorRetaliation;
         if(raw<=0)return;
         Stats attack=stats.copy();attack.values.put(Stat.PHYSICAL_ATTACK,raw/(1+stats.get(Stat.STRENGTH)/100));
+        JsonObject report=new JsonObject();report.addProperty("armorRetaliation",true);
+        counterAttack(state().targets().get(attacker),attack,1,new DamageAnalysis.Source("equipment/armor_retaliation","倾塌之墙"),report);
+    }
+    private boolean guardCounter(Target attacker,JsonObject feedback){
+        var effects=state().resources().equipment;
+        if(effects.guardCounterChance<=0||random.nextDouble()>=effects.guardCounterChance)return false;
+
+        Stats attack=snapshot();
+        feedback.addProperty("outcome","IMMUNE");
+        state().report(state().own(),0,false,attack.get(Stat.HEALTH),0xff5555,false,feedback);
+        var player=Minecraft.getInstance().player;
+        player.playSound(SoundEvents.SHIELD_BLOCK.value(),1,1);
+        double coefficient=effects.guardCounterCoefficient*CombatEffect.outgoingScale(player);
+        counterAttack(state().targets().getOrDefault(attacker.id,attacker),attack,coefficient,
+            new DamageAnalysis.Source("equipment/phantom_guard","卡尔的幻影剑"),new JsonObject());
+        return true;
+    }
+    private void counterAttack(Target target,Stats attack,double coefficient,DamageAnalysis.Source source,JsonObject report){
+        var mc=Minecraft.getInstance();
+        if(mc.level==null||target==null||target.life.dead||target.damageImmune||state().predicted(target.life)<=0)return;
+        if(!(mc.level.getEntity(target.entityId) instanceof LivingEntity entity)||!target.id.equals(entity.getUUID()))return;
+        if(!CombatEffect.permitsExternalHitEffects(mc.player,entity))return;
         int level=target.level(state().progress().level,state().encounterSync());
-        var hit=CombatRules.calculate(attack,target.defense(level,false)*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),cn.yumis.fight.modules.combat.api.EquipmentDamage.resistances(effects,target.resistances()),false,new int[0],1,false,random);
+        double defense=target.defense(level,false)*(1-Math.clamp(attack.modifiers.getOrDefault("piercing",0d),0,1));
+        double[] resist=EquipmentDamage.resistances(state().resources().equipment,target.resistances());
+        var hit=CombatRules.calculate(attack,defense,resist,false,new int[0],coefficient,false,random);
         if(hit.total()<=0)return;
-        JsonObject report=new JsonObject();report.addProperty("armorRetaliation",true);report.add("damageComponents",JSON.toJsonTree(ElementAccumulation.fractions(hit.components(),target.health(level))));
-        cn.yumis.fight.modules.combat.api.client.DamageAnalysis.attach(report,new cn.yumis.fight.modules.combat.api.client.DamageAnalysis.Source("equipment/armor_retaliation","倾塌之墙"));
-        state().report(target.life,hit.total()/target.health(level),false,target.health(level),0xffffff,hit.critical(),report);
+        double maximum=target.health(level);
+        report.add("damageComponents",JSON.toJsonTree(ElementAccumulation.fractions(hit.components(),maximum)));
+        DamageAnalysis.attach(report,source);
+        state().report(target.life,hit.total()/maximum,false,maximum,0xffffff,hit.critical(),report);
     }
     private void ownElements(double[] components,double fraction,JsonObject report){
         if(fraction<=0)return;var life=state().own();var draft=JSON.fromJson(JSON.toJson(life),Life.class);double actual=Math.min(fraction,state().predicted(life));long now=state().serverNow();
@@ -955,6 +993,13 @@ public final class SkillController {
     private boolean receiveBossHit(JsonObject j,Target boss){
         var p=Minecraft.getInstance().player;
         if(invulnerable()||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(p)||p.getAbilities().invulnerable||p.isSpectator())return false;
+        int level=boss.level(state().progress().level,state().encounterSync());
+        double points=boss.attack(level)*j.get("coefficient").getAsDouble();
+        JsonObject feedback=new JsonObject();feedback.addProperty("feedbackEntity",boss.id.toString());
+        if(j.has("treasureHit"))feedback.addProperty("treasureAction",j.get("id").getAsString());
+        if(j.has("encounterHit"))feedback.addProperty("encounterAction",j.get("id").getAsString());
+        if(j.has("occurredAt"))feedback.add("occurredAt",j.get("occurredAt"));
+        if(points>0&&guardCounter(boss,feedback))return false;
         if(CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble)){TalentCombat.dodged();return false;}
         if(j.has("ritualStunTicks")&&!cn.yumis.fight.modules.skills.client.DemonHunterClient.steadfast())
             p.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN,j.get("ritualStunTicks").getAsInt()));
@@ -969,14 +1014,9 @@ public final class SkillController {
         }
         if(j.has("ritualHealDownTicks"))
             p.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.HEAL_DOWN,j.get("ritualHealDownTicks").getAsInt()));
-        int level=boss.level(state().progress().level,state().encounterSync());
-        JsonObject feedback=new JsonObject();feedback.addProperty("feedbackEntity",boss.id.toString());
-        if(j.has("treasureHit"))feedback.addProperty("treasureAction",j.get("id").getAsString());
-        if(j.has("encounterHit"))feedback.addProperty("encounterAction",j.get("id").getAsString());
-        if(j.has("occurredAt"))feedback.add("occurredAt",j.get("occurredAt"));
         if(j.has("selfStunTicks")){feedback.add("selfStunTicks",j.get("selfStunTicks"));feedback.add("controlId",j.get("controlId"));}
-        double points=boss.attack(level)*j.get("coefficient").getAsDouble();int element=j.get("element").getAsInt();
         if(points<=0)return true;
+        int element=j.get("element").getAsInt();
         double[] components=monsterComponents(points,j.get("magic").getAsBoolean(),element,level);
         double multiplier=NativeEquipmentRules.receivedMultiplier(p,"bossAction",false,false,false);for(int i=0;i<components.length;i++)components[i]*=multiplier;
         double maximum=snapshot().get(Stat.HEALTH);double[] fractions=ElementAccumulation.fractions(components,maximum);double fraction=points>0?minimumEnemyFraction(fractions,maximum,element):Arrays.stream(fractions).sum();feedback.add("damageComponents",JSON.toJsonTree(fractions));

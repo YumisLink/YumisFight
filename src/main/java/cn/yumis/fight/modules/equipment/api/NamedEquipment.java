@@ -9,6 +9,7 @@ public final class NamedEquipment {
         add("starter_staff","学徒法杖",1,Rarity.COMMON,Slot.WEAPON,Weapon.STAFF,ArmorType.UNTYPED,JewelryType.UNTYPED,0);
         add("willy_staff","威利的戒严法杖",55,Rarity.MYTHIC,Slot.WEAPON,Weapon.STAFF,ArmorType.UNTYPED,JewelryType.UNTYPED,8,"gem_amplification");
         add("skyspine","天脊乾坤剑",50,Rarity.EPIC,Slot.WEAPON,Weapon.LIGHTSABER,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"fire_after_damage","fire_conversion","fire_only");
+        add("karl_phantom_sword","卡尔的幻影剑",15,Rarity.EPIC,Slot.WEAPON,Weapon.KATANA,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"neutral_physical_after_damage","phantom_guard");
         add("bylle","别云剑-无用",55,Rarity.EPIC,Slot.WEAPON,Weapon.GREATSWORD,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"bylle_physical_percent","bylle_physical_flat","block_elemental");
         add("golden_cup","波利斯的黄金杯",60,Rarity.EPIC,Slot.SUB_EQUIPMENT,Weapon.KATANA,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"golden_power");
         add("rosetta","罗塞塔石碑",60,Rarity.EPIC,Slot.MAGIC_STONE,Weapon.KATANA,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"imprint_power");

@@ -1,6 +1,6 @@
 package cn.yumis.fight.modules.npc.client;
 
-import cn.yumis.fight.modules.npc.api.*;
+import cn.yumis.fight.modules.npc.api.AwakeningQuest;
 import cn.yumis.fight.modules.presentation.api.RichText;
 import cn.yumis.fight.modules.presentation.api.client.*;
 import net.minecraft.client.Minecraft;
@@ -22,10 +22,10 @@ public final class NpcDialogueScreen extends ThemedScreen {
     private final List<RichText> pages;private List<FormattedCharSequence> lines=List.of();
     private int page,left,top,panelWidth,panelHeight,portraitWidth,textLeft,textWidth,totalCharacters;
     private long began,heartbeat;private boolean full;private Button advance;
-    public NpcDialogueScreen(LivingEntity entity){
+    NpcDialogueScreen(LivingEntity entity,boolean awakening){
         super(Minecraft.getInstance(),UiFonts.font(),Component.literal("与伊蕾娜交谈"),ThemeDomain.MENU);
         this.entity=entity;level=entity.level();
-        awakening=NpcTutorial.NPC.equals(NpcInteractionComponent.id(entity))&&AwakeningQuestClient.readyToReturn();
+        this.awakening=awakening;
         dialogueKey=awakening?AwakeningQuest.ACTION:TutorialClient.dialogueKey();
         pages=List.copyOf(awakening?AwakeningQuest.definition().dialogue():TutorialClient.dialogue());
         page=awakening?0:Math.clamp(TutorialClient.savedPage(dialogueKey),0,pages.size()-1);
@@ -44,17 +44,15 @@ public final class NpcDialogueScreen extends ThemedScreen {
         if(visible()<totalCharacters){full=true;return;}
         if(page+1<pages.size()){page++;if(!awakening)TutorialClient.savePage(dialogueKey,page);layout();return;}
         if(awakening)AwakeningQuestClient.finishDialogue(entity);
-        else finishIntroduction();
         onClose();
     }
-    private void finishIntroduction(){if(dialogueKey.equals("introduction")&&page==pages.size()-1)TutorialClient.start();}
     private void hold(boolean open){
         if(!ClientUi.current().ready())return;var request=ClientUi.current().operation("npcDialogue");request.addProperty("entity",entity.getStringUUID());request.addProperty("open",open);ClientUi.current().send("npcDialogue",request);heartbeat=ClientUi.now()+1000;
     }
     @Override public void tick(){
         if(Minecraft.getInstance().level!=level||!entity.isAlive()||!TutorialClient.alive()){onClose();return;}
         if(ClientUi.now()>=heartbeat)hold(true);
-        advance.setMessage(Component.literal(visible()<totalCharacters?"显示全文":page+1<pages.size()?"继续  ›":awakening?"完成觉醒":dialogueKey.equals("introduction")?"去试试  ›":"收起"));
+        advance.setMessage(Component.literal(visible()<totalCharacters?"显示全文":page+1<pages.size()?"继续  ›":awakening?"完成觉醒":"收起"));
     }
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){g.fill(0,0,width,height,0x10000000);}
     @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float delta){
@@ -72,7 +70,7 @@ public final class NpcDialogueScreen extends ThemedScreen {
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(super.mouseClicked(event,twice))return true;if(event.button()==0&&event.y()>=top){next();return true;}return false;}
     @Override public boolean keyPressed(KeyEvent event){
         if(event.isEscape()){onClose();return true;}
-        if(MenuInput.MENU.matches(event)){finishIntroduction();onClose();MenuInput.open("tutorial");return true;}
+        if(MenuInput.MENU.matches(event)){onClose();MenuInput.open("tutorial");return true;}
         if(event.key()==GLFW.GLFW_KEY_SPACE||event.key()==GLFW.GLFW_KEY_ENTER||event.key()==GLFW.GLFW_KEY_KP_ENTER){next();return true;}
         return super.keyPressed(event);
     }

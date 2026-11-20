@@ -42,7 +42,7 @@ class SkillPreviewTest {
         assertEquals(100,SkillPreview.currentStats(equipment,resources,1000).get(Stat.PHYSICAL_ATTACK));
         assertEquals(100,equipment.get(Stat.PHYSICAL_ATTACK));
     }
-    @Test void panelRangeBracketsTheActualNoncriticalZeroDefenseFormula(){
+    @Test void ghostPanelBracketsMidpointAndSwitchesToPhysicalAfterPromotion(){
         Progress progress=new Progress();progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.BASE);Stats stats=new Stats();
         stats.add(Stat.MAGICAL_ATTACK,70);stats.add(Stat.INTELLIGENCE,40);stats.add(Stat.DARK,60);stats.add(Stat.FIRE,30);
         stats.modifiers.put("final",.25);stats.modifiers.put("skillProduct",1.2);
@@ -51,6 +51,11 @@ class SkillPreviewTest {
         Random midpoint=new Random(){@Override public double nextDouble(){return .5;}};
         double actual=CombatRules.calculate(stats,0,new double[4],true,new int[]{3},2,true,midpoint).total();
         assertEquals((preview.minimum()+preview.maximum())/2,actual,1e-8);
+        Progress ghost=new Progress();ghost.promote(cn.yumis.fight.modules.character.api.JobCatalog.BASE);Stats both=new Stats();
+        both.add(Stat.MAGICAL_ATTACK,50);both.add(Stat.PHYSICAL_ATTACK,100);both.add(Stat.DARK,60);
+        assertEquals(150,SkillPreview.damage(ghost,both,SkillCatalog.GHOST,2,false,new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot()).minimum());
+        ghost.promote(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER);
+        assertEquals(300,SkillPreview.damage(ghost,both,SkillCatalog.GHOST,2,false,new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot()).minimum());
     }
     @Test void addedDanceSlashesFinishWithinDurationWithoutChangingDefaultRhythm(){
         var normal=SkillSchedule.dance(SkillParameters.resolve(SkillCatalog.DANCE,1,List.of()));
@@ -72,13 +77,6 @@ class SkillPreviewTest {
         assertEquals(12,executed);
     }
 
-    @Test void ghostUsesMagicBeforePromotionAndPhysicalAfterward(){
-        Progress progress=new Progress();progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.BASE);Stats stats=new Stats();
-        stats.add(Stat.MAGICAL_ATTACK,50);stats.add(Stat.PHYSICAL_ATTACK,100);stats.add(Stat.DARK,60);
-        assertEquals(150,SkillPreview.damage(progress,stats,SkillCatalog.GHOST,2,false,new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot()).minimum());
-        progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER);
-        assertEquals(300,SkillPreview.damage(progress,stats,SkillCatalog.GHOST,2,false,new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot()).minimum());
-    }
     @Test void liveParameterChangesAndFinisherAreReflectedInTotals(){
         Progress progress=new Progress();progress.promote(cn.yumis.fight.modules.character.api.JobCatalog.SWORDMASTER);progress.skills.put("yumis_dungeon_and_fight:dance",1);
         Stats stats=new Stats();stats.add(Stat.PHYSICAL_ATTACK,100);stats.ranks.put("SWORD",2);

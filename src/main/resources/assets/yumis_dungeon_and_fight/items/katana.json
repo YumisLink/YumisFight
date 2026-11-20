@@ -4,6 +4,13 @@
     "property": "yumis_dungeon_and_fight:katana_style",
     "cases": [
       {
+        "when": "karl_phantom_sword",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/expansion/katana_10_epic"
+        }
+      },
+      {
         "when": "katana_10_base",
         "model": {
           "type": "minecraft:model",

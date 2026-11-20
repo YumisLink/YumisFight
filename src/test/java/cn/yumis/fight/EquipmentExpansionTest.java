@@ -76,7 +76,7 @@ class EquipmentExpansionTest {
         assertEquals(1,EquipmentAffixes.candidates(clean,false,false).stream().filter(d->d.id().equals("flat_all_resistance")).count());
         assertTrue(EquipmentAffixes.candidates(clean,true,false).stream().noneMatch(d->d.stat().name().endsWith("_RESIST")));
     }
-    @Test void defensivePercentageCurveAndEvasionEndpointsAreExact(){
+    @Test void defensivePercentageCurveAndEvasionCurveAreExactAndContinuous(){
         for(Stat stat:List.of(Stat.PHYSICAL_DEFENSE,Stat.MAGICAL_DEFENSE,Stat.SHIELD,Stat.EVASION)){
             assertEquals(.175,EquipmentAffixes.percentBaseline(1,stat));assertEquals(1.25,EquipmentAffixes.percentBaseline(80,stat));
             assertEquals(1.010126582278481,EquipmentAffixes.percentBaseline(50,stat)*1.2,1e-12);
@@ -84,6 +84,8 @@ class EquipmentExpansionTest {
         assertEquals(.175,EquipmentAffixes.percentBaseline(80,Stat.HEALTH));
         assertEquals(0,CombatRules.evasionChance(0));assertEquals(0,CombatRules.evasionChance(-1));
         assertEquals(.5,CombatRules.evasionChance(10000));assertEquals(2d/3,CombatRules.evasionChance(20000));assertEquals(.75,CombatRules.evasionChance(30000));
+        assertEquals(.8,CombatRules.evasionChance(60000));assertEquals(.9,CombatRules.evasionChance(210000));assertEquals(.9,CombatRules.evasionChance(Double.MAX_VALUE));
+        assertTrue(CombatRules.evasionChance(30000.001)>.75);assertTrue(CombatRules.evasionChance(29999.999)<.75);assertThrows(IllegalArgumentException.class,()->CombatRules.evasionChance(Double.NaN));
         assertFalse(CombatRules.evades(0,()->{fail("zero evasion must not consume RNG");return 0;}));
         assertTrue(CombatRules.evades(10000,()->.499999));assertFalse(CombatRules.evades(10000,()->.5));
     }

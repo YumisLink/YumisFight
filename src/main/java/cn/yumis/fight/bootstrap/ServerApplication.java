@@ -237,6 +237,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.TrainingActions.install(CURRENT.trainingService);
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install(CURRENT.dungeons.treasure::use);
             cn.yumis.fight.modules.dungeons.api.WaystoneActions.install(CURRENT.dungeons.waystones);
+            cn.yumis.fight.modules.dungeons.api.KarlSummoningAltarBlockEntity.install(CURRENT.inventory);
             cn.yumis.fight.modules.dungeons.api.AwakeningTowerStele.install(CURRENT.dungeons::interactTowerStele);
             cn.yumis.fight.modules.skills.api.SummonActions.install(CURRENT.mages);
             Network.SERVER=CURRENT::handle;
@@ -282,6 +283,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.TrainingActions.clear();
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install((p,h)->{});
             cn.yumis.fight.modules.dungeons.api.WaystoneActions.install(null);
+            cn.yumis.fight.modules.dungeons.api.KarlSummoningAltarBlockEntity.install(null);
             cn.yumis.fight.modules.dungeons.api.AwakeningTowerStele.install(null);
             cn.yumis.fight.modules.skills.api.SummonActions.clear();
             CURRENT=null;
@@ -610,6 +612,7 @@ public final class ServerApplication {
         j.addProperty("session",s.id.toString());
         j.addProperty("serverNow",System.currentTimeMillis());
         j.addProperty("gold",economyService.gold(p));j.addProperty("goldRevision",economyService.goldRevision(p));
+        j.addProperty("combatExperienceMultiplier",rewards.combatExperienceMultiplier());
         j.addProperty("contractUntil",equipmentContracts.contractUntil(p.getUUID()));
         j.addProperty("points",economyService.points(p));
         j.addProperty("colorlessCrystals",economyService.colorlessCrystals(p));

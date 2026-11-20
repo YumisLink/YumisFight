@@ -98,7 +98,9 @@ public final class Hud {
             int available=Math.max(54,Math.min(cell*8,width-12));
             if(available>=48){
                 int xpWidth=Math.min(160,available-6),xpY=height-29;
-                String label="Lv."+s.progress.level+(s.progress.level>=cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL?" MAX":" "+s.progress.experience+"/"+nextExperience(s.progress.level));
+                // Player-inherent rate hint: server config times the experience stat. Dungeon-side modifiers settle inside each kill and stay out of the display.
+                double rate=cn.yumis.fight.modules.economy.api.RewardRules.experienceMultiplier(s.combatExperienceMultiplier,currentStats);
+                String label="Lv."+s.progress.level+(s.progress.level>=cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL?" MAX":" "+s.progress.experience+"/"+nextExperience(s.progress.level))+" ("+(rate>=1?"+":"")+cn.yumis.fight.modules.dungeons.api.Waystone.number((rate-1)*100)+"%)";
                 UiTheme.hud(g,6,xpY,xpWidth,18);
                 g.text(font,font.plainSubstrByWidth(label,xpWidth-8),10,xpY+3,UiTheme.HUD_GOLD,false);
                 bar(g,9,xpY+13,xpWidth-6,3,s.progress.level>=cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL?1:s.progress.experience/(double)nextExperience(s.progress.level),UiTheme.HUD_GOLD);

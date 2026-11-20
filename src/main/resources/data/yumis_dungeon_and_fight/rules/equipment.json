@@ -827,6 +827,25 @@
       "minimum": 0.6,
       "maximum": 1
     },
+    "unique/neutral_physical_after_damage": {
+      "id": "unique/neutral_physical_after_damage",
+      "name": "幻影附伤",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "minimum": 0.2,
+      "maximum": 0.4
+    },
+    "unique/phantom_guard": {
+      "id": "unique/phantom_guard",
+      "name": "幻影格挡",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "fixedValue": 0.1
+    },
     "unique/fire_conversion": {
       "id": "unique/fire_conversion",
       "name": "火强化转换",

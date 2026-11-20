@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.dungeons.client;
 
 import cn.yumis.fight.architecture.CommandRouter;
 import cn.yumis.fight.modules.dungeons.api.*;
+import cn.yumis.fight.modules.dungeons.content.CastlePalace;
 import cn.yumis.fight.modules.equipment.api.Rarity;
 import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.attributes.api.*;
@@ -10,14 +11,22 @@ import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.platform.ItemData;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.common.NeoForgeMod;
 import java.util.*;
 import java.util.function.*;
 
 /** Personal dungeon eligibility and the owner's returned waystone are decided locally. */
 public final class DungeonActions {
     private static final Gson JSON=new Gson();private static final Random RANDOM=new Random();private static final Set<String> offered=new HashSet<>();
+    private static final Identifier DUNGEON_DIMENSION = Identifier.fromNamespaceAndPath(ItemData.NS, "dungeon");
+    private static final AttributeModifier PALACE_SWIM_SPEED = new AttributeModifier(
+        Identifier.fromNamespaceAndPath(ItemData.NS, "palace_swim_speed"), 1.0,
+        AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
     private static Supplier<Progress> progress;private static Supplier<Stats> stats;private static BooleanSupplier alive,trainingAllowed;private static IntFunction<ItemStack> chest;private static DoubleFunction<Rarity> rarityRoll;
     private DungeonActions(){}
     public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<Stats> attributes,BooleanSupplier living,IntFunction<ItemStack> chests,DoubleFunction<Rarity> rarity,BooleanSupplier training){
@@ -45,7 +54,17 @@ public final class DungeonActions {
             if(stone==null)throw new IllegalArgumentException("请先放入引路石");eligible(stone.dungeon);
         });
         router.register("dungeons","waystoneReturnResult",(ignored,j)->returned(j));
-        router.register("dungeons","trainingStart",(ignored,j)->{if(!trainingAllowed.getAsBoolean())throw new IllegalArgumentException("请在副本外且存活时开始训练");if(Minecraft.getInstance().level.dimension().identifier().toString().equals("yumis_dungeon_and_fight:dungeon"))throw new IllegalArgumentException("请在副本外训练");});
+        router.register("dungeons","trainingStart",(ignored,j)->{if(!trainingAllowed.getAsBoolean())throw new IllegalArgumentException("请在副本外且存活时开始训练");if(Minecraft.getInstance().level.dimension().identifier().equals(DUNGEON_DIMENSION))throw new IllegalArgumentException("请在副本外训练");});
+    }
+
+    public static void updateSwimSpeed(LocalPlayer player, Dungeon dungeon) {
+        var speed = player.getAttribute(NeoForgeMod.SWIM_SPEED);
+        if (speed == null) return;
+        if (CastlePalace.handles(dungeon) && player.level().dimension().identifier().equals(DUNGEON_DIMENSION)) {
+            if (!speed.hasModifier(PALACE_SWIM_SPEED.id())) speed.addTransientModifier(PALACE_SWIM_SPEED);
+        } else {
+            speed.removeModifier(PALACE_SWIM_SPEED.id());
+        }
     }
     static void enterTower(JsonObject stele){
         var ui=ClientUi.current();

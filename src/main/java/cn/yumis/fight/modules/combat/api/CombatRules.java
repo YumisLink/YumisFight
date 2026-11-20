@@ -50,9 +50,11 @@ public final class CombatRules {
     public static Damage panel(Stats attacker,boolean magic,int[] elements,double coefficient,boolean includeExtras,boolean maximum){
         return calculateResolved(attacker,0,new double[4],magic,elements,coefficient,includeExtras,()->maximum?1:0,false,false);
     }
+    static double highestPositiveResistance(double[] resist){return Math.max(0,Arrays.stream(resist).max().orElse(0));}
+    static double defenseMultiplier(double defense){return 1000/(1000+Math.max(0,defense));}
     private static Damage calculateResolved(Stats attacker,double defense,double[] resist,boolean magic,int[] elements,double coefficient,boolean includeExtras,java.util.function.DoubleSupplier roll,boolean rollCritical,boolean forcedCritical){
         int element=-1;
-        double delta=-Math.max(0,Arrays.stream(resist).max().orElse(0));
+        double delta=-highestPositiveResistance(resist);
         if(elements.length>0){
             delta=-Double.MAX_VALUE;
             for(int e:elements){
@@ -63,7 +65,7 @@ public final class CombatRules {
                 }
             }
         }
-        double mitigation=1000/(1000+Math.max(0,defense));
+        double mitigation=defenseMultiplier(defense);
         double main=attacker.panel(magic)*coefficient*mitigation*Math.max(0,1+delta/120),extra=0;
         double[] components=component(main,element);
         if(includeExtras)for(ExtraDamage a:attacker.extras){

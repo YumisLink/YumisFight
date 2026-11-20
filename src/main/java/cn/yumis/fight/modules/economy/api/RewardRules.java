@@ -10,15 +10,15 @@ import java.util.*;
 
 /** Personal rewards from committed world events. */
 public final class RewardRules {
-    public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply,List<Integer> experiencePercentages){
+    public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply,List<Integer> experiencePercentages,String worldBossType){
         public Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply){
-            this(id,killer,target,encounter,settings,dimension,x,y,z,nearby,practice,ritual,supply,null);
+            this(id,killer,target,encounter,settings,dimension,x,y,z,nearby,practice,ritual,supply,null,null);
         }
         public Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice){
             this(id,killer,target,encounter,settings,dimension,x,y,z,nearby,practice,null,null);
         }
         public static Context experience(String id,List<Integer> percentages){
-            return new Context(id,null,null,null,null,"",0,0,0,Set.of(),null,null,null,List.copyOf(percentages));
+            return new Context(id,null,null,null,null,"",0,0,0,Set.of(),null,null,null,List.copyOf(percentages),null);
         }
         public boolean experienceOnly(){return experiencePercentages!=null;}
         public String instance(){return practice!=null?practice.instance():target==null?"":target.instance;}
@@ -35,18 +35,17 @@ public final class RewardRules {
         var progress=CareerProfiles.copy(current);
         if(context.practice()!=null)return practice(progress,player,context);
         var target=context.target();var encounter=context.encounter();boolean instance=!target.instance.isEmpty(),boss=!target.kind.equals("NORMAL");var drops=new ArrayList<Drop>();
-        boolean ritual=context.ritual()!=null, personal=instance||ritual;
+        boolean ritual=context.ritual()!=null, personal=instance||ritual, practiceMob=encounter!=null&&encounter.practice!=null&&encounter.practice.kind()==PracticeRoom.Kind.MOB;
         boolean participant=encounter!=null&&encounter.roster.contains(player)&&!encounter.withdrawn.contains(player);
         if(target.noRewards)return new Result(progress,0,0,List.of());
-        if(instance&&boss&&player.equals(context.killer())&&encounter!=null){String poolId=encounter.treasure==null?encounter.dungeon:"treasure_"+encounter.treasure.theme;var pool=ChestDefinitions.current().bossPools.get(poolId);if(pool!=null&&random.nextDouble()<pool.chance()){var entry=ChestDefinitions.draw(pool.entries(),random);if(entry!=null)drops.add(new Drop(ChestRewards.item(entry),false));}}
-        if(instance&&target.boss()&&player.equals(context.killer())&&encounter!=null&&encounter.treasure==null){var pool=ChestDefinitions.current().bossRarePools.get(encounter.dungeon);if(pool!=null&&random.nextDouble()<pool.chance()){var entry=ChestDefinitions.draw(pool.entries(),random);if(entry!=null)drops.add(new Drop(ChestRewards.item(entry),false));}}
+        if(boss&&player.equals(context.killer()))appendBossDrops(context,drops,random);
         if(instance&&(!participant||!context.nearby().contains(player))||!instance&&!player.equals(context.killer()))return new Result(progress,0,0,List.copyOf(drops));
         if(instance&&boss)for(var jar:JarDefinitions.current().jars.entrySet())if(random.nextDouble()<jar.getValue().bossDropChance())drops.add(new Drop(LootJarItem.create(jar.getKey(),1),true));
         var stone=encounter!=null&&encounter.waystone!=null?encounter.waystone.stone:null;
         double experienceMultiplier=stone==null?1:stone.experienceMultiplier,goldMultiplier=stone==null?1:stone.goldMultiplier,quantityMultiplier=stone==null?1:stone.quantityMultiplier;
         double luck=stone==null?stats.get(Stat.DROP_RATE):stone.effectiveDropRate(stats.get(Stat.DROP_RATE));
         int level=target.level(progress.level,instance?encounter.syncFor(player):progress.sync);
-        long xp=progress.earnExperience(CurrencyRules.roundedReward((10d+2d*level)*(boss?10:target.elite?3:1)*target.difficulty.xp*context.settings().combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*experienceMultiplier));
+        long xp=progress.earnExperience(CurrencyRules.roundedReward((10d+2d*level)*(boss?10:target.elite?3:1)*target.difficulty.xp*context.settings().combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*experienceMultiplier*(practiceMob?PracticeRoom.MOB_EXPERIENCE_MULTIPLIER:1)));
         long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,context.settings().killGoldMultiplier()*goldMultiplier);
         int count=multiplied(boss?3:random.nextDouble()<(target.elite?.45:.05)?1:0,quantityMultiplier,random);
         for(int i=0;i<count;i++){
@@ -63,10 +62,35 @@ public final class RewardRules {
         }
         if(context.supply()!=null)drops.add(new Drop(ItemRegistry.item(context.supply().item(),context.supply().count()),true));
         // Plain practice-room mobs roll materials from the dungeon each mob was borrowed from.
-        String materialDungeon=encounter.practice!=null&&encounter.practice.kind()==PracticeRoom.Kind.MOB?target.originDungeon:encounter.dungeon;
-        if(instance&&!materialDungeon.isEmpty()){var def=DungeonCatalog.current().dungeon(materialDungeon);int rolls=multiplied(boss?4:target.elite?2:random.nextDouble()<.2?1:0,quantityMultiplier,random);for(int i=0;i<rolls;i++)drops.add(new Drop(EquipmentItems.material(def.materials().get(random.nextInt(def.materials().size())),1),true));}
+        if(instance){
+            String materialDungeon=practiceMob?target.originDungeon:encounter.dungeon;
+            if(!materialDungeon.isEmpty()){var def=DungeonCatalog.current().dungeon(materialDungeon);int rolls=multiplied(boss?4:target.elite?2:random.nextDouble()<.2?1:0,quantityMultiplier,random);for(int i=0;i<rolls;i++)drops.add(new Drop(EquipmentItems.material(def.materials().get(random.nextInt(def.materials().size())),1),true));}
+        }
         if(boss&&level==80&&encounter!=null&&encounter.treasure==null&&encounter.waystone==null&&random.nextDouble()<WaystoneRules.current().starterChance){var rarity=LootOdds.rarity(target.difficulty,true,false,stats.get(Stat.DROP_RATE),random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;drops.add(new Drop(Waystone.generate(1,progress.level,rarity,random).item(),true));}
         return new Result(progress,xp,gold,List.copyOf(drops));
+    }
+
+    private static void appendBossDrops(Context context,List<Drop> drops,Random random){
+        var encounter=context.encounter();
+        String ordinary=context.worldBossType(),rare=ordinary;
+        if(!context.instance().isEmpty()&&encounter!=null){
+            ordinary=encounter.treasure==null?encounter.dungeon:"treasure_"+encounter.treasure.theme;
+            rare=encounter.treasure==null?encounter.dungeon:null;
+        }
+        var definitions=ChestDefinitions.current();
+        if(ordinary!=null)appendBossDrop(drops,definitions.bossPools.get(ordinary),random,context.id());
+        if(rare!=null&&context.target().boss())appendBossDrop(drops,definitions.bossRarePools.get(rare),random,context.id());
+    }
+
+    private static void appendBossDrop(List<Drop> drops,ChestDefinitions.SpecialPool pool,Random random,String source){
+        if(pool==null||random.nextDouble()>=pool.chance())return;
+        var entry=ChestDefinitions.draw(pool.entries(),random);
+        if(entry!=null)drops.add(new Drop(ChestRewards.item(entry,random,source),false));
+    }
+
+    /** Player-inherent experience rate for display hints: server config times the experience stat. Dungeon-side factors such as waystones and practice rooms settle inside each kill and never appear here. */
+    public static double experienceMultiplier(double combatExperienceMultiplier,Stats stats){
+        return combatExperienceMultiplier*stats.get(Stat.EXPERIENCE_GAIN);
     }
 
     private static Result experience(Progress current,List<Integer> percentages){

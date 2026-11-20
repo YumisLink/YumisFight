@@ -19,7 +19,7 @@ import java.util.*;
 class AffixCurrencyTest {
     private Gear gear(){return EquipmentRules.create(Slot.CHEST,Weapon.KATANA,Rarity.COMMON,35,new Random(1));}
     private Affix affix(String id,Stat stat){return new Affix(id,stat,10,false);}
-    @Test void chaosOnlyReplacesOneEligibleAffixAndKeepsItsPosition(){
+    @Test void chaosReplacesOneAffixKeepsPositionAndNeverDuplicatesRetainedType(){
         Gear original=gear();original.rarity=Rarity.LEGENDARY;original.sockets=1;original.set="first_sword";
         original.affixes.add(affix("old",Stat.STRENGTH));
         int index=original.affixes.size()-1;
@@ -40,10 +40,8 @@ class AffixCurrencyTest {
             for(int i=0;i<original.affixes.size();i++)if(i!=index)assertEquals(JSON.toJson(original.affixes.get(i)),JSON.toJson(changed.affixes.get(i)));
         }
         assertEquals(before,JSON.toJson(original));
-    }
-    @Test void chaosMayRerollRemovedTypeButNeverDuplicatesRetainedType(){
-        Gear original=gear();original.rarity=Rarity.LEGENDARY;Affix keep=affix("flat_health",Stat.HEALTH);keep.locked=true;original.affixes.add(keep);original.affixes.add(affix("flat_strength",Stat.STRENGTH));
-        Set<String> generated=new HashSet<>();Random random=new Random(22747);for(int i=0;i<1000;i++){Gear changed=EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(original),"chaos_stone",random);generated.add(changed.affixes.getLast().id);assertEquals(1,changed.affixes.stream().filter(a->!a.base&&a.operation.equals("FLAT")&&a.stat.equals("HEALTH")).count());}assertFalse(generated.contains("flat_health"));assertTrue(generated.contains("flat_strength"));
+        Gear typed=gear();typed.rarity=Rarity.LEGENDARY;Affix keep=affix("flat_health",Stat.HEALTH);keep.locked=true;typed.affixes.add(keep);typed.affixes.add(affix("flat_strength",Stat.STRENGTH));
+        Set<String> generated=new HashSet<>();Random random=new Random(22747);for(int i=0;i<1000;i++){Gear changed=EquipmentRules.process(cn.yumis.fight.modules.equipment.api.EquipmentResolution.initialize(typed),"chaos_stone",random);generated.add(changed.affixes.getLast().id);assertEquals(1,changed.affixes.stream().filter(a->!a.base&&a.operation.equals("FLAT")&&a.stat.equals("HEALTH")).count());}assertFalse(generated.contains("flat_health"));assertTrue(generated.contains("flat_strength"));
     }
     @Test void repeatedFracturingLocksOneNewAffixUntilEveryEligibleAffixIsLocked(){
         Gear original=gear();original.rarity=Rarity.LEGENDARY;

@@ -10,6 +10,8 @@ public record PracticeRoom(String id, String name, Kind kind, int level, List<St
     /** The plain mob room borrows ordinary dungeon mobs; each spawn may promote to an elite and always has tripled health. */
     public static final double MOB_ELITE_CHANCE = .10;
     public static final double MOB_HEALTH_MULTIPLIER = 3;
+    /** The plain mob room settles kill experience at a quarter of the ordinary rate. */
+    public static final double MOB_EXPERIENCE_MULTIPLIER = .25;
     public static final PracticeRoom GOLD = new PracticeRoom("practice_gold", "金币练功房", Kind.GOLD, 1, List.of());
     public static final PracticeRoom CURRENCY = new PracticeRoom("practice_currency", "通货练功房", Kind.CURRENCY, 1, List.of());
     /** Mobs follow each fighter's own level through the room's forced synchronization, so entry stays open from level 1. */

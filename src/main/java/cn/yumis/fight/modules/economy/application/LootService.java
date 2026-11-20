@@ -23,6 +23,7 @@ import cn.yumis.fight.modules.inventory.api.InventoryDrops;
 import cn.yumis.fight.modules.inventory.api.InventoryIntake;
 import cn.yumis.fight.modules.inventory.api.InventoryPacking;
 import cn.yumis.fight.foundation.Journal;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import java.util.function.Supplier;
 import cn.yumis.fight.*;
@@ -309,7 +310,8 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             return;
         }
         var nearby=new LinkedHashSet<UUID>();for(var player:server.getPlayerList().getPlayers())if(player.level()==entity.level()&&player.distanceToSqr(entity)<=4096)nearby.add(player.getUUID());
-        var context=new RewardRules.Context(target.id+"/"+target.life.generation,killer.getUUID(),target,encounter,balance.settings(),entity.level().dimension().identifier().toString(),entity.getX(),entity.getY(),entity.getZ(),Set.copyOf(nearby),null,null,ritualSupply(target,encounter));
+        String worldBossType=target.instance.isEmpty()&&target.boss()?BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString():null;
+        var context=new RewardRules.Context(target.id+"/"+target.life.generation,killer.getUUID(),target,encounter,balance.settings(),entity.level().dimension().identifier().toString(),entity.getX(),entity.getY(),entity.getZ(),Set.copyOf(nearby),null,null,ritualSupply(target,encounter),null,worldBossType);
         var fact=JSON.toJsonTree(context);
         for(var player:server.getPlayerList().getPlayers())if(nearby.contains(player.getUUID())||player==killer){
             offerReward(player,context.id(),fact);

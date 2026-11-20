@@ -12,11 +12,15 @@ public final class EquipmentEffects {
         public boolean fireOnly,blockElemental,inverseResists;
         public String goldenSource="",imprintSource="",heroSource="",wallSource="";
         public double armorRetaliation;
+        public double neutralPhysicalAfterDamage, guardCounterChance, guardCounterCoefficient;
         public int weaponElement=-1;
         public Map<String,Integer> grants=new LinkedHashMap<>();
         public Map<String,String> grantSources=new LinkedHashMap<>();
         public Snapshot copy(){
-            Snapshot copy=new Snapshot();copy.gemAmplification=gemAmplification;copy.fireAfterDamage=fireAfterDamage;copy.fireConversion=fireConversion;copy.manaShare=manaShare;copy.lifeCostRatio=lifeCostRatio;copy.killRecovery=killRecovery;copy.magicCooldownReduction=magicCooldownReduction;copy.heroDuration=heroDuration;copy.resistanceCap=resistanceCap;copy.magicSkillRanks=magicSkillRanks;copy.fireOnly=fireOnly;copy.blockElemental=blockElemental;copy.inverseResists=inverseResists;copy.goldenSource=goldenSource;copy.imprintSource=imprintSource;copy.heroSource=heroSource;copy.wallSource=wallSource;copy.armorRetaliation=armorRetaliation;copy.weaponElement=weaponElement;copy.grants.putAll(grants);copy.grantSources.putAll(grantSources);return copy;
+            Snapshot copy=new Snapshot();copy.gemAmplification=gemAmplification;copy.fireAfterDamage=fireAfterDamage;copy.fireConversion=fireConversion;copy.manaShare=manaShare;copy.lifeCostRatio=lifeCostRatio;copy.killRecovery=killRecovery;copy.magicCooldownReduction=magicCooldownReduction;copy.heroDuration=heroDuration;copy.resistanceCap=resistanceCap;copy.magicSkillRanks=magicSkillRanks;copy.fireOnly=fireOnly;copy.blockElemental=blockElemental;copy.inverseResists=inverseResists;copy.goldenSource=goldenSource;copy.imprintSource=imprintSource;copy.heroSource=heroSource;copy.wallSource=wallSource;copy.armorRetaliation=armorRetaliation;copy.weaponElement=weaponElement;
+            copy.neutralPhysicalAfterDamage=neutralPhysicalAfterDamage;
+            copy.guardCounterChance=guardCounterChance;copy.guardCounterCoefficient=guardCounterCoefficient;
+            copy.grants.putAll(grants);copy.grantSources.putAll(grantSources);return copy;
         }
     }
     @FunctionalInterface public interface Rule {void apply(Snapshot target,Affix affix,Gear source);}
@@ -24,6 +28,11 @@ public final class EquipmentEffects {
     static {
         register("gem_amplification",(s,a,g)->s.gemAmplification=Math.max(s.gemAmplification,a.value));
         register("fire_after_damage",(s,a,g)->s.fireAfterDamage+=a.value);
+        register("neutral_physical_after_damage",(s,a,g)->s.neutralPhysicalAfterDamage+=a.value);
+        register("phantom_guard",(s,a,g)->{
+            s.guardCounterChance=Math.max(s.guardCounterChance,a.value);
+            s.guardCounterCoefficient=AffixEffects.PHANTOM_COUNTER_COEFFICIENT;
+        });
         register("fire_conversion",(s,a,g)->s.fireConversion=Math.max(s.fireConversion,a.value));
         register("fire_only",(s,a,g)->s.fireOnly=true);
         register("block_elemental",(s,a,g)->s.blockElemental=true);

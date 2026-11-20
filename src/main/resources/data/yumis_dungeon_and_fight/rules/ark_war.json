@@ -243,7 +243,7 @@
       },
       "description": [
         "飞到空中并移出敌人索敌列表。射程增加{rangeGain}格，攻击力提高{attackGain:percent}，同时攻击至多{skillTargets}个目标。持续{duration}秒，冷却{cooldown}秒。",
-        "飞行期间，每次普攻使时序增加{chronologyGain:stars}层，每波至多{chronologyCap:stars}层。"
+        "飞行期间，每次普攻使已激活的时序增加{chronologyGain:stars}层，每波至多{chronologyCap:stars}层。"
       ]
     },
     {

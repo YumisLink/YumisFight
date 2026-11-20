@@ -1,0 +1,14 @@
+{
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 32,
+    "separation": 18,
+    "salt": 16473947
+  },
+  "structures": [
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/victoria_castle",
+      "weight": 1
+    }
+  ]
+}

@@ -1,8 +1,43 @@
 {
-  "spacing_chunks": 40,
-  "separation_chunks": 12,
-  "salt": 16473821,
+  "structure_sets": {
+    "wild_buildings": {"spacing_chunks": 40, "separation_chunks": 12, "salt": 16473821},
+    "large_wild_buildings": {"spacing_chunks": 32, "separation_chunks": 18, "salt": 16473947}
+  },
+  "material_tiers": {
+    "t1": [
+      "herb_sunleaf", "herb_moonroot", "herb_emberpod", "herb_tidemoss", "catch_riverfish", "catch_pearl", "rune_blank", "rune_ember",
+      "ore_raw_chunk", "ore_deep_shard", "hide_tanned", "hide_reinforced", "ingot_billet", "ingot_alloy", "part_gear", "part_crystal_lens",
+      "herb_peacebloom", "herb_silverleaf", "herb_earthroot", "herb_bruiseweed", "herb_kingsblood", "herb_heather",
+      "fish_common", "fish_sick", "fish_puffer_polluted", "fish_salmon", "fish_eel", "fish_cod"
+    ],
+    "t2": [
+      "herb_blindweed", "herb_goldthorn", "herb_mushroom", "herb_icebloom", "herb_gravemoss", "herb_manathistle",
+      "fish_rare", "fish_eel_electric", "fish_squid_winter", "fish_mutant", "fish_angelfish_spore", "fish_goldscale", "fish_glacier_salmon"
+    ],
+    "t3": ["herb_terocone", "herb_golden_lotus", "herb_nightmare_vine", "herb_snow_lotus", "fish_artifact", "fish_phoenix_tail", "fish_koi"],
+    "t4": ["herb_starlight_wood", "herb_moonflower", "herb_sirenflower", "herb_saxifrage", "fish_legendary", "fish_time_bream", "fish_storm_mackerel"],
+    "t5": ["herb_glowgrass", "herb_rockmoss", "herb_warped_bark", "herb_blackstone_grass", "fish_ghost_bream", "fish_abyss_catfish", "fish_icefin"],
+    "t6": ["herb_dreamflower", "herb_stormvine", "herb_voidflower", "herb_fool_mushroom", "fish_mythic", "fish_starry_ray", "fish_void_ray"]
+  },
   "buildings": [
+    {
+      "id": "victoria_castle",
+      "structure_set": "large_wild_buildings",
+      "biomes": ["plains", "sunflower_plains", "forest", "flower_forest", "birch_forest", "old_growth_birch_forest", "dark_forest", "pale_garden", "taiga", "old_growth_pine_taiga", "old_growth_spruce_taiga", "snowy_taiga", "snowy_plains", "meadow", "cherry_grove", "windswept_hills", "windswept_gravelly_hills", "windswept_forest"],
+      "max_relief": 16,
+      "surface_anchor": [40, 18, 134],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:map_blueprints/victoria_castle/castle",
+        "referenceY": 18,
+        "platform": false,
+        "preserve_air": true
+      },
+      "container_loot": {
+        "minecraft:barrel": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t1",
+        "minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/victoria_castle",
+        "minecraft:trapped_chest": "yumis_dungeon_and_fight:chests/wild_buildings/victoria_castle"
+      }
+    },
     {
       "id": "forest_cabin",
       "blueprint": "forest_cabin",

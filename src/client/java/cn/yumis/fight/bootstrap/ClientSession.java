@@ -13,6 +13,7 @@ import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.industry.client.IndustrialVisuals;
 import cn.yumis.fight.modules.skills.client.Effects;
 import cn.yumis.fight.modules.economy.api.GoldFeedback;
+import cn.yumis.fight.modules.economy.api.RewardSettings;
 
 
 import cn.yumis.fight.network.Network;
@@ -37,6 +38,8 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     public Stats stats(){return stats;}
     public cn.yumis.fight.modules.combat.api.CombatSettings combatSettings(){return combatSettings;}
     public cn.yumis.fight.modules.combat.api.CombatSettings combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
+    /** Server combat experience rate from the profile sync; feeds the HUD hint and never changes locally. */
+    public double combatExperienceMultiplier=RewardSettings.DEFAULT.combatExperienceMultiplier();
     public Life own(){return own;}
     public cn.yumis.fight.modules.combat.api.Runtime resources(){return resources;}
     public void resources(cn.yumis.fight.modules.combat.api.Runtime value){resources=java.util.Objects.requireNonNull(value);}
@@ -170,7 +173,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         cn.yumis.fight.modules.npc.client.TutorialClient.clear();
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.clear();
         cn.yumis.fight.modules.character.api.client.CareerProfilesClient.clear();
-        cn.yumis.fight.modules.party.client.PartyInvitations.clear();combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;
+        cn.yumis.fight.modules.party.client.PartyInvitations.clear();combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;combatExperienceMultiplier=RewardSettings.DEFAULT.combatExperienceMultiplier();
         cn.yumis.fight.modules.combat.api.client.DamageAnalysis.clear();
         targetHud.clear();
         gold.clear();viewSync.clear();checkpoint=null;checkpointGeneration=-1;reportedCheckpoints.clear();pendingRuntime=null;pendingRuntimeState=null;runtimeSequence=0;minimumRuntimeIssuedAt=0;lastResourceServerTime=lastClockArrival=Long.MIN_VALUE;definitionRetries=0;
@@ -338,6 +341,7 @@ if(j.has("target")&&j.has("kind")){
                 boolean selectedProfileChanged=cn.yumis.fight.modules.character.api.client.CareerProfilesClient.receive(j.getAsJsonObject("careerProfiles"));
                 if(selectedProfileChanged){Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP,1.0f));cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.clear();cn.yumis.fight.modules.skills.client.DemonHunterClient.clear();}
                 combatSettings=JSON.fromJson(j.get("combatSettings"),cn.yumis.fight.modules.combat.api.CombatSettings.class);
+                combatExperienceMultiplier=j.get("combatExperienceMultiplier").getAsDouble();
                 if(freshResources)lastResourceServerTime=Math.max(lastResourceServerTime,serverNow);
                 party=!j.has("party")||j.get("party").isJsonNull()?null:JSON.fromJson(j.get("party"),Team.class);
                 cn.yumis.fight.modules.party.client.PartyInvitations.receive(j.getAsJsonArray("partyInvitations"));
@@ -406,6 +410,7 @@ if(j.has("target")&&j.has("kind")){
             if(ready)clear();
             return;
         }
+        cn.yumis.fight.modules.dungeons.client.DungeonActions.updateSwimSpeed(mc.player,ready?dungeon:null);
         if(!ready){
             if(now()-lastHello>1000){
                 lastHello=now();

@@ -11,9 +11,11 @@ import net.minecraft.core.QuartPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.VerticalAnchor;
 import net.minecraft.world.level.levelgen.heightproviders.ConstantHeight;
+import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
@@ -43,13 +45,16 @@ public final class WildBuildingWorldgen {
                 Codec.intRange(-64,256).fieldOf("height_offset").forGetter(s->s.heightOffset),
                 Codec.intRange(0,256).fieldOf("floor_offset").forGetter(s->s.floorOffset),
                 Codec.intRange(0,256).fieldOf("max_relief").forGetter(s->s.maxRelief),
-                Codec.intRange(0,256).fieldOf("ground_clearance").forGetter(s->s.groundClearance)
+                Codec.intRange(0,256).fieldOf("ground_clearance").forGetter(s->s.groundClearance),
+                BlockPos.CODEC.optionalFieldOf("surface_anchor").forGetter(s->s.surfaceAnchor)
         ).apply(i,WildStructure::new));
         private final Holder<StructureTemplatePool> pool;
         private final int heightOffset,floorOffset,maxRelief,groundClearance;
+        private final Optional<BlockPos> surfaceAnchor;
         private final JigsawStructure delegate;
-        private WildStructure(StructureSettings settings,Holder<StructureTemplatePool> pool,int heightOffset,int floorOffset,int maxRelief,int groundClearance) {
+        private WildStructure(StructureSettings settings,Holder<StructureTemplatePool> pool,int heightOffset,int floorOffset,int maxRelief,int groundClearance,Optional<BlockPos> surfaceAnchor) {
             super(settings);this.pool=pool;this.heightOffset=heightOffset;this.floorOffset=floorOffset;this.maxRelief=maxRelief;this.groundClearance=groundClearance;
+            this.surfaceAnchor=surfaceAnchor;
             // Depth one is required for the native assembler to retain the starting piece.
             this.delegate=new JigsawStructure(settings,pool,1,ConstantHeight.of(VerticalAnchor.absolute(heightOffset)),false,Heightmap.Types.WORLD_SURFACE_WG);
         }
@@ -69,9 +74,27 @@ public final class WildBuildingWorldgen {
                     if(!context.validBiome().test(biome))return Optional.empty();
                     min=Math.min(min,top);max=Math.max(max,top);
                 }
-            if(max-min>maxRelief||groundClearance>0&&box.minY()+floorOffset-max<groundClearance)return Optional.empty();
-            // Reuse the already chosen rotation and pieces; don't draw a second structure.
-            return Optional.of(new GenerationStub(stub.position(),Either.right(builder)));
+            if (max - min > maxRelief) return Optional.empty();
+            BlockPos reference = stub.position();
+            int offset = 0;
+            if (surfaceAnchor.isPresent()) {
+                if (!(builder.build().pieces().getFirst() instanceof PoolElementStructurePiece start)) return Optional.empty();
+                BlockPos anchor = StructureTemplate.transform(surfaceAnchor.get(), Mirror.NONE, start.getRotation(), BlockPos.ZERO)
+                    .offset(start.getPosition());
+                if (!box.isInside(anchor)) return Optional.empty();
+                int ground = context.chunkGenerator().getFirstFreeHeight(anchor.getX(), anchor.getZ(),
+                    Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
+                int floor = context.chunkGenerator().getFirstFreeHeight(anchor.getX(), anchor.getZ(),
+                    Heightmap.Types.OCEAN_FLOOR_WG, context.heightAccessor(), context.randomState());
+                if (ground > floor || Math.max(max, ground) - Math.min(min, ground) > maxRelief) return Optional.empty();
+                offset = ground - anchor.getY();
+                int minY = context.heightAccessor().getMinY();
+                if (box.minY() + offset < minY || box.maxY() + offset >= minY + context.heightAccessor().getHeight()) return Optional.empty();
+                reference = anchor.above(offset - 1);
+            }
+            if (groundClearance > 0 && box.minY() + offset + floorOffset - max < groundClearance) return Optional.empty();
+            if (offset != 0) builder.offsetPiecesVertically(offset);
+            return Optional.of(new GenerationStub(reference, Either.right(builder)));
         }
         @Override public StructureType<?> type() {return TYPE.get();}
     }

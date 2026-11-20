@@ -103,6 +103,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.client.ClassicVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.DarkCityClient.register(()->ClientSession.INSTANCE.own);
         cn.yumis.fight.modules.dungeons.client.EncounterClientContacts.register(()->ClientSession.INSTANCE.own,()->ClientSession.INSTANCE.progress.level,()->ClientSession.INSTANCE.encounterSync(),()->SkillController.INSTANCE.invulnerable());
+        cn.yumis.fight.modules.dungeons.client.CastleCombatClient.register(bus, local::context, SkillController.INSTANCE::boss);
         cn.yumis.fight.modules.dungeons.client.EnemyTelegraphs.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.RitualFightClient.register(()->ClientSession.INSTANCE.own,cn.yumis.fight.modules.npc.client.TutorialClient::awakeningAtAltar);
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();

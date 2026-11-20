@@ -82,15 +82,14 @@ final class PromotionQuestClient {
     static void render(PlayerPageSurface page) {
         if (view == null) return;
         var progress = growth.get();
-        if (progress.jobChangeUnlocked()) {
-            page.line(PromotionQuest.BADGE, UiTheme.GOLD);
+        boolean unlocked = progress.jobChangeUnlocked();
+        if (!unlocked && progress.level < PromotionQuest.LEVEL && world.clears().isEmpty()) return;
+        if (!TutorialPage.questHeader(page, PromotionQuest.ACTION, PromotionQuest.BADGE.plain(), TutorialPage.QuestType.CAREER)) return;
+        if (unlocked) {
             page.line("转职试炼已完成 · 通用转职资格已解锁", UiTheme.ACCENT);
             page.gap();
             return;
         }
-        boolean visible = progress.level >= PromotionQuest.LEVEL || !world.clears().isEmpty();
-        if (!visible) return;
-        page.line(PromotionQuest.BADGE, UiTheme.GOLD);
         for (String dungeon : PromotionQuest.DUNGEONS) {
             int clears = world.clears(dungeon);
             page.line("王者级 " + DungeonCatalog.current().dungeon(dungeon).name() + " · 通关 " + Math.min(clears, 1) + "/1",

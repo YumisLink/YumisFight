@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "frame": "minecraft:block/polished_blackstone_bricks",
+    "carved": "minecraft:block/chiseled_deepslate",
+    "rim": "minecraft:block/gilded_blackstone",
+    "wine": "minecraft:block/red_nether_bricks",
+    "seal": "minecraft:block/redstone_block",
+    "particle": "#carved"
+  },
+  "elements": [
+    {"from": [1, 0, 1], "to": [15, 3, 15], "faces": {
+      "down": {"texture": "#frame"}, "up": {"texture": "#rim"},
+      "north": {"texture": "#frame"}, "south": {"texture": "#frame"}, "west": {"texture": "#frame"}, "east": {"texture": "#frame"}
+    }},
+    {"from": [4, 3, 4], "to": [12, 10, 12], "faces": {
+      "north": {"texture": "#carved"}, "south": {"texture": "#carved"}, "west": {"texture": "#carved"}, "east": {"texture": "#carved"}
+    }},
+    {"from": [2, 10, 2], "to": [14, 13, 14], "faces": {
+      "down": {"texture": "#rim"}, "up": {"texture": "#frame"},
+      "north": {"texture": "#rim"}, "south": {"texture": "#rim"}, "west": {"texture": "#rim"}, "east": {"texture": "#rim"}
+    }},
+    {"from": [2, 13, 2], "to": [5, 16, 5], "faces": {
+      "up": {"texture": "#rim"}, "north": {"texture": "#wine"}, "south": {"texture": "#wine"}, "west": {"texture": "#wine"}, "east": {"texture": "#wine"}
+    }},
+    {"from": [11, 13, 2], "to": [14, 16, 5], "faces": {
+      "up": {"texture": "#rim"}, "north": {"texture": "#wine"}, "south": {"texture": "#wine"}, "west": {"texture": "#wine"}, "east": {"texture": "#wine"}
+    }},
+    {"from": [2, 13, 11], "to": [5, 16, 14], "faces": {
+      "up": {"texture": "#rim"}, "north": {"texture": "#wine"}, "south": {"texture": "#wine"}, "west": {"texture": "#wine"}, "east": {"texture": "#wine"}
+    }},
+    {"from": [11, 13, 11], "to": [14, 16, 14], "faces": {
+      "up": {"texture": "#rim"}, "north": {"texture": "#wine"}, "south": {"texture": "#wine"}, "west": {"texture": "#wine"}, "east": {"texture": "#wine"}
+    }},
+    {"from": [6, 13, 6], "to": [10, 14, 10], "faces": {
+      "up": {"texture": "#seal"}, "north": {"texture": "#rim"}, "south": {"texture": "#rim"}, "west": {"texture": "#rim"}, "east": {"texture": "#rim"}
+    }},
+    {"from": [6, 6, 3.75], "to": [10, 9, 4], "faces": {"north": {"texture": "#rim"}}}
+  ]
+}
