@@ -167,7 +167,9 @@ public final class ArkVisuals {
         var actor=entity(unit.entity(),unit.id());
         if(actor==null||actor.isInvisible()||!actor.isPickable())return;
         var mc=Minecraft.getInstance();var camera=mc.gameRenderer.mainCamera();
-        boolean healthInRange=withinHealthRange(mc.player.position().distanceToSqr(actor.position()));
+        double distanceSquared=mc.player.distanceToSqr(actor);
+        double enemyRange=ClientSettings.enemyHealthDistance;
+        boolean healthInRange=unit.enemy()?distanceSquared<=enemyRange*enemyRange:withinHealthRange(distanceSquared);
         if(unit.enemy()&&!healthInRange)return;
         Vec3 anchor=center(actor).add(0,actor.getBbHeight()*.4+.85,0),relative=anchor.subtract(camera.position());
         var forward=camera.forwardVector();
@@ -177,9 +179,11 @@ public final class ArkVisuals {
         int width=62,y=(int)Math.round((1-screen.y)*.5*graphics.guiHeight());
         float centerX=(float)((screen.x+1)*.5*graphics.guiWidth());
         if(unit.enemy()){
+            float scale=ENEMY_HEALTH_SCALE;
+            if(ClientSettings.enemyHealthPerspective)scale*=Math.clamp(12f/(float)relative.length(),.25f,2f);
             graphics.pose().pushMatrix();
-            graphics.pose().translate(centerX-width*ENEMY_HEALTH_SCALE*.5f,y);
-            graphics.pose().scale(ENEMY_HEALTH_SCALE,ENEMY_HEALTH_SCALE);
+            graphics.pose().translate(centerX-width*scale*.5f,y);
+            graphics.pose().scale(scale,scale);
             healthBar(graphics,0,0,width,unit.health(),unit.maximum(),false);
             graphics.pose().popMatrix();
             return;

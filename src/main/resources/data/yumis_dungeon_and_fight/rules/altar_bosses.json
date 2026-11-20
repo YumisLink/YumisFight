@@ -37,7 +37,7 @@
           "id": "layer_root", "animation": "layer_root", "cooldownMs": 16000, "durationMs": 5400,
           "contactMs": [1400, 2400, 3400, 4400], "target": "nearest",
           "shape": {"type": "circle", "radius": 2},
-          "hitLimit": 1, "damage": {"coefficient": 0.16, "type": "physical", "element": "none"},
+          "hitLimit": 4, "damage": {"coefficient": 0.16, "type": "physical", "element": "none"},
           "rootSeconds": 4, "spawnClone": true
         },
         {

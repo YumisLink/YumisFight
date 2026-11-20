@@ -6,10 +6,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
 
-/** Birth-point geometry only. Each content owner supplies its existing target qualifications. */
+/** Projectile range and launch geometry shared by content owners. */
 public final class ProjectileSpawn {
     public record Start(Vec3 position,double consumedRange,double remainingRange){}
     private ProjectileSpawn(){}
+    public static double extendedRange(double range){return range*3;}
     public static Start forward(Vec3 base,Vec3 direction,double originalRange,double firstCollisionDistance){
         if(!Double.isFinite(originalRange)||originalRange<0||Double.isNaN(firstCollisionDistance))throw new IllegalArgumentException("Invalid projectile start");
         double advance=direction.lengthSqr()<1e-12?0:Math.min(Math.min(.5,originalRange),Math.max(0,firstCollisionDistance-.01));

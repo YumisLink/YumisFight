@@ -7,11 +7,12 @@ import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.util.ARGB;
 import java.util.*;
 
 /** Screen-space hit stacks, rebuilt from live presentation records without retaining session state. */
 public final class DamageNumbers {
-    private static final int MARGIN=4,GAP=4,CRITICAL_OUTLINE=0xffd45a;
+    private static final int MARGIN=4,GAP=4,CRITICAL_TINT=0xffffe4ad;
     private record Entry(DamageNumber number,String text,float scale,int width,int height,double age,int alpha){}
     private record Placement(Entry entry,int left,int top){}
     private DamageNumbers(){}
@@ -31,8 +32,8 @@ public final class DamageNumbers {
             int alpha=(int)(255*Math.min(1,(1-age)*4));
             if(alpha<4)continue;
             String text=NumberText.damage(number.amount())+(number.critical()?"!":"");
-            float scale=ClientSettings.damageScale*(number.critical()?1.5f:1f);
-            // Include a font pixel on every side for the outline or regular drop shadow.
+            float scale=ClientSettings.damageScale;
+            // Include a font pixel on each side for glyph overhang and the regular drop shadow.
             var entry=new Entry(number,text,scale,(int)Math.ceil((font.width(text)+2)*scale),(int)Math.ceil((font.lineHeight+2)*scale),age,alpha);
             groups.computeIfAbsent(number.target(),key->new ArrayList<>()).add(entry);
         }
@@ -106,11 +107,10 @@ public final class DamageNumbers {
         try{
             g.pose().translate(placement.left+entry.scale,placement.top+entry.scale);
             g.pose().scale(entry.scale,entry.scale);
-            if(entry.number.critical()){
-                int outline=(entry.alpha<<24)|CRITICAL_OUTLINE;
-                for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++)if(x!=0||y!=0)g.text(font,entry.text,x,y,outline,false);
-            }
-            g.text(font,entry.text,0,0,(entry.alpha<<24)|(entry.number.color()&0xffffff),!entry.number.critical());
+            boolean critical=entry.number.critical();
+            int color=entry.number.color();
+            if(critical)color=ARGB.srgbLerp(.55f,color,CRITICAL_TINT);
+            g.text(font,entry.text,0,0,ARGB.color(entry.alpha,color),!critical);
         }finally{g.pose().popMatrix();}
     }
 }

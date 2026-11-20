@@ -10,7 +10,9 @@ import cn.yumis.fight.modules.presentation.api.PlayerPages;
 import cn.yumis.fight.modules.presentation.api.client.PlayerPageRenderers;
 
 import com.google.gson.*;
+import com.mojang.blaze3d.platform.InputConstants;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
@@ -60,9 +62,17 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     public FightScreen(){
         this(-1);
     }
-    public FightScreen(String pageId){this(pageId==null?-1:java.util.stream.IntStream.range(0,PlayerPages.all().size()).filter(i->PlayerPages.at(i).id().equals(pageId)).findFirst().orElse(-1));}
+    public FightScreen(String pageId){this(pageIndex(pageId));}
+    private static int pageIndex(String pageId){
+        if(pageId==null)return -1;
+        var pages=PlayerPages.all();
+        for(int index=0;index<pages.size();index++){
+            if(pages.get(index).id().equals(pageId))return index;
+        }
+        return -1;
+    }
     public FightScreen(int page){
-        super(net.minecraft.client.Minecraft.getInstance(),UiFonts.font(),Component.literal(page<0?"地下城与战斗":PlayerPages.at(page).title()),ThemeDomain.MENU);
+        super(Minecraft.getInstance(),UiFonts.font(),Component.literal(page<0?"地下城与战斗":PlayerPages.at(page).title()),ThemeDomain.MENU);
         this.page=page;
         customPanel=page<0?null:PlayerPageRenderers.panel(PlayerPages.at(page).id());
     }
@@ -78,7 +88,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         build();
     }
     public void refresh(){
-        if(font!=null&&!(input!=null&&input.isFocused()))build();
+        if(font!=null&&!(input!=null&&input.isFocused())&&!(getFocused() instanceof ThemedSlider&&isDragging()))build();
     }
     private void build(){
         try(var palette=themeScope()){buildContent();}
@@ -118,8 +128,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         }
         if(page<0)menu();else if(customPanel==null)PlayerPageRenderers.render(PlayerPages.at(page).id(),this);
         contentHeight=nextY+12;
-        scroll=Math.clamp(scroll,0,Math.max(0,contentHeight-bodyHeight()));
-        updateVisibility();
+        setScroll(scroll);
     }
     private int bodyTop(){
         return top+(page<0?36:68);
@@ -133,10 +142,25 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     public int contentWidth(){
         return panelWidth-sidebar-(sidebar>0?26:16);
     }
-    private void openPage(int index){
-        state.upload();var destination=PlayerPages.at(index);
-        if(destination.screen())minecraft.gui.setScreen(new FightScreen(index));else onClose();
-        if(!destination.openCommand().isEmpty())state.send(destination.openCommand());
+    static void navigate(String pageId){
+        int index=pageIndex(pageId);
+        var client=Minecraft.getInstance();
+        if(index<0){
+            ClientSession.INSTANCE.upload();
+            client.gui.setScreen(new FightScreen());
+        }else if(!(client.gui.screen() instanceof FightScreen screen&&screen.page==index)){
+            openPage(index);
+        }
+    }
+    private static void openPage(int index){
+        var state=ClientSession.INSTANCE;
+        var destination=PlayerPages.at(index);
+        if(!destination.screen()&&!state.ready)return;
+        state.upload();
+        var client=Minecraft.getInstance();
+        if(destination.screen())client.gui.setScreen(new FightScreen(index));
+        else if(client.gui.screen()!=null)client.gui.setScreen(null);
+        if(state.ready&&!destination.openCommand().isEmpty())state.send(destination.openCommand());
     }
     private void menu(){
         int cell=(panelWidth-20)/4;
@@ -146,7 +170,11 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
                 openPage(index);
             }
             ).bounds(left+10+col*cell,bodyTop()+row*68-scroll,cell-5,60).build(ThemedButton::new);
-            b.setTooltip(Tooltip.create(UiFonts.decorate(Component.literal(PlayerPages.at(i).title()))));
+            var destination=PlayerPages.at(index);
+            String shortcut=MenuInput.shortcutLabel(destination.id());
+            var tooltip=Component.literal(destination.title());
+            if(!shortcut.isEmpty())tooltip.append("\n").append(shortcut);
+            b.setTooltip(Tooltip.create(UiFonts.decorate(tooltip)));
             body.add(addRenderableWidget(b));
         }
         nextY=((PlayerPages.all().size()+3)/4)*68;
@@ -175,6 +203,13 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     public void rowButton(String label,Runnable action){
         button(label,0,nextY,contentWidth()-24,action);
         nextY+=24;
+    }
+    @Override public void rowSlider(int min, int max, int value, java.util.function.IntFunction<String> label,
+                                    java.util.function.IntConsumer change) {
+        var slider = new ThemedSlider(contentLeft()+12, bodyTop()+nextY-scroll, contentWidth()-24,
+            min, max, value, label, change);
+        body.add(addRenderableWidget(slider));
+        nextY += slider.getHeight()+4;
     }
     public AbstractWidget button(String label,int x,int y,int w,Runnable action){
         var b=Button.builder(Component.literal(label),ignored->action.run()).bounds(contentLeft()+12+x,bodyTop()+y-scroll,w,20).build(ThemedButton::new);
@@ -234,11 +269,19 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         for(var line:styledLines){int y=bodyTop()+line.y-scroll;if(y>=bodyTop()&&y+9<=bodyTop()+bodyHeight())RichTextDrawing.line(g,font,line.text,contentLeft()+12,y,0xff000000|line.color);}
         if(page<0&&state.ready){
             int cell=(panelWidth-20)/4;
-            for(int i=0;i<PlayerPages.all().size();i++){
+            var pages=PlayerPages.all();
+            for(int i=0;i<pages.size();i++){
                 int x=left+10+(i%4)*cell,y=bodyTop()+(i/4)*68-scroll;
                 if(y<bodyTop()||y+60>bodyTop()+bodyHeight())continue;
-                g.text(font,PlayerPages.at(i).title(),x+(cell-5-font.width(PlayerPages.at(i).title()))/2,y+6,UiTheme.TEXT,false);
-                g.blit(Identifier.fromNamespaceAndPath(ItemData.NS,"textures/gui/menu/"+PlayerPages.at(i).icon()+".png"),x+(cell-37)/2,y+21,x+(cell+27)/2,y+53,0,1,0,1);
+                var destination=pages.get(i);
+                g.text(font,destination.title(),x+(cell-5-font.width(destination.title()))/2,y+6,UiTheme.TEXT,false);
+                int center=x+(cell-5)/2;
+                g.blit(Identifier.fromNamespaceAndPath(ItemData.NS,"textures/gui/menu/"+destination.icon()+".png"),center-14,y+19,center+14,y+47,0,1,0,1);
+                String shortcut=MenuInput.shortcutLabel(destination.id());
+                if(!shortcut.isEmpty()){
+                    String label=truncateToWidth(shortcut,cell-15);
+                    g.text(font,label,x+cell-10-font.width(label),y+56-font.lineHeight,UiTheme.MUTED,false);
+                }
             }
         }
         g.disableScissor();
@@ -268,7 +311,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private int sidebarListHeight(){return Math.max(0,bodyTop()+bodyHeight()-sidebarListTop()-6);}
     private boolean insideSidebar(double x,double y){return !sidebarRows.isEmpty()&&sidebar>0&&x>=left+8&&x<left+sidebar+6&&y>=sidebarListTop()&&y<bodyTop()+bodyHeight()-6;}
     private int sidebarRenameX(){return left+sidebar-5-font.width(SIDEBAR_RENAME);}
-    private String shortSidebar(String value,int width){return font.width(value)<=width?value:font.plainSubstrByWidth(value,Math.max(1,width-font.width("…")))+"…";}
+    private String truncateToWidth(String value,int width){return font.width(value)<=width?value:font.plainSubstrByWidth(value,Math.max(1,width-font.width("…")))+"…";}
     private void drawSidebarRows(GuiGraphicsExtractor g,int mx,int my){
         if(sidebarRows.isEmpty())return;int start=sidebarListTop(),height=sidebarListHeight();
         g.text(font,sidebarTitle,left+13,start-17,UiTheme.GOLD,false);if(height<=0)return;
@@ -277,8 +320,8 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         for(int i=0;i<sidebarRows.size();i++){var row=sidebarRows.get(i);int y=start+i*34-sidebarScroll;if(y+32<start||y>=start+height)continue;
             UiTheme.card(g,left+10,y,sidebar-8,31);if(row.selected())g.fill(left+10,y,left+12,y+31,UiTheme.ACCENT);
             int titleWidth=row.rename()==null?sidebar-40:sidebarRenameX()-(left+15)-4;
-            g.text(font,shortSidebar(row.title(),titleWidth),left+15,y+5,row.select()==null?UiTheme.MUTED:row.selected()?UiTheme.ACCENT:UiTheme.TEXT,false);
-            g.text(font,shortSidebar(row.detail(),sidebar-24),left+15,y+18,UiTheme.MUTED,false);
+            g.text(font,truncateToWidth(row.title(),titleWidth),left+15,y+5,row.select()==null?UiTheme.MUTED:row.selected()?UiTheme.ACCENT:UiTheme.TEXT,false);
+            g.text(font,truncateToWidth(row.detail(),sidebar-24),left+15,y+18,UiTheme.MUTED,false);
             if(row.rename()!=null)g.text(font,SIDEBAR_RENAME,sidebarRenameX(),y+5,UiTheme.MUTED,false);
             if(insideSidebar(mx,my)&&my>=y&&my<y+31)g.setComponentTooltipForNextFrame(font,row.select()==null?List.of(Component.literal(row.title()),Component.literal(row.detail()),Component.literal("20级转职后解锁职业栏。")):List.of(Component.literal(row.title()),Component.literal(row.detail())),mx,my);
         }
@@ -288,7 +331,27 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private void dragScroll(double y){int thumb=Math.max(12,bodyHeight()*bodyHeight()/Math.max(1,contentHeight));setScroll((int)Math.round((y-bodyTop()-scrollGrab)*Math.max(0,contentHeight-bodyHeight())/Math.max(1,bodyHeight()-thumb)));}
     @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){if(draggingScroll){dragScroll(event.y());return true;}if(customPanel!=null&&customPanel.mouseDragged(event,dx,dy))return true;return super.mouseDragged(event,dx,dy);}
     @Override public boolean mouseReleased(MouseButtonEvent event){boolean was=draggingScroll;draggingScroll=false;if(customPanel!=null&&customPanel.mouseReleased(event))return true;return was||super.mouseReleased(event);}
-    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){if(sidebarClick(event))return true;if(customPanel==null&&event.button()==0&&contentHeight>bodyHeight()&&event.x()>=left+panelWidth-14&&event.x()<=left+panelWidth&&event.y()>=bodyTop()&&event.y()<=bodyTop()+bodyHeight()){int thumb=Math.max(12,bodyHeight()*bodyHeight()/contentHeight),at=bodyTop()+(bodyHeight()-thumb)*scroll/Math.max(1,contentHeight-bodyHeight());scrollGrab=event.y()>=at&&event.y()<at+thumb?event.y()-at:thumb/2d;draggingScroll=true;dragScroll(event.y());return true;}if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;if(event.button()==1&&event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())for(var area:rightClicks){int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;if(event.x()>=x&&event.x()<x+area.width&&event.y()>=y&&event.y()<y+area.height){area.action.run();return true;}}return clickWidgets(event,twice);}
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){
+        if(closeWithPageShortcut(InputConstants.Type.MOUSE.getOrCreate(event.button())))return true;
+        if(sidebarClick(event))return true;
+        if(customPanel==null&&event.button()==0&&contentHeight>bodyHeight()&&event.x()>=left+panelWidth-14&&event.x()<=left+panelWidth&&event.y()>=bodyTop()&&event.y()<=bodyTop()+bodyHeight()){
+            int thumb=Math.max(12,bodyHeight()*bodyHeight()/contentHeight);
+            int at=bodyTop()+(bodyHeight()-thumb)*scroll/Math.max(1,contentHeight-bodyHeight());
+            scrollGrab=event.y()>=at&&event.y()<at+thumb?event.y()-at:thumb/2d;
+            draggingScroll=true;
+            dragScroll(event.y());
+            return true;
+        }
+        if(customPanel!=null&&customPanel.mouseClicked(event,twice))return true;
+        if(event.button()==1&&event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())for(var area:rightClicks){
+            int x=contentLeft()+12+area.x,y=bodyTop()+area.y-scroll;
+            if(event.x()>=x&&event.x()<x+area.width&&event.y()>=y&&event.y()<y+area.height){
+                area.action.run();
+                return true;
+            }
+        }
+        return clickWidgets(event,twice);
+    }
     private boolean clickWidgets(MouseButtonEvent event,boolean twice){
         if(event.y()>=bodyTop()&&event.y()<bodyTop()+bodyHeight())return super.mouseClicked(event,twice);
         var visible=body.stream().filter(w->w.visible).toList();
@@ -312,13 +375,27 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
             onClose();
             return true;
         }
-        if(!(getFocused() instanceof EditBox box&&box.isFocused())&&cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.matches(e)){
-            state.upload();
-            if(page<0)onClose();
-            else minecraft.gui.setScreen(new FightScreen());
-            return true;
+        if(!(getFocused() instanceof EditBox box&&box.isFocused())){
+            if(MenuInput.MENU.matches(e)){
+                state.upload();
+                if(page<0)onClose();
+                else minecraft.gui.setScreen(new FightScreen());
+                return true;
+            }
+            var key=InputConstants.getKey(e);
+            if(closeWithPageShortcut(key))return true;
+            var destination=MenuInput.pageShortcut(key);
+            if(destination!=null){
+                MenuInput.open(destination);
+                return true;
+            }
         }
         return super.keyPressed(e);
+    }
+    private boolean closeWithPageShortcut(InputConstants.Key key){
+        if(page<0||!MenuInput.matchesPageShortcut(PlayerPages.at(page).id(),key))return false;
+        onClose();
+        return true;
     }
     @Override public void onClose(){
         state.upload();

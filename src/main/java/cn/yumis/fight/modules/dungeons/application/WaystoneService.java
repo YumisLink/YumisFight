@@ -100,7 +100,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
     private void begin(Table t,WaystonePedestalBlockEntity b)throws Exception{
         validate(t,b);var stone=Waystone.read(b.getItem(0));var rules=JSON.fromJson(JSON.toJson(WaystoneRules.current()),WaystoneRules.class);var stoneOwner=server.getPlayerList().getPlayer(b.inserter);
         var operator=server.getPlayerList().getPlayer(t.startedBy);if(operator==null||operator.level()!=b.getLevel())throw new IllegalArgumentException("点击开始的参战者须留在主世界直至倒数结束");
-        Dungeon d=new Dungeon();d.dungeon=stone.dungeon;d.difficulty=Difficulty.HELL;d.cell=owner.freeCell();d.waystone=new WaystoneRun();var run=d.waystone;run.stone=stone;run.owner=b.inserter;run.rules=rules;run.monsterLevel=rules.monsterLevel(stone.tier);run.statMultiplier=rules.statMultiplier(stone.tier);
+        Dungeon d=new Dungeon();d.dungeon=stone.dungeon;d.difficulty=Difficulty.HELL;d.cell=owner.freeCell();d.waystone=new WaystoneRun();var run=d.waystone;run.stone=stone;run.owner=b.inserter;run.ownerSession=players.session(stoneOwner).id;run.rules=rules;run.monsterLevel=rules.monsterLevel(stone.tier);run.statMultiplier=rules.statMultiplier(stone.tier);
         Target probe=new Target();probe.kind="BOSS";probe.elite=true;probe.elitePower="strong";probe.partySize=t.members.size();probe.difficulty=Difficulty.HELL;apply(probe,d);
         for(double stat:new double[]{probe.health(run.monsterLevel),probe.attack(run.monsterLevel),probe.defense(run.monsterLevel,false),probe.defense(run.monsterLevel,true)})if(!Double.isFinite(stat)||stat<=0)throw new IllegalArgumentException("当前阶数与等级配置超出可计算范围，引路石未消耗");
         for(UUID id:t.members.keySet()){var p=server.getPlayerList().getPlayer(id);d.roster.add(id);d.synchronization.put(id,false);d.returns.put(id.toString(),owner.point(p));}
@@ -118,32 +118,49 @@ public final class WaystoneService implements WaystoneActions.Handler {
         }catch(Exception failure){owner.close(d);for(UUID id:d.roster){var p=server.getPlayerList().getPlayer(id);if(p!=null&&players.session(p).life.instance.equals(d.id.toString())){var point=d.returns.get(id.toString());owner.back(p,point);players.session(p).life.instance="";players.session(p).life.dimension=p.level().dimension().identifier().toString();players.save(p);players.profile(p);}}throw failure;}
     }
     public void apply(Target target,Dungeon d){if(d.waystone==null)return;var run=d.waystone;var stone=run.stone;target.waystoneHealth=run.statMultiplier*(1+stone.effect("monster_health"));target.waystoneAttack=run.statMultiplier*(1+stone.effect("monster_attack"));target.waystoneDefense=run.statMultiplier;target.waystoneDefenseIncrease=stone.effect("monster_defense");target.waystoneResistance=stone.effect("monster_resistance");}
-    public void complete(Dungeon d,List<ServerPlayer> here)throws Exception{settle(d,true,here);}
-    public void fail(Dungeon d)throws Exception{if(d.waystone!=null&&!d.waystone.settled)settle(d,false,List.of());}
-    private void settle(Dungeon d,boolean completed,List<ServerPlayer> here)throws Exception{
+    public void complete(Dungeon d,List<ServerPlayer> here)throws Exception{settle(d,true,here,null);}
+    public void fail(Dungeon d,UUID disconnected)throws Exception{if(d.waystone!=null&&!d.waystone.settled)settle(d,false,List.of(),disconnected);}
+    private String rewardPrefix(ServerPlayer player){return "waystonePersonal/"+player.getUUID()+"/"+players.session(player).id+"/";}
+    private void settle(Dungeon d,boolean completed,List<ServerPlayer> here,UUID disconnected)throws Exception{
         var run=d.waystone;if(run.settled)return;if(!journal.get("waystoneSettlement/"+d.id).isJsonNull())throw new IllegalStateException("引路石结算状态不一致");
         run.finishedAt=System.currentTimeMillis();run.result=completed?"COMPLETED":"FAILED";run.settled=true;d.status=completed?"COMPLETED":"CLOSED";
-        var recipients=new LinkedHashSet<UUID>();recipients.add(run.owner);if(completed)for(var player:here)recipients.add(player.getUUID());
+        var recipients=new LinkedHashSet<ServerPlayer>();
+        var stoneOwner=server.getPlayerList().getPlayer(run.owner);
+        if(stoneOwner!=null&&!stoneOwner.hasDisconnected()&&!run.owner.equals(disconnected)&&players.session(stoneOwner).id.equals(run.ownerSession))recipients.add(stoneOwner);
+        if(completed)for(var player:here)if(!player.hasDisconnected())recipients.add(player);
         var edits=new LinkedHashMap<String,JsonElement>();
-        for(UUID id:recipients){var player=server.getPlayerList().getPlayer(id);boolean inside=completed&&player!=null&&here.contains(player);ReturnPoint point=inside?owner.point(player):d.returns.get(id.toString());if(point==null)throw new IllegalStateException("奖励返回位置缺失");
-            var fact=new JsonObject();fact.addProperty("id",d.id.toString());fact.add("run",JSON.toJsonTree(run));fact.add("point",JSON.toJsonTree(point));fact.addProperty("instance",inside?d.id.toString():"");fact.addProperty("returnStone",id.equals(run.owner));fact.addProperty("chest",inside);edits.put("waystonePersonal/"+id+"/"+d.id,fact);
+        var notices=new LinkedHashMap<ServerPlayer,JsonObject>();
+        for(var player:recipients){boolean inside=completed&&here.contains(player);ReturnPoint point=inside?owner.point(player):d.returns.get(player.getStringUUID());if(point==null)throw new IllegalStateException("奖励返回位置缺失");
+            var fact=new JsonObject();fact.addProperty("id",d.id.toString());fact.add("run",JSON.toJsonTree(run));fact.add("point",JSON.toJsonTree(point));fact.addProperty("instance",inside?d.id.toString():"");fact.addProperty("returnStone",player==stoneOwner&&players.session(player).id.equals(run.ownerSession));fact.addProperty("chest",inside);edits.put(rewardPrefix(player)+d.id,fact);notices.put(player,fact);
         }
         edits.put("instance/"+d.id,JSON.toJsonTree(d));edits.put("waystoneSettlement/"+d.id,new JsonPrimitive(run.result));journal.transaction(edits);owner.instanceCommitted(d.id);meter.freeze(d);
-        for(var player:server.getPlayerList().getPlayers())if(d.roster.contains(player.getUUID())){updateSources(player);players.profile(player);pendingRewards(player);players.message(player,(completed?"地狱+通关":"地狱+挑战结束")+"，用时 "+(run.elapsed(run.finishedAt)/1000)+"秒。");}
+        for(var player:server.getPlayerList().getPlayers())if(d.roster.contains(player.getUUID())&&!player.hasDisconnected()&&!player.getUUID().equals(disconnected)){updateSources(player);players.profile(player);if(notices.containsKey(player))Network.send(player,"waystoneReturn",notices.get(player));players.message(player,(completed?"地狱+通关":"地狱+挑战结束")+"，用时 "+(run.elapsed(run.finishedAt)/1000)+"秒。");}
     }
-    public void pendingRewards(ServerPlayer player){for(String key:journal.keys("waystonePersonal/"+player.getUUID()+"/")){var fact=journal.get(key);if(!fact.isJsonNull()&&journal.get("waystonePersonalDone/"+player.getUUID()+"/"+fact.getAsJsonObject().get("id").getAsString()).isJsonNull())Network.send(player,"waystoneReturn",fact);}}
+    public void logout(ServerPlayer player)throws Exception{
+        UUID id=player.getUUID();
+        for(var table:tables.values()){
+            table.viewers.remove(id);
+            if(table.members.remove(id)!=null){
+                changed(table);
+                var pedestal=block(table);
+                if(pedestal!=null)broadcast(table,pedestal);
+            }
+        }
+        var edits=new LinkedHashMap<String,JsonElement>();
+        for(String key:journal.keys(rewardPrefix(player)))edits.put(key,JsonNull.INSTANCE);
+        if(!edits.isEmpty())journal.transaction(edits);
+    }
     public void receiveReward(ServerPlayer player,JsonObject request){
         var fact=request.getAsJsonObject("context");String id=fact.get("id").getAsString(),key="waystonePersonalDone/"+player.getUUID()+"/"+id;
         var previous=journal.get(key);if(!previous.isJsonNull()){if(!previous.equals(request))throw new IllegalArgumentException("引路石奖励操作号冲突");inventory.restore(player);players.profile(player);return;}
-        if(!journal.get("waystonePersonal/"+player.getUUID()+"/"+id).equals(fact))throw new IllegalArgumentException("挑战结算事实已变化");
+        String pending=rewardPrefix(player)+id;
+        if(!journal.get(pending).equals(fact))throw new IllegalArgumentException("挑战结算事实已变化");
         var point=JSON.fromJson(fact.get("point"),ReturnPoint.class);String instance=fact.get("instance").getAsString();var d=owner.byId(id);
         if(!instance.isEmpty()&&!owner.participant(player,instance)){point=d.returns.get(player.getStringUUID());instance="";}
-        var edits=new LinkedHashMap<String,JsonElement>();for(var raw:request.getAsJsonArray("items"))edits.putAll(rewards.drop(player.getUUID(),inventory.decode(player,raw),point,instance));edits.put(key,request.deepCopy());edits.put("waystonePersonal/"+player.getUUID()+"/"+id,JsonNull.INSTANCE);
+        var edits=new LinkedHashMap<String,JsonElement>();for(var raw:request.getAsJsonArray("items"))edits.putAll(rewards.drop(player,inventory.decode(player,raw),point,instance));edits.put(key,request.deepCopy());edits.put(pending,JsonNull.INSTANCE);
         if(request.has("resultingTier")){var updated=JSON.fromJson(JSON.toJsonTree(d),Dungeon.class);updated.waystone.resultingTier=request.get("resultingTier").getAsInt();edits.put("instance/"+id,JSON.toJsonTree(updated));}
-        try{inventory.transact(player,request.get("operation").getAsString(),request,()->{},edits);}finally{owner.instanceCommitted(UUID.fromString(id));}rewards.publish();players.profile(player);
+        try{inventory.transact(player,request.get("operation").getAsString(),request,()->{},edits);}finally{owner.instanceCommitted(UUID.fromString(id));}rewards.publish(edits.keySet());players.profile(player);
     }
-    public void disconnected(ServerPlayer p,Dungeon d)throws Exception{if(server.getPlayerList().getPlayers().stream().noneMatch(other->!other.getUUID().equals(p.getUUID())&&owner.participant(other,d.id.toString())&&other.level().dimension()==DungeonService.DIMENSION))owner.close(d);}
-    public void reconnect(ServerPlayer p,Dungeon d)throws Exception{if(!d.status.equals("RUNNING"))return;var life=players.session(p).life;life.instance=d.id.toString();life.dimension=DungeonService.DIMENSION.identifier().toString();life.revision++;if(p.level().dimension()!=DungeonService.DIMENSION)owner.teleport(p,owner.level(),d.cell*512+.5,80,2.5);updateSources(p);for(UUID id:d.enemies){var e=owner.level().getEntity(id);if(e instanceof net.minecraft.world.entity.LivingEntity living)targets.context(p,living);}players.profile(p);}
     public void death(Dungeon d)throws Exception{if(d.status.equals("RUNNING")){d.waystone.penaltyMillis=Math.addExact(d.waystone.penaltyMillis,d.waystone.rules.deathPenaltyMillis);journal.put("instance/"+d.id,d);}}
     public void updateSources(ServerPlayer p){
         var d=owner.current(p.getUUID());String id=d!=null&&d.waystone!=null&&(d.status.equals("RUNNING")||GoblinCampEncounterService.handles(d)&&d.status.equals("COMPLETED"))?SOURCE+d.id:"";var values=new ArrayList<AttributeSources.Value>();

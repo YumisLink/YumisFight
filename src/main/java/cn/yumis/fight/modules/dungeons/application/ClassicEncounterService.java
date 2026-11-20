@@ -172,7 +172,12 @@ abstract class ClassicEncounterService {
             Vec3 from=new Vec3(e.getX(),80,e.getZ()),to=from.add(b.direction.scale(move.range()));
             long delay=move.contact(i),active=150;
             switch(move.shape()){
-                case "DART" -> {from=e.position().add(0,.9,0);Vec3 aim=b.destination.add(0,.8,0).subtract(from).normalize();to=from.add(aim.scale(move.range()));active=1000;}
+                case "DART" -> {
+                    from=e.position().add(0,.9,0);
+                    Vec3 aim=b.destination.add(0,.8,0).subtract(from).normalize();
+                    double range=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(move.range());
+                    to=from.add(aim.scale(range));active=Math.round(1000*range/move.range());
+                }
                 case "BOMB" -> {from=e.position().add(0,1.2,0);to=b.destination.add(0,.15,0);active=900;}
                 case "DASH" -> {to=ClassicDungeonRooms.inside(d.cell,b.area,e.position().add(b.direction.scale(move.range())));delay=move.windup();active=Math.max(200,Math.round(move.duration()*.39));}
                 case "WAVE" -> active=650;

@@ -121,7 +121,11 @@ public final class ForbiddenEncounterService {
     private void wave(DungeonEnemy e,ForbiddenMoves move,long now){var a=attack(e,move,"WAVE",now);a.width=1.15;add(a);}
     private void projectiles(DungeonEnemy e,ServerPlayer p,ForbiddenMoves move,int count,long now){
         Vec3 origin=e.position().add(0,e.getBbHeight()*.65,0),direction=p.position().add(0,.8,0).subtract(origin).normalize();
-        for(int i=0;i<count;i++){var a=attack(e,move,"LINE",now);a.origin(origin);a.width=.25;destination(a,origin.add(direction.yRot((float)((i-(count-1)*.5)*.09)).scale(move.range)));add(a);}
+        double travel=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(move.range);
+        for(int i=0;i<count;i++){
+            var a=attack(e,move,"LINE",now);a.origin(origin);a.width=.25;a.active=Math.round(a.active*travel/move.range);
+            destination(a,origin.add(direction.yRot((float)((i-(count-1)*.5)*.09)).scale(travel)));add(a);
+        }
     }
     private long summoned(String instance){
         long count=0;for(Entity raw:owner.level().getAllEntities())if(raw instanceof DungeonEnemy e&&e.instance().equals(instance)&&e.isAlive()&&e.getPersistentData().getBooleanOr(REINFORCEMENT,false)&&!e.getPersistentData().getBooleanOr(SPENT,false)&&!targets.target(e).life.dead)count++;return count;
@@ -174,7 +178,7 @@ public final class ForbiddenEncounterService {
         brains.remove(e.getUUID());
     }
     public void tick(List<ServerPlayer> online,long now)throws Exception{
-        // Covers Hell+ enrollment/reconnect as well as the ordinary join hook, without another lifecycle branch.
+        // Covers Hell+ enrollment as well as the ordinary join hook.
         Set<UUID> present=new HashSet<>();
         for(var p:online)if(p.level()==owner.level()){
             var session=players.session(p);Dungeon d=owner.byId(session.life.instance);

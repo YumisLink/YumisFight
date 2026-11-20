@@ -9,6 +9,7 @@ import cn.yumis.fight.modules.inventory.api.DimensionalMenu;
 import cn.yumis.fight.modules.inventory.api.StorageRules;
 
 import com.google.gson.*;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -77,8 +78,22 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
     private boolean scrollbar(double x,double y){return menu.maxScroll()>0&&x>=leftPos+172&&x<=leftPos+185&&y>=topPos+DimensionalMenu.BAG_Y&&y<=topPos+DimensionalMenu.BAG_Y+menu.rows*18;}
     private void drag(double y){int h=menu.rows*18,thumb=Math.max(12,h*menu.rows/Math.max(1,menu.totalRows()));scroll((int)Math.round(Math.clamp((y-topPos-DimensionalMenu.BAG_Y-thumb/2d)/Math.max(1,h-thumb),0,1)*menu.maxScroll()));}
     @Override public boolean mouseScrolled(double x,double y,double sx,double sy){if(x>=leftPos&&x<leftPos+imageWidth&&y>=topPos+DimensionalMenu.BAG_Y&&y<topPos+DimensionalMenu.BAG_Y+menu.rows*18){scroll(menu.scrollRow()-(int)Math.signum(sy));return true;}return super.mouseScrolled(x,y,sx,sy);}
-    @Override public boolean mouseClicked(MouseButtonEvent e,boolean twice){if(e.button()==0&&scrollbar(e.x(),e.y())){dragging=true;drag(e.y());return true;}return super.mouseClicked(e,twice);}
+    @Override public boolean mouseClicked(MouseButtonEvent e,boolean twice){
+        if(closeWithBagShortcut(InputConstants.Type.MOUSE.getOrCreate(e.button())))return true;
+        if(e.button()==0&&scrollbar(e.x(),e.y())){dragging=true;drag(e.y());return true;}
+        return super.mouseClicked(e,twice);
+    }
     @Override public boolean mouseDragged(MouseButtonEvent e,double dx,double dy){if(dragging){drag(e.y());return true;}return super.mouseDragged(e,dx,dy);}
     @Override public boolean mouseReleased(MouseButtonEvent e){if(dragging){dragging=false;return true;}return super.mouseReleased(e);}
-    @Override public boolean keyPressed(KeyEvent e){if(search!=null&&search.isFocused())return super.keyPressed(e);if(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.matches(e)){onClose();cn.yumis.fight.modules.presentation.api.client.MenuInput.open();return true;}return super.keyPressed(e);}
+    @Override public boolean keyPressed(KeyEvent e){
+        if(search!=null&&search.isFocused())return super.keyPressed(e);
+        if(MenuInput.MENU.matches(e)){onClose();MenuInput.open();return true;}
+        if(closeWithBagShortcut(InputConstants.getKey(e)))return true;
+        return super.keyPressed(e);
+    }
+    private boolean closeWithBagShortcut(InputConstants.Key key){
+        if(!MenuInput.matchesPageShortcut("bag",key))return false;
+        onClose();
+        return true;
+    }
 }

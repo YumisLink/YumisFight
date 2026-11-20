@@ -26,12 +26,13 @@ public final class CareerControls {
         if(player.awakened())page.line("觉醒资格：全角色已解锁；对应觉醒技能仍需50级自行学习。",UiTheme.ACCENT);
         else if(!JobCatalog.basic(player.jobId()))page.line("50级可使用一次性觉醒券，获得资格后自行学习觉醒技能。",UiTheme.MUTED);
         if(JobCatalog.basic(player.jobId())){
-            boolean marked=player.jobChangeUnlocked();page.line(marked?"通用转职资格：已解锁":"通用转职资格：未解锁",UiTheme.MUTED);
+            boolean marked=player.jobChangeUnlocked();
+            if(!marked)page.line("转职资格未解锁 · 完成任务追踪器中的「转职试炼」后解锁",UiTheme.MUTED);
             if(marked&&player.level>=20){for(var job:JobCatalog.all())if(job.prerequisite().equals(player.baseJob())){boolean occupied=CareerProfilesClient.occupied(job.id());var button=page.button((occupied?"已有配置：":"转职为")+job.title(),0,page.cursor(),page.contentWidth()-24,()->confirm(page,"转职为"+job.title()+"？","转职选定后不可更换；需副本外脱战且所有技能冷却结束。",()->choose("promote",job.id())));button.active=!occupied;page.cursor(page.cursor()+24);}}
-            else if(player.level<20)page.line("20级解锁转职。",UiTheme.MUTED);
+            else if(player.level<20)page.line("20级可在任务追踪器接取「转职试炼」。",UiTheme.MUTED);
         }
     }
     public static void register(cn.yumis.fight.architecture.CommandRouter<Void,com.google.gson.JsonObject> router){
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{var stack=event.getItemStack();if(!cn.yumis.fight.platform.ItemData.own(stack))return;String id=cn.yumis.fight.platform.ItemData.id(stack);if(id.equals(CharacterItems.PROFILE_EXPANSION))event.getToolTip().add(Component.literal("职业配置容量永久增加1；解锁后新增栏位可直接使用。需副本、训练外脱战，无施法且全部冷却结束。"));if(id.equals(CharacterItems.LEVEL_ONE)||id.equals(CharacterItems.LEVEL_TEN)||id.equals(CharacterItems.LEVEL_MAX))event.getToolTip().add(Component.literal((id.equals(CharacterItems.LEVEL_MAX)?"直升当前满级（"+CharacterRules.MAX_LEVEL+"级），等级上限开放后自动跟随。":id.equals(CharacterItems.LEVEL_TEN)?"当前配置提升10级，最多升至满级，消耗整张券。":"当前配置提升1级，最多升至满级。")+"经验清零，正常补发属性点和SP；满级不消耗。需副本、训练外脱战，无施法且全部冷却结束。"));if(id.equals(CharacterItems.CAREER_UNLOCK))event.getToolTip().add(Component.literal("20级可用，无职业前置；永久解锁所有职业的转职资格，已有资格不消耗。"));if(id.equals(CharacterItems.AWAKENING))event.getToolTip().add(Component.literal("50级可用，无职业前置；全角色配置共享觉醒资格；每套仍需50级自行学习觉醒技能。"));});
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event)->{var stack=event.getItemStack();if(!cn.yumis.fight.platform.ItemData.own(stack))return;String id=cn.yumis.fight.platform.ItemData.id(stack);if(id.equals(CharacterItems.PROFILE_EXPANSION))event.getToolTip().add(Component.literal("职业配置容量永久增加1；解锁后新增栏位可直接使用。需副本、训练外脱战，无施法且全部冷却结束。"));if(id.equals(CharacterItems.LEVEL_ONE)||id.equals(CharacterItems.LEVEL_TEN)||id.equals(CharacterItems.LEVEL_MAX))event.getToolTip().add(Component.literal((id.equals(CharacterItems.LEVEL_MAX)?"直升当前满级（"+CharacterRules.MAX_LEVEL+"级），等级上限开放后自动跟随。":id.equals(CharacterItems.LEVEL_TEN)?"当前配置提升10级，最多升至满级，消耗整张券。":"当前配置提升1级，最多升至满级。")+"经验清零，正常补发属性点和SP；满级不消耗。需副本、训练外脱战，无施法且全部冷却结束。"));if(id.equals(CharacterItems.AWAKENING))event.getToolTip().add(Component.literal("50级可用，无职业前置；全角色配置共享觉醒资格；每套仍需50级自行学习觉醒技能。"));});
     }
 }

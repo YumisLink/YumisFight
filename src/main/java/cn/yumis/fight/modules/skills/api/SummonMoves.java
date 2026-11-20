@@ -7,7 +7,13 @@ import java.util.*;
 
 /** Shared summon choreography and contact times for combat, reference damage and art. */
 public final class SummonMoves {
-    public record Move(String id,int duration,int[] contacts,String shape,int element,double range,double width,double radius,int pierces,double velocity,boolean slow){}
+    public record Move(String id,int duration,int[] contacts,String shape,int element,double range,double width,double radius,int pierces,double velocity,boolean slow){
+        public boolean projectile(){return shape.equals("projectile")||shape.equals("meteor");}
+        public double reach(){
+            return projectile()&&!id.equals("sword_force")
+                ?cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(range):range;
+        }
+    }
     public record Cue(long at,String move,double share,boolean stone){}
     private static final Map<String,Move> MOVES;
     static {

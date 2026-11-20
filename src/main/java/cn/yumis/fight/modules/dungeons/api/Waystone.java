@@ -37,6 +37,7 @@ public final class Waystone {
     private static double rolledReward(double base,double variance,Random random){return 1+(base-1)*(1-variance+random.nextDouble()*2*variance);}
     public void validate(){
         if(id==null||tier<1||dungeon==null||dungeon.isEmpty()||rarity==null||rarity.ordinal()>3||modifiers==null||modifiers.size()>8)throw new IllegalArgumentException("引路石实例无效");
+        if(AwakeningTower.find(dungeon)!=null)throw new IllegalArgumentException("觉醒塔从野外的觉醒塔石碑进入");
         Set<String> ids=new HashSet<>();for(var a:modifiers)if(a==null||a.id()==null||!ids.add(a.id())||a.title()==null||!WaystoneRules.EFFECTS.contains(a.effect())||!Double.isFinite(a.value())||a.value()<0||!a.effect().endsWith("resistance")&&a.value()>=1)throw new IllegalArgumentException("引路石词条实例无效");
         for(double v:new double[]{experienceMultiplier,goldMultiplier,quantityMultiplier,dropMultiplier})if(!Double.isFinite(v)||v<1)throw new IllegalArgumentException("引路石收益实例无效");
     }

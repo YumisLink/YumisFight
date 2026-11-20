@@ -78,6 +78,11 @@ public final class TargetService implements WorldTargets {
                 if(d!=null){
                     t.partySize=d.practice!=null?1:d.treasure==null?d.roster.size():d.treasure.partySize;
                     t.difficulty=d.difficulty;
+                    t.noRewards=AwakeningTower.find(d.dungeon)!=null;
+                    if(d.practice!=null&&d.practice.kind()==PracticeRoom.Kind.MOB){
+                        t.speciesHealth=PracticeRoom.MOB_HEALTH_MULTIPLIER;
+                        t.originDungeon=e.getPersistentData().getStringOr("ydnf_origin","");
+                    }
                 }
             }
             else if(t.kind.equals("NORMAL")){
@@ -85,6 +90,10 @@ public final class TargetService implements WorldTargets {
                 var a=e.getAttribute(Attributes.ATTACK_DAMAGE);
                 t.speciesAttack=a==null?1:Math.max(.1,a.getBaseValue()/3);
                 t.elite=e.getRandom().nextFloat()<.05&&!e.getPersistentData().getBooleanOr("ydnf_spawner",false);
+                if(cn.yumis.fight.modules.combat.api.ManagedEntities.neutralCreature(e)){
+                    t.noRewards=true;
+                    t.elite=false;
+                }
             }
             if(t.elite)t.elitePower=java.util.List.of("strong","rage","armor","elemental").get(random.nextInt(4));
             try{
@@ -94,6 +103,9 @@ public final class TargetService implements WorldTargets {
                 throw new IllegalStateException(ex);
             }
             e.setData(cn.yumis.fight.modules.combat.api.CombatContentTypes.TARGET,JSON.toJson(t));
+        }
+        if(cn.yumis.fight.modules.combat.api.ManagedEntities.neutralCreature(e)&&e.isAlive()&&!t.life.dead){
+            t.life.q=Math.clamp((double)e.getHealth()/e.getMaxHealth(),0,1);
         }
         t.entityId=e.getId();
         return t;

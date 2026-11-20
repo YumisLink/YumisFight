@@ -108,7 +108,9 @@ public final class DarkCityEncounterService {
             a.source=e.getUUID();a.instance=e.instance();a.kind=move.name();a.shape=move.shape;a.started=now;a.windup=move.windup;a.active=move.active;
             a.radius=move.range;a.width=move==CHARGE?e.getBbWidth()/2:move.width();a.halfAngle=Math.PI/3;a.coefficient=move.coefficient;a.magic=move.magic;a.element=move.element;
             a.origin(e.position().add(0,move.height(),0));
-            Vec3 end=a.origin().add(heading.scale(move.range));
+            double travel=move.shape.equals("LINE")?cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(move.range):move.range;
+            if(travel>move.range)a.active=Math.round(a.active*travel/move.range);
+            Vec3 end=a.origin().add(heading.scale(travel));
             if(move==CHARGE)end=DarkCityEntrance.inside(d.cell,b.area,end);
             a.ex=end.x;a.ey=end.y;a.ez=end.z;
             Pending pending=new Pending(a,group,b.area);attacks.put(a.id,pending);owner.broadcast(a.instance,"darkCityAttack",packet(pending));

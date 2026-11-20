@@ -22,7 +22,7 @@ public final class MageSkills {
         return new SkillParameters.Snapshot(input.skill(),input.rank(),values);
     }
     static void install(){
-        add(STAR,"魔法星弹","MAGIC_CRAFT",1,.06,3,true,12,Map.of("pierces",3d));
+        add(STAR,"魔法星弹","MAGIC_CRAFT",1,.06,1.2,true,12,Map.of("pierces",3d));
         add(FANG,"龙牙","MARTIAL",5,12d/156,5,false,5,Map.of("width",1.5));
         add(JACK,"杰克爆弹","ELEMENT",5,16d/156,8,true,12,Map.of("radius",3d));
         skill(JACK).chantSeconds=.5;
@@ -53,7 +53,8 @@ public final class MageSkills {
         return result;
     }
     static void balance(){
-        for(String id:List.of(STAR,FANG,JACK))SkillBalance.register(skill(id),new SkillBalanceProfile(1,0,false,false,0,(s,r,c)->List.of(new SkillBalanceProfile.Hit(200,s.parameters(r).get("damage"),false))));
+        // Keep the original reference period so the shorter cooldown does not reduce damage per shot.
+        for(String id:List.of(STAR,FANG,JACK))SkillBalance.register(skill(id),new SkillBalanceProfile(1,id.equals(STAR)?3:0,false,false,0,(s,r,c)->List.of(new SkillBalanceProfile.Hit(200,s.parameters(r).get("damage"),false))));
         SkillBalance.register(skill(HERDER),new SkillBalanceProfile(1,120,false,false,0,(s,r,c)->SummonMoves.cues(SummonKind.HERDER,new SkillParameters.Snapshot(s,r,s.parameters(r)),120000,1).stream().map(a->new SkillBalanceProfile.Hit(a.at(),s.parameters(r).get(a.stone()?"stoneDamage":"damage")*a.share(),false)).toList()));
         for(String id:List.of(STAR,FANG,JACK,HERDER))SkillBalance.registerVariant(skill(id),(input,progress,stats)->careerDamage(input,progress));
     }

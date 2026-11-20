@@ -8,6 +8,6 @@ public class Life {
     public String dimension="",instance="";
     public long generation=1,revision,basis;
     public double q=1;
-    public boolean dead;
+    public boolean dead,dungeonDefeated;
     public ElementAccumulation.State elemental=new ElementAccumulation.State();
 }

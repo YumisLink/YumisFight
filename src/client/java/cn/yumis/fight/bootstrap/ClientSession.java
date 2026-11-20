@@ -175,6 +175,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         targetHud.clear();
         gold.clear();viewSync.clear();checkpoint=null;checkpointGeneration=-1;reportedCheckpoints.clear();pendingRuntime=null;pendingRuntimeState=null;runtimeSequence=0;minimumRuntimeIssuedAt=0;lastResourceServerTime=lastClockArrival=Long.MIN_VALUE;definitionRetries=0;
         cn.yumis.fight.modules.skills.api.client.TrainingCombat.clear();
+        cn.yumis.fight.modules.talents.client.TalentCombat.clear();
         ready=false;
         damageMeter=new JsonObject();
         trainingMeter=new JsonObject();
@@ -208,6 +209,9 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         messages.register("inventory","personalCommit",(context,j)->{if(session.equals(j.get("session").getAsString())){personalAcknowledged=Math.max(personalAcknowledged,j.get("sequence").getAsLong());personalReceived=j.get("received").getAsBoolean();cn.yumis.fight.modules.economy.client.ShopClient.personalCommit(j);personalRetire();}});
         messages.register("equipment","equipmentArrival",(context,j)->cn.yumis.fight.modules.equipment.client.EquipmentActions.tick());
         messages.register("equipment","equipmentCrafted",(context,j)->{if(ready&&session.equals(j.get("session").getAsString()))cn.yumis.fight.modules.npc.client.TutorialClient.crafted();});
+        messages.register("npc","tutorialCrystalPickup",(context,j)->{
+            if(ready&&session.equals(j.get("session").getAsString()))cn.yumis.fight.modules.npc.client.TutorialClient.crystalPickedUp();
+        });
         messages.register("dungeons","waystoneReturn",(context,j)->cn.yumis.fight.modules.dungeons.client.DungeonActions.receiveReturn(j));
         messages.register("economy","killReward",(context,j)->cn.yumis.fight.modules.economy.client.EconomyActions.reward(j));
         messages.register("professions","professionApplied",(context,j)->cn.yumis.fight.modules.professions.client.ProfessionClient.applied(j));
@@ -489,7 +493,8 @@ if(j.has("target")&&j.has("kind")){
         return EquipmentStats.build(Minecraft.getInstance().player,progress,cn.yumis.fight.modules.professions.client.AlchemyClient.attributes(syncedSources),weapon);
     }
     public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){
-        if(heal&&life.target.equals(own.target))fraction*=cn.yumis.fight.modules.combat.api.CombatEffect.healingScale(Minecraft.getInstance().player);
+        boolean healthAdjustment=extras!=null&&extras.has("resourceCost")&&extras.get("resourceCost").getAsBoolean();
+        if(heal&&!healthAdjustment&&life.target.equals(own.target))fraction*=cn.yumis.fight.modules.combat.api.CombatEffect.healingScale(Minecraft.getInstance().player);
         prediction.report(life,fraction,heal,maximum,color,critical,extras);
     }
     public JsonObject ailment(String target,String kind){

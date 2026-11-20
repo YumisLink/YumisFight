@@ -17,10 +17,6 @@ public final class ShopPage {
         String priceText(){return price+(contract?"金币":"点券");}
     }
     private static final List<Product> ITEMS=List.of(
-        ticket("career_unlock_ticket","一次性转职解锁券",List.of(
-            "永久解锁所有职业的通用转职资格。",
-            "20级可用，无职业前置。",
-            "已有资格时不消耗券。")),
         ticket("awakening_ticket","一次性觉醒券",List.of(
             "永久获得觉醒资格，不自动学习技能。",
             "50级可用，无职业前置。",

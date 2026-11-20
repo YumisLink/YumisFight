@@ -147,7 +147,9 @@ public final class GblEncounterService {
     private void sector(DungeonEnemy e,ServerPlayer p,long windup,long active,double radius,double angle,double coefficient){var a=attack(e,"CLAW","FAN",windup,active,radius,coefficient,false,-1);a.halfAngle=angle;setDestination(a,p.position());add(a);}
     private void projectile(DungeonEnemy e,ServerPlayer p,String kind,long windup,long active,double range,double coefficient,boolean magic,int element,double angle){
         Vec3 from=e.position().add(0,e.getBbHeight()*.65,0),dir=p.position().add(0,.8,0).subtract(from).normalize().yRot((float)angle);
-        var a=attack(e,kind,"LINE",windup,active,.3,coefficient,magic,element);a.origin(from);setDestination(a,from.add(dir.scale(range)));a.width=kind.equals("CANNONBALL")?.55:.25;add(a);
+        double travel=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(range);
+        var a=attack(e,kind,"LINE",windup,Math.round(active*travel/range),.3,coefficient,magic,element);
+        a.origin(from);setDestination(a,from.add(dir.scale(travel)));a.width=kind.equals("CANNONBALL")?.55:.25;add(a);
     }
     private void impact(DungeonEnemy e,String kind,long windup,long active,Vec3 point,double radius,double coefficient,boolean magic){var a=attack(e,kind,"IMPACT",windup,active,radius,coefficient,magic,-1);a.origin(point);setDestination(a,point);add(a);}
     private void add(GblAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"gblAttack",packet(a,false));}

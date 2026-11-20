@@ -21,7 +21,10 @@ import cn.yumis.fight.modules.equipment.client.StyleProperty;
 import cn.yumis.fight.modules.industry.client.IndustrialRecipeCache;
 import cn.yumis.fight.modules.industry.client.IndustrialRenderer;
 import cn.yumis.fight.modules.industry.client.IndustrialScreen;
+import cn.yumis.fight.modules.mining.api.VeinMining;
+import cn.yumis.fight.modules.mining.client.VeinMiningClient;
 import cn.yumis.fight.modules.presentation.api.client.ClientSettings;
+import cn.yumis.fight.modules.presentation.api.client.MenuInput;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.UiTheme;
 import cn.yumis.fight.modules.equipment.api.EquipmentEligibility;
@@ -35,6 +38,8 @@ import cn.yumis.fight.network.Network;
 import cn.yumis.fight.modules.equipment.api.Gear;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.*;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.gui.screens.inventory.*;
 import net.minecraft.client.renderer.entity.*;
@@ -46,16 +51,20 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.client.event.*;
+import net.neoforged.neoforge.client.event.lifecycle.ClientStartedEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import org.lwjgl.glfw.GLFW;
 @Mod(value=ItemData.NS,dist=Dist.CLIENT)
 public final class ClientBootstrap {
     public ClientBootstrap(IEventBus bus){
         cn.yumis.fight.modules.presentation.api.client.ClientUi.install(ClientSession.INSTANCE);
+        VeinMiningClient.register(bus,MenuInput.CATEGORY,()->ClientSettings.veinMiningLimit,
+                plan->ClientSession.INSTANCE.send(VeinMining.ACTION,plan));
         cn.yumis.fight.modules.equipment.api.client.EquipmentClient.install(ClientSession.INSTANCE);
         cn.yumis.fight.modules.skills.api.client.SkillsClient.install(ClientSession.INSTANCE);
         var local=ClientSession.INSTANCE;
-        cn.yumis.fight.modules.character.client.CharacterClient.install(local.preparations,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->new cn.yumis.fight.modules.character.api.ProfileConditions(!local.own.dead,local.dungeon!=null||!local.own.instance.isEmpty(),local.resources.training||local.trainingMeter.has("id")&&!local.trainingMeter.get("completed").getAsBoolean(),SkillController.INSTANCE.locked(),local.resources.cooldowns.values().stream().anyMatch(until->until>ClientSession.now())),()->local.resources.combatUntil,cn.yumis.fight.modules.skills.api.SkillLearning::apply,job->EquipmentItems.gear(cn.yumis.fight.modules.equipment.api.EquipmentTemplates.starter(job,new java.util.Random())));
+        cn.yumis.fight.modules.character.client.CharacterClient.install(local.preparations,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->new cn.yumis.fight.modules.character.api.ProfileConditions(!local.own.dead,local.dungeon!=null||!local.own.instance.isEmpty(),local.resources.training||local.trainingMeter.has("id")&&!local.trainingMeter.get("completed").getAsBoolean(),SkillController.INSTANCE.locked(),local.resources.cooldowns.values().stream().anyMatch(until->until>ClientSession.now())),()->local.resources.combatUntil,cn.yumis.fight.modules.skills.api.SkillLearning::apply,(progress,kind,talent)->cn.yumis.fight.modules.talents.api.TalentChanges.apply(cn.yumis.fight.modules.talents.api.TalentCatalog.current(),progress,kind,talent),job->EquipmentItems.gear(cn.yumis.fight.modules.equipment.api.EquipmentTemplates.starter(job,new java.util.Random())));
+        cn.yumis.fight.modules.industry.api.EnergyCrystalItem.consuming(cn.yumis.fight.modules.character.client.CharacterClient::useCrystal);
         cn.yumis.fight.modules.professions.client.ProfessionClient.install(local.preparations,()->local.professions,points->local.report(local.own,points*.05,true,SkillController.INSTANCE.snapshot().get(cn.yumis.fight.modules.attributes.api.Stat.HEALTH),0x8ef5ad,false,null),()->!local.own.dead);
         cn.yumis.fight.modules.professions.client.AlchemyClient.install(SkillController.INSTANCE::snapshot,fraction->local.report(local.own,fraction,true,SkillController.INSTANCE.snapshot().get(cn.yumis.fight.modules.attributes.api.Stat.HEALTH),0x8ef5ad,false,null),amount->local.resources.mp=Math.min(SkillController.INSTANCE.snapshot().get(cn.yumis.fight.modules.attributes.api.Stat.MP),local.resources.mp+amount));
         cn.yumis.fight.modules.equipment.client.EquipmentActions.install(local.preparations,()->local.progress,()->local.profile,cn.yumis.fight.modules.professions.client.ProfessionClient::get);
@@ -69,7 +78,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.register(bus,()->ClientSession.INSTANCE.dungeon);
         cn.yumis.fight.modules.mapgeneration.client.WorldDecorationClient.register(bus);
         cn.yumis.fight.bootstrap.PlayerPageAssembly.register();
-        cn.yumis.fight.modules.presentation.api.client.MenuInput.navigation(page->Minecraft.getInstance().gui.setScreen(new FightScreen(page)));
+        MenuInput.navigation(FightScreen::navigate);
         cn.yumis.fight.modules.presentation.client.InventoryMenuButton.register();
         IndustrialRecipeCache.register();
         Network.CLIENT=ClientSession.INSTANCE::accept;
@@ -77,6 +86,14 @@ public final class ClientBootstrap {
         Effects.VFX.register();
         cn.yumis.fight.modules.presentation.api.client.NearEffectRendering.register(bus);
         cn.yumis.fight.modules.presentation.api.client.EffectParticles.register(bus);
+        cn.yumis.fight.modules.combat.client.EnemyHealthBars.register(entity ->
+            entity instanceof cn.yumis.fight.modules.arkguard.api.ArkEnemyEntity
+                || entity instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag
+                || entity instanceof cn.yumis.fight.modules.dungeons.api.RitualMechanismEntity, entity -> {
+            var session=ClientSession.INSTANCE;
+            var target=session.targets.get(entity.getUUID());
+            return target==null?entity.getMaxHealth():target.health(target.level(session.progress.level,session.encounterSync()));
+        });
         cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.register();
         cn.yumis.fight.modules.dungeons.client.GblVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.PalaceVisuals.register(()->ClientSession.INSTANCE.own.instance);
@@ -110,9 +127,11 @@ public final class ClientBootstrap {
             id->cn.yumis.fight.modules.dungeons.api.DungeonCatalog.current().dungeons.stream().filter(d->d.materials().contains(id)).map(d->"来源："+d.name()+(d.available()?"":"（尚未开放）")).toList(),
             ()->Boolean.getBoolean("ydnf.verify")&&VerificationDriver.tooltipShift);
         bus.addListener((RegisterKeyMappingsEvent e)->{
-            e.registerCategory(cn.yumis.fight.modules.presentation.api.client.MenuInput.CATEGORY);e.register(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.LEAP);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.RENEW);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.FOLLOW);for(var key:cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS)e.register(key);
+            MenuInput.register(e);
+            e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.LEAP);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.RENEW);e.register(cn.yumis.fight.modules.skills.api.client.SkillInputs.FOLLOW);for(var key:cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS)e.register(key);
         }
         );
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, (ClientStartedEvent e)->MenuInput.clearDefaultConflictsOnce(e.getClient()));
         bus.addListener((RegisterSelectItemModelPropertyEvent e)->{
             e.register(id("katana_style"),StyleProperty.TYPE);e.register(id("material"),MaterialProperty.TYPE);
         }
@@ -167,13 +186,13 @@ public final class ClientBootstrap {
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST,cn.yumis.fight.modules.arkguard.client.ArkGuardClient::interact);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::scroll);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::interact);
+        NeoForge.EVENT_BUS.addListener(ClientBootstrap::movementFov);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
             cn.yumis.fight.modules.npc.client.NpcClient.tick();IndustrialVisuals.tick();cn.yumis.fight.modules.equipment.client.LightsaberLight.tick(IndustrialVisuals.heldLight());
-            ClientSession.INSTANCE.tick();cn.yumis.fight.modules.arkguard.client.ArkGuardClient.tick();cn.yumis.fight.modules.npc.client.TutorialClient.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();while(cn.yumis.fight.modules.presentation.api.client.MenuInput.MENU.consumeClick()){
-                var mc=Minecraft.getInstance();if(!JarClient.blocking()&&mc.player!=null&&mc.gui.screen()==null){
-                    ClientSession.INSTANCE.upload();mc.gui.setScreen(new FightScreen());
-                }
-            }
+            ClientSession.INSTANCE.tick();cn.yumis.fight.modules.arkguard.client.ArkGuardClient.tick();cn.yumis.fight.modules.npc.client.TutorialClient.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();
+            cn.yumis.fight.modules.dungeons.client.DungeonDefeatScreen.update(ClientSession.INSTANCE.ready,ClientSession.INSTANCE.own);
+            var mc=Minecraft.getInstance();
+            MenuInput.consumeClicks(()->!JarClient.blocking()&&mc.player!=null&&mc.gui.screen()==null);
             while(cn.yumis.fight.modules.skills.api.client.SkillInputs.RENEW.consumeClick())if(!JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.renewSummons();
             while(cn.yumis.fight.modules.skills.api.client.SkillInputs.FOLLOW.consumeClick())if(!JarClient.blocking())cn.yumis.fight.modules.presentation.api.client.ClientUi.current().send("summonFollow",cn.yumis.fight.modules.presentation.api.client.ClientUi.current().operation("summonFollow"));
             for(var key:cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS)while(key.consumeClick()){
@@ -250,6 +269,7 @@ public final class ClientBootstrap {
         }
         if(action==GLFW.GLFW_PRESS&&event.key()==GLFW.GLFW_KEY_ESCAPE&&cn.yumis.fight.modules.skills.client.DemonHunterClient.cancelChannel())return true;
         if(action==GLFW.GLFW_PRESS&&event.key()==GLFW.GLFW_KEY_ESCAPE&&cn.yumis.fight.modules.skills.client.ChantClient.active()){cn.yumis.fight.modules.skills.client.ChantClient.cancel();return true;}
+        if(action==GLFW.GLFW_REPEAT&&mc.player!=null&&repeatMenuShortcut(mc.gui.screen(),InputConstants.getKey(event)))return true;
         if(CloudMovement.key(event,action))return true;
         if(mc.player==null||!ClientSession.INSTANCE.ready||mc.gui.screen()!=null||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_F3))return false;
         for(int i=0;i<8;i++)if(cn.yumis.fight.modules.skills.api.client.SkillInputs.SKILLS[i].matches(event)){
@@ -269,7 +289,33 @@ public final class ClientBootstrap {
         }
         return false;
     }
+    private static boolean repeatMenuShortcut(Screen screen,InputConstants.Key key){
+        if(screen!=null&&screen.getFocused() instanceof EditBox box&&box.isFocused())return false;
+        if(screen==null||screen instanceof FightScreen)return MenuInput.MENU.matches(key)||MenuInput.pageShortcut(key)!=null;
+        return screen instanceof DimensionalScreen&&(MenuInput.MENU.matches(key)||MenuInput.matchesPageShortcut("bag",key));
+    }
     private static boolean currencyGesture;
+    private static void movementFov(net.neoforged.neoforge.client.event.ComputeFovModifierEvent event){
+        var player=event.getPlayer();
+        var speed=player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED);
+        float walking=player.getAbilities().getWalkingSpeed();
+        if(speed==null||walking<=0)return;
+        double base=Math.max(walking,speed.getBaseValue()),baseMultiplier=1,totalMultiplier=1;
+        for(var modifier:speed.getModifiers()){
+            if(modifier.amount()<=0)continue;
+            switch(modifier.operation()){
+                case ADD_VALUE->base+=modifier.amount();
+                case ADD_MULTIPLIED_BASE->baseMultiplier+=modifier.amount();
+                case ADD_MULTIPLIED_TOTAL->totalMultiplier*=1+modifier.amount();
+            }
+        }
+        double normal=speed.getAttribute().value().sanitizeValue(base*baseMultiplier*totalMultiplier);
+        double actual=speed.getValue();
+        if(actual>=normal)return;
+        float speedRatio=(float)((walking+normal)/(walking+actual));
+        event.setNewFovModifier(event.getNewFovModifier()
+            +event.getFovScale()*event.getFovModifier()*(speedRatio-1));
+    }
     private static void currency(ScreenEvent.MouseButtonPressed.Pre e){
         if(e.getButton()!=1)return;
         currencyGesture=false;

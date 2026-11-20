@@ -15,14 +15,15 @@ public final class DungeonPage {
     public record Join(String dungeon,Difficulty difficulty,boolean sync){}
     private static final List<String> ART=List.of("goblin_camp","dragon_tower","castle_palace","gbl_church","behemoth_forbidden","dark_city","skasa","moonlight_tavern","hamelin","pursuit","sea_train","time_rift","mysterious_awareness","grandi","central_park");
     private static final List<PlayerPageSurface.Navigation> TABS=List.of(
-        new PlayerPageSurface.Navigation("story","主线副本"),new PlayerPageSurface.Navigation("practice","练功房"));
+        new PlayerPageSurface.Navigation("story","主线副本"),
+        new PlayerPageSurface.Navigation("practice","练功房"));
     private DungeonPage(){}
     public static void render(PlayerPageSurface page,Dungeon current,int level,boolean preferredSync,Consumer<Join> join,Runnable leave,Consumer<String> message){
         if(current!=null&&current.practice!=null){
             page.rowButton("离开练功房",leave);
             return;
         }
-        String tab=page.remember("dungeon.tab","story");
+        String tab=page.remember("dungeon.tab","story").equals("practice")?"practice":"story";
         page.navigation(TABS,tab,id->{
             page.rememberValue("dungeon.tab",id);
             page.rememberValue("dungeon.materials",false);
@@ -36,7 +37,7 @@ public final class DungeonPage {
             });
             return;
         }
-        WaystoneClient.enrollment(page);
+        if(tab.equals("story"))WaystoneClient.enrollment(page);
         if(current!=null&&current.waystone!=null){var run=current.waystone;page.line("地狱 +"+run.stone.tier+" · "+DungeonCatalog.current().dungeon(current.dungeon).name()+" · Lv."+run.monsterLevel);page.line(objective(current,run.settled?"已结束":"挑战中"));for(var m:run.stone.modifiers)page.line(Waystone.modifierText(m));for(String text:run.stone.rewardText())page.line(text);page.rowButton("离开地下城",leave);page.gap();}
         if(current!=null&&current.waystone==null){if(current.treasure!=null){var t=current.treasure;page.line(t.region==0?"哥布林王国 · 野外守宝战斗":"藏宝秘境 · 第"+t.region+" / 5区 · "+(t.theme.equals("palace")?"黄金王宫":t.theme.equals("tower")?"龙人之塔":"格兰之森"));page.line("Lv."+(t.baseLevel+Math.max(0,t.region-1)*2)+" · 地狱 · "+(t.cleared?"已清场":"第"+(current.wave+1)+"波"));}else{page.line("当前："+DungeonCatalog.current().dungeon(current.dungeon).name()+" · "+current.difficulty.title());page.line(objective(current,current.status));}page.rowButton("离开地下城",leave);page.gap();}
         if(current!=null&&current.dungeon.equals(GblChurch.ID)&&Minecraft.getInstance().player!=null)
@@ -46,13 +47,19 @@ public final class DungeonPage {
         int cell=(page.contentWidth()-24)/2,base=page.cursor(),pictureHeight=Math.max(42,(cell-13)/2),height=pictureHeight+43,index=0;
         for(var definition:DungeonCatalog.current().dungeons){
             int x=(index%2)*cell,y=base+(index/2)*(height+6),w=cell-5;index++;
-            page.card(x,y,w,height);var button=page.button("",x,y,w,()->{if(!definition.available()){message.accept("该副本尚未开放");return;}if(current!=null){message.accept("请先退出当前副本");return;}Minecraft.getInstance().gui.pushScreenLayer(new Choice(definition,preferredSync,join));});button.setHeight(height);
+            page.card(x,y,w,height);var button=page.button("",x,y,w,()->choose(definition,current,preferredSync,join,message));button.setHeight(height);
             int tile=ART.indexOf(definition.id());if(tile<0)tile=15;
             page.image("textures/gui/dungeons/atlas.png",x+4,y+4,w-8,pictureHeight,(tile%4)/4f,(tile%4+1)/4f,(tile/4)/4f,(tile/4+1)/4f);
             page.text(UiFonts.font().plainSubstrByWidth(definition.name(),w-12),x+6,y+pictureHeight+10,definition.available()?UiTheme.TEXT:UiTheme.MUTED);
             page.text("Lv."+definition.level()+(definition.available()?"":" · 尚未开放"),x+6,y+pictureHeight+25,UiTheme.MUTED);
         }
         page.cursor(base+((index+1)/2)*(height+6));
+    }
+
+    private static void choose(DungeonCatalog.DungeonDef definition,Dungeon current,boolean preferredSync,Consumer<Join> join,Consumer<String> message){
+        if(!definition.available()){message.accept("该副本尚未开放");return;}
+        if(current!=null){message.accept("请先退出当前副本");return;}
+        Minecraft.getInstance().gui.pushScreenLayer(new Choice(definition,preferredSync,join));
     }
 
     private static void renderPractice(PlayerPageSurface page,int level,Consumer<PracticeRoom> join){
@@ -73,6 +80,8 @@ public final class DungeonPage {
             }
             return;
         }
+        page.rowButton(PracticeRoom.MOB.name(),()->join.accept(PracticeRoom.MOB));
+        page.line("随机刷新各副本小怪，等级跟随本人，血量3倍，掉落与副本内击杀一致。",UiTheme.MUTED);
         page.rowButton(PracticeRoom.GOLD.name(),()->join.accept(PracticeRoom.GOLD));
         page.line("每波结算金币，按当时在场人数分成。",UiTheme.MUTED);
         page.rowButton(PracticeRoom.CURRENCY.name(),()->join.accept(PracticeRoom.CURRENCY));
@@ -90,6 +99,7 @@ public final class DungeonPage {
     private static String objective(Dungeon dungeon,String status){
         if(openCamp(dungeon))return campObjective(dungeon);
         if(dungeon.dungeon.equals(GblChurch.ID))return dungeon.status.equals("COMPLETED")?"阿索尔已击败":"探索五殿 · 击败阿索尔";
+        if(AwakeningTower.find(dungeon.dungeon)!=null)return dungeon.status.equals("COMPLETED")?"觉醒塔已通关":"进入战场 · 击败鲁卡斯";
         if(dungeon.dungeon.equals(CastlePalace.ID))
             return "阶段 "+(dungeon.wave+1)+" / "+(CastlePalace.BOSS+1)+" · "+CastlePalace.roomName(dungeon.wave)+" · "+status;
         return "波次 "+(dungeon.wave+1)+" / 7 · "+status;

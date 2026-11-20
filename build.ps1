@@ -1,4 +1,4 @@
-param([string[]]$Tasks=@('build'), [switch]$Offline, [switch]$NoExport)
+﻿param([string[]]$Tasks=@('build'), [switch]$Offline, [switch]$NoExport)
 $ErrorActionPreference='Stop'
 Set-Location -LiteralPath $PSScriptRoot
 function Test-Java25([string]$Path) {

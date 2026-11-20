@@ -1,9 +1,15 @@
 package cn.yumis.fight.modules.mapgeneration.application;
 
 import net.minecraft.core.*;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.ChunkPos;
 import com.mojang.logging.LogUtils;
@@ -14,6 +20,8 @@ import java.util.function.Consumer;
 
 public final class GenerationService {
     private static final Logger LOG=LogUtils.getLogger();
+    private static final TagKey<EntityType<?>> NON_HOSTILE_TARGETS = TagKey.create(Registries.ENTITY_TYPE,
+        Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight", "non_hostile_targets"));
     private final MinecraftServer server;
     private GenerationPlan pending,last;
     private MapLighting lighting;
@@ -73,7 +81,12 @@ public final class GenerationService {
     }
     public GenerationPlan last() {return last;}
     public boolean generating(){return pending!=null;}
-    public static boolean hostile(net.minecraft.world.entity.Entity entity) {return !cn.yumis.fight.modules.mapgeneration.api.MapGeneration.sceneActor(entity)&&(entity instanceof net.minecraft.world.entity.monster.Enemy||entity.getType().getCategory()==net.minecraft.world.entity.MobCategory.MONSTER);}
+    public static boolean hostile(Entity entity) {
+        EntityType<?> type = entity.getType();
+        return (entity instanceof Enemy || type.getCategory() == MobCategory.MONSTER)
+            && !cn.yumis.fight.modules.mapgeneration.api.MapGeneration.sceneActor(entity)
+            && type.getTags().noneMatch(NON_HOSTILE_TARGETS::equals);
+    }
     public boolean blocksHostiles(ServerLevel level,int x,int z) {return pending!=null&&pending.level==level&&pending.blueprint.settings.noHostileSpawns&&pending.inside(x,z)||GenerationStore.blocksHostiles(level,x,z);}
     public void close() {if(pending!=null)MapPlacer.releaseChunks(pending);lightCompletion=null;}
     public String inspect() {

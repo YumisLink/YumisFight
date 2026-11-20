@@ -59,7 +59,7 @@ public final class DemonHunterClient {
         for(double height:new double[]{3,2,1,0}){boolean valid=true;for(int i=1;i<=80;i++){double u=i/80d;Vec3 point=from.lerp(to,u).add(0,4*height*u*(1-u),0);if(!p.level().hasChunkAt(BlockPos.containing(point))||!p.level().noCollision(p,p.getBoundingBox().move(point.subtract(from)))){valid=false;break;}}if(valid)return new Landing(to,height);}
         throw new IllegalArgumentException("无法安全跃向该落点");
     }
-    private static boolean eligible(LivingEntity e){return e.isAlive()&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon)&&(!(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag b)||!b.timed()||b.ownedBy(player())&&!b.finished());}
+    private static boolean eligible(LivingEntity e){return SkillController.canTarget(e)&&(!(e instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag b)||!b.timed()||b.ownedBy(player())&&!b.finished());}
     private static void start(SkillCast c){
         if(c.skill.id.equals(DemonHunterSkills.GLAIVE)){MageClient.INSTANCE.projectile(c);return;}
         var p=player();var a=new Action();a.cast=c;a.session=state().session();a.job=state().progress().jobId();a.instance=state().own().instance;a.generation=state().own().generation;a.at=a.last=ClientUi.now();a.from=a.to=a.center=a.previous=p.position();a.previousGravity=p.isNoGravity();

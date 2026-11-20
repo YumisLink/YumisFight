@@ -202,6 +202,23 @@ public final class VerificationChecks {
             forgedUpload.add("state",JSON.toJsonTree(forged));runtime.combatApplication.runtime(player,forgedUpload);
             check(session.resources.training==originalResources.training,"client_runtime_cannot_enable_training_or_bypass_stamina_cost");
             check(session.resources.trainingBoundary==originalResources.trainingBoundary,"client_runtime_cannot_replace_administrator_training_boundary");
+            // 换维度瞬间的在途战斗上报必须静默作废：不抛错、不弹消息、不落任何战斗事实。
+            long staleOperation=9_000_000_000L+sequence++;
+            JsonObject staleDimension=new JsonObject();
+            staleDimension.addProperty("session",session.id.toString());
+            staleDimension.addProperty("operation",staleOperation);
+            staleDimension.addProperty("sourceGeneration",session.life.generation);
+            staleDimension.addProperty("dimension",ItemData.NS+":retired-dimension");
+            staleDimension.addProperty("target",player.getStringUUID());
+            staleDimension.addProperty("generation",session.life.generation);
+            staleDimension.addProperty("basis",session.life.basis);
+            staleDimension.addProperty("instance",session.life.instance);
+            staleDimension.addProperty("fraction",.05);
+            staleDimension.addProperty("heal",true);
+            long lifeRevision=session.life.revision;
+            double lifeQ=session.life.q;
+            runtime.combatApplication.report(player,"heal",staleDimension);
+            check(lifeRevision==session.life.revision&&lifeQ==session.life.q&&runtime.journal.get("receipt/"+player.getUUID()+"/"+session.id+"/"+staleOperation).isJsonNull(),"stale_dimension_report_silently_retired");
             var adminBefore=runtime.professionService.get(player.getUUID(),"craftsman");
             String adminOperation=prefix+"administrator";
             runtime.professionService.awardAdmin(player.getUUID(),"craftsman",35,adminOperation);

@@ -2,6 +2,8 @@ package cn.yumis.fight.modules.presentation.api.client;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
+import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 /** Small page rendering port; pages own their data and command callbacks. */
 public interface PlayerPageSurface {
@@ -14,6 +16,7 @@ public interface PlayerPageSurface {
     void line(cn.yumis.fight.modules.presentation.api.RichText text,int color);
     void gap();
     void rowButton(String label,Runnable action);
+    void rowSlider(int min, int max, int value, IntFunction<String> label, IntConsumer change);
     Screen screen();
     int contentWidth();
     int windowWidth();

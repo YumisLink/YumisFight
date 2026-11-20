@@ -78,7 +78,9 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             if(actual.getCount()>expected.getCount()){actual=expected.copy();e.getItemEntity().setItem(actual);}
             if(accountPickup(p,drop,actual)){if(!journal.get("lootEnd/"+id).isJsonNull())e.getItemEntity().discard();return;}int room=InventoryPacking.room(p,actual);
             int take=Math.min(room,actual.getCount());if(take<=0)return;ItemStack result=actual.copyWithCount(take),left=actual.copyWithCount(actual.getCount()-take);var next=copy(drop,LootService.Drop.class);next.item=inventory.get().encode(p,left);Map<String,JsonElement> edits=new HashMap<>();edits.put("loot/"+id,JSON.toJsonTree(next));if(left.isEmpty())edits.put("lootEnd/"+id,JSON.toJsonTree("picked"));JsonObject intent=new JsonObject();intent.addProperty("publicPickup",id);intent.addProperty("count",take);try{
-                inventory.get().transact(p,"public-pickup/"+UUID.randomUUID(),intent,()->inventory.get().requireSpace(p,result),edits);if(left.isEmpty())e.getItemEntity().discard();else e.getItemEntity().setItem(left);
+                if(!inventory.get().transact(p,"public-pickup/"+UUID.randomUUID(),intent,()->inventory.get().requireSpace(p,result),edits))return;
+                if(left.isEmpty())e.getItemEntity().discard();else e.getItemEntity().setItem(left);
+                players.groundPickup(p,result);
                 var view=EquipmentItems.view(result);if(view!=null&&view.creativeTemplate())players.profile(p);
             }
             catch(Exception failure){
@@ -92,7 +94,6 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         public boolean nativeToss;
         public boolean logistics;
         public boolean practice;
-        public boolean durableChest;
         public double dx,dy,dz;
         public String thrower="";
         public long pickupAt;
@@ -112,6 +113,19 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
 
     public void ritualUnlocks(java.util.function.Predicate<String> unlocked){ritualUnlocked=unlocked;}
 
+    public RewardPorts.ExperienceCommit prepareExperience(String id,Map<UUID,List<Integer>> percentages){
+        var writes=new LinkedHashMap<String,JsonElement>();
+        var notices=new ArrayList<RewardNotice>();
+        percentages.forEach((player,waves)->{
+            var online=server.getPlayerList().getPlayer(player);
+            if(online==null||online.hasDisconnected())return;
+            var fact=JSON.toJsonTree(RewardRules.Context.experience(id,waves));
+            writes.put(rewardPrefix(online)+id,fact);
+            notices.add(new RewardNotice(player,fact));
+        });
+        return new RewardPorts.ExperienceCommit(writes,()->rewardNotices.addAll(notices));
+    }
+
     public RitualPorts.ClearCommit prepareRitual(RitualClear clear,String material,Set<UUID> pagePlayers,String page) {
         var target=new Target();
         target.id=UUID.fromString(clear.runId());
@@ -125,42 +139,40 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         var notices=new ArrayList<RewardNotice>();
         for(String participant:clear.participants()){
             UUID player=UUID.fromString(participant);
+            var online=server.getPlayerList().getPlayer(player);
+            if(online==null||online.hasDisconnected())continue;
             String id=RitualClear.idOf(clear.runId(),participant);
             var bonus=new RewardRules.RitualReward(material,pagePlayers.contains(player)?page:"");
             var context=new RewardRules.Context(id,player,target,null,balance.settings(),clear.dimension(),
                 clear.x(),clear.y(),clear.z(),Set.of(player),null,bonus,null);
             var fact=JSON.toJsonTree(context);
-            writes.put("personalKill/"+player+"/"+id,fact);
+            writes.put(rewardPrefix(online)+id,fact);
             notices.add(new RewardNotice(player,fact));
         }
         return new RitualPorts.ClearCommit(Map.copyOf(writes),()->rewardNotices.addAll(notices));
     }
     private final ArrayDeque<Drop> recover=new ArrayDeque<>();
     private Map<UUID,Long> activeDrops=new LinkedHashMap<>();
-    private Set<UUID> persistentDrops=new LinkedHashSet<>();
     private boolean dropIndexValid;
     private long recoverAfter=System.currentTimeMillis()+1500;
-    private void refreshDrop(UUID id,Map<UUID,Long> active,Set<UUID> persistent,long now){
+    private void refreshDrop(UUID id,Map<UUID,Long> active,long now){
         Drop drop=journal.get("lootEnd/"+id).isJsonNull()?journal.get("loot/"+id,Drop.class,null):null;
-        if(drop==null||drop.expires<now){active.remove(id);persistent.remove(id);return;}
+        if(drop==null||drop.expires<now){active.remove(id);return;}
         active.put(id,drop.expires);
-        if(drop.durableChest)persistent.add(id);else persistent.remove(id);
     }
     private void ensureDropIndex(){
         if(dropIndexValid)return;
         // Cache repair is read-only; recover() also reconciles sessions and must not run here.
         Map<UUID,Long> active=new LinkedHashMap<>();
-        Set<UUID> persistent=new LinkedHashSet<>();
         long now=System.currentTimeMillis();
-        for(String key:journal.keys("loot/"))refreshDrop(UUID.fromString(key.substring(5)),active,persistent,now);
-        activeDrops=active;persistentDrops=persistent;dropIndexValid=true;
+        for(String key:journal.keys("loot/"))refreshDrop(UUID.fromString(key.substring(5)),active,now);
+        activeDrops=active;dropIndexValid=true;
     }
     private void expireDropIndex(){
         long now=System.currentTimeMillis();
-        activeDrops.entrySet().removeIf(entry->{if(entry.getValue()>=now)return false;persistentDrops.remove(entry.getKey());return true;});
+        activeDrops.values().removeIf(expiry->expiry<now);
     }
     private List<UUID> activeDropIds(){ensureDropIndex();expireDropIndex();return List.copyOf(activeDrops.keySet());}
-    private List<UUID> persistentDropIds(){ensureDropIndex();expireDropIndex();return List.copyOf(persistentDrops);}
     @Override public void committed(Collection<String> journalKeys){
         if(!dropIndexValid)return;
         try{
@@ -170,7 +182,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
                 else if(key.startsWith("lootEnd/"))changed.add(UUID.fromString(key.substring(8)));
             }
             long now=System.currentTimeMillis();
-            for(UUID id:changed)refreshDrop(id,activeDrops,persistentDrops,now);
+            for(UUID id:changed)refreshDrop(id,activeDrops,now);
         }catch(RuntimeException failure){dropIndexValid=false;}
     }
     public Drop manual(ServerPlayer p,ItemStack stack,Vec3 pos){
@@ -262,16 +274,21 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
     public void privateDrop(ServerPlayer p,ItemStack stack,Vec3 pos,String instance)throws Exception{
         create(p,stack,pos,instance,true);
     }
-    /** Prepares a durable private reward without publishing or writing before its caller commits. */
-    public Drop preparePersistent(UUID player,ItemStack stack,ReturnPoint point,String instance){
-        Drop d=new Drop();d.owner=player.toString();d.dimension=point.dimension;d.instance=instance;d.x=point.x;d.y=point.y+.4;d.z=point.z;d.durableChest=true;d.expires=Long.MAX_VALUE;
+    /** Prepares a private reward for the current session's transaction. */
+    public Drop preparePrivate(ServerPlayer player,ItemStack stack,ReturnPoint point,String instance){
+        Drop d=new Drop();d.owner=player.getStringUUID();d.session=players.session(player).toString();d.dimension=point.dimension;d.instance=instance;d.x=point.x;d.y=point.y+.4;d.z=point.z;d.expires=Long.MAX_VALUE;
         d.item=ItemStack.OPTIONAL_CODEC.encodeStart(server.registryAccess().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE),stack).getOrThrow();return d;
     }
-    public Drop prepareOverflow(ServerPlayer player,ItemStack stack){var point=new ReturnPoint();point.dimension=player.level().dimension().identifier().toString();point.x=player.getX();point.y=player.getY();point.z=player.getZ();return preparePersistent(player.getUUID(),stack,point,encounters.currentInstance(player));}
-    public void publishPersistent(){for(UUID id:persistentDropIds()){var d=journal.get("loot/"+id,Drop.class,null);if(d!=null&&d.durableChest&&journal.get("lootEnd/"+d.id).isJsonNull())publish.add(d);}publish();}
+    public Drop prepareOverflow(ServerPlayer player,ItemStack stack){var point=new ReturnPoint();point.dimension=player.level().dimension().identifier().toString();point.x=player.getX();point.y=player.getY();point.z=player.getZ();return preparePrivate(player,stack,point,encounters.currentInstance(player));}
+    public void publishCommittedDrops(Collection<String> keys){
+        for(String key:keys)if(key.startsWith("loot/")){
+            var drop=journal.get(key,Drop.class,null);if(drop!=null)publish.add(drop);
+        }
+        publish();
+    }
     private void create(ServerPlayer p,ItemStack stack,Vec3 pos,String instance,boolean privateLoot)throws Exception{
         Drop d=new Drop();
-        d.durableChest=cn.yumis.fight.platform.ItemData.own(stack)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(stack));if(d.durableChest)d.expires=Long.MAX_VALUE;
+        if(cn.yumis.fight.platform.ItemData.own(stack)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(stack)))d.expires=Long.MAX_VALUE;
         if(privateLoot){
             d.owner=p.getStringUUID();
             d.session=players.session(p).toString();
@@ -287,7 +304,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
     }
     public void death(ServerPlayer killer,LivingEntity entity,Target target)throws Exception{
         var encounter=target.instance.isEmpty()?null:encounters.byId(target.instance);
-        if(encounter!=null&&encounter.practice!=null){
+        if(encounter!=null&&encounter.practice!=null&&encounter.practice.kind()!=PracticeRoom.Kind.MOB){
             practiceDeath(killer,entity,target,encounter);
             return;
         }
@@ -295,7 +312,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         var context=new RewardRules.Context(target.id+"/"+target.life.generation,killer.getUUID(),target,encounter,balance.settings(),entity.level().dimension().identifier().toString(),entity.getX(),entity.getY(),entity.getZ(),Set.copyOf(nearby),null,null,ritualSupply(target,encounter));
         var fact=JSON.toJsonTree(context);
         for(var player:server.getPlayerList().getPlayers())if(nearby.contains(player.getUUID())||player==killer){
-            offerReward(player.getUUID(),context.id(),fact);
+            offerReward(player,context.id(),fact);
         }
     }
 
@@ -318,12 +335,12 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
                 .filter(player->player.level()==entity.level()&&encounters.participant(player,target.instance)).toList();
             for(var player:present){
                 var practice=new RewardRules.PracticeReward(target.instance,encounter.practice,players.progress(player).level,present.size(),0,seed);
-                offerReward(player.getUUID(),id,practiceFact(id,killer,entity,practice));
+                offerReward(player,id,practiceFact(id,killer,entity,practice));
             }
         }else{
             double luck=encounter.practice.kind()==PracticeRoom.Kind.CURRENCY?players.stats(killer).get(Stat.DROP_RATE):0;
             var practice=new RewardRules.PracticeReward(target.instance,encounter.practice,0,0,luck,seed);
-            offerReward(killer.getUUID(),id,practiceFact(id,killer,entity,practice));
+            offerReward(killer,id,practiceFact(id,killer,entity,practice));
         }
     }
 
@@ -332,9 +349,11 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             entity.level().dimension().identifier().toString(),entity.getX(),entity.getY(),entity.getZ(),Set.of(),practice));
     }
 
-    private void offerReward(UUID player,String id,JsonElement fact)throws Exception{
-        journal.put("personalKill/"+player+"/"+id,fact);
-        rewardNotices.add(new RewardNotice(player,fact));
+    private String rewardPrefix(ServerPlayer player){return "personalKill/"+player.getUUID()+"/"+players.session(player)+"/";}
+    private void offerReward(ServerPlayer player,String id,JsonElement fact)throws Exception{
+        if(player.hasDisconnected())return;
+        journal.put(rewardPrefix(player)+id,fact);
+        rewardNotices.add(new RewardNotice(player.getUUID(),fact));
     }
 
     private boolean practiceOpen(String instance){
@@ -354,23 +373,22 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         journal.transaction(edits);
         committed(edits.keySet());
     }
-    public void pendingRewards(ServerPlayer player){
-        for(String key:journal.keys("personalKill/"+player.getUUID()+"/")){
-            var context=journal.get(key);if(context.isJsonNull())continue;String id=context.getAsJsonObject().get("id").getAsString();
-            if(journal.get("personalKillDone/"+player.getUUID()+"/"+id).isJsonNull())cn.yumis.fight.network.Network.send(player,"killReward",context);
-        }
-    }
     public void receiveReward(ServerPlayer player,JsonObject request){
-        var context=JSON.fromJson(request.get("context"),RewardRules.Context.class);String key="personalKillDone/"+player.getUUID()+"/"+context.id();
-        var previous=journal.get(key);if(!previous.isJsonNull()){if(!previous.equals(request))throw new IllegalArgumentException("奖励操作号冲突");inventory.get().restore(player);players.progress(player,characters.read(player.getUUID()));players.profile(player);return;}
-        if(!journal.get("personalKill/"+player.getUUID()+"/"+context.id()).equals(request.get("context")))throw new IllegalArgumentException("世界死亡事实已变化");
-        if(request.has("unchanged")){try{journal.transaction(Map.of(key,request.deepCopy(),"personalKill/"+player.getUUID()+"/"+context.id(),JsonNull.INSTANCE));}catch(java.io.IOException failure){throw new IllegalStateException(failure);}players.profile(player);return;}
+        String id=request.getAsJsonObject("context").get("id").getAsString();
+        String key="personalKillDone/"+player.getUUID()+"/"+id,pending=rewardPrefix(player)+id;
+        if(!journal.get(key).isJsonNull()){inventory.get().restore(player);players.progress(player,characters.read(player.getUUID()));players.profile(player);return;}
+        var context=journal.get(pending,RewardRules.Context.class,null);
+        if(context==null)throw new IllegalArgumentException("找不到待结算的个人奖励");
+        if(request.has("unchanged")){try{journal.transaction(Map.of(key,request.deepCopy(),pending,JsonNull.INSTANCE));}catch(java.io.IOException failure){throw new IllegalStateException(failure);}players.profile(player);return;}
         if(!JSON.toJsonTree(players.progress(player)).equals(request.get("beforeProgress")))throw new IllegalArgumentException("角色存储快照已变化");
-        var progress=JSON.fromJson(request.get("progress"),Progress.class);var edits=new LinkedHashMap<>(characters.writes(player.getUUID(),progress));edits.putAll(balance.receive(player,request));edits.put(key,request.deepCopy());edits.put("personalKill/"+player.getUUID()+"/"+context.id(),JsonNull.INSTANCE);
+        var progress=JSON.fromJson(request.get("progress"),Progress.class);var edits=new LinkedHashMap<>(characters.writes(player.getUUID(),progress));
+        if(!context.experienceOnly())edits.putAll(balance.receive(player,request));
+        edits.put(key,request.deepCopy());edits.put(pending,JsonNull.INSTANCE);
         var drops=new ArrayList<Drop>();
         var direct=new ArrayList<ItemStack>();
-        boolean practice=context.practice()!=null;
-        for(var raw:practice&&!practiceOpen(context.instance())?new JsonArray():request.getAsJsonArray("rewardDrops")){
+        // Plain practice-room mobs settle like ordinary kills, but their ground drops keep the room's lifecycle.
+        boolean practice=context.practice()!=null||context.encounter()!=null&&context.encounter().practice!=null;
+        for(var raw:context.experienceOnly()||practice&&!practiceOpen(context.instance())?new JsonArray():request.getAsJsonArray("rewardDrops")){
             var row=raw.getAsJsonObject();
             var received=inventory.get().decode(player,row.get("item"));
             if(context.ritual()!=null||context.supply()!=null&&cn.yumis.fight.platform.ItemData.own(received)
@@ -382,14 +400,16 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             if(privateLoot){drop.owner=player.getStringUUID();drop.session=players.session(player).toString();}
             drop.practice=practice;
             drop.dimension=context.dimension();drop.instance=context.instance();drop.x=context.x();drop.y=context.y()+.4;drop.z=context.z();drop.item=row.get("item").deepCopy();
-            drop.durableChest=cn.yumis.fight.platform.ItemData.own(received)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(received));if(drop.durableChest)drop.expires=Long.MAX_VALUE;
+            if(cn.yumis.fight.platform.ItemData.own(received)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(received)))drop.expires=Long.MAX_VALUE;
             if(privateLoot&&!drop.instance.isEmpty()&&!drop.instance.equals(encounters.currentInstance(player))){drop.dimension=player.level().dimension().identifier().toString();drop.instance="";drop.x=player.getX();drop.y=player.getY()+.4;drop.z=player.getZ();}
             drops.add(drop);edits.put("loot/"+drop.id,JSON.toJsonTree(drop));
         }
         try{inventory.get().transact(player,request.get("operation").getAsString(),request,()->{
             for(var item:direct)inventory.get().deliverOrStash(player,item,edits);
         },edits);}catch(RuntimeException failure){if(journal.get(key).equals(request))players.progress(player,characters.read(player.getUUID()));throw failure;}
-        players.progress(player,progress);publishDrops(drops);players.profile(player);if(request.has("goldGain"))balance.notifyGain(player,request.get("goldGain").getAsLong(),balance.gold(player),balance.revision(player));
+        players.progress(player,progress);publishDrops(drops);players.profile(player);
+        if(context.experienceOnly())players.message(player,"方舟战争结算："+context.experiencePercentages().size()+"波，获得"+request.get("experienceGain").getAsLong()+"点经验。");
+        else if(request.has("goldGain"))balance.notifyGain(player,request.get("goldGain").getAsLong(),balance.gold(player),balance.revision(player));
     }
     public void abort(){
         publish.removeIf(drop->!drop.logistics);
@@ -398,19 +418,16 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
     public void recover(){
         dropIndexValid=false;
         Map<UUID,Long> active=new LinkedHashMap<>();
-        Set<UUID> persistent=new LinkedHashSet<>();
         try{
             for(String key:journal.keys("loot/")){
                 Drop d=journal.get(key,Drop.class,null);
                 if(d==null||!journal.get("lootEnd/"+d.id).isJsonNull())continue;
-                if(d.durableChest){
-                    if(!d.instance.isEmpty()){var encounter=encounters.byId(d.instance);var point=encounter==null?null:encounter.returns.get(d.owner);if(point!=null){d.dimension=point.dimension;d.x=point.x;d.y=point.y+.3;d.z=point.z;d.instance="";journal.put("loot/"+d.id,d);}}
-                }
-                else if(!d.owner.isEmpty()||d.expires<System.currentTimeMillis()){journal.put("lootEnd/"+d.id,"expired-session");continue;}
-                else recover.add(d);
-                if(d.expires>=System.currentTimeMillis()){active.put(d.id,d.expires);if(d.durableChest)persistent.add(d.id);}
+                if(!d.owner.isEmpty()){journal.put(key,JsonNull.INSTANCE);continue;}
+                if(d.expires<System.currentTimeMillis()){journal.put("lootEnd/"+d.id,"expired-session");continue;}
+                if(d.expires!=Long.MAX_VALUE)recover.add(d);
+                active.put(d.id,d.expires);
             }
-            activeDrops=active;persistentDrops=persistent;dropIndexValid=true;
+            activeDrops=active;dropIndexValid=true;
         }
         catch(Exception e){
             throw new IllegalStateException(e);
@@ -437,10 +454,9 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         for(Drop requested:queued.values()){
             Drop d=journal.get("loot/"+requested.id,Drop.class,null);
             if(d==null||!journal.get("lootEnd/"+requested.id).isJsonNull()||d.expires<System.currentTimeMillis()||d.practice&&!practiceOpen(d.instance))continue;
+            if(!d.owner.isEmpty()&&!activeOwner(d,server.getPlayerList().getPlayer(UUID.fromString(d.owner))))continue;
             ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));
             if(level==null){publish.add(d);continue;}
-            ServerPlayer player=d.owner.isEmpty()?server.getPlayerList().getPlayers().stream().findFirst().orElse(null):server.getPlayerList().getPlayer(UUID.fromString(d.owner));
-            if(!d.owner.isEmpty()&&player==null){publish.add(d);continue;}
             if(d.logistics&&!level.hasChunkAt(net.minecraft.core.BlockPos.containing(d.x,d.y,d.z))){publish.add(d);continue;}
             ItemStack stack=decode(d);
             if(level.getEntity(d.id)!=null)continue;
@@ -456,13 +472,21 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
                 if(!level.addFreshEntity(e))publish.add(d);
             }
         }
-        for(var notice:rewardNotices){var player=server.getPlayerList().getPlayer(notice.player);if(player!=null)cn.yumis.fight.network.Network.send(player,"killReward",notice.fact);}
+        for(var notice:rewardNotices){
+            var player=server.getPlayerList().getPlayer(notice.player);
+            String id=notice.fact.getAsJsonObject().get("id").getAsString();
+            if(player!=null&&!player.hasDisconnected()&&journal.get(rewardPrefix(player)+id).equals(notice.fact))
+                cn.yumis.fight.network.Network.send(player,"killReward",notice.fact);
+        }
         rewardNotices.clear();
+    }
+    private boolean activeOwner(Drop drop,ServerPlayer player){
+        return player!=null&&!player.hasDisconnected()&&players.session(player).toString().equals(drop.session);
     }
     public void validate(PrivateLoot e){
         Drop d=journal.get("loot/"+e.dropId,Drop.class,null);
         ServerPlayer p=d==null?null:server.getPlayerList().getPlayer(UUID.fromString(d.owner));
-        if(d==null||p==null||!d.durableChest&&!players.session(p).toString().equals(d.session)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull()){
+        if(d==null||!activeOwner(d,p)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull()){
             e.discard();
             return;
         }
@@ -470,7 +494,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
     public void pickup(ServerPlayer p,PrivateLoot e){
         if(!p.getStringUUID().equals(e.owner())||inventory.get().locked(p.getUUID()))return;
         Drop d=journal.get("loot/"+e.dropId,Drop.class,null);
-        if(d==null||!d.durableChest&&!players.session(p).toString().equals(d.session)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull())return;
+        if(d==null||!activeOwner(d,p)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull())return;
         ItemStack stack=inventory.get().decode(p,d.item);
         if(accountPickup(p,d,stack)){if(!journal.get("lootEnd/"+e.dropId).isJsonNull())e.discard();return;}
         int room=InventoryPacking.room(p,stack);
@@ -487,7 +511,8 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         changes.put("loot/"+e.dropId,JSON.toJsonTree(after));
         if(stack.isEmpty())changes.put("lootEnd/"+e.dropId,JSON.toJsonTree("picked"));
         try{
-            inventory.get().transact(p,"pickup/"+UUID.randomUUID(),j,()->inventory.get().requireSpace(p,received),changes);
+            if(!inventory.get().transact(p,"pickup/"+UUID.randomUUID(),j,()->inventory.get().requireSpace(p,received),changes))return;
+            players.groundPickup(p,received);
             var view=EquipmentItems.view(received);if(view!=null&&view.creativeTemplate())players.profile(p);
             if(stack.isEmpty())e.discard();
             else e.initialize(e.dropId,e.owner(),stack);
@@ -532,12 +557,17 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         }
     }
     public void endSession(ServerPlayer p)throws Exception{
+        var edits=new LinkedHashMap<String,JsonElement>();
+        for(String key:journal.keys(rewardPrefix(p)))edits.put(key,JsonNull.INSTANCE);
+        String session=players.session(p).toString();
         for(UUID id:activeDropIds()){
             Drop d=journal.get("loot/"+id,Drop.class,null);
-            if(d!=null&&!d.durableChest&&d.owner.equals(p.getStringUUID())&&d.session.equals(players.session(p).toString())){
-                String key="lootEnd/"+id;journal.put(key,"session-ended");committed(List.of(key));
-            }
+            if(d!=null&&d.owner.equals(p.getStringUUID())&&d.session.equals(session))
+                edits.put("loot/"+id,JsonNull.INSTANCE);
         }
+        if(edits.isEmpty())return;
+        journal.transaction(edits);
+        committed(edits.keySet());
     }
     public void nativeLeft(ItemEntity entity){
         String id=nativeIdentity(entity);
@@ -554,15 +584,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         }
     }
     public void tick(){
-        for(UUID id:persistentDropIds()){
-            Drop d=journal.get("loot/"+id,Drop.class,null);
-            if(d==null||!d.durableChest||!journal.get("lootEnd/"+id).isJsonNull()){committed(List.of("loot/"+id));continue;}
-            if(d.owner.isEmpty())continue;
-            ServerPlayer p=server.getPlayerList().getPlayer(UUID.fromString(d.owner));if(p==null)continue;
-            ServerLevel level=server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,net.minecraft.resources.Identifier.parse(d.dimension)));
-            if(level!=null&&level.getEntity(d.id)==null)publish.add(d);
-        }
-        if(!publish.isEmpty())publish();
+        if(!publish.isEmpty()||!rewardNotices.isEmpty())publish();
         if(System.currentTimeMillis()>=recoverAfter){
             for(int i=0;i<4&&!recover.isEmpty();i++){
                 Drop queued=recover.removeFirst();Drop d=journal.get("loot/"+queued.id,Drop.class,null);

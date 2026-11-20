@@ -79,15 +79,24 @@ def road_cells(blueprint):
 
 
 def compile_template(entry):
-    blueprint = json.loads((DATA / "map_blueprint" / (entry["blueprint"] + ".json")).read_text(encoding="utf-8"))
+    if "blueprint" in entry:
+        blueprint = json.loads((DATA / "map_blueprint" / (entry["blueprint"] + ".json")).read_text(encoding="utf-8"))
+    else:
+        facility = entry["facility"]
+        width, _, depth = map(int, source_template(facility["template"])["size"])
+        blueprint = {
+            "bounds": [0, 0, width - 1, depth - 1],
+            "roads": [],
+            "facilities": [{"id": entry["id"], "position": [0, 0], **facility}],
+        }
     bx0, bz0, bx1, bz1 = blueprint["bounds"]
     palette, indices, cells, entities = [], {}, {}, []
     minimum_y, maximum_y, version = 0, 0, 0
     air = state("minecraft:air")
-    road_materials = blueprint["settings"]["roadBlocks"]
-    road_weights = blueprint["settings"]["roadWeights"]
+    road_materials = blueprint.get("settings", {}).get("roadBlocks", [])
+    road_weights = blueprint.get("settings", {}).get("roadWeights", [])
     sky = entry.get("altitude", 0) > 0
-    barrels = {(b["facility"], tuple(b["pos"])) for b in entry["barrels"]}
+    barrels = {(b["facility"], tuple(b["pos"])) for b in entry.get("barrels", [])}
     assigned = set()
 
     def put(pos, material, data=None, replace=True):
@@ -164,6 +173,17 @@ def compile_template(entry):
             p = copied["blockPos"]
             copied["blockPos"] = ints([int(p[0]) + x0 - bx0, int(p[1]) - reference, int(p[2]) + z0 - bz0])
             entities.append(copied)
+        for fixture in facility.get("fixtures", []):
+            local_x, local_y, local_z = fixture["pos"]
+            pos = (x0 + local_x, local_y - reference, z0 + local_z)
+            if cells.get(pos, (air, None))[0] != air:
+                raise ValueError(f"{entry['id']}: 设施放置位已被占用 {fixture['pos']}")
+            material = state(fixture["block"])
+            if "properties" in fixture:
+                material["Properties"] = nbtlib.Compound({
+                    key: nbtlib.String(value) for key, value in fixture["properties"].items()
+                })
+            put(pos, material)
     if assigned != barrels:
         raise ValueError(f"{entry['id']}: 未找到战利品木桶 {barrels - assigned}")
 
@@ -229,10 +249,11 @@ def build():
                 "projection": "rigid",
             }}],
         })
-        json_file(DATA / "loot_table/chests/wild_buildings" / (name + ".json"), {
-            "type": "minecraft:chest", "pools": [{"rolls": 1, "entries": [{"type": "minecraft:loot_table", "value": entry["loot"]}]}],
-        })
-        print(f"{name}: {len(entry['barrels'])} 个战利品木桶，地面偏移 {floor}")
+        if entry.get("barrels"):
+            json_file(DATA / "loot_table/chests/wild_buildings" / (name + ".json"), {
+                "type": "minecraft:chest", "pools": [{"rolls": 1, "entries": [{"type": "minecraft:loot_table", "value": entry["loot"]}]}],
+            })
+        print(f"{name}: {len(entry.get('barrels', []))} 个战利品木桶，地面偏移 {floor}")
     json_file(DATA / "worldgen/structure_set/wild_buildings.json", {
         "placement": {"type": "minecraft:random_spread", "spacing": config["spacing_chunks"],
                       "separation": config["separation_chunks"], "salt": config["salt"]},

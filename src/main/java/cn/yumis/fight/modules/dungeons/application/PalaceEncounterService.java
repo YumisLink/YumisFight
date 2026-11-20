@@ -144,7 +144,8 @@ public final class PalaceEncounterService {
             }
             case IAE -> {
                 if(b.step++%2==0){play(e,b,"darts",1800,now);String group=UUID.randomUUID().toString();Vec3 from=e.position().add(0,.9,0);
-                    for(int i=0;i<4;i++){var hit=attack(e,"IAE_DART","DART",650,950,.15,1,false,-1,now);hit.group=group;hit.origin(from);hit.destination(from.add(direction.yRot((float)(i*Math.PI/2)).scale(14)));hit.width=.16;add(hit);}}
+                    double range=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(14);
+                    for(int i=0;i<4;i++){var hit=attack(e,"IAE_DART","DART",650,Math.round(950*range/14),.15,1,false,-1,now);hit.group=group;hit.origin(from);hit.destination(from.add(direction.yRot((float)(i*Math.PI/2)).scale(range)));hit.width=.16;add(hit);}}
                 else{play(e,b,"bomb",2300,now);var hit=attack(e,"IAE_BOMB","BOMB",750,1000,2.5,1.5,true,1,now);hit.origin(e.position().add(0,1,0));hit.destination(CastlePalace.inside(d.cell,b.room,p.position()).add(0,.2,0));add(hit);}
                 b.next=b.busy+900;
             }

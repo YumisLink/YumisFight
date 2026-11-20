@@ -91,6 +91,11 @@ public final class PracticeLayouts {
 
     private static Map<String, Arena> createArenas() {
         var rooms = new LinkedHashMap<String, Arena>();
+        rooms.put(PracticeRoom.MOB.id(), arena(
+            (x,z) -> Math.abs(x)<=19 && Math.abs(z)<=19 && Math.abs(x)+Math.abs(z)<=32, 12,
+            Blocks.POLISHED_GRANITE, Blocks.SMOOTH_QUARTZ, Blocks.TUFF_BRICKS, PracticeLayouts::martialHall,
+            // The enemy marker stays empty: the encounter service draws each mob from PracticeMobs per spawn.
+            "", -11,18, 11,18, -11,40, 11,40));
         rooms.put(PracticeRoom.GOLD.id(), arena(
             (x,z) -> Math.abs(x)<=19 && Math.abs(z)<=19, 12,
             Blocks.POLISHED_ANDESITE, Blocks.CUT_COPPER.waxed().unaffected(), Blocks.DEEPSLATE_BRICKS, PracticeLayouts::mint,
@@ -218,6 +223,20 @@ public final class PracticeLayouts {
         b.hang(-3,3,3,5);
         b.hang(3,3,3,5);
         arena.decorations.accept(b);
+    }
+
+    private static void martialHall(Builder b) {
+        // A neutral drill hall: iron stock racks, a quartz emblem and wall lanterns for borrowed dungeon mobs.
+        for (int side : new int[]{-1,1}) {
+            b.rack(side*15,44,Blocks.IRON_BLOCK);
+            b.fill(side*15-2,1,43,side*15+2,2,43,Blocks.SPRUCE_FENCE);
+            b.hang(side*15,41,4,9);
+        }
+        b.frame(0,46,4,6,Blocks.TUFF_BRICKS,Blocks.SMOOTH_QUARTZ);
+        for (int z : new int[]{20,29,38}) {
+            b.hang(-19,z,7,12);
+            b.hang(19,z,7,12);
+        }
     }
 
     private static void mint(Builder b) {

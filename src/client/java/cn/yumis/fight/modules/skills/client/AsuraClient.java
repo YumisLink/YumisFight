@@ -19,7 +19,7 @@ final class AsuraClient {
         if(!content.has("eyeCast"))return false;var source=sources.get(content.get("eyeCast").getAsString());if(source==null)return true;
         var player=Minecraft.getInstance().player;var gear=new Gear();gear.cast=derived(source);gear.cast.eyeGear=cycle;gear.cast.hitIndex=AsuraRules.GEAR_INDEX;
         var launch=content.getAsJsonObject("eyeProjectile");gear.cast.direction=ProjectileSpawn.vector(launch.getAsJsonArray("direction"));gear.position=gear.cast.origin=gear.cast.center=ProjectileSpawn.vector(launch.getAsJsonArray("origin"));gear.range=launch.get("range").getAsDouble();gear.started=launch.get("at").getAsLong();gear.next=ClientUi.now()-Math.clamp(SkillsClient.current().serverNow()-gear.started,0,4500);
-        gears.add(gear);TrainingCombat.hold(source.id,cycle,ClientUi.now()+4500);visual(gear,"START");return true;
+        gears.add(gear);TrainingCombat.hold(source.id,cycle,ClientUi.now()+travelMillis(gear)+1000);visual(gear,"START");return true;
     }
     void tick(SkillBehaviors.Context context,SkillCast source,long eyeUntil){
         long now=ClientUi.now();var player=Minecraft.getInstance().player;
@@ -47,10 +47,14 @@ final class AsuraClient {
         }
     }
     private static SkillCast derived(SkillCast source){var c=new SkillCast();c.id=source.id;c.skill=source.skill;c.parameters=source.parameters;c.stats=source.stats;c.equipment=source.equipment;c.start=source.start;c.origin=source.origin;c.direction=source.direction;c.dimension=source.dimension;return c;}
+    private static long travelMillis(Gear gear){
+        double speed=Math.max(1,gear.cast.parameters.get("gearSpeed",AsuraRules.GEAR_SPEED));
+        return Math.max(1,Math.round(gear.range/speed*1000));
+    }
     private static void visual(Gear gear,String phase){
         var state=SkillsClient.current();var player=Minecraft.getInstance().player;if(player==null)return;
         String id=UUID.nameUUIDFromBytes((gear.cast.eyeGear+"/eye").getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
-        JsonObject j=new JsonObject();j.addProperty("caster",player.getStringUUID());j.addProperty("session",state.session());j.addProperty("generation",state.own().generation);j.addProperty("id",id);j.addProperty("kind",AsuraRules.GEAR_VISUAL);j.addProperty("phase",phase);j.addProperty("sequence",gear.sequence++);j.addProperty("startedAt",gear.started);j.addProperty("at",state.serverNow());j.addProperty("duration",4000);j.addProperty("seed",id.hashCode());j.addProperty("cosmeticOnly",true);j.addProperty("color",CareerRules.EYE_COLOR);
+        JsonObject j=new JsonObject();j.addProperty("caster",player.getStringUUID());j.addProperty("session",state.session());j.addProperty("generation",state.own().generation);j.addProperty("id",id);j.addProperty("kind",AsuraRules.GEAR_VISUAL);j.addProperty("phase",phase);j.addProperty("sequence",gear.sequence++);j.addProperty("startedAt",gear.started);j.addProperty("at",state.serverNow());j.addProperty("duration",travelMillis(gear)+500);j.addProperty("seed",id.hashCode());j.addProperty("cosmeticOnly",true);j.addProperty("color",CareerRules.EYE_COLOR);
         j.addProperty("x",gear.cast.origin.x);j.addProperty("y",gear.cast.origin.y);j.addProperty("z",gear.cast.origin.z);j.addProperty("px",gear.position.x);j.addProperty("py",gear.position.y);j.addProperty("pz",gear.position.z);j.addProperty("dx",gear.cast.direction.x);j.addProperty("dy",gear.cast.direction.y);j.addProperty("dz",gear.cast.direction.z);
         if(phase.equals("START")){double gearSpeed=Math.max(1,gear.cast.parameters.get("gearSpeed",AsuraRules.GEAR_SPEED));var motion=SkillController.motion(gear.range,gear.range/gearSpeed*1000,false);motion.addProperty("at",gear.started);j.add("motion",motion);}Effects.receive(j);state.send("visual",j);
     }

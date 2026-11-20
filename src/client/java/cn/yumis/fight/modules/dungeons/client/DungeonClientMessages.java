@@ -3,10 +3,13 @@ package cn.yumis.fight.modules.dungeons.client;
 import cn.yumis.fight.architecture.CommandRouter;
 import com.google.gson.JsonObject;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /** The bootstrap injects the established client hit queue without exposing another module's state. */
 public final class DungeonClientMessages {
-    public static void register(CommandRouter<Void,JsonObject> router,Consumer<JsonObject> hit,Consumer<String> cancel){
+    public static void register(CommandRouter<Void,JsonObject> router,Predicate<JsonObject> contact,Consumer<String> cancel){
+        Consumer<JsonObject> hit=contact::test;
+        router.register("dungeons","towerStele",(context,j)->DungeonActions.enterTower(j));
         router.register("dungeons","treasureMapClue",(context,j)->TreasureMapClient.receiveClue(j));
         router.register("dungeons","bossAction",(context,j)->{j.remove("clientContact");EnemyTelegraphs.receive(j);hit.accept(j);});
         router.register("dungeons","cancelBossAction",(context,j)->{String id=j.get("id").getAsString();EnemyTelegraphs.cancel(id);cancel.accept(id);});
@@ -17,7 +20,7 @@ public final class DungeonClientMessages {
         router.register("dungeons","classicAttack",(context,j)->{ClassicVisuals.receive(j);EncounterClientContacts.receive(EncounterClientContacts.Family.CLASSIC,j,hit);});
         router.register("dungeons","ritualMenu",(context,j)->RitualFightClient.openMenu(j));
         router.register("dungeons","ritualRun",(context,j)->RitualFightClient.run(j));
-        router.register("dungeons","ritualAttack",(context,j)->RitualFightClient.attack(j,hit));
+        router.register("dungeons","ritualAttack",(context,j)->RitualFightClient.attack(j,contact));
         router.register("dungeons","cancelRitualAttack",(context,j)->RitualFightClient.cancel(j.get("id").getAsString()));
         router.register("dungeons","ritualClearDebt",(context,j)->RitualFightClient.clearDebt());
     }

@@ -1,0 +1,20 @@
+{
+  "type": "yumis_dungeon_and_fight:wild_building",
+  "biomes": [
+    "minecraft:snowy_plains",
+    "minecraft:snowy_taiga",
+    "minecraft:ice_spikes",
+    "minecraft:grove",
+    "minecraft:snowy_slopes",
+    "minecraft:frozen_peaks",
+    "minecraft:jagged_peaks"
+  ],
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "beard_thin",
+  "start_pool": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_frost",
+  "height_offset": -2,
+  "floor_offset": 3,
+  "max_relief": 4,
+  "ground_clearance": 0
+}

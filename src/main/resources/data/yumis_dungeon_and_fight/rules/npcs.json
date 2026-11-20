@@ -331,8 +331,8 @@
               }
             ],
             "reward": {
-              "experience": 300,
-              "gold": 0,
+              "experience": 500,
+              "gold": 20000,
               "items": []
             },
             "page": "skills"
@@ -385,8 +385,8 @@
               }
             ],
             "reward": {
-              "experience": 0,
-              "gold": 50,
+              "experience": 200,
+              "gold": 20000,
               "items": []
             },
             "page": "skills"
@@ -439,8 +439,8 @@
               }
             ],
             "reward": {
-              "experience": 0,
-              "gold": 50,
+              "experience": 200,
+              "gold": 20000,
               "items": [
                 {
                   "item": "yumis_dungeon_and_fight:training_sandbag",
@@ -498,8 +498,8 @@
               }
             ],
             "reward": {
-              "experience": 0,
-              "gold": 100,
+              "experience": 200,
+              "gold": 35000,
               "items": []
             },
             "page": ""
@@ -552,8 +552,8 @@
               }
             ],
             "reward": {
-              "experience": 0,
-              "gold": 100,
+              "experience": 200,
+              "gold": 35000,
               "items": [
                 {
                   "item": "yumis_dungeon_and_fight:equipment_fabricator",
@@ -620,9 +620,27 @@
               }
             ],
             "reward": {
-              "experience": 0,
-              "gold": 200,
+              "experience": 200,
+              "gold": 70000,
               "items": []
+            },
+            "page": ""
+          },
+          {
+            "id": "first_crystal",
+            "goal": "pick_up_crystal",
+            "title": {"spans": [{"text": "第七课 · 拾取魔能水晶", "colors": ["#EBD09C", "#C6ACFF"]}]},
+            "objective": {"spans": [{"text": "从地上拾取任意阶魔能水晶。"}]},
+            "dialogue": [
+              {"spans": [{"text": "挖到魔力矿时，记得把掉落的魔能水晶捡起来。完成后送你一组 3 阶魔能水晶和一个魔能储物袋。"}]}
+            ],
+            "reward": {
+              "experience": 0,
+              "gold": 0,
+              "items": [
+                {"item": "yumis_dungeon_and_fight:energy_crystal_3", "count": 64},
+                {"item": "yumis_dungeon_and_fight:mana_storage_bag", "count": 1}
+              ]
             },
             "page": ""
           }
@@ -659,7 +677,7 @@
                 ]
               },
               {
-                "text": "并解锁通用转职资格后，再回「职业技能」选择进阶职业。",
+                "text": "后去任务追踪器完成「转职试炼」：通关王者级哥布林营地、龙人之塔和城主宫殿，再触碰一次魔王祭坛，然后回「职业技能」选择进阶职业。",
                 "colors": []
               }
             ]

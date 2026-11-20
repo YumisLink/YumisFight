@@ -47,6 +47,16 @@ public final class DungeonActions {
         router.register("dungeons","waystoneReturnResult",(ignored,j)->returned(j));
         router.register("dungeons","trainingStart",(ignored,j)->{if(!trainingAllowed.getAsBoolean())throw new IllegalArgumentException("请在副本外且存活时开始训练");if(Minecraft.getInstance().level.dimension().identifier().toString().equals("yumis_dungeon_and_fight:dungeon"))throw new IllegalArgumentException("请在副本外训练");});
     }
+    static void enterTower(JsonObject stele){
+        var ui=ClientUi.current();
+        if(!ui.ready())return;
+        var request=ui.operation("joinTower");
+        request.add("dungeon",stele.get("dungeon"));
+        request.add("stele",stele.get("pos"));
+        request.addProperty("sync",progress.get().dungeonSync);
+        ui.upload();
+        ui.send("dungeon",request);
+    }
     private static void eligible(String id){var rule=DungeonCatalog.current().dungeon(id);if(!rule.available())throw new IllegalArgumentException("该副本尚未开放");if(progress.get().level<rule.level())throw new IllegalArgumentException("角色等级不足");if(!alive.getAsBoolean())throw new IllegalArgumentException("死亡状态不能参加挑战");}
     private static void returned(JsonObject j){
         if(j.has("items"))return;

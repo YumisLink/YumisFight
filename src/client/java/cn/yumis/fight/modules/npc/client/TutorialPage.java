@@ -11,6 +11,7 @@ public final class TutorialPage {
     public static void render(PlayerPageSurface page){
         open=new java.lang.ref.WeakReference<>(page);
         AwakeningQuestClient.render(page);
+        PromotionQuestClient.render(page);
         var state=TutorialClient.state();var definition=NpcTutorial.definition();
         page.line("伊蕾娜的旅途指引",UiTheme.GOLD);
         if(!state.started){page.line(TutorialClient.starting()?"正在记录旅途指引…":"与伊蕾娜交谈，听完开场后会自动接取第一课。",UiTheme.TEXT);page.line("她在新手村树洞里；未生成新手村时，会出现在世界公共出生点附近。",UiTheme.MUTED);return;}

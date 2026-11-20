@@ -69,6 +69,25 @@ public final class EconomyActions {
         if(JarClient.blocking())throw new IllegalArgumentException("请先完成当前开罐");if(!jarEligible.getAsBoolean())throw new IllegalArgumentException("请在副本外脱战且存活时开罐");var player=Minecraft.getInstance().player;var source=player.getItemInHand(InteractionHand.valueOf(j.get("hand").getAsString()));String definition=LootJarItem.definition(source);var rule=JarDefinitions.current().require(definition);String id=j.get("operation").getAsString();var value=new JsonObject();value.addProperty("id",id);value.addProperty("definition",definition);value.addProperty("name",rule.name());value.addProperty("dimension",player.level().dimension().identifier().toString());value.addProperty("startedAt",ClientUi.current().serverNow());value.addProperty("seed",RANDOM.nextLong());value.addProperty("offset",RANDOM.nextInt(7)-3);value.add("entries",JSON.toJsonTree(rule.entries().stream().filter(e->e.weight()>0).toList()));value.add("reward",InventoryEdits.encode(player,JarDefinitions.create(JarDefinitions.draw(rule,RANDOM),RANDOM,"jar/"+definition+"/"+id)));value.addProperty("delivered",false);value.addProperty("dropped",false);j.add("draw",value);consume(j);draft(j,"draw");
     }
     private static void chest(JsonObject j){var player=Minecraft.getInstance().player;var source=player.getItemInHand(InteractionHand.valueOf(j.get("hand").getAsString()));var data=JsonParser.parseString(ItemData.string(source,"treasure_chest")).getAsJsonObject();var result=ChestRewards.generate(data,stats.get(),RANDOM);var rewards=new JsonArray();for(var item:result)rewards.add(InventoryEdits.encode(player,item));j.add("rewards",rewards);j.addProperty("chest",data.get("id").getAsString());j.addProperty("title",source.getHoverName().getString());j.addProperty("direct",data.get("definition").getAsString().equals("waystone"));consume(j);draft(j,"rewards");}
-    private static void kill(JsonObject j){if(j.has("experienceGain")){var current=progress.get();var next=cn.yumis.fight.modules.character.api.CareerProfiles.copy(current);next.grant(j.get("experienceGain").getAsLong());j.add("beforeProgress",JSON.toJsonTree(current));j.add("progress",JSON.toJsonTree(next));balances(j,Map.of("gold",Math.addExact(balance("gold"),j.get("goldGain").getAsLong())));return;}var context=JSON.fromJson(j.get("context"),RewardRules.Context.class);var current=progress.get();var result=RewardRules.kill(current,stats.get(),Minecraft.getInstance().player.getUUID(),context,RANDOM);j.add("beforeProgress",JSON.toJsonTree(current));j.add("progress",JSON.toJsonTree(result.progress()));balances(j,Map.of("gold",Math.addExact(balance("gold"),result.gold())));j.addProperty("goldGain",result.gold());j.addProperty("experienceGain",result.experience());if(result.experience()==0&&result.gold()==0&&result.drops().isEmpty())j.addProperty("unchanged",true);var drops=new JsonArray();for(var item:result.drops()){var row=new JsonObject();row.add("item",InventoryEdits.encode(Minecraft.getInstance().player,item.item()));row.addProperty("privateLoot",item.privateLoot());drops.add(row);}j.add("rewardDrops",drops);}
+    private static void kill(JsonObject j){
+        var context=JSON.fromJson(j.get("context"),RewardRules.Context.class);
+        var current=progress.get();
+        long seed=UUID.fromString(j.get("operation").getAsString()).getLeastSignificantBits();
+        var player=Minecraft.getInstance().player;
+        var result=RewardRules.reward(current,stats.get(),player.getUUID(),context,new Random(seed));
+        j.add("beforeProgress",JSON.toJsonTree(current));
+        j.add("progress",JSON.toJsonTree(result.progress()));
+        j.addProperty("experienceGain",result.experience());
+        j.remove("unchanged");
+        if(result.experience()==0&&result.gold()==0&&result.drops().isEmpty())j.addProperty("unchanged",true);
+        if(context.experienceOnly())return;
+        balances(j,Map.of("gold",Math.addExact(balance("gold"),result.gold())));
+        j.addProperty("goldGain",result.gold());
+        var drops=new JsonArray();
+        for(var item:result.drops()){
+            var row=new JsonObject();row.add("item",InventoryEdits.encode(player,item.item()));row.addProperty("privateLoot",item.privateLoot());drops.add(row);
+        }
+        j.add("rewardDrops",drops);
+    }
     public static void reward(JsonObject context){if(!offered.add(context.get("id").getAsString()))return;var j=ClientUi.current().operation("lootReward");j.add("context",context);j.addProperty("retryStorage",true);ClientUi.current().send("lootReward",j);}
 }

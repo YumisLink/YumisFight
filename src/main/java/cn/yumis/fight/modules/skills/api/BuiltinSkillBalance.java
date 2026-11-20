@@ -31,7 +31,14 @@ final class BuiltinSkillBalance {
             var p=s.parameters(r);int count=(int)Math.max(1,p.getOrDefault("slashes",10d))+(c.mastery()&&Set.of("KATANA","LIGHTSABER").contains(c.weapon())?10:0);var out=new ArrayList<Hit>();double interval=Math.min(.125,1.25/count);
             for(int i=0;i<count;i++){out.add(hit(i*interval,p.get("damage")));if(c.mastery()&&c.weapon().equals("SHORTSWORD"))out.add(dot(i*interval+.1,p.get("damage")*.2*CareerSkills.growth(9)));}out.add(hit(1.35,p.get("finisher")));return out;
         });
-        add(SkillCatalog.STORM,10,(s,r,c)->{var p=s.parameters(r);double duration=p.get("duration");int total=(int)Math.max(1,p.getOrDefault("slashes",24d));var out=new ArrayList<Hit>();for(int i=0;i<total;i++)out.add(hit(duration*.125+i*duration*.75/total,p.get("damage")));out.add(hit(duration*.9,p.get("finisher")));return out;});
+        add(SkillCatalog.STORM,10,(s,r,c)->{
+            var parameters=s.parameters(r);
+            var schedule=StormChoreography.schedule(parameters);
+            var hits=new ArrayList<Hit>();
+            for(int i=0;i<schedule.slashes();i++)hits.add(new Hit(schedule.slashAt(i),parameters.get("damage"),false));
+            hits.add(new Hit(schedule.finisherAt(),parameters.get("finisher"),false));
+            return hits;
+        });
         SkillBalance.register(SkillCatalog.require(CareerSkills.SOUL_SLASH),new SkillBalanceProfile(.5,6,false,false,0,(s,r,c)->List.of(hit(1,s.parameters(r).get("damage")))));
         SkillBalance.register(SkillCatalog.require(CareerSkills.FIELD),new SkillBalanceProfile(2.4,0,false,false,0,(s,r,c)->{var out=new ArrayList<Hit>();var p=s.parameters(r);int ticks=(int)Math.max(1,p.getOrDefault("duration",12d)/Math.max(.05,p.getOrDefault("fieldTickInterval",1d)));for(int i=1;i<=ticks;i++){if(r>=8)out.add(dot(i,p.get("iceDot")));if(r>=15)out.add(dot(i,p.get("darkDot")));}return out;}));
         career(CareerSkills.TOMBSTONE,3.6,(s,r,c)->{var p=s.parameters(r);var out=new ArrayList<Hit>();int tombHits=(int)Math.max(1,p.getOrDefault("slashes",10d));double tombGap=Math.max(.05,p.getOrDefault("interval",.2));for(int i=1;i<=tombHits;i++)out.add(hit(i*tombGap,p.get("damage")));return out;});

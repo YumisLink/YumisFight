@@ -3,6 +3,7 @@ package cn.yumis.fight.modules.arkguard.application;
 import cn.yumis.fight.foundation.Journal;
 import cn.yumis.fight.modules.arkguard.api.*;
 import cn.yumis.fight.modules.dungeons.api.*;
+import cn.yumis.fight.modules.economy.api.RewardPorts;
 import cn.yumis.fight.modules.mapgeneration.api.MapGeneration;
 import cn.yumis.fight.modules.npc.api.NpcInteractionComponent;
 import com.google.gson.*;
@@ -22,10 +23,11 @@ public final class ArkGuardService {
     private final MinecraftServer server;
     private final Journal journal;
     private final WorldTargets lives;
+    private final RewardPorts.Experience experience;
     private final Function<ServerPlayer,String> session;
     private final BiConsumer<ServerPlayer,JsonObject> send;
     private final BiConsumer<ServerPlayer,String> message;
-    private final Set<UUID> waiting=new LinkedHashSet<>(),registered=new LinkedHashSet<>(),confirmed=new LinkedHashSet<>(),absent=new HashSet<>(),protectedPlayers=new HashSet<>();
+    private final Set<UUID> waiting=new LinkedHashSet<>(),registered=new LinkedHashSet<>(),confirmed=new LinkedHashSet<>(),protectedPlayers=new HashSet<>();
     private final Map<UUID,ArkRoster> plans=new HashMap<>();
     private final Map<UUID,JsonObject> sent=new HashMap<>();
     private final ParticipationBoard board=new ParticipationBoard();
@@ -38,8 +40,8 @@ public final class ArkGuardService {
     private ArkRules lobbyRules=ArkRules.current();
 
     public ArkGuardService(MinecraftServer server,Journal journal,Function<ServerPlayer,String> session,
-                           BiConsumer<ServerPlayer,JsonObject> send,BiConsumer<ServerPlayer,String> message,WorldTargets lives){
-        this.server=server;this.journal=journal;this.session=session;this.send=send;this.message=message;this.lives=lives;
+                           BiConsumer<ServerPlayer,JsonObject> send,BiConsumer<ServerPlayer,String> message,WorldTargets lives,RewardPorts.Experience experience){
+        this.server=server;this.journal=journal;this.session=session;this.send=send;this.message=message;this.lives=lives;this.experience=experience;
         NpcInteractionComponent.unregister("ark_war");
         NpcInteractionComponent.register("ark_war",(player,host,action)->{
             if(player.hasDisconnected()||server.getPlayerList().getPlayer(player.getUUID())!=player||!inside(player)
@@ -58,7 +60,6 @@ public final class ArkGuardService {
     }
     public void request(ServerPlayer player,JsonObject request)throws Exception{
         if(!request.has("session")||!session.apply(player).equals(request.get("session").getAsString()))return;
-        absent.remove(player.getUUID());
         switch(request.get("kind").getAsString()){
             case "status"->{sent.remove(player.getUUID());publish(player);}
             case "enter"->{if(inside(player)){publish(player);return;}waiting.add(player.getUUID());publish(player);}
@@ -74,10 +75,13 @@ public final class ArkGuardService {
         }
     }
     private static boolean inside(ServerPlayer player){return ArkWar.contains(player.level(),player.blockPosition());}
+    public boolean canResumeInPlace(ServerPlayer player){
+        return battle!=null&&!battle.ended&&battle.seat(player.getUUID())!=null&&inside(player);
+    }
     private ServerLevel level(){var level=server.getLevel(ArkWar.DIMENSION);if(level==null)throw new IllegalStateException("方舟场景维度尚未加载");return level;}
     private Set<UUID> present(){
         var present=new LinkedHashSet<UUID>();
-        for(var p:server.getPlayerList().getPlayers())if(!p.hasDisconnected()&&!absent.contains(p.getUUID())&&inside(p))present.add(p.getUUID());
+        for(var p:server.getPlayerList().getPlayers())if(!p.hasDisconnected()&&inside(p))present.add(p.getUUID());
         return present;
     }
     public void tick(){
@@ -143,7 +147,7 @@ public final class ArkGuardService {
     private void begin(){
         var seats=new ArrayList<ArkBattle.Seat>();int index=0;
         for(UUID id:registered){var p=server.getPlayerList().getPlayer(id);if(p==null||!inside(p)||!confirmed.contains(id))throw new IllegalStateException("报名名单已变化");seats.add(new ArkBattle.Seat(id,p.getScoreboardName(),index++,plans.get(id)));}
-        battle=new ArkBattle(lobby,level(),journal,lives,seats,lobbyRules,System.currentTimeMillis(),this::effects);
+        battle=new ArkBattle(lobby,level(),journal,lives,seats,lobbyRules,System.currentTimeMillis(),this::effects,experience);
         for(var seat:seats){var p=server.getPlayerList().getPlayer(seat.owner);var position=seat.plot().shop();if(p!=null)p.teleportTo(level(),position.x,position.y,position.z,Set.of(),seat.plot().facing(),0,true);}
         confirmed.clear();if(scene!=null)scene.update(battle,present(),System.currentTimeMillis());
     }
@@ -191,7 +195,7 @@ public final class ArkGuardService {
             journal.put(RETURNS+player.getUUID(),JsonNull.INSTANCE);
         }
         player.removeEffect(ArkContentTypes.OBSERVER);protectedPlayers.remove(player.getUUID());if(battle==null){registered.remove(player.getUUID());confirmed.remove(player.getUUID());plans.remove(player.getUUID());}
-        if(battle!=null&&battle.presentCount(present())==0)endBattle("所有参战者已离场，本局结束");publishAll();refreshBoard();
+        if(battle!=null&&battle.presentCount(present())==0)finishBattle("所有参战者已离场，本局结束");publishAll();refreshBoard();
     }
     private void publishAll(){for(var p:server.getPlayerList().getPlayers())if(inside(p)||sent.containsKey(p.getUUID()))publish(p);}
     private void effects(JsonObject packet){
@@ -221,6 +225,7 @@ public final class ArkGuardService {
         }
     }
     private void endBattle(){endBattle(battle==null?"":battle.result);}
+    private void finishBattle(String reason){battle.finish(reason);endBattle();}
     private void endBattle(String reason){
         if(battle==null)return;var ending=battle;battle=null;lastResult=reason;
         try{ending.close();}finally{
@@ -230,9 +235,14 @@ public final class ArkGuardService {
         }
     }
     public void logout(ServerPlayer player){
-        waiting.remove(player.getUUID());sent.remove(player.getUUID());absent.add(player.getUUID());player.removeEffect(ArkContentTypes.OBSERVER);protectedPlayers.remove(player.getUUID());
-        if(battle==null){registered.remove(player.getUUID());confirmed.remove(player.getUUID());plans.remove(player.getUUID());}
-        else if(battle.presentCount(present())==0)endBattle("所有参战者已离线或离场，本局结束");
+        UUID id=player.getUUID();
+        waiting.remove(id);sent.remove(id);player.removeEffect(ArkContentTypes.OBSERVER);protectedPlayers.remove(id);
+        registered.remove(id);confirmed.remove(id);plans.remove(id);
+        if(battle!=null){
+            var remaining=present();
+            remaining.remove(id);
+            if(battle.presentCount(remaining)==0)finishBattle("所有参战者已离线或离场，本局结束");
+        }
     }
     public void close(){
         if(battle!=null){battle.close();battle=null;}if(scene!=null){scene.close();scene=null;}board.clear();

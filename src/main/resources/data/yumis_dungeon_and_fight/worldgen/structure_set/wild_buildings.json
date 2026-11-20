@@ -29,6 +29,38 @@
     {
       "structure": "yumis_dungeon_and_fight:wild_buildings/astronomer_home",
       "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_root",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_forge",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_sluice",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_sand_market",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_frost",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_orrery",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_seal",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_theater",
+      "weight": 1
     }
   ]
 }

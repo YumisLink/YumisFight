@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,half=lower": { "model": "yumis_dungeon_and_fight:block/awakening_tower_stele_lower" },
+    "facing=east,half=lower": { "model": "yumis_dungeon_and_fight:block/awakening_tower_stele_lower", "y": 90 },
+    "facing=south,half=lower": { "model": "yumis_dungeon_and_fight:block/awakening_tower_stele_lower", "y": 180 },
+    "facing=west,half=lower": { "model": "yumis_dungeon_and_fight:block/awakening_tower_stele_lower", "y": 270 },
+    "facing=north,half=upper": { "model": "yumis_dungeon_and_fight:block/awakening_tower_stele_upper" },
+    "facing=east,half=upper": { "model": "yumis_dungeon_and_fight:block/awakening_tower_stele_upper", "y": 90 },
+    "facing=south,half=upper": { "model": "yumis_dungeon_and_fight:block/awakening_tower_stele_upper", "y": 180 },
+    "facing=west,half=upper": { "model": "yumis_dungeon_and_fight:block/awakening_tower_stele_upper", "y": 270 }
+  }
+}

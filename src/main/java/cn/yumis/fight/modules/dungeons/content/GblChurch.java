@@ -17,8 +17,7 @@ import static cn.yumis.fight.modules.dungeons.api.GblEnemyKind.*;
 public final class GblChurch {
     public static final String ID = "gbl_church";
     public static final String VERSION_PREFIX = "GBL_WHALE_";
-    public static final String VERSION_BEFORE_SKY_CLOUDS = VERSION_PREFIX + "1";
-    public static final String VERSION = VERSION_PREFIX + "2";
+    public static final String VERSION = VERSION_PREFIX + "3";
     public static final DungeonLayouts.Bounds BOUNDS = new DungeonLayouts.Bounds(-110, -64, -77, 110, 56, 253);
     public static final DungeonLayouts.Bounds ACTIVE_BOUNDS = new DungeonLayouts.Bounds(-36, -5, -11, 35, 24, 234);
     private static final String SCENERY_TAG = "ydnf_gbl_church_scenery";
@@ -90,7 +89,7 @@ public final class GblChurch {
         placeSkyClouds(world, origin);
     }
 
-    public static void placeSkyClouds(ServerLevel world, BlockPos origin) {
+    private static void placeSkyClouds(ServerLevel world, BlockPos origin) {
         var structure = world.getStructureManager().get(SKY_CLOUDS)
             .orElseThrow(() -> new IllegalStateException("缺少 GBL 云层结构：" + SKY_CLOUDS));
         var settings = new StructurePlaceSettings();

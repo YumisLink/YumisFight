@@ -15,8 +15,8 @@ import net.minecraft.world.phys.*;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.common.NeoForge;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import static cn.yumis.fight.modules.dungeons.client.EnemyEffectGeometry.*;
 
@@ -54,10 +54,10 @@ public final class RitualFightClient {
     }
     private static final class Cast {
         final Move move;
-        final Consumer<JsonObject> hit;
+        final Predicate<JsonObject> hit;
         int checked,hits,lingerChecked,lingerHits;
         boolean rooted;
-        Cast(Move move,Consumer<JsonObject> hit){this.move=move;this.hit=hit;}
+        Cast(Move move,Predicate<JsonObject> hit){this.move=move;this.hit=hit;}
     }
 
     private RitualFightClient(){}
@@ -102,7 +102,7 @@ public final class RitualFightClient {
         }else fights.put(fight.runId(),fight);
     }
 
-    static void attack(JsonObject packet,Consumer<JsonObject> hit){
+    static void attack(JsonObject packet,Predicate<JsonObject> hit){
         sync();
         var move=JSON.fromJson(packet,Move.class);
         if(move.boss()!=null&&sameWorld(move.boss().dimension)&&move.shapeType()!=null
@@ -114,7 +114,7 @@ public final class RitualFightClient {
     static void cancel(String id){
         var cast=casts.remove(id);
         var player=Minecraft.getInstance().player;
-        if(cast!=null&&cast.move.selfRootSeconds()>0&&player!=null)
+        if(cast!=null&&cast.rooted&&player!=null)
             player.removeEffect(CombatContentTypes.RITUAL_ROOT);
     }
 
@@ -145,9 +145,11 @@ public final class RitualFightClient {
                 int index=cast.checked++;
                 long at=move.startedAt()+move.contactMs()[index];
                 boolean rootTick=move.selfRootSeconds()>0&&index>0;
-                if(cast.hits<move.hitLimit()&&now-at<=250&&(rootTick?cast.rooted:inside(move,now,false))){
-                    if(index==0&&move.selfRootSeconds()>0)cast.rooted=true;
-                    contact(cast,"hit/"+index,move.coefficient(),move.magic(),move.element(),at,true);
+                if(cast.hits<move.hitLimit()&&now-at<=250
+                        &&(rootTick?cast.rooted&&minecraft.player.hasEffect(CombatContentTypes.RITUAL_ROOT):inside(move,now,false))){
+                    boolean landed=contact(cast,"hit/"+index,move.coefficient(),move.magic(),move.element(),at,true);
+                    if(index==0&&move.selfRootSeconds()>0)
+                        cast.rooted=landed&&minecraft.player.hasEffect(CombatContentTypes.RITUAL_ROOT);
                     cast.hits++;
                 }
             }
@@ -164,7 +166,7 @@ public final class RitualFightClient {
         }
     }
 
-    private static void contact(Cast cast,String suffix,double coefficient,boolean magic,int element,long at,boolean applyEffects){
+    private static boolean contact(Cast cast,String suffix,double coefficient,boolean magic,int element,long at,boolean applyEffects){
         var move=cast.move;
         var hit=new JsonObject();
         hit.addProperty("id",move.id()+"/"+suffix);
@@ -186,7 +188,7 @@ public final class RitualFightClient {
             if(move.selfHealDownSeconds()>0)hit.addProperty("ritualHealDownTicks",move.selfHealDownSeconds()*20);
             if(move.selfDebtSeconds()>0)hit.addProperty("ritualDebtTicks",move.selfDebtSeconds()*20);
         }
-        cast.hit.accept(hit);
+        return cast.hit.test(hit);
     }
 
     private static boolean inside(Move move,long now,boolean lingering){

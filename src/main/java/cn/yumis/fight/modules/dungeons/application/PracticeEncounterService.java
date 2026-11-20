@@ -7,18 +7,21 @@ import cn.yumis.fight.modules.dungeons.api.DungeonEnemy;
 import cn.yumis.fight.modules.dungeons.api.PracticeRoom;
 import cn.yumis.fight.modules.dungeons.api.Target;
 import cn.yumis.fight.modules.dungeons.content.PracticeLayouts;
+import cn.yumis.fight.modules.dungeons.content.PracticeMobs;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 /** Continuous waves share the ordinary dungeon cell and the committed enemy death receipts. */
 final class PracticeEncounterService {
     private final DungeonService owner;
     private final Journal journal;
+    private final Random random = new Random();
 
     PracticeEncounterService(DungeonService owner, Journal journal) {
         this.owner = owner;
@@ -59,6 +62,12 @@ final class PracticeEncounterService {
 
     private DungeonEnemy spawn(Dungeon dungeon, PracticeLayouts.Spawn slot) {
         var pos = slot.pos();
+        if (dungeon.practice.kind() == PracticeRoom.Kind.MOB) {
+            // Every slot redraws an ordinary dungeon mob and may promote it to an elite.
+            var mob = PracticeMobs.pick(random);
+            boolean elite = random.nextDouble() < PracticeRoom.MOB_ELITE_CHANCE;
+            return owner.spawn(dungeon, mob.enemy(), elite, false, dungeon.cell * 512 + pos.getX() + .5, 80, pos.getZ() + .5);
+        }
         return owner.spawn(dungeon, slot.enemy(), false, false, dungeon.cell * 512 + pos.getX() + .5, 80, pos.getZ() + .5);
     }
 

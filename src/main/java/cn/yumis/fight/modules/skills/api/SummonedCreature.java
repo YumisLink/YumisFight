@@ -15,6 +15,7 @@ public final class SummonedCreature extends PathfinderMob {
     public SummonKind kind(){return SkillContentTypes.kind(getType());}
     public long actionAt(){return entityData.get(ACTION_AT);}
     @Override public boolean isPushable(){return false;}
+    @Override public boolean isAttackable(){return false;}
     public SummonedCreature(EntityType<? extends SummonedCreature> type,Level level){super(type,level);setPersistenceRequired();setCanPickUpLoot(false);xpReward=0;}
     public static AttributeSupplier.Builder attributes(){return Mob.createMobAttributes().add(Attributes.MAX_HEALTH,100).add(Attributes.MOVEMENT_SPEED,.28).add(Attributes.FOLLOW_RANGE,24);}
     @Override protected void defineSynchedData(SynchedEntityData.Builder builder){super.defineSynchedData(builder);builder.define(ACTION_AT,0L);builder.define(SHIELD,0f);builder.define(MOVE,"");builder.define(DURATION,1000L);}

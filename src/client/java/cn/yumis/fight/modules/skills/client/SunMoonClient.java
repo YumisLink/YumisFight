@@ -20,7 +20,7 @@ final class SunMoonClient {
         var p=Minecraft.getInstance().player;String id=c.skill.id;
         if(id.equals(SunMoonSkills.MOON)){MageClient.INSTANCE.projectile(c);return;}
         if(id.equals(SunMoonSkills.REFLUX)){MageClient.INSTANCE.visual(c,UUID.randomUUID().toString(),"START",p.position(),Vec3.ZERO,800,0,null);MageClient.INSTANCE.finished(c);return;}
-        var aim=SkillTargeting.ground(p,c.parameters.get("range",16),e->e.isAlive()&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon));
+        var aim=SkillTargeting.ground(p,c.parameters.get("range",16),SkillController::canTarget);
         var a=new Area();a.cast=c;a.visual=UUID.randomUUID().toString();a.point=aim.point();
         if(id.equals(SunMoonSkills.PARADOX)&&aim.target()!=null){var target=SkillsClient.current().context(aim.target());if(target!=null){a.target=aim.target();a.generation=target.life.generation;}}
         long delay=(long)(c.parameters.get("impactDelay",0)*1000);a.next=ClientUi.now()+delay;

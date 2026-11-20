@@ -46,6 +46,7 @@ public final class ServerEvents {
     private ServerEvents(){
     }
     public static void register(){
+        cn.yumis.fight.modules.mining.api.VeinMining.registerEvents();
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.level.LevelEvent.CreateSpawnPosition e)->cn.yumis.fight.modules.mapgeneration.api.MapGeneration.spawnCreated(e.getLevel()));
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post e)->cn.yumis.fight.modules.mapgeneration.api.MapGeneration.tick(e.getServer()));
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST,(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e)->{if(cn.yumis.fight.modules.mapgeneration.api.MapGeneration.blocksHostileSpawn(e.getEntity(),e.getLevel()))e.setCanceled(true);});
@@ -96,9 +97,18 @@ public final class ServerEvents {
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST,(ItemEntityPickupEvent.Pre e)->{if(ServerApplication.ready())ServerApplication.get().loot.nativePickup(e);});
         NeoForge.EVENT_BUS.addListener((ItemEntityPickupEvent.Post e)->{
             if(!ServerApplication.ready()||!(e.getPlayer() instanceof ServerPlayer player))return;
-            var original=e.getOriginalStack();var view=EquipmentItems.view(original);
-            if(view!=null&&view.creativeTemplate()&&original.getCount()>e.getCurrentStack().getCount())ServerApplication.get().equipmentApplication.inventoryArrived(player);
+            var original=e.getOriginalStack();
+            if(original.getCount()<=e.getCurrentStack().getCount())return;
+            var view=EquipmentItems.view(original);
+            if(view!=null&&view.creativeTemplate())ServerApplication.get().equipmentApplication.inventoryArrived(player);
+            groundPickup(player,original);
         });
+    }
+    static void groundPickup(ServerPlayer player,net.minecraft.world.item.ItemStack stack){
+        if(stack.getItem() instanceof cn.yumis.fight.modules.industry.api.EnergyCrystalItem){
+            var session=ServerApplication.get().session(player);
+            cn.yumis.fight.network.Network.send(player,"tutorialCrystalPickup",java.util.Map.of("session",session.id.toString()));
+        }
     }
     private static boolean blocksDungeonEdit(LevelAccessor level, Entity actor) {
         return level instanceof ServerLevel world && world.dimension() == DungeonService.DIMENSION

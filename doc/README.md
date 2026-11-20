@@ -8,6 +8,7 @@
 
 | 查什么 | 在哪里 |
 |---|---|
+| 全模块位置与制作归属 | [模块地图](模块地图.md) |
 | 主源码 | `src/main/java/cn/yumis/fight/` |
 | 客户端源码 | `src/client/java/cn/yumis/fight/` |
 | 模块登记与依赖 | 主源码 `bootstrap/ApplicationModules.java` |
@@ -28,8 +29,10 @@
 | 伤害、护盾、命中与回执 | `modules/combat/api/CombatRules.java`、`CombatPorts.java`、`LifeRules.java`；本机普攻与命中在客户端 `skills/api/client/SkillController.java`，服务器回执在 `combat/application/CombatApplication.java` |
 | 元素积累与异常 | `modules/combat/api/ElementAccumulation.java`、`Life.java`、`CombatContentTypes.java`；状态随生命同步，异常结算复用战斗回执 |
 | 技能内容、学习、费用与伤害 | `modules/skills/api/SkillCatalog.java`、`SkillLearning.java`、`SkillCosts.java`、`SkillDamageRules.java`；职业内容在同目录，本机施放从客户端 `skills/client/CareerClient.java`、`skills/api/client/SkillController.java` 进入；服务器世界实体在 `skills/application/` |
+| 天赋盘、出生点与条件／召唤键位 | `modules/talents/api/TalentCatalog.java`、`TalentLedger.java`、`TalentChanges.java`、`TalentEffects.java`；本人客户端在 `talents/client/TalentPage.java`（I 键菜单页）、`TalentCombat.java`（结算求值），召唤消耗见 `modules/skills/api/SkillCosts.java` 与 `modules/skills/application/MageSkillService.java` |
 | 角色、职业栏与存档 | `modules/character/api/JobCatalog.java`、`CareerProfiles.java`、`CharacterChanges.java`；本机判定在客户端 `character/client/CharacterClient.java`，存档端口 `CharacterPersistence.java`，编解码在 `application/CharacterStore.java` |
 | 副本、敌人与难度 | `modules/dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；经典后续副本的敌人／动作入口为 `ClassicEnemyKind.java`、`ClassicMove.java`；地图与编队在 `content/`，专属机制在 `application/*EncounterService.java`，本机接触与演出在客户端 `dungeons/client/` |
+| 觉醒塔与任务通关 | `modules/dungeons/api/AwakeningTower.java`、`api/AwakeningTowerStele.java`、`content/AwakeningTowerLayout.java`；塔门与战场素材为 `structure/towers/`，制作源 `tools/build_tower_structures.py`，野外塔门和石碑投放见 `tools/wild_buildings.json`，觉醒进度在 `modules/npc/application/AwakeningQuestService.java` |
 | 练功房、材料来源与循环刷新 | `modules/dungeons/api/PracticeRoom.java`、`content/PracticeLayouts.java`、`application/PracticeEncounterService.java`；客户端入口为 `dungeons/client/DungeonPage.java`，金币与公共掉落由 `modules/economy/api/RewardRules.java` 结算 |
 | 引路石、引路台与地狱+ | `modules/dungeons/api/Waystone.java`、`WaystoneRules.java`；流程在 `application/WaystoneService.java`，参数在 `rules/catalog.json` 的 `waystones`；分阶宝箱在 `rules/chests.json` |
 | 工业设备、配方、科技与结算 | `modules/industry/api/DeviceType.java`、`IndustrialRules.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；机器／产线／传送带物流在 `platform/`；传送带放置与连接为 `platform/ConveyorConnections.java`、`ConveyorRoute.java`，客户端选点／寻路为 `industry/client/ConveyorPlacementClient.java`、`ConveyorPathfinder.java`，扣料与批量建造为 `application/ConveyorConstructionService.java` |
@@ -42,6 +45,7 @@
 | 队伍与邀请 | `modules/party/api/Team.java`、`PartyInvitation.java` |
 | 方舟战争 | `modules/arkguard/api/ArkWar.java`、`ArkRules.java`、`ArkRoster.java`、`ArkTraits.java`；报名与回合在 `application/ArkGuardService.java`、`ArkBattle.java`，单位战斗与投射物命中在 `ArkCombat.java`，提交后的战斗演出在 `ArkEffects.java`，现场展示在 `ArkScene.java`、`ParticipationBoard.java`，客户端交互在 `arkguard/client/ArkGuardClient.java`，血条／技能条及战斗特效在 `ArkVisuals.java`；数值 `rules/ark_war.json`，地图 `map_blueprint/ark_war.json` |
 | 页面、主题、输入与通用演出 | `modules/presentation/api/`；分片染色文字 `RichText.java`，客户端 `presentation/api/client/RichTextDrawing.java`；其余绘制及页面合同查 `client/` 和 `api/client/` |
+| 连锁采矿 | `modules/mining/api/VeinMining.java`；客户端按键和预览为 `mining/client/VeinMiningClient.java`，数量保存在 `presentation/api/client/ClientSettings.java` |
 | 野外建筑、配置地图与出生村庄 | [野外建筑生成规则](创作指南/野外建筑生成.md)；公开入口 `modules/mapgeneration/api/MapGeneration.java`、`MapBlueprint.java`；启动开关在游戏目录 `config/ydcore.toml` |
 | 魔力花与魔力草循环 | `modules/industry/api/MagicFlora.java`；植物、液体与展示产线的制作源在 `tools/industrial_technology.py` |
 | 液体管道、管网与权杖端口 | `modules/industry/api/FluidPipes.java`；本模块实现 `platform/FluidPipeBlockEntity.java`、`FluidPipeNetwork.java`；模型及共用尺寸源 `tools/industrial_fluid_pipes.py`、`platform/FluidPipeGeometry.java`；贴图源与导出见下方12/14手绘素材入口 |

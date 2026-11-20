@@ -25,13 +25,13 @@ public final class CombatAttributeTooltip {
         if(stat==null){detail=switch(name){case "吸血率"->"吸血值以1000为基数换算；超过1000/19的部分按1/3效率折算，最高90%。仅按有效直接伤害实际扣除的生命回复，排除超杀、持续伤害和反伤。";case "闪避率"->"以10000为基数换算；超过30000的闪避值按1/3折算，75%后增速降低，最高90%。当前 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(100*CombatRules.evasionChance(s.get(Stat.EVASION)))+"%。";case "暴击率"->"直接暴击概率，最高100%；通常暴击造成1.5倍伤害。";case "伤害提升"->"提升与最终提升统一进入伤害MUT，同类加算；总增独立乘算。";default->"面板攻击＝基础攻击×(1＋对应力量或智力÷100)。当前 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.panel(name.equals("魔法面板攻击")))+"。";};}
         else detail=switch(stat){
             case HEALTH->"可承受的生命伤害上限。脱战后每秒恢复2%，当前每秒 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.get(stat)*.02)+"。";
-            case STAMINA->"体力上限；翻滚消耗20点，停止消耗1秒后开始逐tick恢复。";
-            case STAMINA_RECOVERY->"体力每秒恢复20点乘此倍率；不缩短1秒回复等待。";
+            case STAMINA->"每点精神额外提供5点最大体力。翻滚消耗20点，停止消耗1秒后开始逐tick恢复。";
+            case STAMINA_RECOVERY->"每点精神提高5%体力恢复速度。每秒恢复20点乘此倍率；回复等待为1秒。";
             case SHIELD_COOLDOWN_RECOVERY->"受击后的护盾回复等待为5秒除以此倍率；独立于技能冷却。";
             case SHIELD_REGENERATION->"护盾每秒恢复最大值20%乘此倍率。";
             case MP->"施放技能使用的魔力上限；精神每点额外提供2点MP。";
             case STRENGTH,INTELLIGENCE->"每点增加对应基础攻击的1%。当前面板倍率 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(1+s.get(stat)/100)+"倍。";
-            case SPIRIT->"每点提供2点MP、2点魔防、每秒0.04点MP恢复和0.2%冷却恢复速度。当前每秒基础回魔 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(1+.04*s.get(stat))+"，脱战乘3。";
+            case SPIRIT->"每点提供2点MP、2点魔防、每秒0.04点MP恢复、0.2%冷却恢复速度、5点最大体力及5%体力恢复速度。当前每秒基础回魔 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(1+.04*s.get(stat))+"，脱战乘3。";
             case PHYSICAL_ATTACK,MAGICAL_ATTACK->"用于计算对应普攻与技能伤害，再乘(1＋力量或智力÷100)。当前面板攻击 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.panel(stat==Stat.MAGICAL_ATTACK))+"。";
             case PHYSICAL_DEFENSE,MAGICAL_DEFENSE->"对应伤害乘1000÷(1000＋防御)。当前减伤 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(100*s.get(stat)/(1000+s.get(stat)))+"%，再计算职业和其他效果。";
             case LIGHT,FIRE,ICE,DARK->"对应属性伤害倍率＝max(0，1＋(强化−目标抗性)÷120)。对0抗性目标当前倍率 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(Math.max(0,1+s.get(stat)/120))+"倍。";

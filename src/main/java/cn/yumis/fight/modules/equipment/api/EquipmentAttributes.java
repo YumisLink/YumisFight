@@ -64,9 +64,12 @@ public final class EquipmentAttributes {
         sources.applyCharacter(s);
         characterEffects.accept(p,s);
         for(Gear g:equipped)if(g.valid(p,allowance)&&MageBlood.is(g))MageBlood.apply(cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(g),s);
-        s.attribute(Stat.MP).fadd+=2*s.get(Stat.SPIRIT);
-        s.attribute(Stat.MAGICAL_DEFENSE).fadd+=2*s.get(Stat.SPIRIT);
-        s.mut(Stat.COOLDOWN_RECOVERY,.002*s.get(Stat.SPIRIT));
+        double spirit=s.get(Stat.SPIRIT);
+        s.attribute(Stat.MP).fadd+=2*spirit;
+        s.attribute(Stat.MAGICAL_DEFENSE).fadd+=2*spirit;
+        s.attribute(Stat.STAMINA).fadd+=5*spirit;
+        s.mut(Stat.STAMINA_RECOVERY,.05*spirit);
+        s.mut(Stat.COOLDOWN_RECOVERY,.002*spirit);
         EquipmentEffects.finish(s,EquipmentEffects.resolve(p,equipped,allowance));
         return s;
     }

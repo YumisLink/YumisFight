@@ -92,13 +92,42 @@ public final class UiTheme {
     public static int tooltipColor(int color){return color==TEXT?TIP_TEXT:color==MUTED?TIP_MUTED:color==GOLD||color==ACCENT?TIP_TITLE:color;}
     private static void roundedFill(GuiGraphicsExtractor g,int x,int y,int w,int h,int radius,int color){
         if(w<=0||h<=0)return;int r=Math.min(radius,Math.min(w,h)/2);g.fill(x,y+r,x+w,y+h-r,color);
-        for(int i=0;i<r;i++){int inset=(int)Math.ceil(r-Math.sqrt(r*r-(r-i-.5)*(r-i-.5)));g.fill(x+inset,y+i,x+w-inset,y+i+1,color);g.fill(x+inset,y+h-i-1,x+w-inset,y+h-i,color);}
+        for(int i=0;i<r;i++){int inset=roundedInset(r,i);g.fill(x+inset,y+i,x+w-inset,y+i+1,color);g.fill(x+inset,y+h-i-1,x+w-inset,y+h-i,color);}
+    }
+    private static int roundedInset(int radius,int edgeRow){
+        if(edgeRow>=radius)return 0;
+        double offset=radius-edgeRow-.5;
+        return (int)Math.ceil(radius-Math.sqrt(radius*radius-offset*offset));
     }
     public static void surface(GuiGraphicsExtractor g,int x,int y,int w,int h,int radius,int fill,int border){roundedFill(g,x,y,w,h,radius,border);roundedFill(g,x+1,y+1,w-2,h-2,Math.max(0,radius-1),fill);}
     private static int edge(){return definition.style().equals("flat")?0xff70747d:BORDER;}
     public static void panel(GuiGraphicsExtractor g,int x,int y,int w,int h){check();surface(g,x,y,w,h,6,PANEL,edge());}
     public static void card(GuiGraphicsExtractor g,int x,int y,int w,int h){surface(g,x,y,w,h,4,CARD,edge());}
     public static void hud(GuiGraphicsExtractor g,int x,int y,int w,int h){surface(g,x,y,w,h,5,HUD_PANEL,0xff9298a2);}
+    public static void hudBar(GuiGraphicsExtractor g,int x,int y,int w,int h,double fraction,int color){
+        int innerWidth=w-2,innerHeight=h-2;
+        int fillWidth=(int)(innerWidth*Math.clamp(fraction,0,1));
+        int radius=Math.min(4,Math.min(innerWidth,innerHeight)/2);
+        roundedFill(g,x+1,y+1,innerWidth,innerHeight,radius,HUD_PANEL);
+        for(int row=0;row<innerHeight;row++){
+            int inset=roundedInset(radius,Math.min(row,innerHeight-row-1));
+            int end=Math.min(fillWidth,innerWidth-inset);
+            if(end>inset)g.fill(x+1+inset,y+1+row,x+1+end,y+2+row,color);
+        }
+        int outerRadius=Math.min(5,Math.min(w,h)/2);
+        int border=0xff9298a2;
+        for(int row=0;row<h;row++){
+            int edge=Math.min(row,h-row-1);
+            int outer=roundedInset(outerRadius,edge);
+            if(edge==0){
+                g.fill(x+outer,y+row,x+w-outer,y+row+1,border);
+            }else{
+                int inner=1+roundedInset(radius,edge-1);
+                g.fill(x+outer,y+row,x+inner,y+row+1,border);
+                g.fill(x+w-inner,y+row,x+w-outer,y+row+1,border);
+            }
+        }
+    }
     public static void slot(GuiGraphicsExtractor g,int x,int y){surface(g,x-1,y-1,18,18,3,SLOT,SLOT_LIGHT);}
     public static void button(GuiGraphicsExtractor g,int x,int y,int w,int h,boolean active,boolean hover,boolean selected){surface(g,x,y,w,h,4,!active?DISABLED:selected?SELECTED:hover?HOVER:BUTTON,definition.style().equals("flat")?0xffa0a5af:LIGHT);}
     public static void scrollbar(GuiGraphicsExtractor g,int x,int y,int h,int thumb,int offset){surface(g,x,y,10,h,4,SCROLL_TRACK,edge());surface(g,x+1,y+offset,8,thumb,3,SCROLL_THUMB,LIGHT);}

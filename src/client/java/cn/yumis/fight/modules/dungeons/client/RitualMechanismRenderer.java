@@ -18,13 +18,13 @@ public final class RitualMechanismRenderer extends EntityRenderer<RitualMechanis
         float height,weight;
     }
     private final ItemModelResolver models;
-    private final ItemStack item;
+    private final Item item;
 
     public RitualMechanismRenderer(EntityRendererProvider.Context context,String kind){
         super(context);
         models=context.getItemModelResolver();
         shadowRadius=.22f;
-        item=new ItemStack(switch(kind){
+        item=switch(kind){
             case "ritual_fake_branch" -> Items.DEAD_BUSH;
             case "ritual_hedge" -> Items.AZALEA_LEAVES;
             case "ritual_root_knot" -> Items.ROOTED_DIRT;
@@ -41,14 +41,15 @@ public final class RitualMechanismRenderer extends EntityRenderer<RitualMechanis
             case "ritual_confessional" -> Items.DARK_OAK_DOOR;
             case "ritual_shard" -> Items.AMETHYST_CLUSTER;
             default -> Items.AMETHYST_SHARD;
-        });
+        };
     }
     @Override public State createRenderState(){return new State();}
     @Override public void extractRenderState(RitualMechanismEntity entity,State state,float partial){
         super.extractRenderState(entity,state,partial);
         state.height=Math.min(1.2f,entity.getBbHeight()*.5f);
         state.weight=Math.clamp(Math.max(entity.getBbWidth(),entity.getBbHeight())*.88f,.55f,1.65f);
-        models.updateForTopItem(state.model,item,ItemDisplayContext.FIXED,entity.level(),null,entity.getId());
+        // Item components may still be unbound when startup creates the renderer.
+        models.updateForTopItem(state.model,new ItemStack(item),ItemDisplayContext.FIXED,entity.level(),null,entity.getId());
     }
     @Override public void submit(State state,PoseStack pose,SubmitNodeCollector collector,CameraRenderState camera){
         pose.pushPose();

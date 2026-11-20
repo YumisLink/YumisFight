@@ -41,7 +41,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private static final class Source {
         String id,session,dimension,instance,job;UUID owner;long generation,expires,started,busy,lastHurt,lastSync,sequence;int rank,level,stuck,actionIndex;SummonKind kind;long guardUntil;List<SummonMoves.Cue> cues=List.of();
         SkillDefinition skill;SkillParameters.Snapshot parameters;Stats stats;EquipmentEffects.Snapshot effects;Vec3 previous;SummonedCreature entity;
-        double health,shield,maximum,maximumShield;JsonObject damage;
+        double health,shield,maximum,maximumShield,targetRange;JsonObject damage;
     }
     public MageSkillService(MinecraftServer server,Journal journal,Function<ServerPlayer,CombatSession> sessions,Function<ServerPlayer,Progress> progress,Function<LivingEntity,Target> targets,BiConsumer<ServerPlayer,JsonObject> visuals,Predicate<ServerPlayer> encounterSync){this.server=server;this.journal=journal;this.sessions=sessions;this.progress=progress;this.targets=targets;this.visuals=visuals;this.encounterSync=encounterSync;}
     public void register(CommandRouter<ServerPlayer,JsonObject> router){
@@ -62,6 +62,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
             s.started=a.get("at").getAsLong();s.expires=a.get("until").getAsLong();s.health=s.maximum=finite(a.get("health").getAsDouble());s.shield=s.maximumShield=finite(a.get("shield").getAsDouble());
             s.entity=new SummonedCreature(SkillContentTypes.SUMMONS.get(s.kind).get(),p.level());s.entity.owner=p.getUUID();s.entity.setPos(vector(a.getAsJsonArray("position")));s.entity.setCustomName(cn.yumis.fight.modules.presentation.api.ModText.of(s.kind.title+" Lv."+s.rank));
             s.cues=SummonMoves.cues(s.kind,s.parameters,120000,Math.max(.01,1+s.stats.get(Stat.ATTACK_SPEED)/100));s.previous=s.entity.position();entityFeedback(s);s.entity.play("spawn",Math.max(1,s.started-System.currentTimeMillis()));s.busy=s.started;created.add(s);
+            s.targetRange=Math.max(16,s.cues.stream().map(cue->SummonMoves.require(cue.move())).mapToDouble(SummonMoves.Move::reach).max().orElse(0))*(1+Math.max(-1,s.stats.modifiers.getOrDefault("summonAggro",0d)));
         }
         journal.transaction(Map.of(key,j));
         for(var s:created){for(var old:new ArrayList<>(summons.values()))if(old.owner.equals(p.getUUID())&&old.kind==s.kind)remove(old);sources.put(s.id,s);summons.put(s.entity.getUUID(),s);if(!p.level().addFreshEntity(s.entity)){sources.remove(s.id);summons.remove(s.entity.getUUID());s.entity.discard();throw new IllegalStateException("无法创建召唤物世界实体");}sendState(s);}
@@ -90,8 +91,12 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         var s=summons.get(entity.getUUID());if(s!=null&&s.entity==entity&&s.expires>0&&System.currentTimeMillis()>=s.expires){depart(s);return;}if(s==null||s.entity!=entity||!valid(s)){entity.discard();return;}var p=owner(s);long now=System.currentTimeMillis();if(now<s.started)return;
         entity.project(s.health/s.maximum,s.maximumShield>0?s.shield/s.maximumShield:0);
         if(now>s.busy){String idle=s.guardUntil>now?"guard":"";if(!entity.move().equals(idle))entity.play(idle,s.guardUntil>now?Math.max(1,s.guardUntil-now):1000);}if(entity.distanceToSqr(p)>24*24||s.stuck>=60){try{Vec3 destination=safe(p,entity,0,List.of());entity.getNavigation().stop();entity.setPos(destination);pulses.removeIf(pulse->pulse.source==s);entity.play("",1000);s.busy=now;}catch(IllegalArgumentException ignored){}s.stuck=0;}
-        LivingEntity target=null;UUID recent=preferred.get(p.getUUID());if(!following.contains(p.getUUID())&&recent!=null&&p.level().getEntity(recent) instanceof LivingEntity living&&eligible(p,living)&&living.distanceToSqr(entity)<=256)target=living;
-        if(target==null&&!following.contains(p.getUUID()))target=p.level().getEntitiesOfClass(LivingEntity.class,entity.getBoundingBox().inflate(16),e->eligible(p,e)).stream().filter(e->e.distanceToSqr(entity)<=256).min(Comparator.comparingDouble(e->e.distanceToSqr(entity))).orElse(null);
+        double targetRangeSquared=s.targetRange*s.targetRange;
+        LivingEntity target=null;UUID recent=preferred.get(p.getUUID());
+        if(!following.contains(p.getUUID())&&recent!=null&&p.level().getEntity(recent) instanceof LivingEntity living
+            &&(eligible(p,living)||living.isAlive()&&cn.yumis.fight.modules.combat.api.ManagedEntities.neutralCreature(living))
+            &&living.distanceToSqr(entity)<=targetRangeSquared)target=living;
+        if(target==null&&!following.contains(p.getUUID()))target=p.level().getEntitiesOfClass(LivingEntity.class,entity.getBoundingBox().inflate(s.targetRange),e->eligible(p,e)).stream().filter(e->e.distanceToSqr(entity)<=targetRangeSquared).min(Comparator.comparingDouble(e->e.distanceToSqr(entity))).orElse(null);
         tickSummon(s,p,target,now);if(now-s.lastSync>=1000){sendState(s);s.lastSync=now;}
     }
     private void tickSummon(Source s,ServerPlayer p,LivingEntity target,long now){
@@ -114,7 +119,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
             if(s.kind==SummonKind.LOUISE&&move.id().equals("fireball")&&e.distanceToSqr(target)<=4)move=SummonMoves.require("staff");
             if(move.id().equals("ice_touch")&&e.distanceToSqr(target)>4)move=SummonMoves.require("water_bolt");
             if(move.id().equals("element_touch")&&e.distanceToSqr(target)>4)move=SummonMoves.require("king_wave");
-            if(e.distanceToSqr(target)>move.range()*move.range()||!sight(p,e.getEyePosition(),target.getBoundingBox().getCenter()))continue;
+            if(e.distanceToSqr(target)>move.reach()*move.reach()||!sight(p,e.getEyePosition(),target.getBoundingBox().getCenter()))continue;
             double rate=speed*(move.id().equals("bomb")&&cue.share()==1?2:1);long duration=Math.max(1,Math.round(move.duration()/rate));
             if(move.id().equals("sword_force"))s.guardUntil=now+3000;
             s.busy=now+duration;e.getNavigation().stop();e.setYRot((float)Math.toDegrees(Math.atan2(-(target.getX()-e.getX()),target.getZ()-e.getZ())));e.yBodyRot=e.getYRot();e.play(move.id(),duration);
@@ -127,7 +132,7 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     private void tickSummonEffects(long now){
         for(var slow:new ArrayList<>(slows.values()))if(now>=slow.until||slow.target.isRemoved()||!slow.target.isAlive()){removeSlow(slow);slows.remove(slow.target.getUUID());}
         for(var pulse:new ArrayList<>(pulses)){
-            if(!valid(pulse.source)){pulses.remove(pulse);continue;}if(pulse.due>now)continue;pulses.remove(pulse);var s=pulse.source;var p=owner(s);var e=s.entity;Vec3 before=e.getEyePosition();double reach=pulse.move.range();
+            if(!valid(pulse.source)){pulses.remove(pulse);continue;}if(pulse.due>now)continue;pulses.remove(pulse);var s=pulse.source;var p=owner(s);var e=s.entity;Vec3 before=e.getEyePosition();double reach=pulse.move.reach();
             if(pulse.move.shape().equals("dash")){Vec3 direction=pulse.aim.subtract(pulse.origin).multiply(1,0,1).normalize();for(int i=0;i<8;i++){Vec3 step=direction.scale(.25);if(!p.level().noCollision(e,e.getBoundingBox().move(step)))break;e.move(MoverType.SELF,step);}reach-=e.getEyePosition().distanceTo(before);}
             issue(pulse,e.getEyePosition(),reach);
         }
@@ -160,12 +165,43 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
     }
     private void entityFeedback(Source s){s.entity.project(s.maximum>0?s.health/s.maximum:0,s.maximumShield>0?s.shield/s.maximumShield:0);}
     private void sendState(Source s){var p=owner(s);if(p==null)return;var j=new JsonObject();j.addProperty("session",s.session);j.addProperty("generation",s.generation);j.addProperty("job",s.job);j.addProperty("dimension",s.dimension);j.addProperty("instance",s.instance);j.addProperty("source",s.id);j.addProperty("until",s.expires);j.addProperty("health",s.health);j.addProperty("maximum",s.maximum);j.addProperty("shield",s.shield);j.addProperty("maximumShield",s.maximumShield);j.addProperty("sequence",s.sequence);j.addProperty("lastHurt",s.lastHurt);j.addProperty("kind",s.kind.name());j.addProperty("skill",s.skill.id);j.addProperty("rank",s.rank);j.add("damage",s.damage.deepCopy());Network.send(p,"herderState",j);}
-    public void clear(ServerPlayer p){clear(p.getUUID());}
-    private void clear(UUID owner){for(var slow:new ArrayList<>(slows.values()))if(slow.owner.equals(owner)){removeSlow(slow);slows.remove(slow.target.getUUID());}for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(owner))remove(s);frenzy.remove(owner);following.remove(owner);preferred.remove(owner);for(var e:new ArrayList<>(retiring.keySet()))if(owner.equals(e.owner)){retiring.remove(e);e.discard();}var p=server.getPlayerList().getPlayer(owner);if(p!=null)buffState(p,0);}
+    public void clear(ServerPlayer p){clear(p.getUUID(),true);}
+    public void logout(ServerPlayer p){clear(p.getUUID(),false);}
+    private void clear(UUID owner,boolean notifyOwner){
+        for(var slow:new ArrayList<>(slows.values()))if(slow.owner.equals(owner)){
+            removeSlow(slow);
+            slows.remove(slow.target.getUUID());
+        }
+        for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(owner))remove(s,notifyOwner);
+        frenzy.remove(owner);
+        following.remove(owner);
+        preferred.remove(owner);
+        for(var e:new ArrayList<>(retiring.keySet()))if(owner.equals(e.owner)){
+            retiring.remove(e);
+            e.discard();
+        }
+        if(notifyOwner){
+            var p=server.getPlayerList().getPlayer(owner);
+            if(p!=null)buffState(p,0);
+        }
+    }
     private void reduced(ServerPlayer p,String skill){if(skill.equals(SummonerSkills.MASTERY)){clear(p);return;}if(skill.equals(SummonerSkills.FRENZY)){frenzy.remove(p.getUUID());buffState(p,0);}for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(p.getUUID())&&s.skill.id.equals(skill))remove(s);}
     private void retire(Source s){retiring.put(s.entity,System.currentTimeMillis()+1800);s.entity.play("death",1200);s.entity.getNavigation().stop();remove(s);}
     private void depart(Source s){retiring.put(s.entity,System.currentTimeMillis()+800);s.entity.play("retreat",800);s.entity.getNavigation().stop();remove(s);}
-    private void remove(Source s){pulses.removeIf(x->x.source==s);s.expires=0;summons.remove(s.entity.getUUID());sources.remove(s.id);if(!retiring.containsKey(s.entity))s.entity.discard();var p=owner(s);if(p!=null){var j=new JsonObject();j.addProperty("session",s.session);j.addProperty("generation",s.generation);j.addProperty("job",s.job);j.addProperty("dimension",s.dimension);j.addProperty("instance",s.instance);j.addProperty("source",s.id);j.addProperty("kind",s.kind.name());j.addProperty("skill",s.skill.id);j.addProperty("until",0);Network.send(p,"herderState",j);}}
+    private void remove(Source s){remove(s,true);}
+    private void remove(Source s,boolean notifyOwner){
+        pulses.removeIf(x->x.source==s);
+        s.expires=0;
+        summons.remove(s.entity.getUUID());
+        sources.remove(s.id);
+        if(!retiring.containsKey(s.entity))s.entity.discard();
+        if(!notifyOwner)return;
+        var p=owner(s);
+        if(p==null)return;
+        var j=new JsonObject();
+        j.addProperty("session",s.session);j.addProperty("generation",s.generation);j.addProperty("job",s.job);j.addProperty("dimension",s.dimension);j.addProperty("instance",s.instance);j.addProperty("source",s.id);j.addProperty("kind",s.kind.name());j.addProperty("skill",s.skill.id);j.addProperty("until",0);
+        Network.send(p,"herderState",j);
+    }
     @Override public CombatPorts.Commit prepare(ServerPlayer p,LivingEntity target,JsonObject j,Receipt receipt,Life actor){
         if(!receipt.accepted()||receipt.actual()<=0||!enemy(target)||!cn.yumis.fight.modules.combat.api.CombatEffect.permitsExternalHitEffects(p,target))return CombatPorts.Commit.NONE;Source s=j.has("summonSource")?sources.get(j.get("summonSource").getAsString()):null;
         return new CombatPorts.Commit(){public void publish(){preferred.put(p.getUUID(),target.getUUID());if(j.has("summonSlow")&&j.get("summonSlow").getAsBoolean())applySlow(p,target,System.currentTimeMillis());if(s!=null&&s.owner.equals(p.getUUID())){if(!s.entity.isRemoved()&&target instanceof Mob mob&&!targets.apply(target).kind.equals("BOSS")&&!targets.apply(target).kind.equals("WITHER")){mob.setLastHurtByMob(s.entity);mob.setTarget(s.entity);}}}};

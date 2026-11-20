@@ -21,7 +21,8 @@ import java.util.List;
 /** Spatial contract for the flooded tower, sky sea, bridge and palace island. */
 public final class CastlePalace {
     public static final String ID = "castle_palace";
-    public static final String VERSION = "PALACE_SKY_SEA_2";
+    public static final String VERSION_PREFIX = "PALACE_SKY_SEA_";
+    public static final String VERSION = VERSION_PREFIX + "3";
     public static final int DECK = 6, BRIDGE = 7, COURT = 8, BOSS = 9;
     public static final int SEA_LEVEL = 192;
     public static final DungeonLayouts.Bounds BOUNDS = new DungeonLayouts.Bounds(-128, 3, -128, 127, 169, 127);

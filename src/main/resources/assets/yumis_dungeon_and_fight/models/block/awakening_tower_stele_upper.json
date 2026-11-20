@@ -1,0 +1,32 @@
+{
+  "textures": {
+    "particle": "minecraft:block/polished_deepslate",
+    "edge": "minecraft:block/polished_deepslate",
+    "panel": "minecraft:block/deepslate_tiles",
+    "carving": "minecraft:block/chiseled_deepslate",
+    "inlay": "minecraft:block/copper_block"
+  },
+  "elements": [
+    {
+      "from": [3, 0, 5], "to": [13, 11, 11],
+      "faces": { "north": {"texture":"#panel"}, "south": {"texture":"#panel"}, "east": {"texture":"#edge"}, "west": {"texture":"#edge"} }
+    },
+    {
+      "from": [3, 11, 5], "to": [13, 13, 11],
+      "faces": { "up": {"texture":"#edge"}, "north": {"texture":"#edge"}, "south": {"texture":"#edge"}, "east": {"texture":"#edge"}, "west": {"texture":"#edge"} }
+    },
+    {
+      "from": [5, 13, 5], "to": [11, 16, 11],
+      "faces": { "up": {"texture":"#edge"}, "north": {"texture":"#edge"}, "south": {"texture":"#edge"}, "east": {"texture":"#edge"}, "west": {"texture":"#edge"} }
+    },
+    {
+      "from": [4, 1, 4.8], "to": [12, 10, 5],
+      "faces": { "north": {"texture":"#carving","uv":[0,0,16,16]} }
+    },
+    {
+      "from": [6, 4, 4.7], "to": [10, 8, 4.8],
+      "rotation": { "origin": [8, 6, 5], "axis": "z", "angle": 45 },
+      "faces": { "north": {"texture":"#inlay","uv":[0,0,8,8]} }
+    }
+  ]
+}

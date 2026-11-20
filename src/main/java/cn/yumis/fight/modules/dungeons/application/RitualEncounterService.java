@@ -427,11 +427,13 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
 
     List<ServerPlayer> participants(Run run) {
         var result = new ArrayList<ServerPlayer>();
-        for (var player : server.getPlayerList().getPlayers())
+        for (var player : server.getPlayerList().getPlayers()) {
+            if (player.hasDisconnected()) continue;
             if (run.joined.contains(player.getStringUUID())
                     || run.damaged.contains(player.getStringUUID())
                     || run.content != null && run.content.handled(player.getStringUUID()))
                 result.add(player);
+        }
         return result;
     }
 
@@ -797,7 +799,7 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
         if (run.content != null) qualified.addAll(run.content.handlers());
         var inCircle = new ArrayList<String>();
         for (var player : server.getPlayerList().getPlayers())
-            if (qualified.contains(player.getStringUUID()) && inCircle(run, player))
+            if (!player.hasDisconnected() && qualified.contains(player.getStringUUID()) && inCircle(run, player))
                 inCircle.add(player.getStringUUID());
         return new RitualClear(run.runId, run.bossId, boss.level(), ending, run.dimension,
                 run.origin.x, run.origin.y, run.origin.z, run.radius, inCircle, System.currentTimeMillis());
@@ -814,6 +816,20 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
         run.castEnds.clear();
         if (run.bossEntity != null) runsByBoss.remove(run.bossEntity);
         runs.remove(run.runId);
+    }
+
+    public void logout(ServerPlayer player) {
+        String id=player.getStringUUID();
+        for (Run run : new ArrayList<>(runs.values())) {
+            if (run.terminal()) continue;
+            boolean wasJoined=run.joined.remove(id);
+            boolean damaged=run.damaged.remove(id);
+            boolean handled=run.content!=null && run.content.handled(id);
+            if (handled) run.content.forgetHandler(id);
+            if (!wasJoined && !damaged && !handled) continue;
+            if (participants(run).isEmpty()) end(run,"FAILED","no_survivor");
+            else if (wasJoined) persistRun(run);
+        }
     }
 
     public void shutdown() {

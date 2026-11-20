@@ -57,7 +57,7 @@ public final class JarClient {
         var message=deferred;deferred=null;
         if(!ClientUi.current().session().equals(message.get("session").getAsString()))return;
         String status=message.get("status").getAsString();
-        if(status.equals("idle")||status.equals("interrupted")){clear();return;}
+        if(status.equals("interrupted")){clear();return;}
         String id=message.get("id").getAsString();if(id.equals(dismissed))return;
         if(view==null||!view.id.equals(id))view=new View(message);
         if(status.equals("complete")){view.complete=true;view.dropped=message.get("dropped").getAsBoolean();}

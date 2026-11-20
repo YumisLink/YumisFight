@@ -4,6 +4,7 @@ import cn.yumis.fight.architecture.CommandRouter;
 import cn.yumis.fight.foundation.Journal;
 import cn.yumis.fight.modules.character.api.CharacterPersistence;
 import cn.yumis.fight.modules.character.api.Progress;
+import cn.yumis.fight.modules.dungeons.api.AwakeningTower;
 import cn.yumis.fight.modules.economy.api.RewardPorts;
 import cn.yumis.fight.modules.inventory.api.InventoryEdits;
 import cn.yumis.fight.modules.inventory.api.InventoryOperations;
@@ -34,7 +35,6 @@ public final class AwakeningQuestService {
     private final RewardPorts.Players players;
     private final ToLongFunction<ServerPlayer> lifeGeneration;
     private final Function<UUID, ServerPlayer> onlinePlayer;
-    private String openTowerGoal = "";
 
     public AwakeningQuestService(Journal journal, InventoryOperations inventory, CharacterPersistence characters,
                                  RewardPorts.Players players, ToLongFunction<ServerPlayer> lifeGeneration,
@@ -64,18 +64,11 @@ public final class AwakeningQuestService {
         return prepareClear("altar/" + runId, bossId, captured, participants);
     }
 
-    /** Called by composition when the future tower installs its final-clear producer. */
-    public void openTowerGoal(String goalId) {
-        if (!AwakeningQuest.definition().towerGoal().equals(goalId)) throw new IllegalArgumentException("觉醒塔目标标识无效");
-        openTowerGoal = goalId;
+    public ClearCommit prepareTowerClear(UUID runId, Set<UUID> participants) {
+        return towerOpen() ? prepareClear("tower/" + runId, null, false, participants) : NO_CLEAR;
     }
 
-    public ClearCommit prepareTowerClear(UUID runId, String goalId, Set<UUID> participants) {
-        if (!towerOpen() || !openTowerGoal.equals(goalId)) throw new IllegalArgumentException("觉醒塔目标尚未开放");
-        return prepareClear("tower/" + runId, null, false, participants);
-    }
-
-    private boolean towerOpen() { return AwakeningQuest.definition().towerGoal().equals(openTowerGoal); }
+    private boolean towerOpen() { return AwakeningTower.GOAL.equals(AwakeningQuest.definition().towerGoal()); }
 
     private ClearCommit prepareClear(String identity, String bossId, boolean captured, Set<UUID> participants) {
         String receipt = "awakeningWorld/clear/v1/" + identity;

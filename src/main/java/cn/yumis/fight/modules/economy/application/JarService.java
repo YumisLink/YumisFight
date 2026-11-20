@@ -13,8 +13,9 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.*;
 
-/** Owns one durable draw per player; animation never chooses or regenerates an award. */
+/** Owns the current session's committed draw and its animation. */
 public final class JarService {
+    private static final org.slf4j.Logger LOG=com.mojang.logging.LogUtils.getLogger();
     private static final Gson JSON=new Gson();
     private record Draw(String id,String definition,String name,String dimension,long startedAt,long seed,int offset,List<JarDefinitions.Entry> entries,JsonElement reward,boolean delivered,boolean dropped){
         Draw delivered(boolean dropped){return new Draw(id,definition,name,dimension,startedAt,seed,offset,entries,reward,true,dropped);}
@@ -27,7 +28,7 @@ public final class JarService {
     private final BiConsumer<ServerPlayer,JsonObject> send;
     private final Map<UUID,Long> retryAfter=new HashMap<>();
     public JarService(Journal journal,InventoryOperations inventory,RewardPorts.Players players,LootService loot,EconomyService.Drafts drafts,BiConsumer<ServerPlayer,JsonObject> send){this.journal=journal;this.inventory=inventory;this.players=players;this.loot=loot;this.drafts=drafts;this.send=send;}
-    private static String key(ServerPlayer player){return "jarDraw/"+player.getUUID();}
+    private String key(ServerPlayer player){return "jarDraw/"+player.getUUID()+"/"+players.session(player);}
     private Draw draw(ServerPlayer player){return journal.get(key(player),Draw.class,null);}
     private void receive(ServerPlayer player,JsonObject request){
         session(player,request);var prior=journal.get("inventoryReceipt/"+player.getUUID()+"/"+request.get("operation").getAsString());if(!prior.isJsonNull()){if(!prior.getAsJsonObject().get("intent").equals(request))throw new IllegalArgumentException("操作号冲突");inventory.restore(player);var saved=draw(player);if(saved!=null)state(player,saved);players.profile(player);return;}
@@ -79,7 +80,16 @@ public final class JarService {
         }
     }
     public void interrupt(ServerPlayer player){
-        try{finish(player,true);}catch(Exception failure){retryAfter.put(player.getUUID(),0L);players.message(player,"罐子原奖品已保留，结算失败："+failure.getMessage());}
+        try{finish(player,true);}
+        catch(Exception failure){
+            retryAfter.put(player.getUUID(),0L);
+            LOG.warn("玩家 {} 开罐结算失败",player.getScoreboardName(),failure);
+            players.message(player,"罐子原奖品已保留，结算失败："+failure.getMessage());
+        }
+    }
+    public void discard(ServerPlayer player)throws IOException{
+        retryAfter.remove(player.getUUID());
+        if(draw(player)!=null)journal.put(key(player),JsonNull.INSTANCE);
     }
     public void tick(Collection<ServerPlayer> online){
         long now=System.currentTimeMillis();
@@ -93,11 +103,6 @@ public final class JarService {
     public void register(CommandRouter<ServerPlayer,JsonObject> router){
         router.register("economy","jarStart",this::receive);
         router.register("economy","jarFinish",(player,message)->{session(player,message);var value=draw(player);if(value!=null&&value.id().equals(message.get("id").getAsString()))finish(player,false);});
-        router.register("economy","jarStatus",(player,message)->{
-            session(player,message);var value=draw(player);
-            if(value==null)send.accept(player,envelope(player,null,"idle"));
-            else state(player,value);
-        });
         router.register("economy","jarDismiss",(player,message)->{
             session(player,message);var value=draw(player);
             if(value!=null&&value.delivered()&&value.id().equals(message.get("id").getAsString()))journal.transaction(Map.of(key(player),JsonNull.INSTANCE));

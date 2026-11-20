@@ -68,6 +68,8 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public double defense(int level,boolean magic){double content=magic?magicalDefenseBase:physicalDefenseBase;double base=content>=0?content:magic?20+5*(level-1):30+8*(level-1);return training()?0:base*(1+(elitePower.equals("armor")?.5:0)+encounterDefenseIncrease+waystoneDefenseIncrease)*waystoneDefense*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);}
     public double[] resistances(){double[] copy=elementalResists.clone();for(int i=0;i<4;i++)copy[i]+=waystoneResistance+(elitePower.equals("elemental")?30:0);return copy;}
     public double speciesHealth=1,speciesAttack=1;
+    /** Dungeon a plain practice-room mob was borrowed from; material rewards roll from this dungeon's pool. */
+    public String originDungeon="";
     public Life life=new Life();
     public Map<String,Double> contributions=new HashMap<>();
     public int level(int playerLevel,boolean sync){

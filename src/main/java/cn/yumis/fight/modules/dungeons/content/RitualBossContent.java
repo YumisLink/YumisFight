@@ -50,6 +50,8 @@ public abstract class RitualBossContent {
 
     public Collection<String> handlers() { return handlers; }
 
+    public void forgetHandler(String player) { handlers.remove(player); }
+
     protected final List<ServerPlayer> fighters(RitualEncounterService.Run run) { return service.fightersInCircle(run); }
 
     protected final RitualBossCatalog.Boss catalog(RitualEncounterService.Run run) { return service.catalog(run); }

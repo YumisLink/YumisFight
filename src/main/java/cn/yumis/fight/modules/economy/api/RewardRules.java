@@ -8,13 +8,20 @@ import cn.yumis.fight.platform.ItemRegistry;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
 
-/** Personal kill rewards from an already committed world death. */
+/** Personal rewards from committed world events. */
 public final class RewardRules {
-    public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply){
+    public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply,List<Integer> experiencePercentages){
+        public Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply){
+            this(id,killer,target,encounter,settings,dimension,x,y,z,nearby,practice,ritual,supply,null);
+        }
         public Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice){
             this(id,killer,target,encounter,settings,dimension,x,y,z,nearby,practice,null,null);
         }
-        public String instance(){return practice==null?target.instance:practice.instance();}
+        public static Context experience(String id,List<Integer> percentages){
+            return new Context(id,null,null,null,null,"",0,0,0,Set.of(),null,null,null,List.copyOf(percentages));
+        }
+        public boolean experienceOnly(){return experiencePercentages!=null;}
+        public String instance(){return practice!=null?practice.instance():target==null?"":target.instance;}
     }
     public record PracticeReward(String instance,PracticeRoom room,int playerLevel,int presentPlayers,double dropRate,long seed){}
     public record RitualReward(String material,String secondaryMaterial){}
@@ -23,7 +30,8 @@ public final class RewardRules {
     public record Result(Progress progress,long experience,long gold,List<Drop> drops){}
     private static final double PRACTICE_CURRENCY_CHANCE=.20;
     private RewardRules(){}
-    public static Result kill(Progress current,Stats stats,UUID player,Context context,Random random){
+    public static Result reward(Progress current,Stats stats,UUID player,Context context,Random random){
+        if(context.experienceOnly())return experience(current,context.experiencePercentages());
         var progress=CareerProfiles.copy(current);
         if(context.practice()!=null)return practice(progress,player,context);
         var target=context.target();var encounter=context.encounter();boolean instance=!target.instance.isEmpty(),boss=!target.kind.equals("NORMAL");var drops=new ArrayList<Drop>();
@@ -38,7 +46,7 @@ public final class RewardRules {
         double experienceMultiplier=stone==null?1:stone.experienceMultiplier,goldMultiplier=stone==null?1:stone.goldMultiplier,quantityMultiplier=stone==null?1:stone.quantityMultiplier;
         double luck=stone==null?stats.get(Stat.DROP_RATE):stone.effectiveDropRate(stats.get(Stat.DROP_RATE));
         int level=target.level(progress.level,instance?encounter.syncFor(player):progress.sync);
-        long xp=CurrencyRules.roundedReward((10d+2d*level)*(boss?10:target.elite?3:1)*target.difficulty.xp*context.settings().combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*experienceMultiplier);progress.grant(xp);
+        long xp=progress.earnExperience(CurrencyRules.roundedReward((10d+2d*level)*(boss?10:target.elite?3:1)*target.difficulty.xp*context.settings().combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*experienceMultiplier));
         long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,context.settings().killGoldMultiplier()*goldMultiplier);
         int count=multiplied(boss?3:random.nextDouble()<(target.elite?.45:.05)?1:0,quantityMultiplier,random);
         for(int i=0;i<count;i++){
@@ -54,9 +62,21 @@ public final class RewardRules {
             var gem=CurrencyRules.rollGem(target.elite,boss,luck,random);if(gem!=null)drops.add(new Drop(Gemstones.item(gem),instance));
         }
         if(context.supply()!=null)drops.add(new Drop(ItemRegistry.item(context.supply().item(),context.supply().count()),true));
-        if(instance){var def=DungeonCatalog.current().dungeon(encounter.dungeon);int rolls=multiplied(boss?4:target.elite?2:random.nextDouble()<.2?1:0,quantityMultiplier,random);for(int i=0;i<rolls;i++)drops.add(new Drop(EquipmentItems.material(def.materials().get(random.nextInt(def.materials().size())),1),true));}
+        // Plain practice-room mobs roll materials from the dungeon each mob was borrowed from.
+        String materialDungeon=encounter.practice!=null&&encounter.practice.kind()==PracticeRoom.Kind.MOB?target.originDungeon:encounter.dungeon;
+        if(instance&&!materialDungeon.isEmpty()){var def=DungeonCatalog.current().dungeon(materialDungeon);int rolls=multiplied(boss?4:target.elite?2:random.nextDouble()<.2?1:0,quantityMultiplier,random);for(int i=0;i<rolls;i++)drops.add(new Drop(EquipmentItems.material(def.materials().get(random.nextInt(def.materials().size())),1),true));}
         if(boss&&level==80&&encounter!=null&&encounter.treasure==null&&encounter.waystone==null&&random.nextDouble()<WaystoneRules.current().starterChance){var rarity=LootOdds.rarity(target.difficulty,true,false,stats.get(Stat.DROP_RATE),random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;drops.add(new Drop(Waystone.generate(1,progress.level,rarity,random).item(),true));}
         return new Result(progress,xp,gold,List.copyOf(drops));
+    }
+
+    private static Result experience(Progress current,List<Integer> percentages){
+        var progress=CareerProfiles.copy(current);
+        long total=0;
+        for(int percentage:percentages){
+            long base=CurrencyRules.roundedReward(CharacterRules.nextExperience(progress.level)*percentage/100d);
+            total=Math.addExact(total,progress.earnExperience(base));
+        }
+        return new Result(progress,total,0,List.of());
     }
 
     private static Result practice(Progress progress,UUID player,Context context){
@@ -68,7 +88,7 @@ public final class RewardRules {
             return new Result(progress,0,gold,List.of());
         }
         if(!player.equals(context.killer()))return new Result(progress,0,0,List.of());
-        // Replaying a pending death uses its original drop table, luck and random sequence.
+        // Use the drop table, luck and random sequence captured when the enemy died.
         var random=new Random(fact.seed());
         if(fact.room().kind()==PracticeRoom.Kind.CURRENCY){
             if(random.nextDouble()>=PRACTICE_CURRENCY_CHANCE)return new Result(progress,0,0,List.of());

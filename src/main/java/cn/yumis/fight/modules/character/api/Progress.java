@@ -38,6 +38,11 @@ public class Progress {
         if(slots==null||slots.length!=SLOT_COUNT){slots=new String[SLOT_COUNT];Arrays.fill(slots,"");return;}
         for(int i=0;i<slots.length;i++)if(slots[i]==null)slots[i]="";
     }
+    public long earnExperience(long base){
+        long amount=Math.multiplyExact(base,level<=10?5:1);
+        grant(amount);
+        return amount;
+    }
     public void grant(long amount){
         if(amount<0)throw new IllegalArgumentException("经验不可为负");
         experience=Math.addExact(experience,amount);

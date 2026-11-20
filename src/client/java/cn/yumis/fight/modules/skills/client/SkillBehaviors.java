@@ -134,25 +134,21 @@ public final class SkillBehaviors {
         });
         register(List.of(SkillCatalog.STORM),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
-                p.setPos(c.origin);
-                p.setDeltaMovement(Vec3.ZERO);
-                int total=(int)Math.max(1,c.parameters.get("slashes",24));
-                double duration=c.parameters.get("duration",8)*1000;
-                long deployMs=(long)(Math.max(.05,c.parameters.get("stormDeploy",1))*1000);double slashGapMs=Math.max(50,c.parameters.get("stormInterval",.25)*1000);
-                int due=Math.min(total,Math.max(0,(int)((elapsed-deployMs)/slashGapMs)+1));
-                while(c.slashes<due){
-                    c.hit.clear();
-                    x.area(c,c.parameters.get("range",5),c.parameters.get("damage",1),true);
-                    c.slashes++;
-                }
-                if(elapsed>=c.parameters.get("duration",8)*900&&!c.finisher){
-                    c.finisher=true;
-                    x.visual(c,"FINISH");
-                    c.hit.clear();
-                    x.area(c,c.parameters.get("range",5),c.parameters.get("finisher",8),true);
-                }
-                if(elapsed>=c.parameters.get("duration",8)*1000)x.cancel(true);
-            
+            p.setPos(c.origin);
+            p.setDeltaMovement(Vec3.ZERO);
+            var schedule=StormChoreography.schedule(c.parameters.values());
+            while(c.slashes<schedule.slashes()&&elapsed>=schedule.slashAt(c.slashes)){
+                c.hit.clear();
+                x.area(c,c.parameters.get("range",5),c.parameters.get("damage",1),true);
+                c.slashes++;
+            }
+            if(elapsed>=schedule.finisherAt()&&!c.finisher){
+                c.finisher=true;
+                x.visual(c,"FINISH");
+                c.hit.clear();
+                x.area(c,c.parameters.get("range",5),c.parameters.get("finisher",8),true);
+            }
+            if(elapsed>=schedule.endAt())x.cancel(true);
         });
     }
     static {CareerSkillBehaviors.install();OracleClient.install();}

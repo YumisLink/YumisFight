@@ -121,8 +121,11 @@ public final class TrainingService implements TrainingActions.Handler,CombatPort
         }
         if(!view.equals(sent.get(p.getUUID()))){sent.put(p.getUUID(),view.deepCopy());Network.send(p,"trainingMeter",view);}
     }
-    public void logout(ServerPlayer p){
-        pendingUses.remove(p.getUUID());sent.remove(p.getUUID());UUID id=active.get(p.getUUID());if(id!=null)try{cleanup(id);}catch(Exception error){message.accept(p,"清理沙袋测试失败："+error.getMessage());}
+    public void logout(ServerPlayer p)throws Exception{
+        pendingUses.remove(p.getUUID());
+        sent.remove(p.getUUID());
+        UUID id=active.get(p.getUUID());
+        if(id!=null)cleanup(id);
     }
     private void cleanup(UUID id)throws Exception{
         clearRun(id);Slot slot=slots.remove(id);if(slot!=null){active.remove(slot.owner,id);shown.remove(slot.owner,id);slot.bag.discard();}

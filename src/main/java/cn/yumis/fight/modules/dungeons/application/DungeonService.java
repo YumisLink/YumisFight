@@ -2,6 +2,8 @@ package cn.yumis.fight.modules.dungeons.application;
 import cn.yumis.fight.modules.dungeons.content.GoblinCamp;
 import cn.yumis.fight.modules.dungeons.content.DragonTower;
 import cn.yumis.fight.modules.presentation.api.ModText;
+import cn.yumis.fight.modules.dungeons.api.AwakeningTower;
+import cn.yumis.fight.modules.dungeons.api.AwakeningTowerStele;
 import cn.yumis.fight.modules.dungeons.api.DungeonEnemy;
 import cn.yumis.fight.modules.dungeons.api.CageEntity;
 import cn.yumis.fight.platform.ItemData;
@@ -59,6 +61,8 @@ public class DungeonService {
     private final DungeonPorts.Players playerAccess;
     private final DungeonPorts.Targets targets;
     final DungeonPorts.Rewards rewards;
+    private final DungeonPorts.TowerClear towerClear;
+    private final DungeonPorts.StoryClear storyClear;
     public TreasureHuntService treasure;
     public WaystoneService waystones;
     private boolean designMode;
@@ -85,10 +89,12 @@ public class DungeonService {
         List<CageEntity> entities=new ArrayList<>();
         Set<String> operations=new HashSet<>();
     }
-    public DungeonService(Journal journal,cn.yumis.fight.modules.character.api.CharacterPersistence characters,MinecraftServer server,DungeonPorts.Players players,DungeonPorts.Targets targets,DungeonPorts.Rewards rewards,DungeonPorts.Meter meter,Function<UUID,Team> team,Runnable refresh,DungeonPorts.CampDecorations decorations){
+    public DungeonService(Journal journal,cn.yumis.fight.modules.character.api.CharacterPersistence characters,MinecraftServer server,DungeonPorts.Players players,DungeonPorts.Targets targets,DungeonPorts.Rewards rewards,DungeonPorts.Meter meter,Function<UUID,Team> team,Runnable refresh,DungeonPorts.CampDecorations decorations,DungeonPorts.TowerClear towerClear,DungeonPorts.StoryClear storyClear){
         this.characters=characters;
         this.journal=journal;this.server=server;this.playerAccess=players;this.targets=targets;this.rewards=rewards;this.meter=meter;this.team=team;this.refresh=refresh;
         this.layouts=new DungeonLayouts(decorations);
+        this.towerClear=towerClear;
+        this.storyClear=storyClear;
         this.practiceRooms=new PracticeEncounterService(this,journal);
         this.goblinCamp=new GoblinCampEncounterService(this,journal);
         this.dragonTower=new DragonTowerEncounterService(this,journal,players);
@@ -111,6 +117,10 @@ public class DungeonService {
         waves.put("behemoth_forbidden",forbidden::spawn);
         waves.put("skasa",skasa::spawn);
         waves.put("dark_city",darkCity::spawn);
+        for(var tower:AwakeningTower.values())waves.put(tower.dungeon().id(),d->{
+            var point=AwakeningTowerLayout.guard(d.cell);
+            spawn(d,"lucas",false,true,point.x,point.y,point.z);
+        });
         for(var encounter:classic){
             waves.put(encounter.dungeon,encounter::spawn);
             for(var kind:cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.values())if(kind.dungeon.equals(encounter.dungeon))enemyBrains.put(kind.id,encounter::brain);
@@ -173,6 +183,10 @@ public class DungeonService {
         if(l==null)throw new IllegalArgumentException("地下城维度尚未加载");
         return l;
     }
+    public void interactTowerStele(ServerPlayer player,BlockPos pos){
+        var tower=AwakeningTowerStele.at(player,pos);
+        if(tower!=null)cn.yumis.fight.network.Network.send(player,"towerStele",Map.of("pos",pos.asLong(),"dungeon",tower.dungeon().id()));
+    }
     public void request(ServerPlayer p,JsonObject j)throws Exception{
         String kind=j.get("kind").getAsString();
         if(kind.equals("leave")){
@@ -180,14 +194,17 @@ public class DungeonService {
             return;
         }
         String id=j.get("dungeon").getAsString();
+        var tower=AwakeningTower.find(id);
+        if(!kind.equals(tower==null?"join":"joinTower"))throw new IllegalArgumentException(tower==null?"未知副本操作":"请从主世界的觉醒塔石碑入场");
         PracticeRoom practice=PracticeRoom.isRoomId(id)?PracticeRoom.require(id):null;
         if(practice==null&&!DungeonCatalog.current().dungeon(id).available())throw new IllegalArgumentException("该副本尚未开放");
         Dungeon old=current(p.getUUID());
-        Difficulty difficulty=practice==null?Difficulty.valueOf(j.get("difficulty").getAsString()):Difficulty.NORMAL;
+        Difficulty difficulty=practice==null&&tower==null?Difficulty.valueOf(j.get("difficulty").getAsString()):Difficulty.NORMAL;
         boolean sync=practice!=null||j.get("sync").getAsBoolean();
         String operation=j.get("operation").getAsString(),key="dungeonReceipt/"+p.getUUID()+"/"+playerAccess.session(p).id+"/"+operation;
         JsonElement previous=journal.get(key);if(!previous.isJsonNull()){if(!previous.equals(j))throw new IllegalArgumentException("入场操作号冲突");playerAccess.profile(p);return;}
         if(old!=null){if(old.dungeon.equals(id)&&old.difficulty==difficulty&&old.syncFor(p.getUUID())==sync){playerAccess.profile(p);return;}throw new IllegalArgumentException("请先退出当前副本，再选择场次或同步");}
+        if(tower!=null&&(!j.has("stele")||AwakeningTowerStele.at(p,BlockPos.of(j.get("stele").getAsLong()))!=tower))throw new IllegalArgumentException("请在对应的觉醒塔石碑旁右键入场");
         Dungeon d=null;
         boolean created=false;
         for(String instance:activeInstanceIds()){
@@ -214,6 +231,7 @@ public class DungeonService {
                 forceArena(d,true);ensureArena(id,d.cell);clearCell(d.cell);resetDoors(d);
                 if(GoblinCampEncounterService.handles(d))goblinCamp.initialize(d);
                 if(DragonTowerEncounterService.handles(d))dragonTower.initialize(d);
+                if(tower!=null)waves.get(id).accept(d);
                 journal.put("instance/"+d.id,d);
             }catch(Exception failure){
                 d.status="CLOSED";journal.put("instance/"+d.id,d);instanceCommitted(d.id);
@@ -266,11 +284,16 @@ public class DungeonService {
         for(var encounter:classic)encounter.track(p);
     }
     public void leave(ServerPlayer p,boolean teleport)throws Exception{
+        leave(p,teleport,null);
+    }
+    private void leave(ServerPlayer p,boolean teleport,UUID disconnected)throws Exception{
         Dungeon d=current(p.getUUID());
         if(d!=null&&d.treasure!=null){treasure.leave(d,p,teleport);return;}
         if(d==null){
-            ReturnPoint stored=journal.get("return/"+p.getUUID(),ReturnPoint.class,null);
-            if(stored!=null&&p.level().dimension()==DIMENSION)back(p,stored);
+            if(teleport&&p.level().dimension()==DIMENSION){
+                ReturnPoint stored=journal.get("return/"+p.getUUID(),ReturnPoint.class,null);
+                if(stored!=null)back(p,stored);
+            }
             return;
         }
         ReturnPoint point=d.returns.get(p.getStringUUID());
@@ -290,29 +313,32 @@ public class DungeonService {
         if(waystones!=null)waystones.updateSources(p);
         playerAccess.save(p);
         rewards.publish();
-        if(d.roster.stream().allMatch(d.withdrawn::contains))close(d);
+        if(d.roster.stream().allMatch(d.withdrawn::contains))close(d,disconnected);
         playerAccess.profile(p);
     }
-    public void disconnected(ServerPlayer p)throws Exception{
-        Dungeon d=current(p.getUUID());
-        if(d!=null&&d.waystone!=null&&d.status.equals("RUNNING")){waystones.disconnected(p,d);return;}
-        leave(p,true);
+    public void logout(ServerPlayer p,boolean teleport)throws Exception{
+        leave(p,teleport,p.getUUID());
     }
-    public void reconnect(ServerPlayer p)throws Exception{
-        Dungeon d=current(p.getUUID());
-        if(d!=null&&(previousPalace(d)||previousGbl(d))){leave(p,true);return;}
-        if(d!=null&&d.waystone!=null&&d.status.equals("RUNNING")){waystones.reconnect(p,d);return;}
+    public void enterWorld(ServerPlayer p,boolean teleport)throws Exception{
+        leave(p,teleport,p.getUUID());
+        var life=playerAccess.session(p).life;
+        life.instance="";
+        life.dimension=p.level().dimension().identifier().toString();
         if(waystones!=null)waystones.updateSources(p);
-        if(p.level().dimension()==DIMENSION&&current(p.getUUID())==null){
-            ReturnPoint point=journal.get("return/"+p.getUUID(),ReturnPoint.class,null);
-            if(point!=null)back(p,point);
-            playerAccess.session(p).life.instance="";
-            playerAccess.session(p).life.dimension=p.level().dimension().identifier().toString();
-        }
     }
     public void respawn(ServerPlayer p){
         Dungeon d=current(p.getUUID());
         if(d!=null&&d.waystone!=null)try{waystones.death(d);}catch(Exception failure){throw new IllegalStateException(failure);}
+        returnToStart(p);
+    }
+    public boolean recordPlayerDefeat(ServerPlayer player,String instance)throws Exception{
+        if(!participant(player,instance))return false;
+        Dungeon dungeon=byId(instance);
+        if(dungeon.waystone!=null)waystones.death(dungeon);
+        return true;
+    }
+    public void returnToStart(ServerPlayer p){
+        Dungeon d=current(p.getUUID());
         if(d!=null&&d.treasure!=null&&d.treasure.region==0){teleport(p,server.overworld(),d.treasure.mapX+.5,d.treasure.mapY,d.treasure.mapZ+.5);}
         else if(d!=null){if(d.treasure==null)enter(d,p);else teleport(p,level(),d.cell*512+.5,80,-23);}
         else{
@@ -341,6 +367,7 @@ public class DungeonService {
         p.teleportTo(l,x,y,z,Set.of(),p.getYRot(),p.getXRot(),true);
     }
     void enter(Dungeon d,ServerPlayer p){
+        var awakeningTower=AwakeningTower.find(d.dungeon);
         if(d.practice!=null){
             p.setYRot(0);p.setXRot(0);
             teleport(p,level(),d.cell*512+.5,80,2.5);
@@ -353,6 +380,9 @@ public class DungeonService {
         }else if(PalaceEncounterService.handles(d)){
             Vec3 entry=CastlePalace.entry(d.cell);
             p.teleportTo(level(),entry.x,entry.y,entry.z,Set.of(),-24,0,true);
+        }else if(awakeningTower!=null){
+            Vec3 entry=AwakeningTowerLayout.entry(d.cell,awakeningTower);
+            p.teleportTo(level(),entry.x,entry.y,entry.z,Set.of(),180,0,true);
         }else teleport(p,level(),d.cell*512+.5,80,2.5);
     }
     void forceArena(Dungeon d,boolean forced){
@@ -376,11 +406,6 @@ public class DungeonService {
         String key="arenaCell/"+cell,layout=id+"/"+definition.version();
         String placed=journal.get(key,String.class,"");
         if(placed.equals(layout))return;
-        if(id.equals(GblChurch.ID)&&placed.equals(id+"/"+GblChurch.VERSION_BEFORE_SKY_CLOUDS)){
-            GblChurch.placeSkyClouds(level(),new BlockPos(cell*512,80,0));
-            journal.put(key,layout);
-            return;
-        }
         rebuildArena(cell,layout,definition.build());
     }
     void buildTreasureArena(int cell,String theme)throws Exception{
@@ -389,13 +414,16 @@ public class DungeonService {
     private void rebuildArena(int cell,String layout,java.util.function.BiConsumer<ServerLevel,BlockPos> build)throws Exception{
         String key="arenaCell/"+cell;
         String previousLayout=journal.get(key,String.class,"");
-        boolean previousSkySea=previousLayout.contains(palaceLayoutKey());
+        boolean previousSkySea=skySeaLayout(previousLayout);
         boolean previousWhale=whaleLayout(previousLayout);
+        boolean previousTower=AwakeningTowerLayout.recorded(previousLayout);
+        boolean nextTower=AwakeningTowerLayout.recorded(layout);
         String previousFootprint=previousSkySea&&!layout.equals(palaceLayoutKey())?"|"+palaceLayoutKey():"";
         if(previousWhale&&!whaleLayout(layout))previousFootprint+="|"+gblLayoutKey();
+        if(previousTower&&!nextTower)previousFootprint+="|"+AwakeningTowerLayout.VERSION;
         journal.put(key,"BUILDING/"+layout+previousFootprint);
         ServerLevel world=level();BlockPos origin=new BlockPos(cell*512,80,0);
-        var bounds=layouts.reuseBounds(previousSkySea,previousWhale||whaleLayout(layout));
+        var bounds=layouts.reuseBounds(previousSkySea,previousWhale||whaleLayout(layout),previousTower||nextTower);
         var temporary=new ArrayList<ChunkPos>();
         try{
             // Load the old footprint too: treasure's small footprint must not leave forest entities behind.
@@ -442,6 +470,8 @@ public class DungeonService {
         e.getPersistentData().putInt("ydnf_level",d.practice!=null?d.practice.level():d.waystone!=null?d.waystone.monsterLevel:d.treasure==null?DungeonCatalog.current().dungeon(d.dungeon).level():d.treasure.baseLevel+Math.max(0,d.treasure.region-1)*2);
         e.getPersistentData().putBoolean("ydnf_elite",elite);
         e.getPersistentData().putBoolean("ydnf_boss",boss);
+        if(d.practice!=null&&d.practice.kind()==PracticeRoom.Kind.MOB)
+            e.getPersistentData().putString("ydnf_origin",PracticeMobs.origin(type));
         if(GoblinCampEncounterService.handles(d))e.getPersistentData().putString("ydnf_camp_region","boss");
         e.setPos(x,y,z);
         var gblKind=cn.yumis.fight.modules.dungeons.api.GblEnemyKind.find(type);
@@ -459,6 +489,7 @@ public class DungeonService {
                 case GOLD->e.setCustomName(ModText.of("金币怪"));
                 case CURRENCY->e.setCustomName(ModText.of("通货怪"));
                 case MATERIAL->{}
+                case MOB->{}
             }
             e.practice();
         }else if(boss||gblKind!=null||palaceKind!=null||forbiddenKind!=null||skasaKind!=null||darkCityKind!=null||classicKind!=null||type.equals("goblin_thrower")||type.contains("wyvern"))e.scripted();
@@ -482,8 +513,12 @@ public class DungeonService {
         var spawn=waves.get(d.dungeon);if(spawn==null)throw new IllegalArgumentException("该副本尚未配置遭遇："+d.dungeon);
         spawn.accept(d);journal.put("instance/"+d.id,d);refresh.run();
     }
-    private static int lastWave(Dungeon d){return PalaceEncounterService.handles(d)?CastlePalace.BOSS:6;}
+    private static int lastWave(Dungeon d){
+        if(AwakeningTower.find(d.dungeon)!=null)return 0;
+        return PalaceEncounterService.handles(d)?CastlePalace.BOSS:6;
+    }
     private static String palaceLayoutKey(){return CastlePalace.ID+"/"+CastlePalace.VERSION;}
+    private static boolean skySeaLayout(String layout){return layout.contains(CastlePalace.ID+"/"+CastlePalace.VERSION_PREFIX);}
     private boolean previousPalace(Dungeon d){
         return PalaceEncounterService.handles(d)&&!journal.get("arenaCell/"+d.cell,String.class,"").equals(palaceLayoutKey());
     }
@@ -525,6 +560,7 @@ public class DungeonService {
                         for(ServerPlayer player:players)leave(player,true);
                         continue;
                     }
+                    for(ServerPlayer player:players)confineGbl(player,d);
                     if(d.status.equals("COMPLETED")||gbl.finishIfDefeated(d,players))continue;
                 }
                 else if(openCamp)goblinCamp.tick(d,players,now);
@@ -539,9 +575,22 @@ public class DungeonService {
                 if(d.enemies.isEmpty()){
                     if(d.wave==lastWave(d)){
                         if(d.waystone!=null){waystones.complete(d,players);refresh.run();continue;}
+                        if(AwakeningTower.find(d.dungeon)!=null){completeAwakeningTower(d,players);continue;}
+                        var storyParticipants=new LinkedHashSet<UUID>();
+                        for(var clearer:players)storyParticipants.add(clearer.getUUID());
+                        var story=storyClear.prepare(d.id,d.dungeon,d.difficulty,storyParticipants);
                         d.status="COMPLETED";
                         meter.freeze(d);
-                        journal.put(key,d);
+                        journal.begin();
+                        try{
+                            story.persist();
+                            journal.put(key,d);
+                            journal.finish();
+                        }catch(Exception failure){
+                            journal.abort();
+                            throw failure;
+                        }
+                        story.publish();
                         for(ServerPlayer p:players)playerAccess.message(p,"地下城通关！可拾取战利品或返回。");
                         refresh.run();
                         continue;
@@ -599,6 +648,20 @@ public class DungeonService {
         catch(Exception failure){
             server.sendSystemMessage(cn.yumis.fight.modules.presentation.api.ModText.of("副本处理失败："+failure.getMessage()));
         }
+    }
+    private void confineGbl(ServerPlayer player,Dungeon dungeon){
+        var bounds=GblChurch.ACTIVE_BOUNDS;
+        int originX=dungeon.cell*512;
+        var arena=new net.minecraft.world.phys.AABB(originX+bounds.minX(),80+bounds.minY(),bounds.minZ(),
+            originX+bounds.maxX()+1,80+bounds.maxY()+1,bounds.maxZ()+1);
+        if(arena.contains(player.position()))return;
+        Vec3 inside=new Vec3(Math.clamp(player.getX(),arena.minX+.5,arena.maxX-.5),player.getY(),
+            Math.clamp(player.getZ(),arena.minZ+.5,arena.maxZ-.5));
+        Vec3 safe=GblChurch.ground(level(),inside,GblChurch.entry(dungeon.cell));
+        player.stopRiding();
+        player.setDeltaMovement(Vec3.ZERO);
+        player.fallDistance=0;
+        teleport(player,level(),safe.x,safe.y,safe.z);
     }
     void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> players,long now)throws Exception{
         String id=net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath();
@@ -831,6 +894,19 @@ public class DungeonService {
             }catch(Exception failure){throw new IllegalStateException("GBL 通关结算失败",failure);}
             return;
         }
+        if(completed!=null&&AwakeningTower.find(completed.dungeon)!=null&&completed.enemies.contains(boss)){
+            if(completed.enemies.stream().allMatch(id->{
+                var target=journal.get("target/"+id,Target.class,null);
+                return target!=null&&target.life.dead;
+            })){
+                try{
+                    var here=server.getPlayerList().getPlayers().stream()
+                        .filter(p->participant(p,completed)&&p.level().dimension()==DIMENSION).toList();
+                    completeAwakeningTower(completed,here);
+                }catch(Exception failure){throw new IllegalStateException("觉醒塔通关结算失败",failure);}
+            }
+            return;
+        }
         if(completed!=null&&completed.waystone!=null&&completed.status.equals("RUNNING")&&completed.wave==lastWave(completed)&&completed.enemies.stream().allMatch(id->{var target=journal.get("target/"+id,Target.class,null);return target!=null&&target.life.dead;})){
             try{var here=server.getPlayerList().getPlayers().stream().filter(p->participant(p,completed.id.toString())&&p.level().dimension()==DIMENSION).toList();if(here.isEmpty())close(completed);else{waystones.complete(completed,here);refresh.run();}}catch(Exception failure){throw new IllegalStateException("地狱+通关结算失败",failure);}
         }
@@ -852,8 +928,11 @@ public class DungeonService {
         }
     }
     void close(Dungeon d)throws Exception{
+        close(d,null);
+    }
+    private void close(Dungeon d,UUID disconnected)throws Exception{
         if(d.treasure!=null&&treasure!=null){treasure.finish(d,"本次挖宝探索已结束。");return;}
-        if(d.waystone!=null&&waystones!=null&&!stopping)waystones.fail(d);
+        if(d.waystone!=null&&waystones!=null&&!stopping)waystones.fail(d,disconnected);
         gbl.close(d);palace.close(d);forbidden.close(d);skasa.close(d);darkCity.close(d);
         for(var encounter:classic)encounter.close(d);
         d.status="CLOSED";
@@ -867,14 +946,48 @@ public class DungeonService {
         for(Cage c:new ArrayList<>(cages.values()))if(c.instance.equals(d.id.toString()))removeCage(c);
     }
     void refreshCamp(){refresh.run();}
+    private void completeAwakeningTower(Dungeon d,List<ServerPlayer> players)throws Exception{
+        if(!d.status.equals("RUNNING"))return;
+        if(players.isEmpty()){close(d);return;}
+        var participants=new LinkedHashSet<UUID>();
+        for(var player:players)participants.add(player.getUUID());
+        var completion=towerClear.prepare(d.id,participants);
+        d.status="COMPLETED";
+        journal.begin();
+        try{
+            completion.persist();
+            journal.put("instance/"+d.id,d);
+            journal.finish();
+        }catch(Exception failure){
+            journal.abort();
+            throw failure;
+        }
+        completion.publish();
+        meter.freeze(d);
+        for(var player:players)playerAccess.message(player,"觉醒塔已通关，可离开地下城。");
+        refresh.run();
+    }
+
     void completeOpenDungeon(Dungeon d,List<ServerPlayer> players,String message)throws Exception{
         if(!d.status.equals("RUNNING"))return;
         if(players.isEmpty()){close(d);return;}
         if(d.waystone!=null)waystones.complete(d,players);
         else{
+            var storyParticipants=new LinkedHashSet<UUID>();
+            for(var clearer:players)storyParticipants.add(clearer.getUUID());
+            var story=storyClear.prepare(d.id,d.dungeon,d.difficulty,storyParticipants);
             d.status="COMPLETED";
             meter.freeze(d);
-            journal.put("instance/"+d.id,d);
+            journal.begin();
+            try{
+                story.persist();
+                journal.put("instance/"+d.id,d);
+                journal.finish();
+            }catch(Exception failure){
+                journal.abort();
+                throw failure;
+            }
+            story.publish();
         }
         for(var player:players)playerAccess.message(player,message);
         refresh.run();

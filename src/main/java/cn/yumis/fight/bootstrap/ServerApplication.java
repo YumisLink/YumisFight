@@ -74,6 +74,7 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import java.nio.file.*;
 import java.util.*;
 public final class ServerApplication {
+    private static final org.slf4j.Logger LOG=com.mojang.logging.LogUtils.getLogger();
     private static ServerApplication CURRENT;
     public final MinecraftServer server;
     public final Journal journal;
@@ -88,6 +89,7 @@ public final class ServerApplication {
     public final cn.yumis.fight.modules.arkguard.application.ArkGuardService arkGuard;
     public final cn.yumis.fight.modules.npc.application.TutorialService tutorials;
     public final cn.yumis.fight.modules.npc.application.AwakeningQuestService awakeningQuests;
+    public final cn.yumis.fight.modules.npc.application.PromotionQuestService promotionQuests;
     public final cn.yumis.fight.modules.dungeons.application.RitualEncounterService rituals;
     private final cn.yumis.fight.modules.economy.application.EconomyService.Drafts economyDrafts=new cn.yumis.fight.modules.economy.application.EconomyService.Drafts();
     public final DungeonService dungeons;
@@ -97,6 +99,7 @@ public final class ServerApplication {
     public final cn.yumis.fight.modules.dungeons.application.TrainingService trainingService;
     public final NativeHits nativeHits;
     public final Map<UUID,Session> sessions=new LinkedHashMap<>();
+    private final Set<UUID> loggingOut=new HashSet<>();
     private final ArrayDeque<Runnable> combatQueue=new ArrayDeque<>();
     public final Random random=new Random();
     public boolean bridge;
@@ -184,19 +187,21 @@ public final class ServerApplication {
         cn.yumis.fight.modules.npc.api.NpcEntity.conversations(npcs::conversing);
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.unregister("shop");
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.register("shop",(p,e,a)->shops.open(p,e.getUUID(),a.value()));
-        arkGuard=new cn.yumis.fight.modules.arkguard.application.ArkGuardService(server,journal,p->session(p).id.toString(),(p,value)->Network.send(p,"arkGuard",value),this::message,targets);
+        arkGuard=new cn.yumis.fight.modules.arkguard.application.ArkGuardService(server,journal,p->session(p).id.toString(),(p,value)->Network.send(p,"arkGuard",value),this::message,targets,loot::prepareExperience);
         nativeHits.worldDamage(worldHealth::nativeDamage);
         progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,characters,inventory,p->session(p).progress,(p,next)->session(p).progress=next,this::profile);
         tutorials=new cn.yumis.fight.modules.npc.application.TutorialService(journal,inventory,characters,RuntimeAssembly.rewardPlayers(this),RuntimeAssembly.rewardBalance(this),p->session(p).life.generation);
         awakeningQuests=new cn.yumis.fight.modules.npc.application.AwakeningQuestService(journal,inventory,characters,RuntimeAssembly.rewardPlayers(this),p->session(p).life.generation,server.getPlayerList()::getPlayer);
+        promotionQuests=new cn.yumis.fight.modules.npc.application.PromotionQuestService(journal,characters,RuntimeAssembly.rewardPlayers(this),p->session(p).life.generation,server.getPlayerList()::getPlayer);
         rituals=RuntimeAssembly.rituals(this);
         inventoryApplication=new cn.yumis.fight.modules.inventory.application.InventoryApplication(journal,inventory,this::message);
         cn.yumis.fight.modules.industry.api.IndustrialPorts.install(inventory,this::message);
         cn.yumis.fight.modules.industry.application.BuddyGeneratorCapture.start(journal,server);
         conveyorConstruction=new cn.yumis.fight.modules.industry.application.ConveyorConstructionService(journal,inventory,server,p->session(p).id.toString(),(p,result)->Network.send(p,"conveyorBuilt",result));
-        combatApplication=new cn.yumis.fight.modules.combat.application.CombatApplication(journal,server,this::session,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,targets::resolve,
+        combatApplication=new cn.yumis.fight.modules.combat.application.CombatApplication(journal,server,this::session,cn.yumis.fight.modules.combat.api.ManagedEntities::attackable,targets::resolve,
             new cn.yumis.fight.modules.combat.api.CombatPorts.Encounters(){
                 public boolean participant(ServerPlayer p,String instance){return dungeons.participant(p,instance);}
+                public boolean recordPlayerDefeat(ServerPlayer p,String instance)throws Exception{return dungeons.recordPlayerDefeat(p,instance);}
                 public void died(LivingEntity entity){if(entity instanceof cn.yumis.fight.modules.dungeons.api.DungeonEnemy)dungeons.died(entity.getUUID());}
                 public void cancelBoss(UUID id){if(!rituals.cancelBoss(id))dungeons.cancelBoss(id);}
             },new cn.yumis.fight.modules.combat.api.CombatPorts.Rewards(){
@@ -219,6 +224,7 @@ public final class ServerApplication {
         registerCommands();
         combatApplication.training(trainingService);
         loadDefinitions();
+        discardTransientRewards();
         loot.recover();
     }
     public static void start(MinecraftServer server){
@@ -231,6 +237,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.TrainingActions.install(CURRENT.trainingService);
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install(CURRENT.dungeons.treasure::use);
             cn.yumis.fight.modules.dungeons.api.WaystoneActions.install(CURRENT.dungeons.waystones);
+            cn.yumis.fight.modules.dungeons.api.AwakeningTowerStele.install(CURRENT.dungeons::interactTowerStele);
             cn.yumis.fight.modules.skills.api.SummonActions.install(CURRENT.mages);
             Network.SERVER=CURRENT::handle;
             var runtime=CURRENT;cn.yumis.fight.modules.combat.api.NativeEffects.configure(entity->!runtime.bridge&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(entity));
@@ -251,7 +258,8 @@ public final class ServerApplication {
     public static void stop(){
         if(CURRENT==null)return;
         try{
-            for(ServerPlayer p:CURRENT.server.getPlayerList().getPlayers()){CURRENT.jars.interrupt(p);if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu menu){menu.forfeit();CURRENT.inventory.closeCursor(p);}cn.yumis.fight.modules.inventory.api.RewardMenu.discardPending(p);CURRENT.mages.clear(p);CURRENT.savePlayer(p);}
+            CURRENT.discardTransientRewards();
+            for(ServerPlayer p:CURRENT.server.getPlayerList().getPlayers()){if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu menu){menu.forfeit();CURRENT.inventory.closeCursor(p);}cn.yumis.fight.modules.inventory.api.RewardMenu.discardPending(p);CURRENT.mages.clear(p);CURRENT.savePlayer(p);}
             CURRENT.arkGuard.close();
             CURRENT.dungeons.shutdown();
             CURRENT.rituals.shutdown();
@@ -274,6 +282,7 @@ public final class ServerApplication {
             cn.yumis.fight.modules.dungeons.api.TrainingActions.clear();
             cn.yumis.fight.modules.dungeons.api.TreasureActions.install((p,h)->{});
             cn.yumis.fight.modules.dungeons.api.WaystoneActions.install(null);
+            cn.yumis.fight.modules.dungeons.api.AwakeningTowerStele.install(null);
             cn.yumis.fight.modules.skills.api.SummonActions.clear();
             CURRENT=null;
             Network.SERVER=(p,a,j)->{throw new IllegalStateException("服务未就绪");};
@@ -299,7 +308,7 @@ public final class ServerApplication {
             if(ready()&&event.getEntity() instanceof ServerPlayer player)get().jars.interrupt(player);
         });
         NeoForge.EVENT_BUS.addListener((PlayerEvent.StartTracking e)->{
-            if(ready()&&e.getEntity() instanceof ServerPlayer p&&e.getTarget() instanceof LivingEntity target&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(target)){
+            if(ready()&&e.getEntity() instanceof ServerPlayer p&&e.getTarget() instanceof LivingEntity target&&cn.yumis.fight.modules.combat.api.ManagedEntities.attackable(target)){
                 get().context(p,target);if(target instanceof ServerPlayer caster)get().visuals.track(p,caster);
             }
         }
@@ -359,7 +368,7 @@ public final class ServerApplication {
             nextAffixes.retainRetiredFrom(previousAffixes);
             EquipmentLayout nextLayout=EquipmentLayout.load(server.getResourceManager());
             Path config=net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve(ItemData.NS+".toml");
-            if(!Files.exists(config))Files.writeString(config,"# 大世界难度：NORMAL / ADVANCED / WARRIOR / KING / HELL\nworldDifficulty=\"NORMAL\"\n# 只影响战斗经验；不影响副职业和管理员奖励\ncombatExperienceMultiplier=1.0\n# 只影响杀怪金币；不影响出售价格\nkillGoldMultiplier=1.0\n");
+            if(!Files.exists(config))Files.writeString(config,"# 大世界难度：NORMAL / ADVANCED / WARRIOR / KING / HELL\nworldDifficulty=\"NORMAL\"\n# 只影响战斗经验；不影响副职业和管理员奖励\ncombatExperienceMultiplier="+RewardSettings.DEFAULT.combatExperienceMultiplier()+"\n# 只影响杀怪金币；不影响出售价格\nkillGoldMultiplier=1.0\n");
             String text=Files.readString(config);
             var match=java.util.regex.Pattern.compile("worldDifficulty\\s*=\\s*\"(\\w+)\"").matcher(text);
             Difficulty nextDifficulty=match.find()?Difficulty.valueOf(match.group(1)):worldDifficulty;
@@ -367,7 +376,7 @@ public final class ServerApplication {
             var nextCombat=cn.yumis.fight.modules.combat.api.CombatSettings.parse(text);
             String additions="";
             if(!java.util.regex.Pattern.compile("(?m)^\\s*combatTimeoutSeconds\\s*=").matcher(text).find())additions+="\n# 连续未造成或受到有效伤害的脱战秒数\ncombatTimeoutSeconds=5\n";
-            if(!java.util.regex.Pattern.compile("(?m)^\\s*combatExperienceMultiplier\\s*=").matcher(text).find())additions+="\n# 战斗经验倍率；不影响副职业或管理员经验\ncombatExperienceMultiplier=1.0\n";
+            if(!java.util.regex.Pattern.compile("(?m)^\\s*combatExperienceMultiplier\\s*=").matcher(text).find())additions+="\n# 战斗经验倍率；不影响副职业或管理员经验\ncombatExperienceMultiplier="+RewardSettings.DEFAULT.combatExperienceMultiplier()+"\n";
             if(!java.util.regex.Pattern.compile("(?m)^\\s*killGoldMultiplier\\s*=").matcher(text).find())additions+="\n# 仅杀怪金币倍率；出售价格不变\nkillGoldMultiplier=1.0\n";
             if(!additions.isEmpty())Files.writeString(config,additions,StandardOpenOption.APPEND);
             var nextSkills=cn.yumis.fight.modules.skills.api.SkillBalanceRules.defaults();
@@ -412,6 +421,7 @@ public final class ServerApplication {
     }
     public Session session(ServerPlayer p){
         return sessions.computeIfAbsent(p.getUUID(),id->{
+            if(loggingOut.contains(id))throw new IllegalStateException("登出时没有已建立的会话");
             var opened=characters.open(id);
             cn.yumis.fight.modules.combat.api.Runtime r=opened.fresh()?new cn.yumis.fight.modules.combat.api.Runtime():journal.get("resources/"+id,cn.yumis.fight.modules.combat.api.Runtime.class,new cn.yumis.fight.modules.combat.api.Runtime());
             Life l=opened.fresh()?new Life():journal.get("life/"+id,Life.class,new Life());l.target=id;l.dimension=p.level().dimension().identifier().toString();
@@ -426,7 +436,8 @@ public final class ServerApplication {
             inventory.restore(p);
             this.equipmentLayout.reconcile(p,this.equipmentLayout.bonus(p));
             Session s=session(p);
-            dungeons.reconnect(p);
+            s.life.dungeonDefeated=false;
+            dungeons.enterWorld(p,!arkGuard.canResumeInPlace(p));
             if(s.life.dead&&!p.isDeadOrDying()){
                 bridge=true;
                 try{
@@ -444,37 +455,109 @@ public final class ServerApplication {
         }
     }
     public void logout(ServerPlayer p){
-        arkGuard.logout(p);
-        if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu menu)menu.forfeit();
-        cn.yumis.fight.modules.inventory.api.RewardMenu.discardPending(p);
-        trainingService.logout(p);
-        mages.clear(p);
-        viewSenders.remove(p.getUUID());economyDrafts.forget(p.getUUID());
+        UUID id=p.getUUID();
+        if(!loggingOut.add(id))return;
         try{
-            jars.interrupt(p);
+            logoutStep(p,"清理方舟状态",()->arkGuard.logout(p));
+            if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu menu){
+                logoutStep(p,"关闭奖励界面",menu::forfeit);
+            }
+            cn.yumis.fight.modules.inventory.api.RewardMenu.discardPending(p);
+            logoutStep(p,"清理练功状态",()->trainingService.logout(p));
+            logoutStep(p,"清理召唤物",()->mages.logout(p));
             careers.clear(p);
-            session(p).resources.equipmentBuffs.clear();
-            inventory.closeCursor(p);
-            if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.DimensionalMenu)inventory.finishMenu(p,p.containerMenu);
-            savePlayer(p);
-            loot.endSession(p);
-            dungeons.disconnected(p);
-            sessions.remove(p.getUUID());
+
+            Session active=sessions.get(id);
+            if(active==null)return;
+            logoutStep(p,"丢弃未结算的开罐结果",()->jars.discard(p));
+            logoutStep(p,"收回背包临时物品",()->{
+                inventory.closeCursor(p);
+                if(p.containerMenu instanceof cn.yumis.fight.modules.inventory.api.DimensionalMenu)inventory.finishMenu(p,p.containerMenu);
+            });
+            logoutStep(p,"保存玩家",()->{
+                active.resources.equipmentBuffs.clear();
+                savePlayer(p);
+            });
+            logoutStep(p,"结束掉落会话",()->loot.endSession(p));
+            logoutStep(p,"清理引路台报名和未结算奖励",()->dungeons.waystones.logout(p));
+            logoutStep(p,"退出副本",()->dungeons.logout(p,!arkGuard.canResumeInPlace(p)));
+            logoutStep(p,"退出魔王祭坛",()->rituals.logout(p));
         }
-        catch(Exception e){
-            server.sendSystemMessage(cn.yumis.fight.modules.presentation.api.ModText.of("保存玩家失败："+e.getMessage()));
+        finally{
+            viewSenders.remove(id);
+            economyDrafts.forget(id);
+            sessions.remove(id);
+            loggingOut.remove(id);
+        }
+    }
+    private void discardTransientRewards()throws java.io.IOException{
+        var discarded=new LinkedHashMap<String,JsonElement>();
+        for(String namespace:List.of("personalKill/","waystonePersonal/","jarDraw/")){
+            for(String key:journal.keys(namespace))discarded.put(key,JsonNull.INSTANCE);
+        }
+        if(!discarded.isEmpty())journal.transaction(discarded);
+    }
+    @FunctionalInterface
+    private interface LogoutStep {
+        void run()throws Exception;
+    }
+    private void logoutStep(ServerPlayer p,String description,LogoutStep step){
+        try{step.run();}
+        catch(Exception failure){
+            LOG.warn("玩家 {} 登出时{}失败",p.getScoreboardName(),description,failure);
         }
     }
     public void respawn(ServerPlayer p){
+        inventory.restore(p);
+        resetLife(p);
+        dungeons.respawn(p);
+        savePlayer(p);
+        profile(p);
+    }
+    private void recoverDungeonDefeat(ServerPlayer p,JsonObject choice)throws Exception{
+        var session=session(p);
+        var life=session.life;
+        if(!session.id.toString().equals(choice.get("session").getAsString()))return;
+        if(!life.dungeonDefeated||life.generation!=choice.get("generation").getAsLong()){
+            profile(p);
+            return;
+        }
+        switch(choice.get("kind").getAsString()){
+            case "return"->dungeons.returnToStart(p);
+            case "leave"->dungeons.leave(p,true);
+            default->throw new IllegalArgumentException("未知副本复起选项");
+        }
+        var previousLife=session.life;
+        var previousResources=session.resources;
+        session.life=JSON.fromJson(JSON.toJsonTree(previousLife),Life.class);
+        session.resources=JSON.fromJson(JSON.toJsonTree(previousResources),cn.yumis.fight.modules.combat.api.Runtime.class);
+        try{
+            resetLife(p);
+            savePlayer(p);
+        }catch(RuntimeException failure){
+            session.life=previousLife;
+            session.resources=previousResources;
+            throw failure;
+        }
+        p.stopRiding();
+        p.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+        p.resetFallDistance();
+        p.clearFire();
+        p.removeAllEffects();
+        p.setHealth(p.getMaxHealth());
+        profile(p);
+    }
+    private void resetLife(ServerPlayer p){
         mages.clear(p);
         careers.clear(p);
         Session s=session(p);
-        inventory.restore(p);
         jars.interrupt(p);
         s.life.generation++;
         s.life.revision=0;
         s.life.q=1;
         s.life.dead=false;
+        s.life.dungeonDefeated=false;
+        s.life.elemental=new cn.yumis.fight.modules.combat.api.ElementAccumulation.State();
         s.life.dimension=p.level().dimension().identifier().toString();
         s.resources.mp=-1;
         if(s.resources.training)s.resources.trainingBoundary=s.resources.mp;
@@ -486,9 +569,6 @@ public final class ServerApplication {
         s.resources.absorption.clear();
         s.resources.absorptionUntil.clear();
         p.getFoodData().setFoodLevel(20);
-        dungeons.respawn(p);
-        savePlayer(p);
-        profile(p);
     }
     public void savePlayer(ServerPlayer p){
         try{
@@ -509,6 +589,7 @@ public final class ServerApplication {
         return session(p).viewStats.copy();
     }
     public void profile(ServerPlayer p){
+        if(loggingOut.contains(p.getUUID()))return;
         Session s=session(p);
         Stats stats=stats(p);
         s.sourceRevision=cn.yumis.fight.modules.attributes.api.AttributeServices.attributes(p.getUUID()).revision();
@@ -535,6 +616,7 @@ public final class ServerApplication {
         j.add("professionEffects",professionService.effects(p.getUUID()));
         j.add("npcTutorial",JSON.toJsonTree(tutorials.state(p.getUUID())));
         j.add("awakeningQuest",awakeningQuests.view(p));
+        j.add("promotionQuest",promotionQuests.view(p));
         j.add("professionState",JSON.toJsonTree(professionService.snapshot(p.getUUID())));
         j.add("progress",JSON.toJsonTree(s.progress));
         j.add("careerProfiles",characters.profiles(p.getUUID()).view(s.progress));
@@ -577,19 +659,21 @@ public final class ServerApplication {
     }
     private void registerCommands(){
         conveyorConstruction.register(commands);
+        cn.yumis.fight.modules.mining.api.VeinMining.register(commands);
         cn.yumis.fight.modules.industry.platform.ManaStorageBagItem.register(commands,p->session(p).id.toString());
         commands.register("industry","industrialReady",(p,j)->IndustrialWorld.get(p.level()).opening.ready(p,j));
         commands.register("industry","industrialRoute",(p,j)->{if(p.containerMenu instanceof cn.yumis.fight.modules.industry.platform.IndustrialMenu menu)menu.routeAction(p,j);});
         commands.register("industry","prospectorPan",(p,j)->{if(p.containerMenu instanceof cn.yumis.fight.modules.industry.platform.ProspectorMenu menu&&menu.containerId==j.get("menu").getAsInt()&&menu.stillValid(p))menu.pan(p,j.get("x").getAsInt(),j.get("z").getAsInt());});
         careers.register(commands);mages.register(commands);
         awakeningQuests.register(commands);
+        promotionQuests.register(commands);
         commands.register("dungeons","ritualSummon",rituals::summonCommand);
         commands.register("dungeons","ritualJoin",rituals::joinCommand);
         commands.register("equipment","playerStats",(p,j)->{if(!session(p).id.toString().equals(j.get("session").getAsString()))return;var value=JSON.fromJson(j.get("stats"),Stats.class);journal.put("playerStats/"+p.getUUID(),j.get("stats"));session(p).viewStats=value;profile(p);});
         equipmentApplication.register(commands);economyService.register(commands);jars.register(commands);shops.register(commands);npcs.register(commands);tutorials.register(commands);chests.register(commands);progressService.register(commands);inventoryApplication.register(commands);
-        commands.register("presentation","hello",(p,j)->{if(j.get("protocol").getAsInt()!=cn.yumis.fight.architecture.ProtocolVersion.CURRENT||j.has("rules")&&j.get("rules").getAsInt()!=cn.yumis.fight.bootstrap.ApplicationRules.DATA_VERSION){p.connection.disconnect(ModText.of("模组协议或规则版本不一致"));return;}profile(p);loot.pendingRewards(p);dungeons.waystones.pendingRewards(p);});
+        commands.register("presentation","hello",(p,j)->{if(j.get("protocol").getAsInt()!=cn.yumis.fight.architecture.ProtocolVersion.CURRENT||j.has("rules")&&j.get("rules").getAsInt()!=cn.yumis.fight.bootstrap.ApplicationRules.DATA_VERSION){p.connection.disconnect(ModText.of("模组协议或规则版本不一致"));return;}profile(p);});
         commands.register("presentation","profile",(p,j)->{var sender=viewSenders.get(p.getUUID());if(sender!=null){if(j.has("definitions")&&j.get("definitions").getAsBoolean())sender.resetDefinitions();else sender.resetPersonal();}profile(p);});
-        commands.register("combat","context",(p,j)->{Entity e=p.level().getEntity(j.get("entity").getAsInt());if(e instanceof LivingEntity l&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(l))context(p,l);});
+        commands.register("combat","context",(p,j)->{Entity e=p.level().getEntity(j.get("entity").getAsInt());if(e instanceof LivingEntity l&&cn.yumis.fight.modules.combat.api.ManagedEntities.attackable(l))context(p,l);});
         commands.register("combat","runtime",(p,j)->{
             var state=session(p);long sequence=j.get("checkpoint").getAsLong();
             if(state.runtimeGeneration!=state.life.generation||state.runtimeEpoch!=state.resources.controlEpoch){state.runtimeSequence=-1;state.runtimeGeneration=state.life.generation;state.runtimeEpoch=state.resources.controlEpoch;}
@@ -601,9 +685,10 @@ public final class ServerApplication {
         for(String action:List.of("damage","heal","nativeOutcome"))commands.register("combat",action,(p,j)->{JsonObject report=j.deepCopy();combatQueue.add(()->combatApplication.report(p,action,report));});
         commands.register("professions","professions",(p,j)->professions(p));commands.register("party","party",partyService::request);
         commands.register("economy","economyDraft",economyDrafts::part);
-        commands.register("economy","lootReward",loot::receiveReward);commands.register("economy","rewardPending",(p,j)->loot.pendingRewards(p));
+        commands.register("economy","lootReward",loot::receiveReward);
         professionService.register(commands,inventory,this::profile,p->session(p).id);
         commands.register("dungeons","dungeon",dungeons::request);commands.register("dungeons","cageHit",dungeons::cageHit);
+        commands.register("dungeons","dungeonDefeat",this::recoverDungeonDefeat);
         commands.register("dungeons","waystoneTable",dungeons.waystones::command);commands.register("dungeons","waystoneReturnResult",dungeons.waystones::receiveReward);
         commands.register("dungeons","trainingStart",trainingService::start);
         commands.register("arkguard","arkGuard",arkGuard::request);

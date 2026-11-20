@@ -5,7 +5,7 @@ import java.util.UUID;
 /** Run snapshot; changing rules never changes an active challenge. */
 public final class WaystoneRun {
     public Waystone stone;
-    public UUID owner;
+    public UUID owner,ownerSession;
     public WaystoneRules rules;
     public int monsterLevel,resultingTier;
     public double statMultiplier;

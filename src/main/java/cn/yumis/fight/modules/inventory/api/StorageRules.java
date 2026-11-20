@@ -2,7 +2,7 @@ package cn.yumis.fight.modules.inventory.api;
 
 /** Stable tier identities; pagination never moves the stored stacks. */
 public class StorageRules {
-    public static final int[] CAPACITIES={8,16,32,48,64,88,112,136,160,192,224,256,296,336,376,416};
+    public static final int[] CAPACITIES={53,56,59,62,64,88,112,136,160,192,224,256,296,336,376,416};
     public static final String[] NAMES={"破烂的木箱","生锈的铜箱","铜箱","破烂的银箱","银箱","黄金箱","耀眼的黄金箱","华丽的黄金箱","钻石箱","华丽的金刚石箱","泰拉石箱","华丽泰拉石箱","魔刹石箱","华丽魔刹石箱","时空石箱","华丽时空石箱"};
     protected StorageRules(){}
     public static int capacity(int tier){return CAPACITIES[Math.clamp(tier,1,16)-1];}

@@ -1,13 +1,21 @@
 package cn.yumis.fight.modules.presentation.api.client;
 
+import cn.yumis.fight.modules.mining.api.VeinMining;
 import java.nio.file.*;
 import java.util.regex.*;
 public final class ClientSettings {
     public static String panel="medium",targetPosition="top_center";
     public static String uiFont="modern";
+    public static final int MAX_DAMAGE_SCALE=4;
+    public static final int TARGET_FRAME_WIDTH=184;
     public static int damageScale=2;
     public static double targetScale=1;
     public static boolean nearEffectFade=true,itemQualityFrames=true;
+    static boolean menuShortcutDefaultsApplied;
+    public static final int MAX_ENEMY_HEALTH_DISTANCE=256;
+    public static int enemyHealthDistance=16;
+    public static int veinMiningLimit=VeinMining.DEFAULT_LIMIT;
+    public static boolean enemyHealthPerspective=false,attackNeutralMobs=false;
     public static boolean arkEnemyHealth=true,arkAllyHealth=true,arkEnemyDamage=true,arkAllyDamage=true;
     public static String globalTheme="light",menuTheme="dark",machineTheme="light";
     public static boolean menuFollowsTheme=false,machineFollowsTheme=true;
@@ -27,12 +35,17 @@ public final class ClientSettings {
                 return;
             }
             String s=Files.readString(path());
+            menuShortcutDefaultsApplied=Boolean.parseBoolean(value(s,"menuShortcutDefaultsApplied","false"));
             panel=value(s,"panelSize","medium");
             targetPosition=value(s,"targetPosition","top_center");
             damageScale=Integer.parseInt(value(s,"damageScale","2"));
             targetScale=Double.parseDouble(value(s,"targetScale","1"));
             nearEffectFade=!value(s,"nearEffectFade","true").equalsIgnoreCase("false");
             itemQualityFrames=!value(s,"itemQualityFrames","true").equalsIgnoreCase("false");
+            enemyHealthDistance=readEnemyHealthDistance(value(s,"enemyHealthDistance","16"));
+            veinMiningLimit=readVeinMiningLimit(value(s,"veinMiningLimit",Integer.toString(VeinMining.DEFAULT_LIMIT)));
+            enemyHealthPerspective=Boolean.parseBoolean(value(s,"enemyHealthPerspective","false"));
+            attackNeutralMobs=Boolean.parseBoolean(value(s,"attackNeutralMobs","false"));
             arkEnemyHealth=Boolean.parseBoolean(value(s,"arkEnemyHealth","true"));
             arkAllyHealth=Boolean.parseBoolean(value(s,"arkAllyHealth","true"));
             arkEnemyDamage=Boolean.parseBoolean(value(s,"arkEnemyDamage","true"));
@@ -45,7 +58,7 @@ public final class ClientSettings {
             machineFollowsTheme=Boolean.parseBoolean(value(s,"machineFollowsTheme","true"));
             if(!uiFont.equals("modern")&&!uiFont.matches("[a-f0-9]{64}"))uiFont="modern";
             if(!java.util.Set.of("small","medium","large").contains(panel))panel="medium";
-            if(!java.util.Set.of(1,2,4).contains(damageScale))damageScale=2;
+            if(damageScale<1||damageScale>MAX_DAMAGE_SCALE)damageScale=2;
             if(targetScale!=1&&targetScale!=1.5&&targetScale!=2)targetScale=1;
         }
         catch(Exception e){
@@ -56,11 +69,22 @@ public final class ClientSettings {
         Matcher m=Pattern.compile("(?m)^"+key+"\\s*=\\s*\"?([\\w.]+)\"?\\s*$").matcher(s);
         return m.find()?m.group(1):fallback;
     }
+    private static int readEnemyHealthDistance(String raw){
+        try{return Math.clamp(Integer.parseInt(raw),1,MAX_ENEMY_HEALTH_DISTANCE);}
+        catch(NumberFormatException ignored){return 16;}
+    }
+    private static int readVeinMiningLimit(String raw){
+        try{return Math.clamp(Integer.parseInt(raw),1,VeinMining.MAX_LIMIT);}
+        catch(NumberFormatException ignored){return VeinMining.DEFAULT_LIMIT;}
+    }
     public static void save(){
         try{
             Files.createDirectories(path().getParent());
             Files.writeString(path(),"# 本机界面与战斗显示设置；保存后立即生效。\npanelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nitemQualityFrames="+itemQualityFrames+"\nitemQualityFrames="+itemQualityFrames+"\nnearEffectFade="+nearEffectFade+"\nuiFont=\""+uiFont+"\"\n# light 为灰色立体，dark 为黑灰透明。\nglobalTheme=\""+globalTheme+"\"\n# 取消跟随时保留该类面板当时的主题。\nmenuFollowsTheme="+menuFollowsTheme+"\nmenuTheme=\""+menuTheme+"\"\nmachineFollowsTheme="+machineFollowsTheme+"\nmachineTheme=\""+machineTheme+"\"\n"
-                +"arkEnemyHealth="+arkEnemyHealth+"\narkAllyHealth="+arkAllyHealth+"\narkEnemyDamage="+arkEnemyDamage+"\narkAllyDamage="+arkAllyDamage+"\n");
+                +"arkEnemyHealth="+arkEnemyHealth+"\narkAllyHealth="+arkAllyHealth+"\narkEnemyDamage="+arkEnemyDamage+"\narkAllyDamage="+arkAllyDamage+"\n"
+                +"enemyHealthDistance="+enemyHealthDistance+"\nenemyHealthPerspective="+enemyHealthPerspective+"\nattackNeutralMobs="+attackNeutralMobs+"\n"
+                +"veinMiningLimit="+veinMiningLimit+"\n"
+                +"menuShortcutDefaultsApplied="+menuShortcutDefaultsApplied+"\n");
         }
         catch(Exception e){
             ClientUi.current().message("设置保存失败："+e.getMessage());

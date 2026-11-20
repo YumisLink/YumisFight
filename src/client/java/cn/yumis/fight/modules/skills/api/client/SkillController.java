@@ -13,6 +13,7 @@ import cn.yumis.fight.modules.combat.api.CombatTiming;
 import cn.yumis.fight.modules.combat.api.CombatRules;
 import cn.yumis.fight.modules.combat.api.ElementAccumulation;
 import cn.yumis.fight.modules.combat.api.Life;
+import cn.yumis.fight.modules.talents.client.TalentCombat;
 import cn.yumis.fight.modules.skills.api.WeaponSkills;
 import cn.yumis.fight.modules.equipment.api.WeaponTraits;
 import cn.yumis.fight.modules.skills.api.SkillDefinition;
@@ -34,7 +35,7 @@ import com.google.gson.*;
 import net.minecraft.client.Minecraft;
 
 import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.monster.Enemy;
+import cn.yumis.fight.modules.combat.api.ManagedEntities;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
 import java.util.*;
@@ -175,6 +176,11 @@ public final class SkillController {
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.publish();
     }
     public List<LivingEntity> targets(AABB box){return enemies(box);}
+    public static boolean canTarget(LivingEntity entity){
+        return entity.isAlive()&&(ManagedEntities.hostile(entity)
+            ||cn.yumis.fight.modules.presentation.api.client.ClientSettings.attackNeutralMobs
+                &&ManagedEntities.neutralCreature(entity));
+    }
     public boolean sight(Vec3 from,Vec3 to){return visible(from,to);}
     /** Resolve a local content-owned hit with its own immutable cast snapshot. */
     public boolean hitCast(SkillCast source,LivingEntity target,double coefficient,double knockback){var previous=hitSource;boolean previousTail=confirmedTail;hitSource=source;confirmedTail=true;try{return hit(target,source.stats,source.skill,coefficient,false,source.passiveDamage,knockback,null);}finally{hitSource=previous;confirmedTail=previousTail;}}
@@ -201,7 +207,7 @@ public final class SkillController {
         String cycle=UUID.randomUUID().toString();stats=WeaponSkills.basicSnapshot(state().progress(),stats);var equipment=state().resources().equipment;
         JsonObject content=cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basicContent(cycle);
         var weapon=WeaponTraits.basic(stats.weaponType);
-        if(weapon.projectileSpeed()>0){var direction=mc.player.getLookAngle().normalize();var launch=cn.yumis.fight.modules.combat.api.ProjectileSpawn.inWorld(mc.player,mc.player.getEyePosition(),direction,weapon.range(),.15,e->e.isAlive()&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon));content.add("staffProjectile",cn.yumis.fight.modules.combat.api.ProjectileSpawn.snapshot(launch,direction,state().serverNow()));}
+        if(weapon.projectileSpeed()>0){var direction=mc.player.getLookAngle().normalize();var launch=cn.yumis.fight.modules.combat.api.ProjectileSpawn.inWorld(mc.player,mc.player.getEyePosition(),direction,weapon.range(),.15,SkillController::canTarget);content.add("staffProjectile",cn.yumis.fight.modules.combat.api.ProjectileSpawn.snapshot(launch,direction,state().serverNow()));}
         TrainingCombat.begin(cycle,"普通攻击");
         if(mc.hitResult instanceof EntityHitResult hit&&hit.getEntity() instanceof CageEntity cage){
             JsonObject j=new JsonObject();j.addProperty("cage",cage.root());j.addProperty("operation",UUID.randomUUID().toString());state().send("cageHit",j);mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);return;
@@ -436,6 +442,7 @@ public final class SkillController {
         return hit(entity,stats,skill,coefficient,basic,passive,knockback,center,null);
     }
     private boolean hit(LivingEntity entity,Stats stats,SkillDefinition skill,double coefficient,boolean basic,boolean passive,double knockback,Vec3 center,JsonObject nativeContext){
+        if(!canTarget(entity))return false;
         if(entity instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag&&bag.timed()){
             var player=Minecraft.getInstance().player;
             if(player==null||!bag.ownedBy(player)||bag.finished()&&!confirmedTail&&nativeContext==null&&(hitSource==null||hitSource.summonSource.isBlank()))return false;
@@ -472,7 +479,15 @@ public final class SkillController {
         double[] resist=cn.yumis.fight.modules.combat.api.EquipmentDamage.resistances(equipment,target.resistances());
         boolean mainAllowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,elements);
         elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(equipment,elements);
-        CombatRules.Damage parts=CombatRules.calculate(stats,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,basic&&!passive?stats.modifiers.getOrDefault("basicDamageScale",1d):coefficient*(nativeContext!=null?stats.modifiers.getOrDefault("basicDamageScale",1d):1),!passive&&!dot,random);
+        var talents=state().progress();
+        TalentCombat.Context talentContext=null;
+        if(TalentCombat.conditionalLit(talents)){stats=stats.copy();talentContext=hitContext(stats,target);TalentCombat.apply(stats,talentContext,talents);}
+        var rolls=CombatRules.draw(stats,!passive&&!dot,random);
+        CombatRules.Damage parts=CombatRules.calculate(stats,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,basic&&!passive?stats.modifiers.getOrDefault("basicDamageScale",1d):coefficient*(nativeContext!=null?stats.modifiers.getOrDefault("basicDamageScale",1d):1),!passive&&!dot,rolls);
+        if(parts.critical()&&TalentCombat.critLit(talents)){
+            var withCrit=stats.copy();TalentCombat.applyCrit(withCrit,talentContext.withCrit(),talents);
+            parts=CombatRules.recalculateCritical(withCrit,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,basic&&!passive?stats.modifiers.getOrDefault("basicDamageScale",1d):coefficient*(nativeContext!=null?stats.modifiers.getOrDefault("basicDamageScale",1d):1),!passive&&!dot,rolls);
+        }
         if(!mainAllowed)parts=parts.withMain(0);
         if(basic&&!passive)parts=parts.scaled(coefficient);
         var resolved=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(parts,stats,skill,mastery(stats),basic,passive,advantage(stats.modifiers.getOrDefault("sourceLevel",(double)state().progress().level).intValue(),level));
@@ -557,6 +572,7 @@ public final class SkillController {
         damage*=outgoing;for(int i=0;i<components.length;i++)components[i]*=outgoing;
         extra.add("sourceStats",JSON.toJsonTree(stats));extra.add("sourceEffects",JSON.toJsonTree(equipment));
         double actual=target.damageImmune?0:target.training()?damage/maximum:Math.min(state().predicted(target.life),damage/maximum);double remaining=Math.max(0,state().predicted(target.life)-actual);
+        if(remaining<=0&&actual>0&&!target.training()&&hitSource!=null&&!hitSource.summonSource.isEmpty())TalentCombat.summonKillExpected(target.id);
         var actor=JSON.fromJson(JSON.toJson(state().own()),Life.class);double actorBefore=actor.q=state().predicted(state().own());
         var receipt=new cn.yumis.fight.modules.combat.api.Receipt(true,"",actual,remaining,target.life.revision+1,"");
         if(external)cn.yumis.fight.modules.combat.api.EquipmentHitEffects.apply(target,receipt,!dot&&!extra.has("effect")&&(hitSource==null||hitSource.summonSource.isEmpty()),stats,snapshot().get(Stat.HEALTH),equipment,actor,state().resources(),maximum,now);
@@ -597,7 +613,7 @@ public final class SkillController {
     }
     private List<LivingEntity> enemies(AABB bounds){
         var mc=Minecraft.getInstance();
-        return mc.level.getEntitiesOfClass(LivingEntity.class,bounds,e->e.isAlive()&&!(e instanceof net.minecraft.world.entity.player.Player)&&(e instanceof Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon));
+        return mc.level.getEntitiesOfClass(LivingEntity.class,bounds,SkillController::canTarget);
     }
     private boolean visible(Vec3 from,Vec3 to){
         var mc=Minecraft.getInstance();
@@ -755,7 +771,7 @@ public final class SkillController {
         fraction*=received;for(int i=0;i<componentFractions.length;i++)componentFractions[i]*=received;
         if(enemyAttack)fraction=minimumEnemyFraction(componentFractions,snapshot().get(Stat.HEALTH),enemyElement);
         if(fraction<=0){nativeOutcome(j,"IMMUNE");return;}
-        if(j.has("directAttack")&&j.get("directAttack").getAsBoolean()&&CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble)){nativeOutcome(j,"DODGE");return;}
+        if(j.has("directAttack")&&j.get("directAttack").getAsBoolean()&&CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble)){TalentCombat.dodged();nativeOutcome(j,"DODGE");return;}
         JsonObject feedback=new JsonObject();
         feedback.add("damageComponents",JSON.toJsonTree(componentFractions));
         if(j.has("nativeRoot"))feedback.add("nativeRoot",j.get("nativeRoot"));
@@ -777,14 +793,29 @@ public final class SkillController {
         return f<=0?0:((f*f+f)*.5*7*8+1)*.05;
     }
     private double monsterDamage(double points,boolean magic,int element,int level){
-        Stats current=snapshot();double defense=current.get(magic?Stat.MAGICAL_DEFENSE:Stat.PHYSICAL_DEFENSE);
+        Stats current=snapshot();
+        var talents=state().progress();
+        if(TalentCombat.conditionalLit(talents)){current=current.copy();TalentCombat.apply(current,takenContext(current),talents);}
+        double defense=current.get(magic?Stat.MAGICAL_DEFENSE:Stat.PHYSICAL_DEFENSE);
         double resist=element>=0?current.get(new Stat[]{Stat.LIGHT_RESIST,Stat.FIRE_RESIST,Stat.ICE_RESIST,Stat.DARK_RESIST}[element]):Math.max(Math.max(current.get(Stat.LIGHT_RESIST),current.get(Stat.FIRE_RESIST)),Math.max(current.get(Stat.ICE_RESIST),current.get(Stat.DARK_RESIST)));
         if(element<0)resist=Math.max(0,resist);
         double careerTaken=cn.yumis.fight.modules.skills.client.DemonHunterClient.careerDamageTaken(cn.yumis.fight.modules.character.api.JobCatalog.style(state().progress().jobId()).damageTaken());
         double damage=points*1000/(1000+Math.max(0,defense))*Math.max(.3,1-resist/120)*advantage(level,state().progress().level)*careerTaken;
         if(state().resources().buffs.getOrDefault("movementProtection",0L)>cn.yumis.fight.modules.presentation.api.client.ClientUi.now())damage*=.1;
-        return damage;
+        return damage*Math.max(0,1-current.modifiers.getOrDefault("taken",0d));
     }
+    /** 条件位上下文：活状态读本机会话与召唤在场；目标事实由当次命中填入。 */
+    private TalentCombat.Context hitContext(Stats stats,Target target){
+        Set<String> ailments=new HashSet<>(4);
+        long serverNow=state().serverNow();
+        for(var kind:ElementAccumulation.Kind.values())if(target.life.elemental.active(kind,target.life,serverNow))ailments.add(kind.id);
+        return new TalentCombat.Context(state().predicted(state().own()),resourceFraction(stats.get(Stat.MP)),state().resources().shield>0,summoned(),stats.modifiers.getOrDefault("killWindow",0d),false,ailments,state().predicted(target.life));
+    }
+    private TalentCombat.Context takenContext(Stats stats){
+        return new TalentCombat.Context(state().predicted(state().own()),resourceFraction(stats.get(Stat.MP)),state().resources().shield>0,summoned(),stats.modifiers.getOrDefault("killWindow",0d),false,Set.of(),1);
+    }
+    private double resourceFraction(double maximum){return maximum>0?Math.clamp(state().resources().mp,0,maximum)/maximum:1;}
+    private boolean summoned(){var mage=cn.yumis.fight.modules.skills.client.MageClient.INSTANCE;return !mage.army.isEmpty()||mage.summonUntil>state().serverNow();}
     private static int nativeElement(String source){return switch(source){case "lava","inFire","onFire","hotFloor","campfire","fireball","unattributedFireball"->1;case "lightningBolt"->0;case "freeze"->2;case "wither","witherSkull","dragonBreath"->3;default->-1;};}
     private static double minimumEnemyFraction(double[] components,double maximum,int element){
         double total=Arrays.stream(components).sum();
@@ -866,7 +897,8 @@ public final class SkillController {
     public boolean nativeAttack(Entity raw){
         var mc=Minecraft.getInstance();
         LivingEntity target=raw instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part?part.parentMob:raw instanceof LivingEntity living?living:null;
-        if(target==null||!(target instanceof Enemy||target instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon))return false;
+        if(target==null)return false;
+        if(!canTarget(target))return ManagedEntities.neutralCreature(target);
         if(cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player))return true;
         var hand=mc.player.getMainHandItem();
         Gear custom=EquipmentItems.gear(hand);
@@ -905,22 +937,25 @@ public final class SkillController {
             var previousEquipment=hitEquipment;if(launch!=null)hitEquipment=launch.effects;try{hit(living,stats,null,coefficient,false,true,.4,null,j);}finally{hitEquipment=previousEquipment;}
         }
     }
-    public void boss(JsonObject j){
+    public boolean boss(JsonObject j){
         String id=j.get("id").getAsString();
-        if(bossHit.contains(id))return;
+        if(bossHit.contains(id))return false;
         if(j.has("clientContact")&&j.get("clientContact").getAsBoolean()){
             var mc=Minecraft.getInstance();
-            if(!state().ready()||state().own().dead||mc.level==null||mc.player==null||mc.player.isDeadOrDying())return;
+            if(!state().ready()||state().own().dead||mc.level==null||mc.player==null||mc.player.isDeadOrDying())return false;
             Target source=JSON.fromJson(j.get("boss"),Target.class);
-            if(!source.dimension.equals(mc.level.dimension().identifier().toString())||!source.instance.equals(state().own().instance))return;
-            bossHit.add(id);receiveBossHit(j,source);return;
+            if(!source.dimension.equals(mc.level.dimension().identifier().toString())||!source.instance.equals(state().own().instance))return false;
+            bossHit.add(id);
+            return receiveBossHit(j,source);
         }
         bosses.put(id,j);
+        return false;
     }
     /** The local contact owner has already resolved geometry; all incoming damage uses this same calculation. */
-    private void receiveBossHit(JsonObject j,Target boss){
+    private boolean receiveBossHit(JsonObject j,Target boss){
         var p=Minecraft.getInstance().player;
-        if(invulnerable()||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(p)||p.getAbilities().invulnerable||p.isSpectator()||CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble))return;
+        if(invulnerable()||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(p)||p.getAbilities().invulnerable||p.isSpectator())return false;
+        if(CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble)){TalentCombat.dodged();return false;}
         if(j.has("ritualStunTicks")&&!cn.yumis.fight.modules.skills.client.DemonHunterClient.steadfast())
             p.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN,j.get("ritualStunTicks").getAsInt()));
         if(j.has("ritualRootTicks"))
@@ -941,11 +976,12 @@ public final class SkillController {
         if(j.has("occurredAt"))feedback.add("occurredAt",j.get("occurredAt"));
         if(j.has("selfStunTicks")){feedback.add("selfStunTicks",j.get("selfStunTicks"));feedback.add("controlId",j.get("controlId"));}
         double points=boss.attack(level)*j.get("coefficient").getAsDouble();int element=j.get("element").getAsInt();
-        if(points<=0)return;
+        if(points<=0)return true;
         double[] components=monsterComponents(points,j.get("magic").getAsBoolean(),element,level);
         double multiplier=NativeEquipmentRules.receivedMultiplier(p,"bossAction",false,false,false);for(int i=0;i<components.length;i++)components[i]*=multiplier;
         double maximum=snapshot().get(Stat.HEALTH);double[] fractions=ElementAccumulation.fractions(components,maximum);double fraction=points>0?minimumEnemyFraction(fractions,maximum,element):Arrays.stream(fractions).sum();feedback.add("damageComponents",JSON.toJsonTree(fractions));
         ownDamage(fraction,feedback);
+        return true;
     }
     public void cancelBoss(String id){
         bosses.remove(id);
@@ -999,7 +1035,7 @@ public final class SkillController {
     public void ack(JsonObject packet){
         TrainingCombat.ack(packet);
         var source=equipmentReceipts.remove(packet.get("operation").getAsLong());
-        if(source!=null&&state().ready()&&state().session().equals(packet.get("session").getAsString())&&source.get("sourceGeneration").getAsLong()==state().own().generation){var receipt=JSON.fromJson(packet.get("receipt"),cn.yumis.fight.modules.combat.api.Receipt.class);if(receipt.accepted()&&!receipt.deathId().isEmpty()){var target=state().targets().get(UUID.fromString(source.get("target").getAsString()));if(target!=null){var actor=JSON.fromJson(JSON.toJson(state().own()),Life.class);double before=actor.q=state().predicted(state().own());var effects=JSON.fromJson(source.get("sourceEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);cn.yumis.fight.modules.combat.api.EquipmentHitEffects.apply(target,receipt,false,snapshot(),snapshot().get(Stat.HEALTH),effects,actor,state().resources(),target.health(target.level(state().progress().level,state().encounterSync())),cn.yumis.fight.modules.presentation.api.client.ClientUi.now());if(actor.q>before)state().report(state().own(),actor.q-before,true,snapshot().get(Stat.HEALTH),0x8ef5ad,false,null);state().upload();}}}
+        if(source!=null&&state().ready()&&state().session().equals(packet.get("session").getAsString())&&source.get("sourceGeneration").getAsLong()==state().own().generation){var receipt=JSON.fromJson(packet.get("receipt"),cn.yumis.fight.modules.combat.api.Receipt.class);if(receipt.accepted()&&!receipt.deathId().isEmpty()){var target=state().targets().get(UUID.fromString(source.get("target").getAsString()));if(target!=null){var actor=JSON.fromJson(JSON.toJson(state().own()),Life.class);double before=actor.q=state().predicted(state().own());var effects=JSON.fromJson(source.get("sourceEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);TalentCombat.killed();double talentHeal=snapshot().modifiers.getOrDefault(TalentCombat.consumeSummonKill(target.id)?"talentKillHealSummon":"talentKillHeal",0d);cn.yumis.fight.modules.combat.api.EquipmentHitEffects.apply(target,receipt,false,snapshot(),snapshot().get(Stat.HEALTH),effects,actor,state().resources(),target.health(target.level(state().progress().level,state().encounterSync())),cn.yumis.fight.modules.presentation.api.client.ClientUi.now());if(target.rewardsEligible()&&talentHeal>0)cn.yumis.fight.modules.combat.api.LifeRules.apply(actor,talentHeal,true);if(actor.q>before)state().report(state().own(),actor.q-before,true,snapshot().get(Stat.HEALTH),0x8ef5ad,false,null);state().upload();}}}
 
         if(state().ready()&&state().session().equals(packet.get("session").getAsString())){
             String elemental=pendingElemental.remove(packet.get("operation").getAsLong());
@@ -1049,7 +1085,7 @@ public final class SkillController {
             if(entity instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag&&bag.timed()&&bag.finished()){
                 bleeds.remove(entry.getKey());pendingBleeds.values().removeIf(p->p.target.toString().equals(entry.getKey()));continue;
             }
-            if(target==null||target.life.dead||target.life.generation!=j.get("generation").getAsLong()||target.life.basis!=j.get("basis").getAsLong()||j.get("expires").getAsLong()<state().serverNow()||state().own().dead){
+            if(target==null||entity instanceof LivingEntity living&&!canTarget(living)||target.life.dead||target.life.generation!=j.get("generation").getAsLong()||target.life.basis!=j.get("basis").getAsLong()||j.get("expires").getAsLong()<state().serverNow()||state().own().dead){
                 bleeds.remove(entry.getKey());
                 pendingBleeds.values().removeIf(p->p.target.toString().equals(entry.getKey()));
                 continue;
@@ -1078,7 +1114,7 @@ public final class SkillController {
             UUID id=UUID.fromString(j.get("target").getAsString());boolean own=id.equals(state().own().target);
             Target target=own?null:state().targets().get(id);Life life=own?state().own():target==null?null:target.life;
             var entity=own?mc.player:target==null||mc.level==null?null:mc.level.getEntity(target.entityId);
-            if(life==null||entity==null||!entity.isAlive()||life.dead||state().own().dead||!state().session().equals(j.get("session").getAsString())||state().own().generation!=j.get("ownerGeneration").getAsLong()||life.generation!=j.get("generation").getAsLong()||!life.dimension.equals(j.get("dimension").getAsString())||!life.instance.equals(j.get("instance").getAsString())||j.get("settleUntil").getAsLong()<state().serverNow()||entity instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag&&bag.timed()&&bag.finished()){
+            if(life==null||entity==null||!entity.isAlive()||!own&&entity instanceof LivingEntity living&&!canTarget(living)||life.dead||state().own().dead||!state().session().equals(j.get("session").getAsString())||state().own().generation!=j.get("ownerGeneration").getAsLong()||life.generation!=j.get("generation").getAsLong()||!life.dimension.equals(j.get("dimension").getAsString())||!life.instance.equals(j.get("instance").getAsString())||j.get("settleUntil").getAsLong()<state().serverNow()||entity instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag bag&&bag.timed()&&bag.finished()){
                 finishElemental(effect);continue;
             }
             if(pending.index>=kind.ticks()){finishElemental(effect);continue;}

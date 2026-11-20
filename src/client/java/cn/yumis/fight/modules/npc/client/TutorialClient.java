@@ -24,11 +24,11 @@ public final class TutorialClient {
     private static final Gson JSON=new Gson();
     private static Supplier<Progress> growth;private static Supplier<JsonObject> view;private static BooleanSupplier living;
     private static final Set<String> observed=new LinkedHashSet<>();
-    private static String session="",dialogue;private static int page;private static boolean starting,pending,promotionReminder;private static long nextSave;
+    private static String session="",dialogue;private static int page;private static boolean starting,pending,introductionReminder,promotionReminder;private static long nextSave;
     private TutorialClient(){}
-    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> progress,Supplier<JsonObject> profile,BooleanSupplier alive){growth=progress;view=profile;living=alive;router.register("npc","tutorial",(ignored,j)->prepare(j));AwakeningQuestClient.install(router,progress,profile);}
-    public static void receive(JsonObject profile){String next=profile.get("session").getAsString();if(!next.equals(session)){clear();session=next;}AwakeningQuestClient.receive(profile);}
-    public static void clear(){observed.clear();session="";dialogue=null;page=0;starting=pending=promotionReminder=false;nextSave=0;AwakeningQuestClient.clear();}
+    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> progress,Supplier<JsonObject> profile,BooleanSupplier alive){growth=progress;view=profile;living=alive;router.register("npc","tutorial",(ignored,j)->prepare(j));AwakeningQuestClient.install(router,progress,profile);PromotionQuestClient.install(router,progress);}
+    public static void receive(JsonObject profile){String next=profile.get("session").getAsString();if(!next.equals(session)){clear();session=next;}AwakeningQuestClient.receive(profile);PromotionQuestClient.receive(profile);}
+    public static void clear(){observed.clear();session="";dialogue=null;page=0;starting=pending=introductionReminder=promotionReminder=false;nextSave=0;AwakeningQuestClient.clear();PromotionQuestClient.clear();}
     public static boolean alive(){return living!=null&&living.getAsBoolean();}
     public static boolean pending(){return pending;}
     public static boolean awakeningAtAltar(){return AwakeningQuestClient.atMaterialStage();}
@@ -54,13 +54,14 @@ public final class TutorialClient {
     /** Called by composition only when the existing personal queue retires its matching storage receipt. */
     public static void committed(String action,JsonObject request,boolean received){
         if(action.equals(AwakeningQuest.ACTION)){AwakeningQuestClient.committed(request,received);return;}
+        if(action.equals(cn.yumis.fight.modules.npc.api.PromotionQuest.ACTION)){PromotionQuestClient.committed(request,received);return;}
         if(!action.equals("tutorial"))return;
         pending=false;
         if(received){
             var saved=request.getAsJsonObject("tutorial");if(saved.get("started").getAsBoolean())starting=false;
             if(saved.get("promotionHinted").getAsBoolean()){
                 promotionReminder=false;
-                if(!request.getAsJsonObject("beforeTutorial").get("promotionHinted").getAsBoolean())ClientUi.current().message("伊蕾娜：已经20级了，打开 I → 职业技能查看进阶职业吧。转职还需解锁通用转职资格。");
+                if(!request.getAsJsonObject("beforeTutorial").get("promotionHinted").getAsBoolean())ClientUi.current().message("伊蕾娜：已经20级了。去任务追踪器完成「转职试炼」：通关王者级哥布林营地、龙人之塔和城主宫殿，再触碰一次魔王祭坛，就能解锁转职了。");
             }
             if(request.get("kind").getAsString().equals("claim")){
                 dialogue=saved.get("dialogue").getAsString();page=saved.get("page").getAsInt();var title=request.get("lessonTitle").getAsString();
@@ -72,12 +73,27 @@ public final class TutorialClient {
     }
     /** A published equipment transaction fact, never a button press or an uncommitted request. */
     public static void crafted(){observed.add("craft");nextSave=0;}
+    public static void crystalPickedUp(){
+        if(alive()&&observed.add(NpcTutorial.PICK_UP_CRYSTAL))nextSave=0;
+    }
     public static void tick(){
         AwakeningQuestClient.tick();
         if(view==null||!ClientUi.current().ready()||!alive())return;observe();if(pending||ClientUi.now()<nextSave)return;
-        var state=state();if(!state.started&&!starting&&dialogue==null)return;
+        var state=state();
+        if(!state.started&&!state.introductionHinted&&!introductionReminder){
+            introductionReminder=true;
+            long experience=0,gold=0;
+            for(var step:NpcTutorial.definition().steps()){
+                experience+=step.reward().experience();
+                gold+=step.reward().gold();
+            }
+            ClientUi.current().message("伊蕾娜：新来的冒险者，来找我聊聊吧！我在新手村树洞里；如果附近没有村子，就到世界出生点找我。完成旅途指引可获得 "+experience+" 经验和 "+gold+" 金币。");
+        }
+        boolean newIntroduction=introductionReminder&&!state.introductionHinted;
+        boolean newCrystalPickup=observed.contains(NpcTutorial.PICK_UP_CRYSTAL)&&!state.goals.contains(NpcTutorial.PICK_UP_CRYSTAL);
+        if(!state.started&&!starting&&dialogue==null&&!newIntroduction&&!newCrystalPickup)return;
         promotionReminder|=state.started&&NpcTutorial.current(state)==null&&!state.promotionHinted&&growth.get().level>=20&&JobCatalog.basic(growth.get().jobId());
-        boolean changed=starting&&!state.started||promotionReminder&&!state.promotionHinted||!state.goals.containsAll(observed)||dialogue!=null&&(!dialogue.equals(state.dialogue)||page!=state.page);
+        boolean changed=newIntroduction||starting&&!state.started||promotionReminder&&!state.promotionHinted||!state.goals.containsAll(observed)||dialogue!=null&&(!dialogue.equals(state.dialogue)||page!=state.page);
         if(!changed)return;
         var request=ClientUi.current().operation("update");request.addProperty("retryStorage",true);pending=true;ClientUi.current().send("tutorial",request);
     }
@@ -92,13 +108,14 @@ public final class TutorialClient {
     private static void prepare(JsonObject request){
         if(!alive())throw new IllegalArgumentException("请在存活时操作旅途指引");observe();
         var before=state();var next=JSON.fromJson(JSON.toJsonTree(before),NpcTutorial.State.class);next.goals.addAll(observed);if(starting)next.started=true;
+        if(introductionReminder)next.introductionHinted=true;
         if(promotionReminder)next.promotionHinted=true;
         if(dialogue!=null){next.dialogue=dialogue;next.page=page;}var outputs=new JsonArray();
         if(request.get("kind").getAsString().equals("claim")){
             var step=NpcTutorial.current(next);if(step==null||!step.id().equals(request.get("lesson").getAsString())||!NpcTutorial.complete(next,step))throw new IllegalArgumentException("这项引导尚未完成或已经领取");
             next.claimed.add(step.id());next.page=0;var following=NpcTutorial.current(next);next.dialogue=following==null?"completion":following.id();
             request.addProperty("lessonTitle",step.title().plain());
-            if(step.reward().experience()>0){var progress=growth.get();var result=CareerProfiles.copy(progress);result.grant(step.reward().experience());request.add("beforeProgress",JSON.toJsonTree(progress));request.add("progress",JSON.toJsonTree(result));}
+            if(step.reward().experience()>0){var progress=growth.get();var result=CareerProfiles.copy(progress);result.earnExperience(step.reward().experience());request.add("beforeProgress",JSON.toJsonTree(progress));request.add("progress",JSON.toJsonTree(result));}
             if(step.reward().gold()>0){
                 var profile=view.get();String account=CurrencyRules.GOLD.id();long gold=profile.get(account).getAsLong(),revision=profile.get("goldRevision").getAsLong();var source=new JsonObject();source.addProperty(account,gold);source.addProperty("goldRevision",revision);var result=new JsonObject();result.addProperty(account,Math.addExact(gold,step.reward().gold()));result.addProperty("goldRevision",Math.incrementExact(revision));request.add("beforeBalances",source);request.add("balances",result);request.addProperty("goldGain",step.reward().gold());
             }

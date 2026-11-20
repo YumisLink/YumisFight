@@ -33,7 +33,7 @@ public final class SkillPreviewRules {
         register(SkillCatalog.DRAW,new Definition(p->1,false,true,false,-1));
         register(SkillCatalog.DRAGON,new Definition(p->(int)p.get("slashes",1),false,false,false,-1));
         register(SkillCatalog.DANCE,new Definition(p->SkillSchedule.dance(p).slashes(),true,true,false,-1));
-        register(SkillCatalog.STORM,new Definition(p->(int)p.get("slashes",1),true,false,false,-1));
+        register(SkillCatalog.STORM,new Definition(p->StormChoreography.schedule(p.values()).slashes(),true,false,false,-1));
         SUPPLEMENTS.put(SkillCatalog.DRAW,(progress,stats,parameters,effects)->SkillPreview.mastery(progress,stats)>0&&Set.of("LIGHTSABER","KATANA").contains(stats.weaponType)?SkillPreview.passiveElementDamage(progress,stats,SkillCatalog.DRAW,parameters.get("damage",0)*.2,0,effects):new SkillPreview.Damage(0,0));
         SunMoonSkills.previews();DemonHunterSkills.previews();
     }

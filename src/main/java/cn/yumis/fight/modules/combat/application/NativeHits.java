@@ -51,12 +51,16 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
     }
     public void projectileLeft(UUID projectile){launchSent.remove(projectile);}
     public boolean handles(LivingEntity entity){return !bridge.getAsBoolean()&&managed.test(entity)&&!entity.level().isClientSide();}
+    private boolean handles(LivingEntity entity,DamageSource source){
+        return handles(entity)||!bridge.getAsBoolean()&&!entity.level().isClientSide()
+            &&ManagedEntities.neutralCreature(entity)&&source.getEntity() instanceof ServerPlayer;
+    }
     public void incoming(LivingIncomingDamageEvent event){
         if(bridge.getAsBoolean()&&suppressProjectionFeedback){event.getContainer().setShouldCauseSideEffects(false);return;}
         var victim=event.getEntity();
-        if(!handles(victim))return;
-        NativeEffects.attempted(victim);
         var source=event.getSource();
+        if(!handles(victim,source))return;
+        NativeEffects.attempted(victim);
         var attacker=source.getEntity();
         if(victim instanceof WorldVitalEntity world){
             if(world.rejectsNativeDamage(source)){event.getContainer().setShouldCauseSideEffects(false);event.setCanceled(true);}
@@ -67,6 +71,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
         if(victim instanceof ServerPlayer player)reject=attacker instanceof Player&&attacker!=player;
         else reject=!(attacker instanceof ServerPlayer);
         if(reject){event.setCanceled(true);return;}
+        if(ManagedEntities.neutralCreature(victim))event.getContainer().setShouldCauseSideEffects(false);
         if(victim instanceof ServerPlayer player&&attacker instanceof LivingEntity&&!(attacker instanceof Player)
             &&net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(attacker.getType()).getNamespace().equals("minecraft")
             &&!source.is(DamageTypes.THORNS)&&!Set.of("poison","wither","onFire","inFire","lava").contains(source.getMsgId())){
@@ -77,7 +82,7 @@ public class NativeHits implements cn.yumis.fight.modules.combat.api.CombatPorts
     }
     public void pre(LivingDamageEvent.Pre event){
         LivingEntity victim=event.getEntity();
-        if(!handles(victim))return;
+        if(!handles(victim,event.getSource()))return;
         if(victim instanceof WorldVitalEntity world){
             double points=event.getNewDamage();event.setNewDamage(0);
             if(points>0&&!world.rejectsNativeDamage(event.getSource()))worldDamage.accept(victim,points);

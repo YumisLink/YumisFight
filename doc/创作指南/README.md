@@ -64,7 +64,7 @@
 
 `rules/npcs.json` 的 NPC 可选 `skin` 固定皮肤、`headwear: "witch_hat"` 独立头饰、`title` 显示称谓及 `unique` 世界唯一投放。皮肤资源仍放 `textures/entity/npc/<id>.png`；专属皮肤登记 `exclusive: true`，不会进入普通商人的随机池。设施继续通过蓝图 `npcGroups` 挂载。伊蕾娜的公共出生点兜底只接已消费的新世界创建事件，不回填已有世界；普通卸载和管理员删除不触发补生。
 
-伊蕾娜的 `tutorial` 配置 `introduction`、六项 `steps` 与 `completion`。每步填写稳定 `id`、`goal`、`title`、`objective`、`dialogue`、`reward` 和可选跳转 `page`。目标沿 `NpcTutorial.GOALS` 使用既有六种事实；数量和物品由配置提供，不从对白推断。玩家自己的客户端判定目标和奖励；按本世界玩家身份跨职业配置记录，领取标识、成长、账户和物品一起提交既有库存事务。共享 NPC 只接收临时对话占用，不据此审批任务。
+伊蕾娜的 `tutorial` 配置 `introduction`、`steps` 与 `completion`。每步填写稳定 `id`、`goal`、`title`、`objective`、`dialogue`、`reward` 和可选跳转 `page`。`NpcTutorial.GOALS` 中的每种事实恰好对应一课；数量和物品由配置提供，不从对白推断。拾取目标从地面物品拾取成功的通知判定。玩家自己的客户端判定目标和奖励；按本世界玩家身份跨职业配置记录，领取标识、成长、账户和物品一起提交既有库存事务。共享 NPC 只接收临时对话占用，不据此审批任务。
 
 所有可染色字段使用 `{"spans":[{"text":"按 I 打开面板","colors":["#EBD09C","#C6ACFF"]}]}`。`colors` 省略或为空时继承正文颜色，一个值表示单色，两个值依次表示字形顶部／底部颜色；超过两个或不是 `#RRGGBB` 时拒绝配置。普通文字和关键词可以分片组合，换行及渐变绘制复用公开展示接口。
 

@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.arkguard.api.*;
 import cn.yumis.fight.modules.attributes.api.*;
 import cn.yumis.fight.modules.combat.api.*;
 import cn.yumis.fight.modules.dungeons.api.*;
+import cn.yumis.fight.modules.economy.api.RewardPorts;
 import com.google.gson.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.*;
@@ -21,6 +22,7 @@ final class ArkBattle {
         final UUID owner;final String name;final int index;
         ArkRoster roster,opening;
         final Map<String,Integer> layers=new LinkedHashMap<>();
+        final List<Integer> waveExperience=new ArrayList<>();
         Map<String,Integer> counts=Map.of();
         final List<Actor> allies=new ArrayList<>();
         List<String> queue=List.of();
@@ -66,6 +68,7 @@ final class ArkBattle {
     final ServerLevel level;
     final Journal journal;
     final WorldTargets lives;
+    private final RewardPorts.Experience experience;
     final List<Seat> seats;
     final List<Actor> actors=new ArrayList<>();
     final Random random=new Random();
@@ -82,8 +85,8 @@ final class ArkBattle {
     boolean ended,stateDirty=true;
     double towerMultiplier=1;
 
-    ArkBattle(String id,ServerLevel level,Journal journal,WorldTargets lives,List<Seat> seats,ArkRules rules,long now,java.util.function.Consumer<JsonObject> presentation){
-        this.id=id;this.level=level;this.journal=journal;this.lives=lives;this.seats=seats;
+    ArkBattle(String id,ServerLevel level,Journal journal,WorldTargets lives,List<Seat> seats,ArkRules rules,long now,java.util.function.Consumer<JsonObject> presentation,RewardPorts.Experience experience){
+        this.id=id;this.level=level;this.journal=journal;this.lives=lives;this.seats=seats;this.experience=experience;
         this.rules=ArkRules.parse(JSON.toJson(rules));combat=new ArkCombat(this);effects=new ArkEffects(this,presentation);
         holdChunks();
         try{
@@ -135,7 +138,7 @@ final class ArkBattle {
         if(core.target.life.dead){finish("方舟被摧毁，本局失败");return;}
         boolean spawned=seats.stream().allMatch(s->s.spawned==s.queue.size());
         boolean cleared=actors.stream().noneMatch(a->a.enemy&&a.alive());
-        if(spawned&&cleared||!boss()&&now>=deadline)endWave(now);
+        if(spawned&&cleared||!boss()&&now>=deadline)endWave(now,present);
     }
     private void begin(long now){
         phase="BATTLE";stage=UUID.randomUUID().toString();started=now;deadline=boss()?0:now+240000;
@@ -159,7 +162,7 @@ final class ArkBattle {
         towerMultiplier=1+boost;maximum(core,200000*towerMultiplier);
         combat.start(now);stateDirty=true;
     }
-    private void endWave(long now){
+    private void endWave(long now,Set<UUID> present){
         combat.end();
         for(var seat:seats)for(var actor:seat.allies)if(actor.deployed()){
             if(actor.unit.id().equals("ark_letiya_sloth")){
@@ -174,7 +177,8 @@ final class ArkBattle {
                 if(front!=null)gainOpeningTraits(seat,front,amount);
             }
         }
-        if(wave==20){flush();finish("第20波全部清场，方舟战争胜利");return;}
+        for(var seat:seats)if(present.contains(seat.owner))seat.waveExperience.add(10+5*wave);
+        if(wave==20){finish("第20波全部清场，方舟战争胜利");return;}
         clearActors(false);
         wave++;phase="PREP";stage=UUID.randomUUID().toString();deadline=preparationDeadline(now);
         for(var seat:seats){
@@ -203,14 +207,18 @@ final class ArkBattle {
         if(actor.entity instanceof ArkRoleEntity role)role.maximum(maximum);
     }
     void changed(Actor actor){dirty.add(actor);}
-    void flush(){
+    void flush(){flush(null);}
+    private void flush(RewardPorts.ExperienceCommit reward){
         if(dirty.isEmpty()&&!stateDirty){afterCommit.forEach(Runnable::run);afterCommit.clear();effects.publish();return;}
         var changed=new LinkedHashMap<LivingEntity,Target>();
         for(var actor:dirty)changed.put(actor.entity,actor.target);
         var commit=lives.prepare(changed);
         try{
-            journal.begin();commit.persist();journal.put("arkWar/matches/"+id,metadata());journal.finish();
+            journal.begin();commit.persist();journal.put("arkWar/matches/"+id,metadata());
+            if(reward!=null)journal.transaction(reward.writes());
+            journal.finish();
         }catch(Exception failure){journal.abort();throw new IllegalStateException("方舟事实提交失败",failure);}
+        if(reward!=null)reward.publish().run();
         commit.publish();
         for(var actor:dirty)if(actor.alive())actor.entity.setHealth((float)Math.max(.001,actor.entity.getMaxHealth()*actor.target.life.q));
         dirty.clear();stateDirty=false;afterCommit.forEach(Runnable::run);afterCommit.clear();effects.publish();
@@ -219,7 +227,12 @@ final class ArkBattle {
         var data=new JsonObject();data.addProperty("id",id);data.addProperty("wave",wave);data.addProperty("phase",phase);data.addProperty("stage",stage);
         var layers=new JsonObject();for(var seat:seats)layers.add(seat.owner.toString(),JSON.toJsonTree(seat.layers));data.add("layers",layers);return data;
     }
-    void finish(String result){this.result=result;ended=true;phase="FINISHED";stateDirty=true;flush();}
+    void finish(String result){
+        var percentages=new LinkedHashMap<UUID,List<Integer>>();
+        for(var seat:seats)if(!seat.waveExperience.isEmpty())percentages.put(seat.owner,List.copyOf(seat.waveExperience));
+        var reward=percentages.isEmpty()?null:experience.prepare("arkWar/"+id,percentages);
+        this.result=result;ended=true;phase="FINISHED";stateDirty=true;flush(reward);
+    }
     void close(){
         effects.clear();
         try{

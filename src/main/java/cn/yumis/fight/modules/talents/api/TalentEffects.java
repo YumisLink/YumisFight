@@ -15,6 +15,32 @@ public final class TalentEffects {
         int lines=TalentLedger.completeLines(c,nodes),capstones=TalentLedger.capstonesLit(c,nodes);
         for(String id:nodes){var node=c.find(id);if(node==null)continue;for(var effect:node.effects())apply(s,effect,lines,capstones,view);}
     }
+    /** 批 B 结算叠加：只落带条件且视图满足的行；无条件行已由静态合成落过，重复调用不会双计。 */
+    public static void applyConditional(TalentCatalog c,Stats s,String axis,Set<String> nodes,TalentConditions.View view){
+        if(view==null)return;
+        if(axis!=null){var birth=c.birth(axis);if(birth!=null)for(var effect:birth.effects())conditional(s,effect,0,0,view);}
+        int lines=TalentLedger.completeLines(c,nodes),capstones=TalentLedger.capstonesLit(c,nodes);
+        for(String id:nodes){var node=c.find(id);if(node==null)continue;for(var effect:node.effects())conditional(s,effect,lines,capstones,view);}
+    }
+    /** 暴击二次结算：只落指定条件标签的行，其余条件行已在首遍落过。 */
+    public static void applyConditionalKind(TalentCatalog c,Stats s,String axis,Set<String> nodes,TalentConditions.View view,String kind){
+        if(view==null)return;
+        int lines=TalentLedger.completeLines(c,nodes),capstones=TalentLedger.capstonesLit(c,nodes);
+        if(axis!=null){var birth=c.birth(axis);if(birth!=null)for(var effect:birth.effects())if(effect.condition()!=null&&effect.condition().kind().equals(kind))conditional(s,effect,0,0,view);}
+        for(String id:nodes){var node=c.find(id);if(node==null)continue;for(var effect:node.effects())if(effect.condition()!=null&&effect.condition().kind().equals(kind))conditional(s,effect,lines,capstones,view);}
+    }
+    private static void conditional(Stats s,TalentCatalog.Effect effect,int lines,int capstones,TalentConditions.View view){
+        if(effect.condition()==null||!view.satisfies(effect.condition()))return;
+        apply(s,effect,lines,capstones,view);
+    }
+    /** 结算前的廉价闸门：已点行里是否存在条件行／指定标签的条件行。 */
+    public static boolean hasConditional(TalentCatalog c,String axis,Set<String> nodes){return hasConditionalKind(c,axis,nodes,null);}
+    public static boolean hasConditionalKind(TalentCatalog c,String axis,Set<String> nodes,String kind){
+        if(axis!=null){var birth=c.birth(axis);if(birth!=null)for(var effect:birth.effects())if(matches(effect.condition(),kind))return true;}
+        for(String id:nodes){var node=c.find(id);if(node==null)continue;for(var effect:node.effects())if(matches(effect.condition(),kind))return true;}
+        return false;
+    }
+    private static boolean matches(TalentCatalog.Condition condition,String kind){return condition!=null&&(kind==null||condition.kind().equals(kind));}
     private static void apply(Stats s,TalentCatalog.Effect effect,int lines,int capstones,TalentConditions.View view){
         if(effect.condition()!=null&&(view==null||!view.satisfies(effect.condition())))return;
         switch(effect.channel()){

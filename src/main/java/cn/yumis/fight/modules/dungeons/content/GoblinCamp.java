@@ -20,7 +20,7 @@ import java.util.Random;
 
 /** Spatial content for the open forest. Encounters and scenery consume the same anchors. */
 public final class GoblinCamp {
-    public static final String VERSION="GOBLIN_FOREST_LAYOUT_2";
+    public static final String VERSION="GOBLIN_FOREST_LAYOUT_3";
     // Ownership includes the complete overhanging crowns, beyond the added ground belt.
     public static final DungeonLayouts.Bounds BOUNDS=new DungeonLayouts.Bounds(-104,-3,-21,102,49,205);
     private static final DungeonLayouts.Bounds CORE_BOUNDS=new DungeonLayouts.Bounds(-90,-3,-8,89,49,191);

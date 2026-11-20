@@ -29,12 +29,11 @@ public final class Hud {
     // Unmodified RarityCore white texture, tinted with this project's rarity colors.
     // Source and asset license: resources/licenses/raritycore/NOTICE.txt.
     private static final Identifier RARITY_BACKGROUND=Identifier.fromNamespaceAndPath(ItemData.NS,"textures/gui/rarity/background.png");
-    private static final int TARGET_WIDTH=184,TARGET_INFO_HEIGHT=42,TARGET_ELEMENT_GAP=0;
+    private static final int TARGET_WIDTH=ClientSettings.TARGET_FRAME_WIDTH,TARGET_INFO_HEIGHT=42,TARGET_ELEMENT_GAP=0;
     private Hud(){
     }
     private static void bar(GuiGraphicsExtractor g,int x,int y,int width,int height,double q,int color){
-        UiTheme.hud(g,x,y,width,height);
-        g.fill(x+1,y+1,x+1+(int)((width-2)*Math.clamp(q,0,1)),y+height-1,color);
+        UiTheme.hudBar(g,x,y,width,height,q,color);
     }
     private static String amount(double value){
         return value<10000?Long.toString((long)Math.ceil(value)):String.format(java.util.Locale.ROOT,value<1000000?"%.1fk":"%.1fm",value/(value<1000000?1000:1000000));

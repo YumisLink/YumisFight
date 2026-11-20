@@ -1,0 +1,19 @@
+{
+  "type": "yumis_dungeon_and_fight:wild_building",
+  "biomes": [
+    "minecraft:plains",
+    "minecraft:sunflower_plains",
+    "minecraft:forest",
+    "minecraft:birch_forest",
+    "minecraft:swamp",
+    "minecraft:mangrove_swamp"
+  ],
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "beard_thin",
+  "start_pool": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_sluice",
+  "height_offset": -2,
+  "floor_offset": 3,
+  "max_relief": 4,
+  "ground_clearance": 0
+}

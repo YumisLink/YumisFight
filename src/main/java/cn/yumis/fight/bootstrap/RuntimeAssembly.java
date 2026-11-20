@@ -15,6 +15,7 @@ import cn.yumis.fight.modules.skills.application.VisualService;
 import cn.yumis.fight.modules.combat.application.NativeHits;
 
 import cn.yumis.fight.modules.dungeons.api.*;
+import cn.yumis.fight.modules.combat.api.CombatPorts;
 import cn.yumis.fight.modules.combat.api.CombatSession;
 import cn.yumis.fight.modules.economy.api.RewardPorts;
 import cn.yumis.fight.modules.character.api.Progress;
@@ -23,6 +24,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import java.util.*;
 /** Composition of narrow module ports. No gameplay decisions belong here. */
 public final class RuntimeAssembly {
@@ -31,6 +33,7 @@ public final class RuntimeAssembly {
         public UUID session(ServerPlayer p){return runtime.session(p).id;}public Progress progress(ServerPlayer p){return runtime.session(p).progress;}public void progress(ServerPlayer p,Progress next){runtime.session(p).progress=next;}
         public Stats stats(ServerPlayer p){return runtime.stats(p);}
         public void profile(ServerPlayer p){runtime.profile(p);}public void message(ServerPlayer p,String text){runtime.message(p,text);}
+        public void groundPickup(ServerPlayer p,ItemStack stack){ServerEvents.groundPickup(p,stack);}
     };}
     public static cn.yumis.fight.modules.dungeons.application.TargetService targetService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.TargetService(runtime.journal,runtime.random,()->runtime.worldDifficulty,id->runtime.dungeons.byId(id));}
     public static cn.yumis.fight.modules.inventory.application.InventoryTransactions.CurrencyAction currencyAction(ServerApplication runtime){return (p,menu,slot,button,input)->cn.yumis.fight.modules.inventory.api.InventoryIntake.click(p,menu,slot,button,input,()->runtime.equipmentApplication.versionlessCurrencyClick(p,menu,slot,button,input));}
@@ -57,15 +60,14 @@ public final class RuntimeAssembly {
         public void join(Dungeon d,ServerPlayer p)throws Exception{runtime.damageMeter.join(d,p);}
         public void leave(Dungeon d,ServerPlayer p)throws Exception{runtime.damageMeter.leave(d,p);}
         public void freeze(Dungeon d)throws Exception{runtime.damageMeter.freeze(d);}
-    },runtime.partyService::team,runtime::refreshAll,cn.yumis.fight.modules.mapgeneration.api.WorldDecorations::block);}
-    public static LootService lootService(ServerApplication runtime){return new LootService(runtime.journal,runtime.characters,runtime.server,()->runtime.inventory,new RewardPorts.Players(){
-        public UUID session(ServerPlayer p){return runtime.session(p).id;}
-        public Progress progress(ServerPlayer p){return runtime.session(p).progress;}
-        public void progress(ServerPlayer p,Progress value){runtime.session(p).progress=value;}
-        public Stats stats(ServerPlayer p){return runtime.stats(p);}
-        public void profile(ServerPlayer p){runtime.profile(p);}
-        public void message(ServerPlayer p,String text){runtime.message(p,text);}
-    },new RewardPorts.Encounters(){
+    },runtime.partyService::team,runtime::refreshAll,cn.yumis.fight.modules.mapgeneration.api.WorldDecorations::block,(instance,participants)->{
+        var clear=runtime.awakeningQuests.prepareTowerClear(instance,participants);
+        return new CombatPorts.Commit(){
+            @Override public void persist()throws Exception{runtime.journal.transaction(clear.writes());}
+            @Override public void publish(){clear.publish().run();}
+        };
+    },(instance,dungeon,difficulty,participants)->runtime.promotionQuests.prepareStoryClear(instance,dungeon,difficulty,participants));}
+    public static LootService lootService(ServerApplication runtime){return new LootService(runtime.journal,runtime.characters,runtime.server,()->runtime.inventory,rewardPlayers(runtime),new RewardPorts.Encounters(){
         public boolean participant(ServerPlayer p,String instance){return runtime.dungeons.participant(p,instance);}
         public Dungeon byId(String instance){return runtime.dungeons.byId(instance);}
         public String currentInstance(ServerPlayer p){var d=runtime.dungeons.current(p.getUUID());return d==null?"":d.id.toString();}
@@ -79,8 +81,8 @@ public final class RuntimeAssembly {
         public Map<String,com.google.gson.JsonElement> receive(ServerPlayer p,com.google.gson.JsonObject result){return runtime.economyService.receiveBalances(p,result);}
     };}
     public static WaystonePorts waystonePorts(ServerApplication runtime){return new WaystonePorts(){
-        public Map<String,com.google.gson.JsonElement> drop(UUID player,net.minecraft.world.item.ItemStack stack,ReturnPoint point,String instance){var drop=runtime.loot.preparePersistent(player,stack,point,instance);return Map.of("loot/"+drop.id,new com.google.gson.Gson().toJsonTree(drop));}
-        public void publish(){runtime.loot.publishPersistent();}
+        public Map<String,com.google.gson.JsonElement> drop(ServerPlayer player,net.minecraft.world.item.ItemStack stack,ReturnPoint point,String instance){var drop=runtime.loot.preparePrivate(player,stack,point,instance);return Map.of("loot/"+drop.id,new com.google.gson.Gson().toJsonTree(drop));}
+        public void publish(java.util.Collection<String> committedKeys){runtime.loot.publishCommittedDrops(committedKeys);}
     };}
 
     private static DemonAltarBlockEntity altar(ServerLevel level,BlockPos position){

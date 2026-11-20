@@ -3,10 +3,11 @@ package cn.yumis.fight.modules.npc.api;
 import cn.yumis.fight.modules.presentation.api.RichText;
 import java.util.*;
 
-/** The guide NPC owns this six-lesson content and player-wide progress, independently of career slots. */
+/** The guide NPC owns the lessons and player-wide progress, independently of career slots. */
 public final class NpcTutorial {
     public static final String NPC="elaina";
-    public static final Set<String> GOALS=Set.of("choose_job","learn_skill","bind_skill","practice_hit","allocate","craft");
+    public static final String PICK_UP_CRYSTAL="pick_up_crystal";
+    public static final Set<String> GOALS=Set.of("choose_job","learn_skill","bind_skill","practice_hit","allocate","craft",PICK_UP_CRYSTAL);
     public record ItemGrant(String item,String material,int count) {
         public ItemGrant {if(count<1||item==null||!item.matches("[a-z0-9_./:-]+"))throw new IllegalArgumentException("引导奖励物品无效");}
     }
@@ -19,12 +20,12 @@ public final class NpcTutorial {
     public record Definition(List<RichText> introduction,List<Step> steps,List<RichText> completion) {
         public Definition {
             introduction=List.copyOf(Objects.requireNonNull(introduction));steps=List.copyOf(Objects.requireNonNull(steps));completion=List.copyOf(Objects.requireNonNull(completion));
-            if(introduction.isEmpty()||steps.size()!=6||completion.isEmpty()||steps.stream().map(Step::id).distinct().count()!=steps.size()||!steps.stream().map(Step::goal).collect(java.util.stream.Collectors.toSet()).equals(GOALS))throw new IllegalArgumentException("伊蕾娜引导须包含六项不同目标");
+            if(introduction.isEmpty()||steps.size()!=GOALS.size()||completion.isEmpty()||steps.stream().map(Step::id).distinct().count()!=steps.size()||!steps.stream().map(Step::goal).collect(java.util.stream.Collectors.toSet()).equals(GOALS))throw new IllegalArgumentException("伊蕾娜引导须包含全部任务目标，每项目标恰好一次");
         }
     }
     public static final class State {
         public long revision;
-        public boolean started,promotionHinted;
+        public boolean started,introductionHinted,promotionHinted;
         public Set<String> goals=new LinkedHashSet<>(),claimed=new LinkedHashSet<>();
         public String dialogue="introduction";
         public int page;

@@ -15,7 +15,7 @@ import java.util.List;
 
 /** Continuous open spiral; construction, arrivals, pursuit and scenery share the same anchors. */
 public final class DragonTower {
-    public static final String VERSION="DRAGON_SKY_LAYOUT_1";
+    public static final String VERSION="DRAGON_SKY_LAYOUT_2";
     public static final DungeonLayouts.Bounds BOUNDS=new DungeonLayouts.Bounds(-45,-6,-45,45,183,45);
     public static final int LEVELS=7,FLOOR_HEIGHT=26;
     private static final double TAU=Math.PI*2,STAIR_RADIUS=32,LANDING_HALF=.10;

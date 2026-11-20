@@ -22,7 +22,7 @@ public final class SkillPresentation {
         register(SkillCatalog.DRAW,new Traits(false,false,false,false,0,0,0xB4F2FF,true,c->1800));
         register(SkillCatalog.DRAGON,new Traits(false,false,false,false,250,1050,0xB4F2FF,true,c->(long)(1050*c.parameters.get("slashes",4)+500)));
         register(SkillCatalog.DANCE,new Traits(false,false,false,false,0,0,0xB4F2FF,true,c->(long)(c.parameters.get("duration",1.25)*1000+600)));
-        register(SkillCatalog.STORM,new Traits(false,true,true,true,0,0,0xB4F2FF,true,c->(long)(c.parameters.get("duration",8)*1000)));
+        register(SkillCatalog.STORM,new Traits(false,true,true,true,0,0,0xB4F2FF,true,c->StormChoreography.schedule(c.parameters.values()).endAt()));
     }
     private SkillPresentation(){}
     public static void register(SkillDefinition skill,Traits traits){if(CONTENT.putIfAbsent(skill,Objects.requireNonNull(traits))!=null)throw new IllegalArgumentException("Duplicate presentation: "+skill);}

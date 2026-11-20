@@ -99,7 +99,15 @@ public final class CombatApplication {
             if(heal&&entity!=p)throw new IllegalArgumentException("仅支持本人恢复");
             CombatTarget target=entity==p?null:targets.apply(entity);
             Life life=entity==p?copy(s.life,Life.class):target.life();
-            if(!j.has("dimension")||!j.get("dimension").getAsString().equals(p.level().dimension().identifier().toString()))throw new IllegalArgumentException("维度已改变");
+            if(!j.has("dimension")||!j.get("dimension").getAsString().equals(p.level().dimension().identifier().toString())){
+                // 换维度瞬间的在途上报按失效静默作废：客户端换图已自清预测，逐条报错只会刷屏。
+                JsonObject retired=new JsonObject();
+                retired.addProperty("session",s.id.toString());
+                retired.add("operation",j.get("operation"));
+                retired.add("receipt",JSON.toJsonTree(new Receipt(false,"",0,0,0,"")));
+                Network.send(p,"ack",retired);
+                return;
+            }
             if(j.get("generation").getAsLong()!=life.generation||j.get("basis").getAsLong()!=life.basis)throw new IllegalArgumentException("生命或扩血基准已失效");
             String instance=j.has("instance")?j.get("instance").getAsString():"";
             if(!instance.equals(life.instance)||!instance.isEmpty()&&!dungeons.participant(p,instance))throw new IllegalArgumentException("副本轮次已失效");
@@ -168,6 +176,7 @@ public final class CombatApplication {
                 long now=System.currentTimeMillis();var accumulated=ElementAccumulation.advance(life.elemental,life,components,receipt.actual()/fraction,source,target.bossOrElite(),true,now);life.elemental=accumulated.state();
                 for(var kind:accumulated.triggered())elementalAilments.add(applyElementalAilment(p,entity,life,kind,target.bossOrElite(),source,effects,now));
             }
+            if(entity==p&&life.dead&&!life.instance.isEmpty())life.dungeonDefeated=dungeons.recordPlayerDefeat(p,life.instance);
             ack.add("elemental",JSON.toJsonTree(life.elemental));
             journal.put("life/"+id,life);
             if(target!=null){
@@ -205,7 +214,8 @@ public final class CombatApplication {
             nativeHits.suppressProjectionFeedback(nativeHit&&life.dead);
             projection.accept(true);
             try{
-                if(life.dead&&!entity.isDeadOrDying())entity.hurtServer(p.level(),entity==p?entity.damageSources().genericKill():nativeHit&&nativeHits.source(j)!=null?nativeHits.source(j):entity.damageSources().playerAttack(p),Float.MAX_VALUE);
+                if(life.dungeonDefeated)entity.setHealth(.001f);
+                else if(life.dead&&!entity.isDeadOrDying())entity.hurtServer(p.level(),entity==p?entity.damageSources().genericKill():nativeHit&&nativeHits.source(j)!=null?nativeHits.source(j):entity.damageSources().playerAttack(p),Float.MAX_VALUE);
                 else if(!life.dead)entity.setHealth((float)Math.max(.001,entity.getMaxHealth()*life.q));
             }
             finally{

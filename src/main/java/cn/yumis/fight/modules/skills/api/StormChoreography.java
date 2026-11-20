@@ -1,7 +1,8 @@
 // Ported from the user-owned YDNF visual reference, as requested on 2026-10-26.
 package cn.yumis.fight.modules.skills.api;
+import java.util.Map;
 import java.util.SplittableRandom;
-/** Shared deterministic presentation schedule. It does not calculate or approve damage. */
+/** Shared timing for the sword choreography and its strikes. */
 public final class StormChoreography {
     public static final int SWORDS=24, SLASHES=24;
     public static final double SPEED=1.5;
@@ -10,6 +11,24 @@ public final class StormChoreography {
     public static final double RADIUS=5, CENTER_OFFSET=3, UPPER_HEIGHT=4;
     private StormChoreography(){
     }
+    static double seconds(long presentationMillis){return presentationMillis/SPEED/1000;}
+
+    public record Schedule(int slashes,double deployMillis,double intervalMillis,long finisherAt,long endAt) {
+        public long slashAt(int index){return Math.round(deployMillis+index*intervalMillis);}
+    }
+
+    public static Schedule schedule(Map<String,Double> parameters){
+        int slashes=Math.max(1,parameters.getOrDefault("slashes",(double)SLASHES).intValue());
+        double deploy=Math.max(.05,parameters.getOrDefault("stormDeploy",seconds(DEPLOY)))*1000;
+        double interval=Math.max(.05,parameters.getOrDefault("stormInterval",seconds(INTERVAL)))*1000;
+        double duration=parameters.getOrDefault("duration",seconds(END))*1000;
+        double lastSlash=deploy+(slashes-1)*interval;
+        double finisherGap=(FINISH-DEPLOY-(SLASHES-1)*INTERVAL)/SPEED;
+        double finisher=Math.max(duration*FINISH/END,lastSlash+finisherGap);
+        double end=Math.max(duration,finisher+(END-FINISH)/SPEED);
+        return new Schedule(slashes,deploy,interval,Math.round(finisher),Math.round(end));
+    }
+
     public record Point(double x,double y,double z) {
         public Point lerp(Point other,double amount){
             return new Point(x+(other.x-x)*amount,y+(other.y-y)*amount,z+(other.z-z)*amount);

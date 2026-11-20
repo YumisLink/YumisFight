@@ -1,0 +1,19 @@
+{
+  "type": "yumis_dungeon_and_fight:wild_building",
+  "biomes": [
+    "minecraft:desert",
+    "minecraft:badlands",
+    "minecraft:wooded_badlands",
+    "minecraft:eroded_badlands",
+    "minecraft:savanna",
+    "minecraft:savanna_plateau"
+  ],
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "beard_thin",
+  "start_pool": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_sand_market",
+  "height_offset": -2,
+  "floor_offset": 3,
+  "max_relief": 4,
+  "ground_clearance": 0
+}

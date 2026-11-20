@@ -121,12 +121,22 @@ public final class CareerClient {
             prepared=CareerRules.eyeDamage(CareerRules.castDamage(prepared,parameters),skill);
             var values=new LinkedHashMap<>(parameters.values());if(terminal)values.put("actionDuration",id.equals(CareerSkills.KALLA)?.9:id.equals(CareerSkills.EYE)?1.2:2d);
             Vec3 origin=p.position(),direction=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z).normalize(),center=origin;
-            if(id.equals(CareerSkills.FIRE)){Vec3 from=p.getEyePosition(),aim=p.getLookAngle().normalize();var wallHit=p.level().clip(new ClipContext(from,from.add(aim.scale(10)),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));Vec3 to=wallHit.getType()==HitResult.Type.MISS?from.add(aim.scale(10)):wallHit.getLocation().subtract(aim.scale(.05));if(to.subtract(from).dot(aim)<0)to=from;var spawn=ProjectileSpawn.inWorld(p,from,aim,from.distanceTo(to),2.5,e->e.isAlive()&&e instanceof net.minecraft.world.entity.monster.Enemy);from=spawn.position();new FireWavePath(from,to,1.5,Math.max(1,from.distanceTo(to)/15*1000)).write(values);origin=from;direction=aim;center=from;}
+            if(id.equals(CareerSkills.FIRE)){
+                Vec3 from=p.getEyePosition(),aim=p.getLookAngle().normalize();
+                Vec3 end=from.add(aim.scale(ProjectileSpawn.extendedRange(10)));
+                var wallHit=p.level().clip(new ClipContext(from,end,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));
+                Vec3 to=wallHit.getType()==HitResult.Type.MISS?end:wallHit.getLocation().subtract(aim.scale(.05));
+                if(to.subtract(from).dot(aim)<0)to=from;
+                var spawn=ProjectileSpawn.inWorld(p,from,aim,from.distanceTo(to),2.5,SkillController::canTarget);
+                from=spawn.position();
+                new FireWavePath(from,to,1.5,Math.max(1,from.distanceTo(to)/15*1000)).write(values);
+                origin=from;direction=aim;center=from;
+            }
             parameters=new SkillParameters.Snapshot(skill,rank,values);origin=OracleClient.INSTANCE.origin(parameters,origin);direction=OracleClient.INSTANCE.direction(parameters,direction);center=origin;
             if(id.equals(CareerSkills.SWORD)&&terminal)center=origin.add(direction.scale(StormChoreography.CENTER_OFFSET));
             if(destination!=null)center=destination;
             String castId=UUID.randomUUID().toString();
-            if(id.equals(CareerSkills.FIELD)){center=SkillTargeting.ground(p,8,e->e.isAlive()&&e instanceof net.minecraft.world.entity.monster.Enemy).point();var f=new CareerState.Field();f.id=castId;f.owner=p.getStringUUID();f.rank=rank;f.x=center.x;f.y=center.y;f.z=center.z;f.dimension=p.level().dimension().identifier().toString();f.instance=state().own().instance;f.expires=wall+(long)(parameters.get("duration",12)*1000);next.field=f;}
+            if(id.equals(CareerSkills.FIELD)){center=SkillTargeting.ground(p,8,SkillController::canTarget).point();var f=new CareerState.Field();f.id=castId;f.owner=p.getStringUUID();f.rank=rank;f.x=center.x;f.y=center.y;f.z=center.z;f.dimension=p.level().dimension().identifier().toString();f.instance=state().own().instance;f.expires=wall+(long)(parameters.get("duration",12)*1000);next.field=f;}
             if(id.equals(CareerSkills.BLACHE))next.field=null;
             if(id.equals(CareerSkills.ORB)||id.equals(CareerSkills.AGNI))next.brands=0;
             if(id.equals(CareerSkills.FRENZY))next.frenzy=!terminal;
@@ -189,9 +199,8 @@ public final class CareerClient {
         var p=Minecraft.getInstance().player;var result=new JsonObject();long now=state().serverNow();
         Vec3 direction=p.getLookAngle().normalize(),origin=p.getEyePosition().add(0,-.3,0);
         var eye=view.eyeUntil>now?sources.values().stream().filter(c->c.skill.id.equals(CareerSkills.EYE)&&!c.terminal).max(Comparator.comparingLong(c->c.start)).orElse(null):null;
-        java.util.function.Predicate<LivingEntity> enemy=e->e.isAlive()&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon);
-        if(eye!=null){var spawn=ProjectileSpawn.inWorld(p,origin,direction,Math.max(.5,eye.parameters.get("gearRange",AsuraRules.GEAR_RANGE)),.75,enemy);result.addProperty("eyeCast",eye.id);result.add("eyeProjectile",ProjectileSpawn.snapshot(spawn,direction,now));}
-        if(view.kallaUntil>now){var kalla=sources.values().stream().filter(c->c.skill.id.equals(CareerSkills.KALLA)&&!c.terminal).max(Comparator.comparingLong(c->c.start)).orElse(null);double boltRange=Math.max(.5,kalla==null?10:kalla.parameters.get("boltRange",10));var spawn=ProjectileSpawn.inWorld(p,origin,direction,boltRange,.35,enemy);result.add("kallaProjectile",ProjectileSpawn.snapshot(spawn,direction,now));}
+        if(eye!=null){var spawn=ProjectileSpawn.inWorld(p,origin,direction,Math.max(.5,eye.parameters.get("gearRange",ProjectileSpawn.extendedRange(AsuraRules.GEAR_RANGE))),.75,SkillController::canTarget);result.addProperty("eyeCast",eye.id);result.add("eyeProjectile",ProjectileSpawn.snapshot(spawn,direction,now));}
+        if(view.kallaUntil>now){var kalla=sources.values().stream().filter(c->c.skill.id.equals(CareerSkills.KALLA)&&!c.terminal).max(Comparator.comparingLong(c->c.start)).orElse(null);double boltRange=Math.max(.5,kalla==null?ProjectileSpawn.extendedRange(10):kalla.parameters.get("boltRange",ProjectileSpawn.extendedRange(10)));var spawn=ProjectileSpawn.inWorld(p,origin,direction,boltRange,.35,SkillController::canTarget);result.add("kallaProjectile",ProjectileSpawn.snapshot(spawn,direction,now));}
         return result;
     }
     private void flameVisual(FlameBolt b,String phase){var p=Minecraft.getInstance().player;if(p==null)return;JsonObject j=new JsonObject();j.addProperty("caster",p.getStringUUID());j.addProperty("session",state().session());j.addProperty("generation",state().own().generation);j.addProperty("id",b.id);j.addProperty("kind",CareerSkills.KALLA);j.addProperty("phase",phase);j.addProperty("sequence",b.sequence++);j.addProperty("seed",b.id.hashCode());j.addProperty("startedAt",b.started);j.addProperty("at",state().serverNow());j.addProperty("duration",2000);j.addProperty("color",0x8f43d0);j.addProperty("x",b.origin.x);j.addProperty("y",b.origin.y);j.addProperty("z",b.origin.z);j.addProperty("px",b.position.x);j.addProperty("py",b.position.y);j.addProperty("pz",b.position.z);j.addProperty("dx",b.direction.x);j.addProperty("dy",b.direction.y);j.addProperty("dz",b.direction.z);if(phase.equals("START")){var motion=SkillController.motion(b.range,1000d*b.range/15,false);motion.addProperty("at",b.started);j.add("motion",motion);}Effects.receive(j);state().send("visual",j);}

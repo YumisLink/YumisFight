@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.skills.api;
 
 import java.util.*;
 import cn.yumis.fight.modules.attributes.api.ParameterModifier;
+import cn.yumis.fight.modules.combat.api.ProjectileSpawn;
 /** Resolved once at cast start; equipment integrations can supply additive and multiplicative changes. */
 public final class SkillParameters {
     private static final Map<String,java.util.function.BiFunction<UUID,SkillDefinition,Collection<ParameterModifier>>> SOURCES=new LinkedHashMap<>();
@@ -67,6 +68,9 @@ public final class SkillParameters {
         for(var floor:DISTANCE_FLOORS.entrySet())p.computeIfPresent(floor.getKey(),(k,v)->Math.max(floor.getValue(),v));
         for(var floor:SPEED_FLOORS.entrySet())p.computeIfPresent(floor.getKey(),(k,v)->Math.max(floor.getValue(),v));
         for(String k:RATIO_KEYS)p.computeIfPresent(k,(key,v)->Math.clamp(v,0,1));
+        if(skill.projectile!=null)p.computeIfPresent("range",(key,value)->ProjectileSpawn.extendedRange(value));
+        if(skill.id.equals(CareerSkills.EYE))p.computeIfPresent("gearRange",(key,value)->ProjectileSpawn.extendedRange(value));
+        if(skill.id.equals(CareerSkills.KALLA))p.computeIfPresent("boltRange",(key,value)->ProjectileSpawn.extendedRange(value));
         return new Snapshot(skill,rank,p);
     }
 }

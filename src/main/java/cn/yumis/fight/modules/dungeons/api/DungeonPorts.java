@@ -1,6 +1,9 @@
 package cn.yumis.fight.modules.dungeons.api;
 
+import cn.yumis.fight.modules.combat.api.CombatPorts;
 import cn.yumis.fight.modules.combat.api.CombatSession;
+import java.util.Set;
+import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -28,6 +31,14 @@ public final class DungeonPorts {
         void move(ServerPlayer player,String instance,ReturnPoint destination);
         void publish();
         void closePractice(String instance)throws Exception;
+    }
+    @FunctionalInterface
+    public interface TowerClear {
+        CombatPorts.Commit prepare(UUID instance,Set<UUID> participants);
+    }
+    @FunctionalInterface
+    public interface StoryClear {
+        CombatPorts.Commit prepare(UUID instance,String dungeon,Difficulty difficulty,Set<UUID> participants);
     }
     public interface Meter {
         void join(Dungeon dungeon,ServerPlayer player)throws Exception;

@@ -176,7 +176,7 @@ final class AwakeningQuestClient {
         }
     }
 
-    private static BlockPos nearbyAltar() {
+    static BlockPos nearbyAltar() {
         var player = Minecraft.getInstance().player;
         if (player == null) return null;
         BlockPos center = player.blockPosition();
@@ -241,7 +241,10 @@ final class AwakeningQuestClient {
         switch (state.stage()) {
             case MATERIALS -> renderMaterials(page, definition);
             case CONFESSION -> page.line("第二阶段 · 击败 55 级千室告解 1 次", UiTheme.TEXT);
-            case TOWER -> page.line(towerOpen() ? "第三阶段 · 通关塔 1 次" : "第三阶段 · 通关塔 1 次（待开放）", UiTheme.TEXT);
+            case TOWER -> {
+                page.line(towerOpen() ? "第三阶段 · 通关任意一座觉醒塔" : "第三阶段 · 登塔试炼（待开放）", UiTheme.TEXT);
+                if(towerOpen())page.line("在主世界寻找塔门，右键门前石碑进入对应的觉醒塔。",UiTheme.MUTED);
+            }
             case ELAINA -> page.line("第四阶段 · 回出生点与伊蕾娜交谈", UiTheme.TEXT);
             default -> {}
         }

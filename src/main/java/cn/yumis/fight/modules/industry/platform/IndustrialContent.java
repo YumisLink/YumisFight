@@ -3,6 +3,7 @@ import cn.yumis.fight.platform.ItemData;
 import cn.yumis.fight.modules.industry.api.IndustrialRecipe;
 import cn.yumis.fight.modules.industry.api.DeviceType;
 import cn.yumis.fight.modules.industry.api.EnergyMath;
+import cn.yumis.fight.modules.industry.api.EnergyCrystalItem;
 import cn.yumis.fight.modules.inventory.api.DimensionalMenu;
 
 import net.minecraft.core.registries.*;
@@ -118,7 +119,10 @@ public final class IndustrialContent {
         ALL_BLOCKS.put("titanium_conveyor_belt",TITANIUM_CONVEYOR);ALL_ITEMS.put("titanium_conveyor_belt",ITEMS.registerSimpleBlockItem(TITANIUM_CONVEYOR));
         ALL_BLOCKS.put("infinite_fluid_tank",INFINITE_FLUID_TANK);ALL_ITEMS.put("infinite_fluid_tank",ITEMS.registerSimpleBlockItem(INFINITE_FLUID_TANK));
         ALL_BLOCKS.put("infinite_item_barrel",INFINITE_ITEM_BARREL);ALL_ITEMS.put("infinite_item_barrel",ITEMS.registerSimpleBlockItem(INFINITE_ITEM_BARREL));
-        for(int i=1;i<=EnergyMath.MAX_CRYSTAL_TIER;i++)item("energy_crystal_"+i);
+        for(int i=1;i<=EnergyMath.MAX_CRYSTAL_TIER;i++){
+            int tier=i;String key="energy_crystal_"+tier;
+            ALL_ITEMS.put(key,ITEMS.registerItem(key,p->new EnergyCrystalItem(tier,p)));
+        }
         ALL_ITEMS.put("mana_storage_bag",ITEMS.registerItem("mana_storage_bag",ManaStorageBagItem::new,p->p.stacksTo(1)));
         for(int i=1;i<=5;i++)item("industrial_upgrade_"+i);
         for(String key:List.of("nuclear_core","rtg_core"))item(key);

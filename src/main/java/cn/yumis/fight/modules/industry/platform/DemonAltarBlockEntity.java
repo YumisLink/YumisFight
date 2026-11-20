@@ -290,6 +290,8 @@ public final class DemonAltarBlockEntity extends BlockEntity implements Persiste
     }
 
     private void tryRitual(ServerLevel server) {
+        if (!RitualEnergy.ready()) return;
+        recoverSummonDebit();
         if (!getItem(OUTPUT_SLOT).isEmpty() || isEmpty()) return;
         var offerings = items.subList(0, OFFERING_SLOTS);
         var ritual = match(candidates(server, offerings), offerings);
