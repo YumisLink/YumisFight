@@ -12,6 +12,7 @@ public class Dungeon {
     public TreasureState treasure;
     public WaystoneRun waystone;
     public PracticeRoom practice;
+    public AbyssParty.Activation abyssActivation;
     public Map<UUID,Boolean> synchronization=new LinkedHashMap<>();
     public boolean syncFor(UUID player){if(practice!=null)return true;if(treasure!=null||waystone!=null)return false;Boolean value=synchronization.get(player);if(value==null)throw new IllegalArgumentException("玩家没有本场同步选择");return value;}
     public Set<UUID> roster=new LinkedHashSet<>(),withdrawn=new HashSet<>(),enemies=new HashSet<>();

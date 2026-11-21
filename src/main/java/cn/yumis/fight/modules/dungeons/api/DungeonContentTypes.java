@@ -80,6 +80,13 @@ public final class DungeonContentTypes {
     static {for(var kind:ClassicEnemyKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(kind==ClassicEnemyKind.TIME_RIFT_YOUNG_SKASA?18:14).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));}
     static {for(var kind:AltarBossKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of((type,level)->new RitualBossEntity(type,level),MobCategory.MISC).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(16).fireImmune().build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));}
     static {
+        for(var kind:AbyssParty.Enemy.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->
+            EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MISC)
+                .sized(kind.width,kind.height).eyeHeight(kind.height*.8f).noLootTable().noSummon()
+                .clientTrackingRange(12).fireImmune()
+                .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));
+    }
+    static {
         var sizes=List.of(
             new java.util.AbstractMap.SimpleEntry<>("ritual_fake_branch",new float[]{.6f,1f}),
             new java.util.AbstractMap.SimpleEntry<>("ritual_hedge",new float[]{1.2f,1.6f}),

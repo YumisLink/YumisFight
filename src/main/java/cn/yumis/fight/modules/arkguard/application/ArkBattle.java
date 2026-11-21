@@ -203,7 +203,7 @@ final class ArkBattle {
     }
     void maximum(Actor actor,double maximum){
         double before=actor.target.health(1);if(Math.abs(before-maximum)<=Math.ulp(maximum)*4)return;
-        actor.target.speciesHealth*=maximum/before;actor.target.life.basis++;actor.target.life.revision++;dirty.add(actor);
+        actor.target.speciesHealth*=maximum/before;actor.target.life.revision++;dirty.add(actor);
         if(actor.entity instanceof ArkRoleEntity role)role.maximum(maximum);
     }
     void changed(Actor actor){dirty.add(actor);}
@@ -326,7 +326,7 @@ final class ArkBattle {
     }
     static Target target(LivingEntity entity,double hp,double attack,double physicalDefense,double magicalDefense,double[] resists,boolean boss,boolean elite,boolean playerImmune){
         var t=new Target();t.id=entity.getUUID();t.entityId=entity.getId();t.kind=boss?"BOSS":"NORMAL";t.elite=elite;t.noRewards=true;t.fixedLevel=true;t.originalLevel=1;
-        t.dimension=entity.level().dimension().identifier().toString();t.life.target=t.id;t.life.dimension=t.dimension;t.life.basis=1;
+        t.dimension=entity.level().dimension().identifier().toString();t.life.target=t.id;t.life.dimension=t.dimension;
         t.speciesHealth=hp/t.health(1);t.speciesAttack=attack/t.attack(1);t.physicalDefenseBase=physicalDefense;t.magicalDefenseBase=magicalDefense;
         t.elementalResists=resists.clone();t.damageImmune=playerImmune;return t;
     }

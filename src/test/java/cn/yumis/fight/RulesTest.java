@@ -1,10 +1,10 @@
 package cn.yumis.fight;
 import cn.yumis.fight.modules.equipment.api.Rarity;
 import cn.yumis.fight.modules.dungeons.api.Difficulty;
+import cn.yumis.fight.modules.dungeons.api.Target;
 import static cn.yumis.fight.modules.character.api.CharacterRules.spAt;
 import static cn.yumis.fight.modules.character.api.CharacterRules.nextExperience;
 import static cn.yumis.fight.modules.dungeons.api.EncounterScaling.partyMultiplier;
-import static cn.yumis.fight.modules.dungeons.api.EncounterScaling.expandedQ;
 import static cn.yumis.fight.modules.professions.api.ProfessionRules.professionThreshold;
 import cn.yumis.fight.modules.economy.api.LootOdds;
 import cn.yumis.fight.modules.attributes.api.ParameterModifier;
@@ -82,13 +82,19 @@ class RulesTest {
         assertEquals(BigInteger.valueOf(1002125),p.experience);
     }
 
-    @Test void expansionPreservesAbsoluteLostHealthAndInvalidatesOldBasis(){
-        for(int old=1;old<15;old++){
-            double q=.31;
-            double before=(1-q)*partyMultiplier(old);
-            double after=(1-expandedQ(q,old,old+1))*partyMultiplier(old+1);
-            assertEquals(before,after,1e-9);
-        }
+    @Test void partyExpansionPreservesHealthFractionAndAppliesAnInFlightHit(){
+        var target=new Target();
+        target.life.q=.60;
+        double soloMaximum=target.health(1);
+        double inFlightFraction=(soloMaximum*.10)/soloMaximum;
+        assertTrue(target.expandParty(2));
+        assertEquals(.60,target.life.q);
+        assertEquals(1,target.life.generation);
+        assertEquals(1,target.life.revision);
+        assertEquals(soloMaximum*2.1,target.health(1),1e-9);
+        assertFalse(target.expandParty(1));
+        assertTrue(target.receive(inFlightFraction,false).accepted());
+        assertEquals(.50,target.life.q,1e-9);
         assertEquals(20.6,partyMultiplier(8));
         assertEquals(25.6,partyMultiplier(9));
     }

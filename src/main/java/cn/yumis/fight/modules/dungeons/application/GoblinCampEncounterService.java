@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.GoblinCamp;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
 /** All forest enemies are placed once on entry; restart recovery closes that instance. */
@@ -27,6 +28,13 @@ final class GoblinCampEncounterService {
             int patrolCount=GoblinCamp.CAMPS.size()*CAMP_TYPES.size()*2;
             var patrols=GoblinCamp.patrolSpawns(owner.level(),origin,patrolCount,dungeon.id.getMostSignificantBits()^dungeon.id.getLeastSignificantBits());
             GoblinCampScenery.place(owner.level(),dungeon);
+            var abyssSpawns=new ArrayList<Vec3>();
+            for(var area:GoblinCamp.CAMPS){
+                var positions=area.spawns(origin);
+                for(int i=0;i<CAMP_TYPES.size()-1;i++)abyssSpawns.add(Vec3.atBottomCenterOf(positions.get(i)));
+            }
+            for(int i=0;i<patrols.size();i++)if(i%CAMP_TYPES.size()!=3)abyssSpawns.add(Vec3.atBottomCenterOf(patrols.get(i)));
+            owner.abyss.plan(dungeon,abyssSpawns);
             for(var area:GoblinCamp.CAMPS){
                 var positions=area.spawns(origin);
                 for(int i=0;i<CAMP_TYPES.size();i++)spawn(dungeon,i,positions.get(i),area.id());
@@ -48,6 +56,7 @@ final class GoblinCampEncounterService {
     }
     private void spawn(Dungeon dungeon,int index,BlockPos at,String region){
         int formation=index%CAMP_TYPES.size();
+        if(formation!=3&&owner.abyss.replaces(dungeon,Vec3.atBottomCenterOf(at)))return;
         var enemy=owner.spawn(dungeon,CAMP_TYPES.get(formation),formation==3,false,at.getX()+.5,at.getY(),at.getZ()+.5);
         enemy.getPersistentData().putString("ydnf_camp_region",region);
     }

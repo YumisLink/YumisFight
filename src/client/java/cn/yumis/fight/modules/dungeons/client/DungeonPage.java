@@ -7,12 +7,13 @@ import cn.yumis.fight.modules.presentation.api.client.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 public final class DungeonPage {
-    public record Join(String dungeon,Difficulty difficulty,boolean sync){}
+    public record Join(String dungeon,Difficulty difficulty,boolean sync,boolean abyssChallenge){}
     private static final List<String> ART=List.of("goblin_camp","dragon_tower","castle_palace","gbl_church","behemoth_forbidden","dark_city","skasa","moonlight_tavern","hamelin","pursuit","sea_train","time_rift","mysterious_awareness","grandi","central_park");
     private static final List<PlayerPageSurface.Navigation> TABS=List.of(
         new PlayerPageSurface.Navigation("story","主线副本"),
@@ -33,21 +34,45 @@ public final class DungeonPage {
             if(current!=null)page.rowButton("离开地下城",leave);
             renderPractice(page,level,room->{
                 if(current!=null){message.accept("请先退出当前副本");return;}
-                join.accept(new Join(room.id(),Difficulty.NORMAL,true));
+                join.accept(new Join(room.id(),Difficulty.NORMAL,true,false));
             });
             return;
         }
-        if(tab.equals("story"))WaystoneClient.enrollment(page);
+        WaystoneClient.enrollment(page);
+        if(current!=null&&current.abyssActivation!=null){
+            showAbyssPillar(page,current);
+            page.gap();
+        }
         if(current!=null&&current.waystone!=null){var run=current.waystone;page.line("地狱 +"+run.stone.tier+" · "+DungeonCatalog.current().dungeon(current.dungeon).name()+" · Lv."+run.monsterLevel);page.line(objective(current,run.settled?"已结束":"挑战中"));for(var m:run.stone.modifiers)page.line(Waystone.modifierText(m));for(String text:run.stone.rewardText())page.line(text);page.rowButton("离开地下城",leave);page.gap();}
         if(current!=null&&current.waystone==null){if(current.treasure!=null){var t=current.treasure;page.line(t.region==0?"哥布林王国 · 野外守宝战斗":"藏宝秘境 · 第"+t.region+" / 5区 · "+(t.theme.equals("palace")?"黄金王宫":t.theme.equals("tower")?"龙人之塔":"格兰之森"));page.line("Lv."+(t.baseLevel+Math.max(0,t.region-1)*2)+" · 地狱 · "+(t.cleared?"已清场":"第"+(current.wave+1)+"波"));}else{page.line("当前："+DungeonCatalog.current().dungeon(current.dungeon).name()+" · "+current.difficulty.title());page.line(objective(current,current.status));}page.rowButton("离开地下城",leave);page.gap();}
         if(current!=null&&current.dungeon.equals(GblChurch.ID)&&Minecraft.getInstance().player!=null)
             page.line("区域："+GblChurch.area(Minecraft.getInstance().player.getZ()));
         if(current!=null&&current.dungeon.equals("behemoth_forbidden"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.BehemothForbidden.AREAS[cn.yumis.fight.modules.dungeons.content.BehemothForbidden.area(current.wave)]);
         if(current!=null&&current.dungeon.equals("skasa"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.SkasaLair.AREAS[cn.yumis.fight.modules.dungeons.content.SkasaLair.area(current.wave)]);
+        boolean abyssChallenge=current==null&&page.remember("dungeon.abyssChallenge",false);
+        if(current==null){
+            page.rowButton(abyssChallenge?"关闭深渊派对":"开启深渊派对",()->{
+                page.rememberValue("dungeon.abyssChallenge",!abyssChallenge);
+                page.rebuild();
+            });
+            if(abyssChallenge)page.line("深渊派对已开启，入场消耗 1 张深渊派对邀请函。",UiTheme.MUTED);
+            page.gap();
+        }
+        var definitions=DungeonCatalog.current().dungeons;
+        var shown=abyssChallenge?definitions.stream().filter(definition->AbyssParty.supports(definition.id())).toList():definitions;
+        renderDungeons(page,shown,current,preferredSync,abyssChallenge,join,message);
+    }
+
+    private static void showAbyssPillar(PlayerPageSurface page,Dungeon dungeon){
+        var pillar=BlockPos.containing(dungeon.abyssActivation.arena().anchor());
+        page.line("深渊挑战模式 · 深渊柱坐标 "+pillar.getX()+", "+pillar.getY()+", "+pillar.getZ());
+    }
+
+    private static void renderDungeons(PlayerPageSurface page,List<DungeonCatalog.DungeonDef> definitions,Dungeon current,boolean preferredSync,boolean abyssChallenge,Consumer<Join> join,Consumer<String> message){
         int cell=(page.contentWidth()-24)/2,base=page.cursor(),pictureHeight=Math.max(42,(cell-13)/2),height=pictureHeight+43,index=0;
-        for(var definition:DungeonCatalog.current().dungeons){
+        for(var definition:definitions){
             int x=(index%2)*cell,y=base+(index/2)*(height+6),w=cell-5;index++;
-            page.card(x,y,w,height);var button=page.button("",x,y,w,()->choose(definition,current,preferredSync,join,message));button.setHeight(height);
+            page.card(x,y,w,height);var button=page.button("",x,y,w,()->choose(definition,current,preferredSync,abyssChallenge,join,message));button.setHeight(height);
             int tile=ART.indexOf(definition.id());if(tile<0)tile=15;
             page.image("textures/gui/dungeons/atlas.png",x+4,y+4,w-8,pictureHeight,(tile%4)/4f,(tile%4+1)/4f,(tile/4)/4f,(tile/4+1)/4f);
             page.text(UiFonts.font().plainSubstrByWidth(definition.name(),w-12),x+6,y+pictureHeight+10,definition.available()?UiTheme.TEXT:UiTheme.MUTED);
@@ -56,10 +81,10 @@ public final class DungeonPage {
         page.cursor(base+((index+1)/2)*(height+6));
     }
 
-    private static void choose(DungeonCatalog.DungeonDef definition,Dungeon current,boolean preferredSync,Consumer<Join> join,Consumer<String> message){
+    private static void choose(DungeonCatalog.DungeonDef definition,Dungeon current,boolean preferredSync,boolean abyssChallenge,Consumer<Join> join,Consumer<String> message){
         if(!definition.available()){message.accept("该副本尚未开放");return;}
         if(current!=null){message.accept("请先退出当前副本");return;}
-        Minecraft.getInstance().gui.pushScreenLayer(new Choice(definition,preferredSync,join));
+        Minecraft.getInstance().gui.pushScreenLayer(new Choice(definition,preferredSync,abyssChallenge,join));
     }
 
     private static void renderPractice(PlayerPageSurface page,int level,Consumer<PracticeRoom> join){
@@ -105,16 +130,38 @@ public final class DungeonPage {
         return "波次 "+(dungeon.wave+1)+" / 7 · "+status;
     }
     private static final class Choice extends ThemedScreen {
-        private final DungeonCatalog.DungeonDef definition;private final Consumer<Join> join;private boolean sync;
-        Choice(DungeonCatalog.DungeonDef definition,boolean sync,Consumer<Join> join){super(Component.literal(definition.name()),ThemeDomain.MENU);this.definition=definition;this.sync=sync;this.join=join;}
+        private final DungeonCatalog.DungeonDef definition;
+        private final Consumer<Join> join;
+        private final boolean abyssChallenge;
+        private boolean sync;
+        Choice(DungeonCatalog.DungeonDef definition,boolean sync,boolean abyssChallenge,Consumer<Join> join){
+            super(Component.literal(definition.name()),ThemeDomain.MENU);
+            this.definition=definition;this.sync=sync;this.abyssChallenge=abyssChallenge;this.join=join;
+        }
         @Override protected void init(){int x=(width-250)/2,y=(height-220)/2;
             addRenderableWidget(Button.builder(Component.literal("本人同步："+(sync?"开启":"关闭")),b->{sync=!sync;rebuildWidgets();}).bounds(x+10,y+35,230,22).build(ThemedButton::new));
+            int firstDifficulty=abyssChallenge?78:64;
             int[] colors={UiTheme.TEXT,0xff55aaff,0xffb787ff,0xffff9a35,0xffff4545};
-            for(var difficulty:Difficulty.values()){var button=addRenderableWidget(Button.builder(Component.literal(difficulty.title()),b->{minecraft.gui.popScreenLayer();join.accept(new Join(definition.id(),difficulty,sync));}).bounds(x+10,y+64+difficulty.ordinal()*25,230,22).build(ThemedButton::new));((ThemedButton)button).textColor=colors[difficulty.ordinal()];}
+            for(var difficulty:Difficulty.values()){
+                var button=addRenderableWidget(Button.builder(Component.literal(difficulty.title()),b->{
+                    if(abyssChallenge&&!DungeonActions.hasAbyssInvitation())return;
+                    minecraft.gui.popScreenLayer();
+                    join.accept(new Join(definition.id(),difficulty,sync,abyssChallenge));
+                }).bounds(x+10,y+firstDifficulty+difficulty.ordinal()*25,230,22).build(ThemedButton::new));
+                ((ThemedButton)button).textColor=colors[difficulty.ordinal()];
+            }
             addRenderableWidget(Button.builder(Component.literal("返回"),b->onClose()).bounds(x+193,y+7,47,20).build(ThemedButton::new));
         }
         @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float a){g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,(width-250)/2,(height-220)/2,250,220);}
-        @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float a){g.text(UiFonts.font(),definition.name(),(width-250)/2+12,(height-220)/2+14,UiTheme.TEXT,false);super.drawContents(g,mx,my,a);}
+        @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float a){
+            int x=(width-250)/2+12,y=(height-220)/2;
+            g.text(UiFonts.font(),definition.name(),x,y+14,UiTheme.TEXT,false);
+            if(abyssChallenge){
+                String cost=DungeonActions.hasAbyssInvitation()?"入场消耗 1 张深渊派对邀请函":"缺少深渊派对邀请函，无法入场";
+                g.text(UiFonts.font(),cost,x,y+62,UiTheme.MUTED,false);
+            }
+            super.drawContents(g,mx,my,a);
+        }
         @Override public void onClose(){minecraft.gui.popScreenLayer();}
         @Override public boolean isPauseScreen(){return false;}
     }

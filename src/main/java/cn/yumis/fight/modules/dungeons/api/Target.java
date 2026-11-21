@@ -28,6 +28,10 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     /** Encounter-owned immunity, shared by prediction and the existing receipt settlement. */
     public boolean damageImmune;
     public boolean fixedLevel;
+    public AbyssParty.Enemy abyss;
+    public int abyssRewardLevel;
+    /** Lower bound of this world enemy's committed health fraction. */
+    public double healthFloor;
     /** Enemy-owned lives: intermediate depletion starts a revive phase and never publishes a death receipt. */
     public int encounterLives=1;
     public long encounterReviveUntil,encounterReviveMillis=2800;
@@ -46,10 +50,22 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public boolean rewardsEligible(){return !noRewards;}
     public boolean training(){return kind.equals("TRAINING");}
     public boolean consumesHealth(){return !training()&&!damageImmune;}
+    public double damageCapacity(double q){return Math.max(0,q-healthFloor);}
     @Override public cn.yumis.fight.modules.combat.api.Receipt receive(double fraction,boolean heal){
         if(!Double.isFinite(fraction)||fraction<0)throw new IllegalArgumentException("伤害份额无效");
         if(!heal&&damageImmune)return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
         if(!training()){
+            if(!heal&&healthFloor>0){
+                double remaining=damageCapacity(life.q);
+                if(remaining==0)return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
+                if(fraction>=remaining){
+                    var receipt=cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(remaining,false);
+                    if(!receipt.accepted())return receipt;
+                    life.q=healthFloor;
+                    life.dead=false;
+                    return new cn.yumis.fight.modules.combat.api.Receipt(true,"",receipt.actual(),life.q,life.revision,"");
+                }
+            }
             var receipt=cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);
             if(!heal&&receipt.accepted()&&!receipt.deathId().isEmpty()&&encounterLives>1){
                 encounterLives--;life.dead=false;damageImmune=true;encounterReviveUntil=System.currentTimeMillis()+encounterReviveMillis;
@@ -60,18 +76,36 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         life.q=1;life.dead=false;life.revision++;
         return new cn.yumis.fight.modules.combat.api.Receipt(true,"",heal?0:fraction,1,life.revision,"");
     }
-    /** Temporary encounter source, additive with the existing armor increase; never changes health or its basis. */
+    /** Temporary encounter source, additive with the existing armor increase. */
     public double encounterDefenseIncrease;
     /** Optional content bases for fixed-level world actors; negative values use the encounter defaults. */
     public double physicalDefenseBase=-1,magicalDefenseBase=-1;
-    public double waystoneHealth=1,waystoneAttack=1,waystoneDefense=1,waystoneDefenseIncrease,waystoneResistance;
-    public double defense(int level,boolean magic){double content=magic?magicalDefenseBase:physicalDefenseBase;double base=content>=0?content:magic?20+5*(level-1):30+8*(level-1);return training()?0:base*(1+(elitePower.equals("armor")?.5:0)+encounterDefenseIncrease+waystoneDefenseIncrease)*waystoneDefense*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);}
-    public double[] resistances(){double[] copy=elementalResists.clone();for(int i=0;i<4;i++)copy[i]+=waystoneResistance+(elitePower.equals("elemental")?30:0);return copy;}
+    public WaystoneRun.MonsterModifiers waystone;
+    public double defense(int level,boolean magic){
+        if(training())return 0;
+        double content=magic?magicalDefenseBase:physicalDefenseBase;
+        double base=content>=0?content:magic?20+5*(level-1):30+8*(level-1);
+        double waystoneIncrease=waystone==null?0:waystone.effect("monster_defense");
+        double multiplier=waystone==null?1:waystone.multiplier();
+        return base*(1+(elitePower.equals("armor")?.5:0)+encounterDefenseIncrease+waystoneIncrease)*multiplier*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);
+    }
+    public double[] resistances(){
+        double[] copy=elementalResists.clone();
+        double increase=(waystone==null?0:waystone.effect("monster_resistance"))+(elitePower.equals("elemental")?30:0);
+        for(int i=0;i<4;i++)copy[i]+=increase;
+        return copy;
+    }
     public double speciesHealth=1,speciesAttack=1;
     /** Dungeon a plain practice-room mob was borrowed from; material rewards roll from this dungeon's pool. */
     public String originDungeon="";
     public Life life=new Life();
     public Map<String,Double> contributions=new HashMap<>();
+    public boolean expandParty(int size){
+        if(life.dead||size<=partySize)return false;
+        partySize=size;
+        life.revision++;
+        return true;
+    }
     public int level(int playerLevel,boolean sync){
         return fixedLevel?originalLevel:training()?playerLevel:sync?Math.max(originalLevel,playerLevel):originalLevel;
     }
@@ -84,12 +118,14 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         }
         ;
         double growth=growth(level);
-        return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1)*waystoneHealth;
+        double multiplier=waystone==null?1:waystone.multiplier()*(1+waystone.effect("monster_health"));
+        return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1)*multiplier;
     }
     public double attack(int level){
         // The added pressure grows from x3 at level 1 to x12 at level 80, then stays at x12.
         double attackScale=3+9*(Math.clamp(level,1,80)-1)/79d;
-        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1)*waystoneAttack*attackScale;
+        double multiplier=waystone==null?1:waystone.multiplier()*(1+waystone.effect("monster_attack"));
+        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1)*multiplier*attackScale;
     }
     private static double growth(int level){if(level<1)throw new IllegalArgumentException("敌人等级无效");return level<=HEALTH_GROWTH.length?HEALTH_GROWTH[level-1]:HEALTH_GROWTH[HEALTH_GROWTH.length-1]*Math.pow(1.08,level-HEALTH_GROWTH.length);}
 }

@@ -24,6 +24,7 @@ public final class NamedEquipment {
         add("mana_flower","无尽魔力之花",50,Rarity.EPIC,Slot.SUB_EQUIPMENT,Weapon.KATANA,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"mana_flower_capacity","mana_flower_recovery");
         add("elaina_witch_hat","伊蕾娜的巫师帽",65,Rarity.MYTHIC,Slot.HEAD,Weapon.KATANA,ArmorType.CLOTH,JewelryType.UNTYPED,0,"elaina_shield","elaina_intelligence","elaina_magic");
         add("pigeon_collapsing_wall","鸽子-倾塌之墙",70,Rarity.EPIC,Slot.CHEST,Weapon.KATANA,ArmorType.PLATE,JewelryType.UNTYPED,0,"collapse_armor","armor_retaliation","wall_power");
+        add("admin_amulet","管理员的护符",1,Rarity.PRIMORDIAL,Slot.NECKLACE,Weapon.KATANA,ArmorType.UNTYPED,JewelryType.UNTYPED,0,"admin_damage_total","admin_health","admin_health_regen","admin_mana");
     }
     private static void add(String id,String name,int level,Rarity rarity,Slot slot,Weapon weapon,ArmorType armor,JewelryType jewelry,int sockets,String... effects){ALL.put("named/"+id,new Template("named/"+id,name,level,rarity,slot,weapon,armor,jewelry,sockets,List.of(effects)));}
     private NamedEquipment(){}

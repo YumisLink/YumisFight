@@ -68,7 +68,14 @@ final class DragonTowerEncounterService {
                 if(dungeon.wave!=0||!dungeon.enemies.isEmpty())throw new IllegalStateException("旧龙塔场次已经停用，请重新入场");
                 journal.put("dragonTowerRun/"+dungeon.id,new Saved(DragonTower.VERSION,0,null));
             }
-            DragonTowerScenery.place(owner.level(),dungeon);runs.put(dungeon.id,run);
+            DragonTowerScenery.place(owner.level(),dungeon);
+            var abyssSpawns=new ArrayList<Vec3>();
+            for(int floor=0;floor<DragonTower.LEVELS-1;floor++){
+                var positions=DragonTower.spawns(floor);
+                for(int i=0;i<FORMATIONS[floor].length-1;i++)abyssSpawns.add(world(dungeon,positions.get(i)));
+            }
+            owner.abyss.plan(dungeon,abyssSpawns);
+            runs.put(dungeon.id,run);
         }catch(Exception failure){throw abandon(dungeon,failure);}
     }
     void tick(Dungeon dungeon,List<ServerPlayer> players,long now)throws Exception{
@@ -83,6 +90,7 @@ final class DragonTowerEncounterService {
                 if(floor==6){Vec3 p=world(dungeon,positions.getFirst());run.boss=owner.spawn(dungeon,"lucas",false,true,p.x,p.y,p.z).getUUID();}
                 else for(int i=0;i<FORMATIONS[floor].length;i++){
                     Vec3 p=world(dungeon,positions.get(i));
+                    if(i!=3&&owner.abyss.replaces(dungeon,p))continue;
                     var enemy=owner.spawn(dungeon,FORMATIONS[floor][i],i==3,false,p.x,p.y,p.z);
                     enemy.getPersistentData().putInt("ydnf_dragon_floor",floor);
                 }

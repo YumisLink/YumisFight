@@ -14,9 +14,12 @@ public final class ClientSettings {
     public static String uiFont="modern";
     public static final int MAX_DAMAGE_SCALE=4;
     public static final int TARGET_FRAME_WIDTH=184;
+    public static final int MAX_NEAR_EFFECT_FADE_DISTANCE_STEPS=500;
+    private static final int DEFAULT_NEAR_EFFECT_FADE_DISTANCE_STEPS=85;
     public static int damageScale=2;
     public static double targetScale=1;
     public static boolean nearEffectFade=true,itemQualityFrames=true;
+    public static int nearEffectFadeDistanceSteps=DEFAULT_NEAR_EFFECT_FADE_DISTANCE_STEPS;
     static boolean menuShortcutDefaultsApplied;
     public static final int MAX_ENEMY_HEALTH_DISTANCE=256;
     public static int enemyHealthDistance=16;
@@ -55,6 +58,7 @@ public final class ClientSettings {
             damageScale=Integer.parseInt(value(s,"damageScale","2"));
             targetScale=Double.parseDouble(value(s,"targetScale","1"));
             nearEffectFade=!value(s,"nearEffectFade","true").equalsIgnoreCase("false");
+            nearEffectFadeDistanceSteps=readNearEffectFadeDistance(value(s,"nearEffectFadeDistance",""));
             itemQualityFrames=!value(s,"itemQualityFrames","true").equalsIgnoreCase("false");
             enemyHealthDistance=readEnemyHealthDistance(value(s,"enemyHealthDistance","16"));
             veinMiningLimit=readVeinMiningLimit(value(s,"veinMiningLimit",Integer.toString(VeinMining.DEFAULT_LIMIT)));
@@ -93,6 +97,13 @@ public final class ClientSettings {
         try{return Math.clamp(Integer.parseInt(raw),1,MAX_ENEMY_HEALTH_DISTANCE);}
         catch(NumberFormatException ignored){return 16;}
     }
+    private static int readNearEffectFadeDistance(String raw){
+        try{
+            double distance=Double.parseDouble(raw);
+            if(Double.isFinite(distance))return (int)Math.round(Math.clamp(distance,0,MAX_NEAR_EFFECT_FADE_DISTANCE_STEPS/100d)*100);
+        }catch(NumberFormatException ignored){}
+        return DEFAULT_NEAR_EFFECT_FADE_DISTANCE_STEPS;
+    }
     private static int readVeinMiningLimit(String raw){
         try{return Math.clamp(Integer.parseInt(raw),1,VeinMining.MAX_LIMIT);}
         catch(NumberFormatException ignored){return VeinMining.DEFAULT_LIMIT;}
@@ -101,6 +112,7 @@ public final class ClientSettings {
         try{
             Files.createDirectories(path().getParent());
             Files.writeString(path(),"# 本机界面与战斗显示设置；保存后立即生效。\npanelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nitemQualityFrames="+itemQualityFrames+"\nitemQualityFrames="+itemQualityFrames+"\nnearEffectFade="+nearEffectFade+"\nuiFont=\""+uiFont+"\"\n# light 为灰色立体，dark 为黑灰透明。\nglobalTheme=\""+globalTheme+"\"\n# 取消跟随时保留该类面板当时的主题。\nmenuFollowsTheme="+menuFollowsTheme+"\nmenuTheme=\""+menuTheme+"\"\nmachineFollowsTheme="+machineFollowsTheme+"\nmachineTheme=\""+machineTheme+"\"\n"
+                +"nearEffectFadeDistance="+(nearEffectFadeDistanceSteps/100d)+"\n"
                 +"arkEnemyHealth="+arkEnemyHealth+"\narkAllyHealth="+arkAllyHealth+"\narkEnemyDamage="+arkEnemyDamage+"\narkAllyDamage="+arkAllyDamage+"\n"
                 +"enemyHealthDistance="+enemyHealthDistance+"\nenemyHealthPerspective="+enemyHealthPerspective+"\nattackNeutralMobs="+attackNeutralMobs+"\n"
                 +"veinMiningLimit="+veinMiningLimit+"\n"

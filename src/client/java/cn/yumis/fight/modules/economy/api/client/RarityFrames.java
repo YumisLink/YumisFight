@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.economy.api.client;
 
 import cn.yumis.fight.modules.economy.api.ItemRarity;
+import cn.yumis.fight.modules.equipment.api.client.PrimordialDisplay;
 import cn.yumis.fight.modules.equipment.api.Rarity;
 import cn.yumis.fight.modules.equipment.api.client.MythicDisplay;
 import cn.yumis.fight.platform.ItemData;
@@ -23,6 +24,7 @@ public final class RarityFrames {
         var rarity=ItemRarity.rarity(stack);int color=0xff000000|rarity.color();
         if(background)background(g,stack,x,y);
         if(rarity==Rarity.MYTHIC)MythicDisplay.frame(g,x,y,16,16);
+        else if(rarity==Rarity.PRIMORDIAL)PrimordialDisplay.frame(g,x,y,16,16);
         else{g.fill(x,y,x+16,y+1,color);g.fill(x,y+15,x+16,y+16,color);g.fill(x,y+1,x+1,y+15,color);g.fill(x+15,y+1,x+16,y+15,color);}
     }
 }

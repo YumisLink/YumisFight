@@ -69,9 +69,30 @@ public final class WaystoneClient {
         if(d!=null&&d.waystone!=null){var run=d.waystone;value=run.stone;heading="地狱 +"+value.tier+" · Lv."+run.monsterLevel;if(run.settled)timing="挑战结束 · 返石 +"+run.resultingTier;else{long left=run.rules.timeLimitsMillis[2]-run.elapsed(ClientUi.current().serverNow());timing=(left>=0?"剩余 ":"超时 ")+time(Math.abs(left))+" · 死亡罚时 "+time(run.penaltyMillis);}}
         else if(enrollment!=null){value=stone(enrollment);if(value==null)return;heading="已报名引路台 · 地狱 +"+value.tier;long deadline=enrollment.get("deadline").getAsLong();timing=deadline>0?"开战倒数 "+Math.max(0,(deadline-ClientUi.current().serverNow()+999)/1000)+"秒":"等待全部准备";}
         else return;
-        int x=8,y=Math.max(8,Math.min(54,g.guiHeight()-214)),w=Math.max(80,g.guiWidth()-16);var font=UiFonts.font();g.text(font,heading,x,y,value.rarity.color()|0xff000000,true);y+=12;g.text(font,timing,x,y,0xffeeeeee,true);y+=12;
-        for(var m:value.modifiers){g.text(font,font.plainSubstrByWidth(Waystone.modifierText(m),w),x,y,0xffc8a8f0,true);y+=11;}
-        for(String text:value.rewardText()){g.text(font,text,x,y,0xffb7e6a1,true);y+=11;}
+        var font = UiFonts.font();
+        var modifiers = value.modifiers.stream().map(Waystone::modifierText).toList();
+        var rewards = value.rewardText();
+        int margin = 8, headerSpacing = 12, rowSpacing = 11;
+        int maxWidth = Math.max(0, g.guiWidth() - 2 * margin);
+        int width = Math.max(font.width(heading), font.width(timing));
+        for (String text : modifiers) width = Math.max(width, font.width(text));
+        for (String text : rewards) width = Math.max(width, font.width(text));
+        int height = 2 * headerSpacing + (modifiers.size() + rewards.size() - 1) * rowSpacing + font.lineHeight;
+        int x = g.guiWidth() - margin - Math.min(width, maxWidth);
+        int y = Math.max(margin, (g.guiHeight() - height) / 2);
+
+        g.text(font, font.plainSubstrByWidth(heading, maxWidth), x, y, value.rarity.color() | 0xff000000, true);
+        y += headerSpacing;
+        g.text(font, font.plainSubstrByWidth(timing, maxWidth), x, y, 0xffeeeeee, true);
+        y += headerSpacing;
+        for (String text : modifiers) {
+            g.text(font, font.plainSubstrByWidth(text, maxWidth), x, y, 0xffc8a8f0, true);
+            y += rowSpacing;
+        }
+        for (String text : rewards) {
+            g.text(font, font.plainSubstrByWidth(text, maxWidth), x, y, 0xffb7e6a1, true);
+            y += rowSpacing;
+        }
     }
     private static String change(int value){return value>=0?"升"+value+"阶":"降"+(-value)+"阶";}
     private static String time(long millis){long seconds=millis/1000;return String.format(Locale.ROOT,"%02d:%02d",seconds/60,seconds%60);}

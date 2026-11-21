@@ -2,6 +2,8 @@ package cn.yumis.fight.modules.dungeons.api;
 
 import cn.yumis.fight.modules.combat.api.CombatPorts;
 import cn.yumis.fight.modules.combat.api.CombatSession;
+import com.google.gson.JsonElement;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.server.level.ServerPlayer;
@@ -41,7 +43,7 @@ public final class DungeonPorts {
         CombatPorts.Commit prepare(UUID instance,String dungeon,Difficulty difficulty,Set<UUID> participants);
     }
     public interface Meter {
-        void join(Dungeon dungeon,ServerPlayer player)throws Exception;
+        Map<String,JsonElement> joinWrites(Dungeon dungeon,ServerPlayer player);
         void leave(Dungeon dungeon,ServerPlayer player)throws Exception;
         void freeze(Dungeon dungeon)throws Exception;
     }

@@ -108,7 +108,7 @@ public final class CombatApplication {
                 Network.send(p,"ack",retired);
                 return;
             }
-            if(j.get("generation").getAsLong()!=life.generation||j.get("basis").getAsLong()!=life.basis)throw new IllegalArgumentException("生命或扩血基准已失效");
+            if(j.get("generation").getAsLong()!=life.generation)throw new IllegalArgumentException("目标生命已失效");
             String instance=j.has("instance")?j.get("instance").getAsString():"";
             if(!instance.equals(life.instance)||!instance.isEmpty()&&!dungeons.participant(p,instance))throw new IllegalArgumentException("副本轮次已失效");
             boolean nativeHit=j.has("nativeRoot");
@@ -298,7 +298,7 @@ public final class CombatApplication {
             change.add("stats",JSON.toJsonTree(stats==null?new cn.yumis.fight.modules.attributes.api.Stats():stats));
             change.add("equipment",JSON.toJsonTree(equipment==null?new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot():equipment));
         }
-        state.addProperty("target",entity.getStringUUID());state.addProperty("generation",life.generation);state.addProperty("basis",life.basis);
+        state.addProperty("target",entity.getStringUUID());state.addProperty("generation",life.generation);
         state.addProperty("owner",p.getStringUUID());state.addProperty("ownerGeneration",sessions.apply(p).life.generation);state.addProperty("session",sessions.apply(p).id.toString());
         state.addProperty("kind",kind.id);state.addProperty("dimension",life.dimension);state.addProperty("instance",life.instance);
         state.addProperty("expires",life.elemental.until[kind.ordinal()]);state.add("change",change);
@@ -317,7 +317,6 @@ public final class CombatApplication {
         JsonObject state=new JsonObject();
         state.addProperty("target",entity.getStringUUID());
         state.addProperty("generation",target.life().generation);
-        state.addProperty("basis",target.life().basis);
         state.addProperty("owner",p.getStringUUID());
         state.addProperty("ownerGeneration",sessions.apply(p).life.generation);
         state.addProperty("session",sessions.apply(p).id.toString());
@@ -351,7 +350,7 @@ public final class CombatApplication {
             boolean valid=owner!=null&&entity!=null&&entity.isAlive()&&life!=null&&!life.dead&&(j.has("settleUntil")?j.get("settleUntil"):j.get("expires")).getAsLong()>now;
             if(valid){
                 CombatSession source=sessions.apply(owner);
-                valid=!source.life.dead&&source.id.toString().equals(j.get("session").getAsString())&&source.life.generation==j.get("ownerGeneration").getAsLong()&&owner.level()==entity.level()&&life.generation==j.get("generation").getAsLong()&&(elemental!=null||life.basis==j.get("basis").getAsLong())&&source.life.instance.equals(j.get("instance").getAsString())&&life.instance.equals(j.get("instance").getAsString());
+                valid=!source.life.dead&&source.id.toString().equals(j.get("session").getAsString())&&source.life.generation==j.get("ownerGeneration").getAsLong()&&owner.level()==entity.level()&&life.generation==j.get("generation").getAsLong()&&source.life.instance.equals(j.get("instance").getAsString())&&life.instance.equals(j.get("instance").getAsString());
             }
             if(!valid)try{
                 boolean released=elemental!=null&&life!=null&&life.generation==j.get("generation").getAsLong()&&life.elemental.until[elemental.ordinal()]==j.get("expires").getAsLong()&&life.elemental.until[elemental.ordinal()]>now;

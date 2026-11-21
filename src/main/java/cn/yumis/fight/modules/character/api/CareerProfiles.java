@@ -30,11 +30,11 @@ public final class CareerProfiles {
         for(var entry:delta.getAsJsonObject("entries").entrySet())result.getAsJsonObject("entries").add(entry.getKey(),entry.getValue().deepCopy());for(var id:delta.getAsJsonArray("removed"))result.getAsJsonObject("entries").remove(id.getAsString());return JSON.fromJson(result,CareerProfiles.class);
     }
     public static Progress copy(Progress value){return JSON.fromJson(JSON.toJsonTree(value),Progress.class);}
-    private static JsonObject growth(Progress value){var source=JSON.toJsonTree(value).getAsJsonObject();var result=new JsonObject();for(String key:GROWTH)result.add(key,source.get(key).deepCopy());return result;}
+    private static JsonObject growth(Progress value){var source=JSON.toJsonTree(value).getAsJsonObject();var result=new JsonObject();for(String key:GROWTH)result.add(key,source.has(key)?source.get(key).deepCopy():JsonNull.INSTANCE);return result;}
     public Progress select(Progress current,String target){
         if(target.equals(activeId))return current;
         Entry destination=entries.get(target);if(destination==null||destination.growth==null)throw new IllegalArgumentException("职业配置不存在");
-        var source=JSON.toJsonTree(current).getAsJsonObject();for(String key:GROWTH)source.add(key,destination.growth.get(key).deepCopy());
+        var source=JSON.toJsonTree(current).getAsJsonObject();for(String key:GROWTH)source.add(key,destination.growth.has(key)?destination.growth.get(key).deepCopy():JsonNull.INSTANCE);
         Progress next=JSON.fromJson(source,Progress.class);entries.get(activeId).growth=growth(current);destination.growth=null;activeId=target;revision=Math.addExact(revision,1);return next;
     }
     public boolean unlocked(Progress current){
@@ -62,7 +62,7 @@ public final class CareerProfiles {
         var jobs=new HashSet<String>();validateProgress(active);if(active.selected()&&!JobCatalog.basic(active.jobId()))jobs.add(active.jobId());
         for(var pair:entries.entrySet()){
             UUID.fromString(pair.getKey());Entry e=pair.getValue();if(e==null||e.name==null||e.name.isBlank()||pair.getKey().equals(activeId)!=(e.growth==null))throw new IllegalStateException("职业配置索引不完整");
-            if(e.growth!=null){if(!e.growth.keySet().equals(new HashSet<>(GROWTH)))throw new IllegalStateException("职业配置成长格式不符");var source=JSON.toJsonTree(new Progress()).getAsJsonObject();e.growth.entrySet().forEach(v->source.add(v.getKey(),v.getValue()));var p=JSON.fromJson(source,Progress.class);validateProgress(p);if(p.selected()&&!JobCatalog.basic(p.jobId())&&!jobs.add(p.jobId()))throw new IllegalStateException("职业配置转职重复");}
+            if(e.growth!=null){if(!GROWTH.containsAll(e.growth.keySet()))throw new IllegalStateException("职业配置成长格式不符");var source=JSON.toJsonTree(new Progress()).getAsJsonObject();e.growth.entrySet().forEach(v->source.add(v.getKey(),v.getValue()));var p=JSON.fromJson(source,Progress.class);validateProgress(p);if(p.selected()&&!JobCatalog.basic(p.jobId())&&!jobs.add(p.jobId()))throw new IllegalStateException("职业配置转职重复");}
         }
     }
     /** Storage checks shape and identity only; level/SP/occupation policy belongs to the owner. */
@@ -71,7 +71,7 @@ public final class CareerProfiles {
         storedProgress(active);
         for(var pair:entries.entrySet()){
             UUID.fromString(pair.getKey());var entry=pair.getValue();if(entry==null||entry.name==null||pair.getKey().equals(activeId)!=(entry.growth==null))throw new IllegalStateException("职业配置索引不完整");
-            if(entry.growth!=null){if(!entry.growth.keySet().equals(new HashSet<>(GROWTH)))throw new IllegalStateException("职业配置成长格式不符");var source=JSON.toJsonTree(new Progress()).getAsJsonObject();entry.growth.entrySet().forEach(field->source.add(field.getKey(),field.getValue()));storedProgress(JSON.fromJson(source,Progress.class));}
+            if(entry.growth!=null){if(!GROWTH.containsAll(entry.growth.keySet()))throw new IllegalStateException("职业配置成长格式不符");var source=JSON.toJsonTree(new Progress()).getAsJsonObject();entry.growth.entrySet().forEach(field->source.add(field.getKey(),field.getValue()));storedProgress(JSON.fromJson(source,Progress.class));}
         }
     }
     public static void storedProgress(Progress p){

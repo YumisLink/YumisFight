@@ -33,7 +33,7 @@ public final class ProfessionItemDisplay {
         var herbs=List.of(HerbSpecies.COMMON,HerbSpecies.RARE,HerbSpecies.ARTIFACT,HerbSpecies.LEGENDARY,HerbSpecies.EPIC,HerbSpecies.MYTHIC);
         var rods=List.of(ProfessionContent.ROD_ID,ProfessionContent.LUCKY_ROD_ID,ProfessionContent.GRAPHITE_ROD_ID,ProfessionContent.TIDAL_ROD_ID,ProfessionContent.STYX_ROD_ID,ProfessionContent.FARER_ROD_ID);
         var sickles=List.of(ProfessionContent.SICKLE_ID,ProfessionContent.RARE_SICKLE_ID,ProfessionContent.ARTIFACT_SICKLE_ID,ProfessionContent.LEGENDARY_SICKLE_ID,ProfessionContent.EPIC_SICKLE_ID,ProfessionContent.MYTHIC_SICKLE_ID);
-        for(var rarity:Rarity.values()){
+        for(var rarity:List.of(Rarity.COMMON,Rarity.RARE,Rarity.ARTIFACT,Rarity.LEGENDARY,Rarity.EPIC,Rarity.MYTHIC)){
             for(String id:fish.get(rarity.ordinal()))result.put(id,rarity);
             for(String id:herbs.get(rarity.ordinal()))result.put(id,rarity);
             result.put(rods.get(rarity.ordinal()),rarity);result.put(sickles.get(rarity.ordinal()),rarity);

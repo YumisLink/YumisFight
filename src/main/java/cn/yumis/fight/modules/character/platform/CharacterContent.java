@@ -9,6 +9,7 @@ import net.minecraft.world.level.Level;
 public final class CharacterContent {
     private CharacterContent(){}
     public static void register(){
+        ticket(CharacterItems.CAREER_UNLOCK,CharacterActions.Ticket.CAREER_UNLOCK);
         ticket(CharacterItems.AWAKENING,CharacterActions.Ticket.AWAKENING);
         ticket(CharacterItems.PROFILE_EXPANSION,CharacterActions.Ticket.PROFILE_EXPANSION);
         ticket(CharacterItems.LEVEL_ONE,CharacterActions.Ticket.LEVEL_ONE);ticket(CharacterItems.LEVEL_TEN,CharacterActions.Ticket.LEVEL_TEN);ticket(CharacterItems.LEVEL_MAX,CharacterActions.Ticket.LEVEL_MAX);

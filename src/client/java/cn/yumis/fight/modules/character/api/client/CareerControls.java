@@ -27,9 +27,9 @@ public final class CareerControls {
         else if(!JobCatalog.basic(player.jobId()))page.line("50级可使用一次性觉醒券，获得资格后自行学习觉醒技能。",UiTheme.MUTED);
         if(JobCatalog.basic(player.jobId())){
             boolean marked=player.jobChangeUnlocked();
-            if(!marked)page.line("转职资格未解锁 · 完成任务追踪器中的「转职试炼」后解锁",UiTheme.MUTED);
+            if(!marked)page.line("转职资格未解锁 · 完成「转职试炼」或使用一次性转职解锁券",UiTheme.MUTED);
             if(marked&&player.level>=20){for(var job:JobCatalog.all())if(job.prerequisite().equals(player.baseJob())){boolean occupied=CareerProfilesClient.occupied(job.id());var button=page.button((occupied?"已有配置：":"转职为")+job.title(),0,page.cursor(),page.contentWidth()-24,()->confirm(page,"转职为"+job.title()+"？","转职选定后不可更换；需副本外脱战且所有技能冷却结束。",()->choose("promote",job.id())));button.active=!occupied;page.cursor(page.cursor()+24);}}
-            else if(player.level<20)page.line("20级可在任务追踪器接取「转职试炼」。",UiTheme.MUTED);
+            else if(player.level<20)page.line("20级可接取「转职试炼」或使用转职解锁券。",UiTheme.MUTED);
         }
     }
     public static void register(cn.yumis.fight.architecture.CommandRouter<Void,com.google.gson.JsonObject> router){

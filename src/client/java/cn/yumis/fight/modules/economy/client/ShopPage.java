@@ -1,4 +1,5 @@
 package cn.yumis.fight.modules.economy.client;
+import cn.yumis.fight.modules.character.api.CharacterItems;
 import cn.yumis.fight.modules.economy.api.CurrencyRules;
 import cn.yumis.fight.modules.equipment.api.Rarity;
 import cn.yumis.fight.modules.presentation.api.client.*;
@@ -17,7 +18,11 @@ public final class ShopPage {
         String priceText(){return price+(contract?"金币":"点券");}
     }
     private static final List<Product> ITEMS=List.of(
-        ticket("awakening_ticket","一次性觉醒券",List.of(
+        ticket(CharacterItems.CAREER_UNLOCK,"一次性转职解锁券",List.of(
+            "永久解锁所有职业的通用转职资格。",
+            "20级可用，无职业前置。",
+            "已有资格时不消耗券。")),
+        ticket(CharacterItems.AWAKENING,"一次性觉醒券",List.of(
             "永久获得觉醒资格，不自动学习技能。",
             "50级可用，无职业前置。",
             "全部职业配置共用觉醒资格，各套仍需50级学习觉醒技能。",

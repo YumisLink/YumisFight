@@ -21,7 +21,7 @@ public final class SkillDamageRules {
             damage*=multiplier;main*=multiplier;
             for(int i=0;i<components.length;i++)components[i]*=multiplier;
         }
-        if(skill!=null){double factor=stats.modifiers.getOrDefault("allSkillAttackProduct",1d);damage*=factor;main*=factor;for(int i=0;i<components.length;i++)components[i]*=factor;}
+        if(skill!=null||basic&&!passive){double factor=stats.modifiers.getOrDefault("allSkillAttackProduct",1d);damage*=factor;main*=factor;for(int i=0;i<components.length;i++)components[i]*=factor;}
         return new SkillDamage(damage,main,components);
     }
 }

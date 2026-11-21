@@ -67,7 +67,7 @@ class MageBloodRevisionTest {
     }
     @Test void stagedSourcesMultiplyRemovalSafeAndSpiritAddsAfterEveryTargetMultiplier(){
         var p=new Progress();p.level=80;var sources=new AttributeSources();sources.replace(1,List.of(new Source("test",1,List.of(new Value(Stat.MAGICAL_DEFENSE,1,Operation.BASE_RATIO,Stage.CHARACTER),new Value(Stat.MAGICAL_DEFENSE,.2,Operation.TOTAL_RATIO,Stage.CHARACTER)))));
-        var s=cn.yumis.fight.modules.equipment.api.EquipmentAttributes.stats(p,List.of(),sources,0,ignored->{});assertEquals(384,s.get(Stat.MAGICAL_DEFENSE));assertEquals(336,s.attribute(Stat.MAGICAL_DEFENSE).fadd);
+        var s=cn.yumis.fight.modules.equipment.api.EquipmentAttributes.stats(p,List.of(),sources,0,ignored->{});assertEquals(68,s.get(Stat.MAGICAL_DEFENSE));assertEquals(20,s.attribute(Stat.MAGICAL_DEFENSE).fadd);
         var a=new AttributeSources();var one=new Source("a",1,List.of(new Value(Stat.HEALTH,.2,Operation.TOTAL_RATIO,Stage.CHARACTER)));var two=new Source("b",1,List.of(new Value(Stat.HEALTH,.3,Operation.TOTAL_RATIO,Stage.CHARACTER)));
         a.replace(1,List.of(one,two));assertEquals(156,a.apply(Map.of(Stat.HEALTH,100d)).get(Stat.HEALTH));
         assertEquals(156,cn.yumis.fight.modules.equipment.api.EquipmentAttributes.stats(new Progress(),List.of(),a,0,ignored->{}).get(Stat.HEALTH));a.replace(2,List.of());assertEquals(100,cn.yumis.fight.modules.equipment.api.EquipmentAttributes.stats(new Progress(),List.of(),a,0,ignored->{}).get(Stat.HEALTH));

@@ -3,6 +3,7 @@ package cn.yumis.fight.modules.economy.api;
 import com.google.gson.*;
 import java.util.*;
 import java.util.function.Supplier;
+import cn.yumis.fight.modules.dungeons.api.AbyssParty;
 import cn.yumis.fight.modules.equipment.api.*;
 
 /** Data-pack chest registry. Chest tiers are not equipment rarities. */
@@ -13,12 +14,14 @@ public final class ChestDefinitions {
     }
     public record Definition(String name,boolean enabled,int equipmentBase,int equipmentPerTier,int currencyBase,int currencyPerTier,List<Entry> fixed,List<Entry> special,int specialRolls){}
     public record SpecialPool(double chance,List<Entry> entries){}
+    public record AbyssPool(List<Entry> epic,List<Entry> mythic){}
     public record WaystoneChest(String name,int currencyMinimum,int currencyMaximum,boolean inheritDropRate,List<Entry> fixed,List<Entry> special,int specialRolls){}
     public WaystoneChest waystoneDefault=new WaystoneChest("引路石%s阶宝箱",2,4,true,List.of(),List.of(),0);
     public Map<Integer,WaystoneChest> waystoneByTier=new LinkedHashMap<>();
     public Map<String,Definition> chests=new LinkedHashMap<>();
     public Map<String,SpecialPool> bossPools=new LinkedHashMap<>();
     public Map<String,SpecialPool> bossRarePools=new LinkedHashMap<>();
+    public Map<String,AbyssPool> abyssPools=new LinkedHashMap<>();
     public List<String> todo=new ArrayList<>();
     private static Supplier<ChestDefinitions> source=ChestDefinitions::defaults;
     public static void source(Supplier<ChestDefinitions> value){source=Objects.requireNonNull(value);}
@@ -27,13 +30,13 @@ public final class ChestDefinitions {
         var d=new ChestDefinitions();
         d.chests.put("treasure",new Definition("藏宝图之%s宝箱",true,3,2,3,1,List.of(),List.of(),0));
         d.chests.put("goblin_kingdom",new Definition("哥布林王国的宝箱",true,0,0,0,0,List.of(new Entry("colorless_crystal",10,1)),List.of(),0));
-        var pool=new SpecialPool(.1,List.of(new Entry("abyss_invitation",1,10),new Entry("goblin_treasure_map",1,1)));
+        var pool=new SpecialPool(.1,List.of(new Entry(AbyssParty.INVITATION,1,10),new Entry("goblin_treasure_map",1,1)));
         for(String id:List.of("goblin_camp","dragon_tower","castle_palace","treasure_forest","treasure_tower","treasure_palace"))d.bossPools.put(id,pool);
         d.bossRarePools.put("gbl_church",new SpecialPool(.05,List.of(new Entry("essence_alaska_wisdom",1,1))));
         d.bossRarePools.put("castle_palace",new SpecialPool(.05,List.of(new Entry("essence_pinocchio",1,1),new Entry("essence_sieghart",1,1),new Entry("essence_delezie",1,1),new Entry("essence_skasa",1,1))));
         d.bossPools.put("yumis_dungeon_and_fight:karl",new SpecialPool(1,List.of(new Entry("yumis_dungeon_and_fight:karl_token",1,1))));
         d.bossRarePools.put("yumis_dungeon_and_fight:karl",new SpecialPool(.05,List.of(new Entry(null,1,1,"named/karl_phantom_sword"))));
-        d.todo=List.of("深渊派对挑战函用途", "哥布林王国宝箱正式掉落", "挖宝专属史诗和神话装备及掉率", "其他特殊道具");
+        d.todo=List.of("哥布林王国宝箱正式掉落", "挖宝专属史诗和神话装备及掉率", "其他特殊道具");
         return d;
     }
     public static ChestDefinitions parse(String json){
@@ -47,6 +50,12 @@ public final class ChestDefinitions {
             if(c.specialRolls()>0&&c.special().stream().noneMatch(x->x.weight()>0))throw new IllegalArgumentException("特殊奖励池为空");
         }
         for(var p:java.util.stream.Stream.concat(d.bossPools.values().stream(),d.bossRarePools.values().stream()).toList()){if(p==null||!Double.isFinite(p.chance())||p.chance()<0||p.chance()>1||p.entries()==null)throw new IllegalArgumentException("首领特殊池无效");validate(p.entries());if(p.chance()>0&&p.entries().stream().noneMatch(x->x.weight()>0))throw new IllegalArgumentException("首领特殊池为空");}
+        if(d.abyssPools==null)throw new IllegalArgumentException("深渊派对奖池无效");
+        for(var pool:d.abyssPools.values()){
+            if(pool==null)throw new IllegalArgumentException("深渊派对奖池无效");
+            validateAbyss(pool.epic(),Rarity.EPIC);
+            validateAbyss(pool.mythic(),Rarity.MYTHIC);
+        }
         for(String required:List.of("treasure","goblin_kingdom"))if(!d.chests.containsKey(required))throw new IllegalArgumentException("缺少宝箱："+required);
         validateWaystone(d.waystoneDefault);if(d.waystoneByTier==null)throw new IllegalArgumentException("缺少引路石分阶宝箱配置");for(var entry:d.waystoneByTier.entrySet()){if(entry.getKey()<1)throw new IllegalArgumentException("引路石箱阶无效");validateWaystone(entry.getValue());}
         return d;
@@ -60,11 +69,19 @@ public final class ChestDefinitions {
             }
             if(e.item()==null)throw new IllegalArgumentException("无效宝箱奖励");
             if(e.item().contains(":")){var id=net.minecraft.resources.Identifier.parse(e.item());if(!net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(id)||id.equals(net.minecraft.resources.Identifier.withDefaultNamespace("air")))throw new IllegalArgumentException("未知奖励物品："+id);}
-            else if(!e.item().equals("goblin_treasure_map")&&!e.item().equals("abyss_invitation")&&!e.item().equals("colorless_crystal")&&CurrencyRules.find(e.item())==null)throw new IllegalArgumentException("未登记奖励："+e.item());
+            else if(!e.item().equals("goblin_treasure_map")&&!e.item().equals(AbyssParty.INVITATION)&&!e.item().equals("colorless_crystal")&&CurrencyRules.find(e.item())==null)throw new IllegalArgumentException("未登记奖励："+e.item());
         }
         if(!Double.isFinite(entries.stream().mapToDouble(Entry::weight).sum()))throw new IllegalArgumentException("奖池权重总和过大");
     }
     public static Entry draw(List<Entry> pool,Random random){double total=pool.stream().mapToDouble(Entry::weight).sum();if(total<=0)return null;double v=random.nextDouble()*total;for(var e:pool){v-=e.weight();if(v<0)return e;}return pool.getLast();}
+    private static void validateAbyss(List<Entry> entries,Rarity rarity){
+        if(entries==null)throw new IllegalArgumentException("深渊派对奖池缺少品质："+rarity);
+        validate(entries);
+        for(var entry:entries){
+            var template=entry.template()==null?null:NamedEquipment.find(entry.template());
+            if(template==null||template.rarity()!=rarity)throw new IllegalArgumentException("深渊派对装备品质不符："+entry.template());
+        }
+    }
     public Definition require(String id){var c=chests.get(id);if(c==null||!c.enabled())throw new IllegalArgumentException("此宝箱尚未开放");return c;}
     private static void validateWaystone(WaystoneChest c){if(c==null||c.name()==null||c.name().isBlank()||c.currencyMinimum()<0||c.currencyMaximum()<c.currencyMinimum()||c.currencyMaximum()>1024||c.specialRolls()<0||c.specialRolls()>128||c.fixed()==null||c.special()==null)throw new IllegalArgumentException("引路石宝箱配置无效");validate(c.fixed());validate(c.special());if(c.specialRolls()>0&&c.special().stream().noneMatch(e->e.weight()>0))throw new IllegalArgumentException("引路石宝箱特殊池为空");}
     public WaystoneChest waystone(int tier){if(tier<1)throw new IllegalArgumentException("引路石箱阶无效");return waystoneByTier.getOrDefault(tier,waystoneDefault);}

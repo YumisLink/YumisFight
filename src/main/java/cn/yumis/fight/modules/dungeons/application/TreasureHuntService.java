@@ -99,10 +99,23 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
         if(joining){Dungeon old=owner.current(p.getUUID());if(old!=null&&!old.id.equals(d.id))owner.leave(p,false);}
         if(!d.returns.containsKey(p.getStringUUID())){ReturnPoint fallback=new ReturnPoint();fallback.dimension=Level.OVERWORLD.identifier().toString();fallback.x=d.treasure.mapX+.5;fallback.y=d.treasure.mapY;fallback.z=d.treasure.mapZ+.5;d.returns.put(p.getStringUUID(),outside.getOrDefault(p.getUUID(),fallback));}
         d.roster.add(p.getUUID());d.withdrawn.remove(p.getUUID());d.synchronization.put(p.getUUID(),false);
-        if(joining){int count=Math.max(1,present(d).size());for(UUID id:d.enemies){Entity e=world(d).getEntity(id);if(e instanceof DungeonEnemy mob){Target target=targets.target(mob);if(count>target.partySize){target.life.q=EncounterScaling.expandedQ(target.life.q,target.partySize,count);target.partySize=count;target.life.basis++;target.life.revision++;journal.put("target/"+id,target);}}}}
+        List<ServerPlayer> here=joining?present(d):List.of();
+        if(joining)for(UUID id:d.enemies){
+            Entity e=world(d).getEntity(id);
+            if(e instanceof DungeonEnemy mob&&mob.isAlive()){
+                Target target=targets.target(mob);
+                if(target.expandParty(here.size()))journal.put("target/"+id,target);
+            }
+        }
         var life=players.session(p).life;if(!life.instance.equals(d.id.toString())){life.instance=d.id.toString();life.dimension=p.level().dimension().identifier().toString();life.revision++;players.save(p);players.profile(p);}
         journal.put("instance/"+d.id,d);journal.put("return/"+p.getUUID(),d.returns.get(p.getStringUUID()));
-        if(joining){for(UUID id:d.enemies){Entity e=world(d).getEntity(id);if(e instanceof LivingEntity enemy)targets.context(p,enemy);}syncWeapons(p);}
+        if(joining){
+            for(UUID id:d.enemies){
+                Entity e=world(d).getEntity(id);
+                if(e instanceof LivingEntity enemy)for(ServerPlayer observer:here)targets.context(observer,enemy);
+            }
+            syncWeapons(p);
+        }
     }
     ServerLevel world(Dungeon d){return d.treasure.region==0?server.overworld():owner.level();}
     public void tick(){

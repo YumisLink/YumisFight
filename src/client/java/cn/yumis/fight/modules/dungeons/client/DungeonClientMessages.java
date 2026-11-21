@@ -18,6 +18,8 @@ public final class DungeonClientMessages {
         router.register("dungeons","skasaAttack",(context,j)->{SkasaVisuals.receive(j);EncounterClientContacts.receive(EncounterClientContacts.Family.SKASA,j,hit);});
         router.register("dungeons","darkCityAttack",(context,j)->DarkCityClient.receive(j,hit));
         router.register("dungeons","classicAttack",(context,j)->{ClassicVisuals.receive(j);EncounterClientContacts.receive(EncounterClientContacts.Family.CLASSIC,j,hit);});
+        router.register("dungeons","abyssAttack",(context,j)->AbyssVisuals.receive(j,hit));
+        router.register("dungeons","abyssCancel",(context,j)->AbyssVisuals.cancel(j));
         router.register("dungeons","ritualMenu",(context,j)->RitualFightClient.openMenu(j));
         router.register("dungeons","ritualRun",(context,j)->RitualFightClient.run(j));
         router.register("dungeons","ritualAttack",(context,j)->RitualFightClient.attack(j,contact));

@@ -62,7 +62,7 @@ public final class CharacterClient {
     }
     private static void use(CharacterActions.Ticket ticket){try{
         var player=Minecraft.getInstance().player;if(player==null||!ClientUi.current().ready())return;
-        String kind=switch(ticket){case AWAKENING->"unlockAwakening";case PROFILE_EXPANSION->"expandProfile";case LEVEL_ONE->"levelOne";case LEVEL_TEN->"levelTen";case LEVEL_MAX->"levelMax";};
+        String kind=switch(ticket){case CAREER_UNLOCK->"unlockCareer";case AWAKENING->"unlockAwakening";case PROFILE_EXPANSION->"expandProfile";case LEVEL_ONE->"levelOne";case LEVEL_TEN->"levelTen";case LEVEL_MAX->"levelMax";};
         var j=ClientUi.current().operation(kind);int slot=player.getInventory().getSelectedSlot();j.addProperty("ticketSlot",slot);j.add("ticketSource",InventoryEdits.encode(player,player.getInventory().getItem(slot)));
         if(ticket!=CharacterActions.Ticket.PROFILE_EXPANSION){
             ClientUi.current().send("progress",j);

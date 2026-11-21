@@ -22,16 +22,16 @@ final class OracleSkillVisuals {
         public long finishedUntil(Track track,SkillVisualEvent event){return replica?track.start.startedAt()+track.start.duration()+5500:event.at()+500;}
         public CameraType cameraType(Track track,long time){return CameraType.THIRD_PERSON_BACK;}
         public int defaultColor(){return 0xf2cb72;}
-        public void animate(Track track,net.minecraft.world.entity.player.Player player,net.minecraft.client.renderer.entity.state.EntityRenderState raw,long time){
-            if(!(raw instanceof net.minecraft.client.renderer.entity.state.AvatarRenderState state))return;
+        public void animate(Track track,net.minecraft.world.entity.LivingEntity caster,net.minecraft.client.renderer.entity.state.EntityRenderState raw,long time){
+            if(!(raw instanceof net.minecraft.client.renderer.entity.state.HumanoidRenderState state))return;
             var event=track.last;Vec3 heading=vector(event.direction());state.bodyRot=(float)Math.toDegrees(Math.atan2(-heading.x,heading.z));state.yRot=0;state.walkAnimationSpeed=0;
             long stage=track.flashes.stream().filter(e->e.phase()==SkillVisualEvent.Phase.SEGMENT).mapToLong(SkillVisualEvent::at).max().orElse(track.start.startedAt());state.attackTime=(float)Math.clamp((time-stage)*track.speed/600,0,1);
             if(replica&&event.sweep()){state.attackTime=.1f;state.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.THROW_TRIDENT;state.leftArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.THROW_TRIDENT;}
             if(replica&&OracleSkills.WEAPONS.contains(event.weaponType())){
-                var hand=cn.yumis.fight.modules.equipment.api.EquipmentItems.view(player.getMainHandItem());
+                var hand=cn.yumis.fight.modules.equipment.api.EquipmentItems.view(caster.getMainHandItem());
                 if(hand==null||!hand.weapon().name().equals(event.weaponType())){
                     var item=cn.yumis.fight.modules.equipment.api.EquipmentVisualItems.weaponModel("common_"+event.weaponType().toLowerCase(java.util.Locale.ROOT));
-                    Minecraft.getInstance().getItemModelResolver().updateForLiving(state.getMainHandItemState(),item,player.getMainArm()==net.minecraft.world.entity.HumanoidArm.LEFT?net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_LEFT_HAND:net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,player);
+                    Minecraft.getInstance().getItemModelResolver().updateForLiving(state.getMainHandItemState(),item,caster.getMainArm()==net.minecraft.world.entity.HumanoidArm.LEFT?net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_LEFT_HAND:net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,caster);
                 }
             }
         }

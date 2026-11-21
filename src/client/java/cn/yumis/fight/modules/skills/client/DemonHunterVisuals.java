@@ -16,6 +16,7 @@ import net.neoforged.neoforge.client.event.RenderPlayerEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import com.google.gson.JsonObject;
 import net.minecraft.world.phys.*;
+import org.joml.Vector3f;
 import java.util.*;
 import static cn.yumis.fight.modules.skills.client.SkillVfx.vector;
 
@@ -86,10 +87,10 @@ final class DemonHunterVisuals {
             if(wall.getType()!=HitResult.Type.MISS)position=wall.getLocation().add(target.subtract(position).normalize().scale(.25));Vec3 look=target.subtract(position);
             return new SkillVfx.CameraPose(position,(float)Math.toDegrees(Math.atan2(-look.x,look.z)),(float)-Math.toDegrees(Math.atan2(look.y,look.horizontalDistance())));
         }
-        private Swing swing(SkillVfx.Track t,Player player,long time){
+        private Swing swing(SkillVfx.Track t,net.minecraft.world.entity.LivingEntity caster,long time){
             if(!id.equals(DemonHunterSkills.BASIC_ATTACK)&&!id.equals(DemonHunterSkills.CHAOS)&&!id.equals(DemonHunterSkills.HUNT))return null;
-            var gear=EquipmentItems.view(player.getMainHandItem());
-            if(!player.isAlive()||!player.getOffhandItem().isEmpty()||gear==null||gear.weapon()!=Weapon.WARGLAIVE||t.start.phase()!=SkillVisualEvent.Phase.START)return null;
+            var gear=EquipmentItems.view(caster.getMainHandItem());
+            if(!caster.isAlive()||!caster.getOffhandItem().isEmpty()||gear==null||gear.weapon()!=Weapon.WARGLAIVE||t.start.phase()!=SkillVisualEvent.Phase.START)return null;
             double elapsed=time-t.start.startedAt(),length=t.start.duration();int count=2;
             if(id.equals(DemonHunterSkills.HUNT)){var combo=COMBOS.get(t);if(combo==null||t.released)return null;elapsed=own(t)?DemonHunterClient.huntComboAge(t.start.cast()):time-combo.at;length=combo.duration;count=combo.slashes;}
             if(elapsed<0||elapsed>=length)return null;
@@ -97,11 +98,12 @@ final class DemonHunterVisuals {
             return new Swing((slash&1)==0?InteractionHand.MAIN_HAND:InteractionHand.OFF_HAND,(float)Math.clamp(elapsed/length,0,1));
         }
         public Float handAttack(SkillVfx.Track t,Player player,InteractionHand hand,long time){var swing=swing(t,player,time);return swing==null?null:swing.hand()==hand?swing.progress():0f;}
-        public void animate(SkillVfx.Track t,Player player,net.minecraft.client.renderer.entity.state.EntityRenderState raw,long time){
+        public void animate(SkillVfx.Track t,net.minecraft.world.entity.LivingEntity caster,net.minecraft.client.renderer.entity.state.EntityRenderState raw,long time){
             if(!(raw instanceof net.minecraft.client.renderer.entity.state.AvatarRenderState s))return;
-            var swing=swing(t,player,time);
-            if(swing!=null){s.attackTime=swing.progress();s.attackArm=swing.hand()==InteractionHand.MAIN_HAND?player.getMainArm():player.getMainArm().getOpposite();}
+            var swing=swing(t,caster,time);
+            if(swing!=null){s.attackTime=swing.progress();s.attackArm=swing.hand()==InteractionHand.MAIN_HAND?caster.getMainArm():caster.getMainArm().getOpposite();}
             else if(id.equals(DemonHunterSkills.DANCE)){
+                if(!(caster instanceof Player player))return;
                 var dance=DANCES.get(t);if(dance==null||t.released||t.terminal>0)return;double age=danceAge(t,dance,time);
                 if(age<0||age>=dance.scene.timing().duration())return;boolean hide=hidden(t,dance,time);s.setRenderData(HIDDEN,hide);
                 Vec3 point=DemonHunterChoreography.safePosition(player,player.position(),dance.scene.point(age)),heading=dance.scene.direction(age);s.x=point.x;s.y=point.y;s.z=point.z;
@@ -119,36 +121,66 @@ final class DemonHunterVisuals {
         }
         public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track t,long age,long time,List<Quad> q,Vec3 camera){
             var mc=Minecraft.getInstance();var actor=mc.level==null?null:mc.level.getPlayerByUUID(t.start.caster());Vec3 p=vector(t.last.position()),d=vector(t.last.direction()).normalize();
+            boolean ownFirstPerson=actor!=null&&actor==mc.player&&mc.options.getCameraType().isFirstPerson();
             if(id.equals(DemonHunterSkills.BASIC_ATTACK)){
                 if(age<0||age>=t.start.duration())return;
                 double half=t.start.duration()/2d;int slash=(int)(age/half);double progress=(age-slash*half)/half;
-                if(actor!=null){p=PlayerVisualAnchor.position(actor);d=actor.getLookAngle().normalize();}
-                Vec3 side=new Vec3(-d.z,0,d.x);if(side.lengthSqr()<.01)side=new Vec3(1,0,0);
+                if(actor!=null){p=PlayerVisualAnchor.position(actor);d=PlayerVisualAnchor.look(actor);}
                 int sign=((slash&1)==0?1:-1)*(actor!=null&&actor.getMainArm()==HumanoidArm.LEFT?-1:1);
-                crescent(q,p.add(0,1,0),side.normalize().scale(sign),new Vec3(0,1,0),1.6,.15,t.start.color(),(int)(220*Math.sin(Math.PI*progress)));return;
+                Vec3 tip=p.add(0,1.1,0).add(d.scale(2.5));
+                BuiltinSkillVisuals.swordWave(q,tip,d,45*sign,1.6,.15,t.start.color(),PALE,(int)(220*Math.sin(Math.PI*progress)));
+                return;
             }
             if(id.equals(DemonHunterSkills.BEAM)){
                 if(actor==mc.player)age=DemonHunterClient.beamAge();
                 if(actor==null||t.released||age<DemonHunterChoreography.BEAM_RISE||age>=DemonHunterChoreography.BEAM_DURATION)return;
                 Vec3 from=actor.getEyePosition(),dir=actor.getLookAngle().normalize(),end=from.add(dir.scale(16));var hit=mc.level.clip(new net.minecraft.world.level.ClipContext(from,end,net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,actor));if(hit.getType()!=HitResult.Type.MISS)end=hit.getLocation();
-                if(actor==mc.player&&mc.options.getCameraType().isFirstPerson()){double length=from.distanceTo(end);if(length<=.5)return;from=from.add(dir.scale(.5));}
+                if(ownFirstPerson){double length=from.distanceTo(end);if(length<=.5)return;from=from.add(dir.scale(.5));}
                 tube(q,from,end,1,GREEN,150);tube(q,from,end,.25,PALE,235);
                 double length=from.distanceTo(end);for(double distance=.35+(age%180)/180d;distance<length;distance+=1.5)beamRing(q,from.add(dir.scale(distance)),dir,.88,.08,PALE,210);return;
             }
-            if(id.equals(DemonHunterSkills.GLAIVE)){Vec3 right=new Vec3(-d.z,0,d.x);double a=age/70d;Vec3 u=right.scale(Math.cos(a)).add(0,Math.sin(a),0),v=right.scale(-Math.sin(a)).add(0,Math.cos(a),0);crescent(q,p,u,v,.65,.12,GREEN,230);crescent(q,p,u.scale(-1),v,.65,.12,PALE,230);return;}
+            if(id.equals(DemonHunterSkills.GLAIVE)){
+                var orientation=context.levelState().cameraRenderState.orientation;
+                Vec3 viewRight=new Vec3(new Vector3f(1,0,0).rotate(orientation));
+                renderGlaive(q,p,camera,d,viewRight,age);
+                return;
+            }
             if(id.equals(DemonHunterSkills.META)&&actor!=null&&!t.released){Vec3 center=PlayerVisualAnchor.position(actor);for(int i=0;i<6;i++){double a=time/200d+i*Math.PI/3;Vec3 mote=center.add(Math.cos(a)*.7,.3+(i*.3+time/700d)%1.7,Math.sin(a)*.7);beam(q,mote,mote.add(0,.18,0),.05,PALE,190);}}
             if(id.equals(DemonHunterSkills.DANCE)){Vec3 center=vector(t.start.origin());ring(q,center.add(0,.04,0),3,.08,GREEN,170);for(int i=0;i<12;i++){double a=i*Math.PI/6;beam(q,center.add(Math.cos(a)*2.75,.05,Math.sin(a)*2.75),center.add(Math.cos(a)*3,.05,Math.sin(a)*3),.025,PALE,180);}}
             if(id.equals(DemonHunterSkills.HUNT)){
                 var points=TRAILS.get(t);if(points!=null){TrailPoint previous=null;for(var point:points){double fade=Math.clamp(1-(time-point.at)/(double)TRAIL_MILLIS,0,1);if(previous!=null&&fade>0){beam(q,previous.point,point.point,.06+.24*fade,GREEN,(int)(210*fade));beam(q,previous.point,point.point,.02+.07*fade,PALE,(int)(245*fade));}previous=point;}}
             }
             if(id.equals(DemonHunterSkills.RUSH)&&actor!=null){Vec3 here=actor.position().add(0,.8,0);beam(q,here,here.subtract(actor.getLookAngle().scale(2.5)),.22,GREEN,100);}
-            for(var flash:t.flashes){long n=time-flash.at();if(n<0||n>450||flash.phase()==SkillVisualEvent.Phase.START)continue;double fade=1-n/450d;Vec3 c=vector(flash.position()),forward=vector(flash.direction()).normalize(),side=new Vec3(-forward.z,0,forward.x);if(side.lengthSqr()<.01)side=new Vec3(1,0,0);
-                if(id.equals(DemonHunterSkills.CHAOS))side=side.scale(((flash.sequence()&1)==1?1:-1)*(actor!=null&&actor.getMainArm()==HumanoidArm.LEFT?-1:1));
-                if(id.equals(DemonHunterSkills.HUNT)&&flash.sequence()>=2)side=side.scale(((flash.sequence()&1)==0?1:-1)*(actor!=null&&actor.getMainArm()==HumanoidArm.LEFT?-1:1));
-                if(flash.phase()==SkillVisualEvent.Phase.FINISH){ring(q,c.add(0,.08,0),Math.min(id.equals(DemonHunterSkills.DANCE)?3:4,.3+n/65d),.2,GREEN,(int)(220*fade));}
-                else crescent(q,c.add(0,1,0),side,new Vec3(0,1,0),id.equals(DemonHunterSkills.DANCE)?3:1.6,.15,GREEN,(int)(220*fade));
+            for(var flash:t.flashes){
+                long n=time-flash.at();
+                if(n<0||n>450||flash.phase()==SkillVisualEvent.Phase.START)continue;
+                int alpha=(int)(220*(1-n/450d));
+                Vec3 c=vector(flash.position());
+                if(flash.phase()==SkillVisualEvent.Phase.FINISH){
+                    ring(q,c.add(0,.08,0),Math.min(id.equals(DemonHunterSkills.DANCE)?3:4,.3+n/65d),.2,GREEN,alpha);
+                    continue;
+                }
+                int hand=actor!=null&&actor.getMainArm()==HumanoidArm.LEFT?-1:1;
+                boolean odd=(flash.sequence()&1)==1;
+                int sign=1;
+                if(id.equals(DemonHunterSkills.CHAOS))sign=odd?hand:-hand;
+                if(id.equals(DemonHunterSkills.HUNT)&&flash.sequence()>=2)sign=odd?-hand:hand;
+                Vec3 direction=vector(flash.direction()).normalize();
+                Vec3 tip=c.add(0,1.1,0).add(direction.scale(1.5));
+                BuiltinSkillVisuals.swordWave(q,tip,direction,45*sign,id.equals(DemonHunterSkills.DANCE)?3:1.6,.15,GREEN,PALE,alpha);
             }
         }
+    }
+    private static void renderGlaive(List<Quad> quads,Vec3 center,Vec3 camera,Vec3 flightDirection,Vec3 viewRight,long age){
+        Vec3 sightline=camera.subtract(center).normalize();
+        if(sightline.lengthSqr()==0)sightline=flightDirection.scale(-1);
+        if(sightline.lengthSqr()==0)return;
+        Vec3 horizontal=viewRight.subtract(sightline.scale(viewRight.dot(sightline))).normalize();
+        if(horizontal.lengthSqr()==0)horizontal=beamSide(sightline);
+        double angle=age/70d,cos=Math.cos(angle),sin=Math.sin(angle);
+        Vec3 axis=sightline.scale(cos).add(horizontal.scale(sin));
+        Vec3 span=horizontal.scale(cos).subtract(sightline.scale(sin));
+        BuiltinSkillVisuals.bladeLoop(quads,center,axis,span,.65,.12,GREEN,PALE,230);
     }
     static void actors(List<Quad> q,long now){
         var mc=Minecraft.getInstance();if(mc.level==null)return;long visualNow=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();for(var state:CareerClient.INSTANCE.view.actors){var p=mc.level.getPlayerByUUID(UUID.fromString(state.owner));if(p==null||hidden(p.getUUID(),visualNow))continue;Vec3 center=PlayerVisualAnchor.position(p);
@@ -169,5 +201,4 @@ final class DemonHunterVisuals {
     }
     private static void beam(List<Quad> q,Vec3 a,Vec3 b,double w,int color,int alpha){Vec3 d=b.subtract(a),side=new Vec3(-d.z,0,d.x);if(side.lengthSqr()<1e-6)side=new Vec3(1,0,0);side=side.normalize().scale(w);q.add(new Quad(a.add(side),b.add(side),b.subtract(side),a.subtract(side),color,alpha));q.add(new Quad(a.add(0,w,0),b.add(0,w,0),b.add(0,-w,0),a.add(0,-w,0),color,alpha));}
     private static void ring(List<Quad> q,Vec3 p,double r,double w,int color,int alpha){for(int i=0;i<48;i++){double a=i*Math.PI/24,b=(i+1)*Math.PI/24;Vec3 u=new Vec3(Math.cos(a),0,Math.sin(a)),v=new Vec3(Math.cos(b),0,Math.sin(b));q.add(new Quad(p.add(u.scale(r)),p.add(v.scale(r)),p.add(v.scale(r-w)),p.add(u.scale(r-w)),color,alpha));}}
-    private static void crescent(List<Quad> q,Vec3 p,Vec3 u,Vec3 v,double r,double w,int color,int alpha){for(int i=0;i<24;i++){double a=-2.5+i*5d/24,b=a+5d/24;Vec3 x=u.scale(Math.cos(a)).add(v.scale(Math.sin(a))),y=u.scale(Math.cos(b)).add(v.scale(Math.sin(b)));q.add(new Quad(p.add(x.scale(r)),p.add(y.scale(r)),p.add(y.scale(r-w)),p.add(x.scale(r-w)),color,alpha));}}
 }

@@ -20,6 +20,7 @@ import cn.yumis.fight.modules.combat.api.CombatSession;
 import cn.yumis.fight.modules.economy.api.RewardPorts;
 import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.attributes.api.Stats;
+import com.google.gson.JsonElement;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
@@ -41,7 +42,7 @@ public final class RuntimeAssembly {
     public static cn.yumis.fight.modules.combat.application.NativeHits nativeHits(ServerApplication runtime){return new cn.yumis.fight.modules.combat.application.NativeHits(runtime.journal,runtime::session,runtime.targets::resolve,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,()->runtime.bridge,runtime.inventory::encode);}
     public static cn.yumis.fight.modules.skills.application.VisualService visualService(ServerApplication runtime){return new cn.yumis.fight.modules.skills.application.VisualService(runtime.server,runtime::session);}
     public static cn.yumis.fight.modules.dungeons.application.DamageMeterService damageMeterService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.DamageMeterService(runtime.journal,runtime.server,id->runtime.dungeons.current(id),(p,id)->runtime.dungeons.participant(p,id),p->runtime.session(p).progress.level,()->runtime.combatSettings);}
-    public static DungeonService dungeonService(ServerApplication runtime){return new DungeonService(runtime.journal,runtime.characters,runtime.server,new DungeonPorts.Players(){
+    public static DungeonService dungeonService(ServerApplication runtime){return new DungeonService(runtime.journal,runtime.inventory,runtime.characters,runtime.server,new DungeonPorts.Players(){
         public CombatSession session(ServerPlayer p){return runtime.session(p);}
         public int level(ServerPlayer p){return runtime.session(p).progress.level;}
         public Progress progress(ServerPlayer p){return runtime.session(p).progress;}
@@ -57,7 +58,7 @@ public final class RuntimeAssembly {
         public void publish(){runtime.loot.publish();}
         public void closePractice(String instance)throws Exception{runtime.loot.closePractice(instance);}
     },new DungeonPorts.Meter(){
-        public void join(Dungeon d,ServerPlayer p)throws Exception{runtime.damageMeter.join(d,p);}
+        public Map<String,JsonElement> joinWrites(Dungeon d,ServerPlayer p){return runtime.damageMeter.joinWrites(d,p);}
         public void leave(Dungeon d,ServerPlayer p)throws Exception{runtime.damageMeter.leave(d,p);}
         public void freeze(Dungeon d)throws Exception{runtime.damageMeter.freeze(d);}
     },runtime.partyService::team,runtime::refreshAll,cn.yumis.fight.modules.mapgeneration.api.WorldDecorations::block,(instance,participants)->{

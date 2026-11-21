@@ -25,6 +25,19 @@ class ProgressMovementTest {
         assertThrows(IllegalArgumentException.class,()->SkillLearning.learn(p,SkillCatalog.GHOST,2));
     }
 
+    @Test void promoteProfilesSurviveNullDroppingRoundTrips(){
+        var active=new Progress();active.gainLevels(19);
+        var book=cn.yumis.fight.modules.character.api.CareerProfiles.first();
+        book.fillSlots();
+        var round=book.copy();// default Gson drops JsonNull members, matching wire deltas and WAL reads
+        round.validate(active);round.stored(active);
+        String target=round.entries.keySet().stream().filter(id->!id.equals(round.activeId)).findFirst().orElseThrow();
+        var switched=round.select(active,target);
+        assertEquals(active.level,switched.level);assertNull(switched.talentAxis);
+        var restored=round.select(switched,book.activeId);
+        assertEquals(active.level,restored.level);assertNull(restored.talentAxis);
+        round.validate(restored);round.stored(restored);
+    }
     @Test void earnExperienceGrantsTheBaseAmountAtLowLevels(){
         Progress p=new Progress();
         assertEquals(100,p.earnExperience(100));

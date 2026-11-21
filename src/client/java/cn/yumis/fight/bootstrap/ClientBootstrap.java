@@ -32,6 +32,7 @@ import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.platform.ItemData;
 import cn.yumis.fight.modules.industry.platform.IndustrialContent;
 import cn.yumis.fight.modules.industry.client.IndustrialVisuals;
+import cn.yumis.fight.modules.skills.client.ChampionSkillPoses;
 import cn.yumis.fight.modules.skills.client.Effects;
 
 import cn.yumis.fight.network.Network;
@@ -84,6 +85,7 @@ public final class ClientBootstrap {
         Network.CLIENT=ClientSession.INSTANCE::accept;
         if(Boolean.getBoolean("ydnf.verify"))cn.yumis.fight.modules.skills.api.client.SkillDiagnostics.attack=(weapon,value)->{cn.yumis.fight.verification.FeedbackProbe.weapon=weapon;cn.yumis.fight.verification.FeedbackProbe.attack=value;};
         Effects.VFX.register();
+        ChampionSkillPoses.install();
         cn.yumis.fight.modules.presentation.api.client.NearEffectRendering.register(bus);
         cn.yumis.fight.modules.presentation.api.client.EffectParticles.register(bus);
         cn.yumis.fight.modules.combat.client.EnemyHealthBars.register(entity ->
@@ -105,6 +107,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.client.EncounterClientContacts.register(()->ClientSession.INSTANCE.own,()->ClientSession.INSTANCE.progress.level,()->ClientSession.INSTANCE.encounterSync(),()->SkillController.INSTANCE.invulnerable());
         cn.yumis.fight.modules.dungeons.client.CastleCombatClient.register(bus, local::context, SkillController.INSTANCE::boss);
         cn.yumis.fight.modules.dungeons.client.EnemyTelegraphs.register(()->ClientSession.INSTANCE.own.instance);
+        cn.yumis.fight.modules.dungeons.client.AbyssVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.RitualFightClient.register(()->ClientSession.INSTANCE.own,cn.yumis.fight.modules.npc.client.TutorialClient::awakeningAtAltar);
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.InfusionParticles.register(bus);

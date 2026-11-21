@@ -15,6 +15,8 @@ public final class EquipmentVisualItems {
         new WeaponModel("common_greatsword","greatsword","greatsword_50_base","item/expansion/greatsword_50_base"),
         new WeaponModel("common_shortsword","shortsword","shortsword_50_base","item/expansion/shortsword_50_base"),
         new WeaponModel("common_blunt","blunt","blunt_50_base","item/expansion/blunt_50_base"),
+        new WeaponModel("common_warglaive","warglaive","warglaive_50_base","item/standard/warglaive_50_base"),
+        new WeaponModel("common_staff","staff","staff_50_base","item/standard/staff_50_base"),
         new WeaponModel("skyspine","lightsaber","skyspine","item/named/skyspine"),
         new WeaponModel("bylle","greatsword","bylle","item/named/bylle"),
         new WeaponModel("willy_staff","staff","willy_staff","item/named/willy_staff"),

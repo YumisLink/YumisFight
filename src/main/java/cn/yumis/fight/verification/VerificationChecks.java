@@ -211,7 +211,6 @@ public final class VerificationChecks {
             staleDimension.addProperty("dimension",ItemData.NS+":retired-dimension");
             staleDimension.addProperty("target",player.getStringUUID());
             staleDimension.addProperty("generation",session.life.generation);
-            staleDimension.addProperty("basis",session.life.basis);
             staleDimension.addProperty("instance",session.life.instance);
             staleDimension.addProperty("fraction",.05);
             staleDimension.addProperty("heal",true);

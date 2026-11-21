@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.presentation.client;
 import cn.yumis.fight.modules.mining.api.VeinMining;
 import cn.yumis.fight.modules.presentation.api.client.*;
 import java.util.List;
+import java.util.Locale;
 public final class SettingsPage {
     private SettingsPage(){}
     public static void render(PlayerPageSurface page){
@@ -20,6 +21,11 @@ public final class SettingsPage {
             case "combat"->{
                 page.line("战斗显示",UiTheme.GOLD);page.gap();
                 page.rowButton("第一人称近身特效淡化："+(ClientSettings.nearEffectFade?"开":"关"),()->{ClientSettings.nearEffectFade=!ClientSettings.nearEffectFade;ClientSettings.save();page.rebuild();});
+                page.rowSlider(0, ClientSettings.MAX_NEAR_EFFECT_FADE_DISTANCE_STEPS, ClientSettings.nearEffectFadeDistanceSteps,
+                    value -> String.format(Locale.ROOT,"近身特效淡化距离：%.2f 格",value/100d), value -> {
+                        ClientSettings.nearEffectFadeDistanceSteps = value;
+                        ClientSettings.save();
+                    });
                 page.rowSlider(1, ClientSettings.MAX_DAMAGE_SCALE, ClientSettings.damageScale,
                     value -> "本人伤害数字倍率："+value+" 倍", value -> {
                         ClientSettings.damageScale = value;

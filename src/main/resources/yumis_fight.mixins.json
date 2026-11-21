@@ -66,6 +66,7 @@
     "DemonTravelMixin",
     "DemonVisionMixin",
     "WarglaiveHandMixin",
+    "NearEffectRenderPassMixin",
     "LightsaberBlockLightMixin",
     "LightsaberEntityLightMixin"
   ]

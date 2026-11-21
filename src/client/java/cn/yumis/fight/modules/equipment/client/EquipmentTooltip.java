@@ -198,6 +198,7 @@ public final class EquipmentTooltip {
         List<Component> out=e.getToolTip();
         if(ItemData.own(stack))out.replaceAll(UiFonts::decorate);
         if(cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mythic(stack)&&!out.isEmpty())out.set(0,cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(out.getFirst()));
+        if(view!=null&&view.rarity()==cn.yumis.fight.modules.equipment.api.Rarity.PRIMORDIAL&&!out.isEmpty())out.set(0,cn.yumis.fight.modules.equipment.api.client.PrimordialDisplay.mark(out.getFirst()));
         if(view==null){
             String id=ItemData.id(stack);
             if(id.equals("colorless_crystal")&&ItemData.own(stack)){out.add(text("拾取后存入无色小晶块余额，不占背包；余额在I菜单商城中查看",0xc5e6f5));return;}
@@ -226,6 +227,7 @@ public final class EquipmentTooltip {
         // Keep vanilla enchantments, lore and component descriptions supplied by other mods.
         if(g.corrupted)out.add(text("腐化 · 禁止常规加工，仍可镶嵌、出售、整件分解",0xff7070));
         Component quality=text(g.rarity.title(),g.rarity.color());if(g.rarity==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC)quality=cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(quality);
+        if(g.rarity==cn.yumis.fight.modules.equipment.api.Rarity.PRIMORDIAL)quality=cn.yumis.fight.modules.equipment.api.client.PrimordialDisplay.mark(quality);
         int required = g.requiredLevel();
         String levelLabel = required == g.level ? " · 需求 Lv." + required : " · 装备 Lv." + g.level + " · 需求 Lv." + required;
         out.add(Component.empty().append(quality).append(text(" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.armor()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.jewelry()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.title())+levelLabel,g.rarity.color())));

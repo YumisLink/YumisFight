@@ -57,7 +57,10 @@ public final class EquipmentItems {
     public static void write(ItemStack stack,Gear g){
         if(g.savedName.isEmpty())g.savedName=name(g);
         string(stack,NS,JSON.toJson(g));
-        stack.set(DataComponents.ITEM_NAME,ModText.of(name(g)).withStyle(s->s.withColor(g.rarity.color()).withItalic(false)));
+        stack.set(DataComponents.ITEM_NAME,ModText.of(name(g)).withStyle(s->{
+            if(g.rarity==Rarity.PRIMORDIAL)return s.withColor(0x64f59a).withInsertion(cn.yumis.fight.modules.presentation.api.RichText.GRADIENT+"64F59A/A6E6FF").withItalic(false);
+            return s.withColor(g.rarity.color()).withItalic(false);
+        }));
     }
     public static ItemStack material(String id,int count){
         MaterialCatalog.Material m=MaterialCatalog.current().materials.get(id);

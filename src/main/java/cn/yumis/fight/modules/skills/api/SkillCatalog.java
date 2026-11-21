@@ -19,7 +19,7 @@ public final class SkillCatalog {
         .formParameter("stormDeploy",StormChoreography.seconds(StormChoreography.DEPLOY));
     public static final SkillDefinition BLINK=equipmentBlink();
     private static SkillDefinition equipmentBlink(){var skill=new SkillDefinition(cn.yumis.fight.modules.equipment.api.EquipmentEffects.BLINK,"闪现","EQUIPMENT_MAGIC","",1,1,.2,8,0,false,parameters(5,0,0,0,0));skill.equipmentGranted=true;skill.magicTag=true;skill.cooldownPerRank=.1;return register(skill);}
-    static {CareerSkills.install();MageSkills.install();SummonerSkills.install();SunMoonSkills.install();OracleSkills.install();DemonHunterSkills.install();BuiltinSkillBalance.install();MageSkills.balance();SummonerSkills.balance();SunMoonSkills.balance();OracleSkills.balance();DemonHunterSkills.balance();}
+    static {CareerSkills.install();MageSkills.install();SummonerSkills.install();SunMoonSkills.install();OracleSkills.install();DemonHunterSkills.install();BuiltinSkillBalance.install();MageSkills.balance();SummonerSkills.balance();SunMoonSkills.balance();OracleSkills.balance();DemonHunterSkills.balance();AbyssChampionSkills.install();}
     private SkillCatalog(){}
     private static Map<String,Double> parameters(double range,double slashes,double finisher,double interval,double duration){return Map.of("range",range,"slashes",slashes,"finisher",finisher,"interval",interval,"duration",duration);}
     public static synchronized SkillDefinition register(SkillDefinition definition){if(DEFINITIONS.putIfAbsent(definition.id,definition)!=null)throw new IllegalArgumentException("Duplicate skill: "+definition.id);return definition;}

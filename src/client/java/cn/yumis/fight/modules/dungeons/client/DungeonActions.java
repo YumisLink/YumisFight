@@ -32,13 +32,15 @@ public final class DungeonActions {
     public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<Stats> attributes,BooleanSupplier living,IntFunction<ItemStack> chests,DoubleFunction<Rarity> rarity,BooleanSupplier training){
         progress=p;stats=attributes;alive=living;chest=chests;rarityRoll=rarity;trainingAllowed=training;
         router.register("dungeons","dungeon",(ignored,j)->{
-            if(j.get("kind").getAsString().equals("leave"))return;
+            String kind=j.get("kind").getAsString();
+            if(kind.equals("leave"))return;
             String id=j.get("dungeon").getAsString();
             if(PracticeRoom.isRoomId(id)){
                 var room=PracticeRoom.require(id);
                 if(progress.get().level<room.level())throw new IllegalArgumentException("角色等级不足");
                 if(!alive.getAsBoolean())throw new IllegalArgumentException("死亡状态不能参加挑战");
             }else eligible(id);
+            if(j.has("abyssChallenge")&&j.get("abyssChallenge").getAsBoolean())prepareAbyssPayment(j);
         });
         router.register("dungeons","waystoneTable",(ignored,j)->{
             String action=j.get("action").getAsString();if(!Set.of("insert","join","ready","start").contains(action))return;
@@ -55,6 +57,28 @@ public final class DungeonActions {
         });
         router.register("dungeons","waystoneReturnResult",(ignored,j)->returned(j));
         router.register("dungeons","trainingStart",(ignored,j)->{if(!trainingAllowed.getAsBoolean())throw new IllegalArgumentException("请在副本外且存活时开始训练");if(Minecraft.getInstance().level.dimension().identifier().equals(DUNGEON_DIMENSION))throw new IllegalArgumentException("请在副本外训练");});
+    }
+
+    static boolean hasAbyssInvitation(){
+        return abyssInvitationSlot(Minecraft.getInstance().player)>=0;
+    }
+
+    private static int abyssInvitationSlot(LocalPlayer player){
+        if(player==null)return -1;
+        for(int slot=0;slot<36;slot++){
+            if(AbyssParty.invitation(player.getInventory().getItem(slot)))return slot;
+        }
+        return -1;
+    }
+
+    private static void prepareAbyssPayment(JsonObject request){
+        var player=Minecraft.getInstance().player;
+        int slot=abyssInvitationSlot(player);
+        if(slot<0)throw new IllegalArgumentException("背包中需要 1 张深渊派对邀请函");
+        var stack=player.getInventory().getItem(slot);
+        var changes=new JsonArray();
+        changes.add(InventoryEdits.change(player,"inventory",slot,stack,stack.copyWithCount(stack.getCount()-1)));
+        request.add("inventoryChanges",changes);
     }
 
     public static void updateSwimSpeed(LocalPlayer player, Dungeon dungeon) {
@@ -78,13 +102,18 @@ public final class DungeonActions {
     }
     private static void eligible(String id){var rule=DungeonCatalog.current().dungeon(id);if(!rule.available())throw new IllegalArgumentException("该副本尚未开放");if(progress.get().level<rule.level())throw new IllegalArgumentException("角色等级不足");if(!alive.getAsBoolean())throw new IllegalArgumentException("死亡状态不能参加挑战");}
     private static void returned(JsonObject j){
-        if(j.has("items"))return;
-        var context=j.getAsJsonObject("context");var run=JSON.fromJson(context.get("run"),WaystoneRun.class);var items=new JsonArray();
+        if(j.has("id"))return;
+        var context=j.getAsJsonObject("context");
+        var run=JSON.fromJson(context.get("run"),WaystoneRun.class);
+        var player=Minecraft.getInstance().player;
         if(context.get("returnStone").getAsBoolean()){
             int tier=run.rules.nextTier(run.stone.tier,run.elapsed(run.finishedAt),run.result.equals("COMPLETED"));double luck=run.stone.effectiveDropRate(stats.get().get(Stat.DROP_RATE));var rarity=rarityRoll.apply(luck);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;
-            items.add(InventoryEdits.encode(Minecraft.getInstance().player,Waystone.generate(tier,progress.get().level,rarity,RANDOM).item()));j.addProperty("resultingTier",tier);
+            j.add("stone",InventoryEdits.encode(player,Waystone.generate(tier,progress.get().level,rarity,RANDOM).item()));
+            j.addProperty("resultingTier",tier);
         }
-        if(context.get("chest").getAsBoolean())items.add(InventoryEdits.encode(Minecraft.getInstance().player,chest.apply(run.stone.tier)));j.add("items",items);
+        if(context.get("chest").getAsBoolean())j.add("chest",InventoryEdits.encode(player,chest.apply(run.stone.tier)));
+        j.add("id",context.get("id"));
+        j.remove("context");
     }
     public static void receiveReturn(JsonObject context){if(!offered.add(context.get("id").getAsString()))return;var j=ClientUi.current().operation("waystoneReturnResult");j.add("context",context.deepCopy());j.addProperty("retryStorage",true);ClientUi.current().send("waystoneReturnResult",j);}
     public static void clear(){offered.clear();}

@@ -14,7 +14,7 @@ public final class EquipmentTemplates {
     public static ArmorType armor(Gear g){return g.armorType==null?ArmorType.UNTYPED:g.armorType;}
     public static JewelryType jewelry(Gear g){return g.jewelryType==null?JewelryType.UNTYPED:g.jewelryType;}
     public static double weight(Slot slot){return switch(slot){case CHEST->.4;case HEAD,FEET->.15;case LEGS->.3;default->throw new IllegalArgumentException("不是防具部位");};}
-    public static boolean designed(Rarity rarity){return rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC;}
+    public static boolean designed(Rarity rarity){return rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC&&rarity!=Rarity.PRIMORDIAL;}
     public static void validate(Gear g){
         if(NamedEquipment.find(g.template)!=null)return;
         if(MageBlood.is(g)){if(g.slot!=Slot.LEGS||g.rarity!=Rarity.MYTHIC||armor(g)!=ArmorType.CLOTH||g.level<1||g.level>85)throw new IllegalArgumentException("法师之血模板无效");return;}
@@ -61,7 +61,7 @@ public final class EquipmentTemplates {
         return all;
     }
     public static List<Gear> creative(Rarity rarity){
-        if(rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC)throw new IllegalArgumentException("仅史诗、神话目录");
+        if(rarity!=Rarity.EPIC&&rarity!=Rarity.MYTHIC&&rarity!=Rarity.PRIMORDIAL)throw new IllegalArgumentException("仅史诗、神话、太初目录");
         List<Gear> all=new ArrayList<>();Random random=new Random(0);
         if(rarity==Rarity.MYTHIC)all.add(MageBlood.create(random));
         for(var template:NamedEquipment.all())if(template.rarity()==rarity)all.add(NamedEquipment.create(template.id(),random));

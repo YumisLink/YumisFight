@@ -61,7 +61,7 @@ public final class SalePanel implements ClientPagePanel {
             var row=value.getAsJsonObject();String key=row.get("key").getAsString();
             ItemStack preview=row.has("source")?ItemStack.OPTIONAL_CODEC.parse(mc.player.registryAccess().createSerializationContext(JsonOps.INSTANCE),row.get("source")).result().orElse(ItemStack.EMPTY):ItemStack.EMPTY;
             Rarity rarity=row.has("rarity")?Rarity.valueOf(row.get("rarity").getAsString()):Rarity.COMMON;
-            List<Component> lines=new ArrayList<>();Component name=Component.literal(row.get("name").getAsString());lines.add(rarity==Rarity.MYTHIC?MythicDisplay.mark(name):name);
+            List<Component> lines=new ArrayList<>();Component name=Component.literal(row.get("name").getAsString());lines.add(rarity==Rarity.MYTHIC?MythicDisplay.mark(name):rarity==Rarity.PRIMORDIAL?cn.yumis.fight.modules.equipment.api.client.PrimordialDisplay.mark(name):name);
             long price=row.has("price")?row.get("price").getAsLong():0;
             String dismantle=row.has("dismantle")?row.get("dismantle").getAsString():"";
             boolean allowed=row.get(dismantling?"dismantleAllowed":"allowed").getAsBoolean();String reason=row.get(dismantling?"dismantleReason":"reason").getAsString();

@@ -31,7 +31,7 @@ public final class EquipmentAffixes {
     public static boolean flatAllowed(Gear g,Stat s){
         Slot slot=g.slot;
         return switch(s){
-            case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN,STAMINA_RECOVERY,SHIELD_COOLDOWN_RECOVERY,SHIELD_REGENERATION->false;
+            case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN,STAMINA_RECOVERY,SHIELD_COOLDOWN_RECOVERY,SHIELD_REGENERATION,HEALTH_REGENERATION->false;
             case STAMINA->slot==Slot.LEGS;
             case ATTACK_SPEED->slot==Slot.WEAPON||sixJewelry(slot);
             case HEALTH->slot.armor();
@@ -48,7 +48,7 @@ public final class EquipmentAffixes {
         if(base(g,s)<=0)return false;
         Slot slot=g.slot;
         return switch(s){
-            case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN,STAMINA,STAMINA_RECOVERY,SHIELD_COOLDOWN_RECOVERY,SHIELD_REGENERATION->false;
+            case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN,STAMINA,STAMINA_RECOVERY,SHIELD_COOLDOWN_RECOVERY,SHIELD_REGENERATION,HEALTH_REGENERATION->false;
             case ATTACK_SPEED->false;
             case HEALTH,MP->slot.armor()||slot.jewelry();
             case STRENGTH,INTELLIGENCE,SPIRIT->true;

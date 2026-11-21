@@ -1,4 +1,9 @@
 {
+  "entity.yumis_dungeon_and_fight.abyss_pillar": "Abyss Pillar",
+  "entity.yumis_dungeon_and_fight.abyss_skeleton": "Abyss Skeleton",
+  "entity.yumis_dungeon_and_fight.abyss_steel_pipe": "Steel Pipe Bruiser",
+  "entity.yumis_dungeon_and_fight.abyss_champion": "Abyss Champion",
+  "item.yumis_dungeon_and_fight.abyss_invitation": "Abyss Party Invitation",
   "item.yumis_dungeon_and_fight.goblin_treasure_map": "Goblin Kingdom Treasure Map",
   "item.yumis_dungeon_and_fight.goblin_treasure_map.opened": "Opened %s",
   "entity.yumis_dungeon_and_fight.forbidden_cultist": "Revived GBL Cultist",
@@ -333,6 +338,7 @@
   "recipe.yumis_dungeon_and_fight.industrial.sand": "Crush Gravel to Sand",
   "item.yumis_dungeon_and_fight.storage_plugin": "Storage Plugin",
   "item.yumis_dungeon_and_fight.speed_plugin": "Speed Plugin",
+  "item.yumis_dungeon_and_fight.career_unlock_ticket": "Universal Career Unlock Ticket",
   "item.yumis_dungeon_and_fight.awakening_ticket": "Awakening Ticket",
   "item.yumis_dungeon_and_fight.stripping_stone": "Stripping Stone",
   "item.yumis_dungeon_and_fight.stellar_alloy": "恒星合金",

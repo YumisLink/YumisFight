@@ -34,7 +34,7 @@ final class BuiltinSkillVisuals {
                 public void tick(Track track,long time){BuiltinSkillVisuals.tick(track,time);}
                 public void render(LevelRenderContext context,Track track,long age,long time,List<Quad> quads,Vec3 camera){BuiltinSkillVisuals.render(context,track,age,time,quads,camera);}
                 public void play(SkillVisualEvent event){BuiltinSkillVisuals.play(event);}
-                public void animate(Track track,Player player,EntityRenderState state,long time){BuiltinSkillVisuals.animate(track,player,state,time);}
+                public void animate(Track track,net.minecraft.world.entity.LivingEntity caster,EntityRenderState state,long time){BuiltinSkillVisuals.animate(track,caster,state,time);}
                 public CameraType cameraType(Track track,long time){return StormChoreography.presentationTime(time-track.start.startedAt())<StormChoreography.FINISH?CameraType.THIRD_PERSON_BACK:CameraType.FIRST_PERSON;}
                 public CameraPose camera(Track track,long time){return cinematic()?BuiltinSkillVisuals.camera(track,time):null;}
             });
@@ -76,9 +76,8 @@ final class BuiltinSkillVisuals {
             if((event.skill().equals("yumis_dungeon_and_fight:wave")||(event.skill().equals("yumis_dungeon_and_fight:dance")||event.skill().equals("MASTERY_WAVE"))&&t.released)&&t.last.phase()==SkillVisualEvent.Phase.TRAIL&&time-t.last.at()<180){
                 double radius=(event.skill().equals("yumis_dungeon_and_fight:wave")?1:1.5)*event.horizontalScale();
                 Vec3 direction=vector(t.last.direction());
-                Vec3 p=vector(t.last.position()).subtract(direction.scale(radius*.65)).add(0,event.skill().equals("yumis_dungeon_and_fight:wave")?.8:1,0);
-                double angle=Math.toRadians(event.slashAngle());Vec3 span=UP.scale(Math.cos(angle)).add(side(direction).scale(Math.sin(angle)));
-                crescent(quads,p,direction.scale(.65),span.scale(.72),radius,.35,event.color(),event.color(),200);
+                Vec3 tip=vector(t.last.position()).add(0,event.skill().equals("yumis_dungeon_and_fight:wave")?.8:1,0);
+                swordWave(quads,tip,direction,event.slashAngle(),radius,.35,event.color(),event.color(),200);
                 ring(quads,vector(t.last.position()).add(0,.08,0),.4,event.color(),75);
             }
             for(SkillVisualEvent flash:t.flashes){
@@ -98,9 +97,9 @@ final class BuiltinSkillVisuals {
         Vec3 look=target.subtract(position);
         return new CameraPose(position,(float)Math.toDegrees(Math.atan2(-look.x,look.z)),(float)-Math.toDegrees(Math.atan2(look.y,look.horizontalDistance())));
     }
-    private static void animate(Track t,Player player,EntityRenderState raw,long time){
+    private static void animate(Track t,net.minecraft.world.entity.LivingEntity caster,EntityRenderState raw,long time){
         if(!(raw instanceof AvatarRenderState state))return;
-        if(t.start.skill().equals("yumis_dungeon_and_fight:storm")&&t.start.caster().equals(player.getUUID())){
+        if(t.start.skill().equals("yumis_dungeon_and_fight:storm")&&t.start.caster().equals(caster.getUUID())){
             long age=StormChoreography.presentationTime(time-t.start.startedAt());
             if(age<0||age>=7200)return;
             Vec3 p=local(t.start,StormChoreography.actor(t.start.seed(),age));
@@ -128,7 +127,7 @@ final class BuiltinSkillVisuals {
             state.isFallFlying=false;
             ensureSwords(t);
             int index=StormChoreography.order(t.start.seed())[(int)Math.clamp((age-1000)/250,0,23)];
-            Minecraft.getInstance().getItemModelResolver().updateForLiving(state.getMainHandItemState(),t.swords[index],player.getMainArm()==net.minecraft.world.entity.HumanoidArm.LEFT?ItemDisplayContext.THIRD_PERSON_LEFT_HAND:ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,player);
+            Minecraft.getInstance().getItemModelResolver().updateForLiving(state.getMainHandItemState(),t.swords[index],caster.getMainArm()==net.minecraft.world.entity.HumanoidArm.LEFT?ItemDisplayContext.THIRD_PERSON_LEFT_HAND:ItemDisplayContext.THIRD_PERSON_RIGHT_HAND,caster);
             return;
         }
     }
@@ -237,6 +236,26 @@ final class BuiltinSkillVisuals {
     private static Vec3 pixel(Vec3 p){
         return new Vec3(Math.rint(p.x*32)/32,Math.rint(p.y*32)/32,Math.rint(p.z*32)/32);
     }
+    static void swordWave(List<Quad> out,Vec3 tip,Vec3 direction,double slashAngle,double radius,double thickness,int fill,int edge,int alpha){
+        if(direction.lengthSqr()<1e-6)return;
+        Vec3 right=side(direction).normalize();
+        if(right.lengthSqr()==0)right=new Vec3(1,0,0);
+        Vec3 up=direction.cross(right).normalize();
+        double angle=Math.toRadians(slashAngle);
+        Vec3 span=up.scale(Math.cos(angle)).add(right.scale(Math.sin(angle)));
+        Vec3 forward=direction.scale(.65);
+        crescent(out,tip.subtract(forward.scale(radius)),forward,span.scale(.72),radius,thickness,fill,edge,alpha);
+    }
+    static void bladeLoop(List<Quad> out,Vec3 center,Vec3 u,Vec3 v,double radius,double thickness,int fill,int edge,int alpha){
+        Vec3 depth=u.cross(v).normalize().scale(.09);
+        for(int i=0;i<24;i++){
+            double a=i*Math.TAU/24,b=(i+1)%24*Math.TAU/24;
+            Vec3 from=u.scale(Math.cos(a)).add(v.scale(Math.sin(a)));
+            Vec3 to=u.scale(Math.cos(b)).add(v.scale(Math.sin(b)));
+            bladeStrip(out,center.add(from.scale(radius)),center.add(to.scale(radius)),
+                center.add(from.scale(radius-thickness)),center.add(to.scale(radius-thickness)),depth,depth,fill,edge,alpha);
+        }
+    }
     private static void crescent(List<Quad> out,Vec3 p,Vec3 u,Vec3 v,double radius,double thickness,int fill,int edge,int alpha){
         Vec3 depth=u.cross(v).normalize().scale(.09);
         for(int i=0;i<24;i++){
@@ -244,12 +263,15 @@ final class BuiltinSkillVisuals {
             Vec3 aa=p.add(u.scale(Math.cos(a)*radius)).add(v.scale(Math.sin(a)*radius)),bb=p.add(u.scale(Math.cos(b)*radius)).add(v.scale(Math.sin(b)*radius));
             Vec3 ia=aa.subtract(u.scale(thickness*Math.cos(a))),ib=bb.subtract(u.scale(thickness*Math.cos(b)));
             Vec3 da=depth.scale(Math.cos(a)),db=depth.scale(Math.cos(b));
-            int opacity=Math.clamp(alpha,0,255),rim=Math.clamp(alpha+20,0,255);
-            out.add(new Quad(pixel(aa.add(da)),pixel(bb.add(db)),pixel(ib.add(db)),pixel(ia.add(da)),fill,opacity));
-            out.add(new Quad(pixel(ia.subtract(da)),pixel(ib.subtract(db)),pixel(bb.subtract(db)),pixel(aa.subtract(da)),fill,opacity));
-            out.add(new Quad(pixel(aa.subtract(da)),pixel(bb.subtract(db)),pixel(bb.add(db)),pixel(aa.add(da)),edge,rim));
-            out.add(new Quad(pixel(ia.add(da)),pixel(ib.add(db)),pixel(ib.subtract(db)),pixel(ia.subtract(da)),edge,opacity));
+            bladeStrip(out,aa,bb,ia,ib,da,db,fill,edge,alpha);
         }
+    }
+    private static void bladeStrip(List<Quad> out,Vec3 aa,Vec3 bb,Vec3 ia,Vec3 ib,Vec3 da,Vec3 db,int fill,int edge,int alpha){
+        int opacity=Math.clamp(alpha,0,255),rim=Math.clamp(alpha+20,0,255);
+        out.add(new Quad(pixel(aa.add(da)),pixel(bb.add(db)),pixel(ib.add(db)),pixel(ia.add(da)),fill,opacity));
+        out.add(new Quad(pixel(ia.subtract(da)),pixel(ib.subtract(db)),pixel(bb.subtract(db)),pixel(aa.subtract(da)),fill,opacity));
+        out.add(new Quad(pixel(aa.subtract(da)),pixel(bb.subtract(db)),pixel(bb.add(db)),pixel(aa.add(da)),edge,rim));
+        out.add(new Quad(pixel(ia.add(da)),pixel(ib.add(db)),pixel(ib.subtract(db)),pixel(ia.subtract(da)),edge,opacity));
     }
     private static void ring(List<Quad> out,Vec3 p,double radius,int color,int alpha){
         for(int i=0;i<48;i++){

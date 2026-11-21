@@ -86,6 +86,7 @@ public final class PalaceEncounterService {
         }
         if (arrived.isEmpty()) return false;
 
+        planAbyss(d);
         var existing = Set.copyOf(d.enemies);
         journal.begin();
         try {
@@ -96,6 +97,7 @@ public final class PalaceEncounterService {
         } catch (Exception failure) {
             journal.abort();
             d.palaceRooms.removeAll(arrived);
+            owner.abyss.rollbackPalaceSpawn(d);
             d.enemies.removeIf(id -> {
                 if (existing.contains(id)) return false;
                 Entity enemy = owner.level().getEntity(id);
@@ -105,6 +107,17 @@ public final class PalaceEncounterService {
             throw failure;
         }
         return true;
+    }
+
+    void planAbyss(Dungeon dungeon) {
+        var slots = new ArrayList<Vec3>();
+        for (int room = CastlePalace.DECK; room < CastlePalace.BOSS; room++) {
+            var squad = SQUADS.get(room);
+            for (int i = 0; i < squad.size(); i++) {
+                if (squad.get(i) != AXION && squad.get(i) != IAE) slots.add(spawnPoint(dungeon.cell, room, i));
+            }
+        }
+        owner.abyss.plan(dungeon, slots);
     }
 
     boolean finishIfDefeated(Dungeon d, List<ServerPlayer> here) throws Exception {
@@ -120,6 +133,7 @@ public final class PalaceEncounterService {
         for (int i = 0; i < squad.size(); i++) {
             PalaceEnemyKind kind = squad.get(i);
             Vec3 position = spawnPoint(d.cell, room, i);
+            if(!submerged&&kind!=AXION&&kind!=IAE&&kind!=SIEGHART&&owner.abyss.replaces(d,position))continue;
             DungeonEnemy enemy = owner.spawn(d, kind.id, kind == AXION || kind == IAE, kind == SIEGHART,
                 position.x, position.y, position.z);
             enemy.getPersistentData().putInt(ROOM_TAG, room);

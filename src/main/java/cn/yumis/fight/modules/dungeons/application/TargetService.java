@@ -80,6 +80,18 @@ public final class TargetService implements WorldTargets {
                     t.partySize=d.practice!=null?1:d.treasure==null?d.roster.size():d.treasure.partySize;
                     t.difficulty=d.difficulty;
                     t.noRewards=AwakeningTower.find(d.dungeon)!=null;
+                    if(d.waystone!=null)t.waystone=d.waystone.monsterModifiers();
+                    t.abyss=cn.yumis.fight.modules.dungeons.api.AbyssParty.Enemy.find(mob.appearance());
+                    if(t.abyss!=null){
+                        t.kind="BOSS";
+                        t.partySize=mob.getPersistentData().getIntOr("ydnf_abyss_party_size",1);
+                        t.speciesHealth=t.abyss.healthMultiplier;
+                        t.noRewards=t.abyss!=cn.yumis.fight.modules.dungeons.api.AbyssParty.Enemy.PILLAR;
+                        if(!t.noRewards){
+                            t.abyssRewardLevel=DungeonCatalog.current().dungeon(d.dungeon).level();
+                            t.healthFloor=cn.yumis.fight.modules.dungeons.api.AbyssParty.FIRST_FLOOR;
+                        }
+                    }
                     if(d.practice!=null&&d.practice.kind()==PracticeRoom.Kind.MOB){
                         t.speciesHealth=PracticeRoom.MOB_HEALTH_MULTIPLIER;
                         t.originDungeon=e.getPersistentData().getStringOr("ydnf_origin","");

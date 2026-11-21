@@ -38,6 +38,10 @@ public final class RewardRules {
         boolean ritual=context.ritual()!=null, personal=instance||ritual, practiceMob=encounter!=null&&encounter.practice!=null&&encounter.practice.kind()==PracticeRoom.Kind.MOB;
         boolean participant=encounter!=null&&encounter.roster.contains(player)&&!encounter.withdrawn.contains(player);
         if(target.noRewards)return new Result(progress,0,0,List.of());
+        if(target.abyss==AbyssParty.Enemy.PILLAR){
+            if(!participant||!context.nearby().contains(player))return new Result(progress,0,0,List.of());
+            return abyss(progress,stats,context,random);
+        }
         if(boss&&player.equals(context.killer()))appendBossDrops(context,drops,random);
         if(instance&&(!participant||!context.nearby().contains(player))||!instance&&!player.equals(context.killer()))return new Result(progress,0,0,List.copyOf(drops));
         if(instance&&boss)for(var jar:JarDefinitions.current().jars.entrySet())if(random.nextDouble()<jar.getValue().bossDropChance())drops.add(new Drop(LootJarItem.create(jar.getKey(),1),true));
@@ -49,9 +53,8 @@ public final class RewardRules {
         long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,context.settings().killGoldMultiplier()*goldMultiplier);
         int count=multiplied(boss?3:random.nextDouble()<(target.elite?.45:.05)?1:0,quantityMultiplier,random);
         for(int i=0;i<count;i++){
-            var rarity=LootOdds.rarity(target.difficulty,boss,boss&&!instance,luck,random);var eligible=new ArrayList<>(List.of(Slot.BRACELET,Slot.NECKLACE,Slot.RING));for(var slot:List.of(Slot.SUB_EQUIPMENT,Slot.MAGIC_STONE,Slot.EARRING))if(progress.level>=slot.minimum()&&level>=slot.minimum())eligible.add(slot);
-            double group=random.nextDouble();Slot slot=rarity==Rarity.MYTHIC?(group<.5?Slot.WEAPON:eligible.get(random.nextInt(eligible.size()))):group<.2?Slot.WEAPON:group<.6?Slot.values()[1+random.nextInt(4)]:eligible.get(random.nextInt(eligible.size()));if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;
-            var gear=EquipmentTemplates.createStandard(slot,Weapon.standard().get(random.nextInt(Weapon.standard().size())),rarity,Math.clamp(level,1,80),random);gear.source=target.life.target+"/"+target.life.generation;drops.add(new Drop(EquipmentItems.gear(gear),personal));
+            var rarity=LootOdds.rarity(target.difficulty,boss,boss&&!instance,luck,random);
+            drops.add(equipmentDrop(rarity,level,progress.level,personal,target.life.target+"/"+target.life.generation,random));
         }
         var currency=CurrencyRules.roll(luck,random);if(currency!=null)for(int i=0,n=multiplied(1,quantityMultiplier,random);i<n;i++)drops.add(new Drop(ItemRegistry.item(currency.id(),1),personal));
         if(ritual){
@@ -68,6 +71,43 @@ public final class RewardRules {
         }
         if(boss&&level==80&&encounter!=null&&encounter.treasure==null&&encounter.waystone==null&&random.nextDouble()<WaystoneRules.current().starterChance){var rarity=LootOdds.rarity(target.difficulty,true,false,stats.get(Stat.DROP_RATE),random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;drops.add(new Drop(Waystone.generate(1,progress.level,rarity,random).item(),true));}
         return new Result(progress,xp,gold,List.copyOf(drops));
+    }
+
+    private static Result abyss(Progress progress,Stats stats,Context context,Random random){
+        int level=context.target().abyssRewardLevel;
+        var pool=ChestDefinitions.current().abyssPools.get(context.encounter().dungeon);
+        var drops=new ArrayList<Drop>();
+        for(int i=0;i<8;i++){
+            var drop=abyssRareDrop(pool,level,10,2,context.id(),random);
+            if(drop==null){
+                var rarity=LootOdds.rarity(context.target().difficulty,true,true,stats.get(Stat.DROP_RATE),random);
+                drop=equipmentDrop(rarity,level,progress.level,true,context.id(),random);
+            }
+            drops.add(drop);
+        }
+        var bonus=abyssRareDrop(pool,level,25,5,context.id(),random);
+        if(bonus!=null)drops.add(bonus);
+        return new Result(progress,0,0,List.copyOf(drops));
+    }
+
+    private static Drop abyssRareDrop(ChestDefinitions.AbyssPool pool,int level,int epicPercent,int mythicPercent,String source,Random random){
+        int roll=random.nextInt(100);
+        if(pool==null||roll>=epicPercent+mythicPercent)return null;
+        var entries=roll<epicPercent?pool.epic():pool.mythic();
+        var eligible=entries.stream().filter(entry->NamedEquipment.find(entry.template()).level()<=level).toList();
+        var entry=ChestDefinitions.draw(eligible,random);
+        return entry==null?null:new Drop(ChestRewards.item(entry,random,source),true);
+    }
+
+    private static Drop equipmentDrop(Rarity rarity,int level,int playerLevel,boolean personal,String source,Random random){
+        var eligible=new ArrayList<>(List.of(Slot.BRACELET,Slot.NECKLACE,Slot.RING));
+        for(var slot:List.of(Slot.SUB_EQUIPMENT,Slot.MAGIC_STONE,Slot.EARRING))if(playerLevel>=slot.minimum()&&level>=slot.minimum())eligible.add(slot);
+        double group=random.nextDouble();
+        Slot slot=rarity==Rarity.MYTHIC?(group<.5?Slot.WEAPON:eligible.get(random.nextInt(eligible.size()))):group<.2?Slot.WEAPON:group<.6?Slot.values()[1+random.nextInt(4)]:eligible.get(random.nextInt(eligible.size()));
+        if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;
+        var gear=EquipmentTemplates.createStandard(slot,Weapon.standard().get(random.nextInt(Weapon.standard().size())),rarity,Math.clamp(level,1,80),random);
+        gear.source=source;
+        return new Drop(EquipmentItems.gear(gear),personal);
     }
 
     private static void appendBossDrops(Context context,List<Drop> drops,Random random){

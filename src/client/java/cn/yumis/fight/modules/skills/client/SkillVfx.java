@@ -58,6 +58,12 @@ public final class SkillVfx {
     public List<SkillVisualEvent> activeEvents(){
         return tracks.values().stream().map(t->t.start).toList();
     }
+    /** Tracks a non-player caster owns; lets champions ride the same pose pipeline. */
+    public List<Track> tracksFor(UUID caster){
+        List<Track> found=new ArrayList<>();
+        for(Track track:tracks.values())if(track.start.caster().equals(caster))found.add(track);
+        return found;
+    }
     public static Vec3 vector(SkillVisualEvent.Point point){
         return new Vec3(point.x(),point.y(),point.z());
     }
@@ -160,7 +166,7 @@ public final class SkillVfx {
         for(var iterator=tracks.entrySet().iterator();iterator.hasNext();){
             var entry=iterator.next();
             Track t=entry.getValue();
-            Player actor=mc.level==null?null:mc.level.getPlayerByUUID(t.start.caster());
+            net.minecraft.world.entity.Entity actor=mc.level==null?null:mc.level.getEntity(t.start.caster());
             boolean wrongWorld=mc.level==null||!mc.level.dimension().identifier().toString().equals(t.start.dimension());
             long deadline=SkillVisualRegistry.handler(t.start.skill()).refreshable()?t.last.at()+5000:t.start.startedAt()+Math.max(t.start.duration(),t.last.duration())+500;
             if(wrongWorld||actor!=null&&!actor.isAlive()||time>deadline||t.retirement>0&&time>t.retirement){
@@ -215,7 +221,7 @@ public final class SkillVfx {
         SunMoonSkillVisuals.actors(quads,SkillsClient.current().serverNow());DemonHunterVisuals.actors(quads,SkillsClient.current().serverNow());
         for(Track t:tracks.values()){
             var event=t.start;
-            if(mc.level==null||mc.level.getPlayerByUUID(event.caster())==null)continue;
+            if(mc.level==null||mc.level.getEntity(event.caster())==null)continue;
             long age=time-event.startedAt();
             if(age<0||!SkillVisualRegistry.handler(event.skill()).refreshable()&&age>Math.max(event.duration(),t.last.duration())+500)continue;
             age=(long)(age*t.speed);

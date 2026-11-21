@@ -138,6 +138,7 @@ public final class EquipmentRules {
     public static Gear process(Gear original,String currency,Random random){
         Gear g=cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(original);
         if(g.corrupted)throw new IllegalArgumentException("腐化装备仅允许继续镶嵌宝石");
+        if(g.rarity==Rarity.PRIMORDIAL)throw new IllegalArgumentException("太初装备为管理员定值模板，不可加工");
         var essence=CraftingEssences.find(currency);if(essence!=null)return CraftingEssences.apply(g,essence,random);
         switch(currency){
             case MASTER_CRYSTAL -> applyMasterCrystal(g);

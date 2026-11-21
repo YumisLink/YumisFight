@@ -44,7 +44,8 @@ public final class WaystoneRules {
         for(var c:affixCounts)if(c==null||c.length!=2||c[0]<0||c[1]<c[0]||c[1]>8||c[1]>available)throw new IllegalArgumentException("引路石可用词条不足或品质条数无效");
     }
     public int monsterLevel(int tier){return Math.addExact(firstMonsterLevel,Math.multiplyExact(tier-1,levelsPerTier));}
-    public double statMultiplier(int tier){double result=Math.pow(1+statGrowth,tier);if(!Double.isFinite(result))throw new IllegalArgumentException("当前阶数超出可计算范围");return result;}
+    public double statMultiplier(int tier){return statMultiplier(tier,statGrowth);}
+    static double statMultiplier(int tier,double statGrowth){double result=Math.pow(1+statGrowth,tier);if(!Double.isFinite(result))throw new IllegalArgumentException("当前阶数超出可计算范围");return result;}
     public double rewardMultiplier(int tier,int count){double result=(1+tierReward*tier)*(1+affixReward*count);if(!Double.isFinite(result))throw new IllegalArgumentException("引路石收益超出可计算范围");return result;}
     public int nextTier(int tier,long elapsed,boolean completed){int change=tierChanges[3];if(completed)for(int i=0;i<3;i++)if(elapsed<=timeLimitsMillis[i]){change=tierChanges[i];break;}return Math.max(1,Math.addExact(tier,change));}
 }

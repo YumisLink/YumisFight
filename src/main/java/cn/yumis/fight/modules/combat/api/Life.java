@@ -6,7 +6,7 @@ import java.util.*;
 public class Life {
     public UUID target;
     public String dimension="",instance="";
-    public long generation=1,revision,basis;
+    public long generation=1,revision;
     public double q=1;
     public boolean dead,dungeonDefeated;
     public ElementAccumulation.State elemental=new ElementAccumulation.State();

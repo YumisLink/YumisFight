@@ -46,8 +46,11 @@ public final class GblEncounterService {
     void initialize(Dungeon d){
         if(bosses.containsKey(d.id))return;
         try{
+            owner.abyss.plan(d,GblChurch.SPAWNS.stream().filter(mob->!mob.elite()&&!mob.boss()).map(mob->spawnPoint(d,mob)).toList());
             for(var mob:GblChurch.SPAWNS){
-                var enemy=owner.spawn(d,mob.kind().id,mob.elite(),mob.boss(),d.cell*512+mob.x()+.5,mob.y(),mob.z()+.5);
+                Vec3 position=spawnPoint(d,mob);
+                if(!mob.elite()&&!mob.boss()&&owner.abyss.replaces(d,position))continue;
+                var enemy=owner.spawn(d,mob.kind().id,mob.elite(),mob.boss(),position.x,position.y,position.z);
                 var follow=enemy.getAttribute(Attributes.FOLLOW_RANGE);
                 if(follow!=null)follow.setBaseValue(56);
                 if(mob.boss())bosses.put(d.id,enemy.getUUID());
@@ -56,6 +59,10 @@ public final class GblEncounterService {
             try{owner.close(d);}catch(Exception cleanup){failure.addSuppressed(cleanup);}
             throw failure;
         }
+    }
+
+    private static Vec3 spawnPoint(Dungeon dungeon,GblChurch.Spawn mob){
+        return new Vec3(dungeon.cell*512+mob.x()+.5,mob.y(),mob.z()+.5);
     }
 
     boolean finishIfDefeated(Dungeon d,List<ServerPlayer> here)throws Exception{

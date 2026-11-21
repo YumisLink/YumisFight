@@ -24,7 +24,7 @@ public final class CombatAttributeTooltip {
         String detail;
         if(stat==null){detail=switch(name){case "吸血率"->"吸血值以1000为基数换算；超过1000/19的部分按1/3效率折算，最高90%。仅按有效直接伤害实际扣除的生命回复，排除超杀、持续伤害和反伤。";case "闪避率"->"以10000为基数换算；超过30000的闪避值按1/3折算，75%后增速降低，最高90%。当前 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(100*CombatRules.evasionChance(s.get(Stat.EVASION)))+"%。";case "暴击率"->"直接暴击概率，最高100%；通常暴击造成1.5倍伤害。";case "伤害提升"->"提升与最终提升统一进入伤害MUT，同类加算；总增独立乘算。";default->"面板攻击＝基础攻击×(1＋对应力量或智力÷100)。当前 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.panel(name.equals("魔法面板攻击")))+"。";};}
         else detail=switch(stat){
-            case HEALTH->"可承受的生命伤害上限。脱战后每秒恢复2%，当前每秒 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.get(stat)*.02)+"。";
+            case HEALTH->"可承受的生命伤害上限。脱战后每秒恢复2%加生命恢复速度，当前每秒 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.get(stat)*.02+s.get(Stat.HEALTH_REGENERATION))+"。";
             case STAMINA->"每点精神额外提供5点最大体力。翻滚消耗20点，停止消耗1秒后开始逐tick恢复。";
             case STAMINA_RECOVERY->"每点精神提高5%体力恢复速度。每秒恢复20点乘此倍率；回复等待为1秒。";
             case SHIELD_COOLDOWN_RECOVERY->"受击后的护盾回复等待为5秒除以此倍率；独立于技能冷却。";
@@ -46,6 +46,7 @@ public final class CombatAttributeTooltip {
             case COOLDOWN_RECOVERY->"技能基础冷却除以恢复速度倍率，最后再应用魔法技能固定减秒。";
             case EXPERIENCE_GAIN->"角色战斗经验乘此倍率；不影响副职业经验。";
             case CAST_SPEED->"技能动作、蓄力与连击时间除以此倍率；段数、位移总距离、冷却、BUFF和持续场时长不变。";
+            case HEALTH_REGENERATION->"脱战后每秒恢复固定生命值，与2%比例回复相加；战斗中不生效。";
         };
         List<Component> lines=new ArrayList<>();lines.add(Component.literal(name).withStyle(style->style.withColor(UiTheme.TIP_TITLE)));lines.add(numbers(detail,UiTheme.TIP_NUMBER));
         if(stat!=null){var a=s.attribute(stat);lines.add(numbers("BASE "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(a.base)+" · MUT "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(a.mut*100)+"% · ADD "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(a.add)+" · ALLS ×"+cn.yumis.fight.modules.presentation.api.client.NumberText.number(a.alls)+" · FADD "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(a.fadd),UiTheme.TIP_NUMBER));}

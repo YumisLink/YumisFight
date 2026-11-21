@@ -16,6 +16,12 @@ public final class CharacterChanges {
             case "resetAttributes"->next.strength=next.intelligence=next.spirit=0;
             case "sync"->next.sync=request.get("enabled").getAsBoolean();
             case "renameProfile"->book.rename(request.get("target").getAsString(),request.get("name").getAsString());
+            case "unlockCareer"->{
+                if(next.level<20)throw new IllegalArgumentException("转职解锁券需要20级");
+                if(next.jobChangeUnlocked())throw new IllegalArgumentException("已经拥有通用转职资格，未消耗券");
+                next.unlockJobChange();
+                ticket=CharacterItems.CAREER_UNLOCK;
+            }
             case "unlockAwakening"->{if(next.level<50)throw new IllegalArgumentException("觉醒券需要50级");if(next.awakened())throw new IllegalArgumentException("已经觉醒，未消耗券");next.awakened=true;ticket=CharacterItems.AWAKENING;}
             case "chooseJob"->{String id=request.get("job").getAsString();if(next.selected()||!JobCatalog.basic(id))throw new IllegalArgumentException("每套配置只能选择一次基础职业");next.promote(id);starter=!next.starterGranted;next.starterGranted=true;}
             case "promote"->{String id=request.get("job").getAsString();if(book.occupied(id))throw new IllegalArgumentException("已拥有该转职配置，请切换至已有配置");if(!JobCatalog.canPromote(next,id))throw new IllegalArgumentException("需要20级、对应基础职业和通用转职解锁资格");next.promote(id);book.fillSlots();}

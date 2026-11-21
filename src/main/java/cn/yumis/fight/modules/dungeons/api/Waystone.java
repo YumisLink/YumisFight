@@ -46,7 +46,8 @@ public final class Waystone {
         String raw=ItemData.string(stack,DATA);if(raw.isEmpty())return null;var result=JSON.fromJson(raw,Waystone.class);if(result==null)throw new IllegalArgumentException("引路石实例为空");result.validate();return result;
     }
     public ItemStack item(){validate();var stack=ItemRegistry.item("waystone",1);ItemData.string(stack,DATA,JSON.toJson(this));stack.set(DataComponents.CUSTOM_NAME,Component.literal("引路石 +"+tier).withStyle(s->s.withColor(rarity.color()).withItalic(false)));stack.set(DataComponents.CUSTOM_MODEL_DATA,new CustomModelData(List.of(),List.of(),List.of(rarity.name().toLowerCase(Locale.ROOT)),List.of()));return stack;}
-    public double effect(String effect){return modifiers.stream().filter(m->m.effect().equals(effect)).mapToDouble(Modifier::value).sum();}
+    public double effect(String effect){return effect(modifiers,effect);}
+    static double effect(List<Modifier> modifiers,String effect){return modifiers.stream().filter(m->m.effect().equals(effect)).mapToDouble(Modifier::value).sum();}
     public double effectiveDropRate(double original){return (1000+original)*dropMultiplier-1000;}
     public static String number(double value){return java.math.BigDecimal.valueOf(value).setScale(2,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();}
     public static String modifierText(Modifier m){String value=number(m.value()*100)+"%";return m.title()+"："+switch(m.effect()){

@@ -64,7 +64,7 @@ public class DungeonEnemy extends Zombie {
     public void guarded(boolean value){entityData.set(GUARDED,value);}
     public boolean guarded(){return entityData.get(GUARDED);}
     @Override public boolean isPickable(){var classic=ClassicEnemyKind.of(this);return (classic==null||!classic.passive)&&!move().equals("spent")&&super.isPickable();}
-    @Override public boolean isPushable(){var classic=ClassicEnemyKind.of(this);return (classic==null||!classic.stationary&&!classic.passive)&&!move().equals("wood_cage")&&GblEnemyKind.of(this)!=GblEnemyKind.DRAGON_CANNON&&ForbiddenEnemyKind.of(this)!=ForbiddenEnemyKind.BARRIER_CORE&&SkasaEnemyKind.of(this)!=SkasaEnemyKind.ICE_DRAGON&&!move().equals("spent")&&super.isPushable();}
+    @Override public boolean isPushable(){var classic=ClassicEnemyKind.of(this);return !appearance().equals(AbyssParty.Enemy.PILLAR.id)&&(classic==null||!classic.stationary&&!classic.passive)&&!move().equals("wood_cage")&&GblEnemyKind.of(this)!=GblEnemyKind.DRAGON_CANNON&&ForbiddenEnemyKind.of(this)!=ForbiddenEnemyKind.BARRIER_CORE&&SkasaEnemyKind.of(this)!=SkasaEnemyKind.ICE_DRAGON&&!move().equals("spent")&&super.isPushable();}
     public void scripted(){
         goalSelector.removeAllGoals(g->true);
         targetSelector.removeAllGoals(g->true);
@@ -81,7 +81,7 @@ public class DungeonEnemy extends Zombie {
         return !getPersistentData().getBooleanOr("ydnf_practice_enemy",false)&&super.shouldDropLoot(level);
     }
     @Override public boolean shouldDropExperience(){
-        return !getPersistentData().getBooleanOr("ydnf_practice_enemy",false)&&super.shouldDropExperience();
+        return AbyssParty.Enemy.find(appearance())==null&&!getPersistentData().getBooleanOr("ydnf_practice_enemy",false)&&super.shouldDropExperience();
     }
     /** Content may guide movement while leaving native melee and target goals intact. */
     public void movementGoal(net.minecraft.world.entity.ai.goal.Goal goal){goalSelector.addGoal(1,goal);}

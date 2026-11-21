@@ -10,7 +10,7 @@ final class MageSkillVisuals {
     static void install(){for(String id:java.util.stream.Stream.concat(List.of(MageSkills.STAR,MageSkills.FANG,MageSkills.JACK,MageSkills.HERDER).stream(),SummonerSkills.ALL.stream()).toList())SkillVisualRegistry.register(id,new SkillVisualRegistry.Handler(){
         @Override public long defaultDuration(){return 1500;}
         @Override public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long time,List<Quad> quads,Vec3 camera){draw(id,track,age,time,quads);}
-        @Override public void animate(SkillVfx.Track track,net.minecraft.world.entity.player.Player player,net.minecraft.client.renderer.entity.state.EntityRenderState state,long time){if(!id.equals(MageSkills.HERDER)&&!SummonerSkills.contains(id)&&state instanceof net.minecraft.client.renderer.entity.state.HumanoidRenderState humanoid)humanoid.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;}
+        @Override public void animate(SkillVfx.Track track,net.minecraft.world.entity.LivingEntity caster,net.minecraft.client.renderer.entity.state.EntityRenderState state,long time){if(!id.equals(MageSkills.HERDER)&&!SummonerSkills.contains(id)&&state instanceof net.minecraft.client.renderer.entity.state.HumanoidRenderState humanoid)humanoid.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;}
     });}
     private static void draw(String id,SkillVfx.Track t,long age,long time,List<Quad> out){
         if(SummonMoveVisuals.draw(t,time,out))return;

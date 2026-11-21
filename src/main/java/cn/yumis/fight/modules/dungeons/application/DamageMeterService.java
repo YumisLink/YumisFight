@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.*;
 
 public class DamageMeterService {
+    private static final Gson JSON=new Gson();
     private final Map<UUID,JsonObject> sent=new HashMap<>();
     public void forget(ServerPlayer player){sent.remove(player.getUUID());}
     private void emit(ServerPlayer player,JsonObject value){if(!value.equals(sent.get(player.getUUID()))){sent.put(player.getUUID(),value.deepCopy());Network.send(player,"damageMeter",value);}}
@@ -24,8 +25,9 @@ public class DamageMeterService {
     private final Supplier<cn.yumis.fight.modules.combat.api.CombatSettings> timing;
     public DamageMeterService(Journal journal,MinecraftServer server,Function<UUID,Dungeon> current,BiPredicate<ServerPlayer,String> participant,ToIntFunction<ServerPlayer> level,Supplier<cn.yumis.fight.modules.combat.api.CombatSettings> timing){this.journal=journal;this.server=server;this.current=current;this.participant=participant;this.level=level;this.timing=timing;}
     private DamageMeter load(Dungeon dungeon){return journal.get("damageMeter/"+dungeon.id,DamageMeter.class,new DamageMeter());}
-    public void join(Dungeon dungeon,ServerPlayer player)throws Exception{
-        DamageMeter meter=load(dungeon);var entry=new DamageMeter.Entry();entry.name=player.getScoreboardName();meter.players.put(player.getStringUUID(),entry);journal.put("damageMeter/"+dungeon.id,meter);
+    public Map<String,JsonElement> joinWrites(Dungeon dungeon,ServerPlayer player){
+        DamageMeter meter=load(dungeon);var entry=new DamageMeter.Entry();entry.name=player.getScoreboardName();meter.players.put(player.getStringUUID(),entry);
+        return Map.of("damageMeter/"+dungeon.id,JSON.toJsonTree(meter));
     }
     public void leave(Dungeon dungeon,ServerPlayer player)throws Exception{
         DamageMeter meter=load(dungeon);meter.players.remove(player.getStringUUID());journal.put("damageMeter/"+dungeon.id,meter);Network.send(player,"damageMeter",new JsonObject());broadcast(dungeon);

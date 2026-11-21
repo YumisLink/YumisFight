@@ -1,4 +1,5 @@
 package cn.yumis.fight.modules.economy.api;
+import cn.yumis.fight.modules.character.api.CharacterItems;
 import cn.yumis.fight.modules.equipment.api.Rarity;
 import cn.yumis.fight.modules.dungeons.api.Difficulty;
 import static cn.yumis.fight.modules.attributes.api.AttributeNumbers.finite;
@@ -12,7 +13,7 @@ public final class CurrencyRules {
     public static final AccountCurrency POINTS=new AccountCurrency("points","点券");
     public static final AccountCurrency COLORLESS_CRYSTAL=new AccountCurrency("colorless_crystal","无色小晶块");
     public static final long CONTRACT_PRICE=100000,CONTRACT_DURATION=604800000;
-    public static long ticketPrice(String id){return switch(id){case "awakening_ticket"->1000;default->-1;};}
+    public static long ticketPrice(String id){return switch(id){case CharacterItems.CAREER_UNLOCK->500;case CharacterItems.AWAKENING->1000;default->-1;};}
     public record Currency(String id,Rarity rarity,boolean naturalDrop){}
     public record Tier(Rarity rarity,double baseWeight,List<Currency> currencies){}
     public static final double DROP_CHANCE=.05;

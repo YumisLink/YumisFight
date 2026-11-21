@@ -246,7 +246,7 @@ Target t=JSON.fromJson(j,Target.class);
                 Target old=targets.get(t.id);
                 if(old==null||t.life.generation>old.life.generation||t.life.generation==old.life.generation&&t.life.revision>=old.life.revision){
                     targets.put(t.id,t);
-                    if(old!=null&&old.life.basis!=t.life.basis)prediction.invalidate(t.id);
+                    if(old!=null&&old.life.generation!=t.life.generation)prediction.invalidate(t.id);
                 }
         });
         messages.register("combat","health",(context,j)->{
@@ -462,7 +462,7 @@ if(j.has("target")&&j.has("kind")){
         if(packet.get("heal").getAsBoolean()||packet.get("fraction").getAsDouble()<=0)return;
         UUID id=UUID.fromString(packet.get("target").getAsString());if(id.equals(own.target))return;
         Target target=targets.get(id);var mc=Minecraft.getInstance();
-        if(target==null||mc.level==null||target.damageImmune||target.life.generation!=packet.get("generation").getAsLong()||target.life.basis!=packet.get("basis").getAsLong())return;
+        if(target==null||mc.level==null||target.damageImmune||target.life.generation!=packet.get("generation").getAsLong())return;
         var entity=mc.level.getEntity(target.entityId);
         if(entity instanceof net.minecraft.world.entity.LivingEntity living&&id.equals(entity.getUUID())&&!(living instanceof net.minecraft.world.entity.player.Player)&&cn.yumis.fight.modules.npc.api.NpcInteractionComponent.query(living)==null)
             targetHud.damage(target.life,living.getName().getString(),living.position(),now());
@@ -493,7 +493,11 @@ if(j.has("target")&&j.has("kind")){
         if(changed)targetHud.clear();
         if(changed&&mc.gui.screen() instanceof FightScreen screen&&screen.page>=0&&cn.yumis.fight.modules.presentation.api.PlayerPages.at(screen.page).id().equals("damage_analysis"))mc.gui.setScreen(null);
     }
-    public double predicted(Life life){return prediction.predicted(life);}
+    public double predicted(Life life){
+        double q=prediction.predicted(life);
+        Target target=targets.get(life.target);
+        return target==null||life.dead?q:Math.max(target.healthFloor,q);
+    }
     public Stats weaponStats(ItemStack weapon){
         return EquipmentStats.build(Minecraft.getInstance().player,progress,cn.yumis.fight.modules.professions.client.AlchemyClient.attributes(syncedSources),weapon);
     }

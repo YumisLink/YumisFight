@@ -26,7 +26,7 @@ public final class SkillVisualRegistry {
         default boolean motion(Track track,com.google.gson.JsonObject motion){return false;}
         default void render(LevelRenderContext context,Track track,long age,long time,List<Quad> quads,Vec3 camera){}
         default void play(SkillVisualEvent event){}
-        default void animate(Track track,Player player,EntityRenderState state,long time){}
+        default void animate(Track track,net.minecraft.world.entity.LivingEntity caster,EntityRenderState state,long time){}
         /** Null keeps the native swing; a value supplies this hand's content animation progress. */
         default Float handAttack(Track track,Player player,net.minecraft.world.InteractionHand hand,long time){return null;}
         default CameraType cameraType(Track track,long time){return CameraType.FIRST_PERSON;}

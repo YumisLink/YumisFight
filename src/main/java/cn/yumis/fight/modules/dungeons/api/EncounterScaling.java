@@ -10,7 +10,4 @@ public final class EncounterScaling {
         ;
         return n<=8?v[Math.clamp(n-1,0,7)]:20.6+5*(n-8);
     }
-    public static double expandedQ(double q,int oldSize,int newSize){
-        return 1-(1-q)*partyMultiplier(oldSize)/partyMultiplier(newSize);
-    }
 }

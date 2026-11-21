@@ -14,7 +14,7 @@ public final class AffixText {
         case LIGHT->"光属性强化";case FIRE->"火属性强化";case ICE->"冰属性强化";case DARK->"暗属性强化";
         case LIGHT_RESIST->"光属性抗性";case FIRE_RESIST->"火属性抗性";case ICE_RESIST->"冰属性抗性";case DARK_RESIST->"暗属性抗性";
         case DROP_RATE->"掉宝率";case SHIELD->"装备护盾上限";case EVASION->"闪避值";case ATTACK_SPEED->"攻击速度";case MOVEMENT_SPEED->"移动速度倍率";case CAST_SPEED->"技能释放速度倍率";case LIFE_STEAL->"吸血值";case MANA_REGENERATION->"魔力回复速度";case COOLDOWN_RECOVERY->"冷却恢复速度";case EXPERIENCE_GAIN->"怪物击杀经验获取";
-        case STAMINA->"最大体力";case STAMINA_RECOVERY->"体力恢复速度";case SHIELD_COOLDOWN_RECOVERY->"护盾回复冷却恢复速度";case SHIELD_REGENERATION->"护盾回复速度";
+        case STAMINA->"最大体力";case STAMINA_RECOVERY->"体力恢复速度";case SHIELD_COOLDOWN_RECOVERY->"护盾回复冷却恢复速度";case SHIELD_REGENERATION->"护盾回复速度";case HEALTH_REGENERATION->"生命恢复速度";
     };}
     public static String affix(Affix a){
         var current=AffixDefinitions.current().affixes.get(cn.yumis.fight.modules.affixes.api.AffixResolver.definitionId(a));

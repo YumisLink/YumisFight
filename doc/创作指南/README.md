@@ -24,7 +24,7 @@
 | `combat/api/CombatPorts.java`；`inventory/api/InventoryOperations.java`、`InventoryIntake.java`、`InventoryPacking.java` | 战斗回执、领取、拾取、奖励及工业资产变更复用既有库存／WAL事务；跨模块通过端口提交，失败与重试沿原语义处理。 |
 | `combat/api/ElementAccumulation.java`、`Life.java`、`CombatContentTypes.java` | 玩家和敌人共用生命内的元素积累；伤害分量沿正式回执提交。内容通过 `addConversion(stats, damageElement, kind, ratio)` 登记额外积累来源，保留原伤害元素；来源为 −1 无属性、0 光、1 火、2 冰、3 暗，比例用小数。效果期间暂停同种积累，不从描述文字解析转换。控制判断复用 `controlled(entity)`。 |
 | `character/api/JobCatalog.java`、`CharacterChanges.java`、`CharacterPersistence.java`、`CareerProfiles.java`；`skills/api/CareerState.java` | 新职业登记资格与内容；成长与学习在本人客户端调用角色／技能规则，服务器用角色端口保存结果，连接／生命／场景内的临时技能状态由技能模块持有。 |
-| `dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；`content/DungeonLayouts.java`；客户端 `dungeons/client/EncounterClientContacts.java`、`DungeonActions.java` | 新副本复用场次、地图边界／门控、等级难度缩放和清场；个人入场资格、玩家接触和引路石个人奖励由本机判定，AI、敌人和地图留在服务器。 |
+| `dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；`content/DungeonLayouts.java`；客户端 `dungeons/client/EncounterClientContacts.java`、`DungeonActions.java` | 新副本复用场次、地图边界／门控、等级难度缩放和清场。客户端按目标等级和引路石词条计算面板，将命中伤害换算为血量份额。服务端归并共享剩余血量，组队扩血保留当前百分比。AI、敌人实体和地图由服务器维护。个人入场资格、玩家接触和引路石个人奖励由本机判定。 |
 | `dungeons/api/ClassicEnemyKind.java`、`ClassicMove.java`；`content/ClassicDungeonRooms.java` 及各副本内容类 | 经典后续副本登记原型、六组编队与首领，精英复用本体；动作稳定ID对应原生模型片段，毫秒时长及接触相位共同驱动动作、预警与本机判定。召唤物／机关在所属副本服务维护，不计入普通编队清场数；中间复活不发布死亡回执，最终死亡沿原奖励入口。 |
 | `industry/api/MagicFlora.java` | 魔力花资源循环由草方块原生随机刻触发；先校验空位和相邻种源，再检查花的覆盖范围，不用全局扫描或定时补生。植物、液体及展示产线的制作源为 `tools/industrial_technology.py`。 |
 | `industry/api/DeviceType.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；`platform/IndustrialProcessing.java` | 新设备和工艺复用设备能力、科技目录、批次／产线结算；精度用既有 `EnergyMath`／`Fraction`，资源从正式生成源维护。 |
@@ -111,3 +111,9 @@
 在 `rules/chests.json` 的 `bossRarePools` 中按副本 ID 登记，使用 `chance` 和加权 `entries`。新增首领专属稀有物默认整池概率 `0.05`，命中后只抽一项；只由击杀者结算每次首领死亡的一次公共掉落，不按参与人数追加抽取，不继承掉落率或引路石数量倍率。已有 `bossPools` 的其他奖励沿原规则，不统一改为 5%。
 
 野外首领使用完整的实体 ID。具名装备条目以 `template` 指定具名装备 ID，`count` 固定为 `1`。每次击败固定掉一项的奖励可以在 `bossPools` 中登记单项奖池，`chance` 写 `1`。
+
+## 深渊派对奖池
+
+在 `rules/chests.json` 的 `abyssPools` 里按主线副本 ID 登记 `epic` 和 `mythic`。两栏分别填写对应品质的具名装备条目，使用 `template`、`count: 1` 和非负 `weight`。抽取前按该场副本的原始怪物等级过滤，保留模板等级。
+
+个人随机装备逐件以固定概率判定史诗和神话，普通至传说档才应用掉落率加成。命中空池的个人随机装备转用普通至传说档，独立的具名奖励抽取则结算为落空。奖池待设计或待批准时留空。

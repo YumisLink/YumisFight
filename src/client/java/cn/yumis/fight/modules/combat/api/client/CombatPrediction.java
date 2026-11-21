@@ -70,7 +70,7 @@ public final class CombatPrediction {
     public double predicted(Life life){
         if(!state.consumesHealth(life.target))return life.q;
         double q=life.q;
-        for(Pending p:pending.values())if(p.report.get("target").getAsString().equals(life.target.toString())&&p.report.get("generation").getAsLong()==life.generation&&p.report.get("basis").getAsLong()==life.basis)q=Math.clamp(q+(p.action.equals("heal")?1:-1)*p.report.get("fraction").getAsDouble(),0,1);
+        for(Pending p:pending.values())if(p.report.get("target").getAsString().equals(life.target.toString())&&p.report.get("generation").getAsLong()==life.generation)q=Math.clamp(q+(p.action.equals("heal")?1:-1)*p.report.get("fraction").getAsDouble(),0,1);
         for(Pending p:pending.values())if(life.target.equals(state.own().target)&&p.report.has("ownerHealing"))q=Math.clamp(q+p.report.get("ownerHealing").getAsDouble(),0,1);
         return q;
     }
@@ -88,7 +88,6 @@ public final class CombatPrediction {
         j.addProperty("dimension",life.dimension);
         j.addProperty("target",life.target.toString());
         j.addProperty("generation",life.generation);
-        j.addProperty("basis",life.basis);
         j.addProperty("instance",life.instance);
         j.addProperty("fraction",fraction);
         j.addProperty("heal",heal);

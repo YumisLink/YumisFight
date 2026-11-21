@@ -1200,6 +1200,50 @@
       "description": null,
       "fixedValue": 15
     },
+    "unique/admin_damage_total": {
+      "id": "unique/admin_damage_total",
+      "name": "创世权柄",
+      "operation": "SKILL_ATTACK",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "description": "所有技能攻击力提高1000%；伤害总增，各来源独立乘算，同时作用于技能与普攻",
+      "fixedValue": 10
+    },
+    "unique/admin_health": {
+      "id": "unique/admin_health",
+      "name": "不朽之躯",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "HEALTH",
+      "fixedValue": 1000000
+    },
+    "unique/admin_health_regen": {
+      "id": "unique/admin_health_regen",
+      "name": "生生不息",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "HEALTH_REGENERATION",
+      "fixedValue": 100000
+    },
+    "unique/admin_mana": {
+      "id": "unique/admin_mana",
+      "name": "无尽法力",
+      "operation": "FLAT",
+      "group": "unique",
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "stat": "MP",
+      "fixedValue": 1000000
+    },
     "crafted/master_equip_level": {
       "id": "crafted/master_equip_level",
       "name": "大师词条",

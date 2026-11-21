@@ -114,6 +114,13 @@
           "type": "minecraft:model",
           "model": "yumis_dungeon_and_fight:item/named/ryze"
         }
+      },
+      {
+        "when": "admin_amulet",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/admin_amulet"
+        }
       }
     ],
     "fallback": {

@@ -1,10 +1,16 @@
 package cn.yumis.fight.modules.presentation.api.client;
 
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.Std140Builder;
+import com.mojang.blaze3d.pipeline.BindGroupLayout;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.CompareOp;
+import com.mojang.blaze3d.shaders.UniformType;
+import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Camera;
 import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -14,10 +20,16 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.RegisterRenderPipelinesEvent;
+import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.client.event.lifecycle.ClientStoppingEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import org.lwjgl.system.MemoryStack;
 import java.util.*;
 
 /** Opt-in camera-distance masking. Callers retain ownership of effects and their lifetimes. */
 public final class NearEffectRendering {
+    private static final String SETTINGS_UNIFORM="NearEffectSettings";
+    private static final BindGroupLayout SETTINGS_LAYOUT=BindGroupLayout.builder().withUniform(SETTINGS_UNIFORM,UniformType.UNIFORM_BUFFER).build();
     private static final List<RenderPipeline> PIPELINES=new ArrayList<>();
     private static final RenderPipeline QUADS=pipeline(RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE,"entity",0);
     private static final RenderPipeline ITEM_CUTOUT_OUTSIDE=pipeline(RenderPipelines.ITEM_CUTOUT,"item",1);
@@ -35,15 +47,39 @@ public final class NearEffectRendering {
     private static final Map<ItemKey,RenderType> ITEMS=new HashMap<>();
     private record GlintKey(OutputTarget target,boolean inside){}
     private static final Map<GlintKey,RenderType> GLINTS=new HashMap<>();
+    private static GpuBuffer settingsBuffer;
+    private static int uploadedDistance=-1;
 
     private NearEffectRendering(){}
 
     public static void register(IEventBus bus){
         bus.addListener((RegisterRenderPipelinesEvent event)->PIPELINES.forEach(event::registerPipeline));
+        NeoForge.EVENT_BUS.addListener(NearEffectRendering::updateSettings);
+        NeoForge.EVENT_BUS.addListener((ClientStoppingEvent event)->{
+            if(settingsBuffer!=null)settingsBuffer.close();
+            settingsBuffer=null;
+            uploadedDistance=-1;
+        });
     }
 
     /** Sample during render extraction, using that frame's actual camera. */
-    public static boolean enabled(Camera camera){return ClientSettings.nearEffectFade&&!camera.isDetached();}
+    public static boolean enabled(Camera camera){return ClientSettings.nearEffectFade&&ClientSettings.nearEffectFadeDistanceSteps>0&&!camera.isDetached();}
+
+    private static void updateSettings(RenderFrameEvent.Pre event){
+        int distance=ClientSettings.nearEffectFadeDistanceSteps;
+        if(uploadedDistance==distance)return;
+        var device=RenderSystem.getDevice();
+        try(var stack=MemoryStack.stackPush()){
+            var data=Std140Builder.onStack(stack,16).putVec4(distance/100f,0,0,0).get();
+            if(settingsBuffer==null)settingsBuffer=device.createBuffer(()->"Near effect settings",GpuBuffer.USAGE_UNIFORM|GpuBuffer.USAGE_COPY_DST,data);
+            else device.createCommandEncoder().writeToBuffer(settingsBuffer.slice(),data);
+        }
+        uploadedDistance=distance;
+    }
+
+    public static void bindSettings(RenderPass pass,RenderPipeline pipeline){
+        if(PIPELINES.contains(pipeline))pass.setUniform(SETTINGS_UNIFORM,settingsBuffer);
+    }
 
     static RenderType quads(){return QUAD_TYPE;}
     static SingleQuadParticle.Layer particleLayer(boolean inside){return inside?PARTICLE_INSIDE:PARTICLE_OUTSIDE;}
@@ -69,7 +105,7 @@ public final class NearEffectRendering {
     private static RenderPipeline pipeline(RenderPipeline original,String shader,int pass){
         var builder=original.toBuilder().withLocation(id("pipeline/near_effect_"+shader+"_"+original.getLocation().getPath().replace('/','_')+"_"+pass))
             .withVertexShader(id("core/near_effect_"+shader)).withFragmentShader(id("core/near_effect_"+shader))
-            .withShaderDefine("NEAR_EFFECT_PASS",pass).withColorTargetState(original.getColorTargetState());
+            .withShaderDefine("NEAR_EFFECT_PASS",pass).withBindGroupLayout(SETTINGS_LAYOUT).withColorTargetState(original.getColorTargetState());
         if(pass==2){
             var depth=original.getDepthStencilState();
             builder.withDepthStencilState(new DepthStencilState(depth.depthTest()==CompareOp.EQUAL?CompareOp.GREATER_THAN_OR_EQUAL:depth.depthTest(),false,depth.depthBiasScaleFactor(),depth.depthBiasConstant()));

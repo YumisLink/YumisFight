@@ -304,6 +304,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         publish.add(d);
     }
     public void death(ServerPlayer killer,LivingEntity entity,Target target)throws Exception{
+        if(target.abyss!=null&&target.noRewards)return;
         var encounter=target.instance.isEmpty()?null:encounters.byId(target.instance);
         if(encounter!=null&&encounter.practice!=null&&encounter.practice.kind()!=PracticeRoom.Kind.MOB){
             practiceDeath(killer,entity,target,encounter);
@@ -319,7 +320,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
     }
 
     private RewardRules.Supply ritualSupply(Target target,Dungeon encounter){
-        if(encounter==null||encounter.treasure!=null||encounter.waystone!=null||!target.boss())return null;
+        if(encounter==null||encounter.treasure!=null||encounter.waystone!=null||!target.boss()||target.abyss!=null)return null;
         return switch(encounter.dungeon){
             case "skasa" -> ritualUnlocked.test("fallen_scale_king")?null:new RewardRules.Supply("warm_dragon_scale",1);
             case "gbl_church" -> ritualUnlocked.test("thousandfold_confession")?null:new RewardRules.Supply("penitent_shard",13);
