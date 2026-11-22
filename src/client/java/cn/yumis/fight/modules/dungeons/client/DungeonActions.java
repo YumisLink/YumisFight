@@ -62,6 +62,11 @@ public final class DungeonActions {
     static boolean hasAbyssInvitation(){
         return abyssInvitationSlot(Minecraft.getInstance().player)>=0;
     }
+    /** Shared with the page assembly: true while the local player stands inside the dungeon dimension. */
+    public static boolean inDungeonDimension(){
+        var player=Minecraft.getInstance().player;
+        return player!=null&&player.level().dimension().identifier().equals(DUNGEON_DIMENSION);
+    }
 
     private static int abyssInvitationSlot(LocalPlayer player){
         if(player==null)return -1;

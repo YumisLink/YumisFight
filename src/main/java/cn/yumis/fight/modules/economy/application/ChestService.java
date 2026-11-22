@@ -37,7 +37,7 @@ public final class ChestService {
             InventoryEdits.apply(p,inventory,request);
             if(direct)for(var reward:rewards){
                 var balance=credit(p,reward);if(!balance.isEmpty()){for(var entry:balance.entrySet()){long previous=changes.containsKey(entry.getKey())?changes.get(entry.getKey()).getAsLong():journal.get(entry.getKey(),Long.class,0L);changes.put(entry.getKey(),new JsonPrimitive(Math.addExact(previous,reward.getCount())));}continue;}
-                var remaining=reward.copy();InventoryPacking.insert(p,remaining);while(!remaining.isEmpty()){var drop=loot.prepareOverflow(p,remaining.split(remaining.getMaxStackSize()));drops.add(drop);changes.put("loot/"+drop.id,new Gson().toJsonTree(drop));}
+                var remaining=reward.copy();InventoryPacking.insertWithOption(inventory.bagOption(p),p,remaining);while(!remaining.isEmpty()){var drop=loot.prepareOverflow(p,remaining.split(remaining.getMaxStackSize()));drops.add(drop);changes.put("loot/"+drop.id,new Gson().toJsonTree(drop));}
             }
         },changes);
         if(committed){if(direct){loot.publishDrops(drops);players.message(p,"已开启宝箱，放不下的奖励已生成在脚下。");}else RewardMenu.open(p,request.get("title").getAsString(),rewards,inventory,this::credit);players.profile(p);

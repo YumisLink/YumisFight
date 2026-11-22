@@ -49,7 +49,7 @@ public final class RewardRules {
         double experienceMultiplier=stone==null?1:stone.experienceMultiplier,goldMultiplier=stone==null?1:stone.goldMultiplier,quantityMultiplier=stone==null?1:stone.quantityMultiplier;
         double luck=stone==null?stats.get(Stat.DROP_RATE):stone.effectiveDropRate(stats.get(Stat.DROP_RATE));
         int level=target.level(progress.level,instance?encounter.syncFor(player):progress.sync);
-        long xp=progress.earnExperience(CurrencyRules.roundedReward((10d+2d*level)*(boss?10:target.elite?3:1)*target.difficulty.xp*context.settings().combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*experienceMultiplier*(practiceMob?PracticeRoom.MOB_EXPERIENCE_MULTIPLIER:1)));
+        long xp=progress.earnExperience(killExperience(progress,level,target,context.settings(),stats,experienceMultiplier,practiceMob));
         long gold=CurrencyRules.killGold(Math.clamp(level,1,80),target.elite,boss,target.difficulty,context.settings().killGoldMultiplier()*goldMultiplier);
         int count=multiplied(boss?3:random.nextDouble()<(target.elite?.45:.05)?1:0,quantityMultiplier,random);
         for(int i=0;i<count;i++){
@@ -128,9 +128,14 @@ public final class RewardRules {
         if(entry!=null)drops.add(new Drop(ChestRewards.item(entry,random,source),false));
     }
 
-    /** Player-inherent experience rate for display hints: server config times the experience stat. Dungeon-side factors such as waystones and practice rooms settle inside each kill and never appear here. */
-    public static double experienceMultiplier(double combatExperienceMultiplier,Stats stats){
-        return combatExperienceMultiplier*stats.get(Stat.EXPERIENCE_GAIN);
+    /** Combat kill experience: level curve, difficulty, server config, experience stat, the newcomer doubling at or below level 10, then waystone and practice factors. */
+    public static long killExperience(Progress progress,int targetLevel,Target target,RewardSettings settings,Stats stats,double stoneExperienceMultiplier,boolean practiceMob){
+        return CurrencyRules.roundedReward((10d+2d*targetLevel)*(target.boss()?10:target.elite?3:1)*target.difficulty.xp*settings.combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*CharacterRules.newbieExperienceFactor(progress.level)*stoneExperienceMultiplier*(practiceMob?PracticeRoom.MOB_EXPERIENCE_MULTIPLIER:1));
+    }
+
+    /** Player-inherent experience rate for display hints: server config times the experience stat, doubled by the newcomer rule at or below level 10. Dungeon-side factors such as waystones and practice rooms settle inside each kill and never appear here. */
+    public static double experienceMultiplier(double combatExperienceMultiplier,Stats stats,int level){
+        return combatExperienceMultiplier*stats.get(Stat.EXPERIENCE_GAIN)*CharacterRules.newbieExperienceFactor(level);
     }
 
     private static Result experience(Progress current,List<Integer> percentages){

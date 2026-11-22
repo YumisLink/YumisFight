@@ -68,9 +68,10 @@ final class BuiltinSkillVisuals {
             }
             if(event.skill().equals("yumis_dungeon_and_fight:ghost")&&!t.released){
                 Player actor=Minecraft.getInstance().level.getPlayerByUUID(event.caster());
-                Vec3 p=(actor==null?vector(event.origin()):PlayerVisualAnchor.position(actor)).add(vector(event.direction()).scale(.8)).add(0,1.2,0);
+                Vec3 aim=PlayerVisualAnchor.chargeAim(actor,vector(event.direction()));
+                Vec3 p=(actor==null?vector(event.origin()):PlayerVisualAnchor.position(actor)).add(aim.scale(.8)).add(0,1.2,0);
                 orb(quads,p,.15+.18*Math.min(1,age/1000.0),event.color(),180);
-                ringVertical(quads,p,.35+.3*Math.min(1,age/1000.0),vector(event.direction()),event.color(),130);
+                ringVertical(quads,p,.35+.3*Math.min(1,age/1000.0),aim,event.color(),130);
             }
             if(event.skill().equals("yumis_dungeon_and_fight:draw")&&!t.released&&age<400)ring(quads,vector(event.origin()).add(0,.1,0),1.2*(1-age/500.0),event.color(),160);
             if((event.skill().equals("yumis_dungeon_and_fight:wave")||(event.skill().equals("yumis_dungeon_and_fight:dance")||event.skill().equals("MASTERY_WAVE"))&&t.released)&&t.last.phase()==SkillVisualEvent.Phase.TRAIL&&time-t.last.at()<180){

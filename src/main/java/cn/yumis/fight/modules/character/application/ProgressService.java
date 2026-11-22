@@ -37,7 +37,7 @@ public final class ProgressService {
         try{inventory.transact(p,op,j,()->{
             InventoryEdits.apply(p,inventory,staged);
             if(outputs!=null)for(var raw:outputs.getAsJsonArray()){
-                var item=inventory.decode(p,raw);if(InventoryPacking.room(p,item)>=item.getCount())inventory.requireSpace(p,item);
+                var item=inventory.decode(p,raw);if(inventory.room(p,item)>=item.getCount())inventory.requireSpace(p,item);
                 else if(p.drop(item,false)==null)throw new IllegalStateException("奖励掉落被取消，原操作已保留");
             }
         },writes);}catch(RuntimeException failure){if(journal.get(key).equals(j)){update.accept(p,records.read(p.getUUID()));if(committedChange!=null)committedChange.committed().run();}throw failure;}

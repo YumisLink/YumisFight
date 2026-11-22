@@ -5,7 +5,7 @@ import java.util.regex.*;
 
 /** Server-owned configuration, published only after the whole reload validates. */
 public record RewardSettings(double combatExperienceMultiplier,double killGoldMultiplier) {
-    public static final RewardSettings DEFAULT=new RewardSettings(2,1);
+    public static final RewardSettings DEFAULT=new RewardSettings(1,1);
     public RewardSettings{
         finite(combatExperienceMultiplier);finite(killGoldMultiplier);
         if(combatExperienceMultiplier<0||killGoldMultiplier<0)throw new IllegalArgumentException("经验、金币倍率不可为负");

@@ -195,7 +195,7 @@ public final class ClientBootstrap {
         NeoForge.EVENT_BUS.addListener(ClientBootstrap::movementFov);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
             cn.yumis.fight.modules.npc.client.NpcClient.tick();cn.yumis.fight.modules.quests.client.TutorialOverlay.tick();IndustrialVisuals.tick();cn.yumis.fight.modules.equipment.client.LightsaberLight.tick(IndustrialVisuals.heldLight());
-            ClientSession.INSTANCE.tick();cn.yumis.fight.modules.arkguard.client.ArkGuardClient.tick();cn.yumis.fight.modules.quests.client.TutorialClient.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();
+            ClientSession.INSTANCE.tick();cn.yumis.fight.modules.arkguard.client.ArkGuardClient.tick();cn.yumis.fight.modules.quests.client.TutorialClient.tick();JarClient.tick();cn.yumis.fight.modules.economy.client.AutoSellClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();
             cn.yumis.fight.modules.dungeons.client.DungeonDefeatScreen.update(ClientSession.INSTANCE.ready,ClientSession.INSTANCE.own);
             var mc=Minecraft.getInstance();
             MenuInput.consumeClicks(()->!JarClient.blocking()&&mc.player!=null&&mc.gui.screen()==null);

@@ -19,9 +19,14 @@ public final class DungeonPage {
         new PlayerPageSurface.Navigation("story","主线副本"),
         new PlayerPageSurface.Navigation("practice","练功房"));
     private DungeonPage(){}
-    public static void render(PlayerPageSurface page,Dungeon current,int level,boolean preferredSync,Consumer<Join> join,Runnable leave,Consumer<String> message){
+    public static void render(PlayerPageSurface page,Dungeon current,int level,boolean preferredSync,boolean stranded,Consumer<Join> join,Runnable leave,Consumer<String> message){
         if(current!=null&&current.practice!=null){
             page.rowButton("离开练功房",leave);
+            return;
+        }
+        if(current==null&&stranded){
+            page.rowButton("返回原世界",leave);
+            page.line("所在副本已结束，点击按钮回到原世界。",UiTheme.MUTED);
             return;
         }
         String tab=page.remember("dungeon.tab","story").equals("practice")?"practice":"story";

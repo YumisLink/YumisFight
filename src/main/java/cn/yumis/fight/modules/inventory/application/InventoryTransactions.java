@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.inventory.application;
 import cn.yumis.fight.modules.presentation.api.ModText;
+import cn.yumis.fight.modules.inventory.api.BagOption;
 import cn.yumis.fight.modules.inventory.api.InventoryPacking;
 import cn.yumis.fight.modules.inventory.api.MenuHooks;
 
@@ -244,16 +245,17 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             menu.broadcastFullState();
         }
     }
+    @Override public BagOption bagOption(ServerPlayer p){return BagOption.parse(journal.get("bagOption/"+p.getUUID()));}
+    @Override public int room(ServerPlayer p,ItemStack stack){return InventoryPacking.room(bagOption(p),p,stack);}
     public void requireSpace(ServerPlayer p,ItemStack result){
         ItemStack copy=result.copy();
-        if(InventoryPacking.room(p,copy)<copy.getCount())throw new NoSpace();
-        InventoryPacking.insert(p,copy);
+        InventoryPacking.insertWithOption(bagOption(p),p,copy);
         if(!copy.isEmpty())throw new NoSpace();
     }
     @Override
     public void deliverOrStash(ServerPlayer p,ItemStack item,Map<String,JsonElement> changes){
         if(!inside||actingPlayer!=p)throw new IllegalStateException("发放物品须处于该玩家的背包事务中");
-        InventoryPacking.insert(p,item);
+        InventoryPacking.insertWithOption(bagOption(p),p,item);
         var bag=MenuHooks.extra(p).bag;
         for(int i=0;i<MenuHooks.extra(p).bagLimit()&&!item.isEmpty();i++)if(bag.getItem(i).isEmpty()){
             bag.setItem(i,item.copy());

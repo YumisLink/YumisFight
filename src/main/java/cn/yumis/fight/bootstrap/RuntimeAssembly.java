@@ -42,7 +42,7 @@ public final class RuntimeAssembly {
     public static cn.yumis.fight.modules.combat.application.NativeHits nativeHits(ServerApplication runtime){return new cn.yumis.fight.modules.combat.application.NativeHits(runtime.journal,runtime::session,runtime.targets::resolve,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,()->runtime.bridge,runtime.inventory::encode);}
     public static cn.yumis.fight.modules.skills.application.VisualService visualService(ServerApplication runtime){return new cn.yumis.fight.modules.skills.application.VisualService(runtime.server,runtime::session);}
     public static cn.yumis.fight.modules.dungeons.application.DamageMeterService damageMeterService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.DamageMeterService(runtime.journal,runtime.server,id->runtime.dungeons.current(id),(p,id)->runtime.dungeons.participant(p,id),p->runtime.session(p).progress.level,()->runtime.combatSettings);}
-    public static DungeonService dungeonService(ServerApplication runtime){return new DungeonService(runtime.journal,runtime.inventory,runtime.characters,runtime.server,new DungeonPorts.Players(){
+    public static DungeonService dungeonService(ServerApplication runtime){var dungeons=new DungeonService(runtime.journal,runtime.inventory,runtime.characters,runtime.server,new DungeonPorts.Players(){
         public CombatSession session(ServerPlayer p){return runtime.session(p);}
         public int level(ServerPlayer p){return runtime.session(p).progress.level;}
         public Progress progress(ServerPlayer p){return runtime.session(p).progress;}
@@ -74,7 +74,9 @@ public final class RuntimeAssembly {
             @Override public void persist()throws Exception{story.persist();commission.persist();}
             @Override public void publish(){story.publish();commission.publish();}
         };
-    });}
+    });
+    dungeons.installStrandedExclusion(player->cn.yumis.fight.modules.arkguard.api.ArkWar.contains(player.level(),player.blockPosition()));
+    return dungeons;}
     public static LootService lootService(ServerApplication runtime){return new LootService(runtime.journal,runtime.characters,runtime.server,()->runtime.inventory,rewardPlayers(runtime),new RewardPorts.Encounters(){
         public boolean participant(ServerPlayer p,String instance){return runtime.dungeons.participant(p,instance);}
         public Dungeon byId(String instance){return runtime.dungeons.byId(instance);}

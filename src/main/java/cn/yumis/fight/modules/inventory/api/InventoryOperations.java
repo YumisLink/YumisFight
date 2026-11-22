@@ -19,6 +19,10 @@ public interface InventoryOperations {
     void requireSpace(ServerPlayer player,ItemStack stack);
     /** Delivers a transaction output, recording any overflow in the existing waiting inventory. */
     void deliverOrStash(ServerPlayer player,ItemStack stack,Map<String,JsonElement> changes);
+    /** Pickup capacity honoring the player's dimensional bag auto-store preference. */
+    int room(ServerPlayer player,ItemStack stack);
+    /** The player's dimensional bag auto-store preference; client-authored and server-persisted. */
+    BagOption bagOption(ServerPlayer player);
     void closeCursor(ServerPlayer player);
     void click(ServerPlayer player,AbstractContainerMenu menu,int slot,int button,ContainerInput input);
 }

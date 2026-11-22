@@ -63,6 +63,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     private cn.yumis.fight.modules.attributes.api.AttributeSources syncedSources=new cn.yumis.fight.modules.attributes.api.AttributeSources();
     private long lastUpload,lastHello,lastUploadCheck;
     private String sentStats="";
+    private String sentBagOption="";
     private final ProfileSync.Receiver viewSync=new ProfileSync.Receiver();
     private cn.yumis.fight.modules.combat.api.RuntimeCheckpoint checkpoint;
     private long checkpointGeneration=-1;
@@ -186,6 +187,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         trainingMeter=new JsonObject();
         IndustrialVisuals.clear();
         session="";
+        sentBagOption="";
         targets.clear();
         prediction.clear();
         ailments.clear();
@@ -423,6 +425,15 @@ if(j.has("target")&&j.has("kind")){
                 send("hello",j);
             }
             return;
+        }
+        // 次元背包自动收纳偏好由本人客户端判定，登录后和每次变更时上报，服务端仅持久化并在拾取时采用。
+        String bagOption=cn.yumis.fight.modules.presentation.api.client.ClientSettings.bagAutoStore+"/"+cn.yumis.fight.modules.presentation.api.client.ClientSettings.bagStoreOnlyWhenFull;
+        if(!bagOption.equals(sentBagOption)){
+            sentBagOption=bagOption;
+            JsonObject option=new JsonObject();
+            option.addProperty("autoStore",cn.yumis.fight.modules.presentation.api.client.ClientSettings.bagAutoStore);
+            option.addProperty("onlyWhenFull",cn.yumis.fight.modules.presentation.api.client.ClientSettings.bagStoreOnlyWhenFull);
+            send("bagOption",option);
         }
         // Client-created effects have no server removal packet when their timer expires.
         for(var effect:List.copyOf(mc.player.getActiveEffects())){

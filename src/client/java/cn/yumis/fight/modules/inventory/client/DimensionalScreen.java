@@ -25,6 +25,7 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
     private boolean dragging;
     private EditBox search;
     private Button upgrade;
+    private Button autoStore,onlyWhenFull;
     private String upgradePreview="";
     private String lastFilter="";
     private long lastContents=-1;
@@ -40,7 +41,19 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
         search=addRenderableWidget(new EditBox(UiFonts.font(),leftPos+8,topPos+24,124,18,Component.literal("搜索物品")));search.setMaxLength(64);search.setHint(Component.literal("搜索物品…"));search.setValue(menu.query);search.setResponder(text->queryChangedAt=ClientUi.now()+150);
         button("整理",137,24,43,4).setTooltip(Tooltip.create(Component.literal("合并相同物品并按类型排序")));
         upgrade=button(menu.extra.bagTier>=16?"最高档":"升级",130,imageHeight-23,50,3);upgradePreview="";refreshUpgrade();
+        autoStore=toggle(8,imageHeight-23,59,()->{ClientSettings.bagAutoStore=!ClientSettings.bagAutoStore;ClientSettings.save();refreshOptions();});
+        onlyWhenFull=toggle(69,imageHeight-23,59,()->{ClientSettings.bagStoreOnlyWhenFull=!ClientSettings.bagStoreOnlyWhenFull;ClientSettings.save();refreshOptions();});
+        autoStore.setTooltip(Tooltip.create(Component.literal("开启后，自动获得的物品按右侧规则收入次元背包")));
+        onlyWhenFull.setTooltip(Tooltip.create(Component.literal("开：仅在普通背包放不下时才收入次元背包；关：自动获得的物品优先收入次元背包")));
+        refreshOptions();
         lastContents=-1;lastCapacity=-1;lastFilter="";
+    }
+    private Button toggle(int x,int y,int width,Runnable onPress){return addRenderableWidget(Button.builder(Component.literal(""),b->onPress.run()).bounds(leftPos+x,topPos+y,width,18).build(ThemedButton::new));}
+    private void refreshOptions(){
+        if(autoStore==null||onlyWhenFull==null)return;
+        autoStore.setMessage(Component.literal("自动收纳 "+(ClientSettings.bagAutoStore?"开":"关")));
+        onlyWhenFull.setMessage(Component.literal("满包才收 "+(ClientSettings.bagStoreOnlyWhenFull?"开":"关")));
+        onlyWhenFull.active=ClientSettings.bagAutoStore;
     }
     private Button button(String text,int x,int y,int width,int id){return addRenderableWidget(Button.builder(Component.literal(text),b->minecraft.gameMode.handleInventoryButtonClick(menu.containerId,id)).bounds(leftPos+x,topPos+y,width,18).build(ThemedButton::new));}
     private void filter(){
@@ -72,7 +85,7 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
     }
     @Override protected void extractLabels(GuiGraphicsExtractor g,int x,int y){
         g.text(UiFonts.font(),StorageRules.NAMES[menu.extra.bagTier-1],8,8,UiTheme.TEXT,false);g.text(UiFonts.font(),menu.extra.bagTier+"阶",imageWidth-29,8,UiTheme.MUTED,false);g.text(UiFonts.font(),"玩家背包",8,inventoryLabelY,UiTheme.TEXT,false);
-        int used=menu.usedSlots();g.text(UiFonts.font(),used+" / "+menu.extra.bagLimit()+" 格",8,imageHeight-17,UiTheme.MUTED,false);
+        int used=menu.usedSlots();String usage=used+" / "+menu.extra.bagLimit()+" 格";g.text(UiFonts.font(),usage,imageWidth-31-minecraft.font.width(usage),8,UiTheme.MUTED,false);
     }
     private void scroll(int row){int next=Math.clamp(row,0,menu.maxScroll());if(next==menu.scrollRow())return;menu.scrollTo(next);minecraft.gameMode.handleInventoryButtonClick(menu.containerId,100+menu.scrollRow());}
     private boolean scrollbar(double x,double y){return menu.maxScroll()>0&&x>=leftPos+172&&x<=leftPos+185&&y>=topPos+DimensionalMenu.BAG_Y&&y<=topPos+DimensionalMenu.BAG_Y+menu.rows*18;}

@@ -366,9 +366,11 @@ public final class MapPlacer {
             search:for(int radius=0;radius<Math.max(home.template().getSize().getX(),home.template().getSize().getZ());radius++)for(int dz=-radius;dz<=radius;dz++)for(int dx=-radius;dx<=radius;dx++) {
                 if(Math.max(Math.abs(dx),Math.abs(dz))!=radius)continue;int x=cx+dx,z=cz+dz;
                 if(x<=home.position().getX()||x>=home.position().getX()+home.template().getSize().getX()-1||z<=home.position().getZ()||z>=home.position().getZ()+home.template().getSize().getZ()-1)continue;
-                BlockPos feet=new BlockPos(x,y,z),floor=feet.below();
+                BlockPos feet=new BlockPos(x,y,z);
                 var box=entity.getBoundingBox().move(x+.5-entity.getX(),y-entity.getY(),z+.5-entity.getZ());
-                if(level.getBlockState(floor).isCollisionShapeFullBlock(level,floor)&&level.getFluidState(feet).isEmpty()&&level.noCollision(entity,box)){chosen=feet;break search;}
+                // 承托判定按实体物理：脚下半格内存在碰撞体即可，耕地、土径、下半砖等非完整顶面方块同样能安全承重。
+                var support=new net.minecraft.world.phys.AABB(x+.2,y-.51,z+.2,x+.8,y-.49,z+.8);
+                if(level.getBlockCollisions(null,support).iterator().hasNext()&&level.getFluidState(feet).isEmpty()&&level.noCollision(entity,box)){chosen=feet;break search;}
             }
             if(chosen==null)throw new IllegalStateException("动物没有安全落脚点: "+home.definition().id);
             entity.setPos(chosen.getX()+.5,chosen.getY(),chosen.getZ()+.5);entity.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);entity.resetFallDistance();moved++;

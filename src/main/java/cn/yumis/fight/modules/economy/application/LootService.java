@@ -22,10 +22,10 @@ import cn.yumis.fight.modules.economy.api.RewardPorts;
 import cn.yumis.fight.modules.inventory.api.InventoryOperations;
 import cn.yumis.fight.modules.inventory.api.InventoryDrops;
 import cn.yumis.fight.modules.inventory.api.InventoryIntake;
-import cn.yumis.fight.modules.inventory.api.InventoryPacking;
 import cn.yumis.fight.foundation.Journal;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.RandomSource;
 import java.util.function.Supplier;
 import cn.yumis.fight.*;
 
@@ -79,7 +79,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             ItemStack actual=e.getItemEntity().getItem(),expected=inventory.get().decode(p,drop.item);
             if(!ItemStack.isSameItemSameComponents(actual,expected))return;
             if(actual.getCount()>expected.getCount()){actual=expected.copy();e.getItemEntity().setItem(actual);}
-            if(accountPickup(p,drop,actual)){if(!journal.get("lootEnd/"+id).isJsonNull())e.getItemEntity().discard();return;}int room=InventoryPacking.room(p,actual);
+            if(accountPickup(p,drop,actual)){if(!journal.get("lootEnd/"+id).isJsonNull())e.getItemEntity().discard();return;}int room=inventory.get().room(p,actual);
             int take=Math.min(room,actual.getCount());if(take<=0)return;ItemStack result=actual.copyWithCount(take),left=actual.copyWithCount(actual.getCount()-take);var next=copy(drop,LootService.Drop.class);next.item=inventory.get().encode(p,left);Map<String,JsonElement> edits=new HashMap<>();edits.put("loot/"+id,JSON.toJsonTree(next));if(left.isEmpty())edits.put("lootEnd/"+id,JSON.toJsonTree("picked"));JsonObject intent=new JsonObject();intent.addProperty("publicPickup",id);intent.addProperty("count",take);try{
                 if(!inventory.get().transact(p,"public-pickup/"+UUID.randomUUID(),intent,()->inventory.get().requireSpace(p,result),edits))return;
                 if(left.isEmpty())e.getItemEntity().discard();else e.getItemEntity().setItem(left);
@@ -391,6 +391,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         edits.put(key,request.deepCopy());edits.put(pending,JsonNull.INSTANCE);
         var drops=new ArrayList<Drop>();
         var direct=new ArrayList<ItemStack>();
+        var random=RandomSource.create();
         // Plain practice-room mobs settle like ordinary kills, but their ground drops keep the room's lifecycle.
         boolean practice=context.practice()!=null||context.encounter()!=null&&context.encounter().practice!=null;
         for(var raw:context.experienceOnly()||practice&&!practiceOpen(context.instance())?new JsonArray():request.getAsJsonArray("rewardDrops")){
@@ -407,6 +408,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             drop.dimension=context.dimension();drop.instance=context.instance();drop.x=context.x();drop.y=context.y()+.4;drop.z=context.z();drop.item=row.get("item").deepCopy();
             if(cn.yumis.fight.platform.ItemData.own(received)&&Set.of("treasure_chest","waystone",cn.yumis.fight.modules.economy.api.LootJarItem.ID).contains(cn.yumis.fight.platform.ItemData.id(received)))drop.expires=Long.MAX_VALUE;
             if(privateLoot&&!drop.instance.isEmpty()&&!drop.instance.equals(encounters.currentInstance(player))){drop.dimension=player.level().dimension().identifier().toString();drop.instance="";drop.x=player.getX();drop.y=player.getY()+.4;drop.z=player.getZ();}
+            scatter(drop,random);
             drops.add(drop);edits.put("loot/"+drop.id,JSON.toJsonTree(drop));
         }
         try{inventory.get().transact(player,request.get("operation").getAsString(),request,()->{
@@ -416,6 +418,13 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         abyssFlash(player,context,drops);
         if(context.experienceOnly())players.message(player,"方舟战争结算："+context.experiencePercentages().size()+"波，获得"+request.get("experienceGain").getAsLong()+"点经验。");
         else if(request.has("goldGain"))balance.notifyGain(player,request.get("goldGain").getAsLong(),balance.gold(player),balance.revision(player));
+    }
+    /** 敌人死亡的地面掉落参考原版玩家死亡散落一地的做法散开：公共与私人掉落都带随机方向抛射速度，由各自实体的物理散开落地。 */
+    public static void scatter(Drop drop,RandomSource random){
+        // 原版 LivingEntity.createItemStackToDrop 的死亡散落算法：0~0.5 随机水平速度加 0.2 上抛；私人掉落拾取本就无延迟，公共掉落保持 10 tick 拾取窗口。
+        double angle=random.nextDouble()*Math.PI*2,speed=random.nextDouble()*.5;
+        drop.nativeToss=true;drop.dx=-Math.sin(angle)*speed;drop.dy=.2;drop.dz=Math.cos(angle)*speed;
+        if(drop.owner.isEmpty())drop.pickupAt=System.currentTimeMillis()+500;
     }
     /** Presents committed facts only: an abyss clear whose landed loot contains epic or mythic gear flashes for the instance. */
     private void abyssFlash(ServerPlayer player,RewardRules.Context context,List<Drop> drops){
@@ -494,6 +503,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
                 e.setUUID(d.id);
                 e.initialize(d.id.toString(),d.owner,stack);
                 e.setPos(d.x,d.y,d.z);
+                if(d.nativeToss)e.setDeltaMovement(d.dx,d.dy,d.dz);
                 if(!level.addFreshEntity(e))publish.add(d);
             }
         }
@@ -522,7 +532,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         if(d==null||!activeOwner(d,p)||d.expires<System.currentTimeMillis()||!journal.get("lootEnd/"+e.dropId).isJsonNull())return;
         ItemStack stack=inventory.get().decode(p,d.item);
         if(accountPickup(p,d,stack)){if(!journal.get("lootEnd/"+e.dropId).isJsonNull())e.discard();return;}
-        int room=InventoryPacking.room(p,stack);
+        int room=inventory.get().room(p,stack);
         int take=Math.min(room,stack.getCount());
         if(take<=0)return;
         ItemStack received=stack.copyWithCount(take);
@@ -571,6 +581,7 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
                     d.y=point.y+.3;
                     d.z=point.z;
                     d.instance="";
+                    d.nativeToss=false;d.dx=0;d.dy=0;d.dz=0;
                     journal.put(key,d);
                     committed(List.of(key));
                     publish.add(d);

@@ -25,6 +25,8 @@ public final class ClientSettings {
     public static int enemyHealthDistance=16;
     public static int veinMiningLimit=VeinMining.DEFAULT_LIMIT;
     public static boolean enemyHealthPerspective=false,attackNeutralMobs=false;
+    /** 次元背包自动收纳：默认关；开启后默认仅在普通背包放不下时才收纳。 */
+    public static boolean bagAutoStore=false,bagStoreOnlyWhenFull=true;
     public static boolean arkEnemyHealth=true,arkAllyHealth=true,arkEnemyDamage=true,arkAllyDamage=true;
     public static String globalTheme="light",menuTheme="dark",machineTheme="light";
     public static boolean menuFollowsTheme=false,machineFollowsTheme=true;
@@ -64,6 +66,8 @@ public final class ClientSettings {
             veinMiningLimit=readVeinMiningLimit(value(s,"veinMiningLimit",Integer.toString(VeinMining.DEFAULT_LIMIT)));
             enemyHealthPerspective=Boolean.parseBoolean(value(s,"enemyHealthPerspective","false"));
             attackNeutralMobs=Boolean.parseBoolean(value(s,"attackNeutralMobs","false"));
+            bagAutoStore=Boolean.parseBoolean(value(s,"bagAutoStore","false"));
+            bagStoreOnlyWhenFull=!value(s,"bagStoreOnlyWhenFull","true").equalsIgnoreCase("false");
             arkEnemyHealth=Boolean.parseBoolean(value(s,"arkEnemyHealth","true"));
             arkAllyHealth=Boolean.parseBoolean(value(s,"arkAllyHealth","true"));
             arkEnemyDamage=Boolean.parseBoolean(value(s,"arkEnemyDamage","true"));
@@ -116,6 +120,7 @@ public final class ClientSettings {
                 +"arkEnemyHealth="+arkEnemyHealth+"\narkAllyHealth="+arkAllyHealth+"\narkEnemyDamage="+arkEnemyDamage+"\narkAllyDamage="+arkAllyDamage+"\n"
                 +"enemyHealthDistance="+enemyHealthDistance+"\nenemyHealthPerspective="+enemyHealthPerspective+"\nattackNeutralMobs="+attackNeutralMobs+"\n"
                 +"veinMiningLimit="+veinMiningLimit+"\n"
+                +"bagAutoStore="+bagAutoStore+"\nbagStoreOnlyWhenFull="+bagStoreOnlyWhenFull+"\n"
                 +"menuShortcutDefaultsApplied="+menuShortcutDefaultsApplied+"\n"
                 +"collapsedQuests="+JSON.toJson(collapsedQuests)+"\n");
         }

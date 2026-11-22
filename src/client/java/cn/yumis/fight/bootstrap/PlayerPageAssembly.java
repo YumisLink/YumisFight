@@ -38,7 +38,7 @@ public final class PlayerPageAssembly {
         PlayerPageRenderers.register("talents",page->{cn.yumis.fight.modules.character.api.client.CareerProfilesClient.render(page,state.progress);cn.yumis.fight.modules.talents.client.TalentPage.render(page,state.progress,(kind,talent)->state.progress(kind,"talent",talent),state::message);});
         PlayerPageRenderers.register("professions",page->ProfessionPage.render(page,state.professions,state.gold.balance,()->state.send("professions"),UiTheme.GOLD,UiTheme.MUTED));
         PlayerPageRenderers.register("party",page->PartyPage.render(page,state.party,state.own.target,id->{var connection=Minecraft.getInstance().getConnection();var info=connection==null?null:connection.getPlayerInfo(id);return info==null?id+" [离线]":info.getProfile().name()+" [在线]";},(kind,name)->{var request=state.operation(kind);request.addProperty(kind.equals("kick")||kind.equals("transfer")?"target":"name",name);state.send("party",request);}));
-        PlayerPageRenderers.register("dungeons",page->DungeonPage.render(page,state.dungeon,state.progress.level,state.progress.dungeonSync,join->{
+        PlayerPageRenderers.register("dungeons",page->DungeonPage.render(page,state.dungeon,state.progress.level,state.progress.dungeonSync,strandedInDungeon(),join->{
             state.upload();var request=state.operation("join");
             request.addProperty("dungeon",join.dungeon());request.addProperty("difficulty",join.difficulty().name());request.addProperty("sync",join.sync());
             if(join.abyssChallenge())request.addProperty("abyssChallenge",true);
@@ -49,6 +49,12 @@ public final class PlayerPageAssembly {
         PlayerPageRenderers.register("shop",page->{page.line("无色小晶块 "+(state.profile.has("colorlessCrystals")?state.profile.get("colorlessCrystals").getAsLong():0L),UiTheme.TEXT);ShopPage.render(page,page.screen(),state.gold.balance,state.profile.has("points")?state.profile.get("points").getAsLong():0L,state.session,state.profile.has("contractUntil")?state.profile.get("contractUntil").getAsLong():0L,()->state.operation("purchase"),request->state.send("purchase",request),UiTheme.GOLD,UiTheme.MUTED);});
     }
     private static void points(String kind,String key,String value){var state=ClientSession.INSTANCE;state.upload();var request=state.operation(kind);request.addProperty(key,value);request.addProperty("count",Minecraft.getInstance().hasShiftDown()?5:1);state.send("progress",request);}
+    /** 滞留判定：身处地下城维度但无进行中的副本状态；方舟战场共用该维度，且另有自己的离场入口，不算滞留。 */
+    private static boolean strandedInDungeon(){
+        var player=Minecraft.getInstance().player;
+        return player!=null&&cn.yumis.fight.modules.dungeons.client.DungeonActions.inDungeonDimension()
+            &&!cn.yumis.fight.modules.arkguard.api.ArkWar.contains(player.level(),player.blockPosition());
+    }
     private static CharacterPage.Value value(String name,String value){return new CharacterPage.Value(name,value,(g,x,y)->g.setComponentTooltipForNextFrame(UiFonts.font(),cn.yumis.fight.modules.skills.client.CombatAttributeTooltip.lines(name),x,y));}
     private static CharacterPage.View characterView(){
         var state=ClientSession.INSTANCE;var stats=cn.yumis.fight.modules.skills.api.client.SkillController.INSTANCE.snapshot();List<CharacterPage.Allocation> allocated=new ArrayList<>();List<CharacterPage.Value> values=new ArrayList<>();

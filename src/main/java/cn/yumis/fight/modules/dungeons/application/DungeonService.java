@@ -77,6 +77,9 @@ public class DungeonService {
     private boolean instanceIndexValid;
     public void installWaystones(cn.yumis.fight.modules.inventory.api.InventoryOperations inventory,cn.yumis.fight.modules.dungeons.api.WaystonePorts rewards,Random random){waystones=new WaystoneService(this,journal,server,playerAccess,targets,meter,inventory,rewards,random);}
     public void installTreasure(cn.yumis.fight.modules.inventory.api.InventoryOperations inventory,cn.yumis.fight.modules.dungeons.api.TreasurePorts rewards,Random random){treasure=new TreasureHuntService(this,journal,server,playerAccess,targets,inventory,rewards,random);}
+    /** Assembly decides which in-dimension players the stranded rescue must not touch, e.g. the ark war arena. */
+    private java.util.function.Predicate<ServerPlayer> strandedExclusion=p->false;
+    public void installStrandedExclusion(java.util.function.Predicate<ServerPlayer> exclusion){strandedExclusion=java.util.Objects.requireNonNull(exclusion);}
     private final DungeonPorts.Meter meter;
     private final Function<UUID,Team> team;
     private final Runnable refresh;
@@ -348,9 +351,15 @@ public class DungeonService {
         Dungeon d=current(p.getUUID());
         if(d!=null&&d.treasure!=null){treasure.leave(d,p,teleport);return;}
         if(d==null){
-            if(teleport&&p.level().dimension()==DIMENSION){
+            if(teleport&&p.level().dimension()==DIMENSION&&!strandedExclusion.test(p)){
                 ReturnPoint stored=journal.get("return/"+p.getUUID(),ReturnPoint.class,null);
-                if(stored!=null)back(p,stored);
+                var spawn=server.overworld().getRespawnData().pos();
+                back(p,strandedReturn(stored,server.overworld().dimension().identifier().toString(),spawn.getX()+.5,spawn.getY(),spawn.getZ()+.5));
+                playerAccess.session(p).life.instance="";
+                playerAccess.session(p).life.dimension=p.level().dimension().identifier().toString();
+                if(waystones!=null)waystones.updateSources(p);
+                playerAccess.save(p);
+                playerAccess.profile(p);
             }
             return;
         }
@@ -420,6 +429,16 @@ public class DungeonService {
         teleport(p,l,point.x,Math.max(l.getMinY()+1,point.y),point.z);
         p.setYRot(point.yaw);
         p.setXRot(point.pitch);
+    }
+    /** Prefer the return point recorded at entry; a missing record falls back to the overworld spawn. */
+    static ReturnPoint strandedReturn(ReturnPoint stored,String overworld,double spawnX,double spawnY,double spawnZ){
+        if(stored!=null)return stored;
+        var point=new ReturnPoint();
+        point.dimension=overworld;
+        point.x=spawnX;
+        point.y=spawnY;
+        point.z=spawnZ;
+        return point;
     }
     void teleport(ServerPlayer p,ServerLevel l,double x,double y,double z){
         p.teleportTo(l,x,y,z,Set.of(),p.getYRot(),p.getXRot(),true);

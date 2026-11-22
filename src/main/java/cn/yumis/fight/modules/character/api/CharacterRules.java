@@ -12,4 +12,9 @@ public final class CharacterRules {
     public static long nextExperience(int level){
         return level>=MAX_LEVEL?0:(10L+2*level)*(20+5L*level);
     }
+    /** 新手经验：10级内（含10级）战斗击杀经验翻倍，超过10级恢复正常。 */
+    public static final int NEWBIE_EXPERIENCE_MAX_LEVEL=10;
+    public static double newbieExperienceFactor(int level){
+        return level<=NEWBIE_EXPERIENCE_MAX_LEVEL?2:1;
+    }
 }

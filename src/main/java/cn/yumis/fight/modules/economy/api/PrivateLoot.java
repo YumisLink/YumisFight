@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.*;
+import net.minecraft.world.phys.Vec3;
 public final class PrivateLoot extends Entity {
     @Override public boolean hurtServer(net.minecraft.server.level.ServerLevel level,net.minecraft.world.damagesource.DamageSource source,float amount){
         return false;
@@ -32,8 +33,18 @@ public final class PrivateLoot extends Entity {
     public String owner(){
         return entityData.get(OWNER);
     }
+    @Override protected double getDefaultGravity(){
+        return .04;
+    }
+    @Override protected Entity.MovementEmission getMovementEmission(){
+        return Entity.MovementEmission.NONE;
+    }
     @Override public void tick(){
         super.tick();
+        // 与原版 ItemEntity 相同的抛物散落物理：重力、位移、移动后摩擦，使死亡散落抛射真正飞出并落地。
+        applyGravity();
+        move(MoverType.SELF,getDeltaMovement());
+        setDeltaMovement(LootPhysics.friction(getDeltaMovement(),onGround(),level().getBlockState(getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction()));
         if(!level().isClientSide())LootEntityActions.validate(this);
     }
     @Override public void playerTouch(Player player){

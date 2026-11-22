@@ -166,7 +166,7 @@ public final class SkillController {
     }
     public void release(int baseSlot){
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.released(baseSlot);
-        if(cast!=null&&cast.charging&&cast.slot%8==baseSlot)cast.release=true;
+        if(cast!=null&&cast.charging&&cast.slot%8==baseSlot){cast.release=true;if(Minecraft.getInstance().player!=null)cast.direction=horizontal(Minecraft.getInstance().player.getLookAngle());}
     }
     public void begin(SkillCast c){
         if(cast!=null)cancel(false);cancelBasicAttacks();cast=c;
@@ -320,6 +320,8 @@ public final class SkillController {
             else if(!mc.options.keyAttack.isDown()){greatCharge=null;Stats charged=charge.stats.copy();charged.modifiers.put("greatCharge",1+1.5*Math.clamp((now-charge.start)/800d,0,1));sendBasic(charged);}
         }
         if(mc.gui.screen()==null&&mc.options.keyAttack.isDown()&&(mc.hitResult==null||mc.hitResult.getType()!=HitResult.Type.BLOCK))attack();
+        // A held charge keeps aiming along the caster's live crosshair instead of the frozen launch heading.
+        if(cast!=null&&cast.charging&&!cast.release)cast.direction=horizontal(mc.player.getLookAngle());
         if(cast!=null)advance(now,dt);
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.tick(skillContext);
         cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.tick(skillContext);

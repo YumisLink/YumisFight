@@ -45,7 +45,7 @@ public final class TutorialService {
         boolean committed;
         try{committed=inventory.transact(player,operation,request,()->{
             for(var raw:request.getAsJsonArray("outputs")){
-                var item=inventory.decode(player,raw);if(InventoryPacking.room(player,item)>=item.getCount())inventory.requireSpace(player,item);
+                var item=inventory.decode(player,raw);if(inventory.room(player,item)>=item.getCount())inventory.requireSpace(player,item);
                 else if(player.drop(item,false)==null)throw new IllegalStateException("任务奖励掉落被取消，请保留背包空位后重试");
             }
         },writes);}catch(RuntimeException failure){if(journal.get(receipt).equals(request)&&next!=null)players.progress(player,characters.read(player.getUUID()));throw failure;}

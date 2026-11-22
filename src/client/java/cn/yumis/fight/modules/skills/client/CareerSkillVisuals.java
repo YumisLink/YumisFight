@@ -3,6 +3,7 @@ package cn.yumis.fight.modules.skills.client;
 import cn.yumis.fight.modules.skills.api.*;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.sounds.*;
 import java.util.*;
@@ -61,8 +62,15 @@ final class CareerSkillVisuals {
         });
         add(CareerSkills.CRESCENT,(t,a,n,q)->{
             Vec3 d=vector(t.start.direction()),p=vector(t.last.position());double charge=t.last.charge();
-            if(!t.released){charge=Math.clamp(a/1000d,0,1);p=vector(t.start.origin()).add(d.scale(.8)).add(0,1.2,0);sphere(q,p,.2+.25*charge,0xf2e9c0,125);}
-            xWave(q,p,d,(t.released?1:.35)*(1+charge),0xf2e9c0,t.released?230:140);
+            if(!t.released){
+                charge=Math.clamp(a/1000d,0,1);
+                Player actor=Minecraft.getInstance().level.getPlayerByUUID(t.start.caster());
+                Vec3 aim=PlayerVisualAnchor.chargeAim(actor,d);
+                p=(actor==null?vector(t.start.origin()):PlayerVisualAnchor.position(actor)).add(aim.scale(.8)).add(0,1.2,0);
+                sphere(q,p,.2+.25*charge,0xf2e9c0,125);
+                xWave(q,p,aim,.35*(1+charge),0xf2e9c0,140);
+            }
+            else xWave(q,p,d,1+charge,0xf2e9c0,230);
         });
         add(CareerSkills.ICE,(t,a,n,q)->{
             Vec3 p=vector(t.last.position()),d=vector(t.start.direction()),side=new Vec3(-d.z,0,d.x);if(t.last.phase()!=SkillVisualEvent.Phase.TRAIL)p=vector(t.start.origin());
