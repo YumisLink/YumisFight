@@ -25,4 +25,18 @@ public final class WorldQuads {
             }
         });
     }
+    /** Hollow two-layer beam, a bright core plus a wider faint glow, shared by industrial links and loot drops. */
+    public static void beam(List<Quad> out,Vec3 from,Vec3 to,int coreColor,double coreRadius,int coreAlpha,int glowColor,double glowRadius,int glowAlpha){
+        Vec3 direction=to.subtract(from);
+        if(direction.lengthSqr()<.001)return;
+        direction=direction.normalize();
+        Vec3 u=direction.cross(Math.abs(direction.y)>.95?new Vec3(1,0,0):new Vec3(0,1,0)).normalize(),v=direction.cross(u).normalize();
+        for(int layer=0;layer<2;layer++){
+            double radius=layer==0?coreRadius:glowRadius;int color=layer==0?coreColor:glowColor,alpha=layer==0?coreAlpha:glowAlpha;
+            for(int i=0;i<8;i++){double a=i*Math.PI/4,b=(i+1)*Math.PI/4;
+                Vec3 left=u.scale(Math.cos(a)*radius).add(v.scale(Math.sin(a)*radius)),right=u.scale(Math.cos(b)*radius).add(v.scale(Math.sin(b)*radius));
+                out.add(new Quad(from.add(left),to.add(left),to.add(right),from.add(right),color,alpha));
+            }
+        }
+    }
 }

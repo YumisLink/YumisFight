@@ -3,6 +3,7 @@ import cn.yumis.fight.modules.economy.api.PrivateLoot;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.platform.ItemRegistry;
 import cn.yumis.fight.modules.dungeons.api.DungeonCatalog;
+import cn.yumis.fight.modules.dungeons.api.AbyssParty;
 import cn.yumis.fight.modules.equipment.api.EquipmentTemplates;
 import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.equipment.api.Rarity;
@@ -41,6 +42,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
+import java.util.function.Function;
 public class LootService implements InventoryDrops,cn.yumis.fight.modules.economy.api.WorldItemTransfers.Port {
     private final cn.yumis.fight.modules.character.api.CharacterPersistence characters;
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
@@ -411,8 +413,28 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             for(var item:direct)inventory.get().deliverOrStash(player,item,edits);
         },edits);}catch(RuntimeException failure){if(journal.get(key).equals(request))players.progress(player,characters.read(player.getUUID()));throw failure;}
         players.progress(player,progress);publishDrops(drops);players.profile(player);
+        abyssFlash(player,context,drops);
         if(context.experienceOnly())players.message(player,"方舟战争结算："+context.experiencePercentages().size()+"波，获得"+request.get("experienceGain").getAsLong()+"点经验。");
         else if(request.has("goldGain"))balance.notifyGain(player,request.get("goldGain").getAsLong(),balance.gold(player),balance.revision(player));
+    }
+    /** Presents committed facts only: an abyss clear whose landed loot contains epic or mythic gear flashes for the instance. */
+    private void abyssFlash(ServerPlayer player,RewardRules.Context context,List<Drop> drops){
+        if(context.target()==null||context.target().abyss!=AbyssParty.Enemy.PILLAR)return;
+        var fact=abyssFlashFact(drops,item->EquipmentItems.gear(inventory.get().decode(player,item)));
+        if(fact!=null)encounters.abyssFlash(fact.instance(),fact.x(),fact.y(),fact.z(),fact.mythic());
+    }
+    /** First in-instance epic or mythic landing spot, and whether any mythic gear is present; null means no flash. */
+    public record AbyssFlashFact(String instance,boolean mythic,double x,double y,double z){}
+    public static AbyssFlashFact abyssFlashFact(List<Drop> drops,Function<JsonElement,Gear> gearAt){
+        boolean mythic=false;String instance="";double x=0,y=0,z=0;
+        for(Drop drop:drops){
+            if(drop.instance.isEmpty())continue;
+            var gear=gearAt.apply(drop.item);
+            if(gear==null||gear.rarity!=Rarity.EPIC&&gear.rarity!=Rarity.MYTHIC)continue;
+            if(instance.isEmpty()){instance=drop.instance;x=drop.x;y=drop.y;z=drop.z;}
+            mythic|=gear.rarity==Rarity.MYTHIC;
+        }
+        return instance.isEmpty()?null:new AbyssFlashFact(instance,mythic,x,y,z);
     }
     public void abort(){
         publish.removeIf(drop->!drop.logistics);

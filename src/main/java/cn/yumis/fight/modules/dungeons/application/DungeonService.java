@@ -863,6 +863,15 @@ public class DungeonService {
     void broadcast(String instance,String action,Object value){
         for(ServerPlayer p:server.getPlayerList().getPlayers())if(participant(p,instance))cn.yumis.fight.network.Network.send(p,action,value);
     }
+    /** Presents the committed abyss epic or mythic flash to everyone still in that instance; presentation only. */
+    public void abyssFlash(String instance,double x,double y,double z,boolean mythic){
+        var j=new JsonObject();
+        j.addProperty("x",x);
+        j.addProperty("y",y);
+        j.addProperty("z",z);
+        j.addProperty("mythic",mythic);
+        broadcast(instance,"abyssFlash",j);
+    }
     private void discharge(Cage cage){
         if(!cages.containsKey(cage.id))return;
         Entity e=level().getEntity(cage.boss);

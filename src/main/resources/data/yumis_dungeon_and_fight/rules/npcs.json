@@ -178,512 +178,7 @@
       "dialogue": [
         "冒险这种事，先学会第一步就够了。",
         "选你喜欢的。旅途可没有标准答案。"
-      ],
-      "awakening": {
-        "level": 50,
-        "badge": {
-          "spans": [{"text": "觉醒任务", "colors": ["#F6D46C", "#76D68A"]}]
-        },
-        "bosses": [
-          {
-            "id": "uncrowned_gardener",
-            "name": "无冠园丁",
-            "level": 30,
-            "clears": 5,
-            "materials": [{"id": "lightmoss_scion", "name": "光苔接穗", "count": 5}]
-          },
-          {
-            "id": "off_duty_matron",
-            "name": "歇工的圣母",
-            "level": 35,
-            "clears": 4,
-            "materials": [{"id": "severance_spring", "name": "圣札铜簧", "count": 4}]
-          },
-          {
-            "id": "white_reliquary",
-            "name": "白圣髑",
-            "level": 40,
-            "clears": 3,
-            "materials": [
-              {"id": "unfinished_chant_core", "name": "遗咏晶核", "count": 3},
-              {"id": "unfinished_chant_page", "name": "未竟圣页", "count": 1}
-            ]
-          },
-          {
-            "id": "debt_collector",
-            "name": "催账人",
-            "level": 45,
-            "clears": 3,
-            "materials": [{"id": "stopped_clock_gear", "name": "停表齿轮", "count": 3}]
-          },
-          {
-            "id": "fallen_scale_king",
-            "name": "坠鳞的君王",
-            "level": 50,
-            "clears": 1,
-            "materials": [{"id": "ember_scale", "name": "余火硬鳞", "count": 1}]
-          }
-        ],
-        "confession": "thousandfold_confession",
-        "towerGoal": "awakening_tower_first_clear",
-        "dialogue": [
-          {
-            "spans": [{"text": "你已经从塔上回来了。现在，试试用自己的方式掌握这股力量吧。"}]
-          }
-        ]
-      },
-      "tutorial": {
-        "introduction": [
-          {
-            "spans": [
-              {
-                "text": "欢迎，旅行者。我是 ",
-                "colors": []
-              },
-              {
-                "text": "伊蕾娜",
-                "colors": [
-                  "#EBD09C",
-                  "#C6ACFF"
-                ]
-              },
-              {
-                "text": "。冒险这种事，先学会第一步就够了。",
-                "colors": []
-              }
-            ]
-          },
-          {
-            "spans": [
-              {
-                "text": "先按 ",
-                "colors": []
-              },
-              {
-                "text": "I",
-                "colors": [
-                  "#EBD09C"
-                ]
-              },
-              {
-                "text": "，打开「职业技能」选一个基础职业。任务会记在「任务追踪器」，完成后在那里提交，下一课也会自动接上。",
-                "colors": []
-              }
-            ]
-          }
-        ],
-        "steps": [
-          {
-            "id": "choose_road",
-            "goal": "choose_job",
-            "title": {
-              "spans": [
-                {
-                  "text": "第一课 · 选择你的道路",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "objective": {
-              "spans": [
-                {
-                  "text": "打开 ",
-                  "colors": []
-                },
-                {
-                  "text": "I",
-                  "colors": [
-                    "#EBD09C"
-                  ]
-                },
-                {
-                  "text": " → 职业技能 → ",
-                  "colors": []
-                },
-                {
-                  "text": "选择基础职业",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "dialogue": [
-              {
-                "spans": [
-                  {
-                    "text": "选你喜欢的。第一把武器，已经替你准备好了。",
-                    "colors": []
-                  }
-                ]
-              },
-              {
-                "spans": [
-                  {
-                    "text": "打开 I，进入「职业技能」选择基础职业。选定后不能更换，这一步慢慢想。",
-                    "colors": []
-                  }
-                ]
-              }
-            ],
-            "reward": {
-              "experience": 500,
-              "gold": 20000,
-              "items": []
-            },
-            "page": "skills"
-          },
-          {
-            "id": "first_skill",
-            "goal": "learn_skill",
-            "title": {
-              "spans": [
-                {
-                  "text": "第二课 · 学会第一招",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "objective": {
-              "spans": [
-                {
-                  "text": "在职业技能中",
-                  "colors": []
-                },
-                {
-                  "text": "学习一个主动技能",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "dialogue": [
-              {
-                "spans": [
-                  {
-                    "text": "先会一招，再慢慢变厉害。",
-                    "colors": []
-                  }
-                ]
-              },
-              {
-                "spans": [
-                  {
-                    "text": "鬼剑士可以先学「鬼斩」，魔法师学「魔法星弹」，恶魔猎手学「混乱打击」。打开技能页，点击「学习」。",
-                    "colors": []
-                  }
-                ]
-              }
-            ],
-            "reward": {
-              "experience": 200,
-              "gold": 20000,
-              "items": []
-            },
-            "page": "skills"
-          },
-          {
-            "id": "handy_skill",
-            "goal": "bind_skill",
-            "title": {
-              "spans": [
-                {
-                  "text": "第三课 · 把本领放在手边",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "objective": {
-              "spans": [
-                {
-                  "text": "把已学的主动技能",
-                  "colors": []
-                },
-                {
-                  "text": "拖到快捷槽",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "dialogue": [
-              {
-                "spans": [
-                  {
-                    "text": "把它放到顺手的位置。战斗时，可没空翻书。",
-                    "colors": []
-                  }
-                ]
-              },
-              {
-                "spans": [
-                  {
-                    "text": "按住已学技能的图标，拖到屏幕下方的快捷槽后松开。槽位显示实际按键，Ctrl / Alt 可以切换技能层。",
-                    "colors": []
-                  }
-                ]
-              }
-            ],
-            "reward": {
-              "experience": 200,
-              "gold": 20000,
-              "items": [
-                {
-                  "item": "yumis_dungeon_and_fight:training_sandbag",
-                  "count": 1
-                }
-              ]
-            },
-            "page": "skills"
-          },
-          {
-            "id": "first_contact",
-            "goal": "practice_hit",
-            "title": {
-              "spans": [
-                {
-                  "text": "第四课 · 试试身手",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "objective": {
-              "spans": [
-                {
-                  "text": "用一个已学主动技能",
-                  "colors": []
-                },
-                {
-                  "text": "命中普通训练沙袋一次",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "dialogue": [
-              {
-                "spans": [
-                  {
-                    "text": "先打个招呼吧。沙袋比怪物有耐心得多。",
-                    "colors": []
-                  }
-                ]
-              },
-              {
-                "spans": [
-                  {
-                    "text": "把沙袋放在附近空地，装备初始武器后按快捷键施放技能。左键是普攻；沙袋不会反击，也不掉奖励。Shift＋空手右键可收回。",
-                    "colors": []
-                  }
-                ]
-              }
-            ],
-            "reward": {
-              "experience": 200,
-              "gold": 35000,
-              "items": []
-            },
-            "page": ""
-          },
-          {
-            "id": "first_growth",
-            "goal": "allocate",
-            "title": {
-              "spans": [
-                {
-                  "text": "第五课 · 一点成长",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "objective": {
-              "spans": [
-                {
-                  "text": "打开 I → 属性，",
-                  "colors": []
-                },
-                {
-                  "text": "分配至少一点属性",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "dialogue": [
-              {
-                "spans": [
-                  {
-                    "text": "变强的第一步，就是决定把力量用在哪里。",
-                    "colors": []
-                  }
-                ]
-              },
-              {
-                "spans": [
-                  {
-                    "text": "打开 I 的「属性」页，在力量、智力或精神旁点「+1」。选择职业适合的方向就好，不必一次用光。",
-                    "colors": []
-                  }
-                ]
-              }
-            ],
-            "reward": {
-              "experience": 200,
-              "gold": 35000,
-              "items": [
-                {
-                  "item": "yumis_dungeon_and_fight:equipment_fabricator",
-                  "count": 1
-                },
-                {
-                  "item": "yumis_dungeon_and_fight:crafting_material",
-                  "material": "goblin_cloth",
-                  "count": 4
-                },
-                {
-                  "item": "minecraft:iron_ingot",
-                  "count": 4
-                }
-              ]
-            },
-            "page": "character"
-          },
-          {
-            "id": "first_equipment",
-            "goal": "craft",
-            "title": {
-              "spans": [
-                {
-                  "text": "第六课 · 亲手制作",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "objective": {
-              "spans": [
-                {
-                  "text": "使用装备制作器",
-                  "colors": []
-                },
-                {
-                  "text": "制作一件装备",
-                  "colors": [
-                    "#EBD09C",
-                    "#C6ACFF"
-                  ]
-                }
-              ]
-            },
-            "dialogue": [
-              {
-                "spans": [
-                  {
-                    "text": "材料收好。亲手做一件，比听我讲十遍都有用。",
-                    "colors": []
-                  }
-                ]
-              },
-              {
-                "spans": [
-                  {
-                    "text": "放下制作器并右键打开，选择「战靴」、一种护甲类型和 1 级，再点「制作」。4 哥布林布和 4 铁锭刚好够；获得装备后可以在背包中查看并穿上。",
-                    "colors": []
-                  }
-                ]
-              }
-            ],
-            "reward": {
-              "experience": 200,
-              "gold": 70000,
-              "items": []
-            },
-            "page": ""
-          },
-          {
-            "id": "first_crystal",
-            "goal": "pick_up_crystal",
-            "title": {"spans": [{"text": "第七课 · 拾取魔能水晶", "colors": ["#EBD09C", "#C6ACFF"]}]},
-            "objective": {"spans": [{"text": "从地上拾取任意阶魔能水晶。"}]},
-            "dialogue": [
-              {"spans": [{"text": "挖到魔力矿时，记得把掉落的魔能水晶捡起来。完成后送你一组 3 阶魔能水晶和一个魔能储物袋。"}]}
-            ],
-            "reward": {
-              "experience": 0,
-              "gold": 0,
-              "items": [
-                {"item": "yumis_dungeon_and_fight:energy_crystal_3", "count": 64},
-                {"item": "yumis_dungeon_and_fight:mana_storage_bag", "count": 1}
-              ]
-            },
-            "page": ""
-          }
-        ],
-        "completion": [
-          {
-            "spans": [
-              {
-                "text": "看吧，第一步也没有那么难。接下来就按自己的节奏去冒险。",
-                "colors": []
-              }
-            ]
-          },
-          {
-            "spans": [
-              {
-                "text": "野外战斗可以积累经验。到 ",
-                "colors": []
-              },
-              {
-                "text": "10 级",
-                "colors": [
-                  "#EBD09C"
-                ]
-              },
-              {
-                "text": "，从 I 的「副本」进入哥布林营地；",
-                "colors": []
-              },
-              {
-                "text": "20 级",
-                "colors": [
-                  "#EBD09C"
-                ]
-              },
-              {
-                "text": "后去任务追踪器完成「转职试炼」：通关王者级哥布林营地、龙人之塔和城主宫殿，再触碰一次魔王祭坛，然后回「职业技能」选择进阶职业。",
-                "colors": []
-              }
-            ]
-          }
-        ]
-      }
+      ]
     }
   },
   "skins": {
@@ -846,6 +341,606 @@
       "texture": "e58a664738d0073c348265052ab60a0ebf15f271a1b6aaeec0e47c027bc7cd0e",
       "slim": false,
       "exclusive": true
+    },
+    "dinnerbone": {
+      "name": "Dinnerbone",
+      "uuid": "61699b2ed3274a019f1e0ea8c3f06bc6",
+      "texture": "50c410fad8d9d8825ad56b0e443e2777a6b46bfa20dacd1d2f55edc71fbeb06d",
+      "slim": false
+    },
+    "grumm": {
+      "name": "Grumm",
+      "uuid": "e6b5c088068044df9e1b9bf11792291b",
+      "texture": "de377831c4fc89286cff1e5baeb24952b941dd3e0d8e4f0937f922fa088ab792",
+      "slim": false
+    },
+    "seargedp": {
+      "name": "SeargeDP",
+      "uuid": "309bfffa0701478a9d9af97dc592c088",
+      "texture": "1abc803022d8300ab7578b189294cce39622d9a404cdc00d3feacfdf45be6981",
+      "slim": false
+    },
+    "popularmmos": {
+      "name": "popularmmos",
+      "uuid": "d54d44581d7b4941a7197762d5c35a80",
+      "texture": "fea8db7f861629f353aa65ca1564cd7b06aab22900a2774f79cd27c0f849a840",
+      "slim": false
+    },
+    "stampylonghead": {
+      "name": "stampylonghead",
+      "uuid": "5188578cae78476e9bf3e930f7b49efb",
+      "texture": "2627fab2dae0f680d59b62fac7fc2095b110649cfec116daea7584f477dd97df",
+      "slim": false
+    },
+    "stampylongnose": {
+      "name": "stampylongnose",
+      "uuid": "a6b14651eea643aa900fdf619d4b02da",
+      "texture": "eb312b8d6d1f29b20525ab73b8377e10b4279863980ea6245970e0c70fd13c3a",
+      "slim": false
+    },
+    "captainsparklez": {
+      "name": "CaptainSparklez",
+      "uuid": "5f820c3958834392b1743125ac05e38c",
+      "texture": "ce61d4cc2e54105755b7e0a50808668308ea1cddd2243ef2294e119933ae1d67",
+      "slim": false
+    },
+    "antvenom": {
+      "name": "AntVenom",
+      "uuid": "0c063bfd3521413da76650be1d71f00e",
+      "texture": "e42771559639b21f9e7b3ea01199e32ccbb360a6a1ebb5e244f5cffddb4f44d9",
+      "slim": true
+    },
+    "jeromeasf": {
+      "name": "JeromeASF",
+      "uuid": "135602356e7f47a29ff1ef7b39067185",
+      "texture": "517599f50e444721cad52bb73686ef0b93fc4d874cc28a3af3a74a7696977557",
+      "slim": false
+    },
+    "bajancanadian": {
+      "name": "BajanCanadian",
+      "uuid": "91b4b2d607ae47bba66f13c28c3d1842",
+      "texture": "5061dacf668fd25a1a76ebcd28ce0d405c9f93961c11f001bd6aec7004c5d905",
+      "slim": false
+    },
+    "ssundee": {
+      "name": "SSundee",
+      "uuid": "6072021ca6c5480584a0e41d497ba7a7",
+      "texture": "5261ae49265dcafb528f33fc85d1010060c9eef87249e4b1df420e4ccd32b504",
+      "slim": false
+    },
+    "mrcrainer": {
+      "name": "MrCrainer",
+      "uuid": "cdd4350b9aba49b188728fdf388564fe",
+      "texture": "6c160fbd16adbc4bff2409e70180d911002aebcfa811eb6ec3d1040761aea6dd",
+      "slim": true
+    },
+    "jelly": {
+      "name": "Jelly",
+      "uuid": "c18d7df021fe4bd8a8dad4cc8b456185",
+      "texture": "7a5ed8d9dcb3508e1f2c83f289dcefe2e8f14e28672e5542dcfd23fab2b53ff8",
+      "slim": false
+    },
+    "logdotzip": {
+      "name": "Logdotzip",
+      "uuid": "e2b531ac2d764538a3a4ce477945daba",
+      "texture": "cdd170c18c09e6d2dbf99f45beaed0f4072961390f572367279b99286a044961",
+      "slim": false
+    },
+    "terashd": {
+      "name": "TerasHD",
+      "uuid": "4049ea7e2d514b9f8502bb7bda88a764",
+      "texture": "b3c12eb8ae57361821ae850ebf274d73573c5352cda4dfefd66f95f9de0acd7f",
+      "slim": true
+    },
+    "wadzee": {
+      "name": "WadZee",
+      "uuid": "0906b58bef584dec88150fe30897a1fd",
+      "texture": "70bbfabbfc9cc4ab293371f68c03a2971eb5f5c1af88d53177c6f9aafc17f953",
+      "slim": false
+    },
+    "sb737": {
+      "name": "SB737",
+      "uuid": "98c0bece0232485e8e86fa604d78e62f",
+      "texture": "25aec04d50e4d8d17045b7d53d46a01f2ee33b4d5a3105d86ab470dd131f65aa",
+      "slim": true
+    },
+    "lukethenotable": {
+      "name": "lUketHenoTAble",
+      "uuid": "d461facb0b4c4a168e4b28cf8ff19af2",
+      "texture": "7cb3ba52ddd5cc82c0b050c3f920f87da36add80165846f479079663805433db",
+      "slim": true
+    },
+    "donibobes": {
+      "name": "DoniBobes",
+      "uuid": "6714ca7bf65a495682ba7080c2724605",
+      "texture": "f3d1785faf93ea416d84d0d98f6b87180f75c75a2ce36f029676a062d4286550",
+      "slim": false
+    },
+    "camman18": {
+      "name": "camman18",
+      "uuid": "7fbdb7d4ebe340bd84e6a973cc16720b",
+      "texture": "646b81092a0f2c7486f7d8adecb849ea8280cb511c73da942e2777ff1357385c",
+      "slim": false
+    },
+    "wallibear": {
+      "name": "Wallibear",
+      "uuid": "0f102fc922654de2b9391172cd942e39",
+      "texture": "ad5b15408ddbc875322970d0cd1e68fd7d763f517efab0d2f1c367ad7b83af8a",
+      "slim": false
+    },
+    "tapl": {
+      "name": "TapL",
+      "uuid": "2e12870c08ec4337bc2e8fbf54e79853",
+      "texture": "d3a86fcbb1a82070fe4577ab2eee4b9cd200f9c71db4f41e5cb65cbfc41af49b",
+      "slim": false
+    },
+    "petezahhutt": {
+      "name": "PeteZahHutt",
+      "uuid": "7ac3c39f23d5472aa7c924798265fa15",
+      "texture": "ef0d23e98b072df0d432da0cb67da26adaae4bdfa0fd27ef125589906619f3b1",
+      "slim": false
+    },
+    "michaelmcchill": {
+      "name": "Michaelmcchill",
+      "uuid": "82cf070bcb394fcdbf8c50c125f6a9d1",
+      "texture": "4a5cd159153dedee5cf94cc575af9c0d0f8332deee526b01cc7c1bb38a360e49",
+      "slim": false
+    },
+    "speedsilver": {
+      "name": "SpeedSilver",
+      "uuid": "2efce67dd9bf47d888f474d016da278b",
+      "texture": "20e95a0b624a601f9417f010dd4acf1c15f0d562ad264314405544902eb80fee",
+      "slim": true
+    },
+    "smajor1995": {
+      "name": "Smajor1995",
+      "uuid": "32a8846755ed4ac7983882bf682b33bc",
+      "texture": "df89c41a3550297db4dab71f1d60cba0b60b5f063140601e0325e04350ba2a48",
+      "slim": false
+    },
+    "inthelittlewood": {
+      "name": "InTheLittleWood",
+      "uuid": "c9cf0c2e904c451986b12630828315c1",
+      "texture": "b41d89b1671ba08de016ec2bd003062dd5382bddcd5465dcd589e004024db60f",
+      "slim": false
+    },
+    "hbomb94": {
+      "name": "HBomb94",
+      "uuid": "d974cbaee62b4e34a1b80175a2d41d9a",
+      "texture": "332337c3dcbfec9cc9409e404be07362a4a134dd86012e17785dc1f386eee712",
+      "slim": false
+    },
+    "krtzyy": {
+      "name": "Krtzyy",
+      "uuid": "3a33185dd991468ab8d20c0ed0803667",
+      "texture": "933be1061f4780e93b9e1fb3bc59b1846e000ae575b6a6fee8f45c5ab6f73c49",
+      "slim": true
+    },
+    "king_burren": {
+      "name": "King_Burren",
+      "uuid": "2ccfd941c5d34e46b6274a8ce794ef46",
+      "texture": "b2125ea5657d78a53896af21259c2576404f9cfece5d80d359faa20a78094ee8",
+      "slim": false
+    },
+    "xnestorio": {
+      "name": "xNestorio",
+      "uuid": "4d2ec0c2f6bc4b6fa2f7b23e8c6ad8d9",
+      "texture": "1973744af78fd2f687ddcb03fe6e56f3ca19d920a1c52da1c6d34bb104b51b2a",
+      "slim": false
+    },
+    "shadical": {
+      "name": "Shadical",
+      "uuid": "a5e9cfe2f501408f9cc464b616ff9fc6",
+      "texture": "380b37311422d22e6cf3db93d535a9832b1691d4439f57769546accfe0583000",
+      "slim": true
+    },
+    "sipover": {
+      "name": "Sipover",
+      "uuid": "507e15f92c0644ba8988c87df428b042",
+      "texture": "3545ce5d6a513f0f5a950a19a84436e320aaea87bca897a60f6619daca1a5e00",
+      "slim": false
+    },
+    "seapeekay": {
+      "name": "Seapeekay",
+      "uuid": "be0cfbc2f626483580c3924268faf27b",
+      "texture": "d7349b85c80201ea583d955b2d1660a5c4dec0b2e71a8379beabd042db6ac5fa",
+      "slim": true
+    },
+    "ethoslab": {
+      "name": "EthosLab",
+      "uuid": "4f41dcda449a46b7863588979061fdd2",
+      "texture": "ff7747ea340989b98a8222948af45454bee909b9ad830b2a01dcf9117c83a33a",
+      "slim": false
+    },
+    "docm77": {
+      "name": "Docm77",
+      "uuid": "05e88dce714d4218be77fade8b5dfa3c",
+      "texture": "d4e7b865eff65aa7e1b476540cf1bde52eff6776d7ba7806e3cf96990fdd48f2",
+      "slim": false
+    },
+    "xisumavoid": {
+      "name": "xisumavoid",
+      "uuid": "8d86df19fa5c4939ac7c3b90b2b6abb6",
+      "texture": "2cc29d21d669299ce6422dbdd1ffe20448d2368064634ec08e695a1b3d4522a9",
+      "slim": false
+    },
+    "xisuma": {
+      "name": "Xisuma",
+      "uuid": "21ef397c3a764eb7aa17a99d3fc658e2",
+      "texture": "89b57f0ad41a0decd9921b994d028f1d79d1e4431c57a133ad430aeb65047fdd",
+      "slim": false
+    },
+    "mumbojumbo": {
+      "name": "MumboJumbo",
+      "uuid": "c7da90d56a054217b94a7d427cbbcad8",
+      "texture": "5ea767be180cc16c24a0c9d6a860c0a9967528820b6886442da5d822a7483ef6",
+      "slim": false
+    },
+    "mumbo": {
+      "name": "Mumbo",
+      "uuid": "ac224782efff4296b08cdbde8e47abdb",
+      "texture": "4305fe4fb106d4e942b894ea5e08c268dfceac715c5f002e703f1df54a41351d",
+      "slim": false
+    },
+    "tango": {
+      "name": "Tango",
+      "uuid": "62fec5a318964beb94e036e34898c787",
+      "texture": "5c224926d7d9e03a620ef3d975113dc5e523b255b2530ad42cb3d8b6e40d2050",
+      "slim": false
+    },
+    "impulsesv": {
+      "name": "impulseSV",
+      "uuid": "f6fe2200609d4fe688b6529d59ee5b71",
+      "texture": "6326343d5c1df692337ff4b0a0d8de619fad48a129448a3e10be7c7f11a7ec1e",
+      "slim": false
+    },
+    "zedaph": {
+      "name": "Zedaph",
+      "uuid": "f9c3c385f403403cb5b7867e012e9660",
+      "texture": "c7e152f163a505426bd5aa46a695f579e2214c6c02b9bfbd5cf890f476535816",
+      "slim": false
+    },
+    "iskall85": {
+      "name": "iskall85",
+      "uuid": "7ed3587be656468990d608e11daaf907",
+      "texture": "144834a3eb423637705f34559fc95a0323705299e58a0acbed5150b0fa508209",
+      "slim": false
+    },
+    "welsknight": {
+      "name": "Welsknight",
+      "uuid": "8fc22d294bac4abe84d47920ed4afe47",
+      "texture": "f838c7ea1bcfa54ef8f621b029817b76f9c652f34478401ff2bb44825b6b41d7",
+      "slim": false
+    },
+    "cubfan135": {
+      "name": "cubfan135",
+      "uuid": "88e2afec6f2e4a34a96ade61730bd3ca",
+      "texture": "12a934cbabca85818998818940803db39b3450d3f9ca5316fe4ec3c570e792a6",
+      "slim": true
+    },
+    "rendog": {
+      "name": "Rendog",
+      "uuid": "91d502e03264461eb48a69fd50fbea4c",
+      "texture": "27d117b82ea31a2f628dbf1cb561368f084215ea95f0f64fa91dd6c7c7575bd3",
+      "slim": true
+    },
+    "zombiecleo": {
+      "name": "ZombieCleo",
+      "uuid": "a3075fa7ec1349a2aa476529e8b7daf2",
+      "texture": "be25b3a995141452dd20b9d3c0b94d0df340ebd673bd651c561ff5e65858af34",
+      "slim": true
+    },
+    "joehills": {
+      "name": "JoeHills",
+      "uuid": "0da9bdb1231747669adcddaf28d85314",
+      "texture": "666612be3cc635ac8a729f111a512523c066a89956c18d6228aaa51903e0f646",
+      "slim": false
+    },
+    "stressmonster": {
+      "name": "Stressmonster",
+      "uuid": "5482d5e0cf844bb79d7ffb22427498d5",
+      "texture": "1c392ff8e19f1a21106f55c82e2d1999b9f8bce48908b23c723af57cca907ad1",
+      "slim": true
+    },
+    "stressmonster101": {
+      "name": "Stressmonster101",
+      "uuid": "cfaefb1446d5473b9e8e67ecbf119df7",
+      "texture": "d4c4161046256a2bd3893c997634c2efc093784d1951fb8c2d5e884dc010f569",
+      "slim": false
+    },
+    "xbcrafted": {
+      "name": "xBCrafted",
+      "uuid": "826cdcffccb042c59104fcd4bb4e7f73",
+      "texture": "bf47c0e4e177f661fa1d7b428758af90fcda241d0acc1ff5936e6a7b5e1a3661",
+      "slim": false
+    },
+    "fwhip": {
+      "name": "fWhip",
+      "uuid": "ca2eb47eef664f6391e0939b76047f27",
+      "texture": "de2f0a12548ed13601f4db4d1ede2e989677db952cd968990de4fda80a11277c",
+      "slim": true
+    },
+    "smallishbeans": {
+      "name": "Smallishbeans",
+      "uuid": "69b3107a6d034122b5677652fcc3cdb2",
+      "texture": "a0a72d46145c3f23f4850c6af49573134daa2fa90539700154dd5cafc7eb6072",
+      "slim": false
+    },
+    "ldshadowlady": {
+      "name": "LDShadowLady",
+      "uuid": "751b090e012e4847974ea666cfc2603d",
+      "texture": "2becd78a52de44b78cea2008f0f6e43aa706b092c9b663a8416708312270663b",
+      "slim": true
+    },
+    "shubble": {
+      "name": "shubble",
+      "uuid": "c841fe5d57cb4368af6a98de62f5b5cd",
+      "texture": "4a042d627610f9b34fbc3614fb864bd7dd1fbf6d2dd8f6b386d1b32eaaa61363",
+      "slim": false
+    },
+    "shubbleyt": {
+      "name": "ShubbleYT",
+      "uuid": "d79ba1cf79cf42eaa2f887cc2c5a899c",
+      "texture": "3d6cd22787ba787d7c8762cdd5eaeb521bda9169dda447aec61556a92ecff86f",
+      "slim": true
+    },
+    "pearlescentmoon": {
+      "name": "PearlescentMoon",
+      "uuid": "75c863aebb92486d911c53030c552be0",
+      "texture": "21165f4c9a43b57747d56efa815eaa2a4135977951e03656518904766a6ef218",
+      "slim": true
+    },
+    "skizzleman": {
+      "name": "Skizzleman",
+      "uuid": "64de994da7074d8c8a483ffb786c9b99",
+      "texture": "f4a2426ec99fd62818d68dce39b0429205a9ad14f4ddf881992b3fe18b7a8f80",
+      "slim": false
+    },
+    "solidaritygaming": {
+      "name": "SolidarityGaming",
+      "uuid": "dcdedb3cb8004414aa64414f17a179a2",
+      "texture": "c9224e59787fd25dfcb6c81608a9292ca87e2864f3411c289d372c9b7bb809a5",
+      "slim": false
+    },
+    "mythicalsausage": {
+      "name": "MythicalSausage",
+      "uuid": "49fb0ab6217749b8a35f7b16736cf480",
+      "texture": "ddd3f4a14c3ea787d02b13cfaf9948b3528b3738171ba8d4e4a9363396491974",
+      "slim": false
+    },
+    "joeygraceffa": {
+      "name": "JOEYGRACEFFA",
+      "uuid": "e5484a19e1fa4ea394a704bb6697ad33",
+      "texture": "2c756ab6447c3ee2b79ce67dbd0bd15410513480dc6c8bf749efab54ba9d45ad",
+      "slim": false
+    },
+    "seawattgaming": {
+      "name": "Seawattgaming",
+      "uuid": "ab89c00a38da4e88a8ffa64656f6b851",
+      "texture": "5419db944ca76892d9b698c59fa1a838f46b4c3edf98c70b1bf821e7ccb78a6d",
+      "slim": false
+    },
+    "sapnap": {
+      "name": "Sapnap",
+      "uuid": "c66f7c8aed0c446990b0421d8ff7ca49",
+      "texture": "99ba474cb840ca8692c867be459fb4142ff014a26c15bc6678a80a1d38d42495",
+      "slim": true
+    },
+    "georgenotfound": {
+      "name": "GeorgeNotFound",
+      "uuid": "bd3dd5a404384699b2fd36f518154b41",
+      "texture": "2d7552678058720f8920bcee682ac4e7475e41e2155ae6700b2a58389f5b64f6",
+      "slim": false
+    },
+    "skeppy": {
+      "name": "Skeppy",
+      "uuid": "8e176c5ac26d4c148efe77b598b8b3ea",
+      "texture": "8c5854ba208757e827a6ea9b91189fae1afb4d58d2364bf915a2e5f084355d85",
+      "slim": false
+    },
+    "ranboo": {
+      "name": "Ranboo",
+      "uuid": "284770fdd01a4507a0c947300c7d2b57",
+      "texture": "b84aa098c0fec5221bbe9175cb1f5d049165eb115cfe225ff924c680f93958e0",
+      "slim": false
+    },
+    "ranboolive": {
+      "name": "RanbooLive",
+      "uuid": "9f888f2936ac4af59cf3234661b9a7cf",
+      "texture": "b8754ff0f68332802efd2d18fcaeeb2172705c6e6fa07e8402f18b1a020b4144",
+      "slim": false
+    },
+    "tubbo": {
+      "name": "Tubbo",
+      "uuid": "b25efb42bda644138da94eae3d345746",
+      "texture": "31f477eb1a7beee631c2ca64d06f8f68fa93a3386d04452ab27f43acdf1b60cb",
+      "slim": false
+    },
+    "tubbo_2": {
+      "name": "Tubbo_",
+      "uuid": "06f7cd124f00434285f6956b1ca48d38",
+      "texture": "6ce5cc96cb44980500aa5752d9904cb81968aa43a3ac006e25c0917ecdb7b369",
+      "slim": false
+    },
+    "wilbursoot": {
+      "name": "WilburSoot",
+      "uuid": "d6ebd3e3c0ef4e5a80db6ee537115a17",
+      "texture": "1d913fb86b9568831bcf233be177865b9a050ae49828aa16b813b9421440ac87",
+      "slim": false
+    },
+    "philza": {
+      "name": "PhilzA",
+      "uuid": "f327197be9dd449182cd6cef1d59346e",
+      "texture": "1e1a5058e3f4991abf0be21b98aacf0c7c521dffb00880140396051c8e6461b0",
+      "slim": false
+    },
+    "quackity": {
+      "name": "Quackity",
+      "uuid": "26dd0066650149e891b5febedde19041",
+      "texture": "f8e1864a80164bd7eec5eaa498b95d4d414830e3f52efe5e39e7a3a9e69f9ef7",
+      "slim": false
+    },
+    "fundy": {
+      "name": "Fundy",
+      "uuid": "ee72206bdc8e4f09aa106911ecd8a299",
+      "texture": "aeb36b2b63f65067edc8c1086aee1c6bc2f30b6b85eee473a084a00a5fd6489e",
+      "slim": false
+    },
+    "karljacobs": {
+      "name": "KarlJacobs",
+      "uuid": "014c89d5701a43ae9d0dbf5568cb5286",
+      "texture": "fbcaba4e6615e6e6956ebad389da3433743150bba3d1d27eaa34fdc09712b9cc",
+      "slim": true
+    },
+    "captainpuffy": {
+      "name": "CaptainPuffy",
+      "uuid": "1b5fc4e3d5a6424fa76130c38b363015",
+      "texture": "e592261dda6abe5158eb9716ce8d09adc568c54d3b07f8e745d7e7746f791442",
+      "slim": true
+    },
+    "punz": {
+      "name": "Punz",
+      "uuid": "c30ecb029c1342d28c08984f1acbd8bf",
+      "texture": "70b32a8ff165cae0a9023126bbd0e706d71f919f1865d47a222375a2fc9e8c5a",
+      "slim": true
+    },
+    "purpled": {
+      "name": "Purpled",
+      "uuid": "1218cdf352bd4e18ba24d4b202ec85f3",
+      "texture": "286729fcf3c334a07684bebed4c9cf7b57003ffbcfe7382a397ce03653f8aae5",
+      "slim": true
+    },
+    "hannahxxrose": {
+      "name": "hannahxxrose",
+      "uuid": "5237b4b75eed421da43f0e4968e69207",
+      "texture": "b4a3d294b18511843789b0afe80e8f83d0fb3b095217a6da6fb90833a22ac01a",
+      "slim": true
+    },
+    "eret": {
+      "name": "Eret",
+      "uuid": "a06800ca769540bea2a6fa2f3706b018",
+      "texture": "ac473529660bd56d3d4ae35c1b267a6b9904150d4782b1846962984caf36ab68",
+      "slim": true
+    },
+    "nihachu": {
+      "name": "Nihachu",
+      "uuid": "b125bcb1124b457eb8b015dfcbb23c0c",
+      "texture": "5b4b3d9cbcb0be23e32aa2d335eb6ddfb8512d2f54826bc8c2937a2c4664aaac",
+      "slim": true
+    },
+    "illumina": {
+      "name": "Illumina",
+      "uuid": "46405168e9ce40a099a40b989a912c77",
+      "texture": "40f9ccb8720ff49cbb7b03f2b7d630e530c3127c5b6bb7888e07aad8b368b640",
+      "slim": false
+    },
+    "couriway": {
+      "name": "Couriway",
+      "uuid": "994f93763f8048bc9e72ee92f861911d",
+      "texture": "e9a209d1805b363f638766936ddd6cac833500b459aef648345a1c36377b6427",
+      "slim": false
+    },
+    "doogile": {
+      "name": "doogile",
+      "uuid": "3c8757790ab0400b8b9e3936e0dd535b",
+      "texture": "9be8cbe43ba7c375ce6f589ea85e395c965306fc8e870d03d54c22d0e61f2c65",
+      "slim": true
+    },
+    "subthree": {
+      "name": "SubThree",
+      "uuid": "52a2f1257c9b437a95226b0f91916ffc",
+      "texture": "31696d2198ce5aeca8e1a7501fe4db0ac1b6ab7c7f6050b7bacec67fbdc6e5bb",
+      "slim": false
+    },
+    "k4yfour": {
+      "name": "k4yfour",
+      "uuid": "627c399d0d0c49318905bac47287d4a3",
+      "texture": "6072ae80a7c444076a77701de2964b0e9587e5b63c49959adb212c1d05eb3e27",
+      "slim": false
+    },
+    "notnico": {
+      "name": "NotNico",
+      "uuid": "91d8cbb74753471faf9375bae55ac8ce",
+      "texture": "21d32f9da5d05bc6ce7817042ae3efc05b04ffa2367084d0ad6c4e93a51acb29",
+      "slim": true
+    },
+    "flamefrags": {
+      "name": "FlameFrags",
+      "uuid": "8ff756646afd4b6f96775d8120943f10",
+      "texture": "d73bc7ef256c57c86c5670ac2748254ba351dd52bef1bedcf8750dc22c0ae774",
+      "slim": true
+    },
+    "guude": {
+      "name": "Guude",
+      "uuid": "9cc9a90c7bd64b7eba0a76c4a53f4438",
+      "texture": "c73f0ed3cfe88ef48313765bf5409d4a946300c2197f807d884a74199cde8530",
+      "slim": false
+    },
+    "zisteau": {
+      "name": "Zisteau",
+      "uuid": "1f234ca14d584525b7217706560071d6",
+      "texture": "455c578ed9d2a9a926a193ede1357b4490e647676b29a623ebecf823641290f5",
+      "slim": false
+    },
+    "pauseunpause": {
+      "name": "PauseUnpause",
+      "uuid": "4b902826479a4f24800f40dad72bf01d",
+      "texture": "a5cb95448d63662aafb917592878bb49eec85c132335023285c74f81d8cc4cad",
+      "slim": true
+    },
+    "kurtjmac": {
+      "name": "KurtJMac",
+      "uuid": "6577300a1e8b443f9061f74be0724342",
+      "texture": "4c05ab9e07b3505dc3ec11370c3bdce5570ad2fb2b562e9b9dd9cf271f81aa44",
+      "slim": false
+    },
+    "coestar": {
+      "name": "Coestar",
+      "uuid": "65ef835a34a54a8da857cdd1d9924051",
+      "texture": "f7dc5fc7164dd1bd6ddc66177bf178618fd2ae7b60be8a70b98f8555867d098b",
+      "slim": false
+    },
+    "stacyplays": {
+      "name": "StacyPlays",
+      "uuid": "6265251a5dae4eb4a95edfd922ad8fd5",
+      "texture": "bbaa11a6cc756175b7d4661bf50f578fe272b7ead1bf8b1457b0736f854c1799",
+      "slim": false
+    },
+    "gtwscar": {
+      "name": "GTWScar",
+      "uuid": "8574ced463934a5c8abb87224c7a7cf8",
+      "texture": "983868e06561ba2e8d1c066499a742068f9b298225639f6acacd3ae168fb19d1",
+      "slim": false
+    },
+    "pixlriffs": {
+      "name": "Pixlriffs",
+      "uuid": "76530193e1354f058f9c79fa28c054b8",
+      "texture": "74970223cd2c82b051e951ac1d38de62fa374eb471d4f886281ccc02c9b84cf3",
+      "slim": false
+    },
+    "wattles": {
+      "name": "wattles",
+      "uuid": "9640cc8df6cf4bb7ad99b1640c445217",
+      "texture": "221093c1c3af1627b7908516e901d92423d61a9c4d6f2fbec5cf249dd98b1005",
+      "slim": false
+    },
+    "jwhisp": {
+      "name": "Jwhisp",
+      "uuid": "06a0d5dd54cf4b15b45934145025492c",
+      "texture": "f2a0ed8669c3f3dca30e3844d4b9041bee1cc7261386e7965d92b5297a537103",
+      "slim": false
+    },
+    "baablu": {
+      "name": "Baablu",
+      "uuid": "a5709750fdef4e80b1012cce7e645cae",
+      "texture": "4711228c319805d5e13b8e8435307a3dfa3c4ee0dc7951741ccc98bee711c4e6",
+      "slim": true
+    },
+    "bdoubleo": {
+      "name": "BDoubleO",
+      "uuid": "4dad662b81aa45549215d5911be16a95",
+      "texture": "4f16f48e092b05cbdc9019b34b7744ee9ac21207036ac7b2b59303a9e7fdec50",
+      "slim": true
     }
   }
 }

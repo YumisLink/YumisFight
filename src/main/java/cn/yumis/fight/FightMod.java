@@ -40,6 +40,7 @@ public final class FightMod {
         cn.yumis.fight.modules.economy.platform.ChestContent.register();
         cn.yumis.fight.modules.economy.platform.ShopContent.register(bus);
         cn.yumis.fight.modules.npc.api.NpcContentTypes.register(bus);
+        cn.yumis.fight.modules.quests.api.QuestContentTypes.register(bus);
         cn.yumis.fight.modules.arkguard.api.ArkContentTypes.register(bus);
         cn.yumis.fight.modules.npc.api.NpcEntity.playerOwnedSources(e->e instanceof cn.yumis.fight.modules.skills.api.SummonedCreature summon&&summon.owner!=null);
         cn.yumis.fight.modules.economy.api.ItemRarity.external(stack->{
@@ -87,6 +88,11 @@ public final class FightMod {
             if(e.getServer() instanceof net.minecraft.server.dedicated.DedicatedServer dedicated&&!dedicated.allowFlight())dedicated.setAllowFlight(true);
             ServerApplication.start(e.getServer());
             cn.yumis.fight.modules.mapgeneration.api.MapGeneration.started(e.getServer());
+            try{
+                ServerApplication.get().commissions.starterVillage(e.getServer().overworld());
+            }catch(Exception failure){
+                com.mojang.logging.LogUtils.getLogger().info("委托NPC定义未提供或出生村投放未完成，跳过委托投放");
+            }
         });
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e)->{
             cn.yumis.fight.modules.mapgeneration.api.MapGeneration.stopped(e.getServer());

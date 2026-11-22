@@ -11,4 +11,14 @@ public final class TreasureState {
     public boolean portal,cleared,warningFive,warningOne;
     public String theme="forest";
     public double lastX,lastY,lastZ;
+
+    /** Facts for a live goblin kingdom entrance: region zero stays cleared and the portal is open for thirty minutes. */
+    public static TreasureState portal(UUID owner,int baseLevel,int x,int z,double y,long now){
+        var t=new TreasureState();
+        t.owner=owner;t.baseLevel=baseLevel;
+        t.mapX=x;t.mapZ=z;t.mapY=y;
+        t.lastX=x+.5;t.lastY=y;t.lastZ=z+.5;
+        t.cleared=true;t.portal=true;t.expires=now+30*60*1000L;
+        return t;
+    }
 }

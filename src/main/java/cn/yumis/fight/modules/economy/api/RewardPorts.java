@@ -32,6 +32,8 @@ public final class RewardPorts {
         Dungeon byId(String instance);
         String currentInstance(ServerPlayer player);
         boolean finalPracticeKill(Dungeon dungeon,UUID enemy);
+        /** Presents the already-committed abyss flash fact to everyone still in that instance; presentation only, no gameplay state. */
+        default void abyssFlash(String instance,double x,double y,double z,boolean mythic){}
     }
     public interface Balance {
         RewardSettings settings();

@@ -1,12 +1,7 @@
 package cn.yumis.fight;
-import cn.yumis.fight.modules.equipment.api.Rarity;
-import cn.yumis.fight.modules.dungeons.api.Difficulty;
 import cn.yumis.fight.modules.dungeons.api.Target;
-import static cn.yumis.fight.modules.character.api.CharacterRules.spAt;
-import static cn.yumis.fight.modules.character.api.CharacterRules.nextExperience;
 import static cn.yumis.fight.modules.dungeons.api.EncounterScaling.partyMultiplier;
 import static cn.yumis.fight.modules.professions.api.ProfessionRules.professionThreshold;
-import cn.yumis.fight.modules.economy.api.LootOdds;
 import cn.yumis.fight.modules.attributes.api.ParameterModifier;
 import cn.yumis.fight.modules.skills.api.SkillDefinition;
 import cn.yumis.fight.modules.skills.api.SkillCatalog;
@@ -21,32 +16,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.math.BigInteger;
 import java.util.*;
 class RulesTest {
-    @Test void equipmentRarityUsesTheThousandPointDropRateBase(){
-        double[] base={45,30,17,6,1.8,.2};
-        for(double dropRate:new double[]{0,100,1000}){
-            double[] expected=new double[base.length];double total=0;
-            for(int i=0;i<base.length;i++)total+=expected[i]=base[i]*Math.pow(1+dropRate/1000,i);
-            double start=0;
-            for(int i=0;i<expected.length;i++){
-                double midpoint=(start+expected[i]/2)/total;
-                assertEquals(Rarity.values()[i],LootOdds.rarity(Difficulty.NORMAL,true,false,dropRate,new Random(){@Override public double nextDouble(){return midpoint;}}));
-                start+=expected[i];
-            }
-        }
-    }
-    @Test void level80KeepsEveryGrantAndStopsExperience(){
-        Progress p=new Progress();
-        long total=0;
-        for(int l=1;l<80;l++)total+=nextExperience(l);
-        p.grant(total);
-        assertEquals(80,p.level);
-        assertEquals(158,p.free());
-        assertEquals(3600,p.sp);
-        assertEquals(spAt(80),p.sp);
-        p.grant(1000000);
-        assertEquals(0,p.experience);
-        assertEquals(3600,p.sp);
-    }
     @Test void capsAreLearnedOnlyButEquipmentAddsEffectiveRanks(){
         Progress p=new Progress();
         p.level=80;

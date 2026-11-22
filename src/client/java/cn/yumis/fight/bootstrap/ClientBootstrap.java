@@ -15,7 +15,7 @@ import cn.yumis.fight.modules.equipment.client.EquipmentActions;
 import cn.yumis.fight.modules.inventory.api.InventoryEdits;
 import cn.yumis.fight.modules.inventory.client.DimensionalScreen;
 import cn.yumis.fight.modules.equipment.client.FabricatorScreen;
-import cn.yumis.fight.modules.equipment.client.GemScreen;
+import cn.yumis.fight.modules.equipment.client.GemSocketSelection;
 import cn.yumis.fight.modules.equipment.client.MaterialProperty;
 import cn.yumis.fight.modules.equipment.client.StyleProperty;
 import cn.yumis.fight.modules.industry.client.IndustrialRecipeCache;
@@ -73,7 +73,7 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.client.DungeonActions.install(local.preparations,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->!local.own.dead,cn.yumis.fight.modules.economy.api.ChestRewards::waystoneChest,luck->cn.yumis.fight.modules.economy.api.LootOdds.rarity(cn.yumis.fight.modules.dungeons.api.Difficulty.HELL,true,false,luck,new java.util.Random()),()->!local.own.dead&&local.dungeon==null&&local.own.instance.isEmpty());
         cn.yumis.fight.modules.economy.client.ShopClient.install(local.preparations,()->local.profile,()->local.ready&&!local.own.dead,(entity,shop)->{var definition=cn.yumis.fight.modules.npc.api.NpcInteractionComponent.query(entity);return definition!=null&&definition.actions().stream().anyMatch(action->action.type().equals("shop")&&action.value().equals(shop));});
         cn.yumis.fight.modules.npc.client.NpcClient.blocked(()->local.own.dead||JarClient.blocking()||Effects.VFX.blocksHotbar());
-        cn.yumis.fight.modules.npc.client.TutorialClient.install(local.preparations,()->local.progress,()->local.profile,()->local.ready&&!local.own.dead);
+        cn.yumis.fight.modules.quests.client.TutorialClient.install(local.preparations,()->local.progress,()->local.profile,()->local.ready&&!local.own.dead);
         local.preparations.seal();
         cn.yumis.fight.modules.dungeons.api.TrainingActions.client(cn.yumis.fight.modules.dungeons.client.TrainingInput::use);
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.register(bus,()->ClientSession.INSTANCE.dungeon);
@@ -108,7 +108,8 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.dungeons.client.CastleCombatClient.register(bus, local::context, SkillController.INSTANCE::boss);
         cn.yumis.fight.modules.dungeons.client.EnemyTelegraphs.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.AbyssVisuals.register(()->ClientSession.INSTANCE.own.instance);
-        cn.yumis.fight.modules.dungeons.client.RitualFightClient.register(()->ClientSession.INSTANCE.own,cn.yumis.fight.modules.npc.client.TutorialClient::awakeningAtAltar);
+        cn.yumis.fight.modules.economy.client.LootBeamVisuals.register();
+        cn.yumis.fight.modules.dungeons.client.RitualFightClient.register(()->ClientSession.INSTANCE.own,cn.yumis.fight.modules.quests.client.TutorialClient::awakeningAtAltar);
         cn.yumis.fight.modules.industry.client.IndustrialBeamRenderer.register();
         cn.yumis.fight.modules.industry.client.InfusionParticles.register(bus);
         cn.yumis.fight.modules.industry.client.ManaStorageBagClient.register(bus);
@@ -183,7 +184,7 @@ public final class ClientBootstrap {
         bus.addListener((RegisterGuiLayersEvent e)->{e.registerAboveAll(id("hud"),Hud::render);e.registerAboveAll(id("stamina"),CloudMovement::render);e.registerAboveAll(id("ritual"),(graphics,delta)->cn.yumis.fight.modules.dungeons.client.RitualFightClient.hud(graphics));});
         // Jade renders in RenderGuiEvent.Post at NORMAL; draw the target panel afterward.
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,Hud::renderTarget);
-        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->cn.yumis.fight.modules.npc.client.NpcClient.render(event.getGuiGraphics()));
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->{cn.yumis.fight.modules.npc.client.NpcClient.render(event.getGuiGraphics());cn.yumis.fight.modules.quests.client.TutorialOverlay.render(event.getGuiGraphics());});
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->cn.yumis.fight.modules.arkguard.client.ArkGuardClient.render(event.getGuiGraphics()));
         cn.yumis.fight.modules.arkguard.client.ArkVisuals.register();
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST,cn.yumis.fight.modules.arkguard.client.ArkGuardClient::scroll);
@@ -192,8 +193,8 @@ public final class ClientBootstrap {
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::interact);
         NeoForge.EVENT_BUS.addListener(ClientBootstrap::movementFov);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
-            cn.yumis.fight.modules.npc.client.NpcClient.tick();IndustrialVisuals.tick();cn.yumis.fight.modules.equipment.client.LightsaberLight.tick(IndustrialVisuals.heldLight());
-            ClientSession.INSTANCE.tick();cn.yumis.fight.modules.arkguard.client.ArkGuardClient.tick();cn.yumis.fight.modules.npc.client.TutorialClient.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();
+            cn.yumis.fight.modules.npc.client.NpcClient.tick();cn.yumis.fight.modules.quests.client.TutorialOverlay.tick();IndustrialVisuals.tick();cn.yumis.fight.modules.equipment.client.LightsaberLight.tick(IndustrialVisuals.heldLight());
+            ClientSession.INSTANCE.tick();cn.yumis.fight.modules.arkguard.client.ArkGuardClient.tick();cn.yumis.fight.modules.quests.client.TutorialClient.tick();JarClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();
             cn.yumis.fight.modules.dungeons.client.DungeonDefeatScreen.update(ClientSession.INSTANCE.ready,ClientSession.INSTANCE.own);
             var mc=Minecraft.getInstance();
             MenuInput.consumeClicks(()->!JarClient.blocking()&&mc.player!=null&&mc.gui.screen()==null);
@@ -243,6 +244,7 @@ public final class ClientBootstrap {
         }
         );
         NeoForge.EVENT_BUS.addListener((ScreenEvent.MouseButtonPressed.Pre e)->currency(e));
+        NeoForge.EVENT_BUS.addListener((ScreenEvent.MouseScrolled.Pre e)->gemSocketScroll(e));
         NeoForge.EVENT_BUS.addListener((ScreenEvent.MouseButtonReleased.Pre e)->{
             if(e.getButton()==1&&currencyGesture){currencyGesture=false;e.setCanceled(true);}
         });
@@ -349,8 +351,21 @@ public final class ClientBootstrap {
         j.addProperty("count",carried.getCount());
         j.add("cursor",InventoryEdits.encode(mc.player,carried));
         String currencyId=ItemData.id(carried);
-        if(currencyId.equals("affix_extraction_stone")&&cn.yumis.fight.modules.equipment.api.GemExtraction.available(gear))mc.gui.pushScreenLayer(new cn.yumis.fight.modules.equipment.client.ExtractionScreen(j,gear));
-        else if(cn.yumis.fight.modules.equipment.api.Gemstones.currency(currencyId)&&gear.sockets>1)mc.gui.pushScreenLayer(new GemScreen(e.getScreen(),j,gear));
-        else s.send("currency",j);
+        if(cn.yumis.fight.modules.equipment.api.Gemstones.currency(currencyId))j.addProperty("socket",GemSocketSelection.insertTarget(menu.containerId,target.index(),gear));
+        s.send("currency",j);
+        GemSocketSelection.clear();
+    }
+    private static void gemSocketScroll(ScreenEvent.MouseScrolled.Pre e){
+        if(e.getScrollDeltaY()==0)return;
+        if(!(e.getScreen() instanceof AbstractContainerScreen<?> screen)||Minecraft.getInstance().player==null)return;
+        var s=ClientSession.INSTANCE;
+        if(!s.ready)return;
+        var target=CurrencyUi.target(screen,e.getMouseX(),e.getMouseY());
+        if(target==null)return;
+        if(!cn.yumis.fight.modules.equipment.api.Gemstones.currency(ItemData.id(target.menu().getCarried())))return;
+        Gear gear=EquipmentItems.gear(target.slot().getItem());
+        if(gear==null||gear.sockets<=1||gear.gems.size()<gear.sockets)return;
+        e.setCanceled(true);
+        GemSocketSelection.scroll(target.menu().containerId,target.index(),gear,e.getScrollDeltaY());
     }
 }

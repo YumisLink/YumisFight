@@ -25,4 +25,9 @@ public final class NpcInteractionComponent {
     public static void registerClient(String type,java.util.function.BiPredicate<LivingEntity,NpcDefinitions.Action> handler){if(CLIENT_ACTIONS.putIfAbsent(type,Objects.requireNonNull(handler))!=null)throw new IllegalArgumentException("NPC本机动作重复："+type);}
     public static void unregisterClient(String type){CLIENT_ACTIONS.remove(type);}
     public static boolean clientAction(LivingEntity entity,NpcDefinitions.Action action){var handler=CLIENT_ACTIONS.get(action.type());return handler!=null&&handler.test(entity,action);}
+    /** Client presentation marks a held conversation continuation so the shared action panel can keep its hint. */
+    private static final Map<String,java.util.function.BiPredicate<LivingEntity,NpcDefinitions.Action>> CLIENT_CONTINUES=new LinkedHashMap<>();
+    public static void registerClientContinue(String type,java.util.function.BiPredicate<LivingEntity,NpcDefinitions.Action> handler){if(CLIENT_CONTINUES.putIfAbsent(type,Objects.requireNonNull(handler))!=null)throw new IllegalArgumentException("NPC本机续读契约重复："+type);}
+    public static void unregisterClientContinue(String type){CLIENT_CONTINUES.remove(type);}
+    public static boolean clientContinues(LivingEntity entity,NpcDefinitions.Action action){var handler=CLIENT_CONTINUES.get(action.type());return handler!=null&&handler.test(entity,action);}
 }

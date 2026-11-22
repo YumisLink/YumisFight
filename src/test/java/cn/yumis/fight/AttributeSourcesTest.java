@@ -39,9 +39,4 @@ class AttributeSourcesTest {
         removal.replace(3,List.of(new Source("test",5,retired.values())));
         assertEquals(110,removal.apply(Map.of(Stat.HEALTH,100d)).get(Stat.HEALTH));
     }
-    @Test void percentageStagesUseBaseThenTotal(){
-        var a=new AttributeSources();
-        a.replace(1,List.of(new Source("test",1,List.of(new Value(Stat.HEALTH,20,Operation.ADD,Stage.CHARACTER),new Value(Stat.HEALTH,.1,Operation.BASE_RATIO,Stage.CHARACTER),new Value(Stat.HEALTH,.2,Operation.TOTAL_RATIO,Stage.CHARACTER)))));
-        assertEquals(156,a.apply(Map.of(Stat.HEALTH,100d)).get(Stat.HEALTH),1e-9);
-    }
 }

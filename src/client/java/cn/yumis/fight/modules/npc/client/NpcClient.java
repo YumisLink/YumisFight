@@ -20,12 +20,11 @@ public final class NpcClient {
     private static final Random RANDOM=new Random();
     private static LivingEntity target;
     private static int selected;
-    private static boolean tutorialUseHeld;
     private static Object world;
     private static BooleanSupplier blocked=()->false;
     private NpcClient(){}
     public static void blocked(BooleanSupplier value){blocked=value;}
-    public static void clear(){target=null;selected=0;tutorialUseHeld=false;bubbles.clear();lastLine.clear();world=null;}
+    public static void clear(){target=null;selected=0;bubbles.clear();lastLine.clear();world=null;}
     private static LivingEntity pointed(){
         var mc=Minecraft.getInstance();
         if(mc.player==null||mc.level==null||!mc.player.isAlive()||mc.gui.screen()!=null||!ClientUi.current().ready()||blocked.getAsBoolean())return null;
@@ -35,7 +34,6 @@ public final class NpcClient {
     private static void updateTarget(){var next=pointed();if(next!=target){target=next;selected=0;}if(target!=null)selected=Math.clamp(selected,0,NpcInteractionComponent.query(target).actions().size()-1);}
     public static void tick(){
         var mc=Minecraft.getInstance();if(world!=mc.level){clear();world=mc.level;}
-        if(!mc.options.keyUse.isDown())tutorialUseHeld=false;
         updateTarget();long now=ClientUi.now();
         bubbles.values().removeIf(b->now>=b.until()||mc.level==null||!(mc.level.getEntity(b.entity()) instanceof LivingEntity e)||!e.isAlive()||NpcInteractionComponent.query(e)==null);
     }
@@ -46,43 +44,13 @@ public final class NpcClient {
     public static void interact(InputEvent.InteractionKeyMappingTriggered event){
         if(!event.isUseItem())return;updateTarget();if(target==null)return;event.setCanceled(true);event.setSwingHand(false);if(event.getHand()!=InteractionHand.MAIN_HAND)return;
         var definition=NpcInteractionComponent.query(target);var action=definition.actions().get(selected);
-        if(action.type().equals("tutorial")){
-            interactTutorial(target);
-        }else if(action.type().equals("chat")){
+        if(action.type().equals("chat")){
             if(definition.dialogue().isEmpty())return;int line=RANDOM.nextInt(definition.dialogue().size());var old=lastLine.get(target.getUUID());if(old!=null&&line==old&&definition.dialogue().size()>1)line=(line+1)%definition.dialogue().size();lastLine.put(target.getUUID(),line);
             bubbles.put(target.getUUID(),new Bubble(target.getId(),Component.literal(definition.dialogue().get(line)),ClientUi.now()+5000,false));
         }else{
             if(NpcInteractionComponent.clientAction(target,action))return;
             var request=ClientUi.current().operation("npcAction");request.addProperty("entity",target.getStringUUID());request.addProperty("action",action.id());ClientUi.current().send("npcAction",request);
         }
-    }
-    private static void interactTutorial(LivingEntity speaker) {
-        if (tutorialUseHeld) return;
-        tutorialUseHeld = true;
-
-        boolean awakening = NpcTutorial.NPC.equals(NpcInteractionComponent.id(speaker))
-                && AwakeningQuestClient.readyToReturn();
-        UUID id = speaker.getUUID();
-        if (awakening || TutorialClient.state().started) {
-            bubbles.remove(id);
-            Minecraft.getInstance().gui.setScreen(new NpcDialogueScreen(speaker, awakening));
-            return;
-        }
-        if (TutorialClient.starting()) return;
-
-        String key = TutorialClient.dialogueKey();
-        var pages = TutorialClient.dialogue();
-        long now = ClientUi.now();
-        int page = Math.clamp(TutorialClient.savedPage(key), 0, pages.size() - 1);
-        var previous = bubbles.get(id);
-        if (previous != null && previous.entity() == speaker.getId()
-                && previous.until() > now && previous.continuesIntroduction()) {
-            page = Math.min(page + 1, pages.size() - 1);
-        }
-        boolean more = page + 1 < pages.size();
-        bubbles.put(id, new Bubble(speaker.getId(), pages.get(page).component(), now + 10_000, more));
-        TutorialClient.savePage(key, page);
-        if (!more) TutorialClient.start();
     }
     public static void render(GuiGraphicsExtractor g){
         var mc = Minecraft.getInstance();
@@ -114,12 +82,10 @@ public final class NpcClient {
             }
             g.fill(x + w / 2 - 2, y + h, x + w / 2 + 3, y + h + 3, UiTheme.HUD_PANEL);
         }
-        if(target==null)return;var d=NpcInteractionComponent.query(target);int w=Math.min(174,g.guiWidth()-16),h=44+d.actions().size()*18,x=g.guiWidth()-w-8,y=Math.max(8,(g.guiHeight()-h)/2);
+        if(target==null)return;var d=NpcInteractionComponent.query(target);var action=d.actions().get(selected);int w=Math.min(174,g.guiWidth()-16),h=44+d.actions().size()*18,x=g.guiWidth()-w-8,y=Math.max(8,(g.guiHeight()-h)/2);
         UiTheme.hud(g,x,y,w,h);g.text(font,font.plainSubstrByWidth(d.name(),w-16),x+8,y+8,UiTheme.HUD_GOLD,false);
         for(int i=0;i<d.actions().size();i++){int row=y+25+i*18;if(i==selected)g.fill(x+4,row-2,x+w-4,row+14,UiTheme.SELECTED);g.text(font,(i==selected?"› ":"  ")+d.actions().get(i).label(),x+10,row,i==selected?UiTheme.HUD_GOLD:UiTheme.HUD_TEXT,false);}
-        var bubble=bubbles.get(target.getUUID());
-        boolean continuing=bubble!=null&&bubble.continuesIntroduction()&&bubble.until()>ClientUi.now()
-                &&d.actions().get(selected).type().equals("tutorial");
-        g.text(font,continuing?"右键继续":"滚轮选择 · 右键确认",x+8,y+h-13,UiTheme.HUD_MUTED,false);
+        // Held conversations keep their continue hint through the shared contract; the quest owns the bubble state.
+        g.text(font,NpcInteractionComponent.clientContinues(target,action)?"右键继续":"滚轮选择 · 右键确认",x+8,y+h-13,UiTheme.HUD_MUTED,false);
     }
 }

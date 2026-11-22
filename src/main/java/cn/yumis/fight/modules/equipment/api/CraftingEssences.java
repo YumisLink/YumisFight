@@ -57,16 +57,23 @@ public final class CraftingEssences {
         if(recipe.weapon()!=null)return cn.yumis.fight.platform.ItemRegistry.item(recipe.weapon().name().toLowerCase(Locale.ROOT),1);
         String material=recipe.essence().material();return new ItemStack(BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.withDefaultNamespace(material.equals("#wool")?"white_wool":material)));
     }
-    public static Gear apply(Gear original,Definition essence,Random random){
+    public static Gear apply(Gear original,Definition essence,Random random){return apply(original,essence,random::nextDouble,false);}
+    /** Admin force path: writes the crafted affix regardless of rarity, corruption, slot, family or duplicate rules. */
+    public static Gear applyForced(Gear original,Definition essence,double roll){return apply(original,essence,()->roll,true);}
+    private static Gear apply(Gear original,Definition essence,DoubleSupplier quality,boolean forced){
         Gear g=EquipmentResolution.resolve(original);
-        if(g.corrupted||g.rarity!=Rarity.ARTIFACT)throw new IllegalArgumentException("精华仅用于未腐化的神器装备");
-        EquipmentRules.requireRoomAfterMasterCrystal(g);
         var d=AffixDefinitions.current().affixes.get(essence.affix());
-        if(d==null||!d.active()||!essence.slots().contains(g.slot))throw new IllegalArgumentException("精华部位或效果未开放");
-        if(!essence.family().isEmpty()&&!EquipmentAffixes.skillFamilyAllowed(g,essence.family()))throw new IllegalArgumentException("武器不符合该技能系别资格");
-        if(g.affixes.stream().filter(a->!a.base).anyMatch(a->d.operation().equals("SKILL_FAMILY")?a.operation.equals("SKILL_FAMILY"):sameEffect(a,d)))throw new IllegalArgumentException("装备已有同效果词条，不能重复工艺");
-        if(d.operation().equals("PERCENT")&&EquipmentAffixes.base(g,d.stat())<=0)throw new IllegalArgumentException("装备没有对应的基础属性");
-        Affix a=craftAffix(g,essence,d,random::nextDouble);
+        if(forced){
+            if(d==null||!d.active())throw new IllegalArgumentException("工艺效果未开放");
+        }else{
+            if(g.corrupted||g.rarity!=Rarity.ARTIFACT)throw new IllegalArgumentException("精华仅用于未腐化的神器装备");
+            EquipmentRules.requireRoomAfterMasterCrystal(g);
+            if(d==null||!d.active()||!essence.slots().contains(g.slot))throw new IllegalArgumentException("精华部位或效果未开放");
+            if(!essence.family().isEmpty()&&!EquipmentAffixes.skillFamilyAllowed(g,essence.family()))throw new IllegalArgumentException("武器不符合该技能系别资格");
+            if(g.affixes.stream().filter(a->!a.base).anyMatch(a->d.operation().equals("SKILL_FAMILY")?a.operation.equals("SKILL_FAMILY"):sameEffect(a,d)))throw new IllegalArgumentException("装备已有同效果词条，不能重复工艺");
+            if(d.operation().equals("PERCENT")&&EquipmentAffixes.base(g,d.stat())<=0)throw new IllegalArgumentException("装备没有对应的基础属性");
+        }
+        Affix a=craftAffix(g,essence,d,quality,forced);
         AffixResolver.anchor(a,g.instance+"/"+UUID.randomUUID(),d,d.revision(),d.effectiveScale(g.level));
         g.affixes.add(a);g.rarity=Rarity.LEGENDARY;g.revision++;
         return EquipmentResolution.initialize(g);
@@ -80,7 +87,7 @@ public final class CraftingEssences {
             gear.level=target==null?80:target.level;
             gear.slot=essence.slots().getFirst();
         }
-        var affix=craftAffix(gear,essence,definition,()->.5);
+        var affix=craftAffix(gear,essence,definition,()->.5,false);
         var range=EquipmentAffixRanges.reroll(affix,Rarity.LEGENDARY,false,gear.level);
         if(range==null)return AffixText.affix(affix);
         if(range.interval()){
@@ -106,7 +113,7 @@ public final class CraftingEssences {
     private static String decimal(double value){
         return BigDecimal.valueOf(value).setScale(2,RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
-    private static Affix craftAffix(Gear gear,Definition essence,AffixDefinition definition,DoubleSupplier quality){
+    private static Affix craftAffix(Gear gear,Definition essence,AffixDefinition definition,DoubleSupplier quality,boolean forcedRoll){
         var affix=new Affix();
         affix.id=definition.id();
         affix.operation=definition.operation();
@@ -126,7 +133,7 @@ public final class CraftingEssences {
             affix.baseline=AttackSpeedRoll.sample(gear.level,.8);
             affix.baselineMaximum=AttackSpeedRoll.sample(gear.level,1.2);
         }else if(definition.minimum()!=null){
-            double roll=essence.dropOnly()?quality.getAsDouble():.5;
+            double roll=(forcedRoll||essence.dropOnly())?quality.getAsDouble():.5;
             affix.value=affix.baseline=(definition.minimum()+(definition.maximum()-definition.minimum())*roll)*definition.scale();
         }else affix.value=affix.baseline=EquipmentAffixes.baseline(gear,affix);
         return affix;

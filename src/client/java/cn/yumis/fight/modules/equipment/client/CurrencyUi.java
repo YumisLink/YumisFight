@@ -4,6 +4,7 @@ import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.UiTheme;
 import cn.yumis.fight.modules.inventory.api.SlotAccess;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
+import cn.yumis.fight.modules.equipment.api.Gear;
 import cn.yumis.fight.modules.equipment.api.EquipmentRules;
 import cn.yumis.fight.modules.equipment.api.CraftingEssences;
 import cn.yumis.fight.platform.ItemData;
@@ -51,7 +52,7 @@ public final class CurrencyUi {
     public static void register(){
         if(registered)return;registered=true;
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Post event)->{
-            if((event.getScreen() instanceof AbstractContainerScreen<?>||event.getScreen() instanceof GemScreen)&&System.currentTimeMillis()<noticeUntil&&!notice.isEmpty()){
+            if(event.getScreen() instanceof AbstractContainerScreen<?>&&System.currentTimeMillis()<noticeUntil&&!notice.isEmpty()){
                 var g=event.getGuiGraphics();var font=UiFonts.font();
                 int width=event.getScreen().width,x=Math.max(6,(width-font.width(notice))/2),y=6;
                 g.fill(x-4,y-3,Math.min(width-2,x+font.width(notice)+4),y+font.lineHeight+3,0xe0201111);
@@ -62,9 +63,11 @@ public final class CurrencyUi {
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Foreground event)->{
             if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;
             ItemStack currency=screen.getMenu().getCarried();
-            if(!isCurrency(currency))return;
-            Target target=target(screen,event.getMouseX(),event.getMouseY());
-            if(target==null)return;
+            Target target=isCurrency(currency)?target(screen,event.getMouseX(),event.getMouseY()):null;
+            Gear tracked=target==null?null:EquipmentItems.gear(target.slot().getItem());
+            if(tracked!=null&&cn.yumis.fight.modules.equipment.api.Gemstones.currency(ItemData.id(currency)))GemSocketSelection.track(target.menu().containerId,target.index(),tracked);
+            else GemSocketSelection.clear();
+            if(!isCurrency(currency)||target==null)return;
             ItemStack equipment=target.slot().getItem();
             if(EquipmentItems.view(equipment)==null)return;
             List<Component> lines=new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(),equipment));

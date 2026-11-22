@@ -75,6 +75,24 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
         arrived(d,p);players.message(p,"守宝怪出现！击败所有敌人获得宝箱。");
     }catch(Exception failure){players.message(p,failure.getMessage());}}
 
+    /** Admin open of the goblin kingdom entrance: the same facts as the natural post-fight portal, skipping the guard battle. */
+    public TreasureState openPortal(ServerPlayer admin,BlockPos at)throws Exception{
+        if(admin.level().dimension()!=Level.OVERWORLD)throw new IllegalArgumentException("挖宝传送门只能生成在主世界");
+        if(!server.overworld().getWorldBorder().isWithinBounds(at))throw new IllegalArgumentException("坐标超出世界边界，请换一个位置");
+        for(String instance:owner.activeInstanceIds()){Dungeon other=owner.byId(instance);if(other!=null&&other.treasure!=null&&other.treasure.region==0&&!other.status.equals("CLOSED")){long ox=(long)at.getX()-other.treasure.mapX,oz=(long)at.getZ()-other.treasure.mapZ;if(ox*ox+oz*oz<128*128)throw new IllegalArgumentException("附近已有挖宝活动，请完成或离开后再开门");}}
+        Vec3 portalPosition=legal(server.overworld(),at.getX(),at.getZ(),at.getY());
+        if(portalPosition==null)throw new IllegalArgumentException("藏宝坐标没有合法落脚点，请整理空间后重试");
+        Dungeon d=new Dungeon();d.cell=owner.freeCell();d.dungeon="goblin_camp";d.difficulty=Difficulty.HELL;
+        var t=d.treasure=TreasureState.portal(admin.getUUID(),players.level(admin),at.getX(),at.getZ(),portalPosition.y,System.currentTimeMillis());
+        journal.put("instance/"+d.id,d);owner.instanceCommitted(d.id);
+        announceEntrance(t);
+        return t;
+    }
+
+    private void announceEntrance(TreasureState t){
+        server.getPlayerList().broadcastSystemMessage(ModText.of("【挖宝】哥布林王国的秘密入口出现！主世界 X:"+t.mapX+" Y:"+(int)t.mapY+" Z:"+t.mapZ+"，所有冒险者均可进入，30分钟后关闭。"),false);
+    }
+
     private static void sendClue(ServerPlayer player, int x, int z, boolean newlyOpened) {
         Network.send(player, "treasureMapClue", Map.of("x", x, "z", z, "newlyOpened", newlyOpened));
     }
@@ -166,7 +184,7 @@ public final class TreasureHuntService implements CombatPorts.SkillEffects {
             if(t.region==5)d.status="COMPLETED";journal.put("instance/"+d.id,d);journal.finish();owner.instanceCommitted(d.id);
         }catch(Exception e){journal.abort();rewards.abort();throw e;}
         rewards.publish();
-        if(t.region==0){for(ServerPlayer p:here){players.session(p).life.instance="";players.save(p);players.profile(p);}if(t.portal)server.getPlayerList().broadcastSystemMessage(ModText.of("【挖宝】哥布林王国的秘密入口出现！主世界 X:"+t.mapX+" Y:"+(int)t.mapY+" Z:"+t.mapZ+"，所有冒险者均可进入，30分钟后关闭。"),false);}
+        if(t.region==0){for(ServerPlayer p:here){players.session(p).life.instance="";players.save(p);players.profile(p);}if(t.portal)announceEntrance(t);}
         else for(ServerPlayer p:here)players.message(p,t.region==5?"黄金之王已被击败！最终宝箱已掉落，可拾取后返回。":"地区清场！每人一只宝箱已掉落，由图主选择左右传送门。");
         if(t.region==5)clearWeapons(d.id.toString());
     }

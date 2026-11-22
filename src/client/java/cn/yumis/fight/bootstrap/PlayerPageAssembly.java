@@ -17,6 +17,9 @@ import cn.yumis.fight.modules.dungeons.client.DungeonPage;
 import cn.yumis.fight.modules.professions.client.ProfessionPage;
 import cn.yumis.fight.modules.economy.client.ShopPage;
 import cn.yumis.fight.modules.presentation.client.SettingsPage;
+import cn.yumis.fight.modules.npc.api.PlayGuide;
+import cn.yumis.fight.modules.professions.api.ProfessionCatalog;
+import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import java.util.*;
 
@@ -25,7 +28,8 @@ public final class PlayerPageAssembly {
     private PlayerPageAssembly(){}
     public static void register(){
         var state=ClientSession.INSTANCE;
-        PlayerPageRenderers.register("tutorial",cn.yumis.fight.modules.npc.client.TutorialPage::render);
+        PlayerPageRenderers.register("tutorial",cn.yumis.fight.modules.quests.client.QuestsPage::render);
+        PlayerPageRenderers.register("guide",page->cn.yumis.fight.modules.npc.client.GuidePage.render(page,guideEntries(),cn.yumis.fight.modules.presentation.api.client.MenuInput::open));
         PlayerPageRenderers.registerPanel("sale",cn.yumis.fight.modules.economy.client.SalePanel::new);
         PlayerPageRenderers.register("affix_compendium",cn.yumis.fight.modules.equipment.client.AffixCompendiumPage::render);
         PlayerPageRenderers.registerPanel("damage_analysis",cn.yumis.fight.modules.combat.client.DamageAnalysisPanel::new);
@@ -59,5 +63,36 @@ public final class PlayerPageAssembly {
         values.add(value("闪避率",AffixText.integer(CombatRules.evasionChance(stats.get(Stat.EVASION))*100)+"%"));values.add(value("暴击率",AffixText.integer(stats.modifiers.getOrDefault("crit",0d)*100)+"%"));values.add(value("伤害提升",AffixText.integer(stats.modifiers.getOrDefault("final",0d)*100)+"%"));
         values.add(value("物理面板攻击",AffixText.integer(stats.panel(false))));values.add(value("魔法面板攻击",AffixText.integer(stats.panel(true))));
         return new CharacterPage.View(state.progress,ClientSession.now()<state.resources.combatUntil,allocated,values);
+    }
+    /** 看板条目：里程碑与副本由 PlayGuide 从会话进度派生，副职业摘要来自会话快照，全部只读。 */
+    private static List<PlayGuide.GuideEntry> guideEntries(){
+        var state=ClientSession.INSTANCE;
+        var tutorial=cn.yumis.fight.modules.quests.client.TutorialClient.state();
+        boolean tutorialDone=tutorial.started&&cn.yumis.fight.modules.quests.api.NpcTutorial.current(tutorial)==null;
+        boolean abyss=false,treasure=false;
+        var player=Minecraft.getInstance().player;
+        if(player!=null)for(int slot=0;slot<36;slot++){
+            var stack=player.getInventory().getItem(slot);
+            if(cn.yumis.fight.modules.dungeons.api.AbyssParty.invitation(stack))abyss=true;
+            if(stack.is(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.TREASURE_MAP.get()))treasure=true;
+        }
+        var entries=new ArrayList<>(PlayGuide.entries(new PlayGuide.Facts(state.progress.level,state.progress.jobId(),tutorialDone,state.progress.awakened,abyss,treasure)));
+        entries.addAll(professionGuideEntries(state.professions));
+        return entries;
+    }
+    private static List<PlayGuide.GuideEntry> professionGuideEntries(JsonObject snapshot){
+        if(snapshot==null||!snapshot.has("professions"))return List.of();
+        var all=snapshot.getAsJsonObject("professions");
+        List<String> started=new ArrayList<>();
+        int open=0;
+        for(var definition:ProfessionCatalog.active()){
+            var progress=all.has(definition.id())?all.getAsJsonObject(definition.id()):null;
+            if(progress!=null&&progress.has("level")&&progress.get("level").getAsInt()>0)started.add(definition.name());
+            else open++;
+        }
+        if(started.isEmpty())return open==0?List.of():List.of(new PlayGuide.GuideEntry("副职业","十条生活线：采集、钓鱼、炼金等，产出材料与实用药剂","professions"));
+        var result=new ArrayList<>(List.of(new PlayGuide.GuideEntry("副职业进行中","已开启："+String.join("、",started),"professions")));
+        if(open>0)result.add(new PlayGuide.GuideEntry("可开启更多副职业","还有生活线没有开始","professions"));
+        return result;
     }
 }

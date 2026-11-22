@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.dungeons.api.AbyssParty;
 import cn.yumis.fight.modules.dungeons.api.DungeonEnemy;
 import cn.yumis.fight.modules.dungeons.api.Target;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
+import cn.yumis.fight.modules.presentation.api.client.EffectParticles;
 import cn.yumis.fight.modules.presentation.api.client.NearEffectRendering;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
@@ -37,6 +38,11 @@ public final class AbyssVisuals {
     private static final ContextKey<Frame> FRAME =
         new ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight", "abyss_party"));
     private static final Map<UUID, Cue> cues = new LinkedHashMap<>();
+    private static final Map<String, Flash> flashes = new LinkedHashMap<>();
+    private static final java.util.Random RANDOM = new java.util.Random();
+    private static final long EPIC_FLASH = 6000, MYTHIC_FLASH = 9000;
+    private static final int EPIC_GOLD = cn.yumis.fight.modules.equipment.api.Rarity.EPIC.color();
+    private static final int MYTHIC_GOLD = cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC.color(), MYTHIC_ACCENT = 0xfff6d8;
     private static final Map<UUID, Long> cancelled = new LinkedHashMap<>();
     private static Supplier<String> instance = () -> "";
     private static Consumer<JsonObject> hit = ignored -> {};
@@ -56,6 +62,23 @@ public final class AbyssVisuals {
             this.attack = attack;
             this.source = source;
             previous = attack.release();
+        }
+    }
+
+    /** Committed abyss flash fact; one coalesced cue per landing spot, mythic upgrades a running epic show. */
+    private static final class Flash {
+        final Vec3 position;
+        final long start;
+        boolean mythic;
+        long end;
+        long particle;
+
+        Flash(Vec3 position, boolean mythic, long start, long end) {
+            this.position = position;
+            this.mythic = mythic;
+            this.start = start;
+            this.end = end;
+            particle = start;
         }
     }
 
@@ -83,6 +106,23 @@ public final class AbyssVisuals {
         cancelled.put(id, ClientUi.current().serverNow() + 10000);
     }
 
+    static void flash(JsonObject packet) {
+        syncInstance();
+        boolean mythic = packet.get("mythic").getAsBoolean();
+        Vec3 position = new Vec3(packet.get("x").getAsDouble(), packet.get("y").getAsDouble(), packet.get("z").getAsDouble());
+        long now = ClientUi.current().serverNow();
+        String key = Math.round(position.x * 2) + "/" + Math.round(position.z * 2);
+        var running = flashes.get(key);
+        if (running != null && running.end > now) {
+            if (mythic && !running.mythic) {
+                running.mythic = true;
+                running.end = now + MYTHIC_FLASH;
+            }
+            return;
+        }
+        flashes.put(key, new Flash(position, mythic, now, now + (mythic ? MYTHIC_FLASH : EPIC_FLASH)));
+    }
+
     private static void syncInstance() {
         Object next = Minecraft.getInstance().level;
         String current = instance.get();
@@ -91,6 +131,7 @@ public final class AbyssVisuals {
         room = current;
         cues.clear();
         cancelled.clear();
+        flashes.clear();
         lastBoneHit = 0;
     }
 
@@ -102,6 +143,7 @@ public final class AbyssVisuals {
         long now = ClientUi.current().serverNow();
         cancelled.values().removeIf(end -> end <= now);
         cues.values().removeIf(cue -> cue.attack.end() <= now);
+        flashes.values().removeIf(flash -> flash.end <= now);
         for (Cue cue : cues.values()) {
             AbyssAttack attack = cue.attack;
             if (now < attack.release() || attack.coefficient() <= 0) continue;
@@ -132,6 +174,21 @@ public final class AbyssVisuals {
             contact.addProperty("occurredAt", now);
             hit.accept(contact);
         }
+        for (Flash flash : flashes.values()) {
+            if (now < flash.start || now >= flash.end) continue;
+            boolean opening = now - flash.start < 1200;
+            if (now < flash.particle) continue;
+            flash.particle = now + (opening ? 120 : 280);
+            int count = opening ? 10 : flash.mythic ? 5 : 4;
+            double radius = opening ? 1.15 : .45;
+            for (int i = 0; i < count; i++) {
+                double angle = RANDOM.nextDouble() * Math.PI * 2;
+                double height = .25 + RANDOM.nextDouble() * (flash.mythic ? 4.6 : 3.2);
+                int color = flash.mythic ? (i & 1) == 0 ? MYTHIC_GOLD : MYTHIC_ACCENT : EPIC_GOLD;
+                EffectParticles.dust(flash.position.add(Math.cos(angle) * radius * RANDOM.nextDouble(), height,
+                    Math.sin(angle) * radius * RANDOM.nextDouble()), color, opening ? .95f : .7f);
+            }
+        }
     }
 
     private static void extract(ExtractLevelRenderStateEvent event) {
@@ -144,6 +201,7 @@ public final class AbyssVisuals {
                 AbyssAttack attack = cue.attack;
                 if (attack.telegraph() && now >= attack.warning() && now < attack.end()) draw(quads, attack, now);
             }
+            for (Flash flash : flashes.values()) flashPillar(quads, flash, now);
             for (var raw : minecraft.level.entitiesForRendering()) {
                 if (raw instanceof DungeonEnemy enemy && enemy.appearance().equals(AbyssParty.Enemy.PILLAR.id) && enemy.guarded())
                     ring(quads, enemy.position().add(0, .06, 0), 1.05, .11, 0xb49ae1, 210);
@@ -221,6 +279,20 @@ public final class AbyssVisuals {
     private static void submit(SubmitCustomGeometryEvent event) {
         Frame frame = event.getLevelRenderState().getRenderData(FRAME);
         if (frame != null) WorldQuads.submit(event, frame.quads(), frame.fade());
+    }
+
+    /** Ground rings for the committed abyss flash; the landed items themselves carry their rarity beams. */
+    private static void flashPillar(List<Quad> quads, Flash flash, long now) {
+        if (now < flash.start || now >= flash.end) return;
+        double fade = Math.min(1, (flash.end - now) / 1000d);
+        Vec3 origin = flash.position.add(0, .03, 0);
+        int color = flash.mythic ? MYTHIC_GOLD : EPIC_GOLD;
+        int alpha = (int) ((flash.mythic ? 214 : 190) * fade);
+        double pulse = .55 + (flash.mythic ? 2.1 : 1.5) * ((now - flash.start) % 1100) / 1100d;
+        ring(quads, origin, pulse, .10, color, (int) (170 * fade));
+        ring(quads, origin, .78, .14, color, alpha);
+        if (flash.mythic)
+            ring(quads, origin, 1.05 + .45 * Math.sin((now - flash.start) * Math.PI / 900), .12, MYTHIC_ACCENT, (int) (150 * fade));
     }
 
     private AbyssVisuals() {}

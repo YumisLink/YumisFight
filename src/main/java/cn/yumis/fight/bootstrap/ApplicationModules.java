@@ -25,6 +25,7 @@ public final class ApplicationModules {
         module("party","presentation"),
         module("presentation","mining"),
         module("professions","attributes","inventory","presentation"),
+        module("quests","character","combat","dungeons","economy","equipment","inventory","npc","presentation","skills"),
         module("skills","attributes","character","combat","dungeons","equipment","presentation","talents"),
         module("talents","attributes","character","combat","presentation")
     ));

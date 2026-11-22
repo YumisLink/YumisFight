@@ -38,7 +38,7 @@ import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 public final class EquipmentTooltip {
-    private record TooltipKey(String equipment,Object affixes,long affixRevision,Object definitions,long equipmentRevision,int weaponDisplayRevision,long favoritesRevision,boolean expanded,boolean valid,boolean advanced,String language,String fontId,String fontName,Object font){}
+    private record TooltipKey(String equipment,Object affixes,long affixRevision,Object definitions,long equipmentRevision,int weaponDisplayRevision,long favoritesRevision,boolean expanded,boolean valid,boolean advanced,String language,String fontId,String fontName,Object font,int mark){}
     private static final Map<TooltipKey,List<Component>> TOOLTIPS=new LinkedHashMap<>(32,.75f,true);
     private static long tooltipHits,tooltipBuilds;
     public record CacheMetrics(long hits,long builds,int entries){}
@@ -215,14 +215,17 @@ public final class EquipmentTooltip {
         }
         var affixes=cn.yumis.fight.modules.affixes.api.AffixDefinitions.current();var definitions=EquipmentDefinitions.current();
         boolean valid=e.getEntity()==null||view.valid(cn.yumis.fight.modules.equipment.api.client.EquipmentClient.current().progress(),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(e.getEntity()));
-        TooltipKey key=new TooltipKey(EquipmentItems.serialized(stack),affixes,affixes.revision,definitions,definitions.revision,WeaponDisplayValues.REVISION,cn.yumis.fight.modules.affixes.api.client.AffixFavorites.revision(),shift(),valid,e.getFlags().isAdvanced(),Minecraft.getInstance().getLanguageManager().getSelected(),ClientSettings.uiFont,UiFonts.currentName(),UiFonts.font());
+        Gear gear=EquipmentItems.gear(stack);
+        if(gear==null)return;
+        int mark=GemSocketSelection.mark(gear.instance);
+        TooltipKey key=new TooltipKey(EquipmentItems.serialized(stack),affixes,affixes.revision,definitions,definitions.revision,WeaponDisplayValues.REVISION,cn.yumis.fight.modules.affixes.api.client.AffixFavorites.revision(),shift(),valid,e.getFlags().isAdvanced(),Minecraft.getInstance().getLanguageManager().getSelected(),ClientSettings.uiFont,UiFonts.currentName(),UiFonts.font(),mark);
         List<Component> cached=TOOLTIPS.get(key);
-        if(cached==null){Gear gear=EquipmentItems.gear(stack);if(gear==null)return;cached=gearLines(gear,valid,key.advanced());tooltipBuilds++;if(key.equipment().length()<=131072){TOOLTIPS.put(key,cached);while(TOOLTIPS.size()>256)TOOLTIPS.remove(TOOLTIPS.keySet().iterator().next());}}
+        if(cached==null){cached=gearLines(gear,valid,key.advanced(),mark);tooltipBuilds++;if(key.equipment().length()<=131072){TOOLTIPS.put(key,cached);while(TOOLTIPS.size()>256)TOOLTIPS.remove(TOOLTIPS.keySet().iterator().next());}}
         else tooltipHits++;
         // Other tooltip providers retain their original lines; only our appended section is cached.
         for(Component line:cached)out.add(line.copy());
     }
-    private static List<Component> gearLines(Gear g,boolean valid,boolean advanced){
+    private static List<Component> gearLines(Gear g,boolean valid,boolean advanced,int mark){
         List<Component> out=new ArrayList<>();
         // Keep vanilla enchantments, lore and component descriptions supplied by other mods.
         if(g.corrupted)out.add(text("腐化 · 禁止常规加工，仍可镶嵌、出售、整件分解",0xff7070));
@@ -275,10 +278,11 @@ public final class EquipmentTooltip {
                 if(i>=g.gems.size())out.add(text("◇ 空孔 "+(i+1),0x8c9db3));
                 else{
                     Gem gem=g.gems.get(i);
-                    out.add(text("◆ "+gem.name+" [Lv."+gem.level+"]",0x7ae7cf));
+                    out.add(text((i==mark?"▶ ":"◆ ")+gem.name+" [Lv."+gem.level+"]",i==mark?0xffb35c:0x7ae7cf));
                     for(Affix a:gem.affixes)addAffix(out,a,g,true,0xb8dfda);
                 }
             }
+            if(mark>=0)out.add(text(g.sockets>1?"滚轮选择覆盖孔位 · 右键销毁选中孔宝石":"右键销毁该孔宝石",0x9aa9be));
         }
         if(!baseValues)out.add(text(weapon?"按住 Shift 查看基础属性与可重掷范围":"按住 Shift 查看可重掷范围",0x78869c));
         if(advanced)out.add(text("ID "+g.instance+" / r"+g.revision,0x68748b));

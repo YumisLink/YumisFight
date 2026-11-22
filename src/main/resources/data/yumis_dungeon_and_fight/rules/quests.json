@@ -1,0 +1,579 @@
+{
+  "tutorial": {
+    "introduction": [
+      {
+        "spans": [
+          {
+            "text": "欢迎，旅行者。我是 ",
+            "colors": []
+          },
+          {
+            "text": "伊蕾娜",
+            "colors": [
+              "#EBD09C",
+              "#C6ACFF"
+            ]
+          },
+          {
+            "text": "。冒险这种事，先学会第一步就够了。",
+            "colors": []
+          }
+        ]
+      },
+      {
+        "spans": [
+          {
+            "text": "先按 ",
+            "colors": []
+          },
+          {
+            "text": "I",
+            "colors": [
+              "#EBD09C"
+            ]
+          },
+          {
+            "text": "，打开「职业技能」选一个基础职业。任务会记在「任务栏」，完成后在那里提交，下一课也会自动接上。",
+            "colors": []
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "choose_road",
+        "goal": "choose_job",
+        "title": {
+          "spans": [
+            {
+              "text": "第一课 · 选择你的道路",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "objective": {
+          "spans": [
+            {
+              "text": "打开 ",
+              "colors": []
+            },
+            {
+              "text": "I",
+              "colors": [
+                "#EBD09C"
+              ]
+            },
+            {
+              "text": " → 职业技能 → ",
+              "colors": []
+            },
+            {
+              "text": "选择基础职业",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "dialogue": [
+          {
+            "spans": [
+              {
+                "text": "选你喜欢的。第一把武器，已经替你准备好了。",
+                "colors": []
+              }
+            ]
+          },
+          {
+            "spans": [
+              {
+                "text": "打开 I，进入「职业技能」选择基础职业。选定后不能更换，这一步慢慢想。",
+                "colors": []
+              }
+            ]
+          }
+        ],
+        "reward": {
+          "experience": 500,
+          "gold": 20000,
+          "items": []
+        },
+        "page": "skills"
+      },
+      {
+        "id": "first_skill",
+        "goal": "learn_skill",
+        "title": {
+          "spans": [
+            {
+              "text": "第二课 · 学会第一招",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "objective": {
+          "spans": [
+            {
+              "text": "在职业技能中",
+              "colors": []
+            },
+            {
+              "text": "学习一个主动技能",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "dialogue": [
+          {
+            "spans": [
+              {
+                "text": "先会一招，再慢慢变厉害。",
+                "colors": []
+              }
+            ]
+          },
+          {
+            "spans": [
+              {
+                "text": "鬼剑士可以先学「鬼斩」，魔法师学「魔法星弹」，恶魔猎手学「混乱打击」。打开技能页，点击「学习」。",
+                "colors": []
+              }
+            ]
+          }
+        ],
+        "reward": {
+          "experience": 200,
+          "gold": 20000,
+          "items": []
+        },
+        "page": "skills"
+      },
+      {
+        "id": "handy_skill",
+        "goal": "bind_skill",
+        "title": {
+          "spans": [
+            {
+              "text": "第三课 · 把本领放在手边",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "objective": {
+          "spans": [
+            {
+              "text": "把已学的主动技能",
+              "colors": []
+            },
+            {
+              "text": "拖到快捷槽",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "dialogue": [
+          {
+            "spans": [
+              {
+                "text": "把它放到顺手的位置。战斗时，可没空翻书。",
+                "colors": []
+              }
+            ]
+          },
+          {
+            "spans": [
+              {
+                "text": "按住已学技能的图标，拖到屏幕下方的快捷槽后松开。槽位显示实际按键，Ctrl / Alt 可以切换技能层。",
+                "colors": []
+              }
+            ]
+          }
+        ],
+        "reward": {
+          "experience": 200,
+          "gold": 20000,
+          "items": [
+            {
+              "item": "yumis_dungeon_and_fight:training_sandbag",
+              "count": 1
+            }
+          ]
+        },
+        "page": "skills"
+      },
+      {
+        "id": "first_contact",
+        "goal": "practice_hit",
+        "title": {
+          "spans": [
+            {
+              "text": "第四课 · 试试身手",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "objective": {
+          "spans": [
+            {
+              "text": "用一个已学主动技能",
+              "colors": []
+            },
+            {
+              "text": "命中普通训练沙袋一次",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "dialogue": [
+          {
+            "spans": [
+              {
+                "text": "先打个招呼吧。沙袋比怪物有耐心得多。",
+                "colors": []
+              }
+            ]
+          },
+          {
+            "spans": [
+              {
+                "text": "把沙袋放在附近空地，装备初始武器后按快捷键施放技能。左键是普攻；沙袋不会反击，也不掉奖励。Shift＋空手右键可收回。",
+                "colors": []
+              }
+            ]
+          }
+        ],
+        "reward": {
+          "experience": 200,
+          "gold": 35000,
+          "items": []
+        },
+        "page": ""
+      },
+      {
+        "id": "first_growth",
+        "goal": "allocate",
+        "title": {
+          "spans": [
+            {
+              "text": "第五课 · 一点成长",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "objective": {
+          "spans": [
+            {
+              "text": "打开 I → 属性，",
+              "colors": []
+            },
+            {
+              "text": "分配至少一点属性",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "dialogue": [
+          {
+            "spans": [
+              {
+                "text": "变强的第一步，就是决定把力量用在哪里。",
+                "colors": []
+              }
+            ]
+          },
+          {
+            "spans": [
+              {
+                "text": "打开 I 的「属性」页，在力量、智力或精神旁点「+1」。选择职业适合的方向就好，不必一次用光。",
+                "colors": []
+              }
+            ]
+          }
+        ],
+        "reward": {
+          "experience": 200,
+          "gold": 35000,
+          "items": [
+            {
+              "item": "yumis_dungeon_and_fight:equipment_fabricator",
+              "count": 1
+            },
+            {
+              "item": "yumis_dungeon_and_fight:crafting_material",
+              "material": "goblin_cloth",
+              "count": 4
+            },
+            {
+              "item": "minecraft:iron_ingot",
+              "count": 4
+            }
+          ]
+        },
+        "page": "character"
+      },
+      {
+        "id": "first_equipment",
+        "goal": "craft",
+        "title": {
+          "spans": [
+            {
+              "text": "第六课 · 亲手制作",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "objective": {
+          "spans": [
+            {
+              "text": "使用装备制作器",
+              "colors": []
+            },
+            {
+              "text": "制作一件装备",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "dialogue": [
+          {
+            "spans": [
+              {
+                "text": "材料收好。亲手做一件，比听我讲十遍都有用。",
+                "colors": []
+              }
+            ]
+          },
+          {
+            "spans": [
+              {
+                "text": "放下制作器并右键打开，选择「战靴」、一种护甲类型和 1 级，再点「制作」。4 哥布林布和 4 铁锭刚好够；获得装备后可以在背包中查看并穿上。",
+                "colors": []
+              }
+            ]
+          }
+        ],
+        "reward": {
+          "experience": 200,
+          "gold": 70000,
+          "items": []
+        },
+        "page": ""
+      },
+      {
+        "id": "first_crystal",
+        "goal": "pick_up_crystal",
+        "title": {
+          "spans": [
+            {
+              "text": "第七课 · 拾取魔能水晶",
+              "colors": [
+                "#EBD09C",
+                "#C6ACFF"
+              ]
+            }
+          ]
+        },
+        "objective": {
+          "spans": [
+            {
+              "text": "从地上拾取任意阶魔能水晶。"
+            }
+          ]
+        },
+        "dialogue": [
+          {
+            "spans": [
+              {
+                "text": "挖到魔力矿时，记得把掉落的魔能水晶捡起来。完成后送你一组 3 阶魔能水晶和一个魔能储物袋。"
+              }
+            ]
+          }
+        ],
+        "reward": {
+          "experience": 0,
+          "gold": 0,
+          "items": [
+            {
+              "item": "yumis_dungeon_and_fight:energy_crystal_3",
+              "count": 64
+            },
+            {
+              "item": "yumis_dungeon_and_fight:mana_storage_bag",
+              "count": 1
+            }
+          ]
+        },
+        "page": ""
+      }
+    ],
+    "completion": [
+      {
+        "spans": [
+          {
+            "text": "看吧，第一步也没有那么难。接下来就按自己的节奏去冒险。",
+            "colors": []
+          }
+        ]
+      },
+      {
+        "spans": [
+          {
+            "text": "野外战斗可以积累经验。到 ",
+            "colors": []
+          },
+          {
+            "text": "10 级",
+            "colors": [
+              "#EBD09C"
+            ]
+          },
+          {
+            "text": "，从 I 的「副本」进入哥布林营地；",
+            "colors": []
+          },
+          {
+            "text": "20 级",
+            "colors": [
+              "#EBD09C"
+            ]
+          },
+          {
+            "text": "后去任务栏完成「转职试炼」：通关王者级哥布林营地、龙人之塔和城主宫殿，再触碰一次魔王祭坛，然后回「职业技能」选择进阶职业。",
+            "colors": []
+          }
+        ]
+      }
+    ]
+  },
+  "awakening": {
+    "level": 50,
+    "badge": {
+      "spans": [
+        {
+          "text": "觉醒任务",
+          "colors": [
+            "#F6D46C",
+            "#76D68A"
+          ]
+        }
+      ]
+    },
+    "bosses": [
+      {
+        "id": "uncrowned_gardener",
+        "name": "无冠园丁",
+        "level": 30,
+        "clears": 5,
+        "materials": [
+          {
+            "id": "lightmoss_scion",
+            "name": "光苔接穗",
+            "count": 5
+          }
+        ]
+      },
+      {
+        "id": "off_duty_matron",
+        "name": "歇工的圣母",
+        "level": 35,
+        "clears": 4,
+        "materials": [
+          {
+            "id": "severance_spring",
+            "name": "圣札铜簧",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "id": "white_reliquary",
+        "name": "白圣髑",
+        "level": 40,
+        "clears": 3,
+        "materials": [
+          {
+            "id": "unfinished_chant_core",
+            "name": "遗咏晶核",
+            "count": 3
+          },
+          {
+            "id": "unfinished_chant_page",
+            "name": "未竟圣页",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "id": "debt_collector",
+        "name": "催账人",
+        "level": 45,
+        "clears": 3,
+        "materials": [
+          {
+            "id": "stopped_clock_gear",
+            "name": "停表齿轮",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "id": "fallen_scale_king",
+        "name": "坠鳞的君王",
+        "level": 50,
+        "clears": 1,
+        "materials": [
+          {
+            "id": "ember_scale",
+            "name": "余火硬鳞",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "confession": "thousandfold_confession",
+    "towerGoal": "awakening_tower_first_clear",
+    "dialogue": [
+      {
+        "spans": [
+          {
+            "text": "你已经从塔上回来了。现在，试试用自己的方式掌握这股力量吧。"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -40,7 +40,8 @@ public final class ChestService {
                 var remaining=reward.copy();InventoryPacking.insert(p,remaining);while(!remaining.isEmpty()){var drop=loot.prepareOverflow(p,remaining.split(remaining.getMaxStackSize()));drops.add(drop);changes.put("loot/"+drop.id,new Gson().toJsonTree(drop));}
             }
         },changes);
-        if(committed){if(direct){loot.publishDrops(drops);players.message(p,"已开启宝箱，放不下的奖励已生成在脚下。");}else RewardMenu.open(p,request.get("title").getAsString(),rewards,inventory,this::credit);players.profile(p);}
+        if(committed){if(direct){loot.publishDrops(drops);players.message(p,"已开启宝箱，放不下的奖励已生成在脚下。");}else RewardMenu.open(p,request.get("title").getAsString(),rewards,inventory,this::credit);players.profile(p);
+            cn.yumis.fight.network.Network.send(p,"chestOpened",java.util.Map.of("session",players.session(p).toString()));}
     }
     private Map<String,JsonElement> credit(ServerPlayer p,ItemStack stack){if(!ItemData.own(stack)||!ItemData.id(stack).equals(CurrencyRules.COLORLESS_CRYSTAL.id()))return Map.of();String key=CurrencyRules.COLORLESS_CRYSTAL.id()+"/"+p.getUUID();return Map.of(key,new JsonPrimitive(Math.addExact(journal.get(key,Long.class,0L),stack.getCount())));}
     public static void commands(com.mojang.brigadier.builder.LiteralArgumentBuilder<net.minecraft.commands.CommandSourceStack> root,java.util.function.Supplier<ChestService> service){

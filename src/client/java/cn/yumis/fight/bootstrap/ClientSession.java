@@ -47,7 +47,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     public String session(){return session;}
     public boolean encounterSync(){return dungeon==null?progress.sync:dungeon.syncFor(own.target);}
     public Map<UUID,Target> targets(){return targets;}
-    public void skillHit(Target target,cn.yumis.fight.modules.skills.api.SkillDefinition skill,double fraction){cn.yumis.fight.modules.npc.client.TutorialClient.skillHit(target,skill,fraction);}
+    public void skillHit(Target target,cn.yumis.fight.modules.skills.api.SkillDefinition skill,double fraction){cn.yumis.fight.modules.quests.client.TutorialClient.skillHit(target,skill,fraction);}
 
     public static final ClientSession INSTANCE=new ClientSession();
     public Progress progress=new Progress();
@@ -107,6 +107,8 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     private long personalSequence,personalAcknowledged;
     private boolean personalSent,personalReceived;private int personalRetries;
     public void send(String action,JsonObject value){
+        // Every profession result passes here exactly once: server relays are re-sent by ProfessionClient.event, rod variants originate here.
+        if(action.equals("professionResult")&&value.has("event"))cn.yumis.fight.modules.quests.client.TutorialClient.professionObserved(value.getAsJsonObject("event"));
         if(preparations.owners().containsKey(action)){personalQueue.add(new PersonalRequest(action,value.deepCopy()));personalNext();return;}
         transmit(action,value);
     }
@@ -122,7 +124,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
             }catch(Exception failure){
                 personalQueue.remove();
                 if(next.action().equals("currency"))EquipmentActions.currencyFinished(value,false);
-                cn.yumis.fight.modules.npc.client.TutorialClient.committed(next.action(),value,false);
+                cn.yumis.fight.modules.quests.client.TutorialClient.committed(next.action(),value,false);
                 personalSent=false;
                 personalRetries=0;
                 message(failure.getMessage());
@@ -136,7 +138,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         if(!personalReceived&&personalQueue.peek().value().has("retryStorage")&&personalRetries++<3){personalSent=false;personalNext();return;}
         var finished=personalQueue.remove();
         if(finished.action().equals("currency"))EquipmentActions.currencyFinished(finished.value(),personalReceived);
-        cn.yumis.fight.modules.npc.client.TutorialClient.committed(finished.action(),finished.value(),personalReceived);personalSent=false;personalRetries=0;personalNext();
+        cn.yumis.fight.modules.quests.client.TutorialClient.committed(finished.action(),finished.value(),personalReceived);personalSent=false;personalRetries=0;personalNext();
     }
     private void transmit(String action,JsonObject value){
         if(ready)cn.yumis.fight.modules.character.api.client.CareerProfilesClient.context(value);
@@ -170,7 +172,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         cn.yumis.fight.modules.arkguard.client.ArkGuardClient.clear();
         sentStats="";cn.yumis.fight.modules.equipment.client.EquipmentActions.clear();personalQueue.clear();personalSequence=personalAcknowledged=0;personalSent=false;personalRetries=0;cn.yumis.fight.modules.character.client.CharacterClient.clear();cn.yumis.fight.modules.professions.client.ProfessionClient.clear();cn.yumis.fight.modules.economy.client.EconomyActions.clear();cn.yumis.fight.modules.dungeons.client.DungeonActions.clear();
         cn.yumis.fight.modules.economy.client.JarClient.clear();cn.yumis.fight.modules.economy.client.ShopClient.clear();cn.yumis.fight.modules.npc.client.NpcClient.clear();
-        cn.yumis.fight.modules.npc.client.TutorialClient.clear();
+        cn.yumis.fight.modules.quests.client.TutorialClient.clear();
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.clear();
         cn.yumis.fight.modules.character.api.client.CareerProfilesClient.clear();
         cn.yumis.fight.modules.party.client.PartyInvitations.clear();combatSettings=cn.yumis.fight.modules.combat.api.CombatSettings.DEFAULT;combatExperienceMultiplier=RewardSettings.DEFAULT.combatExperienceMultiplier();
@@ -211,12 +213,13 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
     private void registerMessages(){
         messages.register("inventory","personalCommit",(context,j)->{if(session.equals(j.get("session").getAsString())){personalAcknowledged=Math.max(personalAcknowledged,j.get("sequence").getAsLong());personalReceived=j.get("received").getAsBoolean();cn.yumis.fight.modules.economy.client.ShopClient.personalCommit(j);personalRetire();}});
         messages.register("equipment","equipmentArrival",(context,j)->cn.yumis.fight.modules.equipment.client.EquipmentActions.tick());
-        messages.register("equipment","equipmentCrafted",(context,j)->{if(ready&&session.equals(j.get("session").getAsString()))cn.yumis.fight.modules.npc.client.TutorialClient.crafted();});
+        messages.register("equipment","equipmentCrafted",(context,j)->{if(ready&&session.equals(j.get("session").getAsString()))cn.yumis.fight.modules.quests.client.TutorialClient.crafted();});
         messages.register("npc","tutorialCrystalPickup",(context,j)->{
-            if(ready&&session.equals(j.get("session").getAsString()))cn.yumis.fight.modules.npc.client.TutorialClient.crystalPickedUp();
+            if(ready&&session.equals(j.get("session").getAsString()))cn.yumis.fight.modules.quests.client.TutorialClient.crystalPickedUp();
         });
         messages.register("dungeons","waystoneReturn",(context,j)->cn.yumis.fight.modules.dungeons.client.DungeonActions.receiveReturn(j));
-        messages.register("economy","killReward",(context,j)->cn.yumis.fight.modules.economy.client.EconomyActions.reward(j));
+        messages.register("economy","killReward",(context,j)->{cn.yumis.fight.modules.economy.client.EconomyActions.reward(j);cn.yumis.fight.modules.quests.client.TutorialClient.killObserved(j);});
+        messages.register("economy","chestOpened",(context,j)->cn.yumis.fight.modules.quests.client.TutorialClient.chestOpened());
         messages.register("professions","professionApplied",(context,j)->cn.yumis.fight.modules.professions.client.ProfessionClient.applied(j));
         messages.register("professions","professionEvent",(context,j)->cn.yumis.fight.modules.professions.client.ProfessionClient.event(j));
         cn.yumis.fight.modules.industry.client.IndustryClientMessages.register(messages);
@@ -334,7 +337,7 @@ if(j.has("target")&&j.has("kind")){
                 if(newerLife||life.revision>=own.revision)own=life;
                 session=incoming;
                 profile=j;
-                cn.yumis.fight.modules.npc.client.TutorialClient.receive(j);
+                cn.yumis.fight.modules.quests.client.TutorialClient.receive(j);
                 cn.yumis.fight.modules.character.client.CharacterClient.receive(j);cn.yumis.fight.modules.professions.client.ProfessionClient.receive(j);
                 professions=new JsonObject();professions.add("professions",j.get("professionState").deepCopy());professions.add("gold",j.get("gold"));cn.yumis.fight.modules.professions.client.ProfessionClient.decorate(professions);
                 progress=JSON.fromJson(j.get("progress"),Progress.class);

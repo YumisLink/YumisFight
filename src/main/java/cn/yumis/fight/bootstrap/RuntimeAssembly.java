@@ -10,7 +10,7 @@ import cn.yumis.fight.modules.dungeons.application.DamageMeterService;
 import cn.yumis.fight.modules.dungeons.application.RitualEncounterService;
 import cn.yumis.fight.modules.industry.api.IndustrialRituals;
 import cn.yumis.fight.modules.industry.platform.DemonAltarBlockEntity;
-import cn.yumis.fight.modules.npc.api.AwakeningQuest;
+import cn.yumis.fight.modules.quests.api.AwakeningQuest;
 import cn.yumis.fight.modules.skills.application.VisualService;
 import cn.yumis.fight.modules.combat.application.NativeHits;
 
@@ -67,12 +67,20 @@ public final class RuntimeAssembly {
             @Override public void persist()throws Exception{runtime.journal.transaction(clear.writes());}
             @Override public void publish(){clear.publish().run();}
         };
-    },(instance,dungeon,difficulty,participants)->runtime.promotionQuests.prepareStoryClear(instance,dungeon,difficulty,participants));}
+    },(instance,dungeon,difficulty,participants)->{
+        var story=runtime.promotionQuests.prepareStoryClear(instance,dungeon,difficulty,participants);
+        var commission=runtime.commissions.prepareDungeonClear(instance,dungeon,difficulty,participants);
+        return new CombatPorts.Commit(){
+            @Override public void persist()throws Exception{story.persist();commission.persist();}
+            @Override public void publish(){story.publish();commission.publish();}
+        };
+    });}
     public static LootService lootService(ServerApplication runtime){return new LootService(runtime.journal,runtime.characters,runtime.server,()->runtime.inventory,rewardPlayers(runtime),new RewardPorts.Encounters(){
         public boolean participant(ServerPlayer p,String instance){return runtime.dungeons.participant(p,instance);}
         public Dungeon byId(String instance){return runtime.dungeons.byId(instance);}
         public String currentInstance(ServerPlayer p){var d=runtime.dungeons.current(p.getUUID());return d==null?"":d.id.toString();}
         public boolean finalPracticeKill(Dungeon dungeon,UUID enemy){return runtime.dungeons.finalPracticeKill(dungeon,enemy);}
+        public void abyssFlash(String instance,double x,double y,double z,boolean mythic){runtime.dungeons.abyssFlash(instance,x,y,z,mythic);}
     },rewardBalance(runtime));}
     public static RewardPorts.Balance rewardBalance(ServerApplication runtime){return new RewardPorts.Balance(){
         public RewardSettings settings(){return runtime.rewards;}

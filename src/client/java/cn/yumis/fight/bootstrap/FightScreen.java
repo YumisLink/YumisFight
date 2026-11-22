@@ -108,19 +108,6 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
             state.upload();if(page<0)onClose();else minecraft.gui.setScreen(new FightScreen());
         }
         );
-        if(page>=0){
-            var pages=PlayerPages.all();var tabs=java.util.stream.IntStream.range(0,pages.size()).filter(i->pages.get(i).screen()).toArray();
-            int cell=(panelWidth-16)/tabs.length;
-            for(int index=0;index<tabs.length;index++){
-                final int target=tabs[index];
-                var tab=Button.builder(Component.literal(PlayerPages.at(target).tab()),button->{
-                    openPage(target);
-                }
-                ).bounds(left+8+index*cell,top+35,cell-3,23).build(ThemedButton::new);
-                ((ThemedButton)tab).selected=page==target;
-                addRenderableWidget(tab);
-            }
-        }
         if(!state.ready){
             line("正在读取服务器角色档案…");
             contentHeight=40;
@@ -130,12 +117,8 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         contentHeight=nextY+12;
         setScroll(scroll);
     }
-    private int bodyTop(){
-        return top+(page<0?36:68);
-    }
-    private int bodyHeight(){
-        return panelHeight-(page<0?66:98);
-    }
+    private int bodyTop(){return top+36;}
+    private int bodyHeight(){return panelHeight-66;}
     private int contentLeft(){
         return left+sidebar+(sidebar>0?18:8);
     }
