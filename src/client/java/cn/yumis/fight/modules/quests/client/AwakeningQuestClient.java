@@ -103,6 +103,8 @@ final class AwakeningQuestClient {
 
     static boolean readyToReturn() { return available() && state.stage() == Stage.ELAINA; }
     static boolean atMaterialStage() { return available() && state.stage() == Stage.MATERIALS; }
+    /** The special tab only lists an awakening quest that is taken and not yet finished. */
+    static boolean visible() { return view != null && state.stage() != Stage.LOCKED && state.stage() != Stage.COMPLETE; }
 
     static void finishDialogue(LivingEntity entity) {
         if (readyToReturn() && NpcTutorial.NPC.equals(NpcInteractionComponent.id(entity))) send(entity);
@@ -230,30 +232,25 @@ final class AwakeningQuestClient {
     }
 
     static void render(PlayerPageSurface page) {
-        if (view == null || state.stage() == Stage.LOCKED) return;
+        if (!visible()) return;
         var definition = AwakeningQuest.definition();
         if (!QuestsPage.questHeader(page, AwakeningQuest.ACTION, definition.badge().plain(), QuestsPage.QuestType.CAREER)) return;
-        if (state.stage() == Stage.COMPLETE) {
-            page.line("已觉醒 · 已发放大师水晶 4/4", UiTheme.ACCENT);
-            page.gap();
-            return;
-        }
         switch (state.stage()) {
             case MATERIALS -> renderMaterials(page, definition);
-            case CONFESSION -> page.line("第二阶段 · 击败 55 级千室告解 1 次", UiTheme.TEXT);
+            case CONFESSION -> page.line("击败 55 级千室告解 1 次", UiTheme.TEXT);
             case TOWER -> {
-                page.line(towerOpen() ? "第三阶段 · 通关任意一座觉醒塔" : "第三阶段 · 登塔试炼（待开放）", UiTheme.TEXT);
+                page.line(towerOpen() ? "通关任意一座觉醒塔" : "登塔试炼（待开放）", UiTheme.TEXT);
                 if(towerOpen())page.line("在主世界寻找塔门，右键门前石碑进入对应的觉醒塔。",UiTheme.MUTED);
             }
-            case ELAINA -> page.line("第四阶段 · 回出生点与伊蕾娜交谈", UiTheme.TEXT);
+            case ELAINA -> page.line("回出生点与伊蕾娜交谈", UiTheme.TEXT);
             default -> {}
         }
-        page.line("本阶段奖励 · 大师水晶 ×1", UiTheme.GOLD);
+        page.line("奖励：大师水晶 ×1", UiTheme.GOLD);
         page.gap();
     }
 
     private static void renderMaterials(PlayerPageSurface page, AwakeningQuest.Definition definition) {
-        page.line("第一阶段 · 祭坛献礼", UiTheme.TEXT);
+        page.line("祭坛献礼", UiTheme.TEXT);
         var counts = new HashMap<String, Integer>();
         for (var source : materialSources()) counts.merge(ItemData.id(source.stack()), source.stack().getCount(), Integer::sum);
         for (var boss : definition.bosses()) {

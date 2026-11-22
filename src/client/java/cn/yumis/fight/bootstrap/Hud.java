@@ -59,8 +59,8 @@ public final class Hud {
         g.text(font,amount(health*currentStats.get(Stat.HEALTH))+" / "+amount(currentStats.get(Stat.HEALTH)),center-88,height-38,UiTheme.HUD_TEXT,true);
         }
         if(resource!=null){
-            bar(g,center+10,resourceY,81,10,resource.current()/Math.max(1,resource.maximum()),0xCC000000|resource.color());
-            g.text(font,resource.title()+" "+amount(resource.current())+" / "+amount(resource.maximum()),center+13,resourceY+1,UiTheme.HUD_TEXT,true);
+            bar(g,center+10,resourceY,81,10,s.resources.training?1:resource.current()/Math.max(1,resource.maximum()),0xCC000000|resource.color());
+            g.text(font,resource.title()+(s.resources.training?" ∞":" "+amount(resource.current())+" / "+amount(resource.maximum())),center+13,resourceY+1,UiTheme.HUD_TEXT,true);
         }else if(!mc.player.isCreative()){
             bar(g,center+10,resourceY,81,10,s.resources.training?1:s.resources.mp/Math.max(1,currentStats.get(Stat.MP)),0xCC416FA7);
             g.text(font,s.resources.training?"MP ∞":"MP "+amount(s.resources.mp)+" / "+amount(currentStats.get(Stat.MP)),center+13,resourceY+1,UiTheme.HUD_TEXT,true);
@@ -141,7 +141,9 @@ public final class Hud {
             rows=new com.google.gson.JsonArray();var row=new com.google.gson.JsonObject();row.addProperty("name",test.get("name").getAsString());row.addProperty("damage",damage);row.addProperty("dps",elapsed>0?damage/(elapsed/1000d):0);row.addProperty("share",damage>0?1:0);row.addProperty("bar",damage>0?1:0);rows.add(row);
         }
         var font=UiFonts.font();int x=6,w=Math.min(250,Math.max(120,g.guiWidth()/2-12));
-        int targetBottom=6+(int)Math.ceil((TARGET_INFO_HEIGHT+TARGET_ELEMENT_GAP+ElementAccumulationHud.HEIGHT)*targetScale(g));
+        var selected=state.targets.get(state.targetHud.target());
+        int fury=selected!=null&&selected.boss()&&selected.rage>0?12:0;
+        int targetBottom=6+(int)Math.ceil((TARGET_INFO_HEIGHT+TARGET_ELEMENT_GAP+ElementAccumulationHud.HEIGHT+fury)*targetScale(g));
         int y=targetBottom+(ClientSettings.targetPosition.equals("top_left")?16:2);
         g.text(font,title,x+3,y,UiTheme.HUD_GOLD,false);y+=13;
         for(var value:rows){
@@ -172,17 +174,31 @@ public final class Hud {
         int level=t.level(s.progress.level,s.encounterSync());
         double maximum=t.health(level),q=s.predicted(t.life),scale=targetScale(g);
         int width=(int)(TARGET_WIDTH*scale),x=ClientSettings.targetPosition.equals("top_left")?6:(g.guiWidth()-width)/2;
+        boolean fury=t.boss()&&t.rage>0;
+        int height=TARGET_INFO_HEIGHT+(fury?12:0);
         g.pose().pushMatrix();
         g.pose().translate(x,6);
         g.pose().scale((float)scale,(float)scale);
-        UiTheme.surface(g,0,0,TARGET_WIDTH,TARGET_INFO_HEIGHT,5,0xff101010,0xff8b919c);
+        UiTheme.surface(g,0,0,TARGET_WIDTH,height,5,0xff101010,0xff8b919c);
         boolean practice=s.dungeon!=null&&s.dungeon.practice!=null&&t.instance.equals(s.dungeon.id.toString());
         g.text(UiFonts.font(),practice?name:name+" Lv."+level,5,practice?10:4,t.elite?0xffffce7d:0xffecf1f5);
         if(!practice)g.text(UiFonts.font(),t.difficulty.title()+" · "+(t.kind.equals("BOSS")?"Boss":t.elite?"精英":"普通")+(t.elitePower.isEmpty()?"":" · "+switch(t.elitePower){case "strong"->"强壮";case "rage"->"狂暴";case "armor"->"坚韧";case "elemental"->"元素守护";default->"";}),5,16,0xffaab8ce);
         bar(g,5,29,174,9,q,t.kind.equals("BOSS")?0xffdfb545:0xffbe485a);
         g.text(UiFonts.font(),cn.yumis.fight.modules.presentation.api.client.NumberText.number(q*maximum)+" / "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(maximum),8,29,0xffffffff);
-        ElementAccumulationHud.render(g,t.life,t.bossOrElite(),s.serverNow(),0,TARGET_INFO_HEIGHT+TARGET_ELEMENT_GAP,TARGET_WIDTH);
+        if(fury)rageBar(g,5,41,174,9,t.rage,s.serverNow());
+        ElementAccumulationHud.render(g,t.life,t.bossOrElite(),s.serverNow(),0,height+TARGET_ELEMENT_GAP,TARGET_WIDTH);
         g.pose().popMatrix();
+    }
+    /** Golden gradient fury strip; full fury pulses so the release moment reads at a glance. */
+    private static void rageBar(GuiGraphicsExtractor g,int x,int y,int width,int height,double rage,long now){
+        int fill=(int)(width*Math.clamp(rage/10d,0,1));
+        g.fill(x,y,x+width,y+height,0xff231b0c);
+        if(fill>0){
+            int half=height/2;
+            g.fill(x,y,x+fill,y+half,0xffe8b93e);
+            g.fill(x,y+half,x+fill,y+height,0xff9c6f14);
+        }
+        if(rage>=10&&(now/150&1)==0)g.fill(x,y,x+width,y+height,0x66f7d878);
     }
     public static void equipment(ScreenEvent.Render.Background event){
         if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;

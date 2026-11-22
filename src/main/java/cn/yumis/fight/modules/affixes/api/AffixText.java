@@ -59,6 +59,8 @@ public final class AffixText {
         case "inverse_resists"->"命中时将目标四种元素抗性视为相反数";
         case "resistance_cap"->"自身所有元素抗性的最终上限为 "+v;
         case "mana_share"->"受到伤害的 "+n+"% 由魔力承担（1MP抵1伤害，有效上限100%）";
+        case "erosion_buildup"->"侵蚀的元素累计提高 "+n+"%";
+        case "erosion_damage"->"攻击侵蚀的敌人伤害提高 "+n+"%";
         default->a.id;
     };}
 

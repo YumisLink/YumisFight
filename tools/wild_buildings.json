@@ -1,6 +1,9 @@
 {
   "structure_sets": {
-    "wild_buildings": {"spacing_chunks": 40, "separation_chunks": 12, "salt": 16473821},
+    "wild_buildings": {
+      "spacing_chunks": 40, "separation_chunks": 12, "salt": 16473821,
+      "avoid": {"set": "large_wild_buildings", "chunk_count": 12}
+    },
     "large_wild_buildings": {"spacing_chunks": 32, "separation_chunks": 18, "salt": 16473947}
   },
   "material_tiers": {

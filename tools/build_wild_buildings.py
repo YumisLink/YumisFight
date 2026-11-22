@@ -272,24 +272,31 @@ def build(only=None):
             continue
         floor = compile_template(entry)
         alignment = {"surface_anchor": entry["surface_anchor"]} if "surface_anchor" in entry else {}
-        json_file(DATA / "worldgen/structure" / "wild_buildings" / (name + ".json"), {
+        structure_fields = {
             "type": f"{NS}:wild_building",
             "biomes": [f"minecraft:{biome}" for biome in entry["biomes"]],
             "spawn_overrides": {},
             "step": "surface_structures",
-            "terrain_adaptation": "none" if entry.get("altitude", 0) else "beard_thin",
+            "terrain_adaptation": entry.get("terrain_adaptation", "none" if entry.get("altitude", 0) else "beard_thin"),
             "start_pool": pool,
             "height_offset": entry.get("altitude", 0) + 1 - floor,
             "floor_offset": floor,
             "max_relief": entry.get("max_relief", 12),
             "ground_clearance": entry.get("ground_clearance", 0),
             **alignment,
-        })
+        }
+        if "size" in entry:
+            structure_fields["size"] = entry["size"]
+        json_file(DATA / "worldgen/structure" / "wild_buildings" / (name + ".json"), structure_fields)
         json_file(DATA / "worldgen/template_pool" / "wild_buildings" / (name + ".json"), {
             "fallback": "minecraft:empty",
             "elements": [{"weight": 1, "element": {
                 "element_type": "minecraft:single_pool_element", "location": pool,
-                "processors": {"processors": [{"processor_type": f"{NS}:attached_entities"}]},
+                "processors": {"processors": [
+                    {"processor_type": f"{NS}:attached_entities"},
+                    {"processor_type": f"{NS}:waterlog_fix"},
+                    {"processor_type": "minecraft:protected_blocks", "value": "#minecraft:features_cannot_replace"},
+                ]},
                 "projection": "rigid",
             }}],
         })
@@ -299,9 +306,14 @@ def build(only=None):
             })
         print(f"{name}: 地面偏移 {floor}")
     for name, placement in config["structure_sets"].items():
+        placement_fields = {"type": "minecraft:random_spread", "spacing": placement["spacing_chunks"],
+                           "separation": placement["separation_chunks"], "salt": placement["salt"]}
+        avoid = placement.get("avoid")
+        if avoid:
+            placement_fields["exclusion_zone"] = {"other_set": f"{NS}:{avoid['set']}",
+                                                  "chunk_count": avoid["chunk_count"]}
         json_file(DATA / "worldgen/structure_set" / f"{name}.json", {
-            "placement": {"type": "minecraft:random_spread", "spacing": placement["spacing_chunks"],
-                          "separation": placement["separation_chunks"], "salt": placement["salt"]},
+            "placement": placement_fields,
             "structures": structures[name],
         })
     material_tables(config.get("material_tiers", {}))

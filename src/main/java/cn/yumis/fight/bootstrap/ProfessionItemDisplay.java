@@ -46,6 +46,8 @@ public final class ProfessionItemDisplay {
     }
     public static Rarity rarity(String id){return GRADES.get(id);}
     public static Rarity rarity(ItemStack stack){return stack.isEmpty()||!ItemData.own(stack)?null:rarity(ItemData.id(stack));}
+    /** 副职业产出物品清单；顺序即「AYD-副职业」创造栏展示顺序，分类规则见创作指南。 */
+    public static List<String> ids(){return List.copyOf(GRADES.keySet());}
     public static Component name(String translation,Rarity rarity){return ModText.decorate(Component.translatable(translation)).withStyle(style->style.withColor(rarity.color()).withItalic(false));}
     public static void names(ModifyDefaultComponentsEvent event){
         ItemRegistry.ALL.forEach((id,holder)->{

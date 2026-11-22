@@ -145,7 +145,7 @@ public final class CareerClient {
             if(id.equals(CareerSkills.SWORD)){next.bloodUntil=terminal?0:wall+(long)(parameters.get("duration",60)*1000);next.blood=0;}
             if(CareerRules.producesBrand(id))next.brands=Math.min(brandCap(),next.brands+1);
             if(SunMoonSkills.contains(id))next.sunMoon=SunMoonRules.paid(next.sunMoon,skill,prepared);
-            if(DemonHunterSkills.contains(id))next.demonHunter.fury-=DemonHunterRules.cost(id);
+            if(DemonHunterSkills.contains(id))next.demonHunter.fury-=DemonHunterRules.furyCost(id,resources.training);
             if(!terminal&&!resources.training&&!p.isCreative())resources.cooldowns.put(id,now+(long)(SkillCosts.resolve(skill,rank,prepared,resources.equipment,CareerRules.magic(skill,progress)).cooldown()*1000));resources.recordedAt=now;
             var c=new SkillCast();c.id=castId;c.skill=skill;c.slot=slot;c.parameters=parameters;c.stats=prepared;c.equipment=resources.equipment;c.weapon=prepared.weaponInstance;c.terminal=terminal;c.origin=origin;c.direction=direction;c.center=center;c.start=c.stageStart=now;c.speed=Math.max(.01,prepared.get(Stat.CAST_SPEED));c.dimension=p.level().dimension().identifier().toString();c.charging=SkillPresentation.charging(skill);
             c.session=state().session();c.generation=state().own().generation;c.job=state().progress().jobId();c.instance=state().own().instance;

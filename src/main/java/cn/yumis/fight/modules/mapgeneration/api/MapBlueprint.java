@@ -54,7 +54,7 @@ public final class MapBlueprint {
         public int referenceY;
         public int lightTarget=8;
         public boolean island=true, platform=true, skipInOcean=false, flatten=true;
-        public boolean keepClear=false;
+        public boolean keepClear=false, treeSite=false;
         public int[][] blocked=new int[0][];
         public List<String> tags=new ArrayList<>();
         public List<Loot> loot=new ArrayList<>();
@@ -94,6 +94,7 @@ public final class MapBlueprint {
         for(Facility f:facilities) {
             if(f.id==null||!ids.add(f.id)||f.template==null||f.position==null||f.position.length!=2||f.entrance==null||f.entrance.length!=2)throw new IllegalArgumentException("设施配置不完整或ID重复");
             Identifier.parse(f.template);
+            if(f.treeSite&&!f.anchor.equals("surface"))throw new IllegalArgumentException("treeSite 设施须随地表落地（anchor: surface）: "+f.id);
             if(f.foundation==null||!Set.of("platform","sparse_stone","terrain_retaining").contains(f.foundation)||f.fittedFoundation()&&!f.platform)throw new IllegalArgumentException("设施地基须为 platform、sparse_stone 或 terrain_retaining，后两种须启用 platform: "+f.id);
             for(Loot l:f.loot) {if(l.pos==null||l.pos.length!=3||l.table==null)throw new IllegalArgumentException("战利品槽配置无效");Identifier.parse(l.table);}
             Set<String> groups=new HashSet<>();

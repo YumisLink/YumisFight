@@ -1,9 +1,12 @@
-"""Author the default silver warglaive with Blender; editable scene and previews stay in temp.
+"""Author the default silver warglaive plus the mythic Azzinoth recolor; editable scene and previews stay in temp.
 
 Run: blender --background --factory-startup --python tools/build_warglaive_model.py
 Silhouette reference: https://worldofwarcraft.blizzard.com/en-us/news/19940945
 Grip reference: https://worldofwarcraft.blizzard.com/en-us/news/20353390/prepare-to-bring-illidan-home-today
 The mesh, palette and icons are authored here; no downloaded model or texture is shipped.
+The named 'azzinoth' variant reuses the authored mesh with the project mythic
+gold/pink gradient (MythicDisplay.GOLD 0xffd778, MythicDisplay.PINK 0xff79c6)
+and only re-exports an atlas, an icon and models/item/named/azzinoth.json.
 """
 import json
 import math
@@ -308,5 +311,72 @@ bpy.ops.render.render(write_still=True)
 camera_at((.65, -7, 2.35), (0, 0, .36), 3.8)
 scene.render.filepath = str(WORK / 'silver-warglaive-front.png')
 bpy.ops.wm.save_as_mainfile(filepath=str(WORK / 'silver-warglaive.blend'))
+
+# Named mythic recolor: same authored mesh, palette remapped onto the project
+# mythic gold->pink gradient. Dark slots deepen toward pink, bright slots stay gold.
+MYTHIC_GOLD, MYTHIC_PINK = 'ffd778', 'ff79c6'
+
+
+def luma(hex_color):
+    r, g, b = rgb(hex_color)
+    return .2126 * r + .7152 * g + .0722 * b
+
+
+mythic = []
+brightest = max(luma(color) for _, color, _, _ in PALETTE)
+for name, color, metallic, roughness in PALETTE:
+    weight = luma(color) / brightest
+    blend = 1 - weight
+    gold, pink = rgb(MYTHIC_GOLD), rgb(MYTHIC_PINK)
+    base = [(g * (1 - blend) + p * blend) / 255 for g, p in zip(gold, pink)]
+    shade = .5 + .5 * weight
+    mythic.append((name, ''.join('%02x' % min(255, round(255 * channel * shade)) for channel in base),
+                   metallic, roughness))
+for (_, hex_color, _, _), mat in zip(mythic, materials):
+    shader = mat.node_tree.nodes.get('Principled BSDF')
+    shader.inputs['Base Color'].default_value = (*map(linear, rgb(hex_color)), 1)
+
+mythic_atlas = bpy.data.images.new('warglaive_azzinoth', width=64, height=32, alpha=False)
+pixels = []
+for y in range(32):
+    for x in range(64):
+        color = rgb(mythic[(y // 16) * 4 + x // 16][1])
+        pixels.extend((*color, 1))
+mythic_atlas.pixels[:] = pixels
+mythic_atlas.filepath_raw = str(ASSETS / 'textures/item/weapon3d/warglaive_azzinoth.png')
+mythic_atlas.file_format = 'PNG'
+mythic_atlas.save()
+mythic_atlas.pack()
+
+scene.render.film_transparent = True
+camera_at((.30, -7, 1.60), (0, 0, .36), 3.30)
+camera.rotation_euler.rotate_axis('Z', math.radians(-32))
+scene.render.resolution_x, scene.render.resolution_y = 32, 32
+scene.render.resolution_percentage = 100
+scene.cycles.samples = 64
+named_icon = ASSETS / 'textures/item/named/azzinoth.png'
+scene.render.filepath = str(named_icon)
+bpy.ops.render.render(write_still=True)
+
+standard = json.loads((ASSETS / 'models/item/standard/warglaive_50_base.json').read_text(encoding='utf-8'))
+named_model = {'loader': 'neoforge:obj', 'model': NS + ':models/weapons/common_warglaive.obj',
+               'automatic_culling': False, 'shade_quads': True, 'flip_v': True,
+               'ambientocclusion': False, 'gui_light': 'front',
+               'textures': {'atlas': NS + ':item/weapon3d/warglaive_azzinoth',
+                            'particle': NS + ':item/named/azzinoth'},
+               'display': standard['display']}
+(ASSETS / 'models/item/named/azzinoth.json').write_text(
+    json.dumps(named_model, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+scene.render.film_transparent = False
+camera_at((.65, -7, 2.35), (0, 0, .36), 3.80)
+scene.render.resolution_x, scene.render.resolution_y = 1400, 850
+scene.cycles.samples = 48
+scene.render.filepath = str(WORK / 'azzinoth-front.png')
+bpy.ops.render.render(write_still=True)
+
 print(json.dumps({'mesh': IDENT, 'vertices': len(vertices), 'faces': len(faces),
-                  'bands': [10, 20, 30, 40, 50], 'preview': str(WORK / 'silver-warglaive-front.png')}))
+                  'bands': [10, 20, 30, 40, 50], 'named': 'azzinoth',
+                  'atlas': 'textures/item/weapon3d/warglaive_azzinoth.png',
+                  'icon': str(named_icon),
+                  'preview': str(WORK / 'azzinoth-front.png')}))

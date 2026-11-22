@@ -180,7 +180,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         targetHud.clear();
         gold.clear();viewSync.clear();checkpoint=null;checkpointGeneration=-1;reportedCheckpoints.clear();pendingRuntime=null;pendingRuntimeState=null;runtimeSequence=0;minimumRuntimeIssuedAt=0;lastResourceServerTime=lastClockArrival=Long.MIN_VALUE;definitionRetries=0;
         cn.yumis.fight.modules.skills.api.client.TrainingCombat.clear();
-        cn.yumis.fight.modules.talents.client.TalentCombat.clear();
+        cn.yumis.fight.modules.talents.api.client.TalentCombat.clear();
         ready=false;
         damageMeter=new JsonObject();
         trainingMeter=new JsonObject();

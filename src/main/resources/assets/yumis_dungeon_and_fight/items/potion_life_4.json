@@ -1,1 +1,12 @@
-{"model":{"type":"minecraft:model","model":"yumis_dungeon_and_fight:item/potion_life_4"}}
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "minecraft:item/potion",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 4281884102
+      }
+    ]
+  }
+}

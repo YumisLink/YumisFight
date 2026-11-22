@@ -29,7 +29,7 @@ public final class ArkContentTypes {
         for(String kind:List.of("goblin","goblin_thrower","goblin_captain","goblin_shaman","dragonman","wyvern","blue_dragonman","blue_wyvern","lucas")){
             boolean wing=kind.contains("wyvern"),goblin=kind.startsWith("goblin");String id="ark_enemy_"+kind;
             ENEMIES.put(kind,TYPES.register(id,()->EntityType.Builder.<ArkEnemyEntity>of((type,level)->new ArkEnemyEntity(type,level,kind),MobCategory.MONSTER)
-                .sized(wing||kind.equals("lucas")?1.1f:.9f,wing?1.2f:kind.equals("lucas")?2.25f:goblin?1.3f:1.95f)
+                .sized(wing||kind.equals("lucas")?1.1f:.9f,wing?1.2f:kind.equals("lucas")?2.25f:kind.equals("goblin_shaman")?2.1f:goblin?1.3f:1.95f)
                 .noSave().clientTrackingRange(14).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ItemData.NS,id)))));
         }
     }

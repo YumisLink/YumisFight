@@ -944,6 +944,978 @@
           ]
         }
       ]
+    },
+    "waystone": {
+      "name": "引路石商店",
+      "offers": [
+        {
+          "id": "random_plus_one",
+          "type": "waystone",
+          "tier": 1,
+          "rarity": "COMMON",
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ]
+        }
+      ]
+    },
+    "weapon_gear": {
+      "name": "基础武器商店",
+      "offers": [
+        {
+          "id": "katana",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "KATANA"
+        },
+        {
+          "id": "lightsaber",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "LIGHTSABER"
+        },
+        {
+          "id": "greatsword",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "GREATSWORD"
+        },
+        {
+          "id": "shortsword",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "SHORTSWORD"
+        },
+        {
+          "id": "blunt",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "BLUNT"
+        },
+        {
+          "id": "staff",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "STAFF"
+        },
+        {
+          "id": "wand",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "WAND"
+        },
+        {
+          "id": "club",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "CLUB"
+        },
+        {
+          "id": "broom",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "BROOM"
+        },
+        {
+          "id": "warglaive",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "WARGLAIVE"
+        },
+        {
+          "id": "spear",
+          "type": "gear",
+          "slot": "WEAPON",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "weapon": "SPEAR"
+        }
+      ]
+    },
+    "armor_gear": {
+      "name": "基础防具商店",
+      "offers": [
+        {
+          "id": "cloth_chest",
+          "type": "gear",
+          "slot": "CHEST",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "CLOTH"
+        },
+        {
+          "id": "leather_chest",
+          "type": "gear",
+          "slot": "CHEST",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "LEATHER"
+        },
+        {
+          "id": "light_chest",
+          "type": "gear",
+          "slot": "CHEST",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "LIGHT"
+        },
+        {
+          "id": "heavy_chest",
+          "type": "gear",
+          "slot": "CHEST",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "HEAVY"
+        },
+        {
+          "id": "plate_chest",
+          "type": "gear",
+          "slot": "CHEST",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "PLATE"
+        },
+        {
+          "id": "cloth_head",
+          "type": "gear",
+          "slot": "HEAD",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "CLOTH"
+        },
+        {
+          "id": "leather_head",
+          "type": "gear",
+          "slot": "HEAD",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "LEATHER"
+        },
+        {
+          "id": "light_head",
+          "type": "gear",
+          "slot": "HEAD",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "LIGHT"
+        },
+        {
+          "id": "heavy_head",
+          "type": "gear",
+          "slot": "HEAD",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "HEAVY"
+        },
+        {
+          "id": "plate_head",
+          "type": "gear",
+          "slot": "HEAD",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "PLATE"
+        },
+        {
+          "id": "cloth_legs",
+          "type": "gear",
+          "slot": "LEGS",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "CLOTH"
+        },
+        {
+          "id": "leather_legs",
+          "type": "gear",
+          "slot": "LEGS",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "LEATHER"
+        },
+        {
+          "id": "light_legs",
+          "type": "gear",
+          "slot": "LEGS",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "LIGHT"
+        },
+        {
+          "id": "heavy_legs",
+          "type": "gear",
+          "slot": "LEGS",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "HEAVY"
+        },
+        {
+          "id": "plate_legs",
+          "type": "gear",
+          "slot": "LEGS",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "PLATE"
+        },
+        {
+          "id": "cloth_feet",
+          "type": "gear",
+          "slot": "FEET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "CLOTH"
+        },
+        {
+          "id": "leather_feet",
+          "type": "gear",
+          "slot": "FEET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "LEATHER"
+        },
+        {
+          "id": "light_feet",
+          "type": "gear",
+          "slot": "FEET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "LIGHT"
+        },
+        {
+          "id": "heavy_feet",
+          "type": "gear",
+          "slot": "FEET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "HEAVY"
+        },
+        {
+          "id": "plate_feet",
+          "type": "gear",
+          "slot": "FEET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "armor": "PLATE"
+        }
+      ]
+    },
+    "jewelry_gear": {
+      "name": "基础首饰商店",
+      "offers": [
+        {
+          "id": "health_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "HEALTH"
+        },
+        {
+          "id": "mp_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "MP"
+        },
+        {
+          "id": "strength_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "STRENGTH"
+        },
+        {
+          "id": "intelligence_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "INTELLIGENCE"
+        },
+        {
+          "id": "spirit_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "SPIRIT"
+        },
+        {
+          "id": "light_resist_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "LIGHT_RESIST"
+        },
+        {
+          "id": "fire_resist_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "FIRE_RESIST"
+        },
+        {
+          "id": "ice_resist_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "ICE_RESIST"
+        },
+        {
+          "id": "dark_resist_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "DARK_RESIST"
+        },
+        {
+          "id": "all_resist_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "ALL_RESIST"
+        },
+        {
+          "id": "drop_rate_bracelet",
+          "type": "gear",
+          "slot": "BRACELET",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "DROP_RATE"
+        },
+        {
+          "id": "health_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "HEALTH"
+        },
+        {
+          "id": "mp_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "MP"
+        },
+        {
+          "id": "strength_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "STRENGTH"
+        },
+        {
+          "id": "intelligence_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "INTELLIGENCE"
+        },
+        {
+          "id": "spirit_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "SPIRIT"
+        },
+        {
+          "id": "light_resist_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "LIGHT_RESIST"
+        },
+        {
+          "id": "fire_resist_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "FIRE_RESIST"
+        },
+        {
+          "id": "ice_resist_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "ICE_RESIST"
+        },
+        {
+          "id": "dark_resist_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "DARK_RESIST"
+        },
+        {
+          "id": "all_resist_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "ALL_RESIST"
+        },
+        {
+          "id": "drop_rate_necklace",
+          "type": "gear",
+          "slot": "NECKLACE",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "DROP_RATE"
+        },
+        {
+          "id": "health_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "HEALTH"
+        },
+        {
+          "id": "mp_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "MP"
+        },
+        {
+          "id": "strength_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "STRENGTH"
+        },
+        {
+          "id": "intelligence_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "INTELLIGENCE"
+        },
+        {
+          "id": "spirit_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "SPIRIT"
+        },
+        {
+          "id": "light_resist_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "LIGHT_RESIST"
+        },
+        {
+          "id": "fire_resist_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "FIRE_RESIST"
+        },
+        {
+          "id": "ice_resist_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "ICE_RESIST"
+        },
+        {
+          "id": "dark_resist_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "DARK_RESIST"
+        },
+        {
+          "id": "all_resist_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "ALL_RESIST"
+        },
+        {
+          "id": "drop_rate_ring",
+          "type": "gear",
+          "slot": "RING",
+          "rarity": "COMMON",
+          "level": 1,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ],
+          "jewelry": "DROP_RATE"
+        }
+      ]
+    },
+    "special_gear": {
+      "name": "特殊装备商店",
+      "offers": [
+        {
+          "id": "sub_equipment",
+          "type": "gear",
+          "slot": "SUB_EQUIPMENT",
+          "rarity": "COMMON",
+          "level": 50,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ]
+        },
+        {
+          "id": "magic_stone",
+          "type": "gear",
+          "slot": "MAGIC_STONE",
+          "rarity": "COMMON",
+          "level": 60,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ]
+        },
+        {
+          "id": "earring",
+          "type": "gear",
+          "slot": "EARRING",
+          "rarity": "COMMON",
+          "level": 70,
+          "costs": [
+            {
+              "item": "gold",
+              "count": 10000
+            }
+          ]
+        }
+      ]
     }
   }
 }

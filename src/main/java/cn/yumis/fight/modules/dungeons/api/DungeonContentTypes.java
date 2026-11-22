@@ -50,8 +50,8 @@ public final class DungeonContentTypes {
         p -> new net.minecraft.world.item.Item(p.rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
     static {
         for(String name:List.of("goblin","goblin_thrower","goblin_captain","goblin_shaman","dragonman","wyvern","blue_dragonman","blue_wyvern","lucas","golden_king"))ENEMIES.put(name,ENTITIES.register(name,()->{
-            float width=name.contains("wyvern")||name.equals("lucas")?1.1f:name.equals("goblin_captain")?1:name.equals("goblin_shaman")?1.05f:.9f;
-            float height=name.contains("wyvern")?1.2f:name.equals("lucas")?2.25f:name.equals("goblin_shaman")?1.75f:name.equals("goblin_captain")?1.5f:name.startsWith("goblin")?1.25f:1.95f;
+            float width=name.contains("wyvern")||name.equals("lucas")?1.1f:name.equals("goblin_captain")?1:name.equals("goblin_shaman")?1.3f:.9f;
+            float height=name.contains("wyvern")?1.2f:name.equals("lucas")?2.25f:name.equals("goblin_shaman")?2.6f:name.equals("goblin_captain")?1.5f:name.startsWith("goblin")?1.25f:1.95f;
             return EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(width,height).eyeHeight(height*.8f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,name)));
         }
         ));

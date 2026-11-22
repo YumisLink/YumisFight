@@ -132,6 +132,7 @@ public class DungeonService {
             waves.put(encounter.dungeon,encounter::spawn);
             for(var kind:cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.values())if(kind.dungeon.equals(encounter.dungeon))enemyBrains.put(kind.id,encounter::brain);
         }
+        enemyBrains.put("goblin_shaman",goblinCamp::kenoBrain);
     }
     public Dungeon byId(String id){
         if(id==null||id.isEmpty())return null;
@@ -163,6 +164,7 @@ public class DungeonService {
         }
         return null;
     }
+    DungeonPorts.Targets targets(){return targets;}
     public boolean participant(ServerPlayer p,String id){
         Dungeon d=byId(id);
         if(d!=null&&d.treasure!=null&&treasure!=null)return treasure.inside(d,p);
@@ -801,20 +803,11 @@ public class DungeonService {
         }
         e.getLookControl().setLookAt(p);
         double distance=e.distanceTo(p);
-        if(type.equals("goblin_shaman")){
-            if(distance>8)e.getNavigation().moveTo(p,1);
-            else e.getNavigation().stop();
-            if(distance<12&&ready(e,"LIGHTNING",now))cast(e,p,"LIGHTNING",2,Math.PI,1200,200,1000,1.4,true,10);
-            else if(distance<6&&ready(e,"FAN",now))cast(e,p,"FAN",6,Math.PI/4,800,200,800,1.2,true,6);
-            else if(distance<3&&ready(e,"BASIC",now))cast(e,p,"BASIC",3,Math.PI/3,300,200,400,1,false,2);
-        }
-        else{
-            if(!dragonTower.pursue(d,e,p)){if(distance>2.5)e.getNavigation().moveTo(p,1);else e.getNavigation().stop();}
-            if(distance<12&&ready(e,"CAGE",now))cast(e,p,"CAGE",1.5,Math.PI,1000,2000,800,1.4,true,12);
-            else if(distance<6&&ready(e,"CHARGE",now))cast(e,p,"CHARGE",6,Math.PI/2,800,200,800,1.8,false,7);
-            else if(distance<3&&ready(e,"DISCHARGE",now))cast(e,p,"DISCHARGE",3,Math.PI,900,200,800,1.4,true,8);
-            else if(distance<3&&ready(e,"BASIC",now))cast(e,p,"BASIC",3,Math.PI/6,350,150,500,1,false,2);
-        }
+        if(!dragonTower.pursue(d,e,p)){if(distance>2.5)e.getNavigation().moveTo(p,1);else e.getNavigation().stop();}
+        if(distance<12&&ready(e,"CAGE",now))cast(e,p,"CAGE",1.5,Math.PI,1000,2000,800,1.4,true,12);
+        else if(distance<6&&ready(e,"CHARGE",now))cast(e,p,"CHARGE",6,Math.PI/2,800,200,800,1.8,false,7);
+        else if(distance<3&&ready(e,"DISCHARGE",now))cast(e,p,"DISCHARGE",3,Math.PI,900,200,800,1.4,true,8);
+        else if(distance<3&&ready(e,"BASIC",now))cast(e,p,"BASIC",3,Math.PI/6,350,150,500,1,false,2);
     }
     private boolean ready(DungeonEnemy e,String kind,long now){
         return cooldowns.getOrDefault(e.getUUID()+"/"+kind,0L)<=now;

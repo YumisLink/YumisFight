@@ -161,6 +161,121 @@
         "给机器备点水晶，做事也安心些。"
       ]
     },
+    "waystone_merchant": {
+      "name": "引路石商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "waystone"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "引路石能带你进出副本，没石头可进不去。",
+        "这儿只卖 +1 的白色石头，目的地听天由命。",
+        "想去哪儿？石头自己会挑地方。",
+        "买一块试试手气吧。"
+      ]
+    },
+    "weapon_merchant": {
+      "name": "武器商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "weapon_gear"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "挑把顺手的武器，冒险才有个开始。",
+        "从太刀到法杖，这里都给你备着。",
+        "都是一级的白色武器，新兵也能用。",
+        "武器不合适？换一把就是了。"
+      ]
+    },
+    "armor_merchant": {
+      "name": "防具商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "armor_gear"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "布甲轻便，板甲结实，各有各的好。",
+        "先挑甲种，再挑部位，别穿错了。",
+        "一级的白色防具，新兵也能穿。",
+        "护具备齐了，出门才安心。"
+      ]
+    },
+    "jewelry_merchant": {
+      "name": "首饰商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "jewelry_gear"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "手镯、项链、戒指，种类齐全。",
+        "想要加力量的还是加智力的？慢慢挑。",
+        "这些首饰都是一级的白色货。",
+        "戴上首饰，实力多少能补一点。"
+      ]
+    },
+    "special_merchant": {
+      "name": "特殊装备商人",
+      "actions": [
+        {
+          "id": "shop",
+          "label": "商店",
+          "type": "shop",
+          "value": "special_gear"
+        },
+        {
+          "id": "chat",
+          "label": "交流",
+          "type": "chat",
+          "value": ""
+        }
+      ],
+      "dialogue": [
+        "辅助装备、魔法石、耳环，这儿都有。",
+        "等级到了五十、六十、七十才能用，别急着买。",
+        "特殊部位先练级，到时候再来。",
+        "都是白色货，童叟无欺。"
+      ]
+    },
     "elaina": {
       "name": "伊蕾娜",
       "skin": "elaina",

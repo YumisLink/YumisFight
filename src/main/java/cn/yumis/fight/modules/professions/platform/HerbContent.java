@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.professions.platform;
 import cn.yumis.fight.platform.ItemData;
 import cn.yumis.fight.platform.ItemRegistry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.levelgen.feature.Feature;
@@ -32,10 +33,13 @@ public final class HerbContent {
     public static final DeferredHolder<Feature<?>,StormVineFeature> STORM_VINE_FEATURE=
         FEATURES.register("storm_vine",()->new StormVineFeature(NoneFeatureConfiguration.CODEC));
     public static final String SEED_ID="herb_seed";
+    /** 野生草药丛的 BlockItem：注册后创造模式中键可复制该方块，放置沿方块自身的存活判定。 */
+    public static final String BUSH_ITEM_ID="herb_bush";
     public static void register(IEventBus bus){
         BLOCKS.register(bus);
         FEATURES.register(bus);
         AlchemyContent.install(bus);
         ItemRegistry.ALL.put(SEED_ID,ItemRegistry.ITEMS.registerItem(SEED_ID,HerbSeedItem::new));
+        ItemRegistry.ALL.put(BUSH_ITEM_ID,ItemRegistry.ITEMS.registerItem(BUSH_ITEM_ID,p->new BlockItem(HERB_BUSH.get(),p)));
     }
 }

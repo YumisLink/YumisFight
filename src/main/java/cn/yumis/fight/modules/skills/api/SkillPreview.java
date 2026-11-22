@@ -18,6 +18,7 @@ public final class SkillPreview {
         }
         cn.yumis.fight.modules.combat.api.EquipmentBuffs.apply(stats,resources,now);
         cn.yumis.fight.modules.equipment.api.EquipmentEffects.finish(stats,resources.equipment);
+        if(resources.equipment.erosionBuildup>0)cn.yumis.fight.modules.combat.api.ElementAccumulation.addConversion(stats,3,cn.yumis.fight.modules.combat.api.ElementAccumulation.Kind.EROSION,resources.equipment.erosionBuildup);
         return stats;
     }
     public record Damage(double minimum,double maximum){

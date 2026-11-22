@@ -16,6 +16,7 @@ import java.util.function.BiPredicate;
 /** Local affordability and frozen slot edits; the receiver only stores the authored result. */
 public final class ShopClient {
     public record Result(String operation,boolean success,String message) {}
+    private static final Random RANDOM=new Random();
     private static Supplier<JsonObject> profile;
     private static BooleanSupplier living=()->false;
     private static BiPredicate<LivingEntity,String> hostAvailable=(entity,shop)->false;
@@ -85,7 +86,12 @@ public final class ShopClient {
             }
             var edits=new JsonArray();for(var slot:sources)if(!ItemStack.matches(slot.before(),slot.after()))edits.add(InventoryEdits.change(player,slot.area(),slot.index(),slot.before(),slot.after()));request.add("inventoryChanges",edits);
             if(goldCost>0){var before=new JsonObject();var after=new JsonObject();long revision=profile.get().get("goldRevision").getAsLong();before.addProperty("gold",gold());before.addProperty("goldRevision",revision);after.addProperty("gold",Math.subtractExact(gold(),goldCost));after.addProperty("goldRevision",Math.incrementExact(revision));request.add("beforeBalances",before);request.add("balances",after);}
-            var outputs=new JsonArray();var item=offer.stack();for(int remaining=quantity;remaining>0;){int count=Math.min(remaining,item.getMaxStackSize());outputs.add(InventoryEdits.encode(player,item.copyWithCount(count)));remaining-=count;}request.add("shopOutputs",outputs);
+            var outputs=new JsonArray();
+            if(offer.kind().equals("item")){
+                var item=offer.create(menu.shop,RANDOM);
+                for(int remaining=quantity;remaining>0;){int count=Math.min(remaining,item.getMaxStackSize());outputs.add(InventoryEdits.encode(player,item.copyWithCount(count)));remaining-=count;}
+            }else for(int i=0;i<quantity;i++)outputs.add(InventoryEdits.encode(player,offer.create(menu.shop,RANDOM)));
+            request.add("shopOutputs",outputs);
         }catch(RuntimeException failure){pending="";pendingSequence=0;throw failure;}
     }
 }

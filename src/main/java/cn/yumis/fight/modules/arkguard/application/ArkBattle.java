@@ -297,7 +297,7 @@ final class ArkBattle {
         if(!cn.yumis.fight.modules.mapgeneration.api.MapGeneration.spawnSceneActor(level,actor.entity)){lives.release(List.of(actor.entity));throw new IllegalStateException("方舟实体投放失败");}
         actors.add(actor);
     }
-    private void spawnEnemy(Seat seat,String kind){
+    void spawnEnemy(Seat seat,String kind){
         var type=ArkContentTypes.ENEMIES.get(kind);if(type==null)throw new IllegalArgumentException("未知军团单位");
         var entity=type.get().create(level,EntitySpawnReason.COMMAND);if(entity==null)throw new IllegalStateException("无法创建军团单位");
         boolean boss=kind.equals("goblin_shaman")||kind.equals("lucas"),elite=kind.equals("goblin_captain");
@@ -361,6 +361,7 @@ final class ArkBattle {
         for(var actor:actors)if(!actor.core&&actor.alive()){
             var view=new JsonObject();view.addProperty("entity",actor.entity.getId());view.addProperty("id",actor.entity.getStringUUID());
             view.addProperty("maximum",actor.target.health(1));view.addProperty("health",actor.target.health(1)*actor.target.life.q);view.addProperty("enemy",actor.enemy);
+            if(actor.enemy)view.addProperty("rage",actor.target.rage);
             if(actor.unit!=null)combat.skillState(actor,view,now,editing());
             displayed.add(view);
         }

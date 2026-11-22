@@ -46,7 +46,7 @@ public final class DemonHunterClient {
     public static boolean cancelChannel(){if(beamAge()<0)return false;finish(primary,true);return true;}
     public static void prepare(SkillDefinition skill){
         if(!DemonHunterSkills.contains(skill.id))return;
-        if(resource().fury<DemonHunterRules.cost(skill.id))throw new IllegalArgumentException("怒气不足");
+        if(resource().fury<DemonHunterRules.furyCost(skill.id,state().resources().training))throw new IllegalArgumentException("怒气不足");
         if(skill.id.equals(DemonHunterSkills.META))aimed=landing(metaRange());
     }
     private static double metaRange(){var p=player();var skill=SkillCatalog.require(DemonHunterSkills.META);return Math.max(.5,SkillParameters.forCast(p.getUUID(),skill,Math.max(1,SkillLearning.effective(state().stats(),state().progress(),skill)),state().stats().parameters).get("range",16));}

@@ -10,6 +10,13 @@
           "processors": [
             {
               "processor_type": "yumis_dungeon_and_fight:attached_entities"
+            },
+            {
+              "processor_type": "yumis_dungeon_and_fight:waterlog_fix"
+            },
+            {
+              "processor_type": "minecraft:protected_blocks",
+              "value": "#minecraft:features_cannot_replace"
             }
           ]
         },

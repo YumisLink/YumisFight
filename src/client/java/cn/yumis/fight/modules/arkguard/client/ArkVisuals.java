@@ -19,11 +19,11 @@ import java.util.*;
 public final class ArkVisuals {
     private static final float ENEMY_HEALTH_SCALE=.75f;
     private static final int HEAL_COLOR=0x6FF390;
-    private record Unit(UUID id,int entity,boolean enemy,double maximum,double health,String mode,double skill,double rate,long at,long skillEnd){
-        Unit health(double value){return new Unit(id,entity,enemy,maximum,value,mode,skill,rate,at,skillEnd);}
+    private record Unit(UUID id,int entity,boolean enemy,double maximum,double health,String mode,double skill,double rate,long at,long skillEnd,double rage){
+        Unit health(double value){return new Unit(id,entity,enemy,maximum,value,mode,skill,rate,at,skillEnd,rage);}
         Unit skill(JsonObject value,long at){
             return new Unit(id,entity,enemy,maximum,health,value.get("skillMode").getAsString(),value.get("skill").getAsDouble(),
-                value.get("skillRate").getAsDouble(),at,end(value));
+                value.get("skillRate").getAsDouble(),at,end(value),rage);
         }
     }
     private record Core(double maximum,double health){}
@@ -75,7 +75,7 @@ public final class ArkVisuals {
             var actor=value.getAsJsonObject();int id=actor.get("entity").getAsInt();
             units.put(id,new Unit(UUID.fromString(actor.get("id").getAsString()),id,actor.get("enemy").getAsBoolean(),actor.get("maximum").getAsDouble(),actor.get("health").getAsDouble(),
                 actor.has("skillMode")?actor.get("skillMode").getAsString():"",actor.has("skill")?actor.get("skill").getAsDouble():0,
-                actor.has("skillRate")?actor.get("skillRate").getAsDouble():0,at,end(actor)));
+                actor.has("skillRate")?actor.get("skillRate").getAsDouble():0,at,end(actor),actor.has("rage")?actor.get("rage").getAsDouble():0));
         }
     }
     private static long end(JsonObject value){return value.has("skillEnd")?value.get("skillEnd").getAsLong():0;}
@@ -185,6 +185,7 @@ public final class ArkVisuals {
             graphics.pose().translate(centerX-width*scale*.5f,y);
             graphics.pose().scale(scale,scale);
             healthBar(graphics,0,0,width,unit.health(),unit.maximum(),false);
+            if(unit.rage()>0)bar(graphics,0,8,width,5,Math.clamp(unit.rage()/10,0,1),unit.rage()>=10&&(ClientUi.current().serverNow()/150&1)==0?0xFFF7DA7A:0xFFDFB545);
             graphics.pose().popMatrix();
             return;
         }

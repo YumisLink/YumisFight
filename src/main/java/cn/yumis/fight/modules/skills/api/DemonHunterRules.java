@@ -8,6 +8,8 @@ public final class DemonHunterRules {
     public static final int MAX_FURY=100,COLOR=0x86ed35;
     private DemonHunterRules(){}
     public static int cost(String id){return id.equals(DemonHunterSkills.CHAOS)?20:id.equals(DemonHunterSkills.RUSH)?10:id.equals(DemonHunterSkills.DANCE)?30:id.equals(DemonHunterSkills.BEAM)||id.equals(DemonHunterSkills.HUNT)?50:id.equals(DemonHunterSkills.META)?100:0;}
+    /** Fury charged for one cast; nocd training treats fury as infinite, mirroring the mana rule. */
+    public static int furyCost(String id,boolean training){return training?0:cost(id);}
     public static Stats transformed(Stats source){
         if(source.modifiers.getOrDefault("demonTransformed",0d)>0)return source;
         Stats result=source.copy();result.mut(Stat.PHYSICAL_ATTACK,.30);result.mut(Stat.MAGICAL_ATTACK,.30);

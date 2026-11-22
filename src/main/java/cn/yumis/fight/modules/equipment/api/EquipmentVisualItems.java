@@ -20,7 +20,8 @@ public final class EquipmentVisualItems {
         new WeaponModel("skyspine","lightsaber","skyspine","item/named/skyspine"),
         new WeaponModel("bylle","greatsword","bylle","item/named/bylle"),
         new WeaponModel("willy_staff","staff","willy_staff","item/named/willy_staff"),
-        new WeaponModel("niwu","club","niwu","item/named/niwu")
+        new WeaponModel("niwu","club","niwu","item/named/niwu"),
+        new WeaponModel("azzinoth","warglaive","azzinoth","item/named/azzinoth")
     );
     private EquipmentVisualItems(){}
     public static List<WeaponModel> weaponModels(){return WEAPON_MODELS;}

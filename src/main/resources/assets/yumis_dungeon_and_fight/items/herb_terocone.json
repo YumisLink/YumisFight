@@ -1,6 +1,13 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "yumis_dungeon_and_fight:item/herb_terocone"
+    "model": "minecraft:item/short_grass",
+    "tints": [
+      {
+        "type": "minecraft:grass",
+        "downfall": 1.0,
+        "temperature": 0.5
+      }
+    ]
   }
 }

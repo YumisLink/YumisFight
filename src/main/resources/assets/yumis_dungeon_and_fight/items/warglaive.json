@@ -102,6 +102,13 @@
             "model": "yumis_dungeon_and_fight:item/standard/warglaive_50_base"
           }
         }
+      },
+      {
+        "when": "azzinoth",
+        "model": {
+          "type": "minecraft:model",
+          "model": "yumis_dungeon_and_fight:item/named/azzinoth"
+        }
       }
     ],
     "fallback": {

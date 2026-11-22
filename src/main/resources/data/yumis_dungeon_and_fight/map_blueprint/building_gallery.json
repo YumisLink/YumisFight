@@ -3779,7 +3779,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_1",
@@ -3807,7 +3808,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_2",
@@ -3835,7 +3837,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_3",
@@ -3863,7 +3866,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_4",
@@ -3891,7 +3895,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_5",
@@ -3919,7 +3924,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_6",
@@ -3947,7 +3953,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_7",
@@ -3975,7 +3982,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_8",
@@ -4003,7 +4011,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_9",
@@ -4031,7 +4040,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_10",
@@ -4059,7 +4069,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_11",
@@ -4087,7 +4098,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_12",
@@ -4115,7 +4127,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_13",
@@ -4143,7 +4156,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "landscape_14",
@@ -4171,7 +4185,8 @@
         ]
       ],
       "loot": [],
-      "npcGroups": []
+      "npcGroups": [],
+      "treeSite": true
     },
     {
       "id": "woodworker_yard",

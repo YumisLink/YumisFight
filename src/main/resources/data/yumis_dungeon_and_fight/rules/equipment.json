@@ -2147,6 +2147,30 @@
       "minimum": null,
       "maximum": null,
       "fixedValue": 0.01
+    },
+    "unique/erosion_buildup": {
+      "id": "unique/erosion_buildup",
+      "name": "侵蚀累计",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "stat": null,
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 0,
+      "maximum": 3
+    },
+    "unique/erosion_damage": {
+      "id": "unique/erosion_damage",
+      "name": "侵蚀增伤",
+      "operation": "EQUIPMENT_RULE",
+      "group": "unique",
+      "stat": null,
+      "element": -1,
+      "revision": 1,
+      "retired": false,
+      "minimum": 0.8,
+      "maximum": 1.6
     }
   },
   "equipment": {

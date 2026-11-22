@@ -13,6 +13,7 @@ public final class EquipmentEffects {
         public String goldenSource="",imprintSource="",heroSource="",wallSource="";
         public double armorRetaliation;
         public double neutralPhysicalAfterDamage, guardCounterChance, guardCounterCoefficient;
+        public double erosionBuildup, erosionDamageBonus;
         public int weaponElement=-1;
         public Map<String,Integer> grants=new LinkedHashMap<>();
         public Map<String,String> grantSources=new LinkedHashMap<>();
@@ -20,6 +21,7 @@ public final class EquipmentEffects {
             Snapshot copy=new Snapshot();copy.gemAmplification=gemAmplification;copy.fireAfterDamage=fireAfterDamage;copy.fireConversion=fireConversion;copy.manaShare=manaShare;copy.lifeCostRatio=lifeCostRatio;copy.killRecovery=killRecovery;copy.magicCooldownReduction=magicCooldownReduction;copy.heroDuration=heroDuration;copy.resistanceCap=resistanceCap;copy.magicSkillRanks=magicSkillRanks;copy.fireOnly=fireOnly;copy.blockElemental=blockElemental;copy.inverseResists=inverseResists;copy.goldenSource=goldenSource;copy.imprintSource=imprintSource;copy.heroSource=heroSource;copy.wallSource=wallSource;copy.armorRetaliation=armorRetaliation;copy.weaponElement=weaponElement;
             copy.neutralPhysicalAfterDamage=neutralPhysicalAfterDamage;
             copy.guardCounterChance=guardCounterChance;copy.guardCounterCoefficient=guardCounterCoefficient;
+            copy.erosionBuildup=erosionBuildup;copy.erosionDamageBonus=erosionDamageBonus;
             copy.grants.putAll(grants);copy.grantSources.putAll(grantSources);return copy;
         }
     }
@@ -47,10 +49,14 @@ public final class EquipmentEffects {
         register("imprint_power",(s,a,g)->s.imprintSource=g.instance.toString());
         register("wall_power",(s,a,g)->s.wallSource=g.instance.toString());
         register("armor_retaliation",(s,a,g)->s.armorRetaliation=Math.max(s.armorRetaliation,a.value));
+        register("erosion_buildup",(s,a,g)->s.erosionBuildup+=a.value);
+        register("erosion_damage",(s,a,g)->s.erosionDamageBonus+=a.value);
         register("hero_power",(s,a,g)->{s.heroSource=g.instance.toString();s.heroDuration=Math.max(s.heroDuration,a.value);});
         register("grant_blink",(s,a,g)->{s.grants.merge(BLINK,Math.max(1,g.level/5),Math::max);s.grantSources.put(BLINK,g.instance.toString());});
     }
     private EquipmentEffects(){}
+    /** Erosion-conditional total damage scale; applies only to targets currently eroded, never below 1. */
+    public static double erosionDamageScale(Snapshot effects,boolean erosionActive){return erosionActive&&effects.erosionDamageBonus>0?1+effects.erosionDamageBonus:1;}
     public static void register(String key,Rule rule){if(RULES.putIfAbsent(key,rule)!=null)throw new IllegalArgumentException("重复装备效果："+key);}
     public static Snapshot resolve(cn.yumis.fight.modules.character.api.Progress progress,List<Gear> gear,int allowance){
         Snapshot result=new Snapshot();

@@ -36,6 +36,8 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public int encounterLives=1;
     public long encounterReviveUntil,encounterReviveMillis=2800;
     public String elitePower="";
+    /** Boss-owned fury from combat exchange; built by the boss's own decision layer and shown as the golden HUD strip. */
+    public double rage;
     public double[] elementalResists={0,0,0,0};
     public double maximumHealth(int playerLevel,boolean sync){return health(level(playerLevel,sync));}
     /** Ratio between the same enemy's synchronized and original maximum health. */

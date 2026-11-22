@@ -7,6 +7,7 @@ import cn.yumis.fight.modules.presentation.api.client.UiTheme;
 import cn.yumis.fight.platform.ItemData;
 
 import cn.yumis.fight.modules.presentation.api.PlayerPages;
+import cn.yumis.fight.modules.presentation.api.RichText;
 import cn.yumis.fight.modules.presentation.api.client.PlayerPageRenderers;
 
 import com.google.gson.*;
@@ -50,6 +51,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private List<PlayerPageSurface.Navigation> navigation=List.of();
     private List<PlayerPageSurface.SidebarRow> sidebarRows=List.of();
     private String sidebarTitle="";
+    private boolean sidebarProfile=true;
     private int sidebarScroll;
     private final List<AbstractWidget> body=new ArrayList<>();
     private int sidebar,left,top,panelWidth,panelHeight,scroll,contentHeight;
@@ -100,7 +102,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         widgetHovers.clear();
         lines.clear();styledLines.clear();hoverAreas.clear();
         cards.clear();
-        icons.clear();sidebarRows=List.of();sidebarTitle="";
+        icons.clear();sidebarRows=List.of();sidebarTitle="";sidebarProfile=true;
         pictures.clear();experienceBars.clear();rightClicks.clear();navigation=List.of();
         sidebar=page>=0&&customPanel==null&&panelWidth>=480?112:0;
         nextY=page<0?0:PAGE_TOP_PADDING;
@@ -224,7 +226,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         if(sidebar>0&&navigation.isEmpty()){
             UiTheme.card(g,left+6,bodyTop(),(left+sidebar+8)-(left+6),(bodyTop()+bodyHeight())-(bodyTop()));
             int yy=bodyTop()+12;
-            if(sidebarRows.isEmpty()||bodyHeight()>=240){
+            if(sidebarProfile&&(sidebarRows.isEmpty()||bodyHeight()>=240)){
             g.text(font,cn.yumis.fight.modules.character.api.JobCatalog.displayName(state.progress.jobId(),state.progress.level,state.progress.awakened()),left+14,yy,UiTheme.GOLD,false);
             g.text(font,"战斗等级 "+state.progress.level,left+14,yy+21,UiTheme.TEXT,false);
             g.text(font,"可用 SP  "+state.progress.sp,left+14,yy+44,UiTheme.GOLD,false);
@@ -290,27 +292,29 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         var row=sidebarRows.get(index);if(event.button()==1){if(row.rename()!=null)row.rename().run();}else if(row.rename()!=null&&event.x()>=sidebarRenameX()-4)row.rename().run();else if(row.select()!=null&&!row.selected())row.select().run();return true;
     }
     private void setScroll(int value){int old=scroll;scroll=Math.clamp(value,0,Math.max(0,contentHeight-bodyHeight()));for(AbstractWidget widget:body)widget.setY(widget.getY()+old-scroll);updateVisibility();}
-    private int sidebarListTop(){return bodyTop()+(bodyHeight()<240?32:142);}
+    private int sidebarListTop(){return sidebarRows.isEmpty()||!sidebarProfile&&sidebarTitle.isEmpty()?bodyTop()+12:bodyTop()+(bodyHeight()<240?32:142);}
     private int sidebarListHeight(){return Math.max(0,bodyTop()+bodyHeight()-sidebarListTop()-6);}
     private boolean insideSidebar(double x,double y){return !sidebarRows.isEmpty()&&sidebar>0&&x>=left+8&&x<left+sidebar+6&&y>=sidebarListTop()&&y<bodyTop()+bodyHeight()-6;}
     private int sidebarRenameX(){return left+sidebar-5-font.width(SIDEBAR_RENAME);}
     private String truncateToWidth(String value,int width){return font.width(value)<=width?value:font.plainSubstrByWidth(value,Math.max(1,width-font.width("…")))+"…";}
     private void drawSidebarRows(GuiGraphicsExtractor g,int mx,int my){
         if(sidebarRows.isEmpty())return;int start=sidebarListTop(),height=sidebarListHeight();
-        g.text(font,sidebarTitle,left+13,start-17,UiTheme.GOLD,false);if(height<=0)return;
+        if(!sidebarTitle.isEmpty())g.text(font,sidebarTitle,left+13,start-17,UiTheme.GOLD,false);if(height<=0)return;
         sidebarScroll=Math.clamp(sidebarScroll,0,Math.max(0,sidebarRows.size()*34-height));
         g.enableScissor(left+8,start,left+sidebar+7,start+height);
         for(int i=0;i<sidebarRows.size();i++){var row=sidebarRows.get(i);int y=start+i*34-sidebarScroll;if(y+32<start||y>=start+height)continue;
             UiTheme.card(g,left+10,y,sidebar-8,31);if(row.selected())g.fill(left+10,y,left+12,y+31,UiTheme.ACCENT);
             int titleWidth=row.rename()==null?sidebar-40:sidebarRenameX()-(left+15)-4;
-            g.text(font,truncateToWidth(row.title(),titleWidth),left+15,y+5,row.select()==null?UiTheme.MUTED:row.selected()?UiTheme.ACCENT:UiTheme.TEXT,false);
+            if(row.titleColors().isEmpty())g.text(font,truncateToWidth(row.title(),titleWidth),left+15,y+5,row.select()==null?UiTheme.MUTED:row.selected()?UiTheme.ACCENT:UiTheme.TEXT,false);
+            else for(var line:font.split(new RichText(List.of(new RichText.Span(truncateToWidth(row.title(),titleWidth),row.titleColors()))).component(),Math.max(1,titleWidth)))RichTextDrawing.line(g,font,line,left+15,y+5,UiTheme.TEXT,false);
             g.text(font,truncateToWidth(row.detail(),sidebar-24),left+15,y+18,UiTheme.MUTED,false);
             if(row.rename()!=null)g.text(font,SIDEBAR_RENAME,sidebarRenameX(),y+5,UiTheme.MUTED,false);
             if(insideSidebar(mx,my)&&my>=y&&my<y+31)g.setComponentTooltipForNextFrame(font,row.select()==null?List.of(Component.literal(row.title()),Component.literal(row.detail()),Component.literal("20级转职后解锁职业栏。")):List.of(Component.literal(row.title()),Component.literal(row.detail())),mx,my);
         }
         g.disableScissor();if(sidebarRows.size()*34>height){int thumb=Math.max(8,height*height/(sidebarRows.size()*34)),y=start+(height-thumb)*sidebarScroll/Math.max(1,sidebarRows.size()*34-height);g.fill(left+sidebar+4,y,left+sidebar+6,y+thumb,UiTheme.MUTED);}
     }
-    @Override public void sidebarRows(String title,List<PlayerPageSurface.SidebarRow> rows){sidebarTitle=title;sidebarRows=List.copyOf(rows);}
+    @Override public void sidebarRows(String title,List<PlayerPageSurface.SidebarRow> rows){sidebarRows(title,rows,true);}
+    @Override public void sidebarRows(String title,List<PlayerPageSurface.SidebarRow> rows,boolean profile){sidebarTitle=title;sidebarRows=List.copyOf(rows);sidebarProfile=profile;}
     private void dragScroll(double y){int thumb=Math.max(12,bodyHeight()*bodyHeight()/Math.max(1,contentHeight));setScroll((int)Math.round((y-bodyTop()-scrollGrab)*Math.max(0,contentHeight-bodyHeight())/Math.max(1,bodyHeight()-thumb)));}
     @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){if(draggingScroll){dragScroll(event.y());return true;}if(customPanel!=null&&customPanel.mouseDragged(event,dx,dy))return true;return super.mouseDragged(event,dx,dy);}
     @Override public boolean mouseReleased(MouseButtonEvent event){boolean was=draggingScroll;draggingScroll=false;if(customPanel!=null&&customPanel.mouseReleased(event))return true;return was||super.mouseReleased(event);}

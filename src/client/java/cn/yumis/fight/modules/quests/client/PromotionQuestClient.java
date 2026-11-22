@@ -79,17 +79,18 @@ final class PromotionQuestClient {
         QuestsPage.refresh();
     }
 
-    static void render(PlayerPageSurface page) {
-        if (view == null) return;
+    /** The special tab only lists a promotion trial that is open and not yet finished. */
+    static boolean visible() {
+        if (view == null) return false;
         var progress = growth.get();
-        boolean unlocked = progress.jobChangeUnlocked();
-        if (!unlocked && progress.level < PromotionQuest.LEVEL && world.clears().isEmpty()) return;
+        if (progress.jobChangeUnlocked()) return false;
+        return progress.level >= PromotionQuest.LEVEL || !world.clears().isEmpty();
+    }
+
+    static void render(PlayerPageSurface page) {
+        if (!visible()) return;
         if (!QuestsPage.questHeader(page, PromotionQuest.ACTION, PromotionQuest.BADGE.plain(), QuestsPage.QuestType.CAREER)) return;
-        if (unlocked) {
-            page.line("转职试炼已完成 · 通用转职资格已解锁", UiTheme.ACCENT);
-            page.gap();
-            return;
-        }
+        var progress = growth.get();
         for (String dungeon : PromotionQuest.DUNGEONS) {
             int clears = world.clears(dungeon);
             page.line("王者级 " + DungeonCatalog.current().dungeon(dungeon).name() + " · 通关 " + Math.min(clears, 1) + "/1",

@@ -47,7 +47,14 @@ final class ArkCombat {
         Actor source,victim;String kind;Vec3 origin,point,direction;
         double radius,angle,coefficient,width,traveled;boolean magic,released;
         long release,activeUntil,until;Set<UUID> hit=new HashSet<>();
+        int segments,hitsDone;long segmentInterval,nextSegmentAt;
     }
+    /** Keno's in-memory run state: phase bookkeeping, reactive blink, and the post-blink follow-up. */
+    private static final class Keno {
+        int stage;long transitionUntil,meleeSince,followupAt;
+        boolean followup,claimedImmune;double lastRevision=-1;
+    }
+    private final Map<Actor,Keno> keno=new HashMap<>();
     private record Strike(Actor source,double coefficient,boolean magic,int[] elements,boolean basic,Stats stats){
         Strike capture(){return new Strike(source,coefficient,magic,elements.clone(),basic,source.stats.copy());}
     }
@@ -468,9 +475,9 @@ final class ArkCombat {
         double reach=a.kind.equals("goblin_thrower")||a.kind.equals("goblin_shaman")?8:2.5;
         double distance=distance(a.position(),target);look(a,target);
         if(a.kind.equals("goblin_shaman")){
-            if(distance<12&&ready(a,"LIGHTNING")){enemyCast(a,victim,"LIGHTNING",2,Math.PI,1200,200,1000,1.4,true,10);return;}
-            if(distance<6&&ready(a,"FAN")){enemyCast(a,victim,"FAN",6,Math.PI/4,800,200,800,1.2,true,6);return;}
-            if(distance<3&&ready(a,"BASIC")){enemyCast(a,victim,"BASIC",3,Math.PI/3,300,200,400,1,false,2);return;}
+            if(kenoDecision(a,victim,distance,now))return;
+            if(distance>reach)move(a,coreAccess==null?target:coreAccess.approach(),1,coreAccess!=null);else stop(a);
+            return;
         }else if(a.kind.equals("lucas")){
             if(distance<12&&ready(a,"CAGE")){enemyCast(a,victim,"CAGE",1.5,Math.PI,1000,2000,800,1.4,true,12);return;}
             if(distance<6&&ready(a,"CHARGE")){enemyCast(a,victim,"CHARGE",6,Math.PI/2,800,200,800,1.8,false,7);return;}
@@ -506,6 +513,9 @@ final class ArkCombat {
         return victim.core?ArkWar.coreAccess(from).contact():victim.position();
     }
     private void enemyCast(Actor source,Actor victim,String kind,double radius,double angle,long windup,long active,long recovery,double coefficient,boolean magic,int cooldown){
+        enemyCast(source,victim,kind,radius,angle,windup,active,recovery,coefficient,magic,cooldown,kind.toLowerCase(Locale.ROOT));
+    }
+    private void enemyCast(Actor source,Actor victim,String kind,double radius,double angle,long windup,long active,long recovery,double coefficient,boolean magic,int cooldown,String move){
         stop(source);source.lastFight=victim.lastFight=now;source.cooldowns.put(kind,now+cooldown*1000L);
         var cast=new EnemyCast();cast.source=source;cast.victim=victim;cast.kind=kind;cast.radius=radius;cast.angle=angle;
         cast.coefficient=coefficient;cast.magic=magic;cast.origin=source.position();
@@ -515,8 +525,97 @@ final class ArkCombat {
         cast.width=kind.equals("WYVERN_CHARGE")?1.4:2;cast.release=now+windup;cast.activeUntil=cast.release+active;cast.until=cast.activeUntil+recovery;
         enemyCasts.put(source,cast);
         if(!kind.equals("BASIC"))b.effects.cast(source,magic?0:-1,now,windup+active);
-        b.afterCommit.add(()->{((DungeonEnemy)source.entity).play(kind.toLowerCase(Locale.ROOT),windup+active+recovery);source.entity.swing(InteractionHand.MAIN_HAND);});
+        b.afterCommit.add(()->{((DungeonEnemy)source.entity).play(move,windup+active+recovery);source.entity.swing(InteractionHand.MAIN_HAND);});
         if(magic)b.afterCommit.add(()->b.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,cast.point.x,cast.point.y+.1,cast.point.z,12,radius*.5,.1,radius*.5,.01));
+    }
+    /** The approved ark copy of Keno's decision table, phase thresholds, and fury economy. */
+    private boolean kenoDecision(Actor a,Actor victim,double distance,long now){
+        double q=a.target.life.q;int stage=q<=.33?3:q<=.67?2:1;
+        var k=keno.computeIfAbsent(a,id->new Keno());
+        if(k.lastRevision<0)k.lastRevision=a.target.life.revision;
+        else if(a.target.life.revision>k.lastRevision){gainRage(a,(int)Math.min(10-a.target.rage,a.target.life.revision-k.lastRevision));k.lastRevision=a.target.life.revision;}
+        if(now-a.lastFight>2000&&a.target.rage>0){a.target.rage--;b.changed(a);}
+        if(k.stage==0)k.stage=stage;
+        else if(stage>k.stage){
+            k.stage=stage;
+            long millis=stage==2?2200:2400;
+            k.transitionUntil=now+millis;k.meleeSince=0;
+            if(!a.target.damageImmune){a.target.damageImmune=true;k.claimedImmune=true;}
+            b.changed(a);stop(a);
+            b.afterCommit.add(()->{((DungeonEnemy)a.entity).play(stage==2?"summon_ritual":"phase3_transition",millis);});
+            if(stage==2){b.spawnEnemy(a.seat,"goblin");b.spawnEnemy(a.seat,"goblin");b.spawnEnemy(a.seat,"goblin_captain");}
+            return true;
+        }
+        if(now<k.transitionUntil){stop(a);return true;}
+        if(k.claimedImmune&&now>=k.transitionUntil){k.claimedImmune=false;if(a.phase!=1){a.target.damageImmune=false;b.changed(a);}}
+        if(k.followup&&now>=k.followupAt){
+            k.followup=false;
+            enemyCast(a,victim,"LIGHTNING",2,Math.PI,400,200,1000,1.4,true,(int)Math.round((k.stage>=2?8:10)*(k.stage>=3?.8:1)),"lightning_cast");
+            return true;
+        }
+        if(distance<3.5){if(k.meleeSince==0)k.meleeSince=now;}
+        else k.meleeSince=0;
+        if(k.stage>=2&&k.meleeSince>0&&now-k.meleeSince>=3000&&ready(a,"BLINK")){blink(a,victim,k,now);return true;}
+        if(stage>=3&&a.target.rage>=10&&ready(a,"ULTIMATE")){
+            a.target.rage=0;b.changed(a);
+            multiCast(a,victim,"ULTIMATE","ultimate_storm",5,Math.PI,2.6,true,4,800,600,600,25000);
+            return true;
+        }
+        double scale=k.stage>=3?.8:1;
+        String kind=distance<3.5?pick(a,now,"BASIC","45","FAN","30","CLAW","25")
+            :distance<=8?pick(a,now,"FAN","40","RING","25","LIGHTNING","20")
+            :distance<12?"LIGHTNING":null;
+        if(kind==null)return false;
+        switch(kind){
+            case "LIGHTNING"->enemyCast(a,victim,"LIGHTNING",2,Math.PI,1200,200,1000,1.4,true,(int)Math.round((k.stage>=2?8:10)*scale),"lightning_cast");
+            case "FAN"->enemyCast(a,victim,"FAN",6,Math.PI/4,800,200,800,1.2,true,(int)Math.round(6*scale),"fan_swipe");
+            case "BASIC"->enemyCast(a,victim,"BASIC",3,Math.PI/3,300,200,400,1,false,(int)Math.round(2*scale),"basic_strike");
+            case "RING"->enemyCast(a,victim,"RING",5.5,Math.PI,900,200,700,1.3,true,(int)Math.round(8*scale),"ring_burst");
+            case "CLAW"->multiCast(a,victim,"CLAW","claw_combo",4.5,Math.PI/3,k.stage>=3?.9:.7,false,3,400,500,600,(long)Math.round(6000*scale));
+            default->{}
+        }
+        return true;
+    }
+    private String pick(Actor a,long now,String... table){
+        int total=0;List<String> kinds=new ArrayList<>();List<Integer> weights=new ArrayList<>();
+        for(int i=0;i+1<table.length;i+=2)if(ready(a,table[i])){int weight=Integer.parseInt(table[i+1]);total+=weight;kinds.add(table[i]);weights.add(weight);}
+        if(total==0)return null;
+        int roll=b.random.nextInt(total);
+        for(int i=0;i<kinds.size();i++){roll-=weights.get(i);if(roll<0)return kinds.get(i);}
+        return kinds.getLast();
+    }
+    /** Reactive escape from melee pressure: reappear behind the victim, then strike with a shortened lead. */
+    private void blink(Actor a,Actor victim,Keno k,long now){
+        a.cooldowns.put("BLINK",now+12000L);
+        stop(a);
+        Vec3 look=victim.entity.getLookAngle();Vec3 flat=new Vec3(look.x,0,look.z);
+        if(flat.lengthSqr()<.01)flat=new Vec3(0,0,1);
+        Vec3 from=a.position(),destination=victim.position().subtract(flat.normalize().scale(6));
+        a.entity.setPos(destination.x,victim.position().y,destination.z);
+        k.followup=true;k.followupAt=now+400;
+        b.afterCommit.add(()->{
+            ((DungeonEnemy)a.entity).play("blink_step",400);
+            b.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,from.x,from.y+1,from.z,20,.6,1,.6,.02);
+            b.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,destination.x,destination.y+1,destination.z,20,.6,1,.6,.02);
+        });
+    }
+    /** Multi-segment fury strikes: the hit check re-arms per segment; circles track the victim's live position. */
+    private void multiCast(Actor source,Actor victim,String kind,String move,double radius,double angle,double coefficient,boolean magic,int segments,long windup,long segmentInterval,long recovery,long cooldown){
+        stop(source);source.lastFight=victim.lastFight=now;source.cooldowns.put(kind,now+cooldown);
+        var cast=new EnemyCast();
+        cast.source=source;cast.victim=victim;cast.kind=kind;cast.radius=radius;cast.angle=angle;
+        cast.coefficient=coefficient;cast.magic=magic;cast.origin=source.position();cast.point=cast.origin;
+        Vec3 delta=victim.position().subtract(cast.origin);cast.direction=new Vec3(delta.x,0,delta.z).normalize();
+        cast.release=now+windup;cast.segments=segments;cast.segmentInterval=segmentInterval;cast.nextSegmentAt=cast.release;
+        cast.until=cast.release+(segments-1)*segmentInterval+200+recovery;
+        enemyCasts.put(source,cast);
+        b.effects.cast(source,magic?0:-1,now,windup+(segments-1)*segmentInterval+200);
+        long total=cast.until-now;
+        b.afterCommit.add(()->{((DungeonEnemy)source.entity).play(move,total);source.entity.swing(InteractionHand.MAIN_HAND);});
+    }
+    private void gainRage(Actor a,int amount){
+        if(amount<=0||a.target.rage>=10)return;
+        a.target.rage=Math.min(10,a.target.rage+amount);b.changed(a);
     }
     private void enemyActions(double dt){
         for(var cast:List.copyOf(enemyCasts.values())){
@@ -532,23 +631,42 @@ final class ArkCombat {
                 if(legal){source.entity.move(net.minecraft.world.entity.MoverType.SELF,cast.direction.scale(step));end=source.position();}
                 cast.traveled+=step;
             }
-            if(!cast.released||charge){
-                List<Actor> targets=new ArrayList<>(source.phase==0?b.friends(source.seat):b.friends());if(source.phase==2)targets.add(b.core);
-                for(var victim:targets){
-                    if(cast.hit.contains(victim.entity.getUUID()))continue;
-                    Vec3 target=enemyHitPosition(victim,cast.origin);
-                    Vec3 delta=target.subtract(cast.point);double d=delta.horizontalDistance();
-                    boolean hit=charge?segmentDistance(target,start,end)<=cast.width*.5+.3:
-                        cast.kind.equals("CAGE")?Math.abs(delta.x)<=cast.radius&&Math.abs(delta.z)<=cast.radius:
-                        cast.kind.equals("LIGHTNING")||cast.kind.equals("DISCHARGE")?d<=cast.radius:
-                        source.kind.equals("goblin_thrower")||!source.target.boss()&&!source.kind.contains("wyvern")?victim==cast.victim&&d<=cast.radius:
-                        d<=cast.radius&&(d<.01||new Vec3(delta.x,0,delta.z).normalize().dot(cast.direction)>=Math.cos(cast.angle));
-                    if(hit){cast.hit.add(victim.entity.getUUID());attack(source,victim,cast.coefficient,cast.magic,cast.magic?new int[]{0}:new int[0],false,0,null);if(cast.kind.equals("CAGE")&&!victim.core)stasis(victim,2);}
+            if(cast.segments>1){
+                while(now>=cast.nextSegmentAt&&cast.hitsDone<cast.segments){
+                    cast.hit.clear();
+                    if(cast.kind.equals("ULTIMATE"))cast.point=enemyHitPosition(cast.victim,cast.origin);
+                    cast.hitsDone++;cast.nextSegmentAt+=cast.segmentInterval;
                 }
-                cast.released=true;if(cast.magic)sparks(cast.point);
+                if(cast.hitsDone>0)resolve(cast,start,end,false);
+            }
+            else if(!cast.released||charge){
+                resolve(cast,start,end,charge);
+                cast.released=true;
             }
             if(now>=cast.until)enemyCasts.remove(source);
         }
+    }
+    /** One hit pass; fury strikes re-arm this per segment by clearing the hit set between passes. */
+    private void resolve(EnemyCast cast,Vec3 start,Vec3 end,boolean charge){
+        Actor source=cast.source;
+        List<Actor> targets=new ArrayList<>(source.phase==0?b.friends(source.seat):b.friends());if(source.phase==2)targets.add(b.core);
+        for(var victim:targets){
+            if(cast.hit.contains(victim.entity.getUUID()))continue;
+            Vec3 target=enemyHitPosition(victim,cast.origin);
+            Vec3 delta=target.subtract(cast.point);double d=delta.horizontalDistance();
+            boolean hit=charge?segmentDistance(target,start,end)<=cast.width*.5+.3:
+                cast.kind.equals("CAGE")?Math.abs(delta.x)<=cast.radius&&Math.abs(delta.z)<=cast.radius:
+                cast.kind.equals("LIGHTNING")||cast.kind.equals("DISCHARGE")||cast.kind.equals("RING")||cast.kind.equals("ULTIMATE")?d<=cast.radius:
+                source.kind.equals("goblin_thrower")||!source.target.boss()&&!source.kind.contains("wyvern")?victim==cast.victim&&d<=cast.radius:
+                d<=cast.radius&&(d<.01||new Vec3(delta.x,0,delta.z).normalize().dot(cast.direction)>=Math.cos(cast.angle));
+            if(hit){
+                cast.hit.add(victim.entity.getUUID());
+                attack(source,victim,cast.coefficient,cast.magic,cast.magic?new int[]{0}:new int[0],false,0,null);
+                if(cast.kind.equals("CAGE")&&!victim.core)stasis(victim,2);
+                if(source.kind.equals("goblin_shaman"))gainRage(source,1);
+            }
+        }
+        if(cast.magic)sparks(cast.point);
     }
     private void advance(Actor a,List<Vec3> route,double speed){
         int next=Math.min(route.size()-1,a.routeIndex+1);Vec3 point=route.get(next);

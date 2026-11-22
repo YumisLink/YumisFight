@@ -16,7 +16,7 @@ import cn.yumis.fight.modules.combat.api.ElementAccumulation;
 import cn.yumis.fight.modules.combat.api.EquipmentDamage;
 import cn.yumis.fight.modules.combat.api.Life;
 import cn.yumis.fight.modules.combat.api.client.DamageAnalysis;
-import cn.yumis.fight.modules.talents.client.TalentCombat;
+import cn.yumis.fight.modules.talents.api.client.TalentCombat;
 import cn.yumis.fight.modules.skills.api.WeaponSkills;
 import cn.yumis.fight.modules.equipment.api.WeaponTraits;
 import cn.yumis.fight.modules.skills.api.SkillDefinition;
@@ -591,6 +591,11 @@ public final class SkillController {
             damage*=received;for(int i=0;i<components.length;i++)components[i]*=received;
             primaryDamage*=received;
             if(extra.has("ailment")&&extra.getAsJsonObject("ailment").has("fraction")){var ailment=extra.getAsJsonObject("ailment");ailment.addProperty("fraction",ailment.get("fraction").getAsDouble()*received);}
+        }
+        double erosionScale=cn.yumis.fight.modules.equipment.api.EquipmentEffects.erosionDamageScale(equipment,target.life.elemental.active(ElementAccumulation.Kind.EROSION,target.life,state().serverNow()));
+        if(erosionScale!=1){
+            damage*=erosionScale;primaryDamage*=erosionScale;for(int i=0;i<components.length;i++)components[i]*=erosionScale;
+            if(extra.has("ailment")&&extra.getAsJsonObject("ailment").has("fraction")){var ailment=extra.getAsJsonObject("ailment");ailment.addProperty("fraction",ailment.get("fraction").getAsDouble()*erosionScale);}
         }
         if(appendEquipment&&equipment.neutralPhysicalAfterDamage>0){
             double physicalDefense=magic?target.defense(level,false)*defenseScale:defense;

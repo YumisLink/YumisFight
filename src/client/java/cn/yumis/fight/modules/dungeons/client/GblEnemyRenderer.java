@@ -12,7 +12,10 @@ public final class GblEnemyRenderer extends MobRenderer<DungeonEnemy,GblEnemyRen
         String move="";long elapsed,duration;boolean moving,dying;int hurt;float deathPhase;
     }
     private final String model;
-    public GblEnemyRenderer(EntityRendererProvider.Context context,String model,float width){super(context,GblModel.load(model),width*.45f);this.model=model;}
+    private final float scale;
+    public GblEnemyRenderer(EntityRendererProvider.Context context,String model,float width){this(context,model,width,1f);}
+    public GblEnemyRenderer(EntityRendererProvider.Context context,String model,float width,float scale){super(context,GblModel.load(model),width*.45f);this.model=model;this.scale=scale;}
+    @Override protected void scale(State state,com.mojang.blaze3d.vertex.PoseStack pose){if(scale!=1)pose.scale(scale,scale,scale);}
     @Override public State createRenderState(){return new State();}
     @Override public Identifier getTextureLocation(State state){return Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/entity/"+model+".png");}
     @Override protected float getFlipDegrees(){return 0;}

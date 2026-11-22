@@ -29,7 +29,7 @@
 | 伤害、护盾、命中与回执 | `modules/combat/api/CombatRules.java`、`CombatPorts.java`、`LifeRules.java`；本机普攻与命中在客户端 `skills/api/client/SkillController.java`，服务器回执在 `combat/application/CombatApplication.java` |
 | 元素积累与异常 | `modules/combat/api/ElementAccumulation.java`、`Life.java`、`CombatContentTypes.java`；状态随生命同步，异常结算复用战斗回执 |
 | 技能内容、学习、费用与伤害 | `modules/skills/api/SkillCatalog.java`、`SkillLearning.java`、`SkillCosts.java`、`SkillDamageRules.java`；职业内容在同目录，本机施放从客户端 `skills/client/CareerClient.java`、`skills/api/client/SkillController.java` 进入；服务器世界实体在 `skills/application/` |
-| 天赋盘、出生点与条件／召唤键位 | `modules/talents/api/TalentCatalog.java`、`TalentLedger.java`、`TalentChanges.java`、`TalentEffects.java`；本人客户端在 `talents/client/TalentPage.java`（I 键菜单页）、`TalentCombat.java`（结算求值），召唤消耗见 `modules/skills/api/SkillCosts.java` 与 `modules/skills/application/MageSkillService.java` |
+| 天赋盘、出生点与条件／召唤键位 | `modules/talents/api/TalentCatalog.java`、`TalentLedger.java`、`TalentChanges.java`、`TalentEffects.java`；本人客户端在 `talents/client/TalentPage.java`（I 键菜单页）、`talents/api/client/TalentCombat.java`（结算求值，跨模块公开），召唤消耗见 `modules/skills/api/SkillCosts.java` 与 `modules/skills/application/MageSkillService.java` |
 | 角色、职业栏与存档 | `modules/character/api/JobCatalog.java`、`CareerProfiles.java`、`CharacterChanges.java`；本机判定在客户端 `character/client/CharacterClient.java`，存档端口 `CharacterPersistence.java`，编解码在 `application/CharacterStore.java` |
 | 副本、敌人与难度 | `modules/dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；经典后续副本的敌人／动作入口为 `ClassicEnemyKind.java`、`ClassicMove.java`；地图与编队在 `content/`，专属机制在 `application/*EncounterService.java`，本机接触与演出在客户端 `dungeons/client/` |
 | 深渊派对 | `modules/dungeons/api/AbyssParty.java`、`AbyssAttack.java`；职业特化在 `dungeons/content/AbyssCareers.java`，邀请函入口在客户端 `dungeons/client/DungeonPage.java`，配置奖池见 [创作指南](创作指南/README.md#深渊派对奖池) |
@@ -61,6 +61,7 @@
 | 装备、技能、工业、副本及宝箱参数 | `src/main/resources/data/yumis_dungeon_and_fight/rules/`；装备模板在相邻 `equipment/` |
 | 配方、标签、掉落与世界生成 | `src/main/resources/data/yumis_dungeon_and_fight/{recipe,tags,loot_table,worldgen}/` |
 | 语言、模型、图标、着色器与动作 | `src/main/resources/assets/yumis_dungeon_and_fight/`，按业务目录查找 |
+| 物品分类、创造栏归属与外观兜底 | [物品分类与外观规则](创作指南/物品分类与外观规则.md) |
 | 贴图制作、重绘与换色 | [贴图创作](创作指南/贴图创作.md) |
 | 哥布林王国藏宝图图标 | 源稿 `tools/goblin_treasure_map.aseprite`，用 Aseprite `-b tools/goblin_treasure_map.aseprite --save-as src/main/resources/assets/yumis_dungeon_and_fight/textures/item/goblin_treasure_map.png` 导出 |
 | 管道12/14尺寸手绘素材 | 源稿 `tools/fluid_pipe_materials_12x14.aseprite`、方向标记 `tools/fluid_pipe_ports_14x2.aseprite`；初稿绘制 `tools/draw_fluid_pipe_materials_12x14.lua`；正式导出 `tools/export_fluid_pipe_materials_12x14.lua`；切片布局 `tools/fluid_pipe_materials_12x14_layout.json` |

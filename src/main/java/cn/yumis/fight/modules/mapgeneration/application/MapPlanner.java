@@ -75,6 +75,17 @@ public final class MapPlanner {
         p.metrics.put("terrain_relief",max-min);
         if(mode==GenerationPlan.Mode.OCEAN)for(int i=0;i<p.terrain.length;i++)
             if(!p.water[i]||p.terrain[i]!=origin.getY())throw new IllegalArgumentException("海上区域包含陆地或不同水位，需要换一个完整海面落点");
+        // Trees live on the local ground: a trunk standing in water, in the air, or in a biome that
+        // never grows trees drops the whole facility (and anything parented to it) instead of floating.
+        int droppedTrees=0;Set<String> droppedIds=new HashSet<>();List<Loaded> kept=new ArrayList<>();
+        for(Loaded l:templates) {
+            if((l.definition.treeSite&&treeSiteRejected(p,origin,l,mode))||droppedIds.contains(l.definition.parent)) {
+                droppedTrees++;droppedIds.add(l.definition.id);continue;
+            }
+            kept.add(l);
+        }
+        templates=kept;
+        if(droppedTrees>0)p.metrics.put("tree_sites_removed",droppedTrees);
         Set<Integer> blocked=new HashSet<>();
         for(Loaded loaded:templates)if(!loaded.definition.tags.contains("wall"))for(int[] b:loaded.definition.blocked) {
             int x=origin.getX()+loaded.definition.position[0]+b[0],z=origin.getZ()+loaded.definition.position[1]+b[1];
@@ -181,6 +192,41 @@ public final class MapPlanner {
         MapFoundations.plan(p);
         MapPlacer.validate(p);
         return p;
+    }
+
+    /** Trunk columns come from the blocked projection; a facility without one uses its entrance cell. */
+    private static boolean treeSiteRejected(GenerationPlan p,BlockPos origin,Loaded l,GenerationPlan.Mode mode) {
+        var f=l.definition;
+        int[][] cells=f.blocked.length>0?f.blocked:new int[][]{{f.entrance[0]-f.position[0],f.entrance[1]-f.position[1]}};
+        for(int[] b:cells) {
+            int x=origin.getX()+f.position[0]+b[0],z=origin.getZ()+f.position[1]+b[1];
+            if(!p.inside(x,z))continue;
+            int i=p.index(x,z);
+            // On floating maps only the tree's own island (or a ground linked to one) counts as support;
+            // the terrain, water and biome far below the sky map are irrelevant.
+            if(mode==GenerationPlan.Mode.FLOATING) {
+                if(!f.island&&!islandGroundCover(p.blueprint,x-origin.getX(),z-origin.getZ()))return true;
+                continue;
+            }
+            if(TreeSiteRules.reject(p.water[i],false,p.biomes[i]))return true;
+        }
+        return false;
+    }
+
+    /** True when the blueprint-relative cell lies inside a ground region attached to an island facility. */
+    private static boolean islandGroundCover(MapBlueprint blueprint,int x,int z) {
+        for(var g:blueprint.grounds) {
+            if(g.island.isEmpty())continue;
+            if(x<g.bounds[0]||z<g.bounds[1]||x>g.bounds[2]||z>g.bounds[3])continue;
+            if(g.polygon==null)return true;
+            boolean inside=false;
+            for(int i=0,j=g.polygon.length-1;i<g.polygon.length;j=i++) {
+                int[] a=g.polygon[i],b=g.polygon[j];
+                if((a[1]>z)!=(b[1]>z)&&x<(double)(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])inside=!inside;
+            }
+            if(inside)return true;
+        }
+        return false;
     }
 
     private static void solve(GenerationPlan p,Map<Integer,Integer> desired,int[] parent,List<Loaded> templates,Map<String,Integer> entrances,Set<Integer> flattened) {

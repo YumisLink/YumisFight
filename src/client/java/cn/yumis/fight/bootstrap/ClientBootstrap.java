@@ -150,7 +150,7 @@ public final class ClientBootstrap {
             for(var entry:cn.yumis.fight.modules.skills.api.SkillContentTypes.SUMMONS.entrySet())e.registerEntityRenderer(entry.getValue().get(),c->new cn.yumis.fight.modules.skills.client.SummonRenderer(c,entry.getKey()));
             e.registerEntityRenderer(cn.yumis.fight.modules.npc.api.NpcContentTypes.NPC.get(),cn.yumis.fight.modules.npc.api.client.NpcRendering::human);
             e.registerEntityRenderer(cn.yumis.fight.modules.arkguard.api.ArkContentTypes.ROLE.get(),cn.yumis.fight.modules.npc.api.client.NpcRendering::human);
-            for(var entry:cn.yumis.fight.modules.arkguard.api.ArkContentTypes.ENEMIES.entrySet())e.registerEntityRenderer(entry.getValue().get(),context->cn.yumis.fight.modules.dungeons.api.client.DungeonMobRendering.basic(context,entry.getKey()));
+            for(var entry:cn.yumis.fight.modules.arkguard.api.ArkContentTypes.ENEMIES.entrySet())e.registerEntityRenderer(entry.getValue().get(),context->entry.getKey().equals("goblin_shaman")?new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"goblin_camp/keno",.9f,.8f):cn.yumis.fight.modules.dungeons.api.client.DungeonMobRendering.basic(context,entry.getKey()));
             e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.TRAINING_SANDBAG.get(),cn.yumis.fight.modules.dungeons.client.TrainingSandbagRenderer::new);
             for(var mechanism:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.MECHANISMS.entrySet())
                 e.registerEntityRenderer(mechanism.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.RitualMechanismRenderer(context,mechanism.getKey()));
@@ -170,6 +170,7 @@ public final class ClientBootstrap {
                 else if(cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,kind.resource(),kind.width));}
                 else if(cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.PalaceEnemyKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.PalaceEnemyRenderer(context,kind));}
                 else if(cn.yumis.fight.modules.dungeons.api.AltarBossKind.find(type.getKey())!=null){var kind=cn.yumis.fight.modules.dungeons.api.AltarBossKind.find(type.getKey());e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,kind.resource(),kind.width));}
+                else if(type.getKey().equals("goblin_shaman"))e.registerEntityRenderer(type.getValue().get(),context->new cn.yumis.fight.modules.dungeons.client.GblEnemyRenderer(context,"goblin_camp/keno",1.3f));
                 else if(type.getKey().startsWith("goblin"))e.registerEntityRenderer(type.getValue().get(),context->cn.yumis.fight.modules.dungeons.api.client.DungeonMobRendering.basic(context,type.getKey()));
                 else{
                     e.registerEntityRenderer(type.getValue().get(),context->cn.yumis.fight.modules.dungeons.api.client.DungeonMobRendering.basic(context,type.getKey()));

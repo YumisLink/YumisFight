@@ -3,7 +3,11 @@
     "type": "minecraft:random_spread",
     "spacing": 40,
     "separation": 12,
-    "salt": 16473821
+    "salt": 16473821,
+    "exclusion_zone": {
+      "other_set": "yumis_dungeon_and_fight:large_wild_buildings",
+      "chunk_count": 12
+    }
   },
   "structures": [
     {

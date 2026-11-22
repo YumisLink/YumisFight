@@ -15,6 +15,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.templatesystem.*;
 import java.util.*;
+import java.util.function.BiPredicate;
 
 /** Applies a fully planned blueprint, with the same placement path for commands and world startup. */
 public final class MapPlacer {
@@ -167,6 +168,7 @@ public final class MapPlacer {
         }
     }
     private void roads() {
+        List<int[]> rails=new ArrayList<>();
         for(int i:p.roadCells) {
             int x=p.x(i),z=p.z(i),h=p.roadHeights.get(i),ceiling=Math.floorDiv(h+1,2),floor=Math.floorDiv(h,2);
             boolean suspended=p.mode!=GenerationPlan.Mode.TERRAIN||floor-p.terrain[i]>=3||p.water[i];
@@ -183,9 +185,11 @@ public final class MapPlacer {
                     int nx=x+direction.getStepX(),nz=z+direction.getStepZ();if(!p.inside(nx,nz))continue;int j=p.index(nx,nz);
                     if(p.roadCells.contains(j)||facilityGround.contains(j))continue;
                     put(nx,ceiling-1,nz,stone(nx,nz,""));put(nx,ceiling,nz,wood(theme.accent(),"fence"));
+                    rails.add(new int[]{nx,ceiling,nz});
                 }
             }
         }
+        closeRailCorners(rails,(x,z)->{int j=p.index(x,z);return p.roadCells.contains(j)||facilityGround.contains(j);},(x,z)->true);
     }
     private BlockState roadSurface(int i) {
         int x=p.x(i),z=p.z(i),h=p.roadHeights.get(i);
@@ -375,7 +379,7 @@ public final class MapPlacer {
         if(p.mode==GenerationPlan.Mode.TERRAIN)return;
         Set<Integer> all=p.mode==GenerationPlan.Mode.OCEAN?facilityGround:islandGround;
         Set<Integer> edges=p.mode==GenerationPlan.Mode.OCEAN?facilityGround:guardedIslandGround;
-        int y=p.origin.getY(),count=0;
+        int y=p.origin.getY(),count=0;List<int[]> rails=new ArrayList<>();
         for(int i:edges) {
             if(p.keepClear.contains(i)||p.roadCells.contains(i))continue;int x=p.x(i),z=p.z(i);BlockPos pos=new BlockPos(x,y,z);
             if(!level.getBlockState(pos).isAir()||!Block.canSupportCenter(level,pos.below(),Direction.UP))continue;
@@ -386,10 +390,27 @@ public final class MapPlacer {
                 BlockPos outside=new BlockPos(nx,y-1,nz);
                 if(!Block.canSupportCenter(level,outside,Direction.UP))exposed=true;
             }
-            if(exposed){put(x,y,z,wood(BiomeMaterials.theme(p.biomes[i]).accent(),"fence"));count++;}
+            if(exposed){put(x,y,z,wood(BiomeMaterials.theme(p.biomes[i]).accent(),"fence"));rails.add(new int[]{x,y,z});count++;}
         }
+        count+=closeRailCorners(rails,(x,z)->{int j=p.index(x,z);return all.contains(j)||p.roadCells.contains(j);},(x,z)->!p.keepClear.contains(p.index(x,z)));
         p.metrics.put("platform_guards",count);
     }
+    /** 拐角补齐：外拐角两条护栏对角留缝时，向外补一格承托与栅栏，使围栏连续；返回补齐数。 */
+    private int closeRailCorners(List<int[]> rails,BiPredicate<Integer,Integer> interior,BiPredicate<Integer,Integer> fillableCell) {
+        int filled=0;
+        for(int[] g:RailCorners.solve(rails,(x,z)->p.inside(x,z),interior,fillableCell)) {
+            int gx=g[0],gy=g[1],gz=g[2];
+            BlockPos support=new BlockPos(gx,gy-1,gz),top=new BlockPos(gx,gy,gz);
+            if(!replaceable(support)||!replaceable(top))continue;
+            // 新增方块随机取相邻两条护栏之一的材料，外观与被选中的一侧一致。
+            boolean first=random.nextBoolean();int sx=first?g[3]:g[5],sz=first?g[4]:g[6];
+            put(gx,gy-1,gz,level.getBlockState(new BlockPos(sx,gy-1,sz)));
+            put(gx,gy,gz,level.getBlockState(new BlockPos(sx,gy,sz)));
+            filled++;
+        }
+        return filled;
+    }
+    private boolean replaceable(BlockPos pos){var state=level.getBlockState(pos);return state.isAir()||state.canBeReplaced();}
     private void clearActivityAreas() {
         for(var f:p.facilities)if(f.definition().keepClear)for(int z=f.position().getZ();z<f.position().getZ()+f.template().getSize().getZ();z++)for(int x=f.position().getX();x<f.position().getX()+f.template().getSize().getX();x++)if(f.containsGround(x,z))for(int y=(int)f.surface();y<f.surface()+3;y++)put(x,y,z,Blocks.AIR.defaultBlockState());
     }
