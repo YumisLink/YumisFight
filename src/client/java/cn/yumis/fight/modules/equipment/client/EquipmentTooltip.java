@@ -24,6 +24,7 @@ import cn.yumis.fight.modules.equipment.api.WeaponTraits;
 import cn.yumis.fight.modules.equipment.api.WeaponDisplayValues;
 
 import cn.yumis.fight.modules.equipment.api.EquipmentRules;
+import cn.yumis.fight.modules.equipment.api.EnhancementRules;
 import cn.yumis.fight.modules.equipment.api.EquipmentJson;
 
 import cn.yumis.fight.modules.affixes.api.Affix;
@@ -94,6 +95,9 @@ public final class EquipmentTooltip {
             case "affix_extraction_stone"->"消耗皇冠／华丽的小丑帽及1枚石头，固定提炼1颗防具宝石；装备与其中宝石全部销毁";
             case "set_stone"->"赋予或替换装备套装；目标须满足来源等级和部位";
             case "affix_gem"->"镶嵌到宝石孔；覆盖会销毁原宝石";
+            case EnhancementRules.OTHERWORLD_AURA->"对未侵染的装备使用：随机定向一条异次元三维（力量/智力/精神）并永久侵染，之后禁止强化、只能增幅；腐化装备同样可用";
+            case EnhancementRules.INTENSE_AURA->"增幅燃料：冲+N 消耗N个，金币为同次强化的10倍；来源随哥布林王国开放";
+            case EnhancementRules.AURA_TRANSFORM_BOX->"对已侵染的装备使用：重新随机异次元三维属性；侵染本身不可清除";
             default->"";
         };
         if(Gemstones.currency(id))effect="镶嵌到宝石孔；同件不可重复同效果，覆盖会销毁原宝石";
@@ -133,7 +137,8 @@ public final class EquipmentTooltip {
     public static String processingReason(ItemStack currency,Gear gear){
         try{
             String id=ItemData.id(currency);
-            if(gear.corrupted&&!Gemstones.currency(id))return "腐化装备仅允许继续镶嵌宝石";
+            boolean aura=id.equals(EnhancementRules.OTHERWORLD_AURA)||id.equals(EnhancementRules.AURA_TRANSFORM_BOX);
+            if(gear.corrupted&&!Gemstones.currency(id)&&!aura)return "腐化装备仅允许继续镶嵌宝石";
             if(id.equals("affix_extraction_stone"))return cn.yumis.fight.modules.equipment.api.GemExtraction.available(gear)?"":"此装备未开放固定宝石提炼";
             if(id.equals("set_extraction_stone"))return gear.set.isEmpty()?"该装备没有套装":"";
             if(id.equals("set_stone")){
@@ -171,6 +176,13 @@ public final class EquipmentTooltip {
         out.add(cn.yumis.fight.modules.affixes.api.client.AffixFavorites.decorate(a,text(label,color)));
         if(range.interval())out.add(text("  可洗区间："+AffixText.integer(range.minimum())+"～"+AffixText.integer(range.upperMinimum())+" 至 "+AffixText.integer(range.maximum())+"～"+AffixText.integer(range.upperMaximum())+"（上下限同步变化）",0x9aa9be));
         else out.add(text("  可洗："+AffixText.integer(range.minimum())+unit+"～"+AffixText.integer(range.maximum())+unit,0x9aa9be));
+    }
+
+    private static String enhanceSummary(Gear g){
+        int bonus=EnhancementRules.cumulative(g.enhanceLevel);
+        if(g.slot==Slot.WEAPON)return "基础物攻/魔攻提高"+bonus+"%";
+        if(g.slot.armor())return "闪避/护盾/护甲提高"+bonus+"%";
+        return "力量/智力/精神 +"+bonus;
     }
 
     private static void addSet(List<Component> out,EquipmentDefinitions.SetDefinition set,boolean range){
@@ -229,11 +241,17 @@ public final class EquipmentTooltip {
         List<Component> out=new ArrayList<>();
         // Keep vanilla enchantments, lore and component descriptions supplied by other mods.
         if(g.corrupted)out.add(text("腐化 · 禁止常规加工，仍可镶嵌、出售、整件分解",0xff7070));
+        boolean amplified=EnhancementRules.contaminated(g);
+        if(amplified)out.add(text("异界气息侵染 · 永久禁止强化，只能增幅（原强化等级已冻结作废）",EnhancementRules.AMPLIFY_PINK));
         Component quality=text(g.rarity.title(),g.rarity.color());if(g.rarity==cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC)quality=cn.yumis.fight.modules.equipment.api.client.MythicDisplay.mark(quality);
         if(g.rarity==cn.yumis.fight.modules.equipment.api.Rarity.PRIMORDIAL)quality=cn.yumis.fight.modules.equipment.api.client.PrimordialDisplay.mark(quality);
         int required = g.requiredLevel();
         String levelLabel = required == g.level ? " · 需求 Lv." + required : " · 装备 Lv." + g.level + " · 需求 Lv." + required;
         out.add(Component.empty().append(quality).append(text(" · "+(g.slot==Slot.WEAPON?g.weapon.title():g.slot.armor()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.jewelry()?EquipmentTemplates.typeTitle(g)+" · "+g.slot.title():g.slot.title())+levelLabel,g.rarity.color())));
+        if(amplified){
+            var dimensional=EnhancementRules.contaminationStat(g);
+            if(dimensional!=null)out.add(text("异次元"+cn.yumis.fight.modules.attributes.api.client.AttributeLabels.statName(dimensional)+" +"+EnhancementRules.cumulative(g.amplifyLevel),EnhancementRules.AMPLIFY_PINK));
+        }else if(g.enhanceLevel>0)out.add(text("强化 +"+g.enhanceLevel+" · "+enhanceSummary(g),0x9aa9be));
         if (required < g.slot.minimum()) out.add(text("槽位开放 Lv." + g.slot.minimum(),0x9aa9be));
         if(!valid)out.add(text("等级或职业条件不足，装备属性不生效",0xff7272));
         boolean weapon=g.slot==Slot.WEAPON;

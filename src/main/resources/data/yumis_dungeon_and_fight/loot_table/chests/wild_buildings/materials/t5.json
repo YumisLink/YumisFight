@@ -10,62 +10,6 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:spacetime_ore",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:raw_spacetime",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:crushed_spacetime",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:spacetime_concentrate",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
           "name": "yumis_dungeon_and_fight:spacetime_ingot",
           "functions": [
             {
@@ -81,20 +25,6 @@
         {
           "type": "minecraft:item",
           "name": "yumis_dungeon_and_fight:spacetime_block"
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:high_purity_spacetime_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
         },
         {
           "type": "minecraft:item",
@@ -165,10 +95,6 @@
               }
             }
           ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:iridium_block"
         },
         {
           "type": "minecraft:item",

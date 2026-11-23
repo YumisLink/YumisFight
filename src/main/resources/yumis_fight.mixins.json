@@ -68,6 +68,11 @@
     "WarglaiveHandMixin",
     "NearEffectRenderPassMixin",
     "LightsaberBlockLightMixin",
-    "LightsaberEntityLightMixin"
+    "LightsaberEntityLightMixin",
+    "HumanoidRenderStatePoseMixin",
+    "HumanoidModelPoseMixin",
+    "PlayerPoseHeldItemMixin",
+    "FirstPersonPoseHandMixin",
+    "FirstPersonPoseLayersMixin"
   ]
 }

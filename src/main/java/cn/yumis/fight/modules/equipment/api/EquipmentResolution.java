@@ -45,11 +45,13 @@ public final class EquipmentResolution {
     public static View view(String json){return json.isEmpty()?null:cached(json).view;}
     private static Gear decode(String json){
         JsonObject data=JsonParser.parseString(json).getAsJsonObject();
-        if(!data.has("version")||data.get("version").getAsInt()!=Gear.SCHEMA_VERSION)throw new IllegalArgumentException("不支持的装备存档版本");
+        if(!data.has("version"))throw new IllegalArgumentException("不支持的装备存档版本");
+        int version=data.get("version").getAsInt();
+        if(version<Gear.MINIMUM_SCHEMA_VERSION||version>Gear.SCHEMA_VERSION)throw new IllegalArgumentException("不支持的装备存档版本");
         return resolveOwned(JSON.fromJson(data,Gear.class));
     }
     public static Gear resolve(Gear original){
-        if(original.version!=Gear.SCHEMA_VERSION)throw new IllegalArgumentException("不支持的装备存档版本");
+        if(original.version<Gear.MINIMUM_SCHEMA_VERSION||original.version>Gear.SCHEMA_VERSION)throw new IllegalArgumentException("不支持的装备存档版本");
         return resolveOwned(EquipmentCopies.gear(original));
     }
     private static Gear resolveOwned(Gear g){

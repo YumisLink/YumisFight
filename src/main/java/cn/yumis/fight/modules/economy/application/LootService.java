@@ -345,7 +345,8 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
         }else{
             double luck=encounter.practice.kind()==PracticeRoom.Kind.CURRENCY?players.stats(killer).get(Stat.DROP_RATE):0;
             var practice=new RewardRules.PracticeReward(target.instance,encounter.practice,0,0,luck,seed);
-            offerReward(killer,id,practiceFact(id,killer,entity,practice));
+            // 范围内共享：所有在场参与者各自结算。
+            for(var player:server.getPlayerList().getPlayers())if(player.level()==entity.level()&&encounters.participant(player,target.instance))offerReward(player,id,practiceFact(id,killer,entity,practice));
         }
     }
 

@@ -7,7 +7,7 @@ public record ThemeDefinition(String style,int border,int textInset,Map<String,I
     public static ThemeDefinition parse(String text,ThemeDefinition fallback){
         JsonObject json=JsonParser.parseString(text).getAsJsonObject();
         String style=json.has("style")?json.get("style").getAsString():fallback==null?"beveled":fallback.style;
-        if(!Set.of("beveled","flat").contains(style))throw new IllegalArgumentException("主题style必须为beveled或flat");
+        if(!Set.of("beveled","flat","pixel").contains(style))throw new IllegalArgumentException("主题style必须为beveled、flat或pixel");
         int border=json.has("border")?json.get("border").getAsInt():fallback==null?2:fallback.border;
         int inset=json.has("textInset")?json.get("textInset").getAsInt():fallback==null?6:fallback.textInset;
         if(border<1||border>4||inset<2||inset>16)throw new IllegalArgumentException("主题边框或文字间距超出范围");

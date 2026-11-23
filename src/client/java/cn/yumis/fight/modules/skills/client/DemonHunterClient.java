@@ -19,7 +19,7 @@ import java.util.*;
 public final class DemonHunterClient {
     private static final class Action {
         SkillCast cast;Vec3 from,to,center,previous;DemonHunterChoreography.Scene dance;String session,job,instance;long generation;
-        LivingEntity target;long targetGeneration,at,last,comboAt,moveAt=-1;double duration,arc,travelled;int index,stage=-1,sequence;boolean previousGravity;
+        LivingEntity target;long targetGeneration,at,last,comboAt,rise;double duration,arc,travelled;int index,stage=-1,sequence;boolean previousGravity;
         final Set<UUID> struck=new HashSet<>();
     }
     private record Landing(Vec3 point,double arc){}
@@ -30,7 +30,13 @@ public final class DemonHunterClient {
     private static LocalPlayer player(){return Minecraft.getInstance().player;}
     private static DemonHunterState resource(){return CareerClient.INSTANCE.view.demonHunter;}
     public static void registerResource(){PrimaryResource.register(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER,()->new PrimaryResource.View("怒气",resource().fury,DemonHunterRules.MAX_FURY,DemonHunterRules.COLOR,List.of("攻击命中及眼棱引导产生怒气，技能按各自说明消耗怒气。","脱战后每秒减少10点；怒气上限100，不受魔力与魔力恢复属性影响。")));}
-    public static void install(){for(String id:DemonHunterSkills.ALL)if(!id.equals(DemonHunterSkills.SIGHT))MageClient.register(id,DemonHunterClient::start);}
+    public static void install(){
+        for(String id:DemonHunterSkills.ALL){
+            if(id.equals(DemonHunterSkills.SIGHT))continue;
+            if(id.equals(DemonHunterSkills.AURA)||id.equals(DemonHunterSkills.GLAIVE))MageClient.register(id,DemonHunterClient::start);
+            else MageClient.registerAction(id,DemonHunterClient::start);
+        }
+    }
     public static boolean basicAllowed(Stats stats){return !stats.weaponType.equals("WARGLAIVE")||player().getOffhandItem().isEmpty();}
     public static boolean active(){return primary!=null;}
     public static boolean blocksMovement(){return primary!=null&&!primary.cast.skill.id.equals(DemonHunterSkills.CHAOS);}
@@ -65,9 +71,19 @@ public final class DemonHunterClient {
         var p=player();var a=new Action();a.cast=c;a.session=state().session();a.job=state().progress().jobId();a.instance=state().own().instance;a.generation=state().own().generation;a.at=a.last=ClientUi.now();a.from=a.to=a.center=a.previous=p.position();a.previousGravity=p.isNoGravity();
         String id=c.skill.id;a.duration=c.parameters.get("duration",1)*1000/(id.equals(DemonHunterSkills.AURA)||id.equals(DemonHunterSkills.BEAM)||id.equals(DemonHunterSkills.HUNT)?1:c.speed);
         c.direction=p.getLookAngle().normalize();
-        if(id.equals(DemonHunterSkills.BEAM)){a.duration=(long)((c.parameters.get("rise",.2)+c.parameters.get("duration",2d))*1000);a.to=safe(a.from,a.from.add(0,1,0));}
+        if(id.equals(DemonHunterSkills.BEAM)){
+            a.rise=PlayerPoseChannel.scaled(c.parameters.get("rise",.2)*1000,c.speed);
+            a.duration=a.rise+c.parameters.get("duration",2d)*1000;
+            Vec3 back=Vec3.directionFromRotation(0,p.getYRot()).scale(-1);
+            a.to=safe(a.from,a.from.add(back).add(0,DemonHunterChoreography.BEAM_HEIGHT,0));
+            PlayerPoseChannel.play(c,"eye_beam_flip",a.rise,c.direction,true);
+        }
         if(id.equals(DemonHunterSkills.RUSH))a.to=a.from.add(c.direction.scale(Math.max(.5,c.parameters.get("range",12))));
-        if(id.equals(DemonHunterSkills.HUNT))a.duration=(long)(c.parameters.get("duration",4)*1000);
+        if(id.equals(DemonHunterSkills.RUSH))PlayerPoseChannel.play(c,c.skill.id,(long)Math.ceil(a.duration),c.direction,false);
+        if(id.equals(DemonHunterSkills.HUNT)){
+            a.duration=1000*huntRange(a)/huntSpeed(a);
+            PlayerPoseChannel.loop(c,c.skill.id,(long)Math.ceil(a.duration),c.direction,true);
+        }
         if(id.equals(DemonHunterSkills.META)){a.to=aimed.point();a.arc=aimed.arc();aimed=null;}
         if(id.equals(DemonHunterSkills.DANCE))prepareDance(a);
         if(id.equals(DemonHunterSkills.AURA)){if(aura!=null)finish(aura,false);aura=a;resource().auraCast=c.id;resource().auraUntil=state().serverNow()+(long)(c.parameters.get("duration",6)*1000);}
@@ -83,16 +99,20 @@ public final class DemonHunterClient {
         Vec3 peak=safe(cursor,a.center.add(0,dancePeak,0));a.dance=new DemonHunterChoreography.Scene(timing,paths,new DemonHunterChoreography.Segment(peak,safe(peak,a.center)));
     }
     private static Vec3 velocity(Action a){
-        if(a.cast.skill.id.equals(DemonHunterSkills.HUNT))return player().getLookAngle().normalize().scale(Math.max(1,a.cast.parameters.get("huntSpeed",DemonHunterChoreography.HUNT_SPEED))/20);
+        if(a.cast.skill.id.equals(DemonHunterSkills.HUNT)){
+            double travelled=a.travelled+a.previous.distanceTo(player().position());
+            return player().getLookAngle().normalize().scale(Math.min(huntSpeed(a)/20,Math.max(0,huntRange(a)-travelled)));
+        }
         double rushRange=Math.max(.5,a.cast.parameters.get("range",12));double progress=player().position().subtract(a.from).dot(a.cast.direction),left=Math.max(0,rushRange-progress);
         double desired=rushRange*Math.clamp((ClientUi.now()-a.at)/a.duration,0,1);
         return a.cast.direction.scale(Math.min(left,Math.max(0,desired-progress)));
     }
+    private static double huntSpeed(Action a){return Math.max(1,a.cast.parameters.get("huntSpeed",DemonHunterChoreography.HUNT_SPEED));}
+    private static double huntRange(Action a){return Math.max(.5,a.cast.parameters.get("range",DemonHunterChoreography.HUNT_RANGE));}
     /** One native travel step owns movement, collision and the usual player position packet. */
     public static Vec3 movementVelocity(){
         var a=primary;if(a==null||a.target!=null||!Set.of(DemonHunterSkills.RUSH,DemonHunterSkills.HUNT).contains(a.cast.skill.id))return null;
-        if(!valid(a)){finish(a,true);return null;}long now=ClientUi.now();if(a.moveAt<0)a.moveAt=now;
-        if(a.cast.skill.id.equals(DemonHunterSkills.HUNT)&&now-a.moveAt>=(long)(a.cast.parameters.get("duration",4)*1000))return Vec3.ZERO;
+        if(!valid(a)){finish(a,true);return null;}
         player().stopFallFlying();player().setNoGravity(true);player().fallDistance=0;return velocity(a);
     }
     private static boolean valid(Action a){return player()!=null&&Minecraft.getInstance().level!=null&&state().ready()&&!state().own().dead&&!player().isDeadOrDying()&&a.session.equals(state().session())&&a.generation==state().own().generation&&a.instance.equals(state().own().instance)&&a.job.equals(state().progress().jobId())&&a.cast.dimension.equals(player().level().dimension().identifier().toString());}
@@ -101,12 +121,12 @@ public final class DemonHunterClient {
     private static Vec3 closest(LivingEntity e,Vec3 p){var b=e.getBoundingBox();return new Vec3(Math.clamp(p.x,b.minX,b.maxX),Math.clamp(p.y,b.minY,b.maxY),Math.clamp(p.z,b.minZ,b.maxZ));}
     private static void path(Action a,Vec3 from,Vec3 to,boolean first){
         var targets=SkillController.INSTANCE.targets(new AABB(from,to).inflate(.7,1,.7)).stream().filter(e->!a.struck.contains(e.getUUID())&&SkillGeometry.intersects(e.getBoundingBox().inflate(.4),from.add(0,.8,0),to.add(0,.8,0))).sorted(Comparator.comparingDouble(e->e.distanceToSqr(from))).toList();
-        for(var target:targets){if(!SkillController.INSTANCE.sight(from.add(0,.8,0),target.getBoundingBox().getCenter()))continue;if(first){var state=SkillsClient.current().context(target);if(state==null)continue;a.struck.add(target.getUUID());a.target=target;a.targetGeneration=state.life.generation;a.comboAt=ClientUi.now();a.index=0;player().setDeltaMovement(Vec3.ZERO);hit(a,target,a.cast.parameters.get("finisher",0),"impact","");var combo=new JsonObject();combo.addProperty("at",SkillsClient.current().serverNow());combo.addProperty("huntComboDuration",a.cast.parameters.get("slashes",8)*a.cast.parameters.get("interval",.1)*1000/a.cast.speed);combo.addProperty("huntComboSlashes",(int)Math.max(1,a.cast.parameters.get("slashes",8)));MageClient.INSTANCE.visual(a.cast,a.cast.id,"HIT",target.position(),a.cast.direction,5200,++a.sequence,combo);return;}a.struck.add(target.getUUID());hit(a,target,a.cast.parameters.get("damage",0),"strike","");}
+        for(var target:targets){if(!SkillController.INSTANCE.sight(from.add(0,.8,0),target.getBoundingBox().getCenter()))continue;if(first){var state=SkillsClient.current().context(target);if(state==null)continue;a.struck.add(target.getUUID());a.target=target;a.targetGeneration=state.life.generation;a.comboAt=ClientUi.now();a.index=0;player().setDeltaMovement(Vec3.ZERO);hit(a,target,a.cast.parameters.get("finisher",0),"impact","");var combo=new JsonObject();combo.addProperty("at",SkillsClient.current().serverNow());double duration=a.cast.parameters.get("slashes",8)*Math.max(50,a.cast.parameters.get("interval",.1)*1000)/a.cast.speed;combo.addProperty("huntComboDuration",duration);combo.addProperty("huntComboSlashes",(int)Math.max(1,a.cast.parameters.get("slashes",8)));a.cast.direction=target.position().subtract(player().position()).normalize();PlayerPoseChannel.loop(a.cast,"the_hunt_combo",(long)Math.ceil(duration),a.cast.direction,false);MageClient.INSTANCE.visual(a.cast,a.cast.id,"HIT",target.position(),a.cast.direction,5200,++a.sequence,combo);return;}a.struck.add(target.getUUID());hit(a,target,a.cast.parameters.get("damage",0),"strike","");}
     }
     private static void beam(Action a){
         var p=player();double beamRange=Math.max(.5,a.cast.parameters.get("range",16)),beamWidth=Math.max(.5,a.cast.parameters.get("beamWidth",1.5));Vec3 from=p.getEyePosition(),direction=p.getLookAngle().normalize(),end=from.add(direction.scale(beamRange));var wall=p.level().clip(new ClipContext(from,end,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,p));if(wall.getType()!=HitResult.Type.MISS)end=wall.getLocation();
         for(var target:SkillController.INSTANCE.targets(new AABB(from,end).inflate(beamWidth))){var box=target.getBoundingBox().inflate(beamWidth);if((box.clip(from,end).isPresent()||box.contains(from))&&SkillController.INSTANCE.sight(from,target.getBoundingBox().getCenter()))hit(a,target,a.cast.parameters.get("damage",0),"pulse","");}
-        var motion=new JsonObject();motion.addProperty("range",from.distanceTo(end));MageClient.INSTANCE.visual(a.cast,a.cast.id,"SEGMENT",from,direction,(long)((a.cast.parameters.get("rise",.2)+a.cast.parameters.get("duration",2d))*1000),++a.sequence,motion);
+        var motion=new JsonObject();motion.addProperty("range",from.distanceTo(end));MageClient.INSTANCE.visual(a.cast,a.cast.id,"SEGMENT",from,direction,(long)a.duration,++a.sequence,motion);
     }
     public static void tick(){
         if(player()==null||!state().ready())return;long now=ClientUi.now(),wall=state().serverNow();var r=resource();boolean changed=false;long combatUntil=state().resources().combatUntil+wall-now;
@@ -120,16 +140,20 @@ public final class DemonHunterClient {
         if(id.equals(DemonHunterSkills.CHAOS)){
             double chaosRange=Math.max(.5,a.cast.parameters.get("range",3)),chaosWidth=Math.max(.5,a.cast.parameters.get("width",3));int chaosHits=(int)Math.max(1,a.cast.parameters.get("slashes",2));long chaosInterval=Math.max(50,(long)(a.cast.parameters.get("interval",.15)*1000));while(a.index<chaosHits&&elapsed>=a.index*chaosInterval/a.cast.speed){Vec3 from=p.getEyePosition(),dir=new Vec3(a.cast.direction.x,0,a.cast.direction.z).normalize();for(var target:SkillController.INSTANCE.targets(p.getBoundingBox().inflate(Math.max(4,chaosRange+1),2,Math.max(4,chaosWidth+1)))){Vec3 delta=target.getBoundingBox().getCenter().subtract(from);double front=delta.dot(dir),side=Math.abs(delta.x*dir.z-delta.z*dir.x);if(front>=-.3&&front<=chaosRange+target.getBbWidth()*.5&&side<=chaosWidth/2+target.getBbWidth()*.5&&SkillController.INSTANCE.sight(from,target.getBoundingBox().getCenter()))hit(a,target,a.cast.parameters.get("damage",0),"strike","");}MageClient.INSTANCE.visual(a.cast,a.cast.id,"HIT",p.position(),a.cast.direction,1000,++a.sequence,null);a.index++;}if(elapsed>=(long)(a.cast.parameters.get("duration",.3)*1000)/a.cast.speed)finish(a,false);
         }else if(id.equals(DemonHunterSkills.BEAM)){
-            long beamRise=Math.max(0,(long)(a.cast.parameters.get("rise",.2)*1000));int beamHits=(int)Math.max(1,a.cast.parameters.get("slashes",8));long beamInterval=Math.max(50,(long)(a.cast.parameters.get("interval",.25)*1000));long beamDuration=beamRise+(long)(a.cast.parameters.get("duration",2d)*1000);
-            p.move(MoverType.SELF,a.from.lerp(a.to,Math.clamp(elapsed/(double)Math.max(1,beamRise),0,1)).subtract(p.position()));p.setDeltaMovement(Vec3.ZERO);
-            while(a.index<beamHits&&elapsed>=beamRise+(a.index+1)*beamInterval){beam(a);a.index++;r.fury=Math.min(DemonHunterRules.MAX_FURY,r.fury+10);changed=true;}if(elapsed>=beamDuration)finish(a,false);
+            int beamHits=(int)Math.max(1,a.cast.parameters.get("slashes",8));long beamInterval=Math.max(50,(long)(a.cast.parameters.get("interval",.25)*1000));
+            p.move(MoverType.SELF,a.from.lerp(a.to,Math.clamp(elapsed/(double)a.rise,0,1)).subtract(p.position()));p.setDeltaMovement(Vec3.ZERO);
+            if(elapsed>=a.rise&&a.stage<0){
+                a.stage=0;
+                PlayerPoseChannel.loop(a.cast,a.cast.skill.id,(long)Math.max(1,a.duration-elapsed),p.getLookAngle(),true);
+            }
+            while(a.index<beamHits&&elapsed>=a.rise+(a.index+1)*beamInterval){beam(a);a.index++;r.fury=Math.min(DemonHunterRules.MAX_FURY,r.fury+10);changed=true;}if(elapsed>=a.duration)finish(a,false);
         }else if(id.equals(DemonHunterSkills.DANCE)){
             var timing=a.dance.timing();while(a.index<timing.slashes()&&elapsed>=timing.slashHitAt(a.index)){var route=a.dance.paths().get(a.index);if(a.stage!=a.index)position(route.from());position(route.to());a.stage=a.index++;area(a,a.center,Math.max(.5,a.cast.parameters.get("radius",3)),a.cast.parameters.get("damage",0),"strike","");MageClient.INSTANCE.visual(a.cast,a.cast.id,"HIT",a.center,route.direction(),(long)a.duration,++a.sequence,null);}
             int active=timing.slashIndex(elapsed);if(active>=0){if(a.stage!=active){position(a.dance.paths().get(active).from());a.stage=active;}position(a.dance.point(elapsed));}else if(elapsed>=timing.fallAt()){if(a.stage!=timing.slashes()){position(a.dance.fall().from());a.stage=timing.slashes();}position(a.dance.point(elapsed));}if(elapsed>=a.duration){area(a,a.center,Math.max(.5,a.cast.parameters.get("radius",3)),a.cast.parameters.get("finisher",0),"strike","");MageClient.INSTANCE.visual(a.cast,a.cast.id,"FINISH",p.position(),Vec3.ZERO,(long)a.duration+600,++a.sequence,null);finish(a,false);}
         }else if(id.equals(DemonHunterSkills.RUSH)||id.equals(DemonHunterSkills.HUNT)&&a.target==null){
             Vec3 current=p.position();a.travelled+=a.previous.distanceTo(current);path(a,a.previous,current,id.equals(DemonHunterSkills.HUNT));a.previous=current;
             if(a.target==null){Vec3 direction=id.equals(DemonHunterSkills.RUSH)?a.cast.direction:p.getLookAngle().normalize();Vec3 probe=current.add(direction.scale(.1));boolean blocked=safe(current,probe).distanceToSqr(probe)>.0001;
-                boolean done=id.equals(DemonHunterSkills.RUSH)?a.to.subtract(current).dot(a.cast.direction)<=.001:a.moveAt>=0&&now-a.moveAt>=(long)(a.cast.parameters.get("duration",4)*1000);
+                boolean done=id.equals(DemonHunterSkills.RUSH)?a.to.subtract(current).dot(a.cast.direction)<=.001:a.travelled>=huntRange(a)-.001;
                 if(blocked||done||elapsed>a.duration+1800)finish(a,false);else p.setDeltaMovement(velocity(a));}
         }else if(id.equals(DemonHunterSkills.HUNT)){
             var target=state().context(a.target);if(!a.target.isAlive()||target==null||target.life.dead||state().predicted(target.life)<=0||target.life.generation!=a.targetGeneration){finish(a,false);return;}
@@ -148,6 +172,7 @@ public final class DemonHunterClient {
     public static void gain(String token,int amount){if(!state().progress().baseJob().equals(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER)||state().own().dead||resource().gains.putIfAbsent(token,state().serverNow())!=null)return;resource().fury=Math.min(100,resource().fury+amount);resource().decayAt=Math.max(state().serverNow(),state().resources().combatUntil+state().serverNow()-ClientUi.now());CareerClient.INSTANCE.publish();}
     private static void finish(Action a,boolean cancelled){
         if(a==null)return;if(a==aura){aura=null;resource().auraUntil=0;resource().auraCast="";}if(a==primary){primary=null;var p=player();if(p!=null&&!a.cast.skill.id.equals(DemonHunterSkills.CHAOS)){p.setDeltaMovement(Vec3.ZERO);p.setNoGravity(a.previousGravity);p.fallDistance=0;}if(a.cast.skill.id.equals(DemonHunterSkills.DANCE))Effects.VFX.completeCamera(UUID.fromString(a.cast.id));}
+        if(cancelled)PlayerPoseChannel.cancel(a.cast);else PlayerPoseChannel.release(a.cast);
         if(player()!=null)MageClient.INSTANCE.visual(a.cast,a.cast.id,cancelled?"CANCEL":"END",player().position(),Vec3.ZERO,1000,++a.sequence,null);CareerClient.INSTANCE.ended(a.cast);CareerClient.INSTANCE.publish();
     }
     public static void cancel(String id){if(primary!=null&&primary.cast.id.equals(id))finish(primary,true);if(aura!=null&&aura.cast.id.equals(id))finish(aura,true);}
@@ -161,6 +186,6 @@ public final class DemonHunterClient {
     }
     static void renderBeam(GuiGraphicsExtractor g){
         if(!state().progress().baseJob().equals(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER))return;
-        long age=beamAge();if(age>=0){long beamTotal=(long)((primary.cast.parameters.get("rise",.2)+primary.cast.parameters.get("duration",2d))*1000);long left=Math.max(0,beamTotal-age);SkillCastBar.render(g,g.guiWidth(),g.guiHeight(),"眼棱 · 引导 "+String.format(Locale.ROOT,"%.1f",left/1000d)+"秒",left/(double)beamTotal,0xffb3fa76);}
+        long age=beamAge();if(age>=0){long beamTotal=(long)primary.duration;long left=Math.max(0,beamTotal-age);SkillCastBar.render(g,g.guiWidth(),g.guiHeight(),"眼棱 · 引导 "+String.format(Locale.ROOT,"%.1f",left/1000d)+"秒",left/(double)beamTotal,0xffb3fa76);}
     }
 }

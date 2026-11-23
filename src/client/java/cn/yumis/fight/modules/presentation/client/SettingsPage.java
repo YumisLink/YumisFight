@@ -55,7 +55,10 @@ public final class SettingsPage {
                 page.line("机器与背包",UiTheme.GOLD);page.gap();
                 page.rowButton("跟随统一主题："+(ClientSettings.machineFollowsTheme?"开":"关"),()->{ClientSettings.follow(ThemeDomain.MACHINE,!ClientSettings.machineFollowsTheme);page.rebuild();});
                 if(!ClientSettings.machineFollowsTheme)page.rowButton("面板主题："+ClientSettings.themeName(ClientSettings.machineTheme),()->{ClientSettings.toggleDomain(ThemeDomain.MACHINE);page.rebuild();});
-                page.line("工业设备、制作器、配方、结构、概率和次元背包共用此设置。",UiTheme.MUTED);
+                if(ClientSettings.bagUsesMenuTheme()){
+                    page.line("工业设备、制作器、配方、结构和概率共用此设置。",UiTheme.MUTED);
+                    page.line("次元背包使用 I 面板的深色像素主题。",UiTheme.MUTED);
+                }else page.line("工业设备、制作器、配方、结构、概率和次元背包共用此设置。",UiTheme.MUTED);
                 page.line("取消跟随时保留当前样式。",UiTheme.MUTED);
             }
             case "mining"->{

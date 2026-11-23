@@ -13,6 +13,7 @@ import java.io.*;
 import static cn.yumis.fight.platform.ItemData.*;
 import static cn.yumis.fight.platform.ItemRegistry.item;
 import cn.yumis.fight.modules.presentation.api.ModText;
+import net.minecraft.network.chat.Component;
 /** Equipment serialization, identity and material payloads. */
 public final class EquipmentItems {
     public static final Map<String,String> NAMES=new HashMap<>();
@@ -57,10 +58,21 @@ public final class EquipmentItems {
     public static void write(ItemStack stack,Gear g){
         if(g.savedName.isEmpty())g.savedName=name(g);
         string(stack,NS,JSON.toJson(g));
-        stack.set(DataComponents.ITEM_NAME,ModText.of(name(g)).withStyle(s->{
+        var name=ModText.of("").append(displayPrefix(g)).append(displayName(g));
+        stack.set(DataComponents.ITEM_NAME,name);
+    }
+    /** +N 前缀：强化与稀有度同色，增幅粉色。 */
+    private static Component displayPrefix(Gear g){
+        boolean amplified=EnhancementRules.contaminated(g);
+        int level=EnhancementRules.level(g);
+        if(level<=0)return Component.empty();
+        return ModText.of("+"+level+" ").withStyle(style->style.withColor(amplified?EnhancementRules.AMPLIFY_PINK:g.rarity.color()).withItalic(false));
+    }
+    private static Component displayName(Gear g){
+        return ModText.of(name(g)).withStyle(s->{
             if(g.rarity==Rarity.PRIMORDIAL)return s.withColor(0x64f59a).withInsertion(cn.yumis.fight.modules.presentation.api.RichText.GRADIENT+"64F59A/A6E6FF").withItalic(false);
             return s.withColor(g.rarity.color()).withItalic(false);
-        }));
+        });
     }
     public static ItemStack material(String id,int count){
         MaterialCatalog.Material m=MaterialCatalog.current().materials.get(id);

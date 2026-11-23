@@ -26,7 +26,7 @@ public class SkillCast {
         public double speed=1,moved;
         public int hitIndex,elementOverride=-2;
         public String damagePhase="",contactGroup="";
-        public boolean dot,terminal;
+        public boolean dot,terminal,effectContinues;
         public double controlSeconds;
         public Set<UUID> hit=new HashSet<>();
     }

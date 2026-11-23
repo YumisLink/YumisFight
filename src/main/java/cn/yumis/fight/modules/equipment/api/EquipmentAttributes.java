@@ -27,6 +27,7 @@ public final class EquipmentAttributes {
             Gear g=cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(input);
             if(!g.valid(p,allowance))continue;
             EquipmentRules.contribution(g).forEach(s::add);
+            EnhancementRules.contribution(g).forEach(s::add);
             List<Affix> all=EquipmentEffects.effectiveAffixes(g);
             var sink=new AffixEffects.CharacterSink(){
                 public void extra(Affix a){s.extras.add(new cn.yumis.fight.modules.attributes.api.ExtraDamage(a.element,a.value,a.maximum));}

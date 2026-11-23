@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.economy.api;
 import cn.yumis.fight.modules.character.api.CharacterItems;
 import cn.yumis.fight.modules.equipment.api.Rarity;
+import cn.yumis.fight.modules.equipment.api.EnhancementRules;
 import cn.yumis.fight.modules.dungeons.api.Difficulty;
 import static cn.yumis.fight.modules.attributes.api.AttributeNumbers.finite;
 import static cn.yumis.fight.modules.attributes.api.AttributeNumbers.DROP_RATE_BASE;
@@ -21,6 +22,9 @@ public final class CurrencyRules {
         new Currency("transmutation_stone",Rarity.COMMON,true),
         new Currency("augmentation_stone",Rarity.RARE,true),
         new Currency("delezie_blood",Rarity.RARE,true),
+        new Currency(EnhancementRules.OTHERWORLD_AURA,Rarity.ARTIFACT,false),
+        new Currency(EnhancementRules.INTENSE_AURA,Rarity.EPIC,false),
+        new Currency(EnhancementRules.AURA_TRANSFORM_BOX,Rarity.MYTHIC,false),
         new Currency("regal_stone",Rarity.ARTIFACT,true),
         new Currency("exalted_stone",Rarity.LEGENDARY,true),
         new Currency(cn.yumis.fight.modules.equipment.api.EquipmentRules.MASTER_CRYSTAL,Rarity.LEGENDARY,false),

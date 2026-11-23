@@ -27,6 +27,13 @@ final class OracleSkillVisuals {
             var event=track.last;Vec3 heading=vector(event.direction());state.bodyRot=(float)Math.toDegrees(Math.atan2(-heading.x,heading.z));state.yRot=0;state.walkAnimationSpeed=0;
             long stage=track.flashes.stream().filter(e->e.phase()==SkillVisualEvent.Phase.SEGMENT).mapToLong(SkillVisualEvent::at).max().orElse(track.start.startedAt());state.attackTime=(float)Math.clamp((time-stage)*track.speed/600,0,1);
             if(replica&&event.sweep()){state.attackTime=.1f;state.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.THROW_TRIDENT;state.leftArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.THROW_TRIDENT;}
+            weapon(track,caster,state);
+        }
+        public void decorateAvatar(Track track,net.minecraft.world.entity.player.Player player,net.minecraft.client.renderer.entity.state.AvatarRenderState state,long time){
+            if(!track.released)weapon(track,player,state);
+        }
+        private void weapon(Track track,net.minecraft.world.entity.LivingEntity caster,net.minecraft.client.renderer.entity.state.HumanoidRenderState state){
+            var event=track.last;
             if(replica&&OracleSkills.WEAPONS.contains(event.weaponType())){
                 var hand=cn.yumis.fight.modules.equipment.api.EquipmentItems.view(caster.getMainHandItem());
                 if(hand==null||!hand.weapon().name().equals(event.weaponType())){

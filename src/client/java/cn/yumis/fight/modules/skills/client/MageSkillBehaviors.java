@@ -20,6 +20,7 @@ final class MageSkillBehaviors {
     private record Fang(SkillCast cast,Vec3 origin,Vec3 direction,long at){}
     private static final List<Flight> flights=new ArrayList<>();
     private static final List<Fang> fangs=new ArrayList<>();
+    private static final List<SkillCast> throwing=new ArrayList<>();
     private static final class SummonFlight {SkillCast cast;SummonMoves.Move move;String visual;Vec3 from,to,position;long at,duration;double arc,progress;int hits,sequence;final Set<UUID> struck=new HashSet<>();}
     private static final List<SummonFlight> summonFlights=new ArrayList<>();
     private record Contact(SkillCast cast,LivingEntity target,double coefficient,long until,String hold){}
@@ -28,8 +29,12 @@ final class MageSkillBehaviors {
     private MageSkillBehaviors(){}
     static void prepare(SkillDefinition skill){var reserved=new ArrayList<Vec3>();for(var kind:SummonerSkills.kinds(skill.id))reserved.add(summonPoint(kind,reserved.size(),reserved));if(!reserved.isEmpty())prepared.put(skill.id,reserved);}
     static void install(){
-        MageClient.register(MageSkills.STAR,MageSkillBehaviors::projectile);MageClient.register(MageSkills.JACK,MageSkillBehaviors::projectile);
-        MageClient.register(MageSkills.FANG,c->{var p=Minecraft.getInstance().player;var direction=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z).normalize();Vec3 from=p.position().add(0,.8,0);fangs.add(new Fang(c,from,direction,ClientUi.now()+Math.max(1,(long)(c.parameters.get("fuseMillis",200)/c.speed))));MageClient.INSTANCE.visual(c,c.id,"START",from,direction,600,0,null);});
+        MageClient.registerAction(MageSkills.STAR,c->{
+            c.scheduledHitAt=c.start+PlayerPoseChannel.scaled(c.parameters.get("throwMillis",200),c.speed);
+            throwing.add(c);
+        });
+        MageClient.register(MageSkills.JACK,MageSkillBehaviors::projectile);
+        MageClient.registerAction(MageSkills.FANG,c->{var p=Minecraft.getInstance().player;var direction=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z).normalize();Vec3 from=p.position().add(0,.8,0);fangs.add(new Fang(c,from,direction,ClientUi.now()+Math.max(1,(long)(c.parameters.get("fuseMillis",200)/c.speed))));MageClient.INSTANCE.visual(c,c.id,"START",from,direction,600,0,null);});
         MageClient.register(MageSkills.HERDER,MageSkillBehaviors::summon);
         for(String id:SummonerSkills.ALL)if(!id.equals(SummonerSkills.MASTERY))MageClient.register(id,MageSkillBehaviors::summon);
     }
@@ -43,7 +48,19 @@ final class MageSkillBehaviors {
     static void tick(){
         var mc=Minecraft.getInstance();if(mc.player==null||mc.level==null)return;long now=ClientUi.now();
         tickSummons(now);
-        for(var fang:new ArrayList<>(fangs))if(now>=fang.at){fangs.remove(fang);var c=fang.cast;if(!MageClient.INSTANCE.valid(c))continue;double fangRange=Math.max(.5,c.parameters.get("range",5)),fangWidth=Math.max(.5,c.parameters.get("width",1.5));for(var target:SkillController.INSTANCE.targets(new AABB(fang.origin,fang.origin.add(fang.direction.scale(fangRange))).inflate(Math.max(1,fangWidth/2+.25),1.5,Math.max(1,fangWidth/2+.25)))){var delta=target.getBoundingBox().getCenter().subtract(fang.origin);double front=delta.dot(fang.direction),side=Math.abs(delta.x*fang.direction.z-delta.z*fang.direction.x);if(front>=-.5&&front<=fangRange+target.getBbWidth()*.5&&side<=fangWidth/2+target.getBbWidth()*.5&&SkillController.INSTANCE.sight(fang.origin,target.getBoundingBox().getCenter()))MageClient.INSTANCE.issue(c,target,c.parameters.get("damage",0),-2,"","");}MageClient.INSTANCE.finished(c);}
+        for(var c:new ArrayList<>(throwing)){
+            if(!MageClient.INSTANCE.valid(c)||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)){
+                throwing.remove(c);
+                PlayerPoseChannel.cancel(c);
+                MageClient.INSTANCE.finished(c);
+            }else if(now>=c.scheduledHitAt){
+                throwing.remove(c);
+                c.start=c.stageStart=now;
+                projectile(c);
+                PlayerPoseChannel.release(c);
+            }
+        }
+        for(var fang:new ArrayList<>(fangs))if(now>=fang.at){fangs.remove(fang);var c=fang.cast;if(!MageClient.INSTANCE.valid(c))continue;double fangRange=Math.max(.5,c.parameters.get("range",5)),fangWidth=Math.max(.5,c.parameters.get("width",1.5));for(var target:SkillController.INSTANCE.targets(new AABB(fang.origin,fang.origin.add(fang.direction.scale(fangRange))).inflate(Math.max(1,fangWidth/2+.25),1.5,Math.max(1,fangWidth/2+.25)))){var delta=target.getBoundingBox().getCenter().subtract(fang.origin);double front=delta.dot(fang.direction),side=Math.abs(delta.x*fang.direction.z-delta.z*fang.direction.x);if(front>=-.5&&front<=fangRange+target.getBbWidth()*.5&&side<=fangWidth/2+target.getBbWidth()*.5&&SkillController.INSTANCE.sight(fang.origin,target.getBoundingBox().getCenter()))MageClient.INSTANCE.issue(c,target,c.parameters.get("damage",0),-2,"","");}PlayerPoseChannel.release(c);MageClient.INSTANCE.finished(c);}
         for(var f:new ArrayList<>(flights)){
             var c=f.cast;if(!MageClient.INSTANCE.valid(c)){flights.remove(f);continue;}
             double u=Math.clamp((now-f.at)/f.duration,0,1);Vec3 next=f.origin.lerp(f.end,u);var wall=mc.level.clip(new ClipContext(f.position,next,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,mc.player));Vec3 end=wall.getType()==HitResult.Type.MISS?next:wall.getLocation(),from=f.position;
@@ -59,8 +76,10 @@ final class MageSkillBehaviors {
         throw new IllegalArgumentException("附近没有足够的安全召唤空间");
     }
     private static void summon(SkillCast c){
-        var state=SkillsClient.current();var p=Minecraft.getInstance().player;var packet=new JsonObject();packet.addProperty("session",state.session());packet.addProperty("generation",state.own().generation);packet.addProperty("id",c.id);packet.addProperty("skill",c.skill.id);packet.addProperty("rank",c.parameters.rank());packet.addProperty("level",state.progress().level);packet.addProperty("dimension",c.dimension);packet.addProperty("instance",c.instance);packet.addProperty("job",c.job);packet.addProperty("at",state.serverNow());
-        if(c.skill.id.equals(SummonerSkills.FRENZY)){MageClient.INSTANCE.frenzyUntil=state.serverNow()+20000;packet.addProperty("until",MageClient.INSTANCE.frenzyUntil);packet.addProperty("power",.20+.03*(c.parameters.rank()-1));state.send("summonFrenzy",packet);MageClient.INSTANCE.finished(c);return;}
+        var state=SkillsClient.current();var p=Minecraft.getInstance().player;var packet=new JsonObject();
+        var look=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z);look=look.lengthSqr()<.01?new Vec3(0,0,1):look.normalize();Vec3 castPoint=p.position().add(0,1,0);
+        packet.addProperty("session",state.session());packet.addProperty("generation",state.own().generation);packet.addProperty("id",c.id);packet.addProperty("skill",c.skill.id);packet.addProperty("rank",c.parameters.rank());packet.addProperty("level",state.progress().level);packet.addProperty("dimension",c.dimension);packet.addProperty("instance",c.instance);packet.addProperty("job",c.job);packet.addProperty("at",state.serverNow());
+        if(c.skill.id.equals(SummonerSkills.FRENZY)){MageClient.INSTANCE.frenzyUntil=state.serverNow()+20000;packet.addProperty("until",MageClient.INSTANCE.frenzyUntil);packet.addProperty("power",.20+.03*(c.parameters.rank()-1));state.send("summonFrenzy",packet);MageClient.INSTANCE.visual(c,c.id,"START",castPoint,look,2000,0,null);MageClient.INSTANCE.finished(c);return;}
         JsonArray actors=new JsonArray();var reserved=new ArrayList<Vec3>();var points=prepared.remove(c.skill.id);int mastery=SkillLearning.effective(c.stats,state.progress(),SkillCatalog.require(SummonerSkills.MASTERY));
         double inheritHealth=c.stats.modifiers.getOrDefault("summonInherit/HEALTH",0d),inheritDefense=c.stats.modifiers.getOrDefault("summonInherit/DEFENSE",0d),inheritResist=c.stats.modifiers.getOrDefault("summonInherit/RESIST",0d),inheritShield=c.stats.modifiers.getOrDefault("summonInherit/SHIELD",0d);
         double damageProduct=1+c.stats.modifiers.getOrDefault("summonDamage",0d),durationProduct=1+c.stats.modifiers.getOrDefault("summonDuration",0d);
@@ -78,7 +97,9 @@ final class MageSkillBehaviors {
             actor.add("damage",JSON.toJsonTree(Map.of("melee",meleeDamage,"stone",stoneDamage,"triple",stoneDamage.times(3))));actor.addProperty("health",inherited.get(Stat.HEALTH));actor.addProperty("shield",Math.max(0,inherited.get(Stat.SHIELD)));
             long at=state.serverNow()+(long)((kind==SummonKind.KASIJAS?1000:400)/c.speed);actor.addProperty("at",at);actor.addProperty("until",at+(long)((kind==SummonKind.KASIJAS?20000:120000)*durationProduct));actors.add(actor);
         }
-        packet.add("actors",actors);state.send("summonSpawn",packet);MageClient.INSTANCE.finished(c);
+        packet.add("actors",actors);state.send("summonSpawn",packet);
+        // 召唤施法姿态走装饰视觉轨道；召唤兽本体与其招式另有渲染，此处只承载骨骼动画。
+        MageClient.INSTANCE.visual(c,c.id,"START",castPoint,look,2000,0,null);MageClient.INSTANCE.finished(c);
     }
     static void action(JsonObject j){
         var state=SkillsClient.current();var mc=Minecraft.getInstance();var c=new SkillCast();c.id=c.summonSource=j.get("source").getAsString();c.session=j.get("session").getAsString();c.generation=j.get("generation").getAsLong();c.job=j.get("job").getAsString();c.dimension=j.get("dimension").getAsString();c.instance=j.get("instance").getAsString();c.skill=SkillCatalog.require(j.get("skill").getAsString());
@@ -116,6 +137,6 @@ final class MageSkillBehaviors {
             if(done||u>=1){if(move.radius()>0)summonArea(f.cast,f.position,move.radius());MageClient.INSTANCE.visual(f.cast,f.visual,"FINISH",f.position,f.to.subtract(f.from).normalize(),f.duration+500,++f.sequence,null);summonFlights.remove(f);TrainingCombat.release(f.cast.id,f.visual);}
         }
     }
-    static void cancel(String id){flights.removeIf(f->f.cast.id.equals(id));fangs.removeIf(f->f.cast.id.equals(id));}
-    static void clear(){for(var contact:contacts)TrainingCombat.release(contact.cast.id,contact.hold);for(var flight:summonFlights)TrainingCombat.release(flight.cast.id,flight.visual);contacts.clear();summonFlights.clear();flights.clear();fangs.clear();prepared.clear();}
+    static void cancel(String id){flights.removeIf(f->f.cast.id.equals(id));fangs.removeIf(f->f.cast.id.equals(id));throwing.removeIf(c->c.id.equals(id));}
+    static void clear(){for(var contact:contacts)TrainingCombat.release(contact.cast.id,contact.hold);for(var flight:summonFlights)TrainingCombat.release(flight.cast.id,flight.visual);contacts.clear();summonFlights.clear();flights.clear();fangs.clear();throwing.clear();prepared.clear();}
 }

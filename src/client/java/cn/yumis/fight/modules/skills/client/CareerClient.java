@@ -23,7 +23,7 @@ public final class CareerClient {
     public void renewSummons(){if(!state().progress().hasJob(JobCatalog.SUMMONER)||waiting())return;renewQueue.clear();for(String id:SummonerSkills.RENEW)if(SkillLearning.effective(state().stats(),state().progress(),SkillCatalog.require(id))>0)renewQueue.add(id);nextRenew();}
     public void tickRenew(){if(ClientUi.now()>=renewAfter)nextRenew();}
     public void stopRenewing(){renewQueue.clear();}
-    private void nextRenew(){if(waiting()||renewQueue.isEmpty())return;String id=renewQueue.remove();request(SkillCatalog.require(id),-1);renewAfter=ClientUi.now()+600;}
+    private void nextRenew(){if(waiting()||!SkillController.INSTANCE.readyToCast(ClientUi.now())||renewQueue.isEmpty())return;String id=renewQueue.remove();request(SkillCatalog.require(id),-1);renewAfter=ClientUi.now()+600;}
     private final Map<String,SkillCast> sources=new HashMap<>();
     private final Map<String,Long> fieldTicks=new HashMap<>(),freezes=new HashMap<>();
     private final Map<UUID,Flame> flames=new HashMap<>();
@@ -88,7 +88,7 @@ public final class CareerClient {
         var mc=Minecraft.getInstance();var p=mc.player;if(p==null||mc.level==null||!state().ready()||state().own().dead||p.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(p))return;
         ensureContext();
         try{
-            if(!DemonHunterClient.beforeRequest(skill)||ChantClient.active())return;
+            if(!DemonHunterClient.beforeRequest(skill)||ChantClient.active()||!SkillController.INSTANCE.readyToCast(ClientUi.now()))return;
             var progress=state().progress();Stats base=state().weaponStats(p.getMainHandItem());Stats equipment=SkillPreview.currentStats(base,state().resources(),ClientUi.now());
             int rank=SkillLearning.effective(equipment,progress,skill);if(rank<=0||skill.passive())return;
             if(!skill.weaponAllowed(progress,equipment))throw new IllegalArgumentException("主手需要本职业可用武器");
@@ -149,6 +149,7 @@ public final class CareerClient {
             if(!terminal&&!resources.training&&!p.isCreative())resources.cooldowns.put(id,now+(long)(SkillCosts.resolve(skill,rank,prepared,resources.equipment,CareerRules.magic(skill,progress)).cooldown()*1000));resources.recordedAt=now;
             var c=new SkillCast();c.id=castId;c.skill=skill;c.slot=slot;c.parameters=parameters;c.stats=prepared;c.equipment=resources.equipment;c.weapon=prepared.weaponInstance;c.terminal=terminal;c.origin=origin;c.direction=direction;c.center=center;c.start=c.stageStart=now;c.speed=Math.max(.01,prepared.get(Stat.CAST_SPEED));c.dimension=p.level().dimension().identifier().toString();c.charging=SkillPresentation.charging(skill);
             c.session=state().session();c.generation=state().own().generation;c.job=state().progress().jobId();c.instance=state().own().instance;
+            SkillController.INSTANCE.releaseCompletedCast();
             state().resources(resources);view=next;sources.put(c.id,c);
             if(before>life.q){var extra=new JsonObject();extra.addProperty("resourceCost",true);state().report(state().own(),before-life.q,false,equipment.get(Stat.HEALTH),0xe05360,false,extra);}
             publish();
@@ -166,7 +167,7 @@ public final class CareerClient {
         for(var old:sources.values())if(!old.id.equals(cast.id)&&old.skill.id.equals(CareerSkills.EYE)&&!old.terminal)TrainingCombat.release(old.id,"persistent");
         TrainingCombat.hold(cast.id,"persistent",now+20000);
     }
-    public void cancel(SkillCast c){if(c==null)return;OracleClient.INSTANCE.cancel(c.id);MageClient.INSTANCE.cancel(c);ended(c);}
+    public void cancel(SkillCast c){if(c==null)return;SkillController.INSTANCE.discardEffect(c);PlayerPoseChannel.cancel(c);OracleClient.INSTANCE.cancel(c.id);MageClient.INSTANCE.cancel(c);ended(c);}
     public void ended(SkillCast c){sources.remove(c.id);TrainingCombat.release(c.id,"persistent");TrainingCombat.release(c.id,"mage");TrainingCombat.actionFinished(c.id);}
     public void decorate(SkillCast source,LivingEntity target,JsonObject extra){
         if(source==null)return;

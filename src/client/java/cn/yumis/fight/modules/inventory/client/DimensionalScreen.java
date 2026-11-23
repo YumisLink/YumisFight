@@ -18,7 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import java.util.*;
 
-/** Gray beveled storage, nine-column inventory, search, sort and a draggable viewport. */
+/** Nine-column storage with search, sorting and a draggable viewport. */
 public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMenu> {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
@@ -35,7 +35,10 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
     private long languageRevision;
     private Object language;
     private long queryChangedAt;
-    public DimensionalScreen(DimensionalMenu menu,Inventory inventory,Component title){super(menu,inventory,title,188,menu.rows*18+174,ThemeDomain.MACHINE);inventoryLabelY=menu.rows*18+58;}
+    public DimensionalScreen(DimensionalMenu menu,Inventory inventory,Component title){
+        super(menu,inventory,title,188,menu.rows*18+174,ClientSettings.bagUsesMenuTheme()?ThemeDomain.MENU:ThemeDomain.MACHINE);
+        inventoryLabelY=menu.rows*18+58;
+    }
     @Override protected void init(){
         UiTheme.check();menu.resizeRows(Math.max(1,Math.min(Math.min(8,Math.max(1,menu.totalRows())),(height-186)/18)));((cn.yumis.fight.mixin.ContainerScreenSizeAccessor)(Object)this).ydnf$height(menu.rows*18+174);inventoryLabelY=menu.rows*18+58;super.init();minecraft.gameMode.handleInventoryButtonClick(menu.containerId,1000+menu.rows);
         search=addRenderableWidget(new EditBox(UiFonts.font(),leftPos+8,topPos+24,124,18,Component.literal("搜索物品")));search.setMaxLength(64);search.setHint(Component.literal("搜索物品…"));search.setValue(menu.query);search.setResponder(text->queryChangedAt=ClientUi.now()+150);
@@ -79,6 +82,7 @@ public final class DimensionalScreen extends ThemedContainerScreen<DimensionalMe
     @Override protected void containerTick(){super.containerTick();refreshUpgrade();if(ClientUi.now()>=queryChangedAt)filter();menu.layout();}
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float alpha){
         UiTheme.check();g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,leftPos,topPos,imageWidth,imageHeight);
+        if(UiTheme.pixelStyle())UiTheme.titleBar(g,leftPos+4,topPos+4,imageWidth-8,16);
         for(var slot:menu.slots)if(slot.isActive())UiTheme.slot(g,leftPos+slot.x,topPos+slot.y);
         if(menu.maxScroll()>0){int h=menu.rows*18,thumb=Math.max(12,h*menu.rows/Math.max(1,menu.totalRows())),offset=(h-thumb)*menu.scrollRow()/menu.maxScroll();UiTheme.scrollbar(g,leftPos+174,topPos+DimensionalMenu.BAG_Y-1,h,thumb,offset);}
         if(menu.query.length()>0&&menu.totalRows()==0)g.text(UiFonts.font(),"没有匹配物品",leftPos+12,topPos+DimensionalMenu.BAG_Y+8,UiTheme.MUTED,false);

@@ -28,14 +28,45 @@ public final class ClientSettings {
     /** 次元背包自动收纳：默认关；开启后默认仅在普通背包放不下时才收纳。 */
     public static boolean bagAutoStore=false,bagStoreOnlyWhenFull=true;
     public static boolean arkEnemyHealth=true,arkAllyHealth=true,arkEnemyDamage=true,arkAllyDamage=true;
-    public static String globalTheme="light",menuTheme="dark",machineTheme="light";
-    public static boolean menuFollowsTheme=false,machineFollowsTheme=true;
+    static final String PIXEL_THEME="pixel";
+    public static String globalTheme=PIXEL_THEME,menuTheme=PIXEL_THEME,machineTheme=PIXEL_THEME;
+    public static boolean menuFollowsTheme=true,machineFollowsTheme=true;
     public static String theme(ThemeDomain domain){return switch(domain){case GENERAL->globalTheme;case MENU->menuFollowsTheme?globalTheme:menuTheme;case MACHINE->machineFollowsTheme?globalTheme:machineTheme;};}
-    private static String checkedTheme(String value,String fallback){return value.equals("dark")||value.equals("light")?value:fallback;}
-    public static String themeName(String theme){return theme.equals("dark")?"黑灰透明":"灰色立体";}
-    public static void toggleGlobalTheme(){globalTheme=globalTheme.equals("dark")?"light":"dark";save();UiTheme.preferencesChanged();}
+    private static String checkedTheme(String value){
+        return switch(value){
+            case "light","dark",PIXEL_THEME -> value;
+            default -> PIXEL_THEME;
+        };
+    }
+    public static boolean bagUsesMenuTheme(){return machineFollowsTheme&&!menuFollowsTheme&&PIXEL_THEME.equals(menuTheme);}
+    public static String themeName(String theme){
+        return switch(theme){
+            case "light" -> "灰色立体";
+            case "dark" -> "黑灰透明";
+            default -> "深色像素";
+        };
+    }
+    private static String nextTheme(String theme){
+        return switch(theme){
+            case PIXEL_THEME -> "light";
+            case "light" -> "dark";
+            default -> PIXEL_THEME;
+        };
+    }
+    public static void toggleGlobalTheme(){globalTheme=nextTheme(globalTheme);save();UiTheme.preferencesChanged();}
     public static void follow(ThemeDomain domain,boolean enabled){String current=theme(domain);if(domain==ThemeDomain.MENU){menuTheme=current;menuFollowsTheme=enabled;}else if(domain==ThemeDomain.MACHINE){machineTheme=current;machineFollowsTheme=enabled;}save();UiTheme.preferencesChanged();}
-    public static void toggleDomain(ThemeDomain domain){String next=theme(domain).equals("dark")?"light":"dark";if(domain==ThemeDomain.MENU){menuFollowsTheme=false;menuTheme=next;}else if(domain==ThemeDomain.MACHINE){machineFollowsTheme=false;machineTheme=next;}save();UiTheme.preferencesChanged();}
+    public static void toggleDomain(ThemeDomain domain){
+        String next=nextTheme(theme(domain));
+        if(domain==ThemeDomain.MENU){
+            menuFollowsTheme=false;
+            menuTheme=next;
+        }else if(domain==ThemeDomain.MACHINE){
+            machineFollowsTheme=false;
+            machineTheme=next;
+        }
+        save();
+        UiTheme.preferencesChanged();
+    }
     public static boolean questCollapsed(String id) {
         return collapsedQuests.contains(id);
     }
@@ -73,10 +104,10 @@ public final class ClientSettings {
             arkEnemyDamage=Boolean.parseBoolean(value(s,"arkEnemyDamage","true"));
             arkAllyDamage=Boolean.parseBoolean(value(s,"arkAllyDamage","true"));
             uiFont=value(s,"uiFont","modern");
-            globalTheme=checkedTheme(value(s,"globalTheme","light"),"light");
-            menuTheme=checkedTheme(value(s,"menuTheme","dark"),"dark");
-            machineTheme=checkedTheme(value(s,"machineTheme","light"),"light");
-            menuFollowsTheme=Boolean.parseBoolean(value(s,"menuFollowsTheme","false"));
+            globalTheme=checkedTheme(value(s,"globalTheme",PIXEL_THEME));
+            menuTheme=checkedTheme(value(s,"menuTheme",PIXEL_THEME));
+            machineTheme=checkedTheme(value(s,"machineTheme",PIXEL_THEME));
+            menuFollowsTheme=Boolean.parseBoolean(value(s,"menuFollowsTheme","true"));
             machineFollowsTheme=Boolean.parseBoolean(value(s,"machineFollowsTheme","true"));
             if(!uiFont.equals("modern")&&!uiFont.matches("[a-f0-9]{64}"))uiFont="modern";
             if(!java.util.Set.of("small","medium","large").contains(panel))panel="medium";
@@ -88,6 +119,7 @@ public final class ClientSettings {
                     if (id != null && !id.isBlank()) collapsedQuests.add(id);
                 }
             }
+            UiTheme.preferencesChanged();
         }
         catch(Exception e){
             ClientUi.current().message("设置读取失败："+e.getMessage());
@@ -115,7 +147,7 @@ public final class ClientSettings {
     public static void save(){
         try{
             Files.createDirectories(path().getParent());
-            Files.writeString(path(),"# 本机界面与战斗显示设置；保存后立即生效。\npanelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nitemQualityFrames="+itemQualityFrames+"\nitemQualityFrames="+itemQualityFrames+"\nnearEffectFade="+nearEffectFade+"\nuiFont=\""+uiFont+"\"\n# light 为灰色立体，dark 为黑灰透明。\nglobalTheme=\""+globalTheme+"\"\n# 取消跟随时保留该类面板当时的主题。\nmenuFollowsTheme="+menuFollowsTheme+"\nmenuTheme=\""+menuTheme+"\"\nmachineFollowsTheme="+machineFollowsTheme+"\nmachineTheme=\""+machineTheme+"\"\n"
+            Files.writeString(path(),"# 本机界面与战斗显示设置；保存后立即生效。\npanelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nitemQualityFrames="+itemQualityFrames+"\nitemQualityFrames="+itemQualityFrames+"\nnearEffectFade="+nearEffectFade+"\nuiFont=\""+uiFont+"\"\n# light 为灰色立体，dark 为黑灰透明，pixel 为深色像素。\nglobalTheme=\""+globalTheme+"\"\n# 取消跟随时保留该类面板当时的主题。\nmenuFollowsTheme="+menuFollowsTheme+"\nmenuTheme=\""+menuTheme+"\"\nmachineFollowsTheme="+machineFollowsTheme+"\nmachineTheme=\""+machineTheme+"\"\n"
                 +"nearEffectFadeDistance="+(nearEffectFadeDistanceSteps/100d)+"\n"
                 +"arkEnemyHealth="+arkEnemyHealth+"\narkAllyHealth="+arkAllyHealth+"\narkEnemyDamage="+arkEnemyDamage+"\narkAllyDamage="+arkAllyDamage+"\n"
                 +"enemyHealthDistance="+enemyHealthDistance+"\nenemyHealthPerspective="+enemyHealthPerspective+"\nattackNeutralMobs="+attackNeutralMobs+"\n"

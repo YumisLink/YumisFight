@@ -31,6 +31,8 @@ public final class CareerProfiles {
     }
     public static Progress copy(Progress value){return JSON.fromJson(JSON.toJsonTree(value),Progress.class);}
     private static JsonObject growth(Progress value){var source=JSON.toJsonTree(value).getAsJsonObject();var result=new JsonObject();for(String key:GROWTH)result.add(key,source.has(key)?source.get(key).deepCopy():JsonNull.INSTANCE);return result;}
+    /** Packs only the per-profile growth fields; character-wide flags stay on the active progress. */
+    public JsonObject snapshot(Progress value){return growth(value);}
     public Progress select(Progress current,String target){
         if(target.equals(activeId))return current;
         Entry destination=entries.get(target);if(destination==null||destination.growth==null)throw new IllegalArgumentException("职业配置不存在");

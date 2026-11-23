@@ -48,6 +48,20 @@ public final class TargetService implements WorldTargets {
             if(practice==null){practice=new Target();practice.id=e.getUUID();practice.kind="TRAINING";practice.noRewards=true;practice.timedTraining=bag.timed();practice.originalLevel=1;practice.dimension=e.level().dimension().identifier().toString();practice.life.target=practice.id;practice.life.dimension=practice.dimension;try{journal.put("target/"+e.getUUID(),practice);}catch(Exception failure){throw new IllegalStateException(failure);}}
             practice.entityId=e.getId();return practice;
         }
+        if(e instanceof net.minecraft.world.entity.player.Player){
+            // 玩家只作为同步上下文：建临时 Target（无精英/掉落标记），不写 Journal，并顺手清掉历史脏键。
+            Target t=new Target();
+            t.id=e.getUUID();
+            t.kind="NORMAL";
+            t.noRewards=true;
+            t.dimension=e.level().dimension().identifier().toString();
+            cn.yumis.fight.modules.combat.api.Life life=journal.get("life/"+e.getUUID(),cn.yumis.fight.modules.combat.api.Life.class,null);
+            if(life!=null)t.life=life;
+            else{t.life.target=e.getUUID();t.life.dimension=t.dimension;}
+            t.entityId=e.getId();
+            if(journal.get("target/"+e.getUUID(),Target.class,null)!=null)try{journal.put("target/"+e.getUUID(),null);}catch(java.io.IOException failure){throw new IllegalStateException(failure);}
+            return t;
+        }
         Target t=journal.get("target/"+e.getUUID(),Target.class,null);
         if(t==null){
             String raw=e.getData(cn.yumis.fight.modules.combat.api.CombatContentTypes.TARGET);

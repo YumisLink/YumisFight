@@ -27,8 +27,10 @@ public final class SkillVisualRegistry {
         default void render(LevelRenderContext context,Track track,long age,long time,List<Quad> quads,Vec3 camera){}
         default void play(SkillVisualEvent event){}
         default void animate(Track track,net.minecraft.world.entity.LivingEntity caster,EntityRenderState state,long time){}
-        /** Null keeps the native swing; a value supplies this hand's content animation progress. */
-        default Float handAttack(Track track,Player player,net.minecraft.world.InteractionHand hand,long time){return null;}
+        default void decorateAvatar(Track track,Player player,net.minecraft.client.renderer.entity.state.AvatarRenderState state,long time){}
+        default int handOrbColor(){return 0;}
+        /** Bone pose document id; default mirrors the skill id so shipping a player_animation asset opts in. */
+        default String poseAnimation(Track track,long time){return track.start.skill();}
         default CameraType cameraType(Track track,long time){return CameraType.FIRST_PERSON;}
         default CameraPose camera(Track track,long time){return null;}
     }

@@ -30,6 +30,7 @@ public final class MageSkills {
         add(HERDER,"契约召唤：赫尔德","SUMMON",10,45d/226,20,true,16,Map.of("summonDuration",120d,"meleeInterval",1.2,"stoneInterval",4d,"stoneGap",.2));
         skill(HERDER).damageParameter("stoneDamage",1.2);
         skill(STAR).formParameter("projectileSpeed",20);
+        skill(STAR).formParameter("throwMillis",200);
         skill(FANG).formParameter("fuseMillis",200);
         skill(JACK).formParameter("projectileSpeed",15);
         skill(HERDER).formParameter("stoneVolley",3).formParameter("stoneUnlockRank",5).formParameter("heavyEvery",3).formParameter("bombEvery",3);

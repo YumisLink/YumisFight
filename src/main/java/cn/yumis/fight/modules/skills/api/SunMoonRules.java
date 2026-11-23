@@ -11,6 +11,7 @@ public final class SunMoonRules {
     public static double sunStackMut(int stacks){return stacks<=3?SUN_DAMAGE[Math.clamp(stacks,0,3)]:SUN_DAMAGE[3]+1.2*(stacks-3);}
     public static double moonRegen(int stacks){return stacks<=3?MOON_REGEN[Math.clamp(stacks,0,3)]:MOON_REGEN[3]+90*(stacks-3);}
     public static double reverseSpeed(int stacks){return stacks<=3?REVERSE_SPEED[Math.clamp(stacks,0,3)]:REVERSE_SPEED[3]+1.2*(stacks-3);}
+    public static double chantSpeed(Stats stats){return Math.max(.01,1+stats.modifiers.getOrDefault("sunMoonSpeedApplied",0d));}
     public static double sunDamage(int rank,int stacks){return rank<=0?0:sunStackMut(stacks)*Math.pow(1.12,rank-1);}
     /** Equipment raises the heart cap through the sunMoonStackCap modifier; one layer minimum always applies. */
     public static int stackCap(Stats stats){return Math.max(1,stats.modifiers.getOrDefault("sunMoonStackCap",3d).intValue());}
@@ -36,7 +37,6 @@ public final class SunMoonRules {
         boolean reverse=aspect>0&&heart>0&&heart!=aspect&&stacks>0;
         double damage=aspect==1&&heart==1?sunDamage(source.modifiers.getOrDefault("sunMoonCycleRank",1d).intValue(),stacks):0,speed=reverse?reverseSpeed(stacks):0,penalty=reverse?(aspect==1?.2:.6):1;
         result.modifier("final").mut+=damage-result.modifiers.getOrDefault("sunMoonDamageApplied",0d);
-        result.mut(Stat.CAST_SPEED,speed-result.modifiers.getOrDefault("sunMoonSpeedApplied",0d));
         result.modifier("skillProduct").alls*=penalty/result.modifiers.getOrDefault("sunMoonPenaltyApplied",1d);
         result.modifiers.put("sunMoonDamageApplied",damage);result.modifiers.put("sunMoonSpeedApplied",speed);result.modifiers.put("sunMoonPenaltyApplied",penalty);
         boolean useHarmony=aspect==1&&!reverse&&harmony>0;

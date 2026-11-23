@@ -159,7 +159,7 @@ public final class ServerApplication {
         journal=new Journal(server.getWorldPath(LevelResource.ROOT).resolve(ItemData.NS).resolve("modules-v1").resolve("state.wal"));
         characters=new cn.yumis.fight.modules.character.application.CharacterStore(journal);
         professionService=new cn.yumis.fight.modules.professions.application.ProfessionService(journal);
-        partyService=new cn.yumis.fight.modules.party.application.PartyService(journal,server.getPlayerList()::getPlayerByName,this::refreshAll);
+        partyService=new cn.yumis.fight.modules.party.application.PartyService(journal,server.getPlayerList()::getPlayerByName,id->server.getPlayerList().getPlayer(id)!=null,this::refreshAll);
         loot=cn.yumis.fight.bootstrap.RuntimeAssembly.lootService(this);
         inventory=new InventoryTransactions(journal,loot,this::profile,this::message,cn.yumis.fight.bootstrap.RuntimeAssembly.currencyAction(this));
         equipmentLayout=new cn.yumis.fight.modules.equipment.application.EquipmentLayoutService(journal,inventory,this::profile);
@@ -179,9 +179,9 @@ public final class ServerApplication {
         damageMeter=cn.yumis.fight.bootstrap.RuntimeAssembly.damageMeterService(this);
         trainingService=new cn.yumis.fight.modules.dungeons.application.TrainingService(server,journal,this::session,p->dungeons.current(p.getUUID())!=null,(p,bag)->context(p,bag),this::message);
         nativeHits.targetAccess(trainingService::allowsNative);
-        equipmentApplication=new cn.yumis.fight.modules.equipment.application.EquipmentApplication(journal,inventory,p->session(p).id,this::profile,this::message);
         equipmentContracts=new cn.yumis.fight.modules.equipment.application.EquipmentContracts(journal);
         economyService=new cn.yumis.fight.modules.economy.application.EconomyService(journal,inventory,p->session(p).id,this::profile,equipmentContracts,economyDrafts);
+        equipmentApplication=new cn.yumis.fight.modules.equipment.application.EquipmentApplication(journal,inventory,p->session(p).id,this::profile,this::message,economyService::receiveBalances);
         shops=new cn.yumis.fight.modules.economy.application.ShopService(journal,inventory,economyService,p->session(p).id,this::profile);
         npcs=new cn.yumis.fight.modules.npc.application.NpcService(journal);
         cn.yumis.fight.modules.npc.api.NpcSpawns.install(npcs::group);
@@ -189,6 +189,7 @@ public final class ServerApplication {
         cn.yumis.fight.modules.npc.api.NpcEntity.conversations(npcs::conversing);
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.unregister("shop");
         cn.yumis.fight.modules.npc.api.NpcInteractionComponent.register("shop",(p,e,a)->shops.open(p,e.getUUID(),a.value()));
+        cn.yumis.fight.modules.npc.api.NpcInteractionComponent.register("enhance",(p,e,a)->cn.yumis.fight.modules.equipment.api.EnhanceMenu.open(p));
         arkGuard=new cn.yumis.fight.modules.arkguard.application.ArkGuardService(server,journal,p->session(p).id.toString(),(p,value)->Network.send(p,"arkGuard",value),this::message,targets,loot::prepareExperience);
         nativeHits.worldDamage(worldHealth::nativeDamage);
         progressService=new cn.yumis.fight.modules.character.application.ProgressService(journal,characters,inventory,p->session(p).progress,(p,next)->session(p).progress=next,this::profile);

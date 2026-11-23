@@ -23,8 +23,24 @@ public final class EquipmentActions {
     private record CreativeCurrency(String operation, InventoryMenu menu, ItemStack before, ItemStack after) {}
     private static CreativeCurrency creativeCurrency;
     private EquipmentActions(){}
-    public static void clear(){initializing.clear();creativeCurrency=null;}
-    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<JsonObject> view,Function<String,Profession> professions){progress=p;profile=view;profession=professions;router.register("equipment","craft",(ignored,j)->craft(j));router.register("equipment","cubeCraft",(ignored,j)->EquipmentChanges.prepareCube(Minecraft.getInstance().player,profession.apply("craftsman"),j));router.register("equipment","currency",(ignored,j)->currency(j));router.register("equipment","initializeEquipment",(ignored,j)->initialize(j));}
+    public static void clear(){initializing.clear();creativeCurrency=null;EnhanceClient.clear();}
+    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<JsonObject> view,Function<String,Profession> professions){progress=p;profile=view;profession=professions;router.register("equipment","craft",(ignored,j)->craft(j));router.register("equipment","cubeCraft",(ignored,j)->EquipmentChanges.prepareCube(Minecraft.getInstance().player,profession.apply("craftsman"),j));router.register("equipment","currency",(ignored,j)->currency(j));router.register("equipment","enhance",(ignored,j)->enhance(j));router.register("equipment","initializeEquipment",(ignored,j)->initialize(j));}
+    /** 当前账户快照（金币等），供强化界面做预算展示。 */
+    public static JsonObject accountView(){return profile.get();}
+    private static void enhance(JsonObject j){
+        var player=Minecraft.getInstance().player;
+        String operation=j.get("operation").getAsString();
+        try{
+            if(player==null)throw new IllegalArgumentException("强化界面已失效");
+            var account=profile.get();
+            long gold=account.has("gold")?account.get("gold").getAsLong():0L;
+            long revision=account.has("goldRevision")?account.get("goldRevision").getAsLong():0L;
+            EnhanceClient.dispatched(operation,EquipmentChanges.prepareEnhance(player,j,gold,revision,RANDOM));
+        }catch(RuntimeException failure){
+            EnhanceClient.failed(operation);
+            throw failure;
+        }
+    }
     private static void craft(JsonObject j){EquipmentChanges.prepareCraft(Minecraft.getInstance().player,progress.get(),profile.get().get("craftAllowed").getAsBoolean(),profession.apply("craftsman"),j,RANDOM);}
     private static void currency(JsonObject request) {
         var player = Minecraft.getInstance().player;

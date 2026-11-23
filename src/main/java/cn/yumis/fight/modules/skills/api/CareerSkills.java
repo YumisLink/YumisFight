@@ -48,7 +48,7 @@ public final class CareerSkills {
         SkillCatalog.require(AGNI).formParameter("agniControlSeconds",3).formParameter("agniBaseHits",3).formParameter("agniIntervalBase",.85).formParameter("controlSeconds",3);
         SkillCatalog.require(EYE).formParameter("auraPulses",20).formParameter("auraRadius",8).formParameter("auraRatio",AsuraRules.AURA_RATIO).formParameter("gearRange",10).formParameter("gearSpeed",3).formParameter("gearRatio",AsuraRules.GEAR_RATIO);
         SkillCatalog.require(CRASH).formParameter("hopDistance",3).formParameter("hopSeconds",.5).formParameter("hopHeight",1.2);
-        SkillCatalog.require(ERUPTION).formParameter("hopDistance",6).formParameter("hopSeconds",.6).formParameter("hopHeight",2);
+        SkillCatalog.require(ERUPTION).formParameter("hopDistance",6).formParameter("hopSeconds",.6).formParameter("hopHeight",2).formParameter("bloodSwordWindup",.25);
         SkillCatalog.require(SWORD).formParameter("swordFirstShare",.3).formParameter("swordRushes",5).formParameter("bloodCap",20).formParameter("bloodInterval",.5);
         SkillCatalog.require(ICE).formParameter("controlSeconds",1.5);
         SkillCatalog.require(HAND).formParameter("controlSeconds",.3);

@@ -13,10 +13,30 @@ final class SunMoonSkillVisuals {
     private SunMoonSkillVisuals(){}
     static void install(){for(String id:SunMoonSkills.ALL)SkillVisualRegistry.register(id,new SkillVisualRegistry.Handler(){
         @Override public long defaultDuration(){return 2600;}
+        @Override public int handOrbColor(){
+            if(id.equals(SunMoonSkills.CORONA))return 0xff963e;
+            if(id.equals(SunMoonSkills.STARFALL))return 0x79d7ff;
+            return 0;
+        }
         @Override public long finishedUntil(SkillVfx.Track track,SkillVisualEvent event){return event.at()+(id.equals(SunMoonSkills.MOON)?2000:id.equals(SunMoonSkills.STARFALL)?600:900);}
         @Override public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long time,List<Quad> quads,Vec3 camera){draw(id,track,age,time,quads);}
         @Override public void play(SkillVisualEvent event){if(id.equals(SunMoonSkills.CORONA)&&event.phase()==SkillVisualEvent.Phase.FINISH)CoronaBlur.flash(SkillVfx.vector(event.position()));}
     });}
+    static void handOrb(SkillVfx.Track track,net.minecraft.world.entity.player.Player player,long now,List<Quad> out){
+        double age=now-track.start.startedAt(),duration=track.start.duration();
+        if(age<0||age>=duration)return;
+        boolean chant=track.poseLead>0;
+        double progress=age/duration;
+        double push=chant?Math.clamp((age-duration+track.poseLead)/track.poseLead,0,1):1;
+        Vec3 aim=track.poseFollow?player.getLookAngle():SkillVfx.vector(track.last.direction()).normalize();
+        Vec3 point=PlayerVisualAnchor.position(player).add(0,player.getEyeHeight()-.13+.36*(1-push),0)
+            .add(aim.scale(chant?.78+.17*push:.95+1.6*progress));
+        double radius=chant?.08+.21*Math.min(1,progress*2.2):.29+.13*progress;
+        int opacity=chant?(int)(220*Math.min(1,progress*3.5)):(int)(220*(1-progress));
+        sphere(out,point,radius,track.poseOrbColor,opacity,14,7);
+        sphere(out,point,radius*.63,0xffffff,(int)(opacity*.85),12,6);
+        ring(out,point,radius*1.14,.025,track.poseOrbColor,(int)(opacity*.72),now*.006);
+    }
     static void actors(List<Quad> out,long time){
         var mc=Minecraft.getInstance();if(mc.level==null)return;
         for(var actor:CareerClient.INSTANCE.view.actors){if(actor.sunMoonHeart==0||actor.sunMoonStacks<=0)continue;var player=mc.level.getPlayerByUUID(UUID.fromString(actor.owner));if(player==null||!player.isAlive())continue;

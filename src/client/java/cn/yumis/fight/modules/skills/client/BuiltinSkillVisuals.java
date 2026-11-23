@@ -16,6 +16,7 @@ import net.minecraft.world.phys.*;
 
 import java.util.*;
 import cn.yumis.fight.modules.skills.api.SkillCatalog;
+import cn.yumis.fight.modules.skills.api.client.BasicAttackVisuals;
 import cn.yumis.fight.modules.skills.client.SkillVfx.*;
 import static cn.yumis.fight.modules.skills.client.SkillVfx.vector;
 /** Existing skill presentation content. New handlers register without editing track dispatch or rendering transport. */
@@ -35,10 +36,16 @@ final class BuiltinSkillVisuals {
                 public void render(LevelRenderContext context,Track track,long age,long time,List<Quad> quads,Vec3 camera){BuiltinSkillVisuals.render(context,track,age,time,quads,camera);}
                 public void play(SkillVisualEvent event){BuiltinSkillVisuals.play(event);}
                 public void animate(Track track,net.minecraft.world.entity.LivingEntity caster,EntityRenderState state,long time){BuiltinSkillVisuals.animate(track,caster,state,time);}
+                public void decorateAvatar(Track track,Player player,AvatarRenderState state,long time){BuiltinSkillVisuals.animate(track,player,state,time);}
                 public CameraType cameraType(Track track,long time){return StormChoreography.presentationTime(time-track.start.startedAt())<StormChoreography.FINISH?CameraType.THIRD_PERSON_BACK:CameraType.FIRST_PERSON;}
                 public CameraPose camera(Track track,long time){return cinematic()?BuiltinSkillVisuals.camera(track,time):null;}
             });
         }
+        // 太刀普攻走整套 ATTACK 视觉（替代原版挥手），与战刃的整套普攻风格同构。
+        BasicAttackVisuals.register("KATANA",true,(visual,slash,interval)->{
+            visual.addProperty("sequence",slash);
+            visual.addProperty("duration",Math.max(1,(long)Math.ceil(interval)));
+        });
     }
     private static void tick(Track t,long time){
             if(t.start.skill().equals("yumis_dungeon_and_fight:storm")){

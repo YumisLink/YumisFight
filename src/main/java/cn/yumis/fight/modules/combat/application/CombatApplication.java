@@ -343,7 +343,7 @@ public final class CombatApplication {
             var level=server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(j.get("dimension").getAsString())));
             if(level!=null&&level.getEntity(UUID.fromString(j.get("target").getAsString())) instanceof LivingEntity living)entity=living;
             var elemental=ElementAccumulation.kind(j.get("kind").getAsString());
-            if(entity instanceof ServerPlayer){if((j.has("settleUntil")?j.get("settleUntil"):j.get("expires")).getAsLong()<=now)try{journal.put(key,null);}catch(java.io.IOException failure){throw new IllegalStateException(failure);}continue;}
+            if(entity instanceof ServerPlayer){if((j.has("settleUntil")?j.get("settleUntil"):j.get("expires")).getAsLong()<=now)try{journal.put(key,null);net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("ailmentsClear",JSON.toJson(j)));}catch(java.io.IOException failure){throw new IllegalStateException(failure);}continue;}
             CombatTarget target=entity==null||entity instanceof Player?null:targets.apply(entity);
             Life life=entity instanceof ServerPlayer player?sessions.apply(player).life:target==null?null:target.life();
             if(elemental!=null&&life!=null&&life.elemental.matches(life)&&life.elemental.until[elemental.ordinal()]==j.get("expires").getAsLong()&&j.get("expires").getAsLong()<=now)entity.removeEffect(CombatContentTypes.elementalEffect(elemental));

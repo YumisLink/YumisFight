@@ -8,6 +8,7 @@ import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.equipment.api.Slot;
 import static cn.yumis.fight.modules.combat.api.LevelAdvantage.advantage;
 import cn.yumis.fight.modules.skills.client.Effects;
+import cn.yumis.fight.modules.skills.client.PlayerPoseChannel;
 import cn.yumis.fight.modules.skills.api.SkillPreview;
 import cn.yumis.fight.modules.combat.api.CombatTiming;
 import cn.yumis.fight.modules.combat.api.CombatRules;
@@ -118,7 +119,9 @@ public final class SkillController {
         return cast!=null||cn.yumis.fight.modules.skills.client.ChantClient.active();
     }
     public boolean invulnerable(){
-        return cn.yumis.fight.modules.skills.client.DemonHunterClient.invulnerable()||cast!=null&&(SkillPresentation.invulnerable(cast.skill)||cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.invulnerable(cast));
+        return cn.yumis.fight.modules.skills.client.DemonHunterClient.invulnerable()
+            ||cast!=null&&(SkillPresentation.invulnerable(cast.skill)||cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.invulnerable(cast))
+            ||ongoingEffects.stream().anyMatch(cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE::invulnerable);
     }
     public Stats snapshot(){
         var mc=Minecraft.getInstance();long tick=mc.player==null?-1:mc.player.tickCount;var resources=state().resources();var career=cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.view;
@@ -130,17 +133,25 @@ public final class SkillController {
         return snapshotCache.copy();
     }
     public void invalidateSnapshot(){snapshotCache=null;}
-    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();SkillBehaviors.finish(cast);cast=null;cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;basicActions.clear();basicVisualCycles.clear();waves.clear();staffBolts.clear();nativeLaunches.clear();launchFrames.clear();bosses.clear();bossHit.clear();incomingRoots.clear();wallActions.clear();state().resources().equipmentBuffs.remove("wall");controls.clear();environment.clear();bleeds.clear();pendingBleeds.clear();equipmentReceipts.clear();elementalDots.clear();pendingElemental.clear();deferred.clear();lastAttack=lastTick=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
+    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();SkillBehaviors.finish(cast);cast=null;ongoingEffects.clear();PlayerPoseChannel.clear();cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;basicActions.clear();basicVisualCycles.clear();waves.clear();staffBolts.clear();nativeLaunches.clear();launchFrames.clear();bosses.clear();bossHit.clear();incomingRoots.clear();wallActions.clear();state().resources().equipmentBuffs.remove("wall");controls.clear();environment.clear();bleeds.clear();pendingBleeds.clear();equipmentReceipts.clear();elementalDots.clear();pendingElemental.clear();deferred.clear();lastAttack=lastTick=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
+    private final List<SkillCast> ongoingEffects=new ArrayList<>();
+    private SkillCast advancing;
+    public boolean readyToCast(long now){
+        return !PlayerPoseChannel.coolingDown(now)&&(cast==null||PlayerPoseChannel.canYield(cast,now));
+    }
+    public void releaseCompletedCast(){
+        if(cast!=null)yieldCast();
+    }
     public boolean press(int slot){
         if(!state().ready())return false;
         if(cn.yumis.fight.modules.skills.client.ChantClient.press(slot))return true;
         String initial=state().progress().slots[slot];
-        if(cast==null&&SkillCatalog.contains(initial)&&!Minecraft.getInstance().player.isDeadOrDying()&&!cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(Minecraft.getInstance().player))cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.prepareInput(SkillCatalog.require(initial));
-        if(!validWeapon()&&(!SkillCatalog.contains(initial)||!SkillCatalog.require(initial).equipmentGranted))return false;
         var p=Minecraft.getInstance().player;
         long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
         if(p.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(p))return true;
+        boolean equipmentSkill=SkillCatalog.contains(initial)&&SkillCatalog.require(initial).equipmentGranted;
         if(cast!=null){
+            if(!validWeapon()&&!equipmentSkill)return false;
             if(cast.slot%8==slot%8&&SkillPresentation.segmented(cast.skill)&&now>=cast.stageStart+SkillPresentation.segmentDelay(cast.skill)/cast.speed&&now<=cast.window&&cast.segment<cast.parameters.get("slashes",3)){
                 // Complete the previous segment before an input arriving between movement ticks.
                 advance(now,0);
@@ -152,9 +163,13 @@ public final class SkillController {
                 cast.hit.clear();
                 cast.window=now+(long)(SkillPresentation.segmentWindow(cast.skill)/cast.speed);
                 visual(cast,"SEGMENT");
+                poseSegment(cast);
+                return true;
             }
-            return true;
+            if(!PlayerPoseChannel.canYield(cast,now))return true;
         }
+        if(SkillCatalog.contains(initial)&&readyToCast(now))cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.prepareInput(SkillCatalog.require(initial));
+        if(!validWeapon()&&!equipmentSkill)return false;
         String binding=state().progress().slots[slot];
         if(binding.isEmpty())return true;
         if(!SkillCatalog.contains(binding)){state().message("该技能内容尚未加载，快捷槽已保留");return false;}
@@ -175,9 +190,14 @@ public final class SkillController {
         TrainingCombat.begin(c.id,c.skill.title);
         if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIELD))TrainingCombat.hold(c.id,"persistent",now+12000);
         if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.KALLA)&&!c.terminal)TrainingCombat.hold(c.id,"persistent",now+20000);
+        PlayerPoseChannel.begin(c);
         SkillBehaviors.start(skillContext,c,now);visual(c,"START");
-        if(SkillPresentation.segmented(c.skill))visual(c,"SEGMENT");
+        if(SkillPresentation.segmented(c.skill)){visual(c,"SEGMENT");poseSegment(c);}
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.publish();
+    }
+    private void poseSegment(SkillCast source){
+        long duration=PlayerPoseChannel.scaled(source.parameters.get("dashSeconds",.2)*1000,source.speed);
+        PlayerPoseChannel.play(source,source.skill.id,duration,source.direction,false);
     }
     public List<LivingEntity> targets(AABB box){return enemies(box);}
     public static boolean canTarget(LivingEntity entity){
@@ -189,6 +209,7 @@ public final class SkillController {
     /** Resolve a local content-owned hit with its own immutable cast snapshot. */
     public boolean hitCast(SkillCast source,LivingEntity target,double coefficient,double knockback){var previous=hitSource;boolean previousTail=confirmedTail;hitSource=source;confirmedTail=true;try{return hit(target,source.stats,source.skill,coefficient,false,source.passiveDamage,knockback,null);}finally{hitSource=previous;confirmedTail=previousTail;}}
     public void stopVisual(SkillCast c){visual(c,"CANCEL");}
+    public void discardEffect(SkillCast source){ongoingEffects.remove(source);}
     private String basicCycle="";
     private int basicSlash;
     private record BasicCycle(String id,String session,String weapon,long generation,String dimension,String instance,Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects,JsonObject content,double interval,int slashes,long started){}
@@ -214,9 +235,9 @@ public final class SkillController {
         if(weapon.projectileSpeed()>0){var direction=mc.player.getLookAngle().normalize();var launch=cn.yumis.fight.modules.combat.api.ProjectileSpawn.inWorld(mc.player,mc.player.getEyePosition(),direction,weapon.range(),.15,SkillController::canTarget);content.add("staffProjectile",cn.yumis.fight.modules.combat.api.ProjectileSpawn.snapshot(launch,direction,state().serverNow()));}
         TrainingCombat.begin(cycle,"普通攻击");
         if(mc.hitResult instanceof EntityHitResult hit&&hit.getEntity() instanceof CageEntity cage){
-            JsonObject j=new JsonObject();j.addProperty("cage",cage.root());j.addProperty("operation",UUID.randomUUID().toString());state().send("cageHit",j);mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);return;
+            JsonObject j=new JsonObject();j.addProperty("cage",cage.root());j.addProperty("operation",UUID.randomUUID().toString());state().send("cageHit",j);if(!poseBasic(stats,1))mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);return;
         }
-        if(cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basic(stats,cycle,content)){mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);TrainingCombat.actionFinished(cycle);return;}
+        if(cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basic(stats,cycle,content)){if(!poseBasic(stats,1))mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);TrainingCombat.actionFinished(cycle);return;}
         long start=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();int slashes=profile.slashes();double offset=profile.contactOffset();
         var accepted=new BasicCycle(cycle,state().session(),stats.weaponInstance,state().own().generation,mc.level.dimension().identifier().toString(),state().own().instance,stats,equipment,content,interval,slashes,start);
         boolean whole=BasicAttackVisuals.wholeCycle(stats.weaponType);if(whole){basicVisualCycles.put(cycle,accepted);basicVisual(accepted,0,start);}
@@ -227,6 +248,7 @@ public final class SkillController {
         advanceBasicActions(start);
     }
     public void cancelBasicAttacks(){
+        PlayerPoseChannel.cancelBasic();
         var cycles=new HashSet<String>();for(var action:basicActions)cycles.add(action.cycle.id);
         basicActions.clear();for(String cycle:cycles)TrainingCombat.actionFinished(cycle);
         for(var cycle:basicVisualCycles.values())cancelBasicVisual(cycle);basicVisualCycles.clear();
@@ -253,7 +275,7 @@ public final class SkillController {
         var previousEquipment=hitEquipment;hitEquipment=equipment;try{
         var mc=Minecraft.getInstance();var p=mc.player;
         basicCycle=cycle;basicSlash=index;
-        if(WeaponTraits.basic(stats.weaponType).projectileSpeed()>0){staffBolts.fire(state(),stats,equipment,cycle,index,content);p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);return;}
+        if(WeaponTraits.basic(stats.weaponType).projectileSpeed()>0){staffBolts.fire(state(),stats,equipment,cycle,index,content);return;}
         boolean mastery=WeaponSkills.mastery(state().progress(),stats),great=mastery&&stats.weaponType.equals("GREATSWORD");
         Vec3 from=p.getEyePosition(),direction=Vec3.directionFromRotation(0,p.getYRot());double reach=great?6:WeaponTraits.basic(stats.weaponType).range();
         double coefficient=stats.modifiers.getOrDefault("careerFrenzy",0d)>0?.65:great?stats.modifiers.getOrDefault("greatCharge",1d):mastery&&stats.weaponType.equals("LIGHTSABER")?.75:1;
@@ -287,11 +309,19 @@ public final class SkillController {
     }
     private void basicVisual(BasicCycle cycle,int index,long at){
         var stats=cycle.stats;var p=Minecraft.getInstance().player;
-        if(WeaponTraits.basic(stats.weaponType).projectileSpeed()>0)return;
+        boolean posed=poseBasic(stats,BasicAttackVisuals.wholeCycle(stats.weaponType)?cycle.slashes:1);
+        if(WeaponTraits.basic(stats.weaponType).projectileSpeed()>0){
+            if(!posed)p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+            return;
+        }
         boolean mastery=WeaponSkills.mastery(state().progress(),stats),great=mastery&&stats.weaponType.equals("GREATSWORD");double reach=great?6:WeaponTraits.basic(stats.weaponType).range();
         JsonObject visual=visualEnvelope(UUID.nameUUIDFromBytes((cycle.id+"/"+index).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString(),"ATTACK","START",at,p.position(),p.position(),p.getLookAngle(),0);visual.addProperty("color",cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basicColor(stats));visual.addProperty("duration",Math.max(650,(long)(cycle.interval/(mastery&&stats.weaponType.equals("LIGHTSABER")?2:1))));visual.addProperty("cosmeticOnly",true);visual.addProperty("reach",reach);visual.addProperty("sweep",great);visual.addProperty("horizontalScale",great?1:WeaponTraits.sword(stats.weaponType)?1.5:1);
-        if(!BasicAttackVisuals.apply(stats.weaponType,visual,index,cycle.interval))p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+        if(!BasicAttackVisuals.apply(stats.weaponType,visual,index,cycle.interval)&&!posed)p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
         Effects.receive(visual);state().send("visual",visual);
+    }
+    private boolean poseBasic(Stats stats,int strikes){
+        var p=Minecraft.getInstance().player;
+        return PlayerPoseChannel.basic(stats,p.getMainArm()==HumanoidArm.LEFT,strikes,p.getLookAngle());
     }
     public void tick(){
         var mc=Minecraft.getInstance();
@@ -323,6 +353,11 @@ public final class SkillController {
         // A held charge keeps aiming along the caster's live crosshair instead of the frozen launch heading.
         if(cast!=null&&cast.charging&&!cast.release)cast.direction=horizontal(mc.player.getLookAngle());
         if(cast!=null)advance(now,dt);
+        if(cast!=null&&cast.effectContinues&&PlayerPoseChannel.canYield(cast,now))yieldCast();
+        for(SkillCast effect:new ArrayList<>(ongoingEffects)){
+            if(!cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.valid(effect))finishCast(effect,false);
+            else advance(effect,now);
+        }
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.tick(skillContext);
         cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.tick(skillContext);
         for(Wave w:new ArrayList<>(waves))advance(w);
@@ -331,7 +366,7 @@ public final class SkillController {
         boolean out=now>=state().resources().combatUntil;
         if(!state().own().dead){
             Stats recovery=snapshot();double recoveryTick=1d/20;
-            if(recovery.modifiers.getOrDefault("manaRecoveryBlocked",0d)<=0)state().resources().mp=Math.min(recovery.get(Stat.MP),state().resources().mp+(1+.04*recovery.get(Stat.SPIRIT))*recovery.get(Stat.MANA_REGENERATION)*(out?3:1)*recoveryTick);
+            if(recovery.modifiers.getOrDefault("manaRecoveryBlocked",0d)<=0)state().resources().mp=Math.min(recovery.get(Stat.MP),state().resources().mp+CombatTiming.manaRegeneration(recovery.get(Stat.MP),recovery.get(Stat.SPIRIT))*recovery.get(Stat.MANA_REGENERATION)*(out?3:1)*recoveryTick);
             if(CombatTiming.shieldReady(state().resources(),now))state().resources().shield=Math.min(recovery.get(Stat.SHIELD),state().resources().shield+.2*recovery.get(Stat.SHIELD)*recovery.get(Stat.SHIELD_REGENERATION)*recoveryTick);
             if(out&&state().predicted(state().own())<1)state().report(state().own(),CombatTiming.regeneration(recoveryTick,recovery.get(Stat.HEALTH),recovery.get(Stat.HEALTH_REGENERATION)),true,recovery.get(Stat.HEALTH),0xffffff,false,null);
         }
@@ -359,9 +394,20 @@ public final class SkillController {
         public void area(SkillCast c,double radius,double coefficient,boolean inward){var previous=hitSource;hitSource=c;try{SkillController.this.area(c,radius,coefficient,inward);}finally{hitSource=previous;}}
         public boolean hit(SkillCast c,LivingEntity target,double coefficient){var previous=hitSource;hitSource=c;try{return SkillController.this.hit(target,c.stats,c.skill,coefficient,false,c.dot,0,null);}finally{hitSource=previous;}}
         public void passive(SkillCast c){SkillController.this.passive(c);}
-        public void cancel(boolean normal){SkillController.this.cancel(normal);}
+        public void cancel(boolean normal){
+            if(advancing==null)SkillController.this.cancel(normal);
+            else finishCast(advancing,normal);
+        }
     };
-    private void advance(long now,double dt){SkillBehaviors.advance(skillContext,cast,now);}
+    private void advance(long now,double dt){advance(cast,now);}
+    private void advance(SkillCast source,long now){
+        advancing=source;
+        try{SkillBehaviors.advance(skillContext,source,now);}finally{advancing=null;}
+    }
+    private void yieldCast(){
+        if(cast.effectContinues){ongoingEffects.add(cast);cast=null;}
+        else finishCast(cast,true);
+    }
 
     private void passive(SkillCast c){
         if(SkillLearning.effective(c.stats,state().progress(),SkillCatalog.MASTERY)>0)wave(Minecraft.getInstance().player.position().add(0,.8,0),c.direction,8,c.skill==SkillCatalog.DRAW?6:3,c.skill==SkillCatalog.DRAW?4:2,c.stats,c.skill,c.parameters.get("damage",1)*.2*mastery(c.stats),true,false);
@@ -663,16 +709,25 @@ public final class SkillController {
     public void cancel(boolean normal){
         if(!normal)cn.yumis.fight.modules.skills.client.ChantClient.cancel();
         if(!normal)cancelBasicAttacks();
-        if(cast==null)return;
-        TrainingCombat.actionFinished(cast.id);
-        if(!normal)cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.cancel(cast);
-        visual(cast,normal?"END":"CANCEL");
-        SkillBehaviors.finish(cast);cast=null;
+        if(cast!=null)finishCast(cast,normal);
+    }
+    private void finishCast(SkillCast source,boolean normal){
+        TrainingCombat.actionFinished(source.id);
+        if(normal)PlayerPoseChannel.release(source);
+        else{
+            PlayerPoseChannel.cancel(source);
+            cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.cancel(source);
+        }
+        visual(source,normal?"END":"CANCEL");
+        SkillBehaviors.finish(source);
+        if(cast==source)cast=null;
+        ongoingEffects.remove(source);
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.publish();state().upload();
     }
     private void visual(SkillCast c,String phase){
         var p=Minecraft.getInstance().player;
         if(p==null)return;
+        if(phase.equals("RELEASE")||phase.equals("FINISH"))PlayerPoseChannel.lock(c);
         if(phase.equals("TRAIL"))return;
         if(phase.equals("END")&&(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ORB)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRESCENT)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIRE)))return;
         JsonObject j=visualEnvelope(c.id,c.skill.id,phase,c.start,c.origin,p.position(),c.direction,++c.visualSequence);
@@ -750,6 +805,8 @@ public final class SkillController {
         if(j.has("session")&&!j.get("session").getAsString().equals(state().session())||j.has("generation")&&j.get("generation").getAsLong()!=state().own().generation)return;
         if(!state().ready()||state().own().dead||!incomingRoots.add(j.get("root").getAsString()))return;
         if(incomingRoots.size()>2048)incomingRoots.clear();
+        // 原版 /kill 走 genericKill：按原版语义无条件致死，不经过无敌帧、装备防护、护盾与吸收。
+        if(j.get("source").getAsString().equals("genericKill")){nativeKill(j);return;}
         if(invulnerable()||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(Minecraft.getInstance().player)||Minecraft.getInstance().player.isSpectator()||Minecraft.getInstance().player.getAbilities().invulnerable&&!(j.has("bypassInvulnerability")&&j.get("bypassInvulnerability").getAsBoolean())){nativeOutcome(j,"IMMUNE");return;}
         if(j.get("source").getAsString().equals("fall")&&Minecraft.getInstance().player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.CLOUD_STEP)){nativeOutcome(j,"IMMUNE");return;}
         double fraction;boolean enemyAttack=false;int enemyElement=-1;
@@ -822,6 +879,14 @@ public final class SkillController {
         if(!source.has("nativeRoot"))return;
         JsonObject feedback=new JsonObject();feedback.add("nativeRoot",source.get("nativeRoot"));feedback.addProperty("outcome",outcome);
         state().report(state().own(),0,false,snapshot().get(Stat.HEALTH),0xff5555,false,feedback);
+    }
+    /** 原版 /kill：上报整条生命为致死份额，服务器确认后照常走死亡投影与重生。 */
+    private void nativeKill(JsonObject j){
+        JsonObject feedback=new JsonObject();
+        if(j.has("nativeRoot"))feedback.add("nativeRoot",j.get("nativeRoot"));
+        feedback.addProperty("outcome","HIT");
+        // 整条生命份额而非当前预测剩余值：存在在途伤害上报时也能确保服务器把权威生命结算到 0。
+        state().report(state().own(),1,false,snapshot().get(Stat.HEALTH),0xff5555,false,feedback);
     }
     private double explosion(JsonObject j){
         if(!j.has("x")){

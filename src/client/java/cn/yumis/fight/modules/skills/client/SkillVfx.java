@@ -3,6 +3,7 @@ package cn.yumis.fight.modules.skills.client;
 import cn.yumis.fight.modules.skills.api.client.SkillsClient;
 
 import cn.yumis.fight.modules.skills.api.SkillVisualEvent;
+import cn.yumis.fight.modules.skills.api.SkillVisualRules;
 
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
@@ -34,6 +35,10 @@ public final class SkillVfx {
         long terminal,retirement;
         int soundPhase=-1;
         double speed=1;
+        String poseClip="",poseNext="";
+        long poseLead;
+        boolean poseFollow;
+        int poseOrbColor;
         Motion motion;
         String summonMove="";
         Vec3 followedPoint;
@@ -121,7 +126,20 @@ public final class SkillVfx {
             track.flashes.add(event);
             while(track.flashes.size()>32)track.flashes.removeFirst();
         }
-        if(time-event.at()<200)SkillVisualRegistry.handler(event.skill()).play(event);
+        if(!event.skill().equals(SkillVisualRules.PLAYER_POSE)&&time-event.at()<200)SkillVisualRegistry.handler(event.skill()).play(event);
+    }
+    void poseClip(UUID cast,int sequence,String clip,String next,long lead,boolean follow,int orbColor){
+        Track track=tracks.get(cast);
+        if(track==null||track.sequence!=sequence||!track.start.skill().equals(SkillVisualRules.PLAYER_POSE))return;
+        if(!validClip(clip)||(!next.isEmpty()&&!validClip(next)))return;
+        track.poseClip=clip;
+        track.poseNext=next;
+        track.poseLead=Math.clamp(lead,0,track.start.duration());
+        track.poseFollow=follow;
+        track.poseOrbColor=orbColor&0xffffff;
+    }
+    private static boolean validClip(String id){
+        return id.length()<=100&&id.matches("(?:[a-z0-9_]+:)?[a-z0-9_]+(?:/[a-z0-9_]+)?");
     }
     /** Semantic motion parameters are sent once at release/segment/lock; frames never wait for trail packets. */
     public void motion(UUID cast,int sequence,com.google.gson.JsonObject value){
@@ -222,6 +240,11 @@ public final class SkillVfx {
         for(Track t:tracks.values()){
             var event=t.start;
             if(mc.level==null||mc.level.getEntity(event.caster())==null)continue;
+            if(event.skill().equals(SkillVisualRules.PLAYER_POSE)){
+                if(t.poseOrbColor!=0&&mc.level.getEntity(event.caster()) instanceof Player player)
+                    SunMoonSkillVisuals.handOrb(t,player,time,quads);
+                continue;
+            }
             long age=time-event.startedAt();
             if(age<0||!SkillVisualRegistry.handler(event.skill()).refreshable()&&age>Math.max(event.duration(),t.last.duration())+500)continue;
             age=(long)(age*t.speed);
@@ -254,13 +277,35 @@ public final class SkillVfx {
     }
 
     public CameraPose camera(){var track=tracks.get(cameraCast);return track==null?null:SkillVisualRegistry.handler(track.start.skill()).camera(track,now());}
-    public void animate(Player player,EntityRenderState state){for(var track:tracks.values())if(track.start.caster().equals(player.getUUID()))SkillVisualRegistry.handler(track.start.skill()).animate(track,player,state,now());}
-    public float handAttack(Player player,net.minecraft.world.InteractionHand hand,float nativeAttack){
-        long time=now();float attack=nativeAttack;
-        for(var track:tracks.values())if(track.start.caster().equals(player.getUUID())){
-            Float value=SkillVisualRegistry.handler(track.start.skill()).handAttack(track,player,hand,time);
-            if(value!=null)attack=value;
+    PlayerPoseChannel.Sample playerPose(UUID caster,long time){
+        PlayerPoseChannel.Sample sample=null;
+        long newest=Long.MIN_VALUE;
+        for(var track:tracks.values()){
+            if(!track.start.caster().equals(caster)||track.start.startedAt()<newest)continue;
+            var candidate=PlayerPoseChannel.sample(track,time);
+            if(candidate!=null){
+                sample=candidate;
+                newest=track.start.startedAt();
+            }
         }
-        return attack;
+        return sample;
+    }
+    public void animate(Player player,EntityRenderState state){
+        long time=now();
+        var pose=playerPose(player.getUUID(),time);
+        if(state instanceof PlayerPoseCarrier carrier)carrier.ydnf$skillPose(pose==null?null:pose.frame());
+        if(state instanceof AvatarRenderState avatar){
+            float head=avatar.bodyRot+avatar.yRot;
+            for(var track:tracks.values())if(track.start.caster().equals(player.getUUID())){
+                SkillVisualRegistry.handler(track.start.skill()).decorateAvatar(track,player,avatar,time);
+            }
+            if(pose==null)return;
+            var aim=pose.lockedAim();
+            avatar.bodyRot=aim==null?head:PlayerPoseChannel.yaw(aim);
+            avatar.yRot=net.minecraft.util.Mth.wrapDegrees(head-avatar.bodyRot);
+            avatar.attackTime=0;
+            avatar.isCrouching=false;
+            PlayerPoseChannel.heldModel(player,avatar,pose.frame());
+        }
     }
 }

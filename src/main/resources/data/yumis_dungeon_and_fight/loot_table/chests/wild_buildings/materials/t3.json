@@ -84,20 +84,6 @@
         },
         {
           "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:high_purity_titanium_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
           "name": "yumis_dungeon_and_fight:molybdenum_ore",
           "functions": [
             {
@@ -155,24 +141,6 @@
         {
           "type": "minecraft:item",
           "name": "yumis_dungeon_and_fight:molybdenum_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:molybdenum_block"
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:high_purity_molybdenum_ingot",
           "functions": [
             {
               "function": "minecraft:set_count",
@@ -256,24 +224,6 @@
         },
         {
           "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:zirconium_block"
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:high_purity_zirconium_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
           "name": "yumis_dungeon_and_fight:mithril_ore",
           "functions": [
             {
@@ -341,10 +291,6 @@
               }
             }
           ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:mithril_block"
         },
         {
           "type": "minecraft:item",

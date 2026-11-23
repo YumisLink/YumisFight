@@ -20,7 +20,7 @@ public final class EquipmentRules {
         return create(slot,weapon,rarity,level,ArmorType.UNTYPED,JewelryType.UNTYPED,random);
     }
     public static Gear create(Slot slot,Weapon weapon,Rarity rarity,int level,ArmorType armorType,JewelryType jewelryType,Random random){
-        if(!Weapon.standard().contains(weapon)&&slot==Slot.WEAPON)throw new IllegalArgumentException("请使用已设计的具名武器模板");
+        if(slot==Slot.WEAPON&&(weapon==null||!Weapon.standard().contains(weapon)))throw new IllegalArgumentException("请使用已设计的具名武器模板");
         if(slot==Slot.WEAPON&&Set.of(Weapon.STAFF,Weapon.CLUB,Weapon.WAND,Weapon.BROOM,Weapon.WARGLAIVE,Weapon.SPEAR).contains(weapon)&&(rarity==Rarity.EPIC||rarity==Rarity.MYTHIC))throw new IllegalArgumentException("此武器的史诗、神话版本待设计，尚未投放");
         if(level<slot.minimum()||level>80||rarity==Rarity.MYTHIC&&slot.armor())throw new IllegalArgumentException("装备模板未开放");
         Gear g=new Gear();
@@ -57,7 +57,7 @@ public final class EquipmentRules {
     private static void addBases(Gear g){
         for(var entry:g.baseGrowth.entrySet())g.affixes.add(new Affix("base_"+entry.getKey().name().toLowerCase(Locale.ROOT),entry.getKey(),growthValue(entry.getValue(),g.level),true));
     }
-    private static double growthValue(double[] values,int level){if(level<=values.length)return values[level-1];if(values.length<2)throw new IllegalArgumentException("成长快照不完整");return values[values.length-1]+(values[values.length-1]-values[values.length-2])*(level-values.length);}
+    static double growthValue(double[] values,int level){if(level<=values.length)return values[level-1];if(values.length<2)throw new IllegalArgumentException("成长快照不完整");return values[values.length-1]+(values[values.length-1]-values[values.length-2])*(level-values.length);}
     public static int appearanceBand(int level){return level<20?10:level<30?20:level<40?30:level<50?40:50;}
     public static double budget(int level){
         double a=20+5*(level-1);
@@ -137,8 +137,21 @@ public final class EquipmentRules {
     }
     public static Gear process(Gear original,String currency,Random random){
         Gear g=cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(original);
-        if(g.corrupted)throw new IllegalArgumentException("腐化装备仅允许继续镶嵌宝石");
         if(g.rarity==Rarity.PRIMORDIAL)throw new IllegalArgumentException("太初装备为管理员定值模板，不可加工");
+        switch(currency){
+            case EnhancementRules.OTHERWORLD_AURA->{
+                EnhancementRules.contaminate(g,random);
+                g.revision++;
+                return EquipmentResolution.initialize(g);
+            }
+            case EnhancementRules.AURA_TRANSFORM_BOX->{
+                EnhancementRules.transform(g,random);
+                g.revision++;
+                return EquipmentResolution.initialize(g);
+            }
+            default->{}
+        }
+        if(g.corrupted&&!Gemstones.currency(currency)&&!currency.equals(EnhancementRules.OTHERWORLD_AURA)&&!currency.equals(EnhancementRules.AURA_TRANSFORM_BOX))throw new IllegalArgumentException("腐化装备仅允许继续镶嵌宝石");
         var essence=CraftingEssences.find(currency);if(essence!=null)return CraftingEssences.apply(g,essence,random);
         switch(currency){
             case MASTER_CRYSTAL -> applyMasterCrystal(g);

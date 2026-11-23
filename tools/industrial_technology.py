@@ -34,6 +34,24 @@ MINING_ENERGY = dict(cobblestone=1, copper=50, iron=50, coal=50, lead=80,
 METAL_TIERS = dict(copper=1, iron=1, lead=1, orichalcum=1, gold=2, vanadium=2,
     titanium=3, molybdenum=3, zirconium=3, mithril=3, niobium_tantalum=4,
     niobium=4, tantalum=4, adamantite=4, uranium=4, terra=4, spacetime=5, iridium=5)
+# 每种金属实际注册的物品形态，与 IndustrialContent 的注册清单保持同步；未列出的形态从未注册，
+# 不得写入 tiers/material_items/mineral_tiers，否则野外材料宝箱会引用不存在的物品。
+METAL_FORMS = dict(
+    copper=['crushed_copper'], iron=['crushed_iron'], gold=['crushed_gold'],
+    lead=['lead_ore', 'raw_lead', 'crushed_lead', 'lead_ingot', 'lead_block'],
+    orichalcum=['orichalcum_ore', 'raw_orichalcum', 'crushed_orichalcum', 'orichalcum_concentrate', 'orichalcum_ingot'],
+    vanadium=['vanadium_ore', 'raw_vanadium', 'crushed_vanadium', 'vanadium_concentrate', 'vanadium_ingot'],
+    titanium=['titanium_ore', 'raw_titanium', 'crushed_titanium', 'titanium_concentrate', 'titanium_ingot', 'titanium_block'],
+    molybdenum=['molybdenum_ore', 'raw_molybdenum', 'crushed_molybdenum', 'molybdenum_concentrate', 'molybdenum_ingot'],
+    zirconium=['zirconium_ore', 'raw_zirconium', 'crushed_zirconium', 'zirconium_concentrate', 'zirconium_ingot'],
+    mithril=['mithril_ore', 'raw_mithril', 'crushed_mithril', 'mithril_concentrate', 'mithril_ingot', 'high_purity_mithril_ingot'],
+    niobium_tantalum=['niobium_tantalum_ore', 'raw_niobium_tantalum', 'crushed_niobium_tantalum'],
+    niobium=['niobium_concentrate', 'niobium_ingot', 'high_purity_niobium_ingot'],
+    tantalum=['tantalum_concentrate', 'tantalum_ingot', 'high_purity_tantalum_ingot'],
+    adamantite=['adamantite_ore', 'raw_adamantite', 'crushed_adamantite', 'adamantite_concentrate', 'adamantite_ingot'],
+    uranium=['uranium_ore', 'raw_uranium', 'crushed_uranium', 'uranium_ingot', 'uranium_block'],
+    terra=['terra_ingot', 'terra_block'], spacetime=['spacetime_ingot', 'spacetime_block'],
+    iridium=['iridium_ore', 'raw_iridium', 'crushed_iridium', 'iridium_concentrate', 'iridium_ingot', 'high_purity_iridium_ingot'])
 PART_TIERS = dict(zircon_ceramic=3, vanadium_steel=2, molybdenum_vanadium_steel=3,
     tzm_alloy=3, orichalcum_alloy=2, niobium_titanium_alloy=4,
     mithril_niobium_alloy=4, adamantite_titanium_alloy=4, composite_conductor=4,
@@ -245,9 +263,7 @@ def energy_tier(recipe):
 def catalog(specs):
     tiers = {}
     for metal, t in METAL_TIERS.items():
-        for form in [metal + '_ore', 'raw_' + metal, 'crushed_' + metal,
-                     metal + '_concentrate', metal + '_ingot', metal + '_block',
-                     'high_purity_' + metal + '_ingot']:
+        for form in METAL_FORMS[metal]:
             tiers[own(form)] = t
     for k, t in PART_TIERS.items():
         tiers[own(k)] = t
@@ -295,8 +311,8 @@ def catalog(specs):
     return dict(grades=[dict(tier=t, name=NAMES[t-1], colors=PALETTES[t-1]) for t in range(1, 7)],
                 items=tiers, fluids={own(k): t for k, t in LIQUID_TIERS.items()} | {'minecraft:water': 1},
                 content=content, devices=specs, recipe_energy_tiers=energy_tiers,
-                material_items=[k for k in tiers if k==own('plastic') or any(k==own(form) for metal in METAL_TIERS for form in [metal+'_ore','raw_'+metal,'crushed_'+metal,metal+'_concentrate',metal+'_ingot',metal+'_block','high_purity_'+metal+'_ingot']) or k in {own(key) for key in PART_TIERS if 'alloy' in key or key in ['vanadium_steel','molybdenum_vanadium_steel','zircon_ceramic','industrial_magic_stone','industrial_magic_stone_block','magic_ore','sulfide','energy_crystal_block_2']}],
-                mineral_tiers={k:v for k,v in tiers.items() if any(k==own(form) for metal in METAL_TIERS for form in [metal+'_ore','raw_'+metal,'crushed_'+metal,metal+'_concentrate',metal+'_ingot','high_purity_'+metal+'_ingot'])})
+                material_items=[k for k in tiers if k==own('plastic') or any(k==own(form) for metal in METAL_TIERS for form in METAL_FORMS[metal]) or k in {own(key) for key in PART_TIERS if 'alloy' in key or key in ['vanadium_steel','molybdenum_vanadium_steel','zircon_ceramic','industrial_magic_stone','industrial_magic_stone_block','magic_ore','sulfide','energy_crystal_block_2']}],
+                mineral_tiers={k:v for k,v in tiers.items() if any(k==own(form) for metal in METAL_TIERS for form in METAL_FORMS[metal] if not form.endswith('_block'))})
 
 
 def crafting(specs):

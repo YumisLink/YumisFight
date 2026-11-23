@@ -11,8 +11,8 @@ public final class DemonHunterChoreography {
     public static final long BEAM_RISE=200,BEAM_CHANNEL=2000,BEAM_INTERVAL=250;
     public static final int BEAM_HITS=8,HUNT_COMBO_HITS=8;
     public static final long HUNT_COMBO_INTERVAL=100;
-    public static final long BEAM_DURATION=BEAM_RISE+BEAM_CHANNEL,HUNT_DURATION=4000;
-    public static final double BEAM_HEIGHT=1,HUNT_SPEED=10;
+    public static final long BEAM_DURATION=BEAM_RISE+BEAM_CHANNEL;
+    public static final double BEAM_HEIGHT=1,HUNT_SPEED=30,HUNT_RANGE=40;
     private DemonHunterChoreography(){}
 
     public static long beamHitAt(int index){return BEAM_RISE+(index+1)*BEAM_INTERVAL;}

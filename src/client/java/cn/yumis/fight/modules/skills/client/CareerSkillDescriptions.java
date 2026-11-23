@@ -25,7 +25,7 @@ final class CareerSkillDescriptions {
         descriptions.put(CareerSkills.HAND,"范围：前方3格抓取并喷发。\n回复：命中回复最大生命10%，每次施放最多回复一次。\nBoss同样有效，空放不回血。");
         descriptions.put(CareerSkills.RAGE,"范围：半径4格，共五段血气。\n生命代价：最大生命4%，不扣护盾。");
         descriptions.put(CareerSkills.BLADE,"动作：前方5格突刺，命中后半径3格爆炸。\n生命代价：最大生命5%。");
-        descriptions.put(CareerSkills.ERUPTION,"动作：前跳6格，落地后周围随机喷射血柱。\n范围：半径6格，下砸加四段喷发。\n生命代价：最大生命8%。");
+        descriptions.put(CareerSkills.ERUPTION,"动作：在身前持血剑蓄势0.25秒，然后前跳6格下劈，落地后周围喷射血柱。\n范围：半径6格，下砸加四段喷发。\n生命代价：最大生命8%。");
         descriptions.put(CareerSkills.SWORD,"开启：支付最大生命10%，最多蓄血60秒。\n叠层：有效伤害含持续伤害，最多每0.5秒一层，上限20层。\n终结：再次按键或到期，下斩血剑并爆炸。\n范围：以前方3格为中心，半径5格；终结2秒期间无敌。");
         descriptions.put(OracleSkills.WILL,"资格：允许使用光剑，可绑定为执行当前指令的按键。\n执行：自动切换到快捷栏第一个有效的技能匹配武器，没有则保持主手。\n技能指令：首条10秒后出现，成功施放后等待下次发令；空放有效。\n成功奖励：本次伤害提升50%，免除武器不匹配惩罚，并立即叠加赫尔墨斯。\n层数：未学觉醒最多8层；已学觉醒时9层冻结并强制觉醒，脱战可准备。\n超时：战斗中获得业。\n武器指令：每30秒换类型，不连续重复；匹配奖励随等级成长，否则伤害降低50%。");
         descriptions.put(OracleSkills.DOWN,"动作：前方4格下劈，宽3格、高3格。\n武器：钝器使本技能系数乘2.2。\n伤害类型：物理百分比。");
@@ -33,7 +33,7 @@ final class CareerSkillDescriptions {
         descriptions.put(OracleSkills.SWEEP,"动作：短暂蓄力后横劈，前方145°、基础半径5格。\n武器：巨剑使本技能系数乘2.2。\n伤害类型：物理百分比。");
         descriptions.put(OracleSkills.SMILE,"选敌：准星优先在10格内选敌，并自动补选。\n动作：寻找敌人身后安全落点，进行两次各50%的斩击。\n无目标或无安全落点时原地双斩。\n武器：短剑使本技能系数乘3.2。");
         descriptions.put(OracleSkills.RIFT,"动作：向前冲刺5格，从起步即造成伤害。\n范围：沿途宽3格、高3格，每个目标一次。\n武器：光剑使本技能系数乘2.4。\n伤害类型：物理百分比。");
-        descriptions.put(OracleSkills.REPLICA,"条件：至少1层赫尔墨斯。\n前置：前8个动作各占6.25%，基础每0.35秒一次，动作随机且不连续重复。\n满9层：追加8次各5%的穿梭连斩，基础每0.1秒一次，共0.8秒。\n连斩只攻击路径扫中的锁定目标，随后8格冲刺重斩35%。\n武器：前置自动选快捷栏第一个对应武器；连斩用起手武器；终结优先起手武器，其次快捷栏第一个有效武器。\n缺武器：无两种指令奖励，该段伤害再乘0.7×0.5。\n有武器：该段伤害提高30%，获得武器指令奖励；9层指令段额外提高50%。\n防护：全程无敌，锁定移动、转向和手动换槽，切为第三人称。\n施放时保存面板与词条；释放速度影响动作时间，结束清层并恢复原槽与视角。");
+        descriptions.put(OracleSkills.REPLICA,"条件：至少1层赫尔墨斯。\n前置：随机复刻五招中的招式，最多8段，每段各占6.25%，间隔按对应招式动作时长计算。相邻招式不同。\n满9层：追加8次各5%的穿梭连斩，基础每0.1秒一次，共0.8秒。\n连斩只攻击路径扫中的锁定目标，随后8格冲刺重斩35%。\n武器：前置自动选快捷栏第一个对应武器；连斩用起手武器；终结优先起手武器，其次快捷栏第一个有效武器。\n缺武器：无两种指令奖励，该段伤害再乘0.7×0.5。\n有武器：该段伤害提高30%，获得武器指令奖励；9层指令段额外提高50%。\n防护：全程无敌，锁定主动移动和手动换槽。\n施放时保存面板与词条；技能释放速度影响动作时间，结束清层并恢复原槽。");
         String will=descriptions.remove(OracleSkills.WILL);
         SkillDescriptions.register(OracleSkills.WILL,c->{int rank=Math.max(1,c.parameters().rank());return will+"\n当前成长：每层赫尔墨斯提升"+Math.round(OracleRules.layer(rank)*100)+"%，武器匹配提升"+Math.round(OracleRules.weaponReward(rank)*100)+"%。\n成功后发令间隔："+cn.yumis.fight.modules.presentation.api.client.NumberText.number(OracleRules.delay(rank)/1000d)+"秒。";});
         descriptions.forEach((id,text)->SkillDescriptions.register(id,c->text));

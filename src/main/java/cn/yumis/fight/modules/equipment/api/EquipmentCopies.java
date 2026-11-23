@@ -8,6 +8,7 @@ final class EquipmentCopies {
     static Gear gear(Gear source){
         Gear copy=new Gear(source.instance);copy.corrupted=source.corrupted;copy.creativeTemplate=source.creativeTemplate;
         copy.version=source.version;copy.level=source.level;copy.revision=source.revision;copy.sockets=source.sockets;
+        copy.enhanceLevel=source.enhanceLevel;copy.amplifyLevel=source.amplifyLevel;copy.contamination=source.contamination;
         copy.slot=source.slot;copy.weapon=source.weapon;copy.armorType=source.armorType;copy.jewelryType=source.jewelryType;copy.rarity=source.rarity;
         copy.set=source.set;copy.source=source.source;copy.template=source.template;copy.appearance=source.appearance;copy.savedName=source.savedName;
         source.baseGrowth.forEach((stat,curve)->copy.baseGrowth.put(stat,curve.clone()));

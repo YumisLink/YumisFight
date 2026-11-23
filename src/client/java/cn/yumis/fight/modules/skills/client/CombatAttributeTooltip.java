@@ -31,7 +31,7 @@ public final class CombatAttributeTooltip {
             case SHIELD_REGENERATION->"护盾每秒恢复最大值20%乘此倍率。";
             case MP->"施放技能使用的魔力上限；精神每点额外提供2点MP。";
             case STRENGTH,INTELLIGENCE->"每点增加对应基础攻击的1%。当前面板倍率 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(1+s.get(stat)/100)+"倍。";
-            case SPIRIT->"每点提供2点MP、2点魔防、每秒0.04点MP恢复、0.2%冷却恢复速度、5点最大体力及5%体力恢复速度。当前每秒基础回魔 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(1+.04*s.get(stat))+"，脱战乘3。";
+            case SPIRIT->"每点提供2点MP、2点魔防、每秒0.05%最大MP的基础回魔、0.2%冷却恢复速度、5点最大体力及5%体力恢复速度。当前每秒基础回魔 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(cn.yumis.fight.modules.combat.api.CombatTiming.manaRegeneration(s.get(Stat.MP),s.get(stat)))+"，脱战乘3。";
             case PHYSICAL_ATTACK,MAGICAL_ATTACK->"用于计算对应普攻与技能伤害，再乘(1＋力量或智力÷100)。当前面板攻击 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.panel(stat==Stat.MAGICAL_ATTACK))+"。";
             case PHYSICAL_DEFENSE,MAGICAL_DEFENSE->"对应伤害乘1000÷(1000＋防御)。当前减伤 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(100*s.get(stat)/(1000+s.get(stat)))+"%，再计算职业和其他效果。";
             case LIGHT,FIRE,ICE,DARK->"对应属性伤害倍率＝max(0，1＋(强化−目标抗性)÷120)。对0抗性目标当前倍率 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(Math.max(0,1+s.get(stat)/120))+"倍。";
@@ -39,13 +39,13 @@ public final class CombatAttributeTooltip {
             case DROP_RATE->"提高高稀有度装备和通货的抽取权重，使用基数1000；不直接增加基础掉落次数。当前 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.get(stat))+"。";
             case SHIELD->"装备护盾先吸收伤害，受伤后等待 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(5/s.get(Stat.SHIELD_COOLDOWN_RECOVERY))+"秒。当前每秒恢复 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(s.get(stat)*.2*s.get(Stat.SHIELD_REGENERATION))+"。";
             case EVASION->"基数10000；30000闪避值达到75%，超出部分按1/3折算，210000达到90%上限。当前 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(100*CombatRules.evasionChance(s.get(stat)))+"%；持续伤害和环境伤害不参与。";
-            case ATTACK_SPEED->"只影响普通攻击。间隔＝650毫秒÷(1＋总攻速÷100)。当前 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(WeaponSkills.interval(state.progress(),s))+"毫秒；剑魂巨剑横扫最终速度减半已计入。";
+            case ATTACK_SPEED->"普攻间隔和施放后的公共冷却后摇除以（1＋总攻速÷100）。当前普攻间隔 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(WeaponSkills.interval(state.progress(),s))+"毫秒，已计入剑魂巨剑的间隔修正。";
             case MOVEMENT_SPEED->"影响步行、奔跑与潜行。提高归入MUT；不改变游泳、飞行和技能冲刺距离。";
             case LIFE_STEAL->"造成有效直接伤害时按实际生命损失吸血。达到5%后新增数值按1/3折算，最高90%。当前吸血率 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(100*cn.yumis.fight.modules.combat.api.EquipmentDamage.lifeSteal(s.get(stat)))+"%。";
-            case MANA_REGENERATION->"基础回魔(1＋0.04×精神)乘此倍率，脱战再乘3。";
+            case MANA_REGENERATION->"基础回魔为每秒最大MP的(1%＋0.05%×精神)，再乘此倍率，脱战另乘3。";
             case COOLDOWN_RECOVERY->"技能基础冷却除以恢复速度倍率，最后再应用魔法技能固定减秒。";
             case EXPERIENCE_GAIN->"角色战斗经验乘此倍率；不影响副职业经验。";
-            case CAST_SPEED->"技能动作、蓄力与连击时间除以此倍率；段数、位移总距离、冷却、BUFF和持续场时长不变。";
+            case CAST_SPEED->"缩短技能动作、蓄力、连击与普攻挥臂的时间。咏唱单独由施法速度决定，公共冷却最晚在角色动作结束时解除。";
             case HEALTH_REGENERATION->"脱战后每秒恢复固定生命值，与2%比例回复相加；战斗中不生效。";
         };
         List<Component> lines=new ArrayList<>();lines.add(Component.literal(name).withStyle(style->style.withColor(UiTheme.TIP_TITLE)));lines.add(numbers(detail,UiTheme.TIP_NUMBER));

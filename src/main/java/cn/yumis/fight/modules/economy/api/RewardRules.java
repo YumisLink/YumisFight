@@ -42,8 +42,8 @@ public final class RewardRules {
             if(!participant||!context.nearby().contains(player))return new Result(progress,0,0,List.of());
             return abyss(progress,stats,context,random);
         }
-        if(boss&&player.equals(context.killer()))appendBossDrops(context,drops,random);
-        if(instance&&(!participant||!context.nearby().contains(player))||!instance&&!player.equals(context.killer()))return new Result(progress,0,0,List.copyOf(drops));
+        if(!sharesReward(instance,participant,context.nearby(),player,context.killer()))return new Result(progress,0,0,List.of());
+        if(boss)appendBossDrops(context,drops,random);
         if(instance&&boss)for(var jar:JarDefinitions.current().jars.entrySet())if(random.nextDouble()<jar.getValue().bossDropChance())drops.add(new Drop(LootJarItem.create(jar.getKey(),1),true));
         var stone=encounter!=null&&encounter.waystone!=null?encounter.waystone.stone:null;
         double experienceMultiplier=stone==null?1:stone.experienceMultiplier,goldMultiplier=stone==null?1:stone.goldMultiplier,quantityMultiplier=stone==null?1:stone.quantityMultiplier;
@@ -148,6 +148,9 @@ public final class RewardRules {
         return new Result(progress,total,0,List.of());
     }
 
+    /** 范围内共享：副本内为在场参与者，野外为击杀者本人。 */
+    public static boolean sharesReward(boolean instance,boolean participant,Set<UUID> nearby,UUID player,UUID killer){return instance?participant&&nearby.contains(player):player.equals(killer);}
+
     private static Result practice(Progress progress,UUID player,Context context){
         var fact=context.practice();
         if(fact.room().kind()==PracticeRoom.Kind.GOLD){
@@ -156,9 +159,8 @@ public final class RewardRules {
             long gold=Math.multiplyExact(singleKill,PracticeRoom.WAVE_SIZE)/fact.presentPlayers();
             return new Result(progress,0,gold,List.of());
         }
-        if(!player.equals(context.killer()))return new Result(progress,0,0,List.of());
-        // Use the drop table, luck and random sequence captured when the enemy died.
-        var random=new Random(fact.seed());
+        // 范围内共享：所有在场参与者各自独立结算；种子混入玩家保持每人重试幂等。
+        var random=new Random(fact.seed()^player.getMostSignificantBits());
         if(fact.room().kind()==PracticeRoom.Kind.CURRENCY){
             if(random.nextDouble()>=PRACTICE_CURRENCY_CHANCE)return new Result(progress,0,0,List.of());
             var currency=CurrencyRules.rollGuaranteed(fact.dropRate(),random);

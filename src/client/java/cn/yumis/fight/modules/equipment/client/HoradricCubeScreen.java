@@ -23,19 +23,37 @@ public final class HoradricCubeScreen extends ThemedContainerScreen<HoradricCube
         addRenderableWidget(Button.builder(Component.literal("配方"),b->minecraft.gui.pushScreenLayer(new Recipes(this))).bounds(leftPos+134,topPos+2,34,14).build(ThemedButton::new));
     }
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){
-        g.blit(Identifier.withDefaultNamespace("textures/gui/container/crafting_table.png"),leftPos,topPos,leftPos+176,topPos+166,0,176f/256,0,166f/256);
+        boolean pixel=UiTheme.pixelStyle();
+        if(pixel){
+            g.fill(0,0,width,height,UiTheme.OVERLAY);
+            UiTheme.panel(g,leftPos,topPos,imageWidth,imageHeight);
+            UiTheme.card(g,leftPos+119,topPos+30,26,26);
+            for(var slot:menu.slots)if(slot.isActive())UiTheme.slot(g,leftPos+slot.x,topPos+slot.y);
+            g.text(UiFonts.font(),"→",leftPos+96,topPos+39,UiTheme.ACCENT,false);
+        }else{
+            g.blit(Identifier.withDefaultNamespace("textures/gui/container/crafting_table.png"),leftPos,topPos,leftPos+176,topPos+166,0,176f/256,0,166f/256);
+        }
+        int previewTint=pixel?0x88000000|(UiTheme.PANEL&0xffffff):0x88c6c6c6;
         var match=menu.initialContentsReady?CraftingEssences.match(menu.grid()):null;
         var recipe=match==null?selected:match;
         if(match==null){
             var material=CraftingEssences.ingredient(recipe);
-            for(int index:new int[]{1,3,5,7})if(menu.getSlot(index+1).getItem().isEmpty()){var slot=menu.getSlot(index+1);g.item(material,leftPos+slot.x,topPos+slot.y);g.fill(leftPos+slot.x,topPos+slot.y,leftPos+slot.x+16,topPos+slot.y+16,0x88c6c6c6);}
+            for(int index:new int[]{1,3,5,7})if(menu.getSlot(index+1).getItem().isEmpty()){var slot=menu.getSlot(index+1);g.item(material,leftPos+slot.x,topPos+slot.y);g.fill(leftPos+slot.x,topPos+slot.y,leftPos+slot.x+16,topPos+slot.y+16,previewTint);}
             if(menu.getSlot(5).getItem().isEmpty())g.item(cn.yumis.fight.platform.ItemRegistry.item("exalted_stone",1),leftPos+48,topPos+35);
             if(recipe.essence().paper()&&menu.getSlot(1).getItem().isEmpty())g.item(new ItemStack(net.minecraft.world.item.Items.PAPER),leftPos+30,topPos+17);
         }
         var output=cn.yumis.fight.platform.ItemRegistry.item(recipe.essence().id(),1);
         g.item(output,leftPos+124,topPos+35);
-        if(match==null)g.fill(leftPos+124,topPos+35,leftPos+140,topPos+51,0x88c6c6c6);
-        g.text(UiFonts.font(),match==null?"配方预览":"点击制作",leftPos+119,topPos+57,0xff404040,false);
+        if(match==null)g.fill(leftPos+124,topPos+35,leftPos+140,topPos+51,previewTint);
+        g.text(UiFonts.font(),match==null?"配方预览":"点击制作",leftPos+119,topPos+57,pixel?UiTheme.TEXT:0xff404040,false);
+    }
+    @Override protected void extractLabels(GuiGraphicsExtractor g,int x,int y){
+        if(!UiTheme.pixelStyle()){
+            super.extractLabels(g,x,y);
+            return;
+        }
+        g.text(UiFonts.font(),title,titleLabelX,titleLabelY,UiTheme.TEXT,false);
+        g.text(UiFonts.font(),playerInventoryTitle,inventoryLabelX,inventoryLabelY,UiTheme.MUTED,false);
     }
     @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float delta){
         super.drawContents(g,mx,my,delta);

@@ -218,13 +218,15 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
 
     }
     @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float a){
-        UiTheme.card(g,left+6,top+6,(left+panelWidth-6)-(left+6),(top+30)-(top+6));
+        UiTheme.titleBar(g,left+6,top+6,panelWidth-12,24);
         g.text(font,title,left+14,top+13,UiTheme.TEXT,false);
         UiTheme.card(g,contentLeft(),bodyTop(),(contentLeft()+contentWidth())-(contentLeft()),(bodyTop()+bodyHeight())-(bodyTop()));
-        UiTheme.card(g,left+6,top+panelHeight-28,(left+panelWidth-6)-(left+6),(top+panelHeight-6)-(top+panelHeight-28));
+        UiTheme.statusBar(g,left+6,top+panelHeight-28,panelWidth-12,22);
         g.text(font,page<0?"I / Esc 关闭":"I 返回菜单 · Esc 关闭 · 滚轮浏览",left+14,top+panelHeight-20,UiTheme.MUTED,false);
+        if(sidebar>0&&(navigation.isEmpty()||UiTheme.pixelStyle())){
+            UiTheme.card(g,left+6,bodyTop(),sidebar+2,bodyHeight());
+        }
         if(sidebar>0&&navigation.isEmpty()){
-            UiTheme.card(g,left+6,bodyTop(),(left+sidebar+8)-(left+6),(bodyTop()+bodyHeight())-(bodyTop()));
             int yy=bodyTop()+12;
             if(sidebarProfile&&(sidebarRows.isEmpty()||bodyHeight()>=240)){
             g.text(font,cn.yumis.fight.modules.character.api.JobCatalog.displayName(state.progress.jobId(),state.progress.level,state.progress.awakened()),left+14,yy,UiTheme.GOLD,false);
@@ -239,6 +241,9 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         for(Card card:cards){
             int yy=bodyTop()+card.y-scroll;
             UiTheme.card(g,contentLeft()+12+card.x,yy,(contentLeft()+12+card.x+card.width)-(contentLeft()+12+card.x),(yy+card.height)-(yy));
+        }
+        if(input!=null&&input.visible){
+            UiTheme.borderlessInput(g,input.getX()-4,input.getY()-4,input.getWidth()+8,18,input.isFocused());
         }
         for(AbstractWidget widget:body)if(widget.visible)widget.extractRenderState(g,mx,my,a);
         for(Icon icon:icons){
@@ -417,6 +422,10 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     public java.util.function.Supplier<String> textInput(String key,String label,int maximum){
         var box=new EditBox(font,contentLeft()+12,bodyTop()+nextY-scroll,contentWidth()-24,20,Component.literal(label));
         box.setValue(remember(key,""));box.setMaxLength(maximum);box.setBordered(false);box.setResponder(value->rememberValue(key,value));
+        if(UiTheme.pixelStyle()){
+            box.setTextColor(UiTheme.TEXT);
+            box.setHint(Component.literal(truncateToWidth(label,box.getWidth())));
+        }
         box.setResponder(value->{rememberValue(key,value);boolean focus=box.isFocused();int caret=box.getCursorPosition();build();if(focus&&input!=null){setFocused(input);input.setFocused(true);input.setCursorPosition(caret);}});input=box;body.add(addRenderableWidget(box));nextY+=26;return box::getValue;
     }
     @SuppressWarnings("unchecked") public <T>T remember(String key,T fallback){return (T)pageState.getOrDefault(key,fallback);}

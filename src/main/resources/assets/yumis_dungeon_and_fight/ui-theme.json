@@ -23,5 +23,18 @@
       "SLOT": "#AA232323", "SLOT_SHADOW": "#FF101010", "SLOT_LIGHT": "#FF505050",
       "SCROLL_TRACK": "#AA151515", "SCROLL_THUMB": "#FF909090"
     }
+  },
+  "pixel": {
+    "style": "pixel", "border": 2, "textInset": 6,
+    "colors": {
+      "OVERLAY": "#760D1012", "PANEL": "#36393B", "CARD": "#2A2D2F",
+      "BUTTON": "#414548", "HOVER": "#50564D", "SELECTED": "#3E5336", "DISABLED": "#303335",
+      "TEXT": "#F0F0EB", "MUTED": "#BEC4C1", "ACCENT": "#ACDD83", "GOLD": "#F3CD75",
+      "ERROR": "#FF9393", "SUCCESS": "#A9D888", "NUMERIC": "#A8D5EE",
+      "BORDER": "#141617", "LIGHT": "#64686A", "SHADOW": "#1B1D1E",
+      "SLOT": "#202325", "SLOT_SHADOW": "#151718", "SLOT_LIGHT": "#555A5D",
+      "SCROLL_TRACK": "#1C1F20", "SCROLL_THUMB": "#949D96",
+      "HUD_PANEL": "#D3202325", "HUD_TEXT": "#F0F0EB", "HUD_MUTED": "#BEC4C1", "HUD_GOLD": "#F3CD75"
+    }
   }
 }

@@ -24,6 +24,7 @@ public final class DungeonLayouts {
     public DungeonLayouts(DungeonPorts.CampDecorations decorations){var layouts=new HashMap<>(Map.ofEntries(
         Map.entry("goblin_camp",new Layout(GoblinCamp.VERSION,GoblinCamp.BOUNDS,0,2,
             withFloorLighting("goblin_camp",GoblinCamp.BOUNDS,(world,origin)->GoblinCamp.build(world,origin,decorations)),(world,origin,gate,open)->{})),
+        Map.entry(GoblinKingdomLayout.ID,GoblinKingdomLayout.layout()),
         Map.entry("dragon_tower",new Layout(DragonTower.VERSION,DragonTower.BOUNDS,0,1,
             withFloorLighting("dragon_tower",DragonTower.BOUNDS,(world,origin)->DragonTower.build(world,origin,decorations)),(world,origin,gate,open)->{})),
         Map.entry(GblChurch.ID,new Layout(GblChurch.VERSION,GblChurch.BOUNDS,0,1,

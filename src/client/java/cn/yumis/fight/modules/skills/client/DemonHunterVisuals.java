@@ -49,7 +49,7 @@ final class DemonHunterVisuals {
     private static boolean hidden(UUID actor,long time){for(var entry:DANCES.entrySet())if(entry.getKey().start.caster().equals(actor)&&hidden(entry.getKey(),entry.getValue(),time))return true;return false;}
     private static void trail(SkillVfx.Track t,long time){
         var points=TRAILS.computeIfAbsent(t,k->new ArrayDeque<>());while(!points.isEmpty()&&time-points.getFirst().at>TRAIL_MILLIS)points.removeFirst();
-        boolean charge=own(t)?DemonHunterClient.charging(t.start.cast()):!t.released&&!COMBOS.containsKey(t)&&time-t.start.startedAt()<DemonHunterChoreography.HUNT_DURATION;
+        boolean charge=own(t)?DemonHunterClient.charging(t.start.cast()):!t.released&&!COMBOS.containsKey(t)&&time-t.start.startedAt()<t.start.duration()-600;
         var level=Minecraft.getInstance().level;var actor=level==null?null:level.getPlayerByUUID(t.start.caster());if(!charge||actor==null||!actor.isAlive())return;
         Vec3 point=actor.position().add(0,.8,0);if(!points.isEmpty()&&points.getLast().point.distanceToSqr(point)>64)points.clear();
         if(points.isEmpty()||points.getLast().point.distanceToSqr(point)>.0025)points.addLast(new TrailPoint(point,time));
@@ -97,7 +97,22 @@ final class DemonHunterVisuals {
             length/=count;int slash=Math.min(count-1,(int)(elapsed/length));elapsed-=slash*length;
             return new Swing((slash&1)==0?InteractionHand.MAIN_HAND:InteractionHand.OFF_HAND,(float)Math.clamp(elapsed/length,0,1));
         }
-        public Float handAttack(SkillVfx.Track t,Player player,InteractionHand hand,long time){var swing=swing(t,player,time);return swing==null?null:swing.hand()==hand?swing.progress():0f;}
+        /** Dual-wield strikes alternate main-hand and off-hand pose documents while other skills keep their own id. */
+        public String poseAnimation(SkillVfx.Track t,long time){
+            boolean alternating=id.equals(DemonHunterSkills.BASIC_ATTACK)||id.equals(DemonHunterSkills.CHAOS)||id.equals(DemonHunterSkills.HUNT);
+            if(!alternating)return id;
+            long age=time-t.start.startedAt(),length;int count;
+            if(id.equals(DemonHunterSkills.HUNT)){
+                var combo=COMBOS.get(t);
+                if(combo==null||t.released)return null;
+                length=(long)combo.duration;count=combo.slashes;
+            }
+            else{
+                length=t.start.duration();count=2;
+            }
+            if(age<0||age>=length)return null;
+            return id+(((int)(age/(length/(double)count))&1)==0?"":"_left");
+        }
         public void animate(SkillVfx.Track t,net.minecraft.world.entity.LivingEntity caster,net.minecraft.client.renderer.entity.state.EntityRenderState raw,long time){
             if(!(raw instanceof net.minecraft.client.renderer.entity.state.AvatarRenderState s))return;
             var swing=swing(t,caster,time);
@@ -114,6 +129,9 @@ final class DemonHunterVisuals {
             }
             else return;
             s.rightArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;s.leftArmPose=net.minecraft.client.model.HumanoidModel.ArmPose.ITEM;
+        }
+        public void decorateAvatar(SkillVfx.Track t,Player player,net.minecraft.client.renderer.entity.state.AvatarRenderState state,long time){
+            if(id.equals(DemonHunterSkills.DANCE))animate(t,player,state,time);
         }
         public void play(SkillVisualEvent e){
             if(id.equals(DemonHunterSkills.BASIC_ATTACK)&&e.phase()==SkillVisualEvent.Phase.START){var mc=Minecraft.getInstance();Vec3 p=vector(e.position());if(mc.level!=null)mc.level.playLocalSound(p.x,p.y,p.z,SoundEvents.PLAYER_ATTACK_SWEEP,SoundSource.PLAYERS,.65f,1.15f,false);}
@@ -133,7 +151,8 @@ final class DemonHunterVisuals {
             }
             if(id.equals(DemonHunterSkills.BEAM)){
                 if(actor==mc.player)age=DemonHunterClient.beamAge();
-                if(actor==null||t.released||age<DemonHunterChoreography.BEAM_RISE||age>=DemonHunterChoreography.BEAM_DURATION)return;
+                long rise=Math.max(0,t.start.duration()-DemonHunterChoreography.BEAM_CHANNEL);
+                if(actor==null||t.released||age<rise||age>=t.start.duration())return;
                 Vec3 from=actor.getEyePosition(),dir=actor.getLookAngle().normalize(),end=from.add(dir.scale(16));var hit=mc.level.clip(new net.minecraft.world.level.ClipContext(from,end,net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,actor));if(hit.getType()!=HitResult.Type.MISS)end=hit.getLocation();
                 if(ownFirstPerson){double length=from.distanceTo(end);if(length<=.5)return;from=from.add(dir.scale(.5));}
                 tube(q,from,end,1,GREEN,150);tube(q,from,end,.25,PALE,235);

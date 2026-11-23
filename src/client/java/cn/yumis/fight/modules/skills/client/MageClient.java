@@ -15,7 +15,8 @@ import java.util.*;
 
 /** Owner-side spells, summon combat and life. Server messages describe world AI contacts. */
 public final class MageClient {
-    private static final Map<String,Consumer<SkillCast>> SPELLS=new LinkedHashMap<>();
+    private record Spell(Consumer<SkillCast> start,boolean releaseAtStart){}
+    private static final Map<String,Spell> SPELLS=new LinkedHashMap<>();
     public static final MageClient INSTANCE=new MageClient();
     private static boolean installed;
     private static final Gson JSON=new Gson();
@@ -31,15 +32,24 @@ public final class MageClient {
     private void ensureContext(){var state=SkillsClient.current();var p=Minecraft.getInstance().player;if(p==null||!state.ready())return;String d=p.level().dimension().identifier().toString();if(!session.equals(state.session())||generation!=state.own().generation||!job.equals(state.progress().jobId())||!dimension.equals(d)||!instance.equals(state.own().instance)){clear();session=state.session();generation=state.own().generation;job=state.progress().jobId();dimension=d;instance=state.own().instance;}}
     private boolean valid(JsonObject j){ensureContext();var state=SkillsClient.current();return j.get("session").getAsString().equals(state.session())&&j.get("generation").getAsLong()==state.own().generation&&!state.own().dead&&j.get("job").getAsString().equals(state.progress().jobId())&&j.get("dimension").getAsString().equals(dimension)&&j.get("instance").getAsString().equals(instance);}
     public void clear(){for(String root:roots){TrainingCombat.release(root,"mage");TrainingCombat.actionFinished(root);}MageSkillBehaviors.clear();SunMoonClient.clear();DemonHunterClient.clear();army.clear();environment.clear();lastPetTick=lastPetUpload=0;frenzyUntil=0;received.clear();roots.clear();summonUntil=0;summonRank=0;summonedMelee=summonedStone=summonedTriple=null;}
-    public static void register(String id,Consumer<SkillCast> starter){if(SPELLS.putIfAbsent(id,starter)!=null)throw new IllegalArgumentException("Duplicate local spell: "+id);}
+    public static void register(String id,Consumer<SkillCast> starter){register(id,starter,true);}
+    static void registerAction(String id,Consumer<SkillCast> starter){register(id,starter,false);}
+    private static void register(String id,Consumer<SkillCast> starter,boolean releaseAtStart){
+        if(SPELLS.putIfAbsent(id,new Spell(starter,releaseAtStart))!=null)throw new IllegalArgumentException("Duplicate local spell: "+id);
+    }
     private static void install(){if(installed)return;installed=true;MageSkillBehaviors.install();SunMoonClient.install();DemonHunterClient.install();}
     public void prepare(SkillDefinition skill){ensureContext();install();MageSkillBehaviors.prepare(skill);String unavailable=SunMoonRules.unavailableReason(skill,CareerClient.INSTANCE.view.sunMoon.heart,CareerClient.INSTANCE.view.sunMoon.stacks);if(!unavailable.isEmpty())throw new IllegalArgumentException(unavailable);}
     public boolean start(SkillCast cast){
         install();var starter=SPELLS.get(cast.skill.id);if(starter==null)return false;
         cast.stats=cast.stats.copy();cast.stats.modifiers.put("sourceLevel",(double)SkillsClient.current().progress().level);
         TrainingCombat.begin(cast.id,cast.skill.title);TrainingCombat.hold(cast.id,"mage",ClientUi.now()+Math.max(20000,(long)(cast.parameters.get("summonDuration",0)*1000)));
-        try{starter.accept(cast);if(SunMoonSkills.contains(cast.skill.id)){var view=CareerClient.INSTANCE.view;view.sunMoon=SunMoonRules.released(view.sunMoon,cast.skill,cast.parameters.rank(),SkillsClient.current().progress().awakened(),cast.parameters,cast.stats);CareerClient.INSTANCE.publish();}}
-        catch(RuntimeException failure){finished(cast);SkillsClient.current().message(Objects.toString(failure.getMessage(),"技能执行失败"));}
+        try{
+            PlayerPoseChannel.begin(cast);
+            starter.start().accept(cast);
+            if(starter.releaseAtStart())PlayerPoseChannel.release(cast);
+            if(SunMoonSkills.contains(cast.skill.id)){var view=CareerClient.INSTANCE.view;view.sunMoon=SunMoonRules.released(view.sunMoon,cast.skill,cast.parameters.rank(),SkillsClient.current().progress().awakened(),cast.parameters,cast.stats);CareerClient.INSTANCE.publish();}
+        }
+        catch(RuntimeException failure){PlayerPoseChannel.cancel(cast);finished(cast);SkillsClient.current().message(Objects.toString(failure.getMessage(),"技能执行失败"));}
         return true;
     }
     public boolean valid(SkillCast c){var state=SkillsClient.current();var p=Minecraft.getInstance().player;return p!=null&&state.ready()&&!state.own().dead&&c.session.equals(state.session())&&c.generation==state.own().generation&&c.job.equals(state.progress().jobId())&&c.instance.equals(state.own().instance)&&c.dimension.equals(p.level().dimension().identifier().toString());}

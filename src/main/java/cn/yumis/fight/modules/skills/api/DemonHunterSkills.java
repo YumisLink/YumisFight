@@ -20,7 +20,9 @@ public final class DemonHunterSkills {
         add(BEAM,"眼棱",false,30,50,30,1,true,Map.of("range",16d,"width",3d,"duration",2d,"rise",.2,"interval",.25,"slashes",8d)).formParameter("beamWidth",1.5).formParameter("beamDamageTaken",.2);
         add(RUSH,"邪能冲撞",true,20,30,12,1,false,Map.of("range",12d,"duration",.4,"slashes",1d));
         add(DANCE,"刃舞",true,25,40,12,.2,false,Map.of("range",3d,"radius",3d,"duration",2d,"slashes",2d,"finisher",.6)).formParameter("danceRadius",3).formParameter("dancePeak",5);
-        add(HUNT,"恶魔追击",true,40,60,60,.05,false,Map.of("range",40d,"duration",4d,"slashes",8d,"interval",.1,"finisher",.6)).formParameter("huntSpeed",10);
+        add(HUNT,"恶魔追击",true,40,60,60,.05,false,Map.of("range",DemonHunterChoreography.HUNT_RANGE,
+            "duration",DemonHunterChoreography.HUNT_RANGE/DemonHunterChoreography.HUNT_SPEED,
+            "slashes",8d,"interval",.1,"finisher",.6)).formParameter("huntSpeed",DemonHunterChoreography.HUNT_SPEED);
         var meta=add(META,"恶魔变形",true,50,100,90,1,true,Map.of("range",16d,"radius",4d,"duration",1d,"slashes",1d)).formParameter("transformSeconds",20);meta.groundTargeted=true;
         for(String id:ALL)if(!id.equals(SIGHT)){var s=SkillCatalog.require(id);SkillDamagePhases.register(id,"strike",Boolean.TRUE.equals(s.magicDamage),false);}
         SkillDamagePhases.register(AURA,"pulse",true,true);SkillDamagePhases.register(BEAM,"pulse",true,false);SkillDamagePhases.register(HUNT,"impact",true,false);

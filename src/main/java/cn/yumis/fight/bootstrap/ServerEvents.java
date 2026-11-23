@@ -157,6 +157,7 @@ public final class ServerEvents {
         var job=Commands.literal("job").requires(source->source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
         job.then(Commands.literal("mark").then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("base",StringArgumentType.word()).suggests((context,builder)->{builder.suggest("ghost_swordsman");builder.suggest("mage");return builder.buildFuture();}).executes(c->{var value=StringArgumentType.getString(c,"base");ServerApplication.get().progressService.markQuest(EntityArgument.getPlayer(c,"player"),value.contains(":")?value:itemNamespace()+value);return 1;}))));
         job.then(Commands.literal("awaken").then(Commands.argument("player",EntityArgument.player()).executes(c->{ServerApplication.get().progressService.awaken(EntityArgument.getPlayer(c,"player"));return 1;})));
+        job.then(Commands.argument("career",StringArgumentType.word()).suggests((context,builder)->{for(var definition:cn.yumis.fight.modules.character.api.JobCatalog.all())if(!definition.id().equals(cn.yumis.fight.modules.character.api.JobCatalog.NONE))builder.suggest(definition.id().substring(definition.id().indexOf(':')+1));return builder.buildFuture();}).then(Commands.argument("player",EntityArgument.player()).executes(c->master(c))));
         root.then(job);
         var points=Commands.literal("points").requires(source->source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
         points.then(Commands.literal("get").then(Commands.argument("player",EntityArgument.player()).executes(c->{var player=EntityArgument.getPlayer(c,"player");long value=ServerApplication.get().economyService.points(player);c.getSource().sendSuccess(()->ModText.of(player.getName().getString()+"："+value+"点券"),false);return 1;})));
@@ -171,13 +172,7 @@ public final class ServerEvents {
             ServerPlayer p=EntityArgument.getPlayer(c,"player");var r=ServerApplication.get();Progress pr=r.session(p).progress;int level=IntegerArgumentType.getInteger(c,"level");while(pr.level<level)pr.grant(nextExperience(pr.level));r.savePlayer(p);r.profile(p);r.message(p,"开发测试：角色等级已提高");return 1;
         }
         ))));
-        dev.then(Commands.literal("white").executes(c->{
-            var r=ServerApplication.get();ServerPlayer p=c.getSource().getPlayerOrException();JsonObject intent=new JsonObject();intent.addProperty("dev","white");r.inventory.transact(p,UUID.randomUUID().toString(),intent,()->{
-                for(Slot slot:Slot.values())if(r.session(p).progress.level>=slot.minimum())r.inventory.requireSpace(p,EquipmentItems.gear(EquipmentTemplates.createStandard(slot,Weapon.KATANA,Rarity.COMMON,r.session(p).progress.level,r.random)));
-            }
-            ,Map.of());r.profile(p);return 1;
-        }
-        ));
+        dev.then(Commands.literal("white").executes(c->white(c,Weapon.KATANA)).then(Commands.argument("weapon",StringArgumentType.word()).suggests((context,builder)->{for(var kind:Weapon.values())builder.suggest(kind.name());return builder.buildFuture();}).executes(c->white(c,Weapon.valueOf(StringArgumentType.getString(c,"weapon").toUpperCase())))));
         dev.then(Commands.literal("give").then(Commands.argument("id",StringArgumentType.word()).executes(c->{
             var r=ServerApplication.get();ServerPlayer p=c.getSource().getPlayerOrException();String id=StringArgumentType.getString(c,"id");ItemStack item;if(MaterialCatalog.current().materials.containsKey(id))item=EquipmentItems.material(id,64);else if(id.equals("test_gem")){
                 Gem gem=new Gem();gem.level=1;gem.group="all";gem.name="开发样本 · 力量";Affix a=new Affix("test_strength",Stat.STRENGTH,5,false);a.fixed=true;gem.affixes.add(a);item=EquipmentItems.payload("affix_gem",gem,gem.name);
@@ -200,6 +195,32 @@ public final class ServerEvents {
         cn.yumis.fight.modules.dungeons.application.DungeonCommands.commands(root,()->ServerApplication.get().dungeons);
         cn.yumis.fight.modules.equipment.application.EquipmentCommands.commands(root,()->new cn.yumis.fight.modules.equipment.application.EquipmentCommands.Admin(ServerApplication.get().inventory,ServerApplication.get()::profile));
         e.getDispatcher().register(root);
+    }
+    private static int white(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack> c,Weapon weapon)throws com.mojang.brigadier.exceptions.CommandSyntaxException{
+        var r=ServerApplication.get();ServerPlayer p=c.getSource().getPlayerOrException();JsonObject intent=new JsonObject();intent.addProperty("dev","white");intent.addProperty("weapon",weapon.name());r.inventory.transact(p,UUID.randomUUID().toString(),intent,()->{
+            for(Slot slot:Slot.values())if(r.session(p).progress.level>=slot.minimum())r.inventory.requireSpace(p,EquipmentItems.gear(EquipmentTemplates.createStandard(slot,weapon,Rarity.COMMON,r.session(p).progress.level,r.random)));
+        }
+        ,Map.of());r.profile(p);r.message(p,"开发测试白装："+weapon.title());return 1;
+    }
+    /** `/ydnf job <职业> <玩家>`：该职业配置直接满级全技能，并同事务发放对应武器。 */
+    private static int master(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack> c)throws com.mojang.brigadier.exceptions.CommandSyntaxException{
+        var r=ServerApplication.get();ServerPlayer p=EntityArgument.getPlayer(c,"player");
+        String raw=StringArgumentType.getString(c,"career"),id=raw.contains(":")?raw:itemNamespace()+raw;
+        var definition=cn.yumis.fight.modules.character.api.JobCatalog.require(id);
+        if(definition.id().equals(cn.yumis.fight.modules.character.api.JobCatalog.NONE))throw new IllegalArgumentException("请指定具体职业");
+        var mastered=cn.yumis.fight.modules.skills.api.CareerMastering.apply(definition.id(),r.session(p).progress,r.characters.profiles(p.getUUID()));
+        var writes=r.characters.writes(p.getUUID(),mastered.active(),mastered.book());
+        JsonObject intent=new JsonObject();intent.addProperty("job",definition.id());
+        r.inventory.transact(p,UUID.randomUUID().toString(),intent,()->{
+            for(var type:cn.yumis.fight.modules.character.api.JobCatalog.weapons(definition.id())){
+                if(type.equals("BROOM"))continue;
+                r.inventory.requireSpace(p,EquipmentItems.gear(EquipmentTemplates.createStandard(Slot.WEAPON,Weapon.valueOf(type),Rarity.COMMON,cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL,r.random)));
+            }
+        },writes);
+        r.session(p).progress=mastered.active();
+        r.profile(p);
+        c.getSource().sendSuccess(()->ModText.of("已拉满 "+p.getName().getString()+" 的"+definition.title()+"：满级全技能，并发放对应武器"),true);
+        return 1;
     }
     private static String itemNamespace(){return cn.yumis.fight.platform.ItemData.NS+":";}
 }

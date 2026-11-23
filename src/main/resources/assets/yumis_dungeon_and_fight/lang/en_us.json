@@ -630,5 +630,8 @@
   "item.yumis_dungeon_and_fight.unfinished_chant_core": "Unfinished Chant Core",
   "item.yumis_dungeon_and_fight.stopped_clock_gear": "Stopped-Clock Gear",
   "item.yumis_dungeon_and_fight.ember_scale": "Ember Scale",
-  "item.yumis_dungeon_and_fight.silent_chip": "Silent Chip"
+  "item.yumis_dungeon_and_fight.silent_chip": "Silent Chip",
+  "item.yumis_dungeon_and_fight.otherworld_aura": "Otherworldly Aura",
+  "item.yumis_dungeon_and_fight.intense_aura": "Intense Aura",
+  "item.yumis_dungeon_and_fight.aura_transform_box": "Aura Transform Box"
 }

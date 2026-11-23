@@ -42,14 +42,29 @@ public final class SkillBehaviors {
         registerStart(SkillCatalog.BLINK.id,(x,c,now)->{x.player().setPos(c.center);x.player().fallDistance=0;});
         registerStart(SkillCatalog.STORM.id,(x,c,now)->{c.previousGravity=x.player().isNoGravity();c.gravityLease=true;x.player().setNoGravity(true);x.player().fallDistance=0;});
         registerStart(SkillCatalog.OVERDRIVE.id,(x,c,now)->{x.buff("yumis_dungeon_and_fight:overdrive",now+30000);x.absorption("overdrivePower",.15*Math.pow(1.12,c.parameters.rank()-1));});
+        registerStart(SkillCatalog.GHOST.id,(x,c,now)->PlayerPoseChannel.loop(c,c.skill.id,
+            PlayerPoseChannel.scaled(c.parameters.get("maxChargeSeconds",3)*1000,c.speed),c.direction,true));
+        registerStart(SkillCatalog.DANCE.id,(x,c,now)->{
+            var schedule=SkillSchedule.dance(c.parameters);
+            double cycle=Math.max(1,2*schedule.intervalMillis());
+            double rate=PlayerPoseChannel.length(c.skill.id)*c.speed/cycle;
+            PlayerPoseChannel.loop(c,c.skill.id,PlayerPoseChannel.scaled(schedule.durationMillis(),c.speed),c.direction,false,rate);
+        });
         register(List.of(SkillCatalog.GHOST),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
                 double chargeSeconds=Math.max(.05,c.parameters.get("chargeSeconds",1)),chargeSpan=Math.max(50,chargeSeconds*1000);long chargedMs=(long)chargeSpan;
                 if(c.release||elapsed>=(long)(c.parameters.get("maxChargeSeconds",3)*1000)){
+                    PlayerPoseChannel.play(c,"ghost_release",PlayerPoseChannel.scaled(PlayerPoseChannel.length("ghost_release"),c.speed),c.direction,false);
                     x.visual(c,"RELEASE");
                     double charge=1+Math.min(1,elapsed/chargeSpan)*(Math.max(1,c.parameters.get("chargeMultiplier",2))-1);
                     double coefficient=c.parameters.get("damage",1.6)*charge+(elapsed>=chargedMs?c.parameters.get("soulBonus",0):0);if(elapsed>=chargedMs)coefficient*=c.parameters.get("ghostFieldMultiplier",1);
                     x.slash(c,c.parameters.get("range",3),3,2,coefficient,.4,false);
+                    if(elapsed>=chargedMs&&c.parameters.get("soulBonus",0)>0){
+                        // 满蓄力鬼斩的噬灵冲击是追加装饰轨道；命中判定仍由鬼斩本体承载。
+                        var look=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z);look=look.lengthSqr()<.01?new Vec3(0,0,1):look.normalize();
+                        var soul=new SkillCast();soul.id=UUID.randomUUID().toString();soul.session=c.session;soul.generation=c.generation;soul.job=c.job;soul.dimension=c.dimension;soul.instance=c.instance;soul.skill=SkillCatalog.require(CareerSkills.SOUL_SLASH);soul.stats=c.stats;soul.parameters=c.parameters;soul.speed=c.speed;soul.start=now;
+                        MageClient.INSTANCE.visual(soul,soul.id,"START",p.position().add(0,1,0),look,800,0,null);
+                    }
                     x.cancel(true);
                 }
             
@@ -71,6 +86,7 @@ public final class SkillBehaviors {
                 if(stage>=duration*1000&&c.hit.size()>=0&&c.slashes<c.segment){
                     c.slashes=c.segment;
                     if(c.stats.weaponType.equals("SHORTSWORD")&&c.skill==SkillCatalog.TRIPLE)x.passive(c);
+                    PlayerPoseChannel.release(c);
                 }
                 if(now>c.window||c.segment>=c.parameters.get("slashes",3)&&stage>duration*1000)x.cancel(true);
             
@@ -88,6 +104,7 @@ public final class SkillBehaviors {
         });
         register(List.of(SkillCatalog.RISING),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
+                PlayerPoseChannel.lock(c);
                 if(now-c.visualTrail>=100){
                     x.visual(c,"TRAIL");
                     c.visualTrail=now;
@@ -102,6 +119,7 @@ public final class SkillBehaviors {
                     x.visual(c,"RELEASE");
                     c.hit.clear();
                     x.slash(c,2,2,3,c.parameters.get("finisher",2.4),.6,false);
+                    PlayerPoseChannel.release(c);
                 }
                 if(elapsed>=risingSpan+400)x.cancel(true);
             
@@ -114,6 +132,7 @@ public final class SkillBehaviors {
                 c.finisher=true;c.hit.clear();c.hitIndex=1;c.elementOverride=0;c.passiveDamage=true;c.suppressEquipment=true;Stats original=c.stats;c.stats=original.copy();c.stats.modifiers.put("crit",0d);
                 x.slash(c,c.parameters.get("range",5),5,3,c.parameters.get("damage",1)*.2,0,true);x.visual(c,"HIT");c.stats=original;c.elementOverride=-2;c.passiveDamage=false;c.suppressEquipment=false;
             }
+            if(c.release&&(!light||c.finisher))PlayerPoseChannel.release(c);
             if(elapsed>=drawMs+400)x.cancel(true);
         });
         register(List.of(SkillCatalog.DANCE),(x,c,now,elapsed,stage,speed)->{
@@ -147,6 +166,7 @@ public final class SkillBehaviors {
                 x.visual(c,"FINISH");
                 c.hit.clear();
                 x.area(c,c.parameters.get("range",5),c.parameters.get("finisher",8),true);
+                PlayerPoseChannel.release(c);
             }
             if(elapsed>=schedule.endAt())x.cancel(true);
         });

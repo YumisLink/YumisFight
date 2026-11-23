@@ -1,5 +1,7 @@
 package cn.yumis.fight.modules.presentation.api.client;
 import cn.yumis.fight.modules.presentation.api.ThemeDefinition;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.neoforged.fml.loading.FMLPaths;
@@ -13,14 +15,22 @@ public final class UiTheme {
     public static int TIP_TEXT,TIP_MUTED,TIP_TITLE,TIP_NUMBER,HUD_PANEL,HUD_TEXT,HUD_MUTED,HUD_GOLD,DAMAGE_BAR;
     public static long revision;
     public static String status="";
-    private static ThemeDefinition definition,lightDefinition,darkDefinition;
+    private static ThemeDefinition definition,lightDefinition,darkDefinition,pixelDefinition;
     private static int paletteDepth;
     private static long nextCheck,stamp=Long.MIN_VALUE;
     private static final String DEFAULTS;
+    private static final JsonObject DEFAULT_CONFIG;
+    private static final ThemeDefinition DEFAULT_LIGHT;
     static {
         try(var source=UiTheme.class.getResourceAsStream("/assets/yumis_dungeon_and_fight/ui-theme.json")){
             if(source==null)throw new IllegalStateException("缺少默认界面主题");
-            DEFAULTS=new String(source.readAllBytes(),StandardCharsets.UTF_8);lightDefinition=ThemeDefinition.parse(DEFAULTS,null);darkDefinition=dark(DEFAULTS,lightDefinition);apply(lightDefinition);
+            DEFAULTS=new String(source.readAllBytes(),StandardCharsets.UTF_8);
+            DEFAULT_CONFIG=JsonParser.parseString(DEFAULTS).getAsJsonObject();
+            DEFAULT_LIGHT=ThemeDefinition.parse(DEFAULTS,null);
+            lightDefinition=DEFAULT_LIGHT;
+            darkDefinition=variant(DEFAULT_CONFIG,"dark",lightDefinition);
+            pixelDefinition=variant(DEFAULT_CONFIG,ClientSettings.PIXEL_THEME,lightDefinition);
+            apply(palette(ClientSettings.globalTheme));
         }catch(Exception failure){throw new ExceptionInInitializerError(failure);}
     }
     private UiTheme(){}
@@ -36,22 +46,41 @@ public final class UiTheme {
     }
     private static void reload()throws Exception{
         long modified=Files.getLastModifiedTime(path()).toMillis();if(stamp==modified)return;
-        ThemeDefinition next=ThemeDefinition.parse(Files.readString(path()),ThemeDefinition.parse(DEFAULTS,null));
-        ThemeDefinition nextDark=dark(Files.readString(path()),next);
-        lightDefinition=next;darkDefinition=nextDark;apply(next);stamp=modified;status="";revision++;
+        var config=JsonParser.parseString(Files.readString(path())).getAsJsonObject();
+        ThemeDefinition next=ThemeDefinition.parse(config.toString(),DEFAULT_LIGHT);
+        ThemeDefinition nextDark=variant(config,"dark",next);
+        ThemeDefinition nextPixel=variant(config,ClientSettings.PIXEL_THEME,next);
+        lightDefinition=next;darkDefinition=nextDark;pixelDefinition=nextPixel;
+        if(!scoped())apply(palette(ClientSettings.globalTheme));
+        stamp=modified;status="";revision++;
     }
-    private static ThemeDefinition dark(String text,ThemeDefinition light){
-        var defaults=com.google.gson.JsonParser.parseString(DEFAULTS).getAsJsonObject();var json=com.google.gson.JsonParser.parseString(text).getAsJsonObject();
-        ThemeDefinition fallback=ThemeDefinition.parse(defaults.getAsJsonObject("dark").toString(),light);
-        return json.has("dark")?ThemeDefinition.parse(json.getAsJsonObject("dark").toString(),fallback):fallback;
+    private static ThemeDefinition variant(JsonObject config,String id,ThemeDefinition base){
+        ThemeDefinition fallback=ThemeDefinition.parse(DEFAULT_CONFIG.getAsJsonObject(id).toString(),base);
+        return config!=DEFAULT_CONFIG&&config.has(id)?ThemeDefinition.parse(config.getAsJsonObject(id).toString(),fallback):fallback;
     }
-    public static void preferencesChanged(){revision++;}
+    public static void preferencesChanged(){
+        if(!scoped())apply(palette(ClientSettings.globalTheme));
+        revision++;
+    }
     public static boolean scoped(){return paletteDepth>0;}
-    public static PaletteScope use(String theme){check();return new PaletteScope(theme.equals("dark")?darkDefinition:lightDefinition);}
+    public static PaletteScope use(String theme){
+        check();
+        return new PaletteScope(palette(theme));
+    }
+    private static ThemeDefinition palette(String theme){
+        return switch(theme){
+            case "light" -> lightDefinition;
+            case "dark" -> darkDefinition;
+            default -> pixelDefinition;
+        };
+    }
     public static final class PaletteScope implements AutoCloseable {
         private final ThemeDefinition previous;
         private PaletteScope(ThemeDefinition next){previous=definition;paletteDepth++;apply(next);}
-        @Override public void close(){apply(previous);paletteDepth--;}
+        @Override public void close(){
+            paletteDepth--;
+            apply(scoped()?previous:palette(ClientSettings.globalTheme));
+        }
     }
     private static void apply(ThemeDefinition next){
         if(definition==next)return;
@@ -89,6 +118,7 @@ public final class UiTheme {
         definition=next;
     }
     public static int textInset(){return definition.textInset();}
+    public static boolean pixelStyle(){return definition.style().equals("pixel");}
     public static int tooltipColor(int color){return color==TEXT?TIP_TEXT:color==MUTED?TIP_MUTED:color==GOLD||color==ACCENT?TIP_TITLE:color;}
     private static void roundedFill(GuiGraphicsExtractor g,int x,int y,int w,int h,int radius,int color){
         if(w<=0||h<=0)return;int r=Math.min(radius,Math.min(w,h)/2);g.fill(x,y+r,x+w,y+h-r,color);
@@ -99,14 +129,53 @@ public final class UiTheme {
         double offset=radius-edgeRow-.5;
         return (int)Math.ceil(radius-Math.sqrt(radius*radius-offset*offset));
     }
-    public static void surface(GuiGraphicsExtractor g,int x,int y,int w,int h,int radius,int fill,int border){roundedFill(g,x,y,w,h,radius,border);roundedFill(g,x+1,y+1,w-2,h-2,Math.max(0,radius-1),fill);}
+    private static void pixelFrame(GuiGraphicsExtractor g,int x,int y,int w,int h,int fill,int border,int bevel,boolean recessed){
+        if(w<=0||h<=0)return;
+        g.fill(x,y,x+w,y+h,border);
+        if(w<=2||h<=2)return;
+        int left=x+1,top=y+1,right=x+w-1,bottom=y+h-1;
+        int depth=Math.min(bevel,(Math.min(w,h)-3)/2);
+        if(depth==0){g.fill(left,top,right,bottom,fill);return;}
+        int upper=recessed?SHADOW:LIGHT;
+        int lower=recessed?LIGHT:SHADOW;
+        g.fill(left,top,right,top+depth,upper);
+        g.fill(left,top+depth,left+depth,bottom-depth,upper);
+        g.fill(right-depth,top+depth,right,bottom,lower);
+        g.fill(left,bottom-depth,right-depth,bottom,lower);
+        g.fill(left+depth,top+depth,right-depth,bottom-depth,fill);
+    }
+    public static void surface(GuiGraphicsExtractor g,int x,int y,int w,int h,int radius,int fill,int border){
+        if(pixelStyle()){pixelFrame(g,x,y,w,h,fill,border,1,false);return;}
+        roundedFill(g,x,y,w,h,radius,border);
+        roundedFill(g,x+1,y+1,w-2,h-2,Math.max(0,radius-1),fill);
+    }
     private static int edge(){return definition.style().equals("flat")?0xff70747d:BORDER;}
-    public static void panel(GuiGraphicsExtractor g,int x,int y,int w,int h){check();surface(g,x,y,w,h,6,PANEL,edge());}
+    public static void panel(GuiGraphicsExtractor g,int x,int y,int w,int h){
+        check();
+        if(pixelStyle())pixelFrame(g,x,y,w,h,PANEL,BORDER,definition.border(),false);
+        else surface(g,x,y,w,h,6,PANEL,edge());
+    }
     public static void card(GuiGraphicsExtractor g,int x,int y,int w,int h){surface(g,x,y,w,h,4,CARD,edge());}
-    public static void hud(GuiGraphicsExtractor g,int x,int y,int w,int h){surface(g,x,y,w,h,5,HUD_PANEL,0xff9298a2);}
+    public static void titleBar(GuiGraphicsExtractor g,int x,int y,int w,int h){
+        if(pixelStyle())pixelFrame(g,x,y,w,h,BUTTON,BORDER,1,false);
+        else card(g,x,y,w,h);
+    }
+    public static void statusBar(GuiGraphicsExtractor g,int x,int y,int w,int h){
+        if(pixelStyle())pixelFrame(g,x,y,w,h,SLOT,BORDER,1,true);
+        else card(g,x,y,w,h);
+    }
+    public static void borderlessInput(GuiGraphicsExtractor g,int x,int y,int w,int h,boolean focused){
+        if(pixelStyle())pixelFrame(g,x,y,w,h,SLOT,focused?ACCENT:BORDER,1,true);
+    }
+    public static void hud(GuiGraphicsExtractor g,int x,int y,int w,int h){surface(g,x,y,w,h,5,HUD_PANEL,pixelStyle()?BORDER:0xff9298a2);}
     public static void hudBar(GuiGraphicsExtractor g,int x,int y,int w,int h,double fraction,int color){
         int innerWidth=w-2,innerHeight=h-2;
         int fillWidth=(int)(innerWidth*Math.clamp(fraction,0,1));
+        if(pixelStyle()){
+            pixelFrame(g,x,y,w,h,HUD_PANEL,BORDER,0,true);
+            if(fillWidth>0&&innerHeight>0)g.fill(x+1,y+1,x+1+fillWidth,y+h-1,color);
+            return;
+        }
         int radius=Math.min(4,Math.min(innerWidth,innerHeight)/2);
         roundedFill(g,x+1,y+1,innerWidth,innerHeight,radius,HUD_PANEL);
         for(int row=0;row<innerHeight;row++){
@@ -128,7 +197,26 @@ public final class UiTheme {
             }
         }
     }
-    public static void slot(GuiGraphicsExtractor g,int x,int y){surface(g,x-1,y-1,18,18,3,SLOT,SLOT_LIGHT);}
-    public static void button(GuiGraphicsExtractor g,int x,int y,int w,int h,boolean active,boolean hover,boolean selected){surface(g,x,y,w,h,4,!active?DISABLED:selected?SELECTED:hover?HOVER:BUTTON,definition.style().equals("flat")?0xffa0a5af:LIGHT);}
-    public static void scrollbar(GuiGraphicsExtractor g,int x,int y,int h,int thumb,int offset){surface(g,x,y,10,h,4,SCROLL_TRACK,edge());surface(g,x+1,y+offset,8,thumb,3,SCROLL_THUMB,LIGHT);}
+    public static void slot(GuiGraphicsExtractor g,int x,int y){
+        if(pixelStyle())pixelFrame(g,x-1,y-1,18,18,SLOT,SLOT_SHADOW,1,true);
+        else surface(g,x-1,y-1,18,18,3,SLOT,SLOT_LIGHT);
+    }
+    public static void button(GuiGraphicsExtractor g,int x,int y,int w,int h,boolean active,boolean hover,boolean selected){
+        int fill=!active?DISABLED:selected?SELECTED:hover?HOVER:BUTTON;
+        if(pixelStyle()){
+            int outline=BORDER;
+            if(active&&selected)outline=ACCENT;
+            else if(active&&hover)outline=GOLD;
+            pixelFrame(g,x,y,w,h,fill,outline,1,!active);
+        }else surface(g,x,y,w,h,4,fill,definition.style().equals("flat")?0xffa0a5af:LIGHT);
+    }
+    public static void scrollbar(GuiGraphicsExtractor g,int x,int y,int h,int thumb,int offset){
+        if(pixelStyle()){
+            pixelFrame(g,x,y,10,h,SCROLL_TRACK,BORDER,1,true);
+            pixelFrame(g,x+1,y+offset,8,thumb,SCROLL_THUMB,BORDER,1,false);
+        }else{
+            surface(g,x,y,10,h,4,SCROLL_TRACK,edge());
+            surface(g,x+1,y+offset,8,thumb,3,SCROLL_THUMB,LIGHT);
+        }
+    }
 }

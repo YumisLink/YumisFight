@@ -64,6 +64,7 @@
 | 物品分类、创造栏归属与外观兜底 | [物品分类与外观规则](创作指南/物品分类与外观规则.md) |
 | 贴图制作、重绘与换色 | [贴图创作](创作指南/贴图创作.md) |
 | 哥布林王国藏宝图图标 | 源稿 `tools/goblin_treasure_map.aseprite`，用 Aseprite `-b tools/goblin_treasure_map.aseprite --save-as src/main/resources/assets/yumis_dungeon_and_fight/textures/item/goblin_treasure_map.png` 导出 |
+| 哥布林王国地图 | 副本场地登记 `content/GoblinKingdomLayout.java`。原版模板 `yumis_dungeon_and_fight:dungeons/goblin_kingdom/map`，位于 `structure/dungeons/goblin_kingdom/map.nbt`。制作源 `tools/build_goblin_kingdom.py`，模板最小角相对林道入场锚点为 `(-104,-5,-20)` |
 | 管道12/14尺寸手绘素材 | 源稿 `tools/fluid_pipe_materials_12x14.aseprite`、方向标记 `tools/fluid_pipe_ports_14x2.aseprite`；初稿绘制 `tools/draw_fluid_pipe_materials_12x14.lua`；正式导出 `tools/export_fluid_pipe_materials_12x14.lua`；切片布局 `tools/fluid_pipe_materials_12x14_layout.json` |
 | 矿石方块换色与自发光 | 可编辑源稿 `tools/industrial_ores.aseprite`，配色与等级 `tools/industrial_ore_definitions.lua`，绘制及导出入口 `tools/draw_industrial_ores.lua`、`tools/export_industrial_ores.lua` |
 | 科技方块矩阵外观 | `tools/technology_blocks.aseprite`（五帧，16×16），绘制入口 `tools/draw_technology_blocks.lua`，玻璃／发光边／内核与双层模型导出 `tools/export_technology_blocks.lua`；尺寸与光照在 `modules/industry/platform/TechnologyBlock.java` |

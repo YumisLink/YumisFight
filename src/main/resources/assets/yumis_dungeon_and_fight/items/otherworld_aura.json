@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "yumis_dungeon_and_fight:item/otherworld_aura",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 16737996
+      }
+    ]
+  }
+}

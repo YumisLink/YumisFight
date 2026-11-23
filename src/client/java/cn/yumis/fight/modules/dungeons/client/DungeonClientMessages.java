@@ -11,8 +11,8 @@ public final class DungeonClientMessages {
         Consumer<JsonObject> hit=contact::test;
         router.register("dungeons","towerStele",(context,j)->DungeonActions.enterTower(j));
         router.register("dungeons","treasureMapClue",(context,j)->TreasureMapClient.receiveClue(j));
-        router.register("dungeons","bossAction",(context,j)->{j.remove("clientContact");EnemyTelegraphs.receive(j);hit.accept(j);});
-        router.register("dungeons","cancelBossAction",(context,j)->{String id=j.get("id").getAsString();EnemyTelegraphs.cancel(id);cancel.accept(id);});
+        router.register("dungeons","bossAction",(context,j)->{j.remove("clientContact");EnemyTelegraphs.receive(j);KenoVisuals.receive(j);hit.accept(j);});
+        router.register("dungeons","cancelBossAction",(context,j)->{String id=j.get("id").getAsString();EnemyTelegraphs.cancel(id);KenoVisuals.cancel(id);cancel.accept(id);});
         router.register("dungeons","palaceAttack",(context,j)->{PalaceVisuals.receive(j);EncounterClientContacts.receive(EncounterClientContacts.Family.PALACE,j,hit);});
         router.register("dungeons","forbiddenAttack",(context,j)->{ForbiddenVisuals.receive(j);EncounterClientContacts.receive(EncounterClientContacts.Family.FORBIDDEN,j,hit);});
         router.register("dungeons","skasaAttack",(context,j)->{SkasaVisuals.receive(j);EncounterClientContacts.receive(EncounterClientContacts.Family.SKASA,j,hit);});

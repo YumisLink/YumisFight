@@ -27,5 +27,6 @@ public final class EquipmentContentTypes {
     public static final DeferredRegister<MenuType<?>> MENUS=DeferredRegister.create(Registries.MENU,ID);
     public static final DeferredHolder<MenuType<?>,MenuType<FabricatorMenu>> FABRICATOR_MENU=MENUS.register("fabricator",()->new MenuType<>(FabricatorMenu::new,FeatureFlags.DEFAULT_FLAGS));
     public static final DeferredHolder<MenuType<?>,MenuType<HoradricCubeMenu>> HORADRIC_CUBE_MENU=MENUS.register("horadric_cube",()->new MenuType<>(HoradricCubeMenu::new,FeatureFlags.DEFAULT_FLAGS));
+    public static final DeferredHolder<MenuType<?>,MenuType<EnhanceMenu>> ENHANCE_MENU=MENUS.register("enhance_furnace",()->new MenuType<>(EnhanceMenu::new,FeatureFlags.DEFAULT_FLAGS));
     public static void register(IEventBus bus){BLOCKS.register(bus);MENUS.register(bus);LOOT_FUNCTIONS.register(bus);cn.yumis.fight.platform.ItemRegistry.ITEMS.registerSimpleBlockItem(FABRICATOR);cn.yumis.fight.platform.ItemRegistry.ITEMS.registerSimpleBlockItem(HORADRIC_CUBE);}
 }

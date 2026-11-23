@@ -77,6 +77,7 @@ public final class VerificationDriver {
             status.addProperty("summonFrenzyUntil",cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.frenzyUntil);
             status.add("jei",jeiInspection.deepCopy());status.addProperty("industrialBeams",IndustrialVisuals.beams().size());status.addProperty("industrialBeamRemaining",IndustrialVisuals.remaining());
             if(ClientSession.INSTANCE.profile.has("stats"))status.add("serverStats",ClientSession.INSTANCE.profile.get("stats"));
+            if(ClientSession.INSTANCE.profile.has("careerProfiles"))status.add("careerProfiles",ClientSession.INSTANCE.profile.getAsJsonObject("careerProfiles").get("state"));
             status.addProperty("font",UiFonts.currentName());
             status.addProperty("menuTheme",ClientSettings.theme(cn.yumis.fight.modules.presentation.api.client.ThemeDomain.MENU));
             status.addProperty("themeRevision",UiTheme.revision);status.addProperty("themeStatus",UiTheme.status);status.addProperty("themePanel",Integer.toHexString(UiTheme.PANEL));
@@ -89,6 +90,10 @@ public final class VerificationDriver {
             status.add("feedback",FeedbackProbe.snapshot());
             status.add("vfxMetrics",JSON.toJsonTree(Effects.VFX.metrics()));
             status.addProperty("vfxActive",Effects.VFX.activeCount());
+            status.addProperty("mp",ClientSession.INSTANCE.resources.mp);
+            status.addProperty("training",ClientSession.INSTANCE.resources.training);
+            status.addProperty("poseSample",cn.yumis.fight.modules.skills.client.PlayerPoseChannel.debugSample);
+            status.addProperty("poseApplied",cn.yumis.fight.modules.skills.client.PlayerPoseChannel.debugApplied);
             status.add("visualEvents",JSON.toJsonTree(Effects.VFX.activeEvents()));
             var cast=SkillController.INSTANCE.cast;
             if(cast!=null){JsonObject detail=new JsonObject();detail.addProperty("id",cast.id);detail.addProperty("skill",cast.skill.id);detail.addProperty("slashes",cast.slashes);detail.addProperty("segment",cast.segment);detail.addProperty("start",cast.start);detail.addProperty("speed",cast.speed);detail.add("parameters",JSON.toJsonTree(cast.parameters.values()));status.add("cast",detail);}
@@ -260,6 +265,7 @@ public final class VerificationDriver {
                 mc.player.setYRot(j.get("yaw").getAsFloat());
                 mc.player.setXRot(j.get("pitch").getAsFloat());
             }
+            case "camera"->mc.options.setCameraType(net.minecraft.client.CameraType.valueOf(j.get("type").getAsString().toUpperCase(java.util.Locale.ROOT)));
             case "holdAttack"->mc.options.keyAttack.setDown(true);
             case "stopAttack"->mc.options.keyAttack.setDown(false);
             case "storageSearch"->{if(mc.gui.screen()!=null)for(var child:mc.gui.screen().children())if(child instanceof net.minecraft.client.gui.components.EditBox box){box.setValue(j.get("text").getAsString());break;}}

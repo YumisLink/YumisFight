@@ -169,6 +169,12 @@ final class GoblinCampEncounterService {
         k.busyUntil=now+total;
         aggressive(e,k,now,total);
         k.probes.add(new Probe(now+windup+active/2,a.get("x").getAsDouble(),a.get("y").getAsDouble(),a.get("z").getAsDouble(),radius,a.get("dx").getAsDouble(),a.get("dz").getAsDouble(),halfAngle,shape.equals("FAN")));
+        switch(kind){
+            case "RING"->queue(k,KenoShow.ring(now+windup,a.get("x").getAsDouble(),a.get("y").getAsDouble(),a.get("z").getAsDouble(),radius));
+            case "FAN"->queue(k,KenoShow.slash(now+windup,a.get("x").getAsDouble(),a.get("y").getAsDouble(),a.get("z").getAsDouble(),false));
+            case "BASIC"->queue(k,KenoShow.slash(now+windup,a.get("x").getAsDouble(),a.get("y").getAsDouble(),a.get("z").getAsDouble(),true));
+            default->queue(k,KenoShow.lightning(now+windup,a.get("x").getAsDouble(),a.get("y").getAsDouble(),a.get("z").getAsDouble(),radius,false));
+        }
     }
     private void claw(DungeonEnemy e,ServerPlayer p,Keno k,long now,double coefficient){
         Vec3 dir=aim(e,p);
@@ -178,6 +184,7 @@ final class GoblinCampEncounterService {
         k.busyUntil=now+2200;
         aggressive(e,k,now,2200);
         k.probes.add(new Probe(now+500,e.getX(),e.getY(),e.getZ(),4.5,dir.x,dir.z,Math.PI/3,true));
+        for(int i=0;i<3;i++)queue(k,KenoShow.slash(now+400+i*500,e.getX(),e.getY(),e.getZ(),false));
     }
     /** Furious storm: circles rain on the player's live position, one per 600 ms, so staying still is punished. */
     private void ultimate(DungeonEnemy e,ServerPlayer p,Target t,Keno k,List<ServerPlayer> players,long now)throws Exception{
@@ -198,6 +205,7 @@ final class GoblinCampEncounterService {
                 long fire=System.currentTimeMillis();
                 owner.broadcast(e.instance(),"bossAction",action(e,target,UUID.randomUUID(),"ULTIMATE","CIRCLE",true,radius,Math.PI,300,200,0,coefficient,true,fire));
                 k.probes.add(new Probe(fire+400,target.getX(),target.getY(),target.getZ(),radius,0,0,Math.PI,false));
+                queue(k,KenoShow.lightning(fire+300,target.getX(),target.getY(),target.getZ(),radius,true));
             }});
         }
     }
@@ -217,9 +225,7 @@ final class GoblinCampEncounterService {
         e.play("blink_step",500);
         k.busyUntil=now+500;
         k.followup=true;k.followupAt=now+400;
-        var level=owner.level();
-        level.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK,from.x,from.y+1,from.z,20,.6,1,.6,.02);
-        level.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK,destination.x,p.getY()+1,destination.z,20,.6,1,.6,.02);
+        for(KenoShow show:KenoShow.blink(now,from.x,from.y+1,from.z,destination.x,p.getY()+1,destination.z))present(show);
     }
     /** Phase change: an invulnerable performance, and at P2 the storm ritual absorbs the legacy mid-fight summons. */
     private void transition(Dungeon dungeon,DungeonEnemy e,Target t,Keno k,int stage,List<ServerPlayer> players,long now)throws Exception{
@@ -232,11 +238,16 @@ final class GoblinCampEncounterService {
         sync(e,t,players);
         e.getNavigation().stop();
         e.play(stage==2?"summon_ritual":"phase3_transition",millis);
+        queue(k,KenoShow.phase(now,e.getX(),e.getY(),e.getZ(),stage,millis));
         if(stage==2&&!e.getPersistentData().getBooleanOr("ydnf_keno_summoned",false)){
             e.getPersistentData().putBoolean("ydnf_keno_summoned",true);
             owner.spawn(dungeon,"goblin",false,false,e.getX()-2,e.getY(),e.getZ());
             owner.spawn(dungeon,"goblin",false,false,e.getX()+2,e.getY(),e.getZ());
             owner.spawn(dungeon,"goblin_captain",true,false,e.getX(),e.getY(),e.getZ()+2.5);
+            for(KenoShow show:new KenoShow[]{
+                    KenoShow.summon(now,e.getX()-2,e.getY(),e.getZ()).get(0),
+                    KenoShow.summon(now,e.getX()+2,e.getY(),e.getZ()).get(0),
+                    KenoShow.summon(now,e.getX(),e.getY(),e.getZ()+2.5).get(0)})present(show);
             owner.refreshCamp();
         }
     }
@@ -249,6 +260,7 @@ final class GoblinCampEncounterService {
         Vec3 dir=aim(e,p);
         a.addProperty("id",id.toString());
         a.add("boss",JSON.toJsonTree(owner.targets().target(e)));
+        a.addProperty("source",e.appearance());
         a.addProperty("kind",kind);
         a.addProperty("shape",shape);
         a.addProperty("width",2);
@@ -295,5 +307,21 @@ final class GoblinCampEncounterService {
         }
         e.setData(cn.yumis.fight.modules.combat.api.CombatContentTypes.TARGET,JSON.toJson(t));
         for(ServerPlayer observer:players)owner.targets().context(observer,e);
+    }
+
+    // ---- 服务端演出：把 KenoShow 时间表映射为原版粒子与音效，不参与任何判定 ----
+    private void queue(Keno k,List<KenoShow> shows){for(KenoShow show:shows)k.schedule.add(new Object[]{show.at(),(Runnable)()->present(show)});}
+    private void present(KenoShow show){
+        var level=owner.level();
+        double spreadY=Math.max(.15,show.spread()*.6);
+        switch(show.particle()){
+            case KenoShow.FLASH->{if(show.count()>0)level.sendParticles(net.minecraft.core.particles.ColorParticleOption.create(net.minecraft.core.particles.ParticleTypes.FLASH,0xFFFFFFFF),show.x(),show.y(),show.z(),show.count(),0,0,0,0);}
+            case KenoShow.ROD->{if(show.count()>0)level.sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD,show.x(),show.y(),show.z(),show.count(),show.spread(),spreadY,show.spread(),show.speed());}
+            default->{if(show.count()>0)level.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK,show.x(),show.y(),show.z(),show.count(),show.spread(),spreadY,show.spread(),show.speed());}
+        }
+        if(show.sound()!=null){
+            var event=switch(show.sound()){case KenoShow.THUNDER->net.minecraft.sounds.SoundEvents.LIGHTNING_BOLT_THUNDER;case KenoShow.SWEEP->net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_SWEEP;case KenoShow.BURST->net.minecraft.sounds.SoundEvents.BREEZE_CHARGE;case KenoShow.WARP->net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT;default->net.minecraft.sounds.SoundEvents.LIGHTNING_BOLT_IMPACT;};
+            level.playSound(null,net.minecraft.core.BlockPos.containing(show.x(),show.y(),show.z()),event,net.minecraft.sounds.SoundSource.HOSTILE,show.volume(),show.pitch());
+        }
     }
 }
