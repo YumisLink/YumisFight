@@ -30,7 +30,7 @@ final class HamelinEncounterService extends ClassicEncounterService {
         Tower tower=towers.get(e.getUUID());if(tower==null)return false;
         if(now>=tower.until||tower.mice.stream().noneMatch(id->alive(entity(id)))){release(e,tower);return false;}
         e.getNavigation().stop();e.setNoGravity(true);e.setPos(b.home.x,81.8,b.home.z);immune(e,true);b.hard=true;
-        if(now>=b.busy){ServerPlayer target=here.stream().filter(p->eligible(p,d)&&cn.yumis.fight.modules.dungeons.content.ClassicDungeonRooms.contains(d.cell,b.area,p.position())).findFirst().orElse(null);if(target!=null)play(d,e,b,move(e,"flute"),target,now);}
+        if(now>=b.busy){ServerPlayer target=here.stream().filter(p->eligible(p,d)&&contains(d,b.area,p.position())).findFirst().orElse(null);if(target!=null)play(d,e,b,move(e,"flute"),target,now);}
         return true;
     }
     private void release(DungeonEnemy e,Tower tower){
@@ -60,5 +60,5 @@ final class HamelinEncounterService extends ClassicEncounterService {
     }
     @Override protected void onCancel(DungeonEnemy e,Brain b){Tower tower=towers.get(e.getUUID());if(tower!=null)release(e,tower);}
     @Override protected void onDeath(DungeonEnemy e,Brain b){towerMice.remove(e.getUUID());}
-    @Override void close(Dungeon d){super.close(d);if(d.dungeon.equals(dungeon)){towers.keySet().removeIf(id->!brains.containsKey(id));towerMice.keySet().removeIf(id->!brains.containsKey(id));}}
+    @Override void close(Dungeon d){super.close(d);if(uses(d)){towers.keySet().removeIf(id->!brains.containsKey(id));towerMice.keySet().removeIf(id->!brains.containsKey(id));}}
 }

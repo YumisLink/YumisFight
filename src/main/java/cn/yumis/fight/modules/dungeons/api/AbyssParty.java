@@ -21,10 +21,11 @@ public final class AbyssParty {
     public static final List<Double> SKELETON_THRESHOLDS = List.of(.95, .90, .85, .80, .75, .70);
     public static final int SECOND_WAVE = 8, CHAMPIONS = 5;
     public static final double RADIUS = 24;
+    public static final float PILLAR_SCALE = 3;
     private static final Set<String> DUNGEONS = Set.of("goblin_camp", "dragon_tower", "castle_palace", "gbl_church");
 
     public enum Enemy {
-        PILLAR("abyss_pillar", 3, 1.15f, 3.2f),
+        PILLAR("abyss_pillar", 3, 1.15f * PILLAR_SCALE, 3.2f * PILLAR_SCALE),
         SKELETON("abyss_skeleton", .6, .65f, 1.95f),
         GIANT("abyss_steel_pipe", 1.8, 1.35f, 3.6f),
         CHAMPION("abyss_champion", .6, .7f, 1.95f);

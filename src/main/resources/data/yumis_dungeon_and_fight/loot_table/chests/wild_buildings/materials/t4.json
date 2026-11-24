@@ -9,334 +9,24 @@
       },
       "entries": [
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:niobium_tantalum_ore",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t1",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:raw_niobium_tantalum",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t2",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:crushed_niobium_tantalum",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t3",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:niobium_concentrate",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:niobium_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:high_purity_niobium_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:tantalum_concentrate",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:tantalum_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:high_purity_tantalum_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:adamantite_ore",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:raw_adamantite",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:crushed_adamantite",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:adamantite_concentrate",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:adamantite_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:uranium_ore",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:raw_uranium",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:crushed_uranium",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:uranium_concentrate",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:uranium_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:uranium_block"
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:terra_ingot",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:terra_block"
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:niobium_titanium_alloy",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:mithril_niobium_alloy",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:adamantite_titanium_alloy",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t4",
+          "weight": 1
         }
       ]
     },
@@ -348,102 +38,24 @@
       },
       "entries": [
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:herb_starlight_wood",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t1",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:herb_moonflower",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t2",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:herb_sirenflower",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t3",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:herb_saxifrage",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:fish_legendary",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:fish_time_bream",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:fish_storm_mackerel",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t4",
+          "weight": 1
         }
       ]
     }

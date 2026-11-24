@@ -19,8 +19,15 @@ public final class CareerHud {
     }
     public static void renderGauge(GuiGraphicsExtractor g,int width,int height,long now,java.util.function.IntBinaryOperator extra){
         ChantClient.render(g,width,height);
+        ElementalistHud.renderCastBars(g,width,height);
+        BattleMageHud.renderCastBars(g,width,height);
         var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;
         if(state.own().dead)return;
+        if(SkillController.INSTANCE.greatCharging()){
+            double progress=SkillController.INSTANCE.greatChargeProgress(now);
+            boolean full=progress>=1d;
+            SkillCastBar.render(g,width,height,full?"巨剑蓄力 · 已蓄满":"巨剑蓄力 · "+(int)Math.round(progress*100)+"%",progress,full?0xfff5c542:0xff9cc8ff);
+        }
         DemonHunterClient.renderBeam(g);
         if(state.progress().hasJob(JobCatalog.SUMMONER)){
             g.pose().pushMatrix();g.pose().translate(width-8,24);g.pose().scale(.5f,.5f);g.pose().translate(8-width,-24);
@@ -34,6 +41,8 @@ public final class CareerHud {
             y=extra.applyAsInt(x,y);
             y=DemonHunterClient.hud(g,x,y);
             if(state.progress().hasJob(JobCatalog.SUN_MOON))y=SunMoonHud.render(g,x,y,state.serverNow());
+            if(state.progress().hasJob(JobCatalog.ELEMENTALIST))y=ElementalistHud.render(g,x,y,state.serverNow());
+            if(state.progress().hasJob(JobCatalog.BATTLE_MAGE))y=BattleMageHud.render(g,x,y,state.serverNow());
             if(OracleRules.rank(state.stats(),state.progress())>0)y=oracle(g,x,y,state.serverNow());
             long overdrive=state.resources().buffs.getOrDefault(SkillCatalog.OVERDRIVE.id,0L)-now;
             if(overdrive>0){timer(g,SkillCatalog.OVERDRIVE,x,y,overdrive,30000,0xfff6d16d);y+=68;}

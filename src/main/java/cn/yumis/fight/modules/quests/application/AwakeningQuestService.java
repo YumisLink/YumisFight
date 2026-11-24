@@ -17,6 +17,7 @@ import cn.yumis.fight.platform.ItemData;
 import com.google.gson.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
@@ -100,6 +101,12 @@ public final class AwakeningQuestService {
         view.addProperty("towerOpen", towerOpen());
         if (state.stage() == Stage.MATERIALS) view.add("bag", materialSources(player));
         return view;
+    }
+
+    public boolean tracksBagItem(UUID player, ItemStack stack) {
+        if (stack.isEmpty() || !ItemData.own(stack) || state(player).stage() != Stage.MATERIALS) return false;
+        String item = ItemData.id(stack);
+        return AwakeningQuest.definition().materials().stream().anyMatch(material -> material.id().equals(item));
     }
 
     // The client never needs unrelated dimensional bag slots to plan the turn-in.

@@ -91,6 +91,7 @@ public final class CombatApplication {
             if(!s.id.toString().equals(j.get("session").getAsString())||j.get("operation").getAsLong()<=0)throw new IllegalArgumentException("会话已失效");
             if(!j.has("sourceGeneration")||j.get("sourceGeneration").getAsLong()!=s.life.generation||s.life.dead)throw new IllegalArgumentException("施加者生命已失效");
             boolean heal=action.equals("heal"),outcomeOnly=action.equals("nativeOutcome"),resourceCost=j.has("resourceCost")&&j.get("resourceCost").getAsBoolean();
+            boolean fullRecovery=heal&&j.has(CombatEffect.FULL_RECOVERY)&&j.get(CombatEffect.FULL_RECOVERY).getAsBoolean();
             if(j.has("heal")&&j.get("heal").getAsBoolean()!=heal)throw new IllegalArgumentException("伤害类型不一致");
             UUID id=UUID.fromString(j.get("target").getAsString());
             LivingEntity entity=id.equals(p.getUUID())?p:(LivingEntity)p.level().getEntity(id);
@@ -137,7 +138,8 @@ public final class CombatApplication {
             boolean protectedWorldHeal=heal&&entity instanceof WorldVitalEntity world&&!world.acceptsPlayerEffects();
             Receipt receipt=outcomeOnly||protectedWorldHeal?cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life):target!=null?target.receive(fraction,heal):cn.yumis.fight.modules.combat.api.LifeRules.apply(life,fraction,heal);
             Life actorLife=entity==p?life:copy(s.life,Life.class);
-            CombatPorts.Commit skillCommit=skills.prepare(p,entity,j,receipt,actorLife);
+            boolean triggers=CombatEffect.triggers(j);
+            CombatPorts.Commit skillCommit=triggers?skills.prepare(p,entity,j,receipt,actorLife):CombatPorts.Commit.NONE;
             String previousBuffs=JSON.toJson(s.resources.equipmentBuffs);
             JsonObject ack=new JsonObject();
             ack.addProperty("session",s.id.toString());
@@ -164,12 +166,19 @@ public final class CombatApplication {
                 dot.addProperty("nextAt",dot.has("settleUntil")?dot.get("nextAt").getAsLong()+1000:System.currentTimeMillis()+1000);
                 journal.put(ailmentKey(dot),dot);
             }
+            var clearedAilments=new ArrayList<JsonObject>();
+            if(fullRecovery)for(String ailment:journal.keys("ailments/"+id+"/")){
+                var value=journal.get(ailment);
+                if(!value.isJsonObject())continue;
+                clearedAilments.add(value.getAsJsonObject());
+                journal.put(ailment,JsonNull.INSTANCE);
+            }
             if(nativeHit)nativeHits.commit(p,j);
             var elementalAilments=new ArrayList<JsonObject>();
             if(entity==p){
                 if(j.has("elemental"))life.elemental=JSON.fromJson(j.get("elemental"),ElementAccumulation.State.class);
                 if(j.has("elementalAilments"))for(JsonElement value:j.getAsJsonArray("elementalAilments")){var state=value.getAsJsonObject().deepCopy();if(!state.get("target").getAsString().equals(p.getStringUUID())||state.get("generation").getAsLong()!=life.generation)throw new IllegalArgumentException("异常状态归属无效");journal.put(ailmentKey(state),state);elementalAilments.add(state);}
-            }else if(!heal&&receipt.actual()>0&&!life.dead&&fraction>0&&j.has("damageComponents")){
+            }else if(triggers&&!heal&&receipt.actual()>0&&!life.dead&&fraction>0&&j.has("damageComponents")){
                 var source=j.has("sourceStats")?JSON.fromJson(j.get("sourceStats"),cn.yumis.fight.modules.attributes.api.Stats.class):null;
                 var effects=j.has("sourceEffects")?JSON.fromJson(j.get("sourceEffects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class):null;
                 if(dot!=null&&dot.has("settleUntil")){source=JSON.fromJson(dot.getAsJsonObject("change").get("stats"),cn.yumis.fight.modules.attributes.api.Stats.class);effects=JSON.fromJson(dot.getAsJsonObject("change").get("equipment"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);}
@@ -185,15 +194,15 @@ public final class CombatApplication {
                 journal.put("target/"+id,target);
                 if(receipt.accepted()&&!receipt.deathId().isEmpty()&&journal.get("death/"+receipt.deathId()).isJsonNull()){
                     journal.put("death/"+receipt.deathId(),p.getUUID());
-                    loot.death(p,entity,target);
+                    loot.death(p,entity,target,triggers);
                 }
             }
-            if(entity!=p&&CombatEffect.permitsExternalHitEffects(p,entity)&&j.has("ownerHealing")){double healing=j.get("ownerHealing").getAsDouble();finite(healing);if(healing<0)throw new IllegalArgumentException("恢复份额不可为负");if(healing>0)cn.yumis.fight.modules.combat.api.LifeRules.apply(actorLife,healing,true);}
+            if(receipt.accepted()&&receipt.actual()>0&&triggers&&entity!=p&&CombatEffect.permitsExternalHitEffects(p,entity)&&j.has("ownerHealing")){double healing=j.get("ownerHealing").getAsDouble();finite(healing);if(healing<0)throw new IllegalArgumentException("恢复份额不可为负");if(healing>0)cn.yumis.fight.modules.combat.api.LifeRules.apply(actorLife,healing,true);}
             if(entity!=p&&actorLife.revision!=s.life.revision)journal.put("life/"+p.getUUID(),actorLife);
             if(actorLife.dead){s.resources.equipmentBuffs.clear();journal.put("resources/"+p.getUUID(),s.resources);}
             ack.add("ownerLife",JSON.toJsonTree(actorLife));ack.add("equipmentBuffs",JSON.toJsonTree(s.resources.equipmentBuffs));ack.addProperty("serverNow",System.currentTimeMillis());
             JsonObject ailment=null;
-            if(j.has("ailment")&&receipt.actual()>0)ailment=applyAilment(p,entity,j.getAsJsonObject("ailment"),target);
+            if(triggers&&j.has("ailment")&&receipt.actual()>0)ailment=applyAilment(p,entity,j.getAsJsonObject("ailment"),target);
             skillCommit.persist();
             journal.put(key,stored);
             journal.finish();
@@ -223,13 +232,20 @@ public final class CombatApplication {
                 nativeHits.suppressProjectionFeedback(false);
             }
             if(nativeHit)nativeHits.complete(j);
+            if(fullRecovery){
+                CombatEffect.recoverNativeState(p);
+                for(var cleared:clearedAilments)
+                    net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(p,new Network.Snapshot("ailmentsClear",JSON.toJson(cleared)));
+            }
             Network.send(p,"ack",ack);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("health",JSON.toJson(life)));
+            if(target!=null&&"REVIVING".equals(receipt.reason()))net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("context",JSON.toJson(target)));
             for(var elemental:elementalAilments){
                 net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("ailments",JSON.toJson(elemental)));
                 var kind=ElementAccumulation.kind(elemental.get("kind").getAsString());
-                entity.addEffect(new net.minecraft.world.effect.MobEffectInstance(CombatContentTypes.elementalEffect(kind),(int)Math.max(1,(elemental.get("expires").getAsLong()-System.currentTimeMillis()+49)/50)));
-                if(kind==ElementAccumulation.Kind.FREEZE)dungeons.cancelBoss(entity.getUUID());
+                boolean strong=elemental.has("change")&&elemental.getAsJsonObject("change").has("strong")&&elemental.getAsJsonObject("change").get("strong").getAsBoolean();
+                entity.addEffect(new net.minecraft.world.effect.MobEffectInstance(CombatContentTypes.elementalEffect(kind,strong),(int)Math.max(1,(elemental.get("expires").getAsLong()-System.currentTimeMillis()+49)/50)));
+                if(kind==ElementAccumulation.Kind.FREEZE&&!strong)dungeons.cancelBoss(entity.getUUID());
             }
             if(!heal&&!resourceCost&&!nativeHit&&(receipt.actual()>0||entity==p&&taken>0)){
                 entity.hurtTime=10;
@@ -343,10 +359,12 @@ public final class CombatApplication {
             var level=server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse(j.get("dimension").getAsString())));
             if(level!=null&&level.getEntity(UUID.fromString(j.get("target").getAsString())) instanceof LivingEntity living)entity=living;
             var elemental=ElementAccumulation.kind(j.get("kind").getAsString());
+            boolean strong=j.has("change")&&j.getAsJsonObject("change").has("strong")&&j.getAsJsonObject("change").get("strong").getAsBoolean();
+            var elementalEffect=elemental==null?null:CombatContentTypes.elementalEffect(elemental,strong);
             if(entity instanceof ServerPlayer){if((j.has("settleUntil")?j.get("settleUntil"):j.get("expires")).getAsLong()<=now)try{journal.put(key,null);net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("ailmentsClear",JSON.toJson(j)));}catch(java.io.IOException failure){throw new IllegalStateException(failure);}continue;}
             CombatTarget target=entity==null||entity instanceof Player?null:targets.apply(entity);
             Life life=entity instanceof ServerPlayer player?sessions.apply(player).life:target==null?null:target.life();
-            if(elemental!=null&&life!=null&&life.elemental.matches(life)&&life.elemental.until[elemental.ordinal()]==j.get("expires").getAsLong()&&j.get("expires").getAsLong()<=now)entity.removeEffect(CombatContentTypes.elementalEffect(elemental));
+            if(elemental!=null&&life!=null&&life.elemental.matches(life)&&life.elemental.until[elemental.ordinal()]==j.get("expires").getAsLong()&&j.get("expires").getAsLong()<=now)entity.removeEffect(elementalEffect);
             boolean valid=owner!=null&&entity!=null&&entity.isAlive()&&life!=null&&!life.dead&&(j.has("settleUntil")?j.get("settleUntil"):j.get("expires")).getAsLong()>now;
             if(valid){
                 CombatSession source=sessions.apply(owner);
@@ -362,7 +380,7 @@ public final class CombatApplication {
                 if(released){
                     if(entity instanceof ServerPlayer player)sessions.apply(player).life=next;
                     else entity.setData(CombatContentTypes.TARGET,JSON.toJson(target));
-                    entity.removeEffect(CombatContentTypes.elementalEffect(elemental));
+                    entity.removeEffect(elementalEffect);
                     net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("health",JSON.toJson(next)));
                 }
                 if(entity!=null)net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new Network.Snapshot("ailmentsClear",JSON.toJson(j)));

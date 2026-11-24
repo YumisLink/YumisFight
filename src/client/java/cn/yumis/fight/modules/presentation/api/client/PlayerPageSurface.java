@@ -16,6 +16,7 @@ public interface PlayerPageSurface {
     /** profile=false hides the surface's standard character card above the rows. */
     default void sidebarRows(String title,java.util.List<SidebarRow> rows,boolean profile){sidebarRows(title,rows);}
     @FunctionalInterface interface Hover {void render(GuiGraphicsExtractor graphics,int mouseX,int mouseY);}
+    @FunctionalInterface interface Drawing {void render(GuiGraphicsExtractor graphics,int x,int y);}
     void line(String text);
     void line(String text,int color);
     void line(cn.yumis.fight.modules.presentation.api.RichText text,int color);
@@ -30,6 +31,7 @@ public interface PlayerPageSurface {
     AbstractWidget button(String label,int x,int y,int width,Runnable action);
     void text(String text,int x,int y,int color);
     void card(int x,int y,int width,int height);
+    void drawing(int x,int y,int width,int height,Drawing drawing);
     void icon(String path,int x,int y,int size);
     void image(String path,int x,int y,int width,int height,float u0,float u1,float v0,float v1);
     void experienceBar(int x,int y,int width,double progress);

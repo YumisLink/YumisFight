@@ -21,10 +21,10 @@ import java.util.*;
 final class CommissionDialogueScreen extends ThemedScreen {
     private final LivingEntity entity;private final Object level;
     private final List<String> dialogue;
-    private final Active shown;
+    private Active shown;
     private List<FormattedCharSequence> objectiveLines=List.of();
     private int lineIndex,left,top,cardTop,cardHeight,panelWidth,panelHeight,portraitWidth,textLeft,textWidth,totalCharacters;
-    private long began,heartbeat,settled;private boolean full;private Button advance;
+    private long began,heartbeat,settled;private boolean full;private Button advance,acceptButton,rerollButton;
     CommissionDialogueScreen(LivingEntity entity){
         super(Minecraft.getInstance(),UiFonts.font(),Component.literal("查看委托"),ThemeDomain.MENU);
         this.entity=entity;level=entity.level();
@@ -36,16 +36,25 @@ final class CommissionDialogueScreen extends ThemedScreen {
         lineIndex=0;
     }
     @Override protected void init(){layout();hold(true);}
+    private boolean pendingOffer(){return CommissionClient.activeCommission()==null&&shown!=null;}
     private void layout(){
-        clearWidgets();int margin=Math.max(5,Math.min(18,width/40));left=margin;panelWidth=width-margin*2;portraitWidth=width>=420?112:width>=280?68:0;textLeft=left+portraitWidth+14;textWidth=Math.max(36,panelWidth-portraitWidth-28);
-        objectiveLines=font.split(Component.literal(Commissions.objective(shown)),textWidth);
-        cardHeight=30+objectiveLines.size()*13+16+(shown.bonusCount()>0?13:0);
+        clearWidgets();acceptButton=null;rerollButton=null;
+        int margin=Math.max(5,Math.min(18,width/40));left=margin;panelWidth=width-margin*2;portraitWidth=width>=420?112:width>=280?68:0;textLeft=left+portraitWidth+14;textWidth=Math.max(36,panelWidth-portraitWidth-28);
+        if(shown!=null){
+            objectiveLines=font.split(Component.literal(Commissions.objective(shown)),textWidth);
+            cardHeight=30+objectiveLines.size()*13+16+(shown.bonusCount()>0?13:0);
+        }else{
+            objectiveLines=List.of();
+            cardHeight=0;
+        }
         panelHeight=Math.min(height-margin*2,Math.max(104,66+1*13));
         top=height-margin-panelHeight;cardTop=top-8-cardHeight;
         advance=addRenderableWidget(Button.builder(Component.literal("继续"),b->next()).bounds(left+panelWidth-83,top+panelHeight-29,71,20).build(ThemedButton::new));
         addRenderableWidget(Button.builder(Component.literal("暂时离开"),b->onClose()).bounds(textLeft,top+panelHeight-29,72,20).build(ThemedButton::new));
-        if(CommissionClient.activeCommission()==null&&shown!=null){
-            addRenderableWidget(Button.builder(Component.literal("接受委托"),b->accept()).bounds(textLeft+80,top+panelHeight-29,78,20).build(ThemedButton::new));
+        if(pendingOffer()){
+            acceptButton=addRenderableWidget(Button.builder(Component.literal("接受委托"),b->accept()).bounds(textLeft+80,top+panelHeight-29,78,20).build(ThemedButton::new));
+            rerollButton=addRenderableWidget(Button.builder(Component.literal("换一单"),b->reroll()).bounds(textLeft+162,top+panelHeight-29,72,20).build(ThemedButton::new));
+            updateRerollButton();
         }else if(shown!=null&&Commissions.delivered(shown)){
             var deliver=addRenderableWidget(Button.builder(Component.literal("交付委托"),b->CommissionClient.deliver(entity)).bounds(textLeft+80,top+panelHeight-29,78,20).build(ThemedButton::new));
             deliver.active=CommissionClient.deliverable(shown);
@@ -55,11 +64,25 @@ final class CommissionDialogueScreen extends ThemedScreen {
         }
         began=ClientUi.now();full=false;
     }
+    private void reroll(){
+        Active nextOffer=CommissionClient.reroll(entity);
+        if(nextOffer!=null){shown=nextOffer;layout();}
+    }
+    private void updateRerollButton(){
+        if(rerollButton==null)return;
+        long leftMs=CommissionClient.rerollCooldownMillis();
+        rerollButton.active=leftMs<=0;
+        rerollButton.setMessage(Component.literal(leftMs>0?"换一单("+((leftMs+999)/1000)+"s)":"换一单"));
+    }
     private void accept(){CommissionClient.accept(entity);onClose();}
     private int visible(){return full?totalCharacters:(int)Math.min(totalCharacters,Math.max(0,ClientUi.now()-began)/35);}
     private void next(){
         if(visible()<totalCharacters){full=true;return;}
         if(lineIndex+1<dialogue.size()){lineIndex++;layout();return;}
+        if(pendingOffer()){
+            if(acceptButton!=null)setFocused(acceptButton);
+            return;
+        }
         onClose();
     }
     private void hold(boolean open){
@@ -68,7 +91,8 @@ final class CommissionDialogueScreen extends ThemedScreen {
     @Override public void tick(){
         if(Minecraft.getInstance().level!=level||!entity.isAlive()||!TutorialClient.alive()){onClose();return;}
         if(ClientUi.now()>=heartbeat)hold(true);
-        advance.setMessage(Component.literal(visible()<totalCharacters?"显示全文":lineIndex+1<dialogue.size()?"继续  ›":"收起"));
+        updateRerollButton();
+        advance.setMessage(Component.literal(visible()<totalCharacters?"显示全文":lineIndex+1<dialogue.size()?"继续  ›":pendingOffer()?"接受或离开":"收起"));
         if(CommissionClient.settlementRevision()!=settled)onClose();
     }
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){g.fill(0,0,width,height,0x10000000);}

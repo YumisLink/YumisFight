@@ -9,18 +9,19 @@ public final class SkasaAttack {
     public UUID source;
     public int cell,area,wave,side=-1;
     public long started;
+    public double castScale=1;
     public double x,y,z,dx,dz=-1;
     public boolean remove;
     public SkasaMoves move(){return SkasaMoves.valueOf(kind);}
     public Vec3 origin(){return new Vec3(x,y,z);}
     public Vec3 direction(){return new Vec3(dx,0,dz).normalize();}
-    public long release(){return started+move().windup;}
-    public long end(){return release()+move().active;}
-    public long contactAt(int pulse){return release()+pulse*move().interval;}
-    public int pulse(long now){return move().hits==1?0:(int)Math.clamp((now-release())/move().interval,0,move().hits-1);}
+    public long release(){return started+Math.round(move().windup*castScale);}
+    public long end(){return release()+Math.round(move().active*castScale);}
+    public long contactAt(int pulse){return release()+Math.round(pulse*move().interval*castScale);}
+    public int pulse(long now){return move().hits==1?0:(int)Math.clamp((now-release())/Math.max(1,move().interval*castScale),0,move().hits-1);}
     public boolean contacting(long now){return now>=release()&&now<=end()&&(move().travels()||now-contactAt(pulse(now))<=move().contactWindow());}
     public int side(int pulse){return move()==SkasaMoves.TRIPLE&&pulse%2==1?-side:side;}
-    public Vec3 position(long now){return origin().add(direction().scale(move().range*Math.clamp((now-release())/(double)move().active,0,1)));}
+    public Vec3 position(long now){return origin().add(direction().scale(move().range*Math.clamp((now-release())/Math.max(1,move().active*castScale),0,1)));}
     public boolean safeBreath(Vec3 p){double u=Math.abs(p.x-cell*512);return u>=2.3&&u<=6&&p.z>=146&&p.z<=151;}
     public boolean inArena(Vec3 p){return Math.abs(p.x-cell*512)<=19.3&&p.z>=120.7&&p.z<=151.3;}
     public boolean contains(Vec3 p,int pulse,long previous,long now){

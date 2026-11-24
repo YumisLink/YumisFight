@@ -36,17 +36,30 @@ public final class TargetService implements WorldTargets {
     private final Random random;
     private final java.util.function.Supplier<Difficulty> difficulty;
     private final java.util.function.Function<String,Dungeon> dungeons;
+    private final Map<UUID,Target> cache=new HashMap<>();
     public TargetService(Journal journal,Random random,java.util.function.Supplier<Difficulty> difficulty,java.util.function.Function<String,Dungeon> dungeons){this.journal=journal;this.random=random;this.difficulty=difficulty;this.dungeons=dungeons;}
+    public Target cached(UUID id){return cache.get(id);}
+    public void cache(Target target){if(target!=null&&target.id!=null)cache.put(target.id,target);}
+    public void forget(UUID id,boolean removeJournal){
+        cache.remove(id);
+        if(!removeJournal)return;
+        var writes=new LinkedHashMap<String,JsonElement>();
+        if(!journal.get("target/"+id).isJsonNull())writes.put("target/"+id,JsonNull.INSTANCE);
+        if(!journal.get("life/"+id).isJsonNull())writes.put("life/"+id,JsonNull.INSTANCE);
+        if(!writes.isEmpty())try{journal.transaction(writes);}catch(Exception failure){throw new IllegalStateException("目标缓存清理失败",failure);}
+    }
     public Target resolve(LivingEntity e){
         if(e instanceof WorldTargetEntity supplied){
-            Target world=journal.get("target/"+e.getUUID(),Target.class,null);
+            Target world=cache.get(e.getUUID());
+            if(world==null)world=journal.get("target/"+e.getUUID(),Target.class,null);
             if(world==null){world=supplied.initialCombatTarget();world.id=e.getUUID();world.life.target=e.getUUID();world.dimension=e.level().dimension().identifier().toString();world.life.dimension=world.dimension;commit(Map.of(e,world));}
-            world.entityId=e.getId();return world;
+            world.entityId=e.getId();cache.put(e.getUUID(),world);return world;
         }
         if(e instanceof TrainingSandbag bag){
-            Target practice=journal.get("target/"+e.getUUID(),Target.class,null);
+            Target practice=cache.get(e.getUUID());
+            if(practice==null)practice=journal.get("target/"+e.getUUID(),Target.class,null);
             if(practice==null){practice=new Target();practice.id=e.getUUID();practice.kind="TRAINING";practice.noRewards=true;practice.timedTraining=bag.timed();practice.originalLevel=1;practice.dimension=e.level().dimension().identifier().toString();practice.life.target=practice.id;practice.life.dimension=practice.dimension;try{journal.put("target/"+e.getUUID(),practice);}catch(Exception failure){throw new IllegalStateException(failure);}}
-            practice.entityId=e.getId();return practice;
+            practice.entityId=e.getId();cache.put(e.getUUID(),practice);return practice;
         }
         if(e instanceof net.minecraft.world.entity.player.Player){
             // 玩家只作为同步上下文：建临时 Target（无精英/掉落标记），不写 Journal，并顺手清掉历史脏键。
@@ -62,7 +75,8 @@ public final class TargetService implements WorldTargets {
             if(journal.get("target/"+e.getUUID(),Target.class,null)!=null)try{journal.put("target/"+e.getUUID(),null);}catch(java.io.IOException failure){throw new IllegalStateException(failure);}
             return t;
         }
-        Target t=journal.get("target/"+e.getUUID(),Target.class,null);
+        Target t=cache.get(e.getUUID());
+        if(t==null)t=journal.get("target/"+e.getUUID(),Target.class,null);
         if(t==null){
             String raw=e.getData(cn.yumis.fight.modules.combat.api.CombatContentTypes.TARGET);
             if(!raw.isEmpty())t=JSON.fromJson(raw,Target.class);
@@ -93,7 +107,8 @@ public final class TargetService implements WorldTargets {
                 if(d!=null){
                     t.partySize=d.practice!=null?1:d.treasure==null?d.roster.size():d.treasure.partySize;
                     t.difficulty=d.difficulty;
-                    t.noRewards=AwakeningTower.find(d.dungeon)!=null;
+                    t.tower=d.tower==null?null:AwakeningTower.find(d.dungeon);
+                    t.noRewards=d.tower==null&&AwakeningTower.find(d.dungeon)!=null;
                     if(d.waystone!=null)t.waystone=d.waystone.monsterModifiers();
                     t.abyss=cn.yumis.fight.modules.dungeons.api.AbyssParty.Enemy.find(mob.appearance());
                     if(t.abyss!=null){
@@ -110,6 +125,11 @@ public final class TargetService implements WorldTargets {
                         t.speciesHealth=PracticeRoom.MOB_HEALTH_MULTIPLIER;
                         t.originDungeon=e.getPersistentData().getStringOr("ydnf_origin","");
                     }
+                    if(cn.yumis.fight.modules.dungeons.content.SealTowerElaina.ID.equals(mob.appearance())){
+                        t.speciesHealth=TowerBossGrade.E.multiplier();
+                        t.speciesAttack=TowerBossGrade.S.multiplier();
+                        t.healthFloor=cn.yumis.fight.modules.dungeons.content.SealTowerElaina.FLOOR_P1;
+                    }
                 }
             }
             else if(t.kind.equals("NORMAL")){
@@ -123,7 +143,8 @@ public final class TargetService implements WorldTargets {
                 }
             }
             if(t.elite)t.elitePower=java.util.List.of("strong","rage","armor","elemental").get(random.nextInt(4));
-            try{
+            boolean persistInitial=e instanceof DungeonEnemy||e instanceof cn.yumis.fight.modules.combat.api.WorldVitalEntity||e instanceof net.minecraft.world.entity.boss.wither.WitherBoss||e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+            if(persistInitial)try{
                 journal.put("target/"+e.getUUID(),t);
             }
             catch(Exception ex){
@@ -135,6 +156,7 @@ public final class TargetService implements WorldTargets {
             t.life.q=Math.clamp((double)e.getHealth()/e.getMaxHealth(),0,1);
         }
         t.entityId=e.getId();
+        cache.put(e.getUUID(),t);
         return t;
     }
     @Override public Target target(LivingEntity entity){return resolve(entity);}
@@ -151,7 +173,7 @@ public final class TargetService implements WorldTargets {
         }
         return new cn.yumis.fight.modules.combat.api.CombatPorts.Commit(){
             @Override public void persist()throws Exception{for(var entry:writes.entrySet())journal.put(entry.getKey(),entry.getValue());}
-            @Override public void publish(){for(var entry:projections.entrySet()){var entity=entry.getKey();var value=entry.getValue();value.addProperty("entityId",entity.getId());entity.setData(cn.yumis.fight.modules.combat.api.CombatContentTypes.TARGET,value.toString());if(entity.level() instanceof ServerLevel)net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new cn.yumis.fight.network.Network.Snapshot("context",value.toString()));}}
+            @Override public void publish(){for(var entry:changes.entrySet())cache.put(entry.getKey().getUUID(),entry.getValue());for(var entry:projections.entrySet()){var entity=entry.getKey();var value=entry.getValue();value.addProperty("entityId",entity.getId());entity.setData(cn.yumis.fight.modules.combat.api.CombatContentTypes.TARGET,value.toString());if(entity.level() instanceof ServerLevel)net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,new cn.yumis.fight.network.Network.Snapshot("context",value.toString()));}}
         };
     }
     @Override public void commit(Map<LivingEntity,Target> changes){
@@ -168,6 +190,7 @@ public final class TargetService implements WorldTargets {
     @Override public void releaseIds(Collection<UUID> actors){
         var writes=new LinkedHashMap<String,JsonElement>();
         for(UUID actor:actors){
+            cache.remove(actor);
             String target="target/"+actor,life="life/"+actor;
             if(!journal.get(target).isJsonNull())writes.put(target,JsonNull.INSTANCE);
             if(!journal.get(life).isJsonNull())writes.put(life,JsonNull.INSTANCE);

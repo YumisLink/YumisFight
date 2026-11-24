@@ -65,6 +65,38 @@
     {
       "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_theater",
       "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_root",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_forge",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_sluice",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_sand_market",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_frost",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_orrery",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_seal",
+      "weight": 1
+    },
+    {
+      "structure": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_theater",
+      "weight": 1
     }
   ]
 }

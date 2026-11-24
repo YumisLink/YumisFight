@@ -35,6 +35,7 @@ public final class RuntimeAssembly {
         public Stats stats(ServerPlayer p){return runtime.stats(p);}
         public void profile(ServerPlayer p){runtime.profile(p);}public void message(ServerPlayer p,String text){runtime.message(p,text);}
         public void groundPickup(ServerPlayer p,ItemStack stack){ServerEvents.groundPickup(p,stack);}
+        public void lootAcquired(ServerPlayer p,ItemStack stack){ServerEvents.lootAcquired(p,stack);}
     };}
     public static cn.yumis.fight.modules.dungeons.application.TargetService targetService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.TargetService(runtime.journal,runtime.random,()->runtime.worldDifficulty,id->runtime.dungeons.byId(id));}
     public static cn.yumis.fight.modules.inventory.application.InventoryTransactions.CurrencyAction currencyAction(ServerApplication runtime){return (p,menu,slot,button,input)->cn.yumis.fight.modules.inventory.api.InventoryIntake.click(p,menu,slot,button,input,()->runtime.equipmentApplication.versionlessCurrencyClick(p,menu,slot,button,input));}
@@ -75,15 +76,17 @@ public final class RuntimeAssembly {
             @Override public void publish(){story.publish();commission.publish();}
         };
     });
-    dungeons.installStrandedExclusion(player->cn.yumis.fight.modules.arkguard.api.ArkWar.contains(player.level(),player.blockPosition()));
+    dungeons.installStrandedExclusion(player->cn.yumis.fight.modules.arkguard.api.ArkWar.contains(player.level(),player.blockPosition())||player.level().dimension()==cn.yumis.fight.modules.arkguard.api.ArkWar.DIMENSION);
+    dungeons.installArkExclusion(player->cn.yumis.fight.modules.arkguard.api.ArkWar.contains(player.level(),player.blockPosition())||player.level().dimension()==cn.yumis.fight.modules.arkguard.api.ArkWar.DIMENSION);
+    dungeons.installIdleMillis(runtime::idleMillis);
     return dungeons;}
-    public static LootService lootService(ServerApplication runtime){return new LootService(runtime.journal,runtime.characters,runtime.server,()->runtime.inventory,rewardPlayers(runtime),new RewardPorts.Encounters(){
+    public static LootService lootService(ServerApplication runtime,cn.yumis.fight.modules.economy.application.EconomyService.Drafts drafts){return new LootService(runtime.journal,runtime.characters,runtime.server,()->runtime.inventory,rewardPlayers(runtime),new RewardPorts.Encounters(){
         public boolean participant(ServerPlayer p,String instance){return runtime.dungeons.participant(p,instance);}
         public Dungeon byId(String instance){return runtime.dungeons.byId(instance);}
         public String currentInstance(ServerPlayer p){var d=runtime.dungeons.current(p.getUUID());return d==null?"":d.id.toString();}
         public boolean finalPracticeKill(Dungeon dungeon,UUID enemy){return runtime.dungeons.finalPracticeKill(dungeon,enemy);}
         public void abyssFlash(String instance,double x,double y,double z,boolean mythic){runtime.dungeons.abyssFlash(instance,x,y,z,mythic);}
-    },rewardBalance(runtime));}
+    },rewardBalance(runtime),drafts);}
     public static RewardPorts.Balance rewardBalance(ServerApplication runtime){return new RewardPorts.Balance(){
         public RewardSettings settings(){return runtime.rewards;}
         public long gold(ServerPlayer p){return runtime.economyService.gold(p);}

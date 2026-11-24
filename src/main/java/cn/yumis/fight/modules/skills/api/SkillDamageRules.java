@@ -1,14 +1,24 @@
 package cn.yumis.fight.modules.skills.api;
 import cn.yumis.fight.modules.combat.api.CombatRules;
 import cn.yumis.fight.modules.attributes.api.Stats;
+import cn.yumis.fight.modules.dungeons.api.TowerCardEffects;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 public final class SkillDamageRules {
     private SkillDamageRules(){}
     public record SkillDamage(double total,double main,double[] components){
         public SkillDamage {components=components.clone();}
         @Override public double[] components(){return components.clone();}
     }
+    public static TowerCardEffects.DamageBonus rotation(Stats stats,SkillDefinition skill,TowerCardEffects.DamageBonus bonus){
+        if(skill==null||!TowerSkillTraits.rotating(skill.id)||!TowerBattleCard.SPIN.held(stats))return bonus;
+        return new TowerCardEffects.DamageBonus(bonus.increase()+TowerBattleCard.SPIN.ratio("damage"),bonus.total());
+    }
     /** Shared post-hit bonuses, preserving combat's calculation order and main/extra distinction. */
-    public static SkillDamage skillDamage(CombatRules.Damage parts,Stats stats,SkillDefinition skill,double mastery,boolean basic,boolean passive,double levelMultiplier){
+    public static SkillDamage skillDamage(CombatRules.Damage parts,Stats stats,SkillDefinition skill,double mastery,boolean basic,boolean passive,boolean magic,double levelMultiplier){
+        if(magic&&skill!=null&&!skill.passive()){
+            double spellFactor=TowerCardEffects.spellDamage(stats);
+            if(spellFactor!=1)parts=parts.withMain(parts.main()*spellFactor);
+        }
         double damage=parts.total()*levelMultiplier,main=parts.main()*levelMultiplier;
         double[] components=parts.components();for(int i=0;i<components.length;i++)components[i]*=levelMultiplier;
         if(skill!=null&&skill.basicSkill()){

@@ -19,7 +19,9 @@ public final class AbyssCareers {
         new Career(BERSERKER, false, 0xe34559),
         new Career(HAVOC, false, 0x94e25a),
         new Career(SUMMONER, true, 0xaadbb1),
-        new Career(SUN_MOON, true, 0xeeb1ff));
+        new Career(SUN_MOON, true, 0xeeb1ff),
+        new Career(ELEMENTALIST, true, 0xc8a4ff),
+        new Career(BATTLE_MAGE, false, 0xffb833));
 
     public static List<Career> draw(Random random, int count) {
         var careers = new ArrayList<>(ALL);

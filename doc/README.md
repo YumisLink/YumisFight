@@ -16,6 +16,7 @@
 | 客户端装配 | 客户端源码 `bootstrap/ClientBootstrap.java`、`ClientSession.java` |
 | 底层边界与事务 | 主源码 `architecture/`、`foundation/Journal.java` |
 | 底层保护清单 | [architecture/protected-files.json](../architecture/protected-files.json) |
+| 刻意保留的游戏机制 | [保留游戏机制](保留游戏机制.md) |
 
 ## 业务入口
 
@@ -34,6 +35,7 @@
 | 副本、敌人与难度 | `modules/dungeons/api/DungeonCatalog.java`、`Target.java`、`EncounterScaling.java`；经典后续副本的敌人／动作入口为 `ClassicEnemyKind.java`、`ClassicMove.java`；地图与编队在 `content/`，专属机制在 `application/*EncounterService.java`，本机接触与演出在客户端 `dungeons/client/` |
 | 深渊派对 | `modules/dungeons/api/AbyssParty.java`、`AbyssAttack.java`；职业特化在 `dungeons/content/AbyssCareers.java`，邀请函入口在客户端 `dungeons/client/DungeonPage.java`，配置奖池见 [创作指南](创作指南/README.md#深渊派对奖池) |
 | 觉醒塔与任务通关 | `modules/dungeons/api/AwakeningTower.java`、`api/AwakeningTowerStele.java`、`content/AwakeningTowerLayout.java`；塔门与战场素材为 `structure/towers/`，制作源 `tools/build_tower_structures.py`，野外塔门和石碑投放见 `tools/wild_buildings.json`，觉醒进度在 `modules/quests/application/AwakeningQuestService.java`；管理指令 `/ydnf treasure portal`、`/ydnf tower gate` 见 `dungeons/application/DungeonCommands.java` |
+| 爬塔层数、场地、选牌与塔牌展示 | `modules/dungeons/application/TowerEncounterService.java`、`content/TowerClimbEncounters.java`、`api/TowerClimbRules.java`、`api/TowerCardDraft.java`；客户端 `dungeons/client/TowerCardScreen.java`（局内选牌）、`TowerCardGallery.java`（职业技能页底部）；场次规则及卡牌接入方法见 [爬塔与卡牌](创作指南/爬塔与卡牌.md) |
 | 练功房、材料来源与循环刷新 | `modules/dungeons/api/PracticeRoom.java`、`content/PracticeLayouts.java`、`application/PracticeEncounterService.java`；客户端入口为 `dungeons/client/DungeonPage.java`，金币与公共掉落由 `modules/economy/api/RewardRules.java` 结算 |
 | 引路石、引路台与地狱+ | `modules/dungeons/api/Waystone.java`、`WaystoneRules.java`；流程在 `application/WaystoneService.java`，参数在 `rules/catalog.json` 的 `waystones`；分阶宝箱在 `rules/chests.json` |
 | 工业设备、配方、科技与结算 | `modules/industry/api/DeviceType.java`、`IndustrialRules.java`、`IndustrialRecipe.java`、`IndustrialTechnology.java`；机器／产线／传送带物流在 `platform/`；传送带放置与连接为 `platform/ConveyorConnections.java`、`ConveyorRoute.java`，客户端选点／寻路为 `industry/client/ConveyorPlacementClient.java`、`ConveyorPathfinder.java`，扣料与批量建造为 `application/ConveyorConstructionService.java` |
@@ -65,12 +67,14 @@
 | 贴图制作、重绘与换色 | [贴图创作](创作指南/贴图创作.md) |
 | 哥布林王国藏宝图图标 | 源稿 `tools/goblin_treasure_map.aseprite`，用 Aseprite `-b tools/goblin_treasure_map.aseprite --save-as src/main/resources/assets/yumis_dungeon_and_fight/textures/item/goblin_treasure_map.png` 导出 |
 | 哥布林王国地图 | 副本场地登记 `content/GoblinKingdomLayout.java`。原版模板 `yumis_dungeon_and_fight:dungeons/goblin_kingdom/map`，位于 `structure/dungeons/goblin_kingdom/map.nbt`。制作源 `tools/build_goblin_kingdom.py`，模板最小角相对林道入场锚点为 `(-104,-5,-20)` |
+| 蠕动之城地图 | 特殊进入副本定义 `modules/dungeons/api/WrithingCastle.java`，场地登记 `content/WrithingCastleLayout.java`。紧凑区块资源位于 `dungeon_map/writhing_castle.nbt`，制作源 `tools/build_writhing_castle.py`；覆盖相对场次水平中心 `(-192..191,-192..191)` 与绝对高度 `Y=-16..317`（入场点 `(0.5,45,168.5)`，保留告示牌／旗帜与清空物品的容器），暂不从 I 键主线副本进入 |
 | 管道12/14尺寸手绘素材 | 源稿 `tools/fluid_pipe_materials_12x14.aseprite`、方向标记 `tools/fluid_pipe_ports_14x2.aseprite`；初稿绘制 `tools/draw_fluid_pipe_materials_12x14.lua`；正式导出 `tools/export_fluid_pipe_materials_12x14.lua`；切片布局 `tools/fluid_pipe_materials_12x14_layout.json` |
 | 矿石方块换色与自发光 | 可编辑源稿 `tools/industrial_ores.aseprite`，配色与等级 `tools/industrial_ore_definitions.lua`，绘制及导出入口 `tools/draw_industrial_ores.lua`、`tools/export_industrial_ores.lua` |
 | 科技方块矩阵外观 | `tools/technology_blocks.aseprite`（五帧，16×16），绘制入口 `tools/draw_technology_blocks.lua`，玻璃／发光边／内核与双层模型导出 `tools/export_technology_blocks.lua`；尺寸与光照在 `modules/industry/platform/TechnologyBlock.java` |
 | 信标塔物品图标 | `tools/mana_beacon_items.aseprite`（五帧，32×32），绘制／导出入口 `tools/draw_mana_beacon_items.lua`；`exportOnly=true` 仅导出保存的源稿，物品模型由 `tools/industrial_visual_models.py` 的 `generate_beacon_items()` 生成 |
 | 群友发电机与石油工业资源 | 几何、贴图、合成和加工配方的制作源在 `tools/industrial_petrochemistry.py`；运行 `tools/industrial_technology.py --petrochemistry-only` 可单独生成该组资源 |
 | 渔获贴图源稿与导出 | `tools/fishing_catches.aseprite`（36 帧，16×16）与 `tools/export_fishing_catches.lua`；`item=<物品ID>` 导出单项，`allTiles=true` 导出全部素材到 `temp/fish-art/tiles/` |
+| 主线副本怪物掉落素材贴图 | 可编辑源稿 `tools/dungeon_drop_materials.aseprite`（18 帧，32×32，分层 `01 / outline`、`02 / body`、`03 / highlights`），手绘生成源 `tools/build_dungeon_drop_materials.lua`，正式导出 `tools/export_dungeon_drop_materials.lua`（支持 `item=<材料ID>` 单项导出至 `textures/item/materials/`） |
 | 工业资源生成源 | `tools/industrial_resources.py`、`industrial_expansion.py`、`industrial_technology.py`；机械几何为 `tools/industrial_arcane_models.py`，贴图为 `industrial_arcane_art.lua`、`industrial_arcane_breathing.lua`；原版／Mekanism 底图的材料换色源为 `tools/draw_industrial_material_bases.lua`，高阶锭细节与动画源为 `tools/draw_industrial_ingot_details.lua`，共用源稿 `tools/industrial_material_bases.aseprite`（每帧16×16）；导体、组件与点火芯源为 `tools/draw_industrial_components.lua`、`tools/industrial_component_bases.aseprite`；燃料棒、胶囊与核素热源源稿为 `tools/nuclear_fuel_rods.aseprite`，魔能水晶物品图标源稿为 `tools/energy_crystals.aseprite`（均为16×16）；其余材料源为 `tools/draw_industrial_materials.lua`、`tools/industrial_materials.aseprite`（32×32，保留探矿器帧）；统一导出为 `tools/export_industrial_materials.lua`，`only=bases` 仅导出基底材料，`only=ingots` 仅导出锭类 |
 | 武器模型生成源 | `tools/build_weapon_models.py`、`tools/build_warglaive_model.py`；光剑本机发光材质源 `tools/weapon_glow_resources.py` |
 | 构建与依赖 | `build.gradle`、`gradle.properties`、`gradle/local-mods/`；本机入口见 [本机环境](本机环境.md) |

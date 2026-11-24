@@ -10,7 +10,7 @@ public final class MageSkills {
     public static final String STAR=NS+"magic_star",FANG=NS+"dragon_fang",JACK=NS+"jack_bomb",HERDER=NS+"herder";
     private static final Map<String,Map<String,Double>> CAREER_SCALES=new LinkedHashMap<>();
     private MageSkills(){}
-    public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id)||SummonerSkills.contains(id)||SunMoonSkills.contains(id);}
+    public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id)||SummonerSkills.contains(id)||SunMoonSkills.contains(id)||ElementalistSkills.contains(id)||BattleMageSkills.contains(id);}
     public static SkillDefinition skill(String id){return SkillCatalog.require(id);}
     static void careerScales(String job,double ordinary,double herder){
         if(CAREER_SCALES.putIfAbsent(job,Map.of(STAR,ordinary,FANG,ordinary,JACK,ordinary,HERDER,herder))!=null)throw new IllegalArgumentException("Duplicate mage career scale: "+job);
@@ -32,7 +32,11 @@ public final class MageSkills {
         skill(STAR).formParameter("projectileSpeed",20);
         skill(STAR).formParameter("throwMillis",200);
         skill(FANG).formParameter("fuseMillis",200);
-        skill(JACK).formParameter("projectileSpeed",15);
+        skill(JACK).formParameter("projectileSpeed",15)
+            .formParameter("chargeSeconds",.40).formParameter("minChargeRatio",.85)
+            .formParameter("chargeDamageMultiplier",1.20).formParameter("chargeScaleMultiplier",1.30)
+            .formParameter("maxHoldSeconds",2.0).formParameter("chargeMoveSpeedRatio",1.0)
+            .formParameter("dyeEnabled",0.0).formParameter("dyeElement",0.0);
         skill(HERDER).formParameter("stoneVolley",3).formParameter("stoneUnlockRank",5).formParameter("heavyEvery",3).formParameter("bombEvery",3);
     }
     private static void add(String id,String title,String family,int unlock,double mp,double cooldown,boolean magic,double range,Map<String,Double> extra){

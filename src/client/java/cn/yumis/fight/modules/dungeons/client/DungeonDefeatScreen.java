@@ -14,11 +14,13 @@ import net.minecraft.network.chat.Component;
 
 public final class DungeonDefeatScreen extends ThemedScreen {
     private final long generation;
+    private final boolean tower;
     private long retryAt;
 
-    private DungeonDefeatScreen(long generation) {
-        super(Component.literal("你已倒下"), ThemeDomain.MENU);
+    private DungeonDefeatScreen(long generation,boolean tower) {
+        super(Component.literal(tower?"你已倒下 · 等待选牌或重打":"你已倒下"), ThemeDomain.MENU);
         this.generation = generation;
+        this.tower = tower;
     }
 
     public static void update(boolean ready, Life life) {
@@ -28,7 +30,7 @@ public final class DungeonDefeatScreen extends ThemedScreen {
         if (ready && life.dungeonDefeated) {
             if (!(screen instanceof DungeonDefeatScreen defeat) || defeat.generation != life.generation) {
                 if (mc.player.containerMenu != mc.player.inventoryMenu) mc.player.closeContainer();
-                mc.gui.setScreen(new DungeonDefeatScreen(life.generation));
+                mc.gui.setScreen(new DungeonDefeatScreen(life.generation,TowerClient.inRun()));
             }
         } else if (screen instanceof DungeonDefeatScreen) {
             mc.gui.setScreen(null);
@@ -37,10 +39,10 @@ public final class DungeonDefeatScreen extends ThemedScreen {
 
     @Override protected void init() {
         int x = width / 2, y = height / 2;
-        addRenderableWidget(Button.builder(Component.literal("返回副本出生点"), b -> choose("return"))
+        if(!tower)addRenderableWidget(Button.builder(Component.literal("返回副本出生点"), b -> choose("return"))
             .bounds(x - 123, y + 10, 119, 22).build(ThemedButton::new));
         addRenderableWidget(Button.builder(Component.literal("退出副本"), b -> choose("leave"))
-            .bounds(x + 4, y + 10, 119, 22).build(ThemedButton::new));
+            .bounds(tower?x-59:x+4, y + 10, 119, 22).build(ThemedButton::new));
     }
 
     private void choose(String kind) {

@@ -43,21 +43,32 @@ public final class PlayerPoseAnimation {
     public final boolean loop;
     public final Bone[] bones;
     private final String heldModel;
+    private final List<Bone[]> variants;
     public PlayerPoseAnimation(long duration,boolean loop,Bone[] bones){
-        this(duration,loop,bones,"");
+        this(duration,loop,bones,"",List.of());
     }
-    private PlayerPoseAnimation(long duration,boolean loop,Bone[] bones,String heldModel){
+    private PlayerPoseAnimation(long duration,boolean loop,Bone[] bones,String heldModel,List<Bone[]> variants){
         this.duration=duration;
         this.loop=loop;
         this.bones=bones.clone();
         this.heldModel=heldModel;
+        this.variants=List.copyOf(variants);
     }
     public Frame frame(long time){
+        return frame(time,0);
+    }
+    Frame frame(long time,long seed){
         long sampleTime=loop&&duration>0?Math.floorMod(time,duration):time;
+        Bone[] active=bones;
+        if(!variants.isEmpty()){
+            long beat=Math.floorDiv(time,duration);
+            int index=new SplittableRandom(seed^(beat*0x9E3779B97F4A7C15L)).nextInt(variants.size());
+            active=variants.get(index);
+        }
         Frame frame=new Frame();
         frame.heldModel=heldModel;
-        for(int i=0;i<bones.length;i++){
-            Bone bone=bones[i];
+        for(int i=0;i<active.length;i++){
+            Bone bone=active[i];
             if(bone==null)continue;
             frame.mask|=1<<i;
             Channel[] channels={bone.rotX(),bone.rotY(),bone.rotZ(),bone.posX(),bone.posY(),bone.posZ()};
@@ -87,8 +98,27 @@ public final class PlayerPoseAnimation {
         if(json==null)throw new IllegalArgumentException("空的动作配置");
         boolean loop=json.has("loop")&&json.get("loop").getAsBoolean();
         if(!json.has("bones")||!json.get("bones").isJsonObject())throw new IllegalArgumentException("动作缺少 bones");
-        JsonObject bonesJson=json.getAsJsonObject("bones");
         Bone[] bones=new Bone[BONES.size()];
+        long latest=readBones(json.getAsJsonObject("bones"),bones);
+        long duration=json.has("duration")?json.get("duration").getAsLong():latest;
+        if(duration<=0)throw new IllegalArgumentException("动作时长必须为正毫秒");
+        String heldModel=json.has("heldModel")?json.get("heldModel").getAsString():"";
+        if(!heldModel.isEmpty()&&!heldModel.matches("effect/[a-z0-9_]+"))throw new IllegalArgumentException("无效的演出手持模型");
+        List<Bone[]> variants=new ArrayList<>();
+        if(json.has("variants")){
+            if(!loop||!json.has("duration")||!json.get("variants").isJsonArray()||json.getAsJsonArray("variants").size()==0)
+                throw new IllegalArgumentException("随机动作需要显式时长和循环片段");
+            for(var variant:json.getAsJsonArray("variants")){
+                if(!variant.isJsonObject())throw new IllegalArgumentException("随机动作必须指定骨骼对象");
+                Bone[] alternate=bones.clone();
+                if(readBones(variant.getAsJsonObject(),alternate)>duration)throw new IllegalArgumentException("随机动作超出片段时长");
+                variants.add(alternate);
+            }
+        }
+        return new PlayerPoseAnimation(duration,loop,bones,heldModel,variants);
+    }
+    private static long readBones(JsonObject bonesJson,Bone[] bones){
+        if(bonesJson.size()==0)throw new IllegalArgumentException("动作没有任何骨骼通道");
         long latest=0;
         for(Map.Entry<String,JsonElement> entry:bonesJson.entrySet()){
             int index=BONES.indexOf(entry.getKey());
@@ -101,14 +131,7 @@ public final class PlayerPoseAnimation {
                 if(channel!=null)latest=Math.max(latest,channel.keys().getLast().time());
             bones[index]=bone;
         }
-        boolean empty=true;
-        for(Bone bone:bones)if(bone!=null)empty=false;
-        if(empty)throw new IllegalArgumentException("动作没有任何骨骼通道");
-        long duration=json.has("duration")?json.get("duration").getAsLong():latest;
-        if(duration<=0)throw new IllegalArgumentException("动作时长必须为正毫秒");
-        String heldModel=json.has("heldModel")?json.get("heldModel").getAsString():"";
-        if(!heldModel.isEmpty()&&!heldModel.matches("effect/[a-z0-9_]+"))throw new IllegalArgumentException("无效的演出手持模型");
-        return new PlayerPoseAnimation(duration,loop,bones,heldModel);
+        return latest;
     }
     private static Channel channel(JsonObject boneJson,String group,String axis){
         if(!boneJson.has(group)||!boneJson.get(group).isJsonObject())return null;

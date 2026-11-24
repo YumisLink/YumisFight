@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.inventory.application;
 
 import cn.yumis.fight.mixin.CompoundContainerAccessor;
+import cn.yumis.fight.modules.inventory.api.CheckpointMenu;
 import cn.yumis.fight.modules.inventory.api.MenuHooks;
 import cn.yumis.fight.modules.inventory.api.PersistentContainer;
 import com.google.gson.JsonElement;
@@ -20,6 +21,7 @@ final class ContainerParticipants {
     ContainerParticipants(InventoryTransactions inventory){this.inventory=inventory;}
     private static boolean generated(Slot slot){return slot instanceof ResultSlot||slot instanceof MerchantResultSlot||slot instanceof NonInteractiveResultSlot||slot.container instanceof ResultContainer;}
     static boolean temporary(AbstractContainerMenu menu){
+        if(menu instanceof CheckpointMenu checkpoint&&checkpoint.hasTemporaryInputs())return true;
         return menu instanceof AbstractCraftingMenu||menu instanceof ItemCombinerMenu||menu instanceof EnchantmentMenu||menu instanceof GrindstoneMenu||menu instanceof CartographyTableMenu||menu instanceof LoomMenu||menu instanceof StonecutterMenu||menu instanceof MerchantMenu||menu instanceof BeaconMenu;
     }
     Capture capture(ServerPlayer player){return capture(player,null);}

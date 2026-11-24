@@ -57,3 +57,6 @@ screenshots/
 **/.*
 !.gitignore
 !.gitattributes
+
+# Local agent todo notes never enter Git.
+/agentodo/

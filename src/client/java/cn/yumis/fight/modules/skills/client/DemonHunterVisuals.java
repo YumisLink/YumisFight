@@ -18,10 +18,31 @@ import com.google.gson.JsonObject;
 import net.minecraft.world.phys.*;
 import org.joml.Vector3f;
 import java.util.*;
+import static cn.yumis.fight.modules.skills.api.SkillVisualEvent.Phase.*;
 import static cn.yumis.fight.modules.skills.client.SkillVfx.vector;
+import static java.util.Map.entry;
 
 /** Fel ribbons and translucent demon silhouettes. Geometry never determines combat results. */
 final class DemonHunterVisuals {
+    private static final Map<String,List<SkillSound>> SOUNDS=Map.ofEntries(
+        entry(DemonHunterSkills.CHAOS,List.of(new SkillSound(HIT,SoundEvents.PLAYER_ATTACK_SWEEP,.59f,.93f))),
+        entry(DemonHunterSkills.GLAIVE,List.of(new SkillSound(START,SoundEvents.TRIDENT_THROW.value(),.64f,1.38f))),
+        entry(DemonHunterSkills.AURA,List.of(new SkillSound(START,SoundEvents.FIRECHARGE_USE,.68f,.87f))),
+        entry(DemonHunterSkills.BEAM,List.of(new SkillSound(START,SoundEvents.WARDEN_SONIC_CHARGE,.44f,1.45f))),
+        entry(DemonHunterSkills.RUSH,List.of(new SkillSound(START,SoundEvents.WIND_CHARGE_THROW,.65f,.82f))),
+        entry(DemonHunterSkills.DANCE,List.of(
+            new SkillSound(START,SoundEvents.BREEZE_JUMP,.48f,1.22f),
+            new SkillSound(HIT,SoundEvents.PLAYER_ATTACK_SWEEP,.55f,1.32f),
+            new SkillSound(FINISH,SoundEvents.MACE_SMASH_GROUND,.77f,.93f))),
+        entry(DemonHunterSkills.HUNT,List.of(
+            new SkillSound(START,SoundEvents.TRIDENT_RIPTIDE_2.value(),.60f,.88f),
+            new SkillSound(HIT,SoundEvents.PLAYER_ATTACK_SWEEP,.36f,1.22f))),
+        entry(DemonHunterSkills.META,List.of(
+            new SkillSound(START,SoundEvents.RESPAWN_ANCHOR_CHARGE,.59f,.76f),
+            new SkillSound(FINISH,SoundEvents.MACE_SMASH_GROUND_HEAVY,.81f,.78f),
+            new SkillSound(FINISH,SoundEvents.GENERIC_EXPLODE.value(),.48f,.84f)))
+    );
+
     private static final int GREEN=0x87ec39,PALE=0xd6ff90;
     private static final ContextKey<Boolean> HIDDEN=new ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","demon_dance_hidden"));
     private record DanceScene(DemonHunterChoreography.Scene scene,long at){}
@@ -75,7 +96,13 @@ final class DemonHunterVisuals {
             }
             if(id.equals(DemonHunterSkills.BASIC_ATTACK)){
                 long age=time-t.start.startedAt();int phase=age<0?-1:age>=t.start.duration()?2:(int)(age/(t.start.duration()/2d));
-                if(phase==1&&t.soundPhase<1){var mc=Minecraft.getInstance();var actor=mc.level==null?null:mc.level.getPlayerByUUID(t.start.caster());if(actor!=null)mc.level.playLocalSound(actor.getX(),actor.getY(),actor.getZ(),SoundEvents.PLAYER_ATTACK_SWEEP,SoundSource.PLAYERS,.65f,1.25f,false);}
+                if (phase == 1 && t.soundPhase < 1) {
+                    var level = Minecraft.getInstance().level;
+                    var actor = level == null ? null : level.getPlayerByUUID(t.start.caster());
+                    if (actor != null) {
+                        SkillSound.playAt(actor.getX(), actor.getY(), actor.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, .65f, 1.25f);
+                    }
+                }
                 t.soundPhase=Math.max(t.soundPhase,phase);
             }
         }
@@ -133,9 +160,15 @@ final class DemonHunterVisuals {
         public void decorateAvatar(SkillVfx.Track t,Player player,net.minecraft.client.renderer.entity.state.AvatarRenderState state,long time){
             if(id.equals(DemonHunterSkills.DANCE))animate(t,player,state,time);
         }
-        public void play(SkillVisualEvent e){
-            if(id.equals(DemonHunterSkills.BASIC_ATTACK)&&e.phase()==SkillVisualEvent.Phase.START){var mc=Minecraft.getInstance();Vec3 p=vector(e.position());if(mc.level!=null)mc.level.playLocalSound(p.x,p.y,p.z,SoundEvents.PLAYER_ATTACK_SWEEP,SoundSource.PLAYERS,.65f,1.15f,false);}
-            if(e.phase()==SkillVisualEvent.Phase.FINISH&&(id.equals(DemonHunterSkills.DANCE)||id.equals(DemonHunterSkills.META))){Vec3 p=vector(e.position());for(int i=0;i<28;i++){double angle=i*Math.PI/14;EffectParticles.dust(p.add(Math.cos(angle)*(1+i%3),.1+(i%4)*.1,Math.sin(angle)*(1+i%3)),0xa9a18b,.8f);}}
+        public void play(SkillVfx.Track track,SkillVisualEvent event){
+            SkillSound.play(event,SOUNDS.getOrDefault(id,List.of()));
+            if(id.equals(DemonHunterSkills.BASIC_ATTACK)&&event.phase()==START)
+                SkillSound.playAt(event.position(),SoundEvents.PLAYER_ATTACK_SWEEP,.65f,1.15f);
+            if(id.equals(DemonHunterSkills.BEAM)&&event.phase()==SEGMENT&&event.sequence()==1)
+                SkillSound.playAt(event.position(),SoundEvents.WARDEN_SONIC_BOOM,.64f,1.38f);
+            if(id.equals(DemonHunterSkills.HUNT)&&event.phase()==HIT&&event.sequence()==1)
+                SkillSound.playAt(event.position(),SoundEvents.PLAYER_ATTACK_KNOCKBACK,.62f,.88f);
+            if(event.phase()==FINISH&&(id.equals(DemonHunterSkills.DANCE)||id.equals(DemonHunterSkills.META))){Vec3 p=vector(event.position());for(int i=0;i<28;i++){double angle=i*Math.PI/14;EffectParticles.dust(p.add(Math.cos(angle)*(1+i%3),.1+(i%4)*.1,Math.sin(angle)*(1+i%3)),0xa9a18b,.8f);}}
         }
         public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track t,long age,long time,List<Quad> q,Vec3 camera){
             var mc=Minecraft.getInstance();var actor=mc.level==null?null:mc.level.getPlayerByUUID(t.start.caster());Vec3 p=vector(t.last.position()),d=vector(t.last.direction()).normalize();

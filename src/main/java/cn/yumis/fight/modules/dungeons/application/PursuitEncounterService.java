@@ -45,7 +45,7 @@ final class PursuitEncounterService extends ClassicEncounterService {
             if(!alive(clock)){m.clock=null;announce(d,"时间机器已被破坏，回档中断。");}
             else if(now>=m.restoreAt){
                 m.clock=null;retire(clock);cancel(e.getUUID());Target t=targets.target(e);t.life.q=m.health;t.life.dead=false;t.life.generation++;t.life.revision++;persist(e,t,true);
-                e.setPos(m.initial.x,m.initial.y,m.initial.z);b.ready.clear();ClassicMove reset=move(e,"repair_stance");e.play(reset.clip(),reset.duration());b.busy=now+reset.duration();
+                e.setPos(m.initial.x,m.initial.y,m.initial.z);b.ready.clear();ClassicMove reset=move(e,"repair_stance");var timing=targets.target(e).actionTiming(now);long duration=timing.duration(reset.duration());e.play(reset.clip(),duration);b.busy=now+duration;
                 announce(d,"时间机器已回档吉赛尔的生命、位置和招式冷却。");
             }
         }
@@ -89,5 +89,5 @@ final class PursuitEncounterService extends ClassicEncounterService {
     }
     @Override protected void onCancel(DungeonEnemy e,Brain b){Machine m=machines.get(e.getUUID());if(m!=null&&!m.used)m.scheduled=false;}
     @Override protected void onDeath(DungeonEnemy e,Brain b){machines.remove(e.getUUID());repairing.remove(e.getUUID());fragments.remove(e.getUUID());}
-    @Override void close(Dungeon d){super.close(d);if(d.dungeon.equals(dungeon)){machines.keySet().removeIf(id->!brains.containsKey(id));repairing.keySet().removeIf(id->!brains.containsKey(id));fragments.keySet().removeIf(id->!brains.containsKey(id));}}
+    @Override void close(Dungeon d){super.close(d);if(uses(d)){machines.keySet().removeIf(id->!brains.containsKey(id));repairing.keySet().removeIf(id->!brains.containsKey(id));fragments.keySet().removeIf(id->!brains.containsKey(id));}}
 }

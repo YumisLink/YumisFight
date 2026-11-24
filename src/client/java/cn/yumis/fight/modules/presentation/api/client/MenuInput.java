@@ -46,35 +46,64 @@ public final class MenuInput {
     }
 
     public static void clearDefaultConflictsOnce(Minecraft client) {
-        if (ClientSettings.menuShortcutDefaultsApplied) return;
-        var character = PAGE_KEYS.get("character");
-        var bag = PAGE_KEYS.get("bag");
-        Set<String> clearedOptions = new HashSet<>();
-        for (var mapping : client.options.keyMappings) {
-            if (mapping == character || mapping == bag) continue;
-            var key = mapping.getKey();
-            if (key.equals(character.getDefaultKey()) || key.equals(bag.getDefaultKey())) {
-                mapping.setKeyModifierAndCode(KeyModifier.NONE, InputConstants.UNKNOWN);
-                clearedOptions.add("key_" + mapping.getName() + ":" + mapping.saveString());
-            }
-        }
-        if (!clearedOptions.isEmpty()) {
-            KeyMapping.resetMapping();
-            client.options.save();
-            // Options.save() reports errors internally. Persist the marker after the new bindings are on disk.
-            try {
-                var savedOptions = new HashSet<>(Files.readAllLines(client.gameDirectory.toPath().resolve("options.txt")));
-                if (!savedOptions.containsAll(clearedOptions)) {
-                    LogUtils.getLogger().warn("Menu shortcut conflicts were not saved");
-                    return;
+        if (!ClientSettings.menuShortcutDefaultsApplied) {
+            var character = PAGE_KEYS.get("character");
+            var bag = PAGE_KEYS.get("bag");
+            Set<String> clearedOptions = new HashSet<>();
+            for (var mapping : client.options.keyMappings) {
+                if (mapping == character || mapping == bag) continue;
+                var key = mapping.getKey();
+                if (key.equals(character.getDefaultKey()) || key.equals(bag.getDefaultKey())) {
+                    mapping.setKeyModifierAndCode(KeyModifier.NONE, InputConstants.UNKNOWN);
+                    clearedOptions.add("key_" + mapping.getName() + ":" + mapping.saveString());
                 }
-            } catch (IOException failure) {
-                LogUtils.getLogger().warn("Unable to verify saved menu shortcuts", failure);
-                return;
+            }
+            boolean menuSaved = true;
+            if (!clearedOptions.isEmpty()) {
+                KeyMapping.resetMapping();
+                client.options.save();
+                // Options.save() reports errors internally. Persist the marker after the new bindings are on disk.
+                try {
+                    var savedOptions = new HashSet<>(Files.readAllLines(client.gameDirectory.toPath().resolve("options.txt")));
+                    if (!savedOptions.containsAll(clearedOptions)) {
+                        LogUtils.getLogger().warn("Menu shortcut conflicts were not saved");
+                        menuSaved = false;
+                    }
+                } catch (IOException failure) {
+                    LogUtils.getLogger().warn("Unable to verify saved menu shortcuts", failure);
+                    menuSaved = false;
+                }
+            }
+            if (menuSaved) {
+                ClientSettings.menuShortcutDefaultsApplied = true;
+                ClientSettings.save();
             }
         }
-        ClientSettings.menuShortcutDefaultsApplied = true;
-        ClientSettings.save();
+        if (!ClientSettings.chatEnterDefaultApplied) {
+            var chat = client.options.keyChat;
+            var defaultT = InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_T);
+            boolean chatSaved = true;
+            if (chat.getKey().equals(defaultT)) {
+                chat.setKeyModifierAndCode(KeyModifier.NONE, InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_ENTER));
+                KeyMapping.resetMapping();
+                client.options.save();
+                String expected = "key_" + chat.getName() + ":" + chat.saveString();
+                try {
+                    var savedOptions = new HashSet<>(Files.readAllLines(client.gameDirectory.toPath().resolve("options.txt")));
+                    if (!savedOptions.contains(expected)) {
+                        LogUtils.getLogger().warn("Chat Enter default keybind was not saved");
+                        chatSaved = false;
+                    }
+                } catch (IOException failure) {
+                    LogUtils.getLogger().warn("Unable to verify saved chat Enter keybind", failure);
+                    chatSaved = false;
+                }
+            }
+            if (chatSaved) {
+                ClientSettings.chatEnterDefaultApplied = true;
+                ClientSettings.save();
+            }
+        }
     }
 
     public static void consumeClicks(BooleanSupplier canOpen) {

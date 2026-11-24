@@ -14,7 +14,7 @@ public final class CombatPorts {
         void died(LivingEntity target);
         void cancelBoss(UUID target);
     }
-    public interface Rewards {void death(ServerPlayer player,LivingEntity entity,CombatTarget target)throws Exception;void publish();void abort();}
+    public interface Rewards {void death(ServerPlayer player,LivingEntity entity,CombatTarget target,boolean triggers)throws Exception;void publish();void abort();}
     public interface NativeHits {
         void commit(ServerPlayer player,JsonObject report)throws Exception;
         void complete(JsonObject report);

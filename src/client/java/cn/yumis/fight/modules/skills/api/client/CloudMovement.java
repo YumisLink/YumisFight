@@ -41,7 +41,9 @@ public final class CloudMovement {
         if(action!=GLFW.GLFW_PRESS)return true;
         var state=SkillsClient.current();
         if(!state.ready()||mc.player==null||mc.level==null||mc.gui.screen()!=null||SkillController.INSTANCE.locked()
-            ||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)||!mc.player.isAlive()||mc.player.isPassenger()||mc.player.isSleeping()
+            ||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)
+            ||mc.player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.RITUAL_ROOT)
+            ||!mc.player.isAlive()||mc.player.isPassenger()||mc.player.isSleeping()
             ||mc.player.isSpectator()||mc.player.getAbilities().flying)return true;
         if(uiOpen||cn.yumis.fight.modules.skills.client.DemonHunterClient.blocksMovement()||cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.locked())return true;
         if(!pool.ready(mc.player.tickCount))return true;

@@ -45,9 +45,9 @@ final class TavernEncounterService extends ClassicEncounterService {
     @Override protected boolean customAttack(Dungeon d,DungeonEnemy e,Brain b,ClassicMove move,ServerPlayer target,long now){
         if(!Set.of("duck_dash","sway").contains(move.clip()))return false;
         var direction=move.clip().equals("sway")?b.direction.yRot((float)(b.turn%2==0?Math.PI/2:-Math.PI/2)):b.direction;
-        var to=cn.yumis.fight.modules.dungeons.content.ClassicDungeonRooms.inside(d.cell,b.area,e.position().add(direction.scale(move.clip().equals("sway")?2.2:4)));
+        var to=inside(d,b.area,e.position().add(direction.scale(move.clip().equals("sway")?2.2:4)));
         emit(d,e,b,move,"DASH",e.position(),to,now,move.windup(),450,0,UUID.randomUUID().toString());return true;
     }
     @Override protected void onDeath(DungeonEnemy e,Brain b){tempers.remove(e.getUUID());}
-    @Override void close(Dungeon d){super.close(d);if(d.dungeon.equals(dungeon))tempers.keySet().removeIf(id->!brains.containsKey(id));}
+    @Override void close(Dungeon d){super.close(d);if(uses(d))tempers.keySet().removeIf(id->!brains.containsKey(id));}
 }

@@ -42,16 +42,32 @@ public final class AlchemyCauldronBlock extends BaseEntityBlock {
     @Override protected InteractionResult useItemOn(ItemStack stack,BlockState state,Level level,BlockPos pos,Player player,InteractionHand hand,BlockHitResult hit){
         if(level.isClientSide())return InteractionResult.SUCCESS;
         if(!(level.getBlockEntity(pos) instanceof AlchemyCauldronBlockEntity cauldron))return InteractionResult.PASS;
-        if(stack.is(Items.WATER_BUCKET))return cauldron.fill(player,stack)?InteractionResult.SUCCESS:InteractionResult.PASS;
+        boolean heated=heatSource(level.getBlockState(pos.below()));
+        if(stack.is(Items.WATER_BUCKET)){
+            boolean ok=cauldron.fill(player,stack);
+            player.sendOverlayMessage(cauldron.statusText(heated));
+            return ok?InteractionResult.SUCCESS:InteractionResult.PASS;
+        }
         String held=net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
-        if(stack.is(Items.GLASS_BOTTLE)||held.endsWith("_bottle"))return cauldron.bottle(player,stack)?InteractionResult.SUCCESS:InteractionResult.PASS;
-        if(cauldron.insert(stack))return InteractionResult.SUCCESS;
+        if(stack.is(Items.GLASS_BOTTLE)||held.endsWith("_bottle")){
+            boolean ok=cauldron.bottle(player,stack);
+            player.sendOverlayMessage(cauldron.statusText(heated));
+            return ok?InteractionResult.SUCCESS:InteractionResult.PASS;
+        }
+        if(cauldron.insert(player,stack)){
+            player.sendOverlayMessage(cauldron.statusText(heated));
+            return InteractionResult.SUCCESS;
+        }
+        player.sendOverlayMessage(cauldron.statusText(heated));
         return InteractionResult.PASS;
     }
     @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){
         if(level.isClientSide())return InteractionResult.SUCCESS;
         if(!(level.getBlockEntity(pos) instanceof AlchemyCauldronBlockEntity cauldron))return InteractionResult.PASS;
-        return cauldron.take(player)?InteractionResult.SUCCESS:InteractionResult.PASS;
+        boolean heated=heatSource(level.getBlockState(pos.below()));
+        boolean took=cauldron.take(player);
+        player.sendOverlayMessage(cauldron.statusText(heated));
+        return took?InteractionResult.SUCCESS:InteractionResult.CONSUME;
     }
     @Override protected void affectNeighborsAfterRemoval(BlockState state,ServerLevel level,BlockPos pos,boolean moved){
         if(level.getBlockEntity(pos) instanceof AlchemyCauldronBlockEntity cauldron)cauldron.drops();

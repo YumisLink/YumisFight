@@ -7,6 +7,12 @@ import java.util.*;
 public record ClassicMove(ClassicEnemyKind actor,String clip,String title,long duration,long cooldown,
                           String shape,double range,double width,double coefficient,boolean magic,
                           int element,String effect,int stunTicks,double[] contacts) {
+    public enum PullMode { NONE, INHALE, CAGE }
+
+    private static final Set<String> GROUND_CLIPS = Set.of("ice","thunder","mark","ore_burst","roots");
+    private static final Set<String> ARC_LEAP_CLIPS = Set.of("jump","approach_hop","transform_pounce");
+    private static final Set<String> RANGED_SHAPES = Set.of("DART","BOMB","WAVE");
+
     public ClassicMove {
         contacts=contacts.clone();
         if(duration<=0||cooldown<duration||range<0||width<=0||coefficient<0||contacts.length==0)
@@ -15,8 +21,17 @@ public record ClassicMove(ClassicEnemyKind actor,String clip,String title,long d
     }
     @Override public double[] contacts(){return contacts.clone();}
     public String id(){return actor.id+"/"+clip;}
-    public boolean ranged(){return Set.of("DART","BOMB","WAVE").contains(shape);}
-    public boolean targetsGround(){return Set.of("ice","thunder","mark","ore_burst","roots").contains(clip);}
+    public boolean ranged(){return RANGED_SHAPES.contains(shape);}
+    public boolean targetsGround(){return GROUND_CLIPS.contains(clip);}
+    public boolean isArcLeap(){return "DASH".equals(shape)&&ARC_LEAP_CLIPS.contains(clip);}
+    public boolean isPlayerLocked(){return "mark".equals(clip);}
+    public boolean isSelfDestruct(){return "explode".equals(clip);}
+    public boolean isBurrow(){return "burrow".equals(effect);}
+    public PullMode pullMode(){
+        if("tree_cage".equals(clip))return PullMode.CAGE;
+        if("inhale".equals(clip))return PullMode.INHALE;
+        return PullMode.NONE;
+    }
     /** Projectile travel/target selection is distinct from a bomb's impact radius. */
     public double engageRange(){return shape.equals("NONE")||shape.equals("BOMB")||targetsGround()?16:range;}
     public long contact(int index){return Math.round(contacts[index]*duration);}

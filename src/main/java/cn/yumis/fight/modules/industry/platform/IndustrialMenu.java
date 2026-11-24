@@ -12,7 +12,19 @@ import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
 
-public final class IndustrialMenu extends AbstractContainerMenu {
+public final class IndustrialMenu extends AbstractContainerMenu implements cn.yumis.fight.modules.inventory.api.QuickIntakeMenu {
+    @Override public boolean allowsQuickIntake(int slotIndex){
+        return slotIndex>=0&&slotIndex<machine.getContainerSize()&&machine.slots().output(slotIndex)&&slots.get(slotIndex).isActive();
+    }
+    @Override public ItemStack extractForQuickIntake(ServerPlayer player,int slotIndex,int maxTake){
+        if(!allowsQuickIntake(slotIndex)||maxTake<=0)return ItemStack.EMPTY;
+        long available=amount(slotIndex);
+        if(available<=0)return ItemStack.EMPTY;
+        ItemStack sample=slots.get(slotIndex).getItem();
+        if(sample.isEmpty())return ItemStack.EMPTY;
+        int count=(int)Math.min(Math.min(available,maxTake),sample.getMaxStackSize());
+        return count<=0?ItemStack.EMPTY:take(slotIndex,count);
+    }
     public final MachineBlockEntity machine;
     public JsonObject info=new JsonObject();
     private int broadcasts;

@@ -1,9 +1,12 @@
 package cn.yumis.fight.modules.dungeons.application;
 
 import cn.yumis.fight.foundation.Journal;
+import cn.yumis.fight.modules.combat.api.ActionPhase;
 import cn.yumis.fight.modules.combat.api.CombatContentTypes;
+import cn.yumis.fight.modules.combat.api.StatusLeases;
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.SkasaLair;
+import cn.yumis.fight.modules.dungeons.content.AwakeningTowerLayout;
 import cn.yumis.fight.network.Network;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -32,8 +35,10 @@ public final class SkasaEncounterService {
     private static final class Brain {
         final Vec3 home;final int area;final String instance;
         final EnumMap<SkasaMoves,Long> ready=new EnumMap<>(SkasaMoves.class);
+        final StatusLeases leases=new StatusLeases();
+        ActionPhase phase=ActionPhase.IDLE;
         long busy;int turn,clawSide=-1,groundSide=-1;
-        Brain(DungeonEnemy enemy,Dungeon dungeon){home=enemy.position();area=SkasaLair.area(dungeon.wave);instance=enemy.instance();}
+        Brain(DungeonEnemy enemy,Dungeon dungeon){home=enemy.position();area=dungeon.tower==null?SkasaLair.area(dungeon.wave):dungeon.wave;instance=enemy.instance();}
         boolean ready(SkasaMoves move,long now){return now>=ready.getOrDefault(move,0L);}
     }
     private static final class Pending {
@@ -91,9 +96,16 @@ public final class SkasaEncounterService {
         return here.stream().noneMatch(p->SkasaLair.contains(d.cell,area,p.position()));
     }
     private boolean eligible(ServerPlayer p,String instance){
-        return p.level()==owner.level()&&owner.participant(p,instance)&&p.isAlive()&&!players.session(p).life.dead&&!p.isSpectator()&&!p.getAbilities().invulnerable;
+        var life=players.session(p).life;
+        return p.level()==owner.level()&&owner.participant(p,instance)&&p.isAlive()&&!life.dead&&!life.dungeonDefeated&&!p.isSpectator()&&!p.getAbilities().invulnerable;
     }
     private boolean alive(DungeonEnemy e){return e.isAlive()&&!targets.target(e).life.dead;}
+    private static boolean contains(Dungeon d,int area,Vec3 point){
+        return d.tower==null?SkasaLair.contains(d.cell,area,point):AwakeningTowerLayout.containsBattle(d.cell,point);
+    }
+    private static Vec3 inside(Dungeon d,int area,Vec3 point){
+        return d.tower==null?SkasaLair.inside(d.cell,area,point):AwakeningTowerLayout.insideBattle(d.cell,point);
+    }
     private void anchor(DungeonEnemy e,int cell){
         e.getNavigation().stop();e.setDeltaMovement(Vec3.ZERO);e.setPos(cell*512,80,148);
         e.setYRot(180);e.yBodyRot=180;e.setYHeadRot(180);
@@ -103,8 +115,8 @@ public final class SkasaEncounterService {
         Brain b=brains.computeIfAbsent(e.getUUID(),id->new Brain(e,d));
         if(kind==ICE_DRAGON)anchor(e,d.cell);
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
-        if(!SkasaLair.contains(d.cell,b.area,e.position())){cancel(e.getUUID());e.getNavigation().moveTo(b.home.x,b.home.y,b.home.z,1);return;}
-        ServerPlayer p=here.stream().filter(q->eligible(q,e.instance())&&SkasaLair.contains(d.cell,b.area,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
+        if(!contains(d,b.area,e.position())){cancel(e.getUUID());if(d.tower!=null&&e.getY()<76)e.setPos(b.home);else e.getNavigation().moveTo(b.home.x,b.home.y,b.home.z,1);return;}
+        ServerPlayer p=here.stream().filter(q->eligible(q,e.instance())&&contains(d,b.area,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
         if(p==null){e.getNavigation().stop();return;}
         if(now<b.busy){e.getNavigation().stop();return;}
         if(kind==ICE_DRAGON){
@@ -124,7 +136,7 @@ public final class SkasaEncounterService {
         float yaw=(float)Math.toDegrees(Math.atan2(-direction.x,direction.z));e.setYRot(yaw);e.yBodyRot=yaw;e.getLookControl().setLookAt(p);
         double distance=e.distanceTo(p);boolean ranged=kind==ICE_SPIDER;
         if(ranged&&distance<3){
-            Vec3 to=SkasaLair.inside(d.cell,b.area,e.position().subtract(direction.scale(2)));e.getNavigation().moveTo(to.x,to.y,to.z,1);
+            Vec3 to=inside(d,b.area,e.position().subtract(direction.scale(2)));e.getNavigation().moveTo(to.x,to.y,to.z,1);
         }else if(distance>(ranged?8:2))e.getNavigation().moveTo(p,kind==FEMALE_WARRIOR||kind==NASRA?1.15:1);
         else e.getNavigation().stop();
         SkasaMoves move=switch(kind){
@@ -137,18 +149,18 @@ public final class SkasaEncounterService {
         };
         if(distance>move.range||!b.ready(move,now))return;
         if(kind==HATCHLING){
-            Vec3 to=SkasaLair.inside(d.cell,b.area,e.position().subtract(direction.scale(2)));
+            Vec3 to=inside(d,b.area,e.position().subtract(direction.scale(2)));
             if(owner.level().noCollision(e,e.getBoundingBox().move(to.subtract(e.position()))))e.move(MoverType.SELF,to.subtract(e.position()));
         }
         play(e,b,attack(d,e,move,e.position(),direction,now),now);
     }
     private SkasaAttack attack(Dungeon d,DungeonEnemy e,SkasaMoves move,Vec3 origin,Vec3 direction,long now){
         SkasaAttack a=new SkasaAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=move.name();a.cell=d.cell;
-        a.area=SkasaLair.area(d.wave);a.wave=d.wave;a.started=now;a.x=origin.x;a.y=origin.y;a.z=origin.z;a.dx=direction.x;a.dz=direction.z;return a;
+        a.area=d.tower==null?SkasaLair.area(d.wave):d.wave;a.wave=d.wave;a.started=now;a.x=origin.x;a.y=origin.y;a.z=origin.z;a.dx=direction.x;a.dz=direction.z;return a;
     }
     private void play(DungeonEnemy e,Brain b,SkasaAttack a,long now){
-        SkasaMoves move=a.move();e.getNavigation().stop();e.setAggressive(true);e.play(move.animation(a.side),move.duration());
-        b.busy=now+move.duration();b.ready.put(move,now+move.cooldown);add(a);
+        SkasaMoves move=a.move();var timing=targets.target(e).actionTiming(now);long duration=timing.duration(move.duration());a.castScale=timing.scale();e.getNavigation().stop();e.setAggressive(true);e.play(move.animation(a.side),duration);
+        b.busy=now+duration;b.ready.put(move,now+move.cooldown);add(a);
     }
     private void add(SkasaAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"skasaAttack",packet(a,false));}
     private JsonObject packet(SkasaAttack a,boolean cancelled){var frame=JSON.toJsonTree(a).getAsJsonObject();frame.addProperty("cancelled",cancelled);frame.addProperty("contactUntil",System.currentTimeMillis());var raw=owner.level().getEntity(a.source);if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));return frame;}
@@ -158,7 +170,7 @@ public final class SkasaEncounterService {
         Set<UUID> present=new HashSet<>();
         for(var p:online)if(p.level()==owner.level()){
             var s=players.session(p);Dungeon d=owner.byId(s.life.instance);
-            if(d!=null&&d.dungeon.equals("skasa")&&d.status.equals("RUNNING")&&owner.participant(p,d.id.toString())){
+            if(d!=null&&(d.dungeon.equals("skasa")||d.tower!=null&&d.tower.fighting())&&d.status.equals("RUNNING")&&owner.participant(p,d.id.toString())){
                 present.add(p.getUUID());String key=d.id+"/"+s.id+"/"+s.life.generation;
                 if(!key.equals(tracked.get(p.getUUID())))track(p);
             }
@@ -172,7 +184,7 @@ public final class SkasaEncounterService {
             if(now<a.release())continue;
             if(now>a.end()&&!move.travels()){remove(a,false);continue;}
             if(move.movesBody()){
-                Vec3 to=SkasaLair.inside(d.cell,a.area,a.position(now));e.move(MoverType.SELF,to.subtract(e.position()));e.setDeltaMovement(Vec3.ZERO);
+                Vec3 to=inside(d,a.area,a.position(now));e.move(MoverType.SELF,to.subtract(e.position()));e.setDeltaMovement(Vec3.ZERO);
                 if(e.position().subtract(to).horizontalDistanceSqr()>.25){remove(a);continue;}
             }
             if(move==ICE_LINE){
@@ -195,12 +207,12 @@ public final class SkasaEncounterService {
         if(raw instanceof DungeonEnemy e&&SkasaEnemyKind.of(e)!=null&&!e.getPersistentData().getBooleanOr(ENVIRONMENT,false)){
             e.getNavigation().stop();e.setAggressive(false);e.setDeltaMovement(Vec3.ZERO);e.play("",0);
         }
-        Brain b=brains.get(id);if(b!=null)b.busy=0;
+        Brain b=brains.get(id);if(b!=null){b.phase=ActionPhase.ABANDONED;b.leases.clear();b.busy=0;}
     }
     public void died(UUID id){cancel(id);brains.remove(id);}
     public void track(ServerPlayer p){
         var s=players.session(p);Dungeon d=owner.byId(s.life.instance);
-        if(d==null||!d.dungeon.equals("skasa")||!d.status.equals("RUNNING")||!owner.participant(p,d.id.toString()))return;
+        if(d==null||!(d.dungeon.equals("skasa")||d.tower!=null&&d.tower.fighting())||!d.status.equals("RUNNING")||!owner.participant(p,d.id.toString()))return;
         for(var pending:attacks.values())if(pending.attack.instance.equals(d.id.toString()))Network.send(p,"skasaAttack",packet(pending.attack,false));
         tracked.put(p.getUUID(),d.id+"/"+s.id+"/"+s.life.generation);
     }

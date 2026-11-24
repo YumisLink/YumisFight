@@ -6,6 +6,7 @@ import cn.yumis.fight.modules.dungeons.api.Dungeon;
 
 import com.google.gson.JsonElement;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,7 +26,8 @@ public final class RewardPorts {
         Stats stats(ServerPlayer player);
         void profile(ServerPlayer player);
         void message(ServerPlayer player,String text);
-        default void groundPickup(ServerPlayer player,net.minecraft.world.item.ItemStack stack){}
+        default void groundPickup(ServerPlayer player,ItemStack stack){}
+        default void lootAcquired(ServerPlayer player,ItemStack stack){}
     }
     public interface Encounters {
         boolean participant(ServerPlayer player,String instance);

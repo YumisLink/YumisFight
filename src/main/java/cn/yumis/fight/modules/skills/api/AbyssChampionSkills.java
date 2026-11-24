@@ -33,6 +33,8 @@ public final class AbyssChampionSkills {
         AbyssChampionKits.install(JobCatalog.HAVOC, havoc(), SkillBalance.defaultWeapon(JobCatalog.HAVOC));
         AbyssChampionKits.install(JobCatalog.SUMMONER, summoner(), SkillBalance.defaultWeapon(JobCatalog.SUMMONER));
         AbyssChampionKits.install(JobCatalog.SUN_MOON, sunMoon(), SkillBalance.defaultWeapon(JobCatalog.SUN_MOON));
+        AbyssChampionKits.install(JobCatalog.ELEMENTALIST, elementalist(), SkillBalance.defaultWeapon(JobCatalog.ELEMENTALIST));
+        AbyssChampionKits.install(JobCatalog.BATTLE_MAGE, battleMage(), SkillBalance.defaultWeapon(JobCatalog.BATTLE_MAGE));
     }
 
     // ------------------------------------------------------------------ sword family
@@ -183,6 +185,41 @@ public final class AbyssChampionSkills {
                 drop(CIRCLE, ICE, 2.35, 0, 0, .2), drop(CIRCLE, ICE, 2.35, 0, 250, .2), drop(CIRCLE, ICE, 2.35, 0, 500, .2),
                 drop(CIRCLE, ICE, 2.35, 0, 750, .2), drop(CIRCLE, ICE, 2.35, 0, 1000, .2)),
             paradox()));
+        return List.copyOf(kit);
+    }
+
+    private static List<Kit> elementalist() {
+        var kit = new java.util.ArrayList<>(mageBase());
+        kit.addAll(List.of(
+            plain("ice_wall", true, 2, 5, 2, ring(3.5, 1.0, 0, 1)),
+            plain("lightning_vortex", true, 0, 10, 2, circle(4.0, 0, .5), circle(4.5, 350, .5)),
+            plain("void_sphere", true, 3, 12, 2, ray(ORB, 12, 2.2, 0, 1)),
+            plain("flame_pillar", true, 1, 14, 2, drop(CIRCLE, FIRE, 3.2, 0, 0, 1)),
+            plain("halloween_buster", true, 1, 16, 2, drop(CIRCLE, FIRE, 4.5, 0, 0, .7), drop(RING, FIRE, 7.0, 2.5, 100, .3)),
+            plain("arctic_feast", true, 2, 14, 2, drop(CIRCLE, ICE, 5.5, 0, 0, .5), drop(CIRCLE, ICE, 5.5, 0, 600, .5)),
+            plain("black_hole", true, 3, 16, 2, drop(CIRCLE, WAVE, 5.5, 0, 0, .6), drop(CIRCLE, WAVE, 6.0, 0, 800, .4)),
+            plain("lightning_strike", true, 0, 18, 2, drop(CIRCLE, COLUMN, 3.5, 0, 0, .5), drop(CIRCLE, COLUMN, 3.5, 0, 400, .5)),
+            gated("astral_storm", true, 1, 16, 2, Condition.AWAKENING,
+                drop(CIRCLE, FIRE, 5.0, 0, 0, .3), drop(CIRCLE, ICE, 5.0, 0, 400, .3), drop(CIRCLE, WAVE, 8.0, 0, 900, .4))));
+        return List.copyOf(kit);
+    }
+
+    private static List<Kit> battleMage() {
+        var kit = new java.util.ArrayList<>(mageBase());
+        kit.addAll(List.of(
+            mobile("palm_blast", false, -1, 7, 2, Motion.DASH, slash(5.5, 2.4, 0, 1)),
+            plain("full_swing", false, -1, 5, 2, fan(4.8, 1.35, 0, 1)),
+            plain("chaser_fusion", true, 3, 9, 2, drop(CIRCLE, ORB, 4.2, 0, 0, 1)),
+            plain("chaser_press", true, 1, 8, 2, drop(CIRCLE, FIRE, 5.5, 0, 0, 1)),
+            plain("punto_wave", false, -1, 6, 2,
+                slash(5.5, 2.2, 0, .2), slash(5.5, 2.2, 180, .2), slash(5.5, 2.2, 360, .2),
+                fan(5.5, 1.4, 600, .4)),
+            mobile("dragon_strike", false, -1, 12, 2, Motion.DASH,
+                slash(9.0, 2.8, 0, .4), drop(CIRCLE, FIRE, 5.0, 0, 320, .6)),
+            plain("dragon_spear", false, 0, 8, 2,
+                slash(7.5, 2.8, 0, .25), drop(CIRCLE, ORB, 4.0, 0, 450, .35), drop(CIRCLE, COLUMN, 6.5, 0, 1100, .4)),
+            gated("teana_transformation", false, 0, 10, 2, Condition.AWAKENING,
+                ring(5.5, 1.5, 0, .3), drop(CIRCLE, COLUMN, 8.5, 0, 900, .7))));
         return List.copyOf(kit);
     }
 

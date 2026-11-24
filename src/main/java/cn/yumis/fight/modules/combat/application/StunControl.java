@@ -1,4 +1,6 @@
 package cn.yumis.fight.modules.combat.application;
+import cn.yumis.fight.modules.combat.api.CombatContentTypes;
+import cn.yumis.fight.modules.combat.api.ElementAccumulation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.*;
@@ -9,9 +11,14 @@ public final class StunControl {
         long now=System.currentTimeMillis();
         for(ServerLevel level:server.getAllLevels())for(Entity e:level.getAllEntities())if(e instanceof LivingEntity living&&!(living instanceof net.minecraft.world.entity.player.Player)){
             cn.yumis.fight.modules.combat.api.Life life=null;
-            for(var kind:cn.yumis.fight.modules.combat.api.ElementAccumulation.Kind.values())if(living.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.elementalEffect(kind))){
+            for(ElementAccumulation.Kind kind:ElementAccumulation.Kind.values()){
+                var effect=CombatContentTypes.elementalEffect(kind);
+                boolean has=living.hasEffect(effect),chill=kind==ElementAccumulation.Kind.FREEZE&&living.hasEffect(CombatContentTypes.CHILL);
+                if(!has&&!chill)continue;
                 if(life==null)life=lives.apply(living);
-                if(!life.elemental.active(kind,life,now))living.removeEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.elementalEffect(kind));
+                boolean active=life.elemental.active(kind,life,now),strong=active&&life.elemental.strong[kind.ordinal()];
+                if(has&&(!active||kind==ElementAccumulation.Kind.FREEZE&&strong))living.removeEffect(effect);
+                if(chill&&!strong)living.removeEffect(CombatContentTypes.CHILL);
             }
             if(!(living instanceof Mob mob))continue;
             boolean stun=cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mob);

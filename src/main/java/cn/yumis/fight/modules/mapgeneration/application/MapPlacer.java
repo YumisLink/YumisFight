@@ -90,8 +90,21 @@ public final class MapPlacer {
         if(p.mode==GenerationPlan.Mode.TERRAIN) {
             for(int i=0;i<p.terrain.length;i++) {
                 int x=p.x(i),z=p.z(i),top=level.getHeight(Heightmap.Types.WORLD_SURFACE,x,z);
+                int target=p.terrain[i],old=p.naturalTerrain[i];
+                if(target<old) {
+                    int clearTop=Math.min(level.getMaxY()-1,Math.max(old+1,top));
+                    for(int y=target;y<=clearTop;y++)if(level.isInsideBuildHeight(y)&&!level.getBlockState(new BlockPos(x,y,z)).isAir())put(x,y,z,Blocks.AIR.defaultBlockState());
+                    if(level.isInsideBuildHeight(target-1))put(x,target-1,z,surfaceMaterial(p.biomes[i]));
+                    BlockState subsoil=subsoilMaterial(p.biomes[i]);
+                    for(int depth=2;depth<=3;depth++) {
+                        int y=target-depth;if(!level.isInsideBuildHeight(y))continue;
+                        var existing=level.getBlockState(new BlockPos(x,y,z));
+                        if(!existing.isAir()&&existing.getFluidState().isEmpty())put(x,y,z,subsoil);
+                    }
+                    continue;
+                }
                 if(p.blueprint.grounds.stream().noneMatch(g->g.clearVegetation&&inGround(g,x,z)))continue;
-                for(int y=p.terrain[i];y<top;y++) {
+                for(int y=target;y<top;y++) {
                     var pos=new BlockPos(x,y,z);var state=level.getBlockState(pos);
                     if(state.is(BlockTags.LOGS)||state.is(BlockTags.LEAVES)||state.canBeReplaced()&&!state.getFluidState().isSource())put(x,y,z,Blocks.AIR.defaultBlockState());
                 }
@@ -104,29 +117,42 @@ public final class MapPlacer {
                 for(var e:f.footprint().columns().entrySet()) {
                     BlockPos local=BlockPos.of(e.getKey());int x=x0+local.getX(),z=z0+local.getZ();
                     boolean ground=f.containsGround(x,z);int bottom=f.position().getY()+e.getValue().bottom(),ceiling=f.position().getY()+e.getValue().top();
-                    if(ground){int i=p.index(x,z);facilityGround.add(i);bottom=Math.min(surface,bottom);ceiling=Math.max(Math.max(top,surface+3),p.terrain[i]+2);}
-                    for(int y=bottom;y<ceiling;y++)if(!level.getBlockState(new BlockPos(x,y,z)).isAir())put(x,y,z,Blocks.AIR.defaultBlockState());
+                    if(ground){
+                        int i=p.index(x,z);facilityGround.add(i);bottom=Math.min(surface,bottom);
+                        int rawTop=Math.max(p.naturalTerrain[i],p.terrain[i]);
+                        ceiling=Math.max(Math.max(top,surface+3),rawTop+2);
+                        if(p.mode==GenerationPlan.Mode.TERRAIN&&surface<rawTop)ceiling=Math.min(level.getMaxY(),Math.max(ceiling,level.getHeight(Heightmap.Types.WORLD_SURFACE,x,z)));
+                    }
+                    for(int y=bottom;y<ceiling;y++)if(level.isInsideBuildHeight(y)&&!level.getBlockState(new BlockPos(x,y,z)).isAir())put(x,y,z,Blocks.AIR.defaultBlockState());
                 }
                 continue;
             }
             for(int z=z0;z<z0+d;z++)for(int x=x0;x<x0+w;x++) {
-                if(f.definition().platform&&p.inside(x,z))facilityGround.add(p.index(x,z));
-                for(int y=surface;y<top;y++)if(!level.getBlockState(new BlockPos(x,y,z)).isAir())put(x,y,z,Blocks.AIR.defaultBlockState());
+                int clearTop=top;
+                if(p.inside(x,z)) {
+                    int ci=p.index(x,z);
+                    if(f.definition().platform)facilityGround.add(ci);
+                    if(p.mode==GenerationPlan.Mode.TERRAIN&&surface<p.naturalTerrain[ci])clearTop=Math.min(level.getMaxY(),Math.max(clearTop,Math.max(p.naturalTerrain[ci]+2,level.getHeight(Heightmap.Types.WORLD_SURFACE,x,z))));
+                }
+                for(int y=surface;y<clearTop;y++)if(level.isInsideBuildHeight(y)&&!level.getBlockState(new BlockPos(x,y,z)).isAir())put(x,y,z,Blocks.AIR.defaultBlockState());
             }
             if(p.mode==GenerationPlan.Mode.TERRAIN&&f.definition().flatten) {
                 for(int z=z0-3;z<z0+d+3;z++)for(int x=x0-3;x<x0+w+3;x++)if(p.inside(x,z)) {
                     int distance=Math.max(Math.max(x0-x,x-(x0+w-1)),Math.max(z0-z,z-(z0+d-1)));distance=Math.max(0,distance);
                     int target=surface+distance,old=p.ground(x,z);
                     if(old>target) {
-                        for(int y=target;y<=old;y++)put(x,y,z,Blocks.AIR.defaultBlockState());
-                        put(x,target-1,z,surfaceMaterial(p.biomes[p.index(x,z)]));
+                        for(int y=target;y<=old;y++)if(level.isInsideBuildHeight(y))put(x,y,z,Blocks.AIR.defaultBlockState());
+                        if(level.isInsideBuildHeight(target-1))put(x,target-1,z,surfaceMaterial(p.biomes[p.index(x,z)]));
                     }
                 }
             }
         }
         for(int i:p.roadCells) {
             int x=p.x(i),z=p.z(i),height=Math.floorDiv(p.roadHeights.get(i)+1,2);
-            for(int y=height;y<=Math.max(height+2,p.terrain[i]+1);y++)put(x,y,z,Blocks.AIR.defaultBlockState());
+            int rawTop=Math.max(p.naturalTerrain[i],p.terrain[i]);
+            int clearTop=Math.max(height+2,rawTop+1);
+            if(p.mode==GenerationPlan.Mode.TERRAIN&&height<rawTop)clearTop=Math.min(level.getMaxY()-1,Math.max(clearTop,level.getHeight(Heightmap.Types.WORLD_SURFACE,x,z)));
+            for(int y=height;y<=clearTop;y++)if(level.isInsideBuildHeight(y))put(x,y,z,Blocks.AIR.defaultBlockState());
         }
     }
     static BlockState surfaceMaterial(String biome) {
@@ -135,6 +161,11 @@ public final class MapPlacer {
         if(biome.contains("mushroom"))return Blocks.MYCELIUM.defaultBlockState();
         if(biome.contains("old_growth"))return Blocks.PODZOL.defaultBlockState();
         return Blocks.GRASS_BLOCK.defaultBlockState();
+    }
+    static BlockState subsoilMaterial(String biome) {
+        if(biome.contains("desert")||biome.contains("beach")||biome.contains("warm_ocean"))return Blocks.SAND.defaultBlockState();
+        if(biome.contains("badlands"))return Blocks.RED_SAND.defaultBlockState();
+        return Blocks.DIRT.defaultBlockState();
     }
     private void islands() {
         if(p.mode!=GenerationPlan.Mode.FLOATING)return;

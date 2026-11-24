@@ -7,6 +7,8 @@ import cn.yumis.fight.architecture.AttributeValue;
 
 /** attributes模块拥有的数据合同；仅接收当前存档代际。 */
 public class Stats {
+    /** Hidden modifier. A value of 1 adds 100% to the Mana actually paid. */
+    public static final String SKILL_EXTRA_MANA_COST="skillExtraManaCost";
     public Map<String,AttributeValue> attributes=new LinkedHashMap<>();
     /** Computed views, never independent numeric storage. Serialized snapshots use attributes. */
     public transient Map<Stat,Double> values=new AbstractMap<>(){

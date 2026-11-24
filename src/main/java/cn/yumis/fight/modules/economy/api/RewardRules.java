@@ -10,6 +10,7 @@ import java.util.*;
 
 /** Personal rewards from committed world events. */
 public final class RewardRules {
+    public static final String NO_BONUS_EFFECTS="noBonusEffects";
     public record Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply,List<Integer> experiencePercentages,String worldBossType){
         public Context(String id,UUID killer,Target target,Dungeon encounter,RewardSettings settings,String dimension,double x,double y,double z,Set<UUID> nearby,PracticeReward practice,RitualReward ritual,Supply supply){
             this(id,killer,target,encounter,settings,dimension,x,y,z,nearby,practice,ritual,supply,null,null);
@@ -44,6 +45,15 @@ public final class RewardRules {
         }
         if(!sharesReward(instance,participant,context.nearby(),player,context.killer()))return new Result(progress,0,0,List.of());
         if(boss)appendBossDrops(context,drops,random);
+        if(instance&&boss&&encounter!=null
+                &&AwakeningTower.find(encounter.dungeon)==AwakeningTower.SEAL
+                &&encounter.tower!=null&&encounter.tower.floor==TowerClimbRules.FLOOR_COUNT){
+            Gear hat=NamedEquipment.create("named/elaina_witch_hat",random);
+            hat.source=context.id();
+            drops.add(new Drop(EquipmentItems.gear(hat),true));
+            // TODO: 待「伊蕾娜的法杖」神话模板与独特词条设计批准后，在此追加 Drop(EquipmentItems.gear(NamedEquipment.create("named/elaina_staff", random)), true)
+            drops.add(new Drop(ItemRegistry.item("elaina_token",1),true));
+        }
         if(instance&&boss)for(var jar:JarDefinitions.current().jars.entrySet())if(random.nextDouble()<jar.getValue().bossDropChance())drops.add(new Drop(LootJarItem.create(jar.getKey(),1),true));
         var stone=encounter!=null&&encounter.waystone!=null?encounter.waystone.stone:null;
         double experienceMultiplier=stone==null?1:stone.experienceMultiplier,goldMultiplier=stone==null?1:stone.goldMultiplier,quantityMultiplier=stone==null?1:stone.quantityMultiplier;
@@ -67,7 +77,11 @@ public final class RewardRules {
         // Plain practice-room mobs roll materials from the dungeon each mob was borrowed from.
         if(instance){
             String materialDungeon=practiceMob?target.originDungeon:encounter.dungeon;
-            if(!materialDungeon.isEmpty()){var def=DungeonCatalog.current().dungeon(materialDungeon);int rolls=multiplied(boss?4:target.elite?2:random.nextDouble()<.2?1:0,quantityMultiplier,random);for(int i=0;i<rolls;i++)drops.add(new Drop(EquipmentItems.material(def.materials().get(random.nextInt(def.materials().size())),1),true));}
+            var materials=materialDungeon.isEmpty()?List.<String>of():DungeonCatalog.current().dungeon(materialDungeon).materials();
+            if(!materials.isEmpty()){
+                int rolls=multiplied(boss?4:target.elite?2:random.nextDouble()<.2?1:0,quantityMultiplier,random);
+                for(int i=0;i<rolls;i++)drops.add(new Drop(EquipmentItems.material(materials.get(random.nextInt(materials.size())),1),true));
+            }
         }
         if(boss&&level==80&&encounter!=null&&encounter.treasure==null&&encounter.waystone==null&&random.nextDouble()<WaystoneRules.current().starterChance){var rarity=LootOdds.rarity(target.difficulty,true,false,stats.get(Stat.DROP_RATE),random);if(rarity.ordinal()>Rarity.LEGENDARY.ordinal())rarity=Rarity.LEGENDARY;drops.add(new Drop(Waystone.generate(1,progress.level,rarity,random).item(),true));}
         return new Result(progress,xp,gold,List.copyOf(drops));

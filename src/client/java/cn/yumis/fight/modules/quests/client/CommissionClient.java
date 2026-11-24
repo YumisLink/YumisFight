@@ -31,7 +31,10 @@ final class CommissionClient {
     private static int observedDelta;
     private static boolean pending;
     private static long retryAt;
+    private static final long REROLL_COOLDOWN_MILLIS=5000L;
     private static Active drawn;
+    private static final Map<UUID,Active> cachedOffers=new HashMap<>();
+    private static long nextRerollAt;
     private static long settlementRevision;
 
     private CommissionClient(){}
@@ -51,7 +54,7 @@ final class CommissionClient {
         QuestsPage.refresh();
     }
 
-    static void clear(){view=null;mirror=CommissionState.EMPTY;observedDelta=0;pending=false;retryAt=0;drawn=null;}
+    static void clear(){view=null;mirror=CommissionState.EMPTY;observedDelta=0;pending=false;retryAt=0;drawn=null;cachedOffers.clear();nextRerollAt=0;}
 
     private static boolean available(){return view!=null&&ClientUi.current().ready()&&TutorialClient.alive();}
 
@@ -85,7 +88,8 @@ final class CommissionClient {
         String kind=event.get("kind").getAsString();
         var goal=active().item();
         if(goal.equals("fishing")?!Commissions.FISHING_KINDS.contains(kind):!goal.equals(kind))return;
-        observedDelta++;
+        int amount=event.has("blocks")&&event.get("blocks").isJsonArray()?Math.max(1,event.getAsJsonArray("blocks").size()):1;
+        observedDelta+=amount;
     }
 
     static void tick(){
@@ -103,10 +107,22 @@ final class CommissionClient {
 
     /** Registered as the commission agent's client action; the screen owns accept, reject, deliver and abandon. */
     private static boolean interact(LivingEntity agent,NpcDefinitions.Action action){
-        // A fresh draw per conversation: rejected offers never linger, accepted ones live in the stored state.
-        if(active()==null)drawn=Commissions.draw(growth.get().level,new Random());
+        // Keep the current NPC's pending offer cached until accepted or explicitly rerolled.
+        if(active()==null)drawn=cachedOffers.computeIfAbsent(agent.getUUID(),id->Commissions.draw(growth.get().level,new Random()));
         Minecraft.getInstance().gui.setScreen(new CommissionDialogueScreen(agent));
         return true;
+    }
+
+    static long rerollCooldownMillis(){
+        return Math.max(0L,nextRerollAt-ClientUi.now());
+    }
+
+    static Active reroll(LivingEntity agent){
+        if(agent==null||active()!=null||rerollCooldownMillis()>0)return null;
+        nextRerollAt=ClientUi.now()+REROLL_COOLDOWN_MILLIS;
+        drawn=Commissions.draw(growth.get().level,new Random());
+        cachedOffers.put(agent.getUUID(),drawn);
+        return drawn;
     }
 
     private static JsonObject progressRequest(int value){
@@ -159,9 +175,10 @@ final class CommissionClient {
         retryAt=received?0:ClientUi.now()+1000;
         settlementRevision++;
         if(received){
-            if(request.get("kind").getAsString().equals("progress"))observedDelta=0;
-            if(request.get("kind").getAsString().equals("accept"))drawn=null;
-        }else if(request.get("kind").getAsString().equals("accept")&&active()!=null)drawn=null;
+            String kind=request.get("kind").getAsString();
+            if(kind.equals("progress"))observedDelta=0;
+            if(kind.equals("accept")||kind.equals("abandon")){drawn=null;cachedOffers.clear();}
+        }else if(request.get("kind").getAsString().equals("accept")&&active()!=null){drawn=null;cachedOffers.clear();}
         QuestsPage.refresh();
     }
 

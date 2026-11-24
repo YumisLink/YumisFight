@@ -35,7 +35,7 @@ public final class SkillPreviewRules {
         register(SkillCatalog.DANCE,new Definition(p->SkillSchedule.dance(p).slashes(),true,true,false,-1));
         register(SkillCatalog.STORM,new Definition(p->StormChoreography.schedule(p.values()).slashes(),true,false,false,-1));
         SUPPLEMENTS.put(SkillCatalog.DRAW,(progress,stats,parameters,effects)->SkillPreview.mastery(progress,stats)>0&&Set.of("LIGHTSABER","KATANA").contains(stats.weaponType)?SkillPreview.passiveElementDamage(progress,stats,SkillCatalog.DRAW,parameters.get("damage",0)*.2,0,effects):new SkillPreview.Damage(0,0));
-        SunMoonSkills.previews();DemonHunterSkills.previews();
+        SunMoonSkills.previews();ElementalistSkills.previews();BattleMageSkills.previews();DemonHunterSkills.previews();
     }
     private SkillPreviewRules(){}
     public static void total(SkillDefinition skill,Supplement resolver){if(TOTALS.putIfAbsent(skill,resolver)!=null)throw new IllegalArgumentException("Duplicate total preview");}

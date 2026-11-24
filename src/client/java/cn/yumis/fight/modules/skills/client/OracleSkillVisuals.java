@@ -3,6 +3,7 @@ package cn.yumis.fight.modules.skills.client;
 import cn.yumis.fight.modules.skills.api.*;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
 import net.minecraft.client.*;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
 import java.util.*;
@@ -42,7 +43,17 @@ final class OracleSkillVisuals {
                 }
             }
         }
-        public void play(SkillVisualEvent event){if(event.phase()!=SkillVisualEvent.Phase.HIT&&event.phase()!=SkillVisualEvent.Phase.FINISH&&event.phase()!=SkillVisualEvent.Phase.RELEASE)return;var level=Minecraft.getInstance().level;if(level!=null){Vec3 p=vector(event.position());level.playLocalSound(p.x,p.y,p.z,net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_SWEEP,net.minecraft.sounds.SoundSource.PLAYERS,.65f,event.phase()==SkillVisualEvent.Phase.FINISH?.7f:1.2f,false);}}
+        public void play(Track track,SkillVisualEvent event){
+            if(event.phase()==SkillVisualEvent.Phase.START){
+                if(event.skill().equals(OracleSkills.THRUST))
+                    SkillSound.playAt(event.position(),SoundEvents.SPEAR_ATTACK.value(),.64f,1.05f);
+                if(event.skill().equals(OracleSkills.RIFT))
+                    SkillSound.playAt(event.position(),SoundEvents.BREEZE_DEFLECT,.66f,.79f);
+                return;
+            }
+            if(event.phase()==SkillVisualEvent.Phase.HIT||event.phase()==SkillVisualEvent.Phase.FINISH||event.phase()==SkillVisualEvent.Phase.RELEASE)
+                SkillSound.playAt(event.position(),SoundEvents.PLAYER_ATTACK_SWEEP,.65f,event.phase()==SkillVisualEvent.Phase.FINISH?.7f:1.2f);
+        }
         public void render(LevelRenderContext context,Track track,long age,long time,List<Quad> out,Vec3 camera){
             var event=track.last;Vec3 p=vector(event.position()),direction=vector(event.direction()),right=new Vec3(-direction.z,0,direction.x);int color=event.color();
             if(!replica&&event.skill().equals(OracleSkills.SWEEP)&&!track.released)ring(out,p.add(0,.1,0),1.2,color,120);

@@ -18,14 +18,6 @@ public final class RareSickleItem extends Item {
         super(properties);
     }
     @Override public InteractionResult useOn(UseOnContext context){
-        Level level=context.getLevel();
-        if(level.isClientSide())return InteractionResult.SUCCESS;
-        if(!(context.getPlayer() instanceof ServerPlayer player))return InteractionResult.PASS;
-        BlockPos pos=context.getClickedPos();
-        BlockState state=level.getBlockState(pos);
-        if(!(state.getBlock() instanceof HerbBushBlock))return InteractionResult.PASS;
-        if(player.isShiftKeyDown())return InteractionResult.PASS;
-        if(!HANDLER.harvest(player,pos,context.getItemInHand()))return InteractionResult.FAIL;
-        return InteractionResult.SUCCESS;
+        return SickleItem.useSickle(context,HANDLER::harvest);
     }
 }

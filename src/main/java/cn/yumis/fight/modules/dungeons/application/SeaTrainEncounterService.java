@@ -63,5 +63,5 @@ final class SeaTrainEncounterService extends ClassicEncounterService {
         if(ClassicEnemyKind.of(e)==SEA_TRAIN_BODIR&&e.getPersistentData().getBooleanOr("ydnf_classic_aux",false))p.attack.element=1;
     }
     @Override protected void onDeath(DungeonEnemy e,Brain b){totems.remove(e.getUUID());counters.remove(e.getUUID());}
-    @Override void close(Dungeon d){super.close(d);if(d.dungeon.equals(dungeon)){totems.keySet().removeIf(id->!brains.containsKey(id));counters.keySet().removeIf(id->!brains.containsKey(id));}}
+    @Override void close(Dungeon d){super.close(d);if(uses(d)){totems.keySet().removeIf(id->!brains.containsKey(id));counters.keySet().removeIf(id->!brains.containsKey(id));}}
 }

@@ -37,7 +37,7 @@ final class AwarenessEncounterService extends ClassicEncounterService {
         if(kind==MYSTERIOUS_AWARENESS_MARILETE){
             ServerPlayer target=here.stream().filter(p->eligible(p,d)).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
             if(target!=null){
-                Vec3 next=cn.yumis.fight.modules.dungeons.content.ClassicDungeonRooms.inside(d.cell,b.area,target.position().add(2*Math.sin(now/800d),0,2*Math.cos(now/800d)));
+                Vec3 next=inside(d,b.area,target.position().add(2*Math.sin(now/800d),0,2*Math.cos(now/800d)));
                 e.setNoGravity(true);e.setPos(e.getX()+(next.x-e.getX())*.025,81.4,e.getZ()+(next.z-e.getZ())*.025);
                 if(now>=instrumentShots.getOrDefault(e.getUUID(),0L)){instrumentShots.put(e.getUUID(),now+1600);DungeonEnemy parent=entity(UUID.fromString(e.getPersistentData().getStringOr("ydnf_parent",e.getStringUUID())));ClassicMove ice=parent==null?null:move(parent,"ice");if(ice!=null)emit(d,e,b,ice,"DART",e.position(),target.position().add(0,.7,0),now,500,900,.7,UUID.randomUUID().toString());}
             }
@@ -46,7 +46,7 @@ final class AwarenessEncounterService extends ClassicEncounterService {
         Link link=links.get(e.getUUID());
         if(link!=null){
             ServerPlayer victim=owner.level().getServer().getPlayerList().getPlayer(link.victim);
-            if(victim==null||!eligible(victim,d)||now>=link.until||!cn.yumis.fight.modules.dungeons.content.ClassicDungeonRooms.contains(d.cell,b.area,victim.position()))links.remove(e.getUUID());
+            if(victim==null||!eligible(victim,d)||now>=link.until||!contains(d,b.area,victim.position()))links.remove(e.getUUID());
             else {double q=targets.target(e).life.q;if(q<link.q)reflect(d,e,b,link,link.q-q,now,false);link.q=q;Vec3 at=victim.position().add(.8,0,.3);e.setPos(at.x,at.y,at.z);}
         }
         return false;
@@ -63,7 +63,7 @@ final class AwarenessEncounterService extends ClassicEncounterService {
         if(move.clip().equals("puppet")&&e.boss()){
             Song song=songs.get(e.getUUID());List<DungeonEnemy> old=children(e).stream().filter(a->PUPPETS.contains(ClassicEnemyKind.of(a))).toList();
             if(old.isEmpty())for(int i=0;i<4;i++){ClassicEnemyKind kind=new ClassicEnemyKind[]{MYSTERIOUS_AWARENESS_AXE_PUPPET,MYSTERIOUS_AWARENESS_WHIP_PUPPET,MYSTERIOUS_AWARENESS_SWORD_PUPPET,MYSTERIOUS_AWARENESS_FIGHTER_PUPPET}[i];child(d,e,kind,e.position().add((i-1.5)*2,0,3),0);}
-            else for(int i=0;i<old.size();i++){Vec3 at=cn.yumis.fight.modules.dungeons.content.ClassicDungeonRooms.inside(d.cell,b.area,e.position().add((i-(old.size()-1)/2d)*2,0,3));old.get(i).setPos(at.x,80,at.z);}
+            else for(int i=0;i<old.size();i++){Vec3 at=inside(d,b.area,e.position().add((i-(old.size()-1)/2d)*2,0,3));old.get(i).setPos(at.x,floorY(d,b),at.z);}
             if(song!=null){song.shield=true;immune(e,true);announce(d,"艾丽丝展开协奏保护，先击破战斗人偶。");}
         }
         if(move.clip().equals("possession")&&target!=null){Link link=new Link();link.victim=target.getUUID();link.until=now+5000;link.q=targets.target(e).life.q;links.put(e.getUUID(),link);}
@@ -84,5 +84,5 @@ final class AwarenessEncounterService extends ClassicEncounterService {
         if(ClassicEnemyKind.of(e)==MYSTERIOUS_AWARENESS_MARILETE){String parent=e.getPersistentData().getStringOr("ydnf_parent","");Song song=parent.isEmpty()?null:songs.get(UUID.fromString(parent));if(song!=null&&e.getUUID().equals(song.instrument))song.instrumentBroken=true;}
         Link link=links.remove(e.getUUID());if(link!=null&&link.q>0){Dungeon d=owner.byId(e.instance());if(d!=null)reflect(d,e,b,link,link.q,System.currentTimeMillis(),true);}songs.remove(e.getUUID());walking.remove(e.getUUID());instrumentShots.remove(e.getUUID());
     }
-    @Override void close(Dungeon d){super.close(d);if(d.dungeon.equals(dungeon)){songs.keySet().removeIf(id->!brains.containsKey(id));links.keySet().removeIf(id->!brains.containsKey(id));walking.keySet().removeIf(id->!brains.containsKey(id));instrumentShots.keySet().removeIf(id->!brains.containsKey(id));}}
+    @Override void close(Dungeon d){super.close(d);if(uses(d)){songs.keySet().removeIf(id->!brains.containsKey(id));links.keySet().removeIf(id->!brains.containsKey(id));walking.keySet().removeIf(id->!brains.containsKey(id));instrumentShots.keySet().removeIf(id->!brains.containsKey(id));}}
 }

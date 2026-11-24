@@ -15,6 +15,13 @@ final class SunMoonClient {
     private static final class Area {SkillCast cast;String visual;Vec3 point;LivingEntity target;long generation,next;int index,sequence;}
     private static final List<Area> areas=new ArrayList<>();
     private SunMoonClient(){}
+    static void installHooks(){
+        SkillCastHooks.onRequest(SkillCastHooks.Stage.PREPARE_STATS,req->req.prepared=SunMoonRules.forCast(req.prepared,req.skill));
+        SkillCastHooks.onRequest(SkillCastHooks.Stage.POST_PAY_STATS,req->req.prepared=SunMoonRules.forCast(req.prepared,req.skill));
+        SkillCastHooks.onRequest(SkillCastHooks.Stage.COMMIT_STATE,req->{
+            if(SunMoonSkills.contains(req.skill.id))req.nextView.sunMoon=SunMoonRules.paid(req.nextView.sunMoon,req.skill,req.prepared);
+        });
+    }
     static void install(){for(String id:SunMoonSkills.ALL)if(!id.equals(SunMoonSkills.CYCLE))MageClient.register(id,SunMoonClient::start);}
     private static void start(SkillCast c){
         var p=Minecraft.getInstance().player;String id=c.skill.id;

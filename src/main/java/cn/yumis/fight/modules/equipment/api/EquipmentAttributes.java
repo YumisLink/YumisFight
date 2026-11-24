@@ -14,9 +14,12 @@ import java.util.*;
 import cn.yumis.fight.modules.attributes.api.*;
 /** Attribute aggregation order is owned here; affix effects arrive through accumulation ports. */
 public final class EquipmentAttributes {
+    private static final String EXTRA_MOVEMENT="equipment/extraMovement", EXTRA_CRIT_DAMAGE="equipment/extraCritDamage";
     private static volatile java.util.function.BiConsumer<Progress,Stats> characterEffects=(progress,stats)->{};
     private EquipmentAttributes(){}
     public static void characterEffects(java.util.function.BiConsumer<Progress,Stats> effect){characterEffects=Objects.requireNonNull(effect);}
+    public static double extraMovement(Stats stats){return stats.modifiers.getOrDefault(EXTRA_MOVEMENT,0d);}
+    public static double extraCriticalDamage(Stats stats){return stats.modifiers.getOrDefault(EXTRA_CRIT_DAMAGE,0d);}
     public static Stats stats(Progress progress,List<Gear> equipped){return stats(progress,equipped,new cn.yumis.fight.modules.attributes.api.AttributeSources(),0,ignored->{});}
     public static Stats stats(Progress p,List<Gear> equipped,cn.yumis.fight.modules.attributes.api.AttributeSources sources,int allowance,java.util.function.Consumer<Stats> nativeItems){
         Stats s=new Stats();
@@ -55,6 +58,16 @@ public final class EquipmentAttributes {
             else if(effect.modifier()!=null&&!effect.modifier().isEmpty())s.modifiers.merge(effect.modifier(),effect.value(),Double::sum);
         }
         nativeItems.accept(s);
+        var move=s.attribute(Stat.MOVEMENT_SPEED);
+        var equippedMove=new cn.yumis.fight.architecture.AttributeValue(1+move.base);
+        equippedMove.mut=move.mut+ratios.getOrDefault(Stat.MOVEMENT_SPEED,0d);
+        equippedMove.add=move.add;
+        equippedMove.alls=move.alls*products.getOrDefault(Stat.MOVEMENT_SPEED,1d);
+        equippedMove.fadd=move.fadd;
+        double extraMovement=equippedMove.value()-1;
+        if(extraMovement!=0)s.modifiers.put(EXTRA_MOVEMENT,extraMovement);
+        double extraCritDamage=s.modifiers.getOrDefault("critDamage",0d);
+        if(extraCritDamage!=0)s.modifiers.put(EXTRA_CRIT_DAMAGE,extraCritDamage);
         var items=sources.apply(s.values,cn.yumis.fight.modules.attributes.api.AttributeSources.Stage.ITEM);
         s.values.clear();
         s.values.putAll(items);

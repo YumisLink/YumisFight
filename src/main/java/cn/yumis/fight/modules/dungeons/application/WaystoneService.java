@@ -72,7 +72,12 @@ public final class WaystoneService implements WaystoneActions.Handler {
                 },Map.of());
                 if(committed){b.display();observe(t,b);openAfterInsert=j.has("openAfterInsert")&&j.get("openAfterInsert").getAsBoolean();}
             }
-            case "take"->{if(stone==null)throw new IllegalArgumentException("台上没有引路石");String raw=t.raw;var item=b.getItem(0).copy();boolean committed=inventory.transactMachine(p,"waystone-table/"+j.get("operation").getAsString(),j,b,()->{if(!cn.yumis.fight.platform.ItemData.string(b.getItem(0),Waystone.DATA).equals(raw))throw new IllegalArgumentException("台上的引路石发生变化");inventory.requireSpace(p,item);b.clearContent();},Map.of());if(committed){b.display();observe(t,b);}}
+            case "take"->{
+                if(stone==null)throw new IllegalArgumentException("台上没有引路石");
+                if(b.inserter!=null&&!b.inserter.equals(p.getUUID())&&(server.getPlayerList().getPlayer(b.inserter)!=null||!t.members.isEmpty()))
+                    throw new IllegalArgumentException("仅放入引路石的玩家本人可取下");
+                String raw=t.raw;var item=b.getItem(0).copy();boolean committed=inventory.transactMachine(p,"waystone-table/"+j.get("operation").getAsString(),j,b,()->{if(!cn.yumis.fight.platform.ItemData.string(b.getItem(0),Waystone.DATA).equals(raw))throw new IllegalArgumentException("台上的引路石发生变化");inventory.requireSpace(p,item);b.clearContent();},Map.of());if(committed){b.display();observe(t,b);}
+            }
             case "join"->{if(stone==null)throw new IllegalArgumentException("请先放入引路石");if(owner.current(p.getUUID())!=null)throw new IllegalArgumentException("请先离开当前副本");if(!t.members.containsKey(p.getUUID())&&t.members.size()>=WaystoneRules.current().maximumPlayers)throw new IllegalArgumentException("本场人数已满");for(var other:tables.values())if(other!=t&&other.members.remove(p.getUUID())!=null){changed(other);var old=block(other);if(old!=null)broadcast(other,old);}if(t.members.putIfAbsent(p.getUUID(),false)==null)changed(t);}
             case "ready"->{if(stone==null||!t.members.containsKey(p.getUUID()))throw new IllegalArgumentException("请先报名");if(owner.current(p.getUUID())!=null)throw new IllegalArgumentException("已进入其他副本，请先退出报名");t.members.put(p.getUUID(),!t.members.get(p.getUUID()));t.deadline=0;t.revision++;}
             case "start"->{if(!Boolean.TRUE.equals(t.members.get(p.getUUID())))throw new IllegalArgumentException("报名并准备后才可开始战斗");if(t.deadline>0)throw new IllegalArgumentException("本场已经开始倒数");validate(t,b);t.startedBy=p.getUUID();t.deadline=System.currentTimeMillis()+WaystoneRules.current().countdownMillis;t.revision++;}
@@ -115,7 +120,8 @@ public final class WaystoneService implements WaystoneActions.Handler {
         try{
         for(UUID id:d.roster){var p=server.getPlayerList().getPlayer(id);var life=players.session(p).life;life.instance=d.id.toString();life.dimension=DungeonService.DIMENSION.identifier().toString();life.revision++;players.save(p);journal.transaction(meter.joinWrites(d,p));updateSources(p);owner.enter(d,p);owner.gbl.track(p);owner.palace.track(p);Network.send(p,"waystoneStarted",Map.of("instance",d.id.toString()));}
         run.startedAt=System.currentTimeMillis();journal.put("instance/"+d.id,d);
-        if(!CastlePalace.handles(d))owner.spawnWave(d);
+        if(CastlePalace.handles(d))owner.palace.planAbyss(d);
+        else owner.spawnWave(d);
         for(UUID id:d.roster){var p=server.getPlayerList().getPlayer(id);players.profile(p);for(UUID enemy:d.enemies){var entity=owner.level().getEntity(enemy);if(entity instanceof net.minecraft.world.entity.LivingEntity living)targets.context(p,living);}}
         }catch(Exception failure){owner.close(d);for(UUID id:d.roster){var p=server.getPlayerList().getPlayer(id);if(p!=null&&players.session(p).life.instance.equals(d.id.toString())){var point=d.returns.get(id.toString());owner.back(p,point);players.session(p).life.instance="";players.session(p).life.dimension=p.level().dimension().identifier().toString();players.save(p);players.profile(p);}}throw failure;}
     }
@@ -127,12 +133,19 @@ public final class WaystoneService implements WaystoneActions.Handler {
         run.finishedAt=System.currentTimeMillis();run.result=completed?"COMPLETED":"FAILED";run.settled=true;d.status=completed?"COMPLETED":"CLOSED";
         var recipients=new LinkedHashSet<ServerPlayer>();
         var stoneOwner=server.getPlayerList().getPlayer(run.owner);
-        if(stoneOwner!=null&&!stoneOwner.hasDisconnected()&&!run.owner.equals(disconnected)&&players.session(stoneOwner).id.equals(run.ownerSession))recipients.add(stoneOwner);
+        boolean ownerOnline=stoneOwner!=null&&!stoneOwner.hasDisconnected()&&!run.owner.equals(disconnected);
+        if(ownerOnline)recipients.add(stoneOwner);
         if(completed)for(var player:here)if(!player.hasDisconnected())recipients.add(player);
         var edits=new LinkedHashMap<String,JsonElement>();
         var notices=new LinkedHashMap<ServerPlayer,JsonObject>();
         for(var player:recipients){boolean inside=completed&&here.contains(player);ReturnPoint point=inside?owner.point(player):d.returns.get(player.getStringUUID());if(point==null)throw new IllegalStateException("奖励返回位置缺失");
-            var fact=new JsonObject();fact.addProperty("id",d.id.toString());fact.add("run",JSON.toJsonTree(run));fact.add("point",JSON.toJsonTree(point));fact.addProperty("instance",inside?d.id.toString():"");fact.addProperty("returnStone",player==stoneOwner&&players.session(player).id.equals(run.ownerSession));fact.addProperty("chest",inside);edits.put(rewardPrefix(player)+d.id,fact);notices.put(player,fact);
+            var fact=new JsonObject();fact.addProperty("id",d.id.toString());fact.add("run",JSON.toJsonTree(run));fact.add("point",JSON.toJsonTree(point));fact.addProperty("instance",inside?d.id.toString():"");fact.addProperty("returnStone",player==stoneOwner);fact.addProperty("chest",inside);edits.put(rewardPrefix(player)+d.id,fact);notices.put(player,fact);
+        }
+        if(!ownerOnline&&run.owner!=null){
+            ReturnPoint point=d.returns.get(run.owner.toString());
+            if(point==null)point=new ReturnPoint();
+            var escrow=new JsonObject();escrow.addProperty("id",d.id.toString());escrow.add("run",JSON.toJsonTree(run));escrow.add("point",JSON.toJsonTree(point));escrow.addProperty("instance","");escrow.addProperty("returnStone",true);escrow.addProperty("chest",false);
+            edits.put("waystoneEscrow/"+run.owner+"/"+d.id,escrow);
         }
         edits.put("instance/"+d.id,JSON.toJsonTree(d));edits.put("waystoneSettlement/"+d.id,new JsonPrimitive(run.result));journal.transaction(edits);owner.instanceCommitted(d.id);meter.freeze(d);
         for(var player:server.getPlayerList().getPlayers())if(d.roster.contains(player.getUUID())&&!player.hasDisconnected()&&!player.getUUID().equals(disconnected)){updateSources(player);players.profile(player);if(notices.containsKey(player))Network.send(player,"waystoneReturn",notices.get(player));players.message(player,(completed?"地狱+通关":"地狱+挑战结束")+"，用时 "+(run.elapsed(run.finishedAt)/1000)+"秒。");}
@@ -148,8 +161,41 @@ public final class WaystoneService implements WaystoneActions.Handler {
             }
         }
         var edits=new LinkedHashMap<String,JsonElement>();
-        for(String key:journal.keys(rewardPrefix(player)))edits.put(key,JsonNull.INSTANCE);
+        String prefix=rewardPrefix(player);
+        for(String key:journal.keys(prefix)){
+            var saved=journal.get(key);
+            if(saved.isJsonObject()&&saved.getAsJsonObject().has("returnStone")&&saved.getAsJsonObject().get("returnStone").getAsBoolean()){
+                String dungeonId=key.substring(prefix.length());
+                if(journal.get("waystonePersonalDone/"+id+"/"+dungeonId).isJsonNull()){
+                    var escrow=saved.getAsJsonObject().deepCopy();
+                    escrow.addProperty("chest",false);
+                    escrow.addProperty("instance","");
+                    edits.put("waystoneEscrow/"+id+"/"+dungeonId,escrow);
+                }
+            }
+            edits.put(key,JsonNull.INSTANCE);
+        }
         if(!edits.isEmpty())journal.transaction(edits);
+    }
+    public void login(ServerPlayer player)throws Exception{
+        UUID id=player.getUUID();
+        String escrowPrefix="waystoneEscrow/"+id+"/";
+        var keys=journal.keys(escrowPrefix);
+        if(keys.isEmpty())return;
+        var edits=new LinkedHashMap<String,JsonElement>();
+        var notices=new ArrayList<JsonObject>();
+        for(String key:keys){
+            String dungeonId=key.substring(escrowPrefix.length());
+            var saved=journal.get(key);
+            edits.put(key,JsonNull.INSTANCE);
+            if(saved.isJsonObject()&&journal.get("waystonePersonalDone/"+id+"/"+dungeonId).isJsonNull()){
+                var fact=saved.getAsJsonObject().deepCopy();
+                edits.put(rewardPrefix(player)+dungeonId,fact);
+                notices.add(fact);
+            }
+        }
+        if(!edits.isEmpty())journal.transaction(edits);
+        for(var fact:notices)Network.send(player,"waystoneReturn",fact);
     }
     public void receiveReward(ServerPlayer player,JsonObject request){
         String id=request.get("id").getAsString();
@@ -173,7 +219,7 @@ public final class WaystoneService implements WaystoneActions.Handler {
         }
         edits.put(key,request.deepCopy());
         edits.put(pending,JsonNull.INSTANCE);
-        if(request.has("resultingTier")){var updated=JSON.fromJson(JSON.toJsonTree(d),Dungeon.class);updated.waystone.resultingTier=request.get("resultingTier").getAsInt();edits.put("instance/"+id,JSON.toJsonTree(updated));}
+        if(request.has("resultingTier")&&d!=null){var updated=JSON.fromJson(JSON.toJsonTree(d),Dungeon.class);updated.waystone.resultingTier=request.get("resultingTier").getAsInt();edits.put("instance/"+id,JSON.toJsonTree(updated));}
         try{
             inventory.transact(player,request.get("operation").getAsString(),request,()->{
                 if(request.has("stone"))inventory.deliverOrStash(player,inventory.decode(player,request.get("stone")),edits);

@@ -1,0 +1,195 @@
+{
+  "morphs": {
+    "yumis_dungeon_and_fight:ice_wall": {
+      "1": {
+        "title": "极寒推进",
+        "summary": "化为宽4.5格弧形冰晶巨浪向前直线推进10格，沿途推怪并合并结算碎冰爆发。",
+        "modifiers": [
+          { "parameter": "damage", "additive": 0.30, "multiplier": 1.0 },
+          { "parameter": "finisher", "additive": 0.0, "multiplier": 0.0 },
+          { "parameter": "radius", "additive": 1.0, "multiplier": 1.0 },
+          { "parameter": "duration", "additive": -5.15, "multiplier": 1.0 }
+        ]
+      },
+      "2": {
+        "title": "极光雷冰壁",
+        "summary": "冰墙半径扩大25%，存续期间每0.5秒对贴墙敌人降下光电脉冲，拦弹次数翻倍。",
+        "modifiers": [
+          { "parameter": "radius", "additive": 0.0, "multiplier": 1.25 },
+          { "parameter": "pulseDot", "additive": 0.12, "multiplier": 1.0 },
+          { "parameter": "wallBlockQuota", "additive": 0.0, "multiplier": 2.0 }
+        ]
+      }
+    },
+    "yumis_dungeon_and_fight:lightning_vortex": {
+      "1": {
+        "title": "超导电磁炮",
+        "summary": "收束为1发向前高速贯通14格的大型球状闪电，终点引发电磁爆破。",
+        "modifiers": [
+          { "parameter": "orbCount", "additive": -3.0, "multiplier": 1.0 },
+          { "parameter": "slashes", "additive": -2.0, "multiplier": 1.0 },
+          { "parameter": "damage", "additive": 0.0, "multiplier": 3.0 },
+          { "parameter": "duration", "additive": -0.20, "multiplier": 1.0 }
+        ]
+      },
+      "2": {
+        "title": "护体雷环",
+        "summary": "光电球紧贴周身环绕4秒跟随移动，持续电击近身敌人并刷新光灯。",
+        "modifiers": [
+          { "parameter": "centerOffset", "additive": 0.0, "multiplier": 0.0 },
+          { "parameter": "radius", "additive": -0.5, "multiplier": 1.0 },
+          { "parameter": "duration", "additive": 3.25, "multiplier": 1.0 },
+          { "parameter": "interval", "additive": 0.15, "multiplier": 1.0 },
+          { "parameter": "slashes", "additive": 7.0, "multiplier": 1.0 },
+          { "parameter": "damage", "additive": 0.0, "multiplier": 0.32 }
+        ]
+      }
+    },
+    "yumis_dungeon_and_fight:void_sphere": {
+      "1": {
+        "title": "圣灵水晶·排斥坍缩",
+        "summary": "定点凝结巨型光暗排斥水晶，支持再次按键瞬间无损引爆化为范围坍缩核爆。",
+        "modifiers": [
+          { "parameter": "manualDetonate", "additive": 1.0, "multiplier": 1.0 },
+          { "parameter": "earlyDetonateKeepRatio", "additive": 1.0, "multiplier": 1.0 },
+          { "parameter": "blastRadius", "additive": 1.0, "multiplier": 1.0 },
+          { "parameter": "radius", "additive": 0.6, "multiplier": 1.0 }
+        ]
+      },
+      "2": {
+        "title": "双生暗星·储能",
+        "summary": "最大充能层数提升至2层，蓄力时间缩短50%，可连续推出双黑球。",
+        "modifiers": [
+          { "parameter": "maxCharges", "additive": 1.0, "multiplier": 1.0 },
+          { "parameter": "chargeSeconds", "additive": 0.0, "multiplier": 0.50 },
+          { "parameter": "damage", "additive": 0.0, "multiplier": 0.85 }
+        ]
+      }
+    },
+    "yumis_dungeon_and_fight:flame_pillar": {
+      "1": {
+        "title": "霜火枷锁",
+        "summary": "喷发前先席卷寒霜将范围内普通与精英怪束缚1.2秒，再引爆浓缩熔岩火柱。",
+        "modifiers": [
+          { "parameter": "controlSeconds", "additive": 0.60, "multiplier": 1.0 },
+          { "parameter": "damage", "additive": 0.20, "multiplier": 1.0 },
+          { "parameter": "radius", "additive": 0.0, "multiplier": 1.15 }
+        ]
+      },
+      "2": {
+        "title": "熔岩连环阵",
+        "summary": "沿准星方向依次向前延伸喷发3根连环熔岩火柱，覆盖12格走廊。",
+        "modifiers": [
+          { "parameter": "pillarCount", "additive": 2.0, "multiplier": 1.0 },
+          { "parameter": "pillarSpread", "additive": 0.7, "multiplier": 1.0 },
+          { "parameter": "damage", "additive": 0.0, "multiplier": 0.55 }
+        ]
+      }
+    },
+    "yumis_dungeon_and_fight:halloween_buster": {
+      "1": {
+        "title": "超越之力·巨星坠落",
+        "summary": "大南瓜体积与爆炸半径扩大45%，外圈冲击波预算全额并入单次超巨型爆炸。",
+        "modifiers": [
+          { "parameter": "radius", "additive": 0.0, "multiplier": 1.45 },
+          { "parameter": "damage", "additive": 0.30, "multiplier": 1.0 },
+          { "parameter": "finisher", "additive": 0.0, "multiplier": 0.0 }
+        ]
+      },
+      "2": {
+        "title": "双子杰克·连环轰炸",
+        "summary": "相隔0.3秒从高空交叉砸落两颗大南瓜，并在落点留下3秒熔岩火海。",
+        "modifiers": [
+          { "parameter": "meteorCount", "additive": 1.0, "multiplier": 1.0 },
+          { "parameter": "damage", "additive": 0.0, "multiplier": 0.55 },
+          { "parameter": "finisher", "additive": 0.0, "multiplier": 0.55 },
+          { "parameter": "emberDuration", "additive": 3.0, "multiplier": 1.0 },
+          { "parameter": "emberDot", "additive": 0.04, "multiplier": 1.0 }
+        ]
+      }
+    },
+    "yumis_dungeon_and_fight:arctic_feast": {
+      "1": {
+        "title": "冰封王座·瞬碎",
+        "summary": "拔起单根擎天巨型冰晶尖碑在0.45秒内穿刺并瞬碎引爆，合并全部8轮冰刺伤害。",
+        "modifiers": [
+          { "parameter": "slashes", "additive": -7.0, "multiplier": 1.0 },
+          { "parameter": "duration", "additive": -1.55, "multiplier": 1.0 },
+          { "parameter": "damage", "additive": 0.65625, "multiplier": 1.0 }
+        ]
+      },
+      "2": {
+        "title": "极寒暴风眼·聚怪冰阵",
+        "summary": "脱手寒冰法阵中心生成极寒旋涡，持续向阵心吸附7.5格内敌人且范围扩大20%。",
+        "modifiers": [
+          { "parameter": "pullRadius", "additive": 7.5, "multiplier": 1.0 },
+          { "parameter": "pullStrength", "additive": 3.8, "multiplier": 1.0 },
+          { "parameter": "radius", "additive": 0.0, "multiplier": 1.20 }
+        ]
+      }
+    },
+    "yumis_dungeon_and_fight:black_hole": {
+      "1": {
+        "title": "中央宇宙·无损秒爆",
+        "summary": "持续浓缩至1.5秒，支持随时无损二段按键秒爆，爆后原地留存2秒引力子黑洞。",
+        "modifiers": [
+          { "parameter": "duration", "additive": 0.0, "multiplier": 0.50 },
+          { "parameter": "interval", "additive": 0.0, "multiplier": 0.50 },
+          { "parameter": "earlyDetonateKeepRatio", "additive": 0.60, "multiplier": 1.0 },
+          { "parameter": "subHoleDuration", "additive": 2.0, "multiplier": 1.0 }
+        ]
+      },
+      "2": {
+        "title": "冥焰虚无火山",
+        "summary": "黑洞下方同步撕裂暗火火山口，每0.3秒额外向阵内抛射熔岩爆弹。",
+        "modifiers": [
+          { "parameter": "volcanoDot", "additive": 0.04, "multiplier": 1.0 }
+        ]
+      }
+    },
+    "yumis_dungeon_and_fight:lightning_strike": {
+      "1": {
+        "title": "天雷湮灭·单发神雷",
+        "summary": "免除站桩引导，施法后脱手降下1道半径扩大50%的超巨型苍穹神雷，合并全部5道伤害。",
+        "modifiers": [
+          { "parameter": "slashes", "additive": -4.0, "multiplier": 1.0 },
+          { "parameter": "channeling", "additive": 0.0, "multiplier": 0.0 },
+          { "parameter": "radius", "additive": 0.0, "multiplier": 1.50 },
+          { "parameter": "damage", "additive": 0.0, "multiplier": 5.0 },
+          { "parameter": "duration", "additive": -1.30, "multiplier": 1.0 }
+        ]
+      },
+      "2": {
+        "title": "怒雷巡弋·脱手雷云",
+        "summary": "生成存续3.5秒的自动索敌雷暴云，无需引导自动追击强敌劈落6道天雷。",
+        "modifiers": [
+          { "parameter": "channeling", "additive": 0.0, "multiplier": 0.0 },
+          { "parameter": "slashes", "additive": 1.0, "multiplier": 1.0 },
+          { "parameter": "duration", "additive": 1.75, "multiplier": 1.0 },
+          { "parameter": "interval", "additive": 0.20, "multiplier": 1.0 },
+          { "parameter": "damage", "additive": 0.0, "multiplier": 0.90 }
+        ]
+      }
+    },
+    "yumis_dungeon_and_fight:astral_storm": {
+      "1": {
+        "title": "群星灾变·双星对撞",
+        "summary": "前置缩短为6颗流星，随后牵引燃烧行星与冰封行星在阵心对撞引发高额终爆。",
+        "modifiers": [
+          { "parameter": "slashes", "additive": -10.0, "multiplier": 1.0 },
+          { "parameter": "interval", "additive": 0.04, "multiplier": 1.0 },
+          { "parameter": "duration", "additive": -1.40, "multiplier": 1.0 },
+          { "parameter": "damage", "additive": 0.017708333333333333, "multiplier": 1.0 },
+          { "parameter": "finisher", "additive": 0.30, "multiplier": 1.0 }
+        ]
+      },
+      "2": {
+        "title": "星界天幕·脱手觉醒",
+        "summary": "取消4秒升空无敌定身，挥杖0.7秒布下高空星阵后完全脱手，期间可自由移动施法。",
+        "modifiers": [
+          { "parameter": "channeling", "additive": 0.0, "multiplier": 0.0 }
+        ]
+      }
+    }
+  }
+}

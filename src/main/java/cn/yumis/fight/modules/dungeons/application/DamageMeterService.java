@@ -38,7 +38,10 @@ public class DamageMeterService {
         if(target!=null&&!target.instance.equals(dungeon.id.toString()))return;
         DamageMeter meter=load(dungeon);if(meter.frozenAt>0)return;
         var entry=meter.players.computeIfAbsent(player.getStringUUID(),id->new DamageMeter.Entry());entry.name=player.getScoreboardName();entry.event(time,timing.get().delayMillis());
-        if(target!=null&&fraction>0)entry.damage.merge(target.originalLevel,fraction*target.health(target.originalLevel),Double::sum);
+        if(target!=null&&fraction>0){
+            int recordedLevel=target.tower==null?target.originalLevel:target.level(level.applyAsInt(player),false);
+            entry.damage.merge(recordedLevel,fraction*target.health(recordedLevel),Double::sum);
+        }
         journal.put("damageMeter/"+dungeon.id,meter);
     }
     public void freeze(Dungeon dungeon)throws Exception{DamageMeter meter=load(dungeon);if(meter.frozenAt==0){meter.frozenAt=System.currentTimeMillis();journal.put("damageMeter/"+dungeon.id,meter);}broadcast(dungeon);}

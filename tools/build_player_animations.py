@@ -6,7 +6,7 @@ and validates bone names, key ordering, finiteness and loop closure.
 
 Conventions (verified against the 26.2 HumanoidModel):
 - arm/leg xRot in degrees: negative raises the limb forward or up, positive swings it back.
-- arm yRot: positive on right_arm / negative on left_arm moves the hand across the chest.
+- arm yRot: with the arm raised forward, positive on right_arm / negative on left_arm turns it outward.
 - arm zRot: positive on right_arm / negative on left_arm lifts the limb outward.
 - body xRot: positive bends the torso forward (same direction as the vanilla crouch).
 - stock clips leave the head available for free look; avatar clips can animate it explicitly.
@@ -37,7 +37,7 @@ def stops(*frames):
 
 
 def signed(stops_list, bone):
-    """Mirror limb semantics: positive means outward or across for the right side."""
+    """Mirror limb keys authored using right-side angles."""
     sign = 1 if bone.startswith('right') else -1
     out = []
     for s in stops_list:
@@ -66,7 +66,7 @@ def anim(bones, duration=None, loop=False):
 
 
 def sem(bone, x=None, y=None, z=None, px=None, py=None, pz=None):
-    """Semantic limb channels: x forward raise, y across chest, z outward."""
+    """Limb channels with mirrored yaw and roll for the left side."""
     rot, pos = {}, {}
     if x is not None:
         rot['x'] = stops(*x)
@@ -101,6 +101,40 @@ def root(py=None, x=None):
     if py is not None:
         pos['y'] = stops(*py)
     return bone_doc(rot or None, pos or None)
+
+
+def sample_channel(keys, time):
+    if time <= keys[0][0]:
+        return keys[0][1]
+    for lower, upper in zip(keys, keys[1:]):
+        if time < upper[0]:
+            u = (time - lower[0]) / (upper[0] - lower[0])
+            easing = lower[2] if len(lower) > 2 else 'smooth'
+            weight = {
+                'smooth': u * u * (3 - 2 * u), 'linear': u, 'in': u * u,
+                'out': 1 - (1 - u) ** 2, 'inout': (1 - math.cos(math.pi * u)) / 2, 'hold': 0,
+            }[easing]
+            return lower[1] + (upper[1] - lower[1]) * weight
+    return keys[-1][1]
+
+
+def sword_stroke(source, first, last, duration, use_root_yaw=False):
+    """Retiming uses only the strike and keeps the equipped blade on the right arm."""
+    def clip(*channels):
+        times = {first, last}
+        times.update(key[0] for keys in channels for key in keys if first < key[0] < last)
+        return stops(*((round((time - first) * duration / (last - first)),
+                        round(sum(sample_channel(keys, time) for keys in channels), 2))
+                       for time in sorted(times)))
+
+    bones = source['bones']
+    arm_rotation = {axis: clip(keys) for axis, keys in bones['right_arm']['rot'].items()}
+    if use_root_yaw:
+        arm_rotation['y'] = clip(bones['right_arm']['rot']['y'], bones['root']['rot']['y'])
+    result = {'right_arm': bone_doc(rot=arm_rotation)}
+    if 'held_item' in bones:
+        result['held_item'] = bone_doc(rot={axis: clip(keys) for axis, keys in bones['held_item']['rot'].items()})
+    return result
 
 
 
@@ -927,6 +961,213 @@ def build_catalog():
         'left_leg': sem('left_leg', x=[(0, 0), (3600, 0), (4300, -36, 'in'), (4750, -36, 'hold')]),
     }, duration=4750)
 
+    # --- elementalist -------------------------------------------------------
+    # elementalist_charge: upper-body only loop so legs keep vanilla walking during Moving Cast.
+    catalog['elementalist_charge'] = anim({
+        'right_arm': sem('right_arm',
+                         x=[(0, -88), (450, -98, 'inout'), (900, -88)],
+                         y=[(0, -14), (450, -20, 'inout'), (900, -14)],
+                         z=[(0, 14), (450, 18, 'inout'), (900, 14)]),
+        'left_arm': sem('left_arm',
+                        x=[(0, -76), (450, -84, 'inout'), (900, -76)],
+                        y=[(0, 18), (450, 24, 'inout'), (900, 18)],
+                        z=[(0, -10), (450, -14, 'inout'), (900, -10)]),
+    }, duration=900, loop=True)
+    catalog['ice_wall'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -70), (140, -96, 'out'), (280, -80), (420, 0)],
+                         y=[(0, -28), (140, 44, 'out'), (280, 52), (420, 0)],
+                         z=[(0, 10), (140, 36, 'out'), (420, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -70), (140, -96, 'out'), (280, -80), (420, 0)],
+                        y=[(0, -28), (140, 44, 'out'), (280, 52), (420, 0)],
+                        z=[(0, 10), (140, 36, 'out'), (420, 0)]),
+    }, duration=420)
+    catalog['lightning_vortex'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -60), (160, -124, 'out'), (310, -86), (460, 0)],
+                         y=[(0, -24), (160, 28, 'out'), (310, 18), (460, 0)],
+                         z=[(0, 16), (160, 26), (460, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -34), (160, -64, 'out'), (460, 0)],
+                        z=[(0, 8), (160, 16), (460, 0)]),
+    }, duration=460)
+    catalog['void_sphere'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -68), (180, -104, 'out'), (340, -96), (480, 0)],
+                         y=[(0, -20), (180, -8, 'out'), (480, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -68), (180, -104, 'out'), (340, -96), (480, 0)],
+                        y=[(0, -20), (180, -8, 'out'), (480, 0)]),
+    }, duration=480)
+    catalog['flame_pillar'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -36), (170, -148, 'out'), (320, -134), (480, 0)],
+                         z=[(0, 12), (170, 22, 'out'), (480, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -24), (170, -96, 'out'), (480, 0)]),
+    }, duration=480)
+    catalog['halloween_buster'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -146), (200, -162, 'out'), (340, -76, 'in'), (520, 0)],
+                         z=[(0, 24), (200, 32), (340, 10, 'in'), (520, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -130), (200, -148, 'out'), (340, -70, 'in'), (520, 0)],
+                        z=[(0, 20), (200, 28), (340, 10, 'in'), (520, 0)]),
+    }, duration=520)
+    catalog['arctic_feast'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -110), (200, -138, 'out'), (360, -82), (520, 0)],
+                         y=[(0, -12), (200, 34, 'out'), (360, 42), (520, 0)],
+                         z=[(0, 14), (200, 42, 'out'), (520, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -110), (200, -138, 'out'), (360, -82), (520, 0)],
+                        y=[(0, -12), (200, 34, 'out'), (360, 42), (520, 0)],
+                        z=[(0, 14), (200, 42, 'out'), (520, 0)]),
+    }, duration=520)
+    catalog['black_hole'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -86), (170, -78), (320, -112, 'out'), (540, 0)],
+                         y=[(0, 22), (170, -28, 'in'), (320, 10, 'out'), (540, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -86), (170, -78), (320, -112, 'out'), (540, 0)],
+                        y=[(0, 22), (170, -28, 'in'), (320, 10, 'out'), (540, 0)]),
+    }, duration=540)
+    catalog['lightning_strike'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -158), (360, -166, 'inout'), (720, -158)],
+                         z=[(0, 14), (360, 20, 'inout'), (720, 14)]),
+        'left_arm': sem('left_arm', x=[(0, -78), (360, -86, 'inout'), (720, -78)],
+                        y=[(0, -12), (360, -18, 'inout'), (720, -12)]),
+    }, duration=720, loop=True)
+    catalog['astral_storm'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -128), (500, -142, 'inout'), (1000, -128)],
+                         z=[(0, 48), (500, 58, 'inout'), (1000, 48)]),
+        'left_arm': sem('left_arm', x=[(0, -128), (500, -142, 'inout'), (1000, -128)],
+                        z=[(0, 48), (500, 58, 'inout'), (1000, 48)]),
+        'right_leg': sem('right_leg', x=[(0, 14), (500, 20, 'inout'), (1000, 14)]),
+        'left_leg': sem('left_leg', x=[(0, 8), (500, 14, 'inout'), (1000, 8)]),
+    }, duration=1000, loop=True)
+
+    # --- battle mage -------------------------------------------------------
+    # Niu's Combat Art & Teana Battle Goddess polearm choreography.
+    catalog['bm_basic_1'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -108), (110, -72, 'in'), (220, -45), (340, 0)],
+                         y=[(0, 48), (110, -46, 'in'), (220, -52), (340, 0)],
+                         z=[(0, 18), (110, -12, 'in'), (340, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -82), (110, -52, 'in'), (340, 0)],
+                        y=[(0, -24), (110, 32, 'in'), (340, 0)]),
+        'body': body(x=[(0, 6), (110, 12, 'in'), (340, 0)], y=[(0, -24), (110, 28, 'in'), (340, 0)]),
+    }, duration=340)
+    catalog['bm_basic_2'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 22), (95, -92, 'in'), (200, -88), (340, 0)],
+                         y=[(0, -16), (95, 4, 'in'), (340, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -48), (95, -88, 'in'), (200, -82), (340, 0)],
+                        y=[(0, -20), (95, -18, 'in'), (340, 0)]),
+        'body': body(x=[(0, 6), (95, 16, 'in'), (340, 0)], y=[(0, 26), (95, 34, 'in'), (340, 0)]),
+    }, duration=340)
+    catalog['bm_basic_3'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -35), (140, -126, 'out'), (260, -118), (400, 0)],
+                         y=[(0, -40), (140, 22, 'out'), (400, 0)],
+                         z=[(0, 12), (140, 24, 'out'), (400, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -28), (140, -96, 'out'), (400, 0)]),
+        'body': body(x=[(0, 10), (140, -8, 'out'), (400, 0)], y=[(0, -30), (140, 32, 'out'), (400, 0)]),
+    }, duration=400)
+    catalog['teana_basic_1'] = catalog['bm_basic_1']
+    catalog['teana_basic_2'] = catalog['bm_basic_2']
+    catalog['teana_basic_3'] = catalog['bm_basic_3']
+    catalog['palm_blast_charge'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 30), (260, 36, 'inout'), (520, 30)],
+                         z=[(0, 14), (260, 18, 'inout'), (520, 14)]),
+        'left_arm': sem('left_arm', x=[(0, -56), (260, -64, 'inout'), (520, -56)],
+                        y=[(0, -16), (260, -22, 'inout'), (520, -16)]),
+        'body': body(x=[(0, 16), (260, 20, 'inout'), (520, 16)], y=[(0, 32), (260, 36, 'inout'), (520, 32)]),
+    }, duration=520, loop=True)
+    catalog['palm_blast'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 32), (130, 52, 'out'), (300, 40), (460, 0)],
+                         z=[(0, 16), (130, 32, 'out'), (460, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -58), (130, -104, 'in'), (300, -96), (460, 0)],
+                        y=[(0, -18), (130, 6, 'in'), (460, 0)]),
+        'body': body(x=[(0, 16), (130, 24, 'in'), (460, 0)], y=[(0, 34), (130, -26, 'in'), (460, 0)]),
+    }, duration=460)
+    catalog['teana_palm_blast'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 24), (140, -96, 'in'), (270, -138, 'out'), (460, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -34), (140, -90, 'in'), (270, -124, 'out'), (460, 0)]),
+        'body': body(x=[(0, 14), (140, 22, 'in'), (270, -8, 'out'), (460, 0)]),
+    }, duration=460)
+    catalog['full_swing'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -86), (110, -92), (200, -88, 'in'), (320, -76), (440, 0)],
+                         y=[(0, -64), (110, -74, 'out'), (200, 68, 'in'), (320, 62), (440, 0)],
+                         z=[(0, -12), (200, 26, 'in'), (440, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -78), (110, -84), (200, -74, 'in'), (440, 0)],
+                        y=[(0, 38), (110, 46), (200, -34, 'in'), (440, 0)]),
+        'body': body(x=[(0, 10), (200, 14, 'in'), (440, 0)], y=[(0, -48), (110, -58), (200, 56, 'in'), (440, 0)]),
+    }, duration=440)
+    catalog['teana_full_swing'] = catalog['full_swing']
+    catalog['full_swing_empress'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -130), (160, -168, 'out'), (310, -24, 'in'), (430, -20), (560, 0)],
+                         z=[(0, 18), (160, 34), (310, 12), (560, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -120), (160, -158, 'out'), (310, -26, 'in'), (560, 0)]),
+        'body': body(x=[(0, -8), (160, -16, 'out'), (310, 28, 'in'), (560, 0)]),
+    }, duration=560)
+    catalog['chaser_launcher'] = anim({
+        'left_arm': sem('left_arm', x=[(0, -40), (110, -94, 'out'), (260, 0)]),
+    }, duration=260)
+    catalog['chaser_fusion'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -60), (150, -96, 'in'), (300, -88), (460, 0)],
+                         y=[(0, 36), (150, -18, 'in'), (460, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -60), (150, -96, 'in'), (300, -88), (460, 0)],
+                        y=[(0, 36), (150, -18, 'in'), (460, 0)]),
+        'body': body(x=[(0, -8), (150, 14, 'in'), (460, 0)]),
+    }, duration=460)
+    catalog['chaser_press'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -80), (180, -168, 'out'), (250, -168, 'hold'), (340, -24, 'in'), (470, -20), (620, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -80), (180, -162, 'out'), (250, -162, 'hold'), (340, -24, 'in'), (470, -20), (620, 0)]),
+        'body': body(x=[(0, -6), (180, -16, 'out'), (340, 30, 'in'), (470, 26), (620, 0)]),
+    }, duration=620)
+    catalog['punto_wave'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -54), (55, -96, 'in'), (110, -54, 'out')],
+                         y=[(0, -14), (55, 8, 'in'), (110, -14, 'out')]),
+        'left_arm': sem('left_arm', x=[(0, -68), (55, -90, 'in'), (110, -68, 'out')]),
+        'body': body(x=[(0, 14), (55, 18, 'in'), (110, 14)]),
+    }, duration=110, loop=True)
+    catalog['punto_wave_loop'] = catalog['punto_wave']
+    catalog['punto_wave_finish'] = catalog['full_swing']
+    catalog['punto_wave_triple'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 18), (110, -104, 'in'), (190, -40), (290, -84, 'in'), (380, -35), (480, -96, 'in'), (640, 0)],
+                         y=[(0, -24), (110, 24), (290, -34), (480, 56, 'in'), (640, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -40), (110, -96), (290, -78), (480, -84), (640, 0)]),
+        'body': body(x=[(0, 12), (480, 16), (640, 0)], y=[(0, 24), (110, -20), (290, 26), (480, -42), (640, 0)]),
+    }, duration=640)
+    catalog['dragon_strike_charge'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 44), (250, 50, 'inout'), (500, 44)],
+                         y=[(0, -18), (250, -22, 'inout'), (500, -18)]),
+        'left_arm': sem('left_arm', x=[(0, -76), (250, -82, 'inout'), (500, -76)]),
+        'body': body(x=[(0, 22), (250, 26, 'inout'), (500, 22)], y=[(0, 38), (250, 42, 'inout'), (500, 38)]),
+    }, duration=500, loop=True)
+    catalog['dragon_strike'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 44), (120, -96, 'in'), (380, -94, 'hold'), (540, 0)],
+                         y=[(0, -18), (120, 4, 'in'), (540, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -76), (120, 34, 'in'), (380, 38), (540, 0)],
+                        z=[(0, 10), (120, 38, 'in'), (540, 0)]),
+        'body': body(x=[(0, 22), (120, 32, 'in'), (380, 28), (540, 0)]),
+    }, duration=540)
+    catalog['dragon_spear'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 24), (160, -92, 'in'), (1450, -92, 'hold'), (1680, -152, 'out'), (1880, -34, 'in'), (2100, 0)],
+                         y=[(0, -20), (160, 0, 'in'), (1450, 0, 'hold'), (1880, 48, 'in'), (2100, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -32), (160, -90, 'in'), (1450, -90, 'hold'), (1680, -142, 'out'), (1880, -38, 'in'), (2100, 0)]),
+        'body': body(x=[(0, 10), (160, 16, 'in'), (1450, 14), (1680, -12), (1880, 20, 'in'), (2100, 0)]),
+    }, duration=2100)
+    catalog['dragon_spear_thrust'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 28), (160, -94, 'in'), (320, -90), (460, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -34), (160, -90, 'in'), (320, -86), (460, 0)]),
+        'body': body(x=[(0, 10), (160, 18, 'in'), (460, 0)]),
+    }, duration=460)
+    catalog['dragon_spear_cleave'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -40), (180, -172, 'out'), (250, -172, 'hold'), (360, -18, 'in'), (500, -16), (640, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -36), (180, -166, 'out'), (250, -166, 'hold'), (360, -22, 'in'), (640, 0)]),
+        'body': body(x=[(0, -6), (180, -18, 'out'), (360, 28, 'in'), (640, 0)]),
+    }, duration=640)
+    catalog['teana_transformation'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -20), (200, -44, 'out'), (440, -118, 'out'), (620, -92), (760, 0)],
+                         z=[(0, 10), (200, 28), (440, 74, 'out'), (620, 62), (760, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -20), (200, -44, 'out'), (440, -118, 'out'), (620, -92), (760, 0)],
+                        z=[(0, 10), (200, 28), (440, 74, 'out'), (620, 62), (760, 0)]),
+        'body': body(x=[(0, 12), (200, 18), (440, -18, 'out'), (760, 0)]),
+    }, duration=760)
+    catalog['teana_finisher'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -50), (380, -164, 'out'), (560, -160, 'hold'), (780, -96, 'in'), (1120, -92), (1400, 0)],
+                         z=[(0, 12), (380, 42), (780, 8, 'in'), (1400, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -46), (380, -148, 'out'), (780, 32, 'in'), (1400, 0)],
+                        z=[(0, 12), (380, 48), (780, 38), (1400, 0)]),
+        'body': body(x=[(0, -8), (380, -18, 'out'), (780, 34, 'in'), (1120, 28), (1400, 0)]),
+    }, duration=1400)
+
     return catalog
 
 
@@ -938,28 +1179,49 @@ def build_avatar_catalog(catalog):
     def turn(*keys):
         return bone_doc(rot={'y': stops(*keys)})
 
-    # The arm gathers above the shoulder, then cuts forward and down.
-    def swing(arm):
-        return sem(arm, x=[(0, -42), (60, -150, 'out'), (150, -40, 'in'), (220, -20), (310, 0)],
-                   y=[(0, 0), (60, -12), (150, 24), (310, 0)])
+    def swing(arm, start=0, duration=310):
+        def channel(raised, lowered):
+            keys = [(start, raised, 'out'), (start + duration // 2, lowered)]
+            return [(0, 0, 'hold'), *keys] if start else keys
 
-    poses['attack'] = anim({right: swing(right)}, 310)
-    poses['attack_left'] = anim({left: swing(left)}, 310)
-    poses['attack_double'] = anim({
-        right: sem(right, x=[(0, -50), (70, -150), (180, -28, 'in'), (260, 0), (540, 0)]),
-        left: sem(left, x=[(0, -18), (205, -46), (300, -145), (405, -26, 'in'), (540, 0)]),
-    }, 540)
-    poses['ghost'] = anim({
-        right: sem(right, x=[(0, 0), (120, 30, 'out')], y=[(0, 0), (120, -26)]),
-        left: sem(left, x=[(0, 0), (120, -18)], y=[(0, 0), (120, 18)]),
-    }, 120)
-    poses['ghost_release'] = anim({
-        right: sem(right, x=[(0, 30), (145, -132, 'in'), (360, 0)],
-                   y=[(0, -26), (145, 42, 'in'), (360, 0)]),
-        left: sem(left, x=[(0, -18), (145, -34), (360, 0)]),
+        return sem(arm, x=channel(-137, -61), y=channel(31, -29))
+
+    def double_swing(first, second, beat):
+        return anim({first: swing(first, duration=beat), second: swing(second, beat, beat)}, 2 * beat)
+
+    def joined_grip(*pitch_keys):
+        # The adult hand attachment is 10 units below and 2 forward of the arm pivot,
+        # with a 1-unit offset toward the outside. Aim both grips 5 units inward.
+        yaw_keys = []
+        for time, pitch, *easing in pitch_keys:
+            angle = math.radians(pitch)
+            depth = 2 * math.cos(angle) - 10 * math.sin(angle)
+            yaw = math.atan2(1, depth) + math.asin(5 / math.hypot(1, depth))
+            yaw_keys.append((time, -round(math.degrees(yaw), 2), *easing))
+        return {arm: sem(arm, x=pitch_keys, y=yaw_keys) for arm in (right, left)}
+
+    poses['chaos_strike'] = double_swing(right, left, 150)
+    poses['chaos_strike_left'] = double_swing(left, right, 150)
+
+    down_cut_ready = anim({right: sem(right, x=[(0, -138)], y=[(0, 32)], z=[(0, -6)])}, 120)
+    down_cut = anim({
+        right: sem(right, x=[(0, -138, 'inout'), (155, -49), (280, -48), (360, -36)],
+                   y=[(0, 32, 'inout'), (155, -58), (280, -58), (360, -51)],
+                   z=[(0, -6, 'inout'), (155, -18), (360, -12)]),
     }, 360)
+    for name in ('ghost', 'spirit_crescent'):
+        poses[name] = down_cut_ready
+    for name in ('ghost_release', 'ghost_orb', 'phantom_slash'):
+        poses[name] = down_cut
 
     poses['frenzy'] = anim({
+        'head': bone_doc(rot={'x': stops((0, 0), (245, -26, 'out'), (760, -20))}),
+        right: sem(right, x=[(0, 0), (245, -30, 'out'), (760, -26)],
+                   z=[(0, 0, 'out'), (245, 78), (760, 73)]),
+        left: sem(left, x=[(0, 0), (245, -30, 'out'), (760, -26)],
+                  z=[(0, 0, 'out'), (245, 78), (760, 73)]),
+    }, 760)
+    poses['frenzy_finish'] = anim({
         'head': bone_doc(rot={'x': stops((0, 0), (210, -32, 'out'), (560, -30), (760, 0)),
                               'z': stops((0, 0), (200, 8), (310, -5), (410, 6), (570, -4), (760, 0))}),
         right: sem(right, x=[(0, 0), (150, -66), (245, -126), (335, -102), (420, -120), (550, -106), (760, 0)],
@@ -969,8 +1231,11 @@ def build_avatar_catalog(catalog):
     }, 760)
     raise_left = anim({left: sem(left, x=[(0, -12), (150, -155, 'out'), (335, -154), (510, 0)],
                                       z=[(0, 0), (150, 16), (335, 16), (510, 0)])}, 510)
-    for name in ('blood_rage', 'blood_sword', 'tombstone', 'agni'):
+    for name in ('blood_rage', 'blood_sword', 'tombstone'):
         poses[name] = raise_left
+    poses['agni'] = anim({
+        left: sem(left, x=[(0, -12, 'out'), (150, -155)], z=[(0, 0, 'out'), (150, 16)]),
+    }, 510)
     poses['blood_blade'] = anim({
         right: sem(right, x=[(0, -45), (110, -70), (200, -91, 'in'), (350, -92, 'hold'), (580, 0)],
                    y=[(0, 28), (110, 68), (200, 0, 'in'), (350, 0, 'hold'), (580, 0)],
@@ -997,10 +1262,18 @@ def build_avatar_catalog(catalog):
     }, 585)
     poses['blood_sword_finish']['heldModel'] = 'effect/blood_sword'
 
+    draw_pitch, draw_yaw = -90, -75
+    draw_item_yaw, draw_item_roll = 185, -90
     poses['draw'] = anim({
-        right: sem(right, x=[(0, -66), (120, -89), (335, -89, 'hold'), (500, -88), (800, 0)],
-                   y=[(0, 38), (120, 72, 'out'), (335, 72, 'hold'), (410, -9, 'in'), (500, -65, 'out'), (800, 0)]),
+        right: sem(right, x=[(0, draw_pitch), (535, draw_pitch), (800, -30)],
+                   y=[(0, draw_yaw, 'hold'), (335, draw_yaw, 'inout'), (505, 66), (800, 55)]),
         left: sem(left, x=[(0, -14), (180, -32), (410, -45), (800, 0)]),
+        # With the arm level, the item roll lays the blade flat. Its yaw lets
+        # the tip trail behind the grip and align with the arm at 90 degrees.
+        'held_item': bone_doc(rot={
+            'y': stops((0, draw_item_yaw), (335, draw_item_yaw), (370, 189, 'inout'), (505, 90), (535, 90), (800, 0)),
+            'z': stops((0, draw_item_roll), (535, draw_item_roll), (800, 0)),
+        }),
     }, 800)
     poses['dragon'] = anim({
         left: sem(left, x=[(0, -70), (180, -121, 'out'), (250, -110)],
@@ -1011,29 +1284,27 @@ def build_avatar_catalog(catalog):
     poses['dance'] = anim({
         right: sem(right, x=[(0, -92), (70, -105), (125, -94), (195, -113), (250, -92)],
                    y=[(0, -48), (88, -59), (125, 62, 'in'), (210, 65), (250, -48, 'in')]),
-        left: sem(left, x=[(0, -25), (125, -45), (250, -25)],
-                  z=[(0, 18), (125, 30), (250, 18)]),
+        left: sem(left, x=[(0, -20)], z=[(0, 10)]),
     }, 250, loop=True)
 
-    poses['phantom_slash'] = anim({
-        right: sem(right, x=[(0, -155), (115, -137), (250, -32, 'in'), (400, 0)],
-                   y=[(0, -34), (115, -32), (250, 69, 'in'), (400, 0)],
-                   z=[(0, 36), (115, 31), (250, 3), (400, 0)]),
-    }, 400)
+    # Two diagonal cuts followed by a horizontal cut across the front.
+    poses['kalla_finish'] = anim({
+        right: sem(right, x=[(0, -138, 'out'), (150, -49), (185, -48), (300, -133, 'out'),
+                             (450, -47), (490, -47), (600, -89, 'inout'), (760, -89), (900, -34)],
+                   y=[(0, 32, 'out'), (150, -55), (300, -60, 'out'),
+                      (450, 54), (600, 66, 'inout'), (760, -65), (900, -45)]),
+    }, 900)
     poses['ghost_field'] = anim({
         left: sem(left, x=[(0, -30), (135, -93, 'in'), (245, -92, 'hold'), (420, 0)],
                   y=[(0, 13), (135, 0), (420, 0)]),
     }, 420)
     up_cut = anim({
-        right: sem(right, x=[(0, 13), (80, 23), (235, -154, 'out'), (365, -128), (570, 0)],
-                   y=[(0, 18), (235, -10), (570, 0)]),
-        left: sem(left, x=[(0, -8), (235, -44), (570, 0)]),
+        'root': turn((0, -42, 'inout'), (225, 65, 'out'), (365, 35.5), (570, 35.5)),
+        **joined_grip((0, -53, 'inout'), (225, -117, 'out'), (365, -90), (570, -90)),
+        'held_item': bone_doc(rot={'x': stops((0, -90))}),
     }, 570)
     for name in ('wave', 'ice_wave', 'fire_wave'):
         poses[name] = up_cut
-    orb = catalog['ghost_orb']
-    poses['spirit_crescent'] = anim({bone: orb['bones'][bone] for bone in (right, left)
-                                    if bone in orb['bones']}, orb['duration'], orb['loop'])
 
     # A wind-up, the final real-time 350 ms of chanting, and the released pose
     # are separate clips so the transition lands on the actual release frame.
@@ -1042,11 +1313,24 @@ def build_avatar_catalog(catalog):
                    y=[(0, 10), (150, 66), (320, 66, 'hold')]),
         left: sem(left, x=[(0, -12), (150, -34), (320, -34, 'hold')]),
     }, 320)
+    cross_body_chant = anim({
+        right: sem(right, x=[(0, -28), (150, draw_pitch, 'hold')],
+                   y=[(0, 10), (150, draw_yaw, 'hold')]),
+        left: side_chant['bones'][left],
+        'held_item': bone_doc(rot={
+            'y': stops((0, 0), (150, draw_item_yaw, 'hold')),
+            'z': stops((0, 0), (150, draw_item_roll, 'hold')),
+        }),
+    }, 320)
     point_prepare = anim({
-        right: sem(right, x=[(0, -84), (180, -88), (350, -93, 'in')],
-                   y=[(0, 66), (180, 61), (350, 0, 'in')]),
+        right: sem(right, x=[(0, draw_pitch), (180, draw_pitch), (350, -93, 'in')],
+                   y=[(0, draw_yaw), (180, -69), (350, 0, 'in')]),
         left: sem(left, x=[(0, -34), (350, -26)]),
-        'held_item': bone_doc(rot={'x': stops((0, 0), (180, -22), (350, -90))}),
+        'held_item': bone_doc(rot={
+            'x': stops((0, 0), (180, -22), (350, -90)),
+            'y': stops((0, draw_item_yaw), (180, draw_item_yaw), (350, 0)),
+            'z': stops((0, draw_item_roll), (180, draw_item_roll), (350, 0)),
+        }),
     }, 350)
     point_release = anim({
         right: sem(right, x=[(0, -93), (125, -98, 'out'), (250, -93), (430, 0)]),
@@ -1054,7 +1338,7 @@ def build_avatar_catalog(catalog):
         'held_item': bone_doc(rot={'x': stops((0, -90), (245, -90), (430, 0))}),
     }, 430)
     for name in ('moon_flow', 'sunfire', 'solar_flare'):
-        poses[name + '_chant'] = side_chant
+        poses[name + '_chant'] = cross_body_chant
         poses[name + '_prepare'] = point_prepare
         poses[name] = point_release
     poses['chant'] = side_chant
@@ -1133,12 +1417,12 @@ def build_avatar_catalog(catalog):
         left: sem(left, x=[(0, -19), (110, -47), (475, -43), (600, 0)], z=[(0, 4), (110, 43), (475, 43), (600, 0)]),
     }, 600)
     poses['oracle_rift'] = anim({
-        right: sem(right, x=[(0, -108), (175, -147, 'out'), (275, -37, 'in'), (390, -25), (650, 0)],
-                   y=[(0, 24), (175, 45), (275, -56, 'in'), (390, -45), (650, 0)],
-                   z=[(0, 0), (175, 11), (275, 39), (650, 0)]),
-        left: sem(left, x=[(0, -113), (175, -159, 'out'), (275, -44, 'in'), (390, -27), (650, 0)],
-                  y=[(0, 27), (175, 52), (275, -55, 'in'), (390, -46), (650, 0)],
-                  z=[(0, 3), (175, 6), (275, 41), (650, 0)]),
+        right: sem(right, x=[(0, -135, 'inout'), (245, -43), (390, -28), (650, 0)],
+                   y=[(0, -65, 'inout'), (245, 53), (390, 48), (650, 0)],
+                   z=[(0, 13), (245, 39), (650, 0)]),
+        left: sem(left, x=[(0, -129, 'inout'), (245, -48), (390, -30), (650, 0)],
+                  y=[(0, -62, 'inout'), (245, 53), (390, 48), (650, 0)],
+                  z=[(0, 11), (245, 39), (650, 0)]),
     }, 650)
     poses['replica_combo'] = anim({right: sem(right, x=[(0, -131), (90, -27, 'in'), (100, -18)],
                                                y=[(0, -20), (90, 52), (100, 62)])}, 100)
@@ -1147,33 +1431,35 @@ def build_avatar_catalog(catalog):
         left: sem(left, x=[(0, -35), (480, -134, 'out'), (600, -130), (800, -17, 'in'), (1150, 0)]),
     }, 1150)
 
-    poses['magic_star'] = anim({
-        'root': bone_doc(rot={'x': stops((0, -2), (120, -17), (200, 11, 'in'), (400, 0)),
-                              'y': stops((0, 0), (120, -20), (200, 14, 'in'), (400, 0))}),
-        right: sem(right, x=[(0, 18), (120, 67, 'out'), (200, -100, 'in'), (290, -81), (400, 0)],
-                   y=[(0, -13), (120, -29), (200, 2), (400, 0)], z=[(0, 6), (120, 35), (200, 11), (400, 0)]),
-        left: sem(left, x=[(0, -8), (120, -40), (200, -12), (400, 0)]),
+    throw_root = root(x=[(0, -6, 'out'), (120, -24, 'inout'), (200, 17), (285, 14), (400, 0)])
+    throw_release = [(200, -106), (285, -100), (400, -18)]
+    throw_yaw = [(0, 8), (120, 16), (200, -17), (400, 0)]
+    poses['throw_glaive'] = anim({
+        'root': throw_root,
+        right: sem(right, x=[(0, 18, 'out'), (120, 66, 'inout'), *throw_release],
+                   y=throw_yaw, z=[(0, 20), (120, 43), (200, 8), (400, 0)]),
     }, 400)
+    poses['magic_star'] = anim({
+        'root': throw_root,
+        right: sem(right, x=[(0, -55, 'out'), (120, -198, 'inout'), *throw_release],
+                   y=throw_yaw, z=[(0, 20), (120, -8), (200, 8), (400, 0)]),
+    }, 400)
+
+    overhead_throw = [(0, -62, 'out'), (210, -216), (345, -216, 'inout'), (500, -96)]
     poses['jack_bomb_chant'] = anim({
-        'root': root(x=[(0, 0), (270, -22, 'out'), (400, -21, 'in'), (500, 10)]),
-        right: sem(right, x=[(0, 10), (270, 71, 'out'), (400, 70, 'in'), (500, -96)]),
-        left: sem(left, x=[(0, 10), (270, 71, 'out'), (400, 70, 'in'), (500, -96)]),
-        'right_leg': sem('right_leg', x=[(0, 0), (400, 0, 'in'), (500, -46)]),
-        'left_leg': sem('left_leg', x=[(0, 0), (400, 0, 'in'), (500, -43)]),
+        'root': root(x=[(0, 0, 'out'), (210, -24), (345, -24, 'inout'), (500, 10)]),
+        right: sem(right, x=overhead_throw),
+        left: sem(left, x=overhead_throw),
     }, 500)
     poses['jack_bomb'] = anim({
         'root': root(x=[(0, 10), (185, 5), (380, 0)]),
         right: sem(right, x=[(0, -96), (185, -81), (380, 0)]),
         left: sem(left, x=[(0, -96), (185, -81), (380, 0)]),
-        'right_leg': sem('right_leg', x=[(0, -46), (155, -26), (380, 0)]),
-        'left_leg': sem('left_leg', x=[(0, -43), (155, -24), (380, 0)]),
     }, 380)
     poses['dragon_fang'] = anim({
-        right: sem(right, x=[(0, -52), (95, -45), (200, -91, 'in'), (300, -91), (475, 0)],
-                   y=[(0, 27), (95, 36), (200, 0), (300, 0), (475, 0)]),
-        left: sem(left, x=[(0, -48), (95, -42), (200, -89, 'in'), (300, -89), (475, 0)],
-                  y=[(0, 25), (95, 31), (200, 42), (300, 42), (475, 0)]),
-        'held_item': bone_doc(rot={'x': stops((0, -12), (95, -34), (200, -90), (300, -90), (475, 0))}),
+        'root': turn((0, 15), (95, 18, 'in'), (200, 35.5), (340, 35.5), (475, 15)),
+        **joined_grip((0, -60), (95, -51, 'in'), (200, -90), (340, -90), (475, -60)),
+        'held_item': bone_doc(rot={'x': stops((0, -22), (95, -34, 'in'), (200, -90), (340, -90), (475, -22))}),
     }, 475)
 
     # Aliases read from the champion catalog share their limb keys, while the
@@ -1182,6 +1468,323 @@ def build_avatar_catalog(catalog):
         original = catalog['louise']
         poses[name] = anim({bone: keys for bone, keys in original['bones'].items()
                             if bone not in ('body', 'root')}, original['duration'], original['loop'])
+    for name in ('elementalist_charge', 'ice_wall', 'lightning_vortex', 'void_sphere', 'flame_pillar',
+                 'halloween_buster', 'arctic_feast', 'black_hole', 'lightning_strike', 'astral_storm'):
+        original = catalog[name]
+        poses[name] = anim({bone: keys for bone, keys in original['bones'].items()
+                            if bone not in ('body', 'root')}, original['duration'], original['loop'])
+
+    # --- Battle Mage DNF-authentic avatar choreography (root turns/lunges/leaps + held_item spear alignment) ---
+    # 1. Niu's Combat Art 3-hit basic spear/polearm combo
+    poses['bm_basic_1'] = anim({
+        'root': bone_doc(rot={'y': stops((0, -28), (115, 36, 'in'), (235, 30), (340, 0)),
+                              'x': stops((0, 4), (115, 11, 'in'), (340, 0))}),
+        right: sem(right, x=[(0, -112), (115, -66, 'in'), (235, -52), (340, 0)],
+                   y=[(0, 46), (115, -52, 'in'), (235, -46), (340, 0)],
+                   z=[(0, 22), (115, -10, 'in'), (340, 0)]),
+        left: sem(left, x=[(0, -76), (115, -48, 'in'), (340, 0)],
+                  y=[(0, -26), (115, 34, 'in'), (340, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -44), (115, -72, 'in'), (340, 0)),
+                                   'z': stops((0, -48), (115, -72, 'in'), (340, 0))}),
+    }, 340)
+    poses['bm_basic_2'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 22), (95, 38, 'in'), (220, 38), (340, 0)),
+                              'x': stops((0, 6), (95, 15, 'in'), (220, 12), (340, 0))}),
+        **joined_grip((0, -48), (95, -90, 'in'), (220, -90), (340, -42)),
+        'held_item': bone_doc(rot={'x': stops((0, -36), (95, -90, 'in'), (220, -90), (340, -16))}),
+        'right_leg': sem('right_leg', x=[(0, -6), (95, 22, 'in'), (340, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 8), (95, -28, 'in'), (340, 0)]),
+    }, 340)
+    poses['bm_basic_3'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 0, 'linear'), (260, 360), (400, 360, 'hold'))},
+                         pos={'y': stops((0, 0), (140, -3.5, 'out'), (280, 0, 'in'), (400, 0))}),
+        right: sem(right, x=[(0, -48), (140, -126, 'out'), (260, -102), (400, 0)],
+                   y=[(0, -30), (140, 24, 'out'), (400, 0)],
+                   z=[(0, 18), (140, 28), (400, 0)]),
+        left: sem(left, x=[(0, -42), (140, -106, 'out'), (400, 0)],
+                  z=[(0, 14), (140, 32), (400, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -60), (140, -90), (260, -82), (400, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 0), (140, -30), (280, 0), (400, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (140, 24), (280, 0), (400, 0)]),
+    }, 400)
+
+    # 2. Teana Battle Goddess golden lance 3-hit combo (elevated, wider, faster)
+    poses['teana_basic_1'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 18), (85, 36, 'in'), (210, 34), (300, 0)),
+                              'x': stops((0, 8), (85, 16, 'in'), (300, 0))},
+                         pos={'y': stops((0, -1.5), (120, -2.5), (300, -1.0))}),
+        **joined_grip((0, -52), (85, -92, 'in'), (210, -92), (300, -48)),
+        'held_item': bone_doc(rot={'x': stops((0, -45), (85, -90, 'in'), (210, -90), (300, -25))}),
+    }, 300)
+    poses['teana_basic_2'] = anim({
+        'root': bone_doc(rot={'y': stops((0, -55), (125, 72, 'in'), (230, 66), (320, 0))},
+                         pos={'y': stops((0, -1.5), (125, -3.2, 'out'), (320, -1.0))}),
+        right: sem(right, x=[(0, -90), (230, -90), (320, -32)],
+                   y=[(0, -68), (125, 66, 'in'), (320, 0)]),
+        left: sem(left, x=[(0, -60), (125, -42), (320, 0)], z=[(0, 26), (125, 42), (320, 0)]),
+        'held_item': bone_doc(rot={'y': stops((0, 185), (125, 88, 'in'), (320, 0)),
+                                   'z': stops((0, -90), (230, -90), (320, 0))}),
+    }, 320)
+    poses['teana_basic_3'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 0, 'linear'), (240, 360), (360, 360, 'hold')),
+                              'x': stops((0, 6), (160, 18), (360, 0))},
+                         pos={'y': stops((0, -1.5), (140, -5.2, 'out'), (360, -1.0))}),
+        right: sem(right, x=[(0, -70), (140, -118, 'out'), (250, -94, 'in'), (360, 0)]),
+        left: sem(left, x=[(0, -54), (140, -104, 'out'), (250, -82, 'in'), (360, 0)], z=[(0, 18), (140, 44), (360, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -70), (250, -90), (360, 0))}),
+    }, 360)
+
+    # 3. Palm Blast (落花掌) charge coil & explosive open-palm thrust + Teana Sky Piercer (苍天击)
+    poses['palm_blast_charge'] = anim({
+        'root': bone_doc(rot={'x': stops((0, 18), (260, 22, 'inout'), (520, 18)),
+                              'y': stops((0, 38), (260, 42, 'inout'), (520, 38))},
+                         pos={'y': stops((0, 2.0), (260, 2.5, 'inout'), (520, 2.0))}),
+        right: sem(right, x=[(0, 32), (260, 38, 'inout'), (520, 32)],
+                   y=[(0, -12), (260, -16, 'inout'), (520, -12)],
+                   z=[(0, 14), (260, 18, 'inout'), (520, 14)]),
+        left: sem(left, x=[(0, -58), (260, -66, 'inout'), (520, -58)],
+                  y=[(0, -18), (260, -24, 'inout'), (520, -18)]),
+        'held_item': bone_doc(rot={'x': stops((0, -82), (260, -86, 'inout'), (520, -82))}),
+        'right_leg': sem('right_leg', x=[(0, 24), (260, 28, 'inout'), (520, 24)]),
+        'left_leg': sem('left_leg', x=[(0, -30), (260, -34, 'inout'), (520, -30)]),
+    }, 520, loop=True)
+    poses['palm_blast'] = anim({
+        'root': bone_doc(rot={'x': stops((0, 18), (120, 26, 'in'), (290, 20), (460, 0)),
+                              'y': stops((0, 38), (120, -30, 'in'), (290, -24), (460, 0))},
+                         pos={'y': stops((0, 2.0), (120, -1.0, 'out'), (290, 0), (460, 0))}),
+        right: sem(right, x=[(0, 32), (120, 52, 'out'), (290, 44), (460, 0)],
+                   z=[(0, 16), (120, 34, 'out'), (460, 0)]),
+        left: sem(left, x=[(0, -58), (120, -104, 'in'), (290, -96), (460, 0)],
+                  y=[(0, -18), (120, 8, 'in'), (460, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -82), (120, -76), (460, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 24), (120, -34, 'in'), (460, 0)]),
+        'left_leg': sem('left_leg', x=[(0, -30), (120, 32, 'in'), (460, 0)]),
+    }, 460)
+    poses['teana_palm_blast'] = anim({
+        'root': bone_doc(rot={'x': stops((0, 14), (140, 24, 'in'), (275, -10, 'out'), (460, 0)),
+                              'y': stops((0, 28), (140, 36, 'in'), (275, -16, 'out'), (460, 0))},
+                         pos={'y': stops((0, 0), (140, -3.5, 'out'), (275, -4.5), (460, 0))}),
+        **joined_grip((0, -54), (140, -92, 'in'), (275, -138, 'out'), (460, -40)),
+        'held_item': bone_doc(rot={'x': stops((0, -55), (140, -90, 'in'), (275, -96), (460, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 12), (140, 34, 'in'), (460, 0)]),
+        'left_leg': sem('left_leg', x=[(0, -16), (140, -28, 'in'), (460, 0)]),
+    }, 460)
+
+    # 4. Full Swing (碎霸 210° flat horizontal crescent), Teana Full Swing (天地碎霸 360°), Ultimate Empress (终极女皇)
+    poses['full_swing'] = anim({
+        'root': bone_doc(rot={'y': stops((0, -68), (100, -76, 'out'), (205, 118, 'in'), (320, 108), (440, 0)),
+                              'x': stops((0, 10), (205, 16, 'in'), (440, 0))},
+                         pos={'y': stops((0, 1.0), (205, -0.8, 'out'), (440, 0))}),
+        right: sem(right, x=[(0, -90), (320, -90), (440, -24)],
+                   y=[(0, -66), (100, -75, 'hold'), (205, 72, 'in'), (320, 66), (440, 0)]),
+        left: sem(left, x=[(0, -74), (205, -52, 'in'), (440, 0)],
+                  y=[(0, 36), (205, -32, 'in'), (440, 0)]),
+        'held_item': bone_doc(rot={'y': stops((0, 185), (100, 185), (205, 88, 'in'), (320, 88), (440, 0)),
+                                   'z': stops((0, -90), (320, -90), (440, 0))}),
+        'right_leg': sem('right_leg', x=[(0, -14), (205, 18, 'in'), (440, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 14), (205, -22, 'in'), (440, 0)]),
+    }, 440)
+    poses['teana_full_swing'] = anim({
+        'root': bone_doc(rot={'y': stops((0, -40, 'linear'), (280, 320), (440, 360))},
+                         pos={'y': stops((0, -1.0), (160, -4.5, 'out'), (340, -1.2), (440, 0))}),
+        right: sem(right, x=[(0, -90), (320, -90), (440, -24)],
+                   y=[(0, -65), (220, 74, 'in'), (440, 0)]),
+        left: sem(left, x=[(0, -66), (220, -48), (440, 0)], z=[(0, 26), (220, 48), (440, 0)]),
+        'held_item': bone_doc(rot={'y': stops((0, 185), (220, 90, 'in'), (440, 0)),
+                                   'z': stops((0, -90), (320, -90), (440, 0))}),
+    }, 440)
+    poses['full_swing_empress'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 0, 'linear'), (290, 360), (560, 360, 'hold')),
+                              'x': stops((0, -10), (160, -18, 'out'), (315, 30, 'in'), (450, 24), (560, 0))},
+                         pos={'y': stops((0, 0), (160, -7.5, 'out'), (315, 2.2, 'in'), (450, 1.4), (560, 0))}),
+        right: sem(right, x=[(0, -120), (160, -170, 'out'), (240, -170, 'hold'), (315, -22, 'in'), (450, -18), (560, 0)],
+                   y=[(0, -24), (160, -14), (315, -22), (560, 0)]),
+        left: sem(left, x=[(0, -116), (160, -164, 'out'), (240, -164, 'hold'), (315, -26, 'in'), (450, -20), (560, 0)],
+                  y=[(0, -24), (160, -14), (315, -22), (560, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -20), (160, -10), (315, -88, 'in'), (450, -88), (560, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 0), (160, -34), (315, 22, 'in'), (560, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (160, 26), (315, -28, 'in'), (560, 0)]),
+    }, 560)
+
+    # 5. Chaser Fusion (炫纹融合) & Chaser Press (炫纹强压 overhead gather -> earth slam!)
+    poses['chaser_launcher'] = anim({
+        left: sem(left, x=[(0, -40), (100, -96, 'out'), (240, 0)], y=[(0, 10), (100, -12), (240, 0)]),
+    }, 240)
+    poses['chaser_fusion'] = anim({
+        'root': bone_doc(rot={'x': stops((0, -8), (150, 16, 'in'), (320, 10), (460, 0))},
+                         pos={'y': stops((0, 0), (150, -1.5, 'out'), (460, 0))}),
+        right: sem(right, x=[(0, -64), (150, -96, 'in'), (320, -88), (460, 0)],
+                   y=[(0, 38), (150, -22, 'in'), (460, 0)], z=[(0, 24), (150, -6, 'in'), (460, 0)]),
+        left: sem(left, x=[(0, -64), (150, -96, 'in'), (320, -88), (460, 0)],
+                  y=[(0, 38), (150, -22, 'in'), (460, 0)], z=[(0, 24), (150, -6, 'in'), (460, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -40), (150, -90, 'in'), (320, -90), (460, 0))}),
+    }, 460)
+    poses['chaser_press'] = anim({
+        'root': bone_doc(rot={'x': stops((0, -8), (180, -18, 'out'), (250, -18, 'hold'), (340, 32, 'in'), (480, 26), (620, 0))},
+                         pos={'y': stops((0, 0), (180, -4.8, 'out'), (250, -4.8, 'hold'), (340, 2.4, 'in'), (480, 1.8), (620, 0))}),
+        'head': bone_doc(rot={'x': stops((0, 0), (180, -20, 'out'), (340, 18, 'in'), (620, 0))}),
+        right: sem(right, x=[(0, -76), (180, -168, 'out'), (250, -168, 'hold'), (340, -24, 'in'), (480, -20), (620, 0)],
+                   y=[(0, -22), (180, -12), (340, -18), (620, 0)]),
+        left: sem(left, x=[(0, -74), (180, -162, 'out'), (250, -162, 'hold'), (340, -26, 'in'), (480, -20), (620, 0)],
+                  y=[(0, -22), (180, -12), (340, -18), (620, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -20), (180, -12), (250, -12, 'hold'), (340, -90, 'in'), (480, -90), (620, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 0), (180, -26), (340, 26, 'in'), (620, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (180, 22), (340, -32, 'in'), (620, 0)]),
+    }, 620)
+
+    # 6. Punto Wave (流星闪影击 / 啦啦啦) rapid multi-angle spear thrust loop with 6 variants + sweeping finisher + VP1 Triple
+    punto_beat = 110
+    punto_loop = anim({
+        'root': bone_doc(rot={'x': stops((0, 16), (55, 20, 'in'), (punto_beat, 16)),
+                              'y': stops((0, 28), (55, 34, 'in'), (punto_beat, 28))},
+                         pos={'y': stops((0, 1.4), (55, 1.8), (punto_beat, 1.4))}),
+        right: sem(right, x=[(0, -52), (55, -94, 'in'), (punto_beat, -52)],
+                   y=[(0, -14), (55, 6, 'in'), (punto_beat, -14)]),
+        left: sem(left, x=[(0, -68), (55, -88, 'in'), (punto_beat, -68)],
+                  y=[(0, -24), (55, -16, 'in'), (punto_beat, -24)]),
+        'held_item': bone_doc(rot={'x': stops((0, -72), (55, -90, 'in'), (punto_beat, -72))}),
+        'right_leg': sem('right_leg', x=[(0, 20), (punto_beat, 20)]),
+        'left_leg': sem('left_leg', x=[(0, -24), (punto_beat, -24)]),
+    }, punto_beat, loop=True)
+    punto_variants = []
+    for pitch, yaw, roll, body_y in (
+        (-106, -18, 6, 22),   # high-left spear jab
+        (-92, 2, 0, 34),      # dead-center pierce
+        (-76, 18, -6, 38),    # low-right spear thrust
+        (-108, 16, 10, 26),   # high-right lance pierce
+        (-82, -20, -8, 20),   # low-left rapid jab
+        (-96, 8, 4, 42),      # deep lunge thrust
+    ):
+        punto_variants.append({
+            'root': bone_doc(rot={'y': stops((0, body_y - 6), (55, body_y, 'in'), (punto_beat, body_y - 6))}),
+            right: sem(right, x=[(0, pitch + 36), (55, pitch, 'in'), (punto_beat, pitch + 36)],
+                       y=[(0, yaw - 10), (55, yaw, 'in'), (punto_beat, yaw - 10)],
+                       z=[(0, roll), (55, roll), (punto_beat, roll)]),
+            'held_item': bone_doc(rot={'x': stops((0, -76), (55, -92, 'in'), (punto_beat, -76))}),
+        })
+    punto_loop['variants'] = punto_variants
+    poses['punto_wave'] = poses['punto_wave_loop'] = punto_loop
+    poses['punto_wave_finish'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 48), (150, -96, 'in'), (270, -86), (380, 0)),
+                              'x': stops((0, 14), (150, 10, 'in'), (380, 0))}),
+        right: sem(right, x=[(0, -90), (270, -90), (380, -20)],
+                   y=[(0, 68), (150, -74, 'in'), (270, -68), (380, 0)]),
+        left: sem(left, x=[(0, -68), (150, -40), (380, 0)], z=[(0, 16), (150, 36), (380, 0)]),
+        'held_item': bone_doc(rot={'y': stops((0, 90), (150, 195, 'in'), (270, 190), (380, 0)),
+                                   'z': stops((0, -90), (270, -90), (380, 0))}),
+    }, 380)
+    poses['punto_wave_triple'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 32), (110, -24, 'in'), (290, 36, 'in'), (480, -84, 'in'), (640, 0)),
+                              'x': stops((0, 16), (480, 14), (640, 0))}),
+        right: sem(right, x=[(0, -48), (110, -104, 'in'), (190, -52), (290, -86, 'in'), (380, -90), (480, -90, 'in'), (640, 0)],
+                   y=[(0, -24), (110, 22), (290, -30), (380, 64), (480, -72, 'in'), (640, 0)]),
+        left: sem(left, x=[(0, -64), (110, -96), (290, -80), (480, -48), (640, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -75), (110, -92), (290, -92), (480, -40), (640, 0)),
+                                   'z': stops((0, 0), (370, 0), (480, -90), (640, 0))}),
+    }, 640)
+
+    # 7. Dragon Strike (强袭流星打) deep spear crouch charge & hyperspeed torpedo dash
+    poses['dragon_strike_charge'] = anim({
+        'root': bone_doc(rot={'x': stops((0, 26), (250, 30, 'inout'), (500, 26)),
+                              'y': stops((0, 44), (250, 48, 'inout'), (500, 44))},
+                         pos={'y': stops((0, 2.8), (250, 3.2, 'inout'), (500, 2.8))}),
+        right: sem(right, x=[(0, 46), (250, 52, 'inout'), (500, 46)],
+                   y=[(0, -16), (250, -20, 'inout'), (500, -16)],
+                   z=[(0, 10), (250, 14, 'inout'), (500, 10)]),
+        left: sem(left, x=[(0, -78), (250, -84, 'inout'), (500, -78)]),
+        'held_item': bone_doc(rot={'x': stops((0, -90), (250, -90), (500, -90))}),
+        'right_leg': sem('right_leg', x=[(0, 32), (250, 36, 'inout'), (500, 32)]),
+        'left_leg': sem('left_leg', x=[(0, -38), (250, -42, 'inout'), (500, -38)]),
+    }, 500, loop=True)
+    poses['dragon_strike'] = anim({
+        'root': bone_doc(rot={'x': stops((0, 26), (110, 36, 'in'), (370, 32), (540, 0)),
+                              'y': stops((0, 44), (110, 24, 'in'), (370, 24), (540, 0))},
+                         pos={'y': stops((0, 2.4), (110, -2.2, 'out'), (370, -1.6), (540, 0))}),
+        right: sem(right, x=[(0, 46), (110, -96, 'in'), (370, -94, 'hold'), (540, 0)],
+                   y=[(0, -16), (110, 4, 'in'), (540, 0)]),
+        left: sem(left, x=[(0, -78), (110, 38, 'in'), (370, 42), (540, 0)],
+                  z=[(0, 12), (110, 40, 'in'), (540, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -90), (370, -90), (540, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 32), (110, 48, 'in'), (370, 44), (540, 0)]),
+        'left_leg': sem('left_leg', x=[(0, -38), (110, 32, 'in'), (370, 28), (540, 0)]),
+    }, 540)
+
+    # 8. Dragon Spear (煌龙偃月 impale -> dragon surge hold -> explosive lift sweep) + Cleave VP1
+    poses['dragon_spear'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 15), (160, 36, 'in'), (1450, 36, 'hold'), (1680, 12, 'out'), (1880, -68, 'in'), (2100, 0)),
+                              'x': stops((0, 8), (160, 18, 'in'), (1450, 16), (1680, -14), (1880, 22, 'in'), (2100, 0))},
+                         pos={'y': stops((0, 0), (160, 1.2), (1450, 1.2), (1680, -3.5, 'out'), (1880, 1.0, 'in'), (2100, 0))}),
+        right: sem(right, x=[(0, -42), (160, -90, 'in'), (1450, -90, 'hold'), (1680, -154, 'out'), (1880, -34, 'in'), (2100, 0)],
+                   y=[(0, -32), (160, -35, 'in'), (1450, -35, 'hold'), (1680, -16), (1880, -28), (2100, 0)]),
+        left: sem(left, x=[(0, -42), (160, -90, 'in'), (1450, -90, 'hold'), (1680, -146, 'out'), (1880, -38, 'in'), (2100, 0)],
+                  y=[(0, -32), (160, -35, 'in'), (1450, -35, 'hold'), (1680, -16), (1880, -28), (2100, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -34), (160, -90, 'in'), (1450, -90, 'hold'), (1680, -30), (1880, -86, 'in'), (2100, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 0), (160, 24, 'in'), (1450, 24), (1880, -18), (2100, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (160, -28, 'in'), (1450, -28), (1880, 22), (2100, 0)]),
+    }, 2100)
+    poses['dragon_spear_thrust'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 15), (150, 38, 'in'), (320, 36), (460, 0)),
+                              'x': stops((0, 8), (150, 18, 'in'), (460, 0))}),
+        **joined_grip((0, -42), (150, -92, 'in'), (320, -90), (460, -36)),
+        'held_item': bone_doc(rot={'x': stops((0, -34), (150, -90, 'in'), (320, -90), (460, 0))}),
+    }, 460)
+    poses['dragon_spear_cleave'] = anim({
+        'root': bone_doc(rot={'x': stops((0, -6), (180, -20, 'out'), (250, -20, 'hold'), (360, 30, 'in'), (500, 24), (640, 0))},
+                         pos={'y': stops((0, 0), (180, -9.0, 'out'), (250, -9.0, 'hold'), (360, 2.2, 'in'), (500, 1.4), (640, 0))}),
+        'head': bone_doc(rot={'x': stops((0, 0), (180, -22), (360, 16), (640, 0))}),
+        right: sem(right, x=[(0, -50), (180, -172, 'out'), (250, -172, 'hold'), (360, -18, 'in'), (500, -16), (640, 0)],
+                   y=[(0, -26), (180, -12), (360, -18), (640, 0)]),
+        left: sem(left, x=[(0, -48), (180, -166, 'out'), (250, -166, 'hold'), (360, -22, 'in'), (500, -18), (640, 0)],
+                  y=[(0, -26), (180, -12), (360, -18), (640, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -20), (180, -10), (360, -88, 'in'), (500, -88), (640, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 0), (180, -38), (360, 24, 'in'), (640, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (180, 28), (360, -30, 'in'), (640, 0)]),
+    }, 640)
+
+    # 9. Teana Transformation (变身：贝亚娜翼展跃升) & Apostle Spear Finisher (使徒穿刺)
+    poses['teana_transformation'] = anim({
+        'root': bone_doc(rot={'x': stops((0, 14), (200, 20, 'in'), (440, -18, 'out'), (620, -12), (760, 0))},
+                         pos={'y': stops((0, 2.4), (200, 3.0), (440, -8.2, 'out'), (620, -5.0), (760, 0))}),
+        'head': bone_doc(rot={'x': stops((0, 10), (200, 14), (440, -26, 'out'), (620, -18), (760, 0))}),
+        right: sem(right, x=[(0, -24), (200, -48), (440, -118, 'out'), (620, -92), (760, 0)],
+                   z=[(0, 10), (200, 28), (440, 74, 'out'), (620, 62), (760, 0)]),
+        left: sem(left, x=[(0, -24), (200, -48), (440, -118, 'out'), (620, -92), (760, 0)],
+                  z=[(0, 10), (200, 28), (440, 74, 'out'), (620, 62), (760, 0)]),
+        'right_leg': sem('right_leg', x=[(0, 14), (440, -26, 'out'), (760, 0)]),
+        'left_leg': sem('left_leg', x=[(0, -14), (440, 22, 'out'), (760, 0)]),
+    }, 760)
+    poses['teana_finisher'] = anim({
+        'root': bone_doc(rot={'y': stops((0, 0, 'linear'), (420, 360), (1400, 360, 'hold')),
+                              'x': stops((0, -10), (380, -20, 'out'), (560, -18, 'hold'), (780, 36, 'in'), (1120, 30), (1400, 0))},
+                         pos={'y': stops((0, 0), (380, -7.5, 'out'), (560, -7.5, 'hold'), (780, -2.5, 'in'), (1120, -1.5), (1400, 0))}),
+        right: sem(right, x=[(0, -50), (380, -164, 'out'), (560, -162, 'hold'), (780, -96, 'in'), (1120, -92), (1400, 0)],
+                   z=[(0, 12), (380, 44), (780, 6, 'in'), (1400, 0)]),
+        left: sem(left, x=[(0, -46), (380, -148, 'out'), (780, 34, 'in'), (1120, 30), (1400, 0)],
+                  z=[(0, 12), (380, 48), (780, 40), (1400, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -24), (380, -18), (560, -18, 'hold'), (780, -90, 'in'), (1120, -90), (1400, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 0), (380, -32), (780, 42, 'in'), (1400, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (380, 24), (780, 26, 'in'), (1400, 0)]),
+    }, 1400)
+
+    # Slice the individual strokes so multi-hit skills contribute one cut per beat.
+    stroke_ranges = (
+        ('ghost_release', 0, 165), ('triple', 100, 300), ('wave', 0, 245),
+        ('rising', 110, 320), ('draw', 335, 515), ('dragon', 0, 220), ('dance', 0, 125),
+        ('kalla_finish', 0, 180), ('kalla_finish', 300, 480), ('kalla_finish', 600, 790),
+        ('blache', 1050, 1190), ('mountain_crash', 380, 640), ('blood_blade', 110, 230),
+        ('blood_eruption', 680, 868), ('blood_sword_finish', 145, 320),
+        ('oracle_down', 240, 325), ('oracle_thrust', 200, 320), ('oracle_sweep', 260, 525),
+        ('oracle_smile', 0, 135), ('oracle_rift', 0, 260), ('replica_combo', 0, 100),
+        ('replica_finish', 600, 830),
+    )
+    beat = 100
+    dance = anim({left: poses['dance']['bones'][left]}, beat, loop=True)
+    single_cut = sword_stroke(anim({right: swing(right)}, 310), 0, 155, beat)
+    dance['variants'] = [single_cut] + [
+        sword_stroke(poses[name] if name in poses else catalog[name], first, last, beat, use_root_yaw=name == 'wave')
+        for name, first, last in stroke_ranges
+    ]
+    poses['dance'] = dance
     return poses
 
 
@@ -1212,6 +1815,10 @@ def validate(doc, name):
     duration = doc.get('duration')
     if duration is not None:
         assert isinstance(duration, (int, float)) and math.isfinite(duration) and duration > 0, f'{name}: bad duration'
+    if 'variants' in doc:
+        assert doc['loop'] and duration and doc['variants'], f'{name}: variants require a loop with a duration'
+        for index, variant in enumerate(doc['variants']):
+            validate(anim(variant, duration), f'{name}[{index}]')
 
 
 def write_avatar_catalog(catalog):

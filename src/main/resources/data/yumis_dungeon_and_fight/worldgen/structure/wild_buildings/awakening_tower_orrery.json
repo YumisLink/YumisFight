@@ -12,8 +12,13 @@
   "step": "surface_structures",
   "terrain_adaptation": "beard_thin",
   "start_pool": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_orrery",
-  "height_offset": -2,
-  "floor_offset": 3,
+  "height_offset": -3,
+  "floor_offset": 4,
   "max_relief": 4,
-  "ground_clearance": 0
+  "ground_clearance": 0,
+  "surface_anchor": [
+    12,
+    4,
+    17
+  ]
 }

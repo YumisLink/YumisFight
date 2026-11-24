@@ -3,6 +3,7 @@ package cn.yumis.fight.modules.dungeons.application;
 import cn.yumis.fight.modules.combat.api.*;
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.GblChurch;
+import cn.yumis.fight.modules.dungeons.content.AwakeningTowerLayout;
 import cn.yumis.fight.foundation.Journal;
 import cn.yumis.fight.network.Network;
 import com.google.gson.*;
@@ -22,6 +23,8 @@ public final class GblEncounterService {
     private final DungeonPorts.Targets targets;
     private static final class Brain {
         final Vec3 home;
+        final StatusLeases leases=new StatusLeases();
+        ActionPhase phase=ActionPhase.IDLE;
         UUID target;
         long busy,next,auraReady,slamReady,pathAt;
         int step;
@@ -80,6 +83,9 @@ public final class GblEncounterService {
     public void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> here,long now){
         var kind=GblEnemyKind.of(e);if(kind==null)return;
         Brain state=brains.computeIfAbsent(e.getUUID(),id->new Brain(e));
+        if(d.tower!=null&&!AwakeningTowerLayout.containsBattle(d.cell,e.position())){
+            cancel(e.getUUID());if(e.getY()<76)e.setPos(state.home);else move(d,e,state,state.home,1,now);return;
+        }
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
         if(now<state.busy){e.getNavigation().stop();return;}
         ServerPlayer p=here.stream().filter(q->q.getUUID().equals(state.target)&&eligible(q)).findFirst().orElse(null);
@@ -145,9 +151,10 @@ public final class GblEncounterService {
             }
         }
     }
-    private void play(DungeonEnemy e,Brain b,String clip,long duration,long now){e.getNavigation().stop();e.play(clip,duration);e.setAggressive(true);b.busy=now+duration;b.next=b.busy+450;}
+    private void play(DungeonEnemy e,Brain b,String clip,long duration,long now){duration=targets.target(e).actionTiming(now).duration(duration);e.getNavigation().stop();e.play(clip,duration);e.setAggressive(true);b.busy=now+duration;b.next=b.busy+450;}
     private GblAttack attack(DungeonEnemy e,String kind,String shape,long windup,long active,double radius,double coefficient,boolean magic,int element){
-        GblAttack a=new GblAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=kind;a.shape=shape;a.started=System.currentTimeMillis();a.windup=windup;a.active=active;a.radius=radius;a.coefficient=coefficient;a.magic=magic;a.element=element;
+        long started=System.currentTimeMillis();var timing=targets.target(e).actionTiming(started);
+        GblAttack a=new GblAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=kind;a.shape=shape;a.started=started;a.windup=timing.windup(windup);a.active=timing.active(active);a.radius=radius;a.coefficient=coefficient;a.magic=magic;a.element=element;
         a.origin(e.position());setDestination(a,e.position());return a;
     }
     private static void setDestination(GblAttack a,Vec3 to){a.ex=to.x;a.ey=to.y;a.ez=to.z;}
@@ -160,16 +167,20 @@ public final class GblEncounterService {
     }
     private void impact(DungeonEnemy e,String kind,long windup,long active,Vec3 point,double radius,double coefficient,boolean magic){var a=attack(e,kind,"IMPACT",windup,active,radius,coefficient,magic,-1);a.origin(point);setDestination(a,point);add(a);}
     private void add(GblAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"gblAttack",packet(a,false));}
-    private boolean eligible(ServerPlayer p){return p.isAlive()&&!p.isSpectator()&&!p.getAbilities().invulnerable&&!players.session(p).life.dead;}
+    private boolean eligible(ServerPlayer p){var life=players.session(p).life;return p.isAlive()&&!p.isSpectator()&&!p.getAbilities().invulnerable&&!life.dead&&!life.dungeonDefeated;}
     private void move(Dungeon d,DungeonEnemy enemy,Brain state,Vec3 target,double speed,long now){
         if(now<state.pathAt)return;
-        Vec3 next=GblChurch.route(d.cell,enemy.position(),target);
+        Vec3 next=d.tower==null?GblChurch.route(d.cell,enemy.position(),target):AwakeningTowerLayout.insideBattle(d.cell,target);
         enemy.getNavigation().moveTo(next.x,next.y,next.z,speed);
         state.pathAt=now+300;
     }
     private Vec3 ground(Vec3 point,Vec3 fallback){return GblChurch.ground(owner.level(),point,fallback);}
     private void leap(DungeonEnemy e,ServerPlayer p,long delay,long duration,double height){Vec3 delta=p.position().subtract(e.position()).multiply(1,0,1);if(delta.length()>5)delta=delta.normalize().scale(5);leap(e,e.position().add(delta),delay,duration,height);}
-    private void leap(DungeonEnemy e,Vec3 destination,long delay,long duration,double height){long start=System.currentTimeMillis()+delay;Vec3 to=ground(destination,e.position());leaps.put(e.getUUID(),new Leap(e.getUUID(),e.position(),to,start,start+duration,height));}
+    private void leap(DungeonEnemy e,Vec3 destination,long delay,long duration,double height){
+        long start=System.currentTimeMillis()+delay;Dungeon d=owner.byId(e.instance());
+        Vec3 to=d==null||d.tower==null?ground(destination,e.position()):AwakeningTowerLayout.ground(owner.level(),d.cell,destination,e.position());
+        leaps.put(e.getUUID(),new Leap(e.getUUID(),e.position(),to,start,start+duration,height));
+    }
     private Vec3 landing(DungeonEnemy e){Leap leap=leaps.get(e.getUUID());return leap==null?e.position():leap.to;}
 
     public void tick(List<ServerPlayer> online,long now)throws Exception{
@@ -217,7 +228,7 @@ public final class GblEncounterService {
         for(var pending:new ArrayList<>(attacks.values()))if(pending.attack.source.equals(id))remove(pending.attack);
         leaps.remove(id);auras.remove(id);Entity raw=owner.level().getEntity(id);
         if(raw instanceof DungeonEnemy e&&GblEnemyKind.of(e)!=null){e.setNoGravity(false);e.setAggressive(false);e.play("",0);}
-        Brain b=brains.get(id);if(b!=null){b.busy=0;b.next=Math.max(b.next,System.currentTimeMillis()+300);}
+        Brain b=brains.get(id);if(b!=null){b.phase=ActionPhase.ABANDONED;b.leases.clear();b.busy=0;b.next=Math.max(b.next,System.currentTimeMillis()+300);}
     }
     public void close(Dungeon d){
         for(UUID id:new ArrayList<>(brains.keySet())){Entity e=owner.level().getEntity(id);if(e instanceof DungeonEnemy mob&&mob.instance().equals(d.id.toString())){cancel(id);brains.remove(id);protectedEnemies.remove(id);}}

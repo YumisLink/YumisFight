@@ -42,5 +42,5 @@ final class TimeGateEncounterService extends ClassicEncounterService {
         for(int i=1;i<=4;i++){Vec3 at=e.position().add(b.direction.scale(i*2.5));Pending p=emit(d,e,b,move,"CIRCLE",at,at.add(0,0,1),now,move.contact(0)+i*80,500,move.coefficient()/4,UUID.randomUUID().toString());p.attack.radius=1.8;p.attack.magic=true;p.attack.element=3;publish(p);}return true;
     }
     @Override protected void onDeath(DungeonEnemy e,Brain b){sources.remove(e.getUUID());}
-    @Override void close(Dungeon d){super.close(d);if(d.dungeon.equals(dungeon))sources.keySet().removeIf(id->!brains.containsKey(id));}
+    @Override void close(Dungeon d){super.close(d);if(uses(d))sources.keySet().removeIf(id->!brains.containsKey(id));}
 }

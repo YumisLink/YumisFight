@@ -101,7 +101,8 @@ public final class TutorialClient {
         }
         boolean newIntroduction=introductionReminder&&!state.introductionHinted;
         boolean newCrystalPickup=observed.contains(NpcTutorial.PICK_UP_CRYSTAL)&&!state.goals.contains(NpcTutorial.PICK_UP_CRYSTAL);
-        if(!state.started&&!starting&&dialogue==null&&!newIntroduction&&!newCrystalPickup)return;
+        boolean newCraft=observed.contains("craft")&&!state.goals.contains("craft");
+        if(!state.started&&!starting&&dialogue==null&&!newIntroduction&&!newCrystalPickup&&!newCraft)return;
         promotionReminder|=state.started&&NpcTutorial.current(state)==null&&!state.promotionHinted&&growth.get().level>=20&&JobCatalog.basic(growth.get().jobId());
         boolean changed=newIntroduction||starting&&!state.started||promotionReminder&&!state.promotionHinted||!state.goals.containsAll(observed)||dialogue!=null&&(!dialogue.equals(state.dialogue)||page!=state.page);
         if(!changed)return;

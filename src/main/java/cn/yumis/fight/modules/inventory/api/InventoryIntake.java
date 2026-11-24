@@ -45,13 +45,24 @@ public final class InventoryIntake {
         for(var stack:stacks)if(ItemStack.isSameItemSameComponents(stack,item))count=Math.addExact(count,stack.getCount());
         return count;
     }
-    /** Handles collection from a full external container without needing a spare player slot. */
+    /** Handles Shift+click collection from reward or machine output slots into inventory receivers. */
     private static boolean quickCollect(ServerPlayer player,AbstractContainerMenu menu,int index,ContainerInput input){
-        if(input!=ContainerInput.QUICK_MOVE||index<0||index>=menu.slots.size())return false;
+        if(input!=ContainerInput.QUICK_MOVE||!(menu instanceof QuickIntakeMenu intake)||!intake.allowsQuickIntake(index)||index<0||index>=menu.slots.size())return false;
         Slot slot=menu.slots.get(index);
         if(slot.container==player.getInventory()||!slot.isActive()||!slot.mayPickup(player))return false;
         ItemStack source=slot.getItem();
-        int take=Math.min(source.getCount(),capacity(player,source));
+        int availableCapacity=capacity(player,source);
+        if(source.isEmpty()||availableCapacity<=0)return false;
+        ItemStack custom=intake.extractForQuickIntake(player,index,availableCapacity);
+        if(custom!=null){
+            if(custom.isEmpty())return false;
+            ItemStack taken=custom.copy();
+            receive(player,custom);
+            if(!custom.isEmpty())throw new IllegalStateException("收纳容量发生变化，请重试");
+            slot.setChanged();slot.onTake(player,taken);
+            return true;
+        }
+        int take=Math.min(source.getCount(),availableCapacity);
         if(take<=0)return false;
         ItemStack removed=slot.remove(take),taken=removed.copy();
         if(removed.getCount()!=take)throw new IllegalStateException("物品来源发生变化，请重试");
@@ -60,26 +71,11 @@ public final class InventoryIntake {
         slot.setChanged();slot.onTake(player,taken);
         return true;
     }
-    /** Menu acquisition is the positive change in carried items; moving existing items is not a new gain. */
+    /** Only Shift+click on QuickIntakeMenu reward/output slots auto-intakes into receivers; normal storage keeps physical items. */
     public static boolean click(ServerPlayer player,AbstractContainerMenu menu,int slot,int button,ContainerInput input,BooleanSupplier alternate){
-        List<ItemStack> before=carried(player).stream().filter(s->receiver(s)!=null).map(ItemStack::copy).toList();
         if(alternate.getAsBoolean())return true;
         if(quickCollect(player,menu,slot,input))return true;
         menu.clicked(slot,button,input,player);
-        List<ItemStack> after=carried(player),visited=new ArrayList<>();
-        for(var sample:after){
-            if(receiver(sample)==null||visited.stream().anyMatch(s->ItemStack.isSameItemSameComponents(s,sample)))continue;
-            ItemStack identity=sample.copy();visited.add(identity);
-            int gained=count(after,identity)-count(before,identity);
-            if(gained<=0)continue;
-            for(var stack:after){
-                if(gained<=0)break;
-                if(!ItemStack.isSameItemSameComponents(stack,identity))continue;
-                ItemStack incoming=stack.copyWithCount(Math.min(gained,stack.getCount()));
-                int supplied=incoming.getCount();receive(player,incoming);
-                int stored=supplied-incoming.getCount();stack.shrink(stored);gained-=stored;
-            }
-        }
         return true;
     }
 }

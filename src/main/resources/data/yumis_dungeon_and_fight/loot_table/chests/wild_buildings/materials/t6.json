@@ -9,18 +9,34 @@
       },
       "entries": [
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:niobium_titanium_magnesium_alloy",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t1",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t2",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t3",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t4",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t5",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/industry/t6",
+          "weight": 1
         }
       ]
     },
@@ -32,102 +48,34 @@
       },
       "entries": [
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:herb_dreamflower",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t1",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:herb_stormvine",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t2",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:herb_voidflower",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t3",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:herb_fool_mushroom",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t4",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:fish_mythic",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t5",
+          "weight": 1
         },
         {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:fish_starry_ray",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "yumis_dungeon_and_fight:fish_void_ray",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": {
-                "type": "minecraft:uniform",
-                "min": 1,
-                "max": 3
-              }
-            }
-          ]
+          "type": "minecraft:loot_table",
+          "value": "yumis_dungeon_and_fight:chests/wild_buildings/materials/professions/t6",
+          "weight": 1
         }
       ]
     }

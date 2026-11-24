@@ -16,16 +16,17 @@ public final class WorldHealthService {
     private final net.minecraft.server.MinecraftServer server;
     private final cn.yumis.fight.foundation.Journal journal;
     private final java.util.function.Function<LivingEntity,Target> targets;
+    private final java.util.function.Function<UUID,Target> cachedTargets;
     private final java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.combat.api.CombatSession> sessions;
     private final java.util.function.BooleanSupplier bridging;
     private final java.util.function.Consumer<Boolean> bridge;
-    public WorldHealthService(net.minecraft.server.MinecraftServer server,cn.yumis.fight.foundation.Journal journal,java.util.function.Function<LivingEntity,Target> targets,java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.combat.api.CombatSession> sessions,java.util.function.BooleanSupplier bridging,java.util.function.Consumer<Boolean> bridge){this.server=server;this.journal=journal;this.targets=targets;this.sessions=sessions;this.bridging=bridging;this.bridge=bridge;}
+    public WorldHealthService(net.minecraft.server.MinecraftServer server,cn.yumis.fight.foundation.Journal journal,java.util.function.Function<LivingEntity,Target> targets,java.util.function.Function<UUID,Target> cachedTargets,java.util.function.Function<ServerPlayer,cn.yumis.fight.modules.combat.api.CombatSession> sessions,java.util.function.BooleanSupplier bridging,java.util.function.Consumer<Boolean> bridge){this.server=server;this.journal=journal;this.targets=targets;this.cachedTargets=cachedTargets;this.sessions=sessions;this.bridging=bridging;this.bridge=bridge;}
 
     public void tick(int tick){
         for(ServerLevel level:server.getAllLevels())for(Entity raw:level.getAllEntities())if(raw instanceof LivingEntity entity&&cn.yumis.fight.modules.combat.api.ManagedEntities.includes(entity)&&!(entity instanceof ServerPlayer)){
             Target target=null;
             if(entity instanceof WitherBoss||entity instanceof EnderDragon||entity instanceof cn.yumis.fight.modules.combat.api.WorldVitalEntity)target=targets.apply(entity);
-            else if(!journal.get("target/"+entity.getUUID()).isJsonNull())target=journal.get("target/"+entity.getUUID(),Target.class,null);
+            else target=cachedTargets.apply(entity.getUUID());
             if(target==null)continue;
             if(entity instanceof WitherBoss wither){
                 if(wither.getInvulnerableTicks()>0&&tick%10==0)heal(entity,target,1/30d);

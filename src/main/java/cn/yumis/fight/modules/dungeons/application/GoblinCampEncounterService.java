@@ -1,8 +1,11 @@
 package cn.yumis.fight.modules.dungeons.application;
 
 import cn.yumis.fight.foundation.Journal;
+import cn.yumis.fight.modules.combat.api.ActionPhase;
+import cn.yumis.fight.modules.combat.api.StatusLeases;
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.GoblinCamp;
+import cn.yumis.fight.modules.dungeons.content.AwakeningTowerLayout;
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,6 +27,8 @@ final class GoblinCampEncounterService {
     }
     private static final class Keno {
         int stage;
+        ActionPhase phase=ActionPhase.IDLE;
+        final StatusLeases leases=new StatusLeases();
         long busyUntil,transitionUntil,meleeSince,lastCombat,followupAt;
         boolean followup,claimedImmune;
         double lastRevision=-1;
@@ -89,6 +94,7 @@ final class GoblinCampEncounterService {
         if(run!=null&&id.equals(run.boss)&&dead(id)&&dungeon.status.equals("RUNNING"))owner.completeCamp(dungeon,players);
     }
     void close(Dungeon dungeon){runs.remove(dungeon.id);GoblinCampScenery.clear(owner.level(),dungeon.cell);}
+    void forgetKeno(UUID id){keno.remove(id);}
 
     // ---- 落雷凯诺：距离带 × 独立冷却 × 概率决策、三阶段演出与怒气 ----
     /** Serves the camp boss, the treasure guardians, and any future goblin_shaman through the shared enemy brain registry. */
@@ -124,7 +130,7 @@ final class GoblinCampEncounterService {
         else e.getNavigation().stop();
         if(distance<3.5){if(k.meleeSince==0)k.meleeSince=now;}
         else k.meleeSince=0;
-        if(k.stage>=2&&k.meleeSince>0&&now-k.meleeSince>=3000&&ready(k,"BLINK",now)){blink(e,p,k,now);return;}
+        if(k.stage>=2&&k.meleeSince>0&&now-k.meleeSince>=3000&&ready(k,"BLINK",now)){blink(dungeon,e,p,k,now);return;}
         if(k.stage>=3&&t.rage>=RAGE_MAXIMUM&&ready(k,"ULTIMATE",now)){ultimate(e,p,t,k,players,now);return;}
         String kind=distance<3.5?weighted(k,now,"BASIC","45","FAN","30","CLAW","25")
             :distance<=8?weighted(k,now,"FAN","40","RING","25","LIGHTNING","20")
@@ -162,6 +168,8 @@ final class GoblinCampEncounterService {
     }
     /** Standard one-shot action; keeps the bossAction contract the client already judges locally. */
     private void strike(DungeonEnemy e,ServerPlayer p,Keno k,long now,String kind,String move,String shape,boolean atPlayer,double radius,double halfAngle,long windup,long active,long recovery,double coefficient,boolean magic){
+        var timing=owner.targets().target(e).actionTiming(now);
+        windup=timing.windup(windup);active=timing.active(active);recovery=timing.recovery(recovery);
         JsonObject a=action(e,p,UUID.randomUUID(),kind,shape,atPlayer,radius,halfAngle,windup,active,recovery,coefficient,magic,now);
         long total=windup+active+recovery;
         owner.broadcast(e.instance(),"bossAction",a);
@@ -177,14 +185,15 @@ final class GoblinCampEncounterService {
         }
     }
     private void claw(DungeonEnemy e,ServerPlayer p,Keno k,long now,double coefficient){
-        Vec3 dir=aim(e,p);
+        Vec3 dir=aim(e,p);var timing=owner.targets().target(e).actionTiming(now);
+        long lead=timing.windup(400),step=timing.duration(500),active=timing.active(200),recovery=timing.recovery(600),total=timing.duration(2200);
         for(int i=0;i<3;i++)
-            owner.broadcast(e.instance(),"bossAction",action(e,p,UUID.randomUUID(),"CLAW","FAN",false,4.5,Math.PI/3,400+i*500,200,i==2?600:0,coefficient,false,now));
-        e.play("claw_combo",2200);
-        k.busyUntil=now+2200;
-        aggressive(e,k,now,2200);
-        k.probes.add(new Probe(now+500,e.getX(),e.getY(),e.getZ(),4.5,dir.x,dir.z,Math.PI/3,true));
-        for(int i=0;i<3;i++)queue(k,KenoShow.slash(now+400+i*500,e.getX(),e.getY(),e.getZ(),false));
+            owner.broadcast(e.instance(),"bossAction",action(e,p,UUID.randomUUID(),"CLAW","FAN",false,4.5,Math.PI/3,lead+i*step,active,i==2?recovery:0,coefficient,false,now));
+        e.play("claw_combo",total);
+        k.busyUntil=now+total;
+        aggressive(e,k,now,total);
+        k.probes.add(new Probe(now+timing.duration(500),e.getX(),e.getY(),e.getZ(),4.5,dir.x,dir.z,Math.PI/3,true));
+        for(int i=0;i<3;i++)queue(k,KenoShow.slash(now+timing.duration(400+i*500),e.getX(),e.getY(),e.getZ(),false));
     }
     /** Furious storm: circles rain on the player's live position, one per 600 ms, so staying still is punished. */
     private void ultimate(DungeonEnemy e,ServerPlayer p,Target t,Keno k,List<ServerPlayer> players,long now)throws Exception{
@@ -193,19 +202,22 @@ final class GoblinCampEncounterService {
         double radius=stage3?5:4,coefficient=stage3?2.6:1.8;
         cooldown(k,"ULTIMATE",25,now);
         t.rage=0;sync(e,t,players);
-        long duration=800+(circles-1)*600+200+600;
+        var timing=owner.targets().target(e).actionTiming(now);
+        long lead=timing.windup(800),gap=timing.duration(600),tail=timing.recovery(800),duration=lead+(circles-1)*gap+tail;
         e.play("ultimate_storm",duration);
         k.busyUntil=now+duration;
         aggressive(e,k,now,duration);
         for(int i=0;i<circles;i++){
-            long at=now+800+i*600;
+            long at=now+lead+i*gap;
             k.schedule.add(new Object[]{at,(Runnable)()->{
-                ServerPlayer target=nearest(e,players);
-                if(target==null)return;
+                ServerPlayer hitTarget=nearest(e,players);
+                if(hitTarget==null)return;
                 long fire=System.currentTimeMillis();
-                owner.broadcast(e.instance(),"bossAction",action(e,target,UUID.randomUUID(),"ULTIMATE","CIRCLE",true,radius,Math.PI,300,200,0,coefficient,true,fire));
-                k.probes.add(new Probe(fire+400,target.getX(),target.getY(),target.getZ(),radius,0,0,Math.PI,false));
-                queue(k,KenoShow.lightning(fire+300,target.getX(),target.getY(),target.getZ(),radius,true));
+                var hitTiming=owner.targets().target(e).actionTiming(fire);
+                long hitWindup=hitTiming.windup(300);
+                owner.broadcast(e.instance(),"bossAction",action(e,hitTarget,UUID.randomUUID(),"ULTIMATE","CIRCLE",true,radius,Math.PI,hitWindup,hitTiming.active(200),0,coefficient,true,fire));
+                k.probes.add(new Probe(fire+hitWindup+100,hitTarget.getX(),hitTarget.getY(),hitTarget.getZ(),radius,0,0,Math.PI,false));
+                queue(k,KenoShow.lightning(fire+hitWindup,hitTarget.getX(),hitTarget.getY(),hitTarget.getZ(),radius,true));
             }});
         }
     }
@@ -215,13 +227,14 @@ final class GoblinCampEncounterService {
         strike(e,p,k,now,"LIGHTNING","lightning_cast","CIRCLE",true,2,Math.PI,windup,200,1000,1.4,true);
     }
     /** Reactive escape from melee pressure: reappear behind the player, then strike with a shortened lead. */
-    private void blink(DungeonEnemy e,ServerPlayer p,Keno k,long now){
+    private void blink(Dungeon dungeon,DungeonEnemy e,ServerPlayer p,Keno k,long now){
         cooldown(k,"BLINK",12,now);
         Vec3 flat=p.getLookAngle();flat=new Vec3(flat.x,0,flat.z);
         if(flat.lengthSqr()<.01)flat=new Vec3(0,0,1);
         Vec3 from=e.position(),destination=p.position().subtract(flat.normalize().scale(6));
+        if(dungeon.tower!=null)destination=AwakeningTowerLayout.ground(owner.level(),dungeon.cell,destination,from);
         e.getNavigation().stop();
-        e.setPos(destination.x,p.getY(),destination.z);
+        e.setPos(destination.x,dungeon.tower==null?p.getY():destination.y,destination.z);
         e.play("blink_step",500);
         k.busyUntil=now+500;
         k.followup=true;k.followupAt=now+400;

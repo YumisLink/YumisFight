@@ -25,13 +25,14 @@ public final class EnhanceScreen extends ThemedContainerScreen<EnhanceMenu> {
     private long burstUntil;
     private Button minus,plus,confirm;
 
-    public EnhanceScreen(EnhanceMenu menu,Inventory inventory,Component title){super(menu,inventory,title,176,268);inventoryLabelY=174;}
+    public EnhanceScreen(EnhanceMenu menu,Inventory inventory,Component title){super(menu,inventory,title,176,282);inventoryLabelY=188;}
 
     @Override protected void init(){
         super.init();
-        minus=addWidget(Button.builder(Component.literal("−"),b->shiftTarget(-1)).bounds(leftPos+8,topPos+150,20,20).build(ThemedButton::new));
-        plus=addWidget(Button.builder(Component.literal("+"),b->shiftTarget(1)).bounds(leftPos+32,topPos+150,20,20).build(ThemedButton::new));
-        confirm=addWidget(Button.builder(Component.literal("强化"),b->submit()).bounds(leftPos+96,topPos+150,72,20).build(ThemedButton::new));
+        minus=addRenderableWidget(Button.builder(Component.literal("−"),b->shiftTarget(-1)).bounds(leftPos+8,topPos+164,20,20).build(ThemedButton::new));
+        plus=addRenderableWidget(Button.builder(Component.literal("+"),b->shiftTarget(1)).bounds(leftPos+32,topPos+164,20,20).build(ThemedButton::new));
+        confirm=addRenderableWidget(Button.builder(Component.literal("强化"),b->submit()).bounds(leftPos+96,topPos+164,72,20).build(ThemedButton::new));
+        refreshControls();
     }
 
     private boolean amplified(){return gear!=null&&EnhancementRules.contaminated(gear);}
@@ -48,9 +49,9 @@ public final class EnhanceScreen extends ThemedContainerScreen<EnhanceMenu> {
         var stack=menu.slots.get(0).getItem();
         Gear next=stack.isEmpty()?null:EquipmentItems.gear(stack);
         if(next==null){
-            if(gear!=null){gear=null;awaiting="";}
+            gear=null;
         }else if(gear==null||!next.instance.equals(gear.instance)||next.revision!=gear.revision){
-            gear=next;target=Math.min(EnhancementRules.MAXIMUM,EnhancementRules.level(gear)+1);awaiting="";
+            gear=next;target=Math.min(EnhancementRules.MAXIMUM,EnhancementRules.level(gear)+1);
         }
         if(!awaiting.isEmpty()){
             var report=EnhanceClient.take(awaiting);
@@ -90,6 +91,11 @@ public final class EnhanceScreen extends ThemedContainerScreen<EnhanceMenu> {
             String id=ItemData.id(stack);
             if(amplified?id.equals(EnhancementRules.INTENSE_AURA):id.equals("coal")||id.equals("charcoal"))total+=stack.getCount();
         }
+        for(var stack:BagSnapshotClient.items(menu)){
+            if(stack.isEmpty())continue;
+            String id=ItemData.id(stack);
+            if(amplified?id.equals(EnhancementRules.INTENSE_AURA):id.equals("coal")||id.equals("charcoal"))total+=stack.getCount();
+        }
         return total;
     }
     private String fuelName(boolean amplified){return amplified?"强烈的气息":"煤/木炭";}
@@ -117,6 +123,7 @@ public final class EnhanceScreen extends ThemedContainerScreen<EnhanceMenu> {
         j.addProperty("revision",gear.revision);
         j.addProperty("target",target);
         awaiting=j.get("operation").getAsString();
+        refreshControls();
         ClientUi.current().send("enhance",j);
     }
 
@@ -179,7 +186,7 @@ public final class EnhanceScreen extends ThemedContainerScreen<EnhanceMenu> {
         boolean amplified=amplified();
         int level=current(),first=level+1;
         int accent=amplified?EnhancementRules.AMPLIFY_PINK:UiTheme.GOLD;
-        int y=topPos+112;
+        int y=topPos+104;
         if(maxed()){
             g.text(font,verb()+" +"+EnhancementRules.MAXIMUM+" · 已达炉火极限",leftPos+8,y,accent,false);
             if(amplified)g.text(font,"异次元"+contaminationTitle()+" +"+EnhancementRules.cumulative(gear.amplifyLevel),leftPos+8,y+12,EnhancementRules.AMPLIFY_PINK,false);
@@ -192,7 +199,17 @@ public final class EnhanceScreen extends ThemedContainerScreen<EnhanceMenu> {
             case 0->first>=20?"失败：降2级"+(first>=24?"":", 消耗照常"):first>=10?"失败：降1级，消耗照常":"失败：仅损失消耗";
             default->"失败：装备粉碎消失！";
         };
-        g.text(font,"失败后果 · "+consequence,leftPos+8,y,first<EnhancementRules.MAXIMUM?UiTheme.TEXT:UiTheme.ERROR,false);
+        if(first>=EnhancementRules.MAXIMUM){
+            var warn=Component.literal("失败后果 · 失败：装备粉碎消失！").withStyle(net.minecraft.ChatFormatting.BOLD);
+            g.text(font,warn,leftPos+8,y,0xffff3b5c,false);
+        }else{
+            String prefix="失败后果 · "+consequence;
+            g.text(font,prefix,leftPos+8,y,UiTheme.TEXT,false);
+            if(target==EnhancementRules.MAXIMUM){
+                var warn=Component.literal("（含冲+25：失败粉碎！）").withStyle(net.minecraft.ChatFormatting.BOLD);
+                g.text(font,warn,leftPos+8+font.width(prefix),y,0xffff3b5c,false);
+            }
+        }
         y+=12;
         long goldCost=EnhancementRules.goldCost(gear,first,amplified);
         int fuelNeed=EnhancementRules.fuel(first);
@@ -207,7 +224,7 @@ public final class EnhanceScreen extends ThemedContainerScreen<EnhanceMenu> {
             g.text(font,"气息侵染：永久禁止强化，只能增幅",leftPos+8,y,EnhancementRules.AMPLIFY_PINK,false);
         }
         String label="目标 +"+target;
-        g.text(font,label,leftPos+56+(36-font.width(label))/2,topPos+155,UiTheme.TEXT,false);
+        g.text(font,label,leftPos+56+(36-font.width(label))/2,topPos+169,UiTheme.TEXT,false);
     }
 
     private String contaminationTitle(){

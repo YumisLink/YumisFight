@@ -37,6 +37,7 @@ public final class ArkContentTypes {
     public static boolean actorEffect(MobEffectInstance effect){
         var type=effect.getEffect();
         return type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN)||type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.FREEZE)
+            ||type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.CHILL)
             ||type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.SHOCK)||type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.IGNITE)
             ||type.equals(cn.yumis.fight.modules.combat.api.CombatContentTypes.EROSION);
     }

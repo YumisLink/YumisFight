@@ -16,7 +16,12 @@ public abstract class PlayerDropMixin {
             ServerPlayer player=(ServerPlayer)(Object)this;
             var intent=new com.google.gson.JsonObject();
             intent.addProperty("dropSelected",all);
-            runtime.inventory.transact(player,"toss/"+java.util.UUID.randomUUID(),intent,()->player.drop(all),java.util.Map.of());
+            try{
+                runtime.inventory.transact(player,"toss/"+java.util.UUID.randomUUID(),intent,()->player.drop(all),java.util.Map.of());
+            }catch(RuntimeException failure){
+                runtime.message(player,failure.getMessage());
+                player.inventoryMenu.broadcastFullState();
+            }
             ci.cancel();
         }
     }

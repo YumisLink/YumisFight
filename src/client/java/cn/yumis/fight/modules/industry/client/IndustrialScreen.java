@@ -204,10 +204,11 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
         @Override public boolean isPauseScreen(){return false;}@Override public void onClose(){minecraft.gui.popScreenLayer();}
     }
     private static final class Routes extends ThemedScreen {
-        private final IndustrialScreen parent;private int scroll;
+        private final IndustrialScreen parent;private int scroll;private String lastRoutesJson="";
         Routes(IndustrialScreen parent){super(Component.literal("水晶容器配对"),ThemeDomain.MACHINE);this.parent=parent;}
         private void action(String route,String action){var request=new JsonObject();request.addProperty("menu",parent.menu.containerId);request.addProperty("route",route);request.addProperty("action",action);ClientUi.current().send("industrialRoute",request);}
-        @Override protected void init(){controls();}
+        private String currentRoutesJson(){return parent.menu.info.has("routes")?parent.menu.info.get("routes").toString():"";}
+        @Override protected void init(){lastRoutesJson=currentRoutesJson();controls();}
         private void controls(){clearWidgets();int w=Math.min(390,width-24),left=(width-w)/2,top=32,visible=Math.max(1,(height-70)/58);var list=parent.menu.info.has("routes")?parent.menu.info.getAsJsonArray("routes"):new JsonArray();scroll=Math.clamp(scroll,0,Math.max(0,list.size()-visible));
             for(int row=0;row<visible&&row+scroll<list.size();row++){int index=row+scroll;var route=list.get(index).getAsJsonObject();int y=top+row*58;
                 for(int endpoint=0;endpoint<2;endpoint++){String key=endpoint==0?"source":"target";int buttonId=1100+index*2+endpoint;String label=(endpoint==0?"来源 ":"目标 ")+route.get(key+"_name").getAsString()+" "+BlockPos.of(route.get(key).getAsLong()).toShortString();var button=Button.builder(Component.literal(label),b->action(route.get("id").getAsString(),key)).bounds(left,y+endpoint*23,w-42,21).build(IndustrialUi.IndustrialButton::new);button.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(label+"\n"+route.get("status").getAsString()+"\n点击坐标显示连接光束")));addRenderableWidget(button);}
@@ -215,7 +216,7 @@ public final class IndustrialScreen extends ThemedContainerScreen<IndustrialMenu
             }
             addRenderableWidget(Button.builder(Component.literal("返回"),b->onClose()).bounds(left,height-29,55,20).build(IndustrialUi.IndustrialButton::new));
         }
-        @Override public void tick(){super.tick();controls();}
+        @Override public void tick(){super.tick();String current=currentRoutesJson();if(!current.equals(lastRoutesJson)){lastRoutesJson=current;controls();}}
         @Override public boolean mouseScrolled(double x,double y,double sx,double sy){scroll=Math.max(0,scroll-(int)Math.signum(sy));controls();return true;}
         @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){g.fill(0,0,width,height,UiTheme.OVERLAY);UiTheme.panel(g,8,5,width-16,height-10);g.text(UiFonts.font(),"移动"+(parent.menu.machine.device().has(DeviceType.Capability.LOGISTICS)?"物体":"液体")+" · "+parent.menu.info.getAsJsonArray("routes").size()+" / "+parent.number("route_limit")+" 对",20,14,UiTheme.TEXT,false);}
         @Override public boolean isPauseScreen(){return false;}@Override public void onClose(){minecraft.gui.popScreenLayer();}

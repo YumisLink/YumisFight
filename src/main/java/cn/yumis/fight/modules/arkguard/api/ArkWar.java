@@ -15,7 +15,7 @@ import java.util.*;
 /** The shared Ark scene's address and boundaries, also consumed by its menu. */
 public final class ArkWar {
     public static final Identifier BLUEPRINT=Identifier.parse("yumis_dungeon_and_fight:ark_war");
-    public static final ResourceKey<Level> DIMENSION=ResourceKey.create(Registries.DIMENSION,Identifier.parse("yumis_dungeon_and_fight:dungeon"));
+    public static final ResourceKey<Level> DIMENSION=ResourceKey.create(Registries.DIMENSION,Identifier.fromNamespaceAndPath(cn.yumis.fight.platform.ItemData.NS,"ark_war"));
     public static final BlockPos ORIGIN=new BlockPos(0,96,-8192);
     private static final int FIELD_EDGE=18;
     private static final double EDGE_BAND=3, MIN_KNOCKBACK=.05;

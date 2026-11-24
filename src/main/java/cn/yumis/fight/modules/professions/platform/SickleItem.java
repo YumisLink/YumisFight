@@ -13,18 +13,31 @@ public final class SickleItem extends Item {
     @FunctionalInterface public interface Harvest {boolean harvest(ServerPlayer player,BlockPos pos,ItemStack tool);}
     public static Harvest HANDLER=(player,pos,tool)->false;
     public static final int DURABILITY=250;
+    public static final long HARVEST_DEDUPE_MILLIS=1500L;
+    private static final java.util.Map<String,Long> recentClientHarvest=new java.util.concurrent.ConcurrentHashMap<>();
     public SickleItem(Properties properties){
         super(properties);
     }
-    @Override public InteractionResult useOn(UseOnContext context){
+    public static InteractionResult useSickle(UseOnContext context,Harvest handler){
         Level level=context.getLevel();
-        if(level.isClientSide())return InteractionResult.SUCCESS;
-        if(!(context.getPlayer() instanceof ServerPlayer player))return InteractionResult.PASS;
+        var actor=context.getPlayer();
         BlockPos pos=context.getClickedPos();
         BlockState state=level.getBlockState(pos);
-        if(!(state.getBlock() instanceof HerbBushBlock))return InteractionResult.PASS;
-        if(player.isShiftKeyDown())return InteractionResult.PASS;
-        if(!HANDLER.harvest(player,pos,context.getItemInHand()))return InteractionResult.FAIL;
+        if(!(state.getBlock() instanceof HerbBushBlock)||actor==null||actor.isShiftKeyDown())return InteractionResult.PASS;
+        if(level.isClientSide()){
+            long now=System.currentTimeMillis();
+            String key=actor.getUUID()+"/"+level.dimension().identifier()+"/"+pos.asLong();
+            Long until=recentClientHarvest.get(key);
+            if(until!=null&&now<until)return InteractionResult.CONSUME;
+            if(recentClientHarvest.size()>512)recentClientHarvest.values().removeIf(t->now>=t);
+            recentClientHarvest.put(key,now+HARVEST_DEDUPE_MILLIS);
+            return InteractionResult.SUCCESS;
+        }
+        if(!(actor instanceof ServerPlayer player))return InteractionResult.PASS;
+        if(!handler.harvest(player,pos,context.getItemInHand()))return InteractionResult.FAIL;
         return InteractionResult.SUCCESS;
+    }
+    @Override public InteractionResult useOn(UseOnContext context){
+        return useSickle(context,HANDLER);
     }
 }

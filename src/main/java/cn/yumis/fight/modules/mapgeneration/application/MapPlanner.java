@@ -70,7 +70,7 @@ public final class MapPlanner {
         int min=Integer.MAX_VALUE,max=Integer.MIN_VALUE;
         for(int z=p.minZ;z<=p.maxZ;z++)for(int x=p.minX;x<=p.maxX;x++) {
             Surface s=surface(level,x,z);int i=p.index(x,z);
-            p.terrain[i]=s.top;p.bearing[i]=s.bearing;p.water[i]=s.water;p.biomes[i]=s.biome;min=Math.min(min,s.top);max=Math.max(max,s.top);
+            p.terrain[i]=s.top;p.naturalTerrain[i]=s.top;p.bearing[i]=s.bearing;p.water[i]=s.water;p.biomes[i]=s.biome;min=Math.min(min,s.top);max=Math.max(max,s.top);
         }
         p.metrics.put("terrain_relief",max-min);
         if(mode==GenerationPlan.Mode.OCEAN)for(int i=0;i<p.terrain.length;i++)
@@ -149,19 +149,52 @@ public final class MapPlanner {
         int[] connected=parent.clone();for(int i:p.roadCells)for(int j:neighbors(p,i))if(p.roadCells.contains(j))union(connected,i,j);
         int components=(int)p.roadCells.stream().map(i->find(connected,i)).distinct().count();p.metrics.put("network_components",components);
         if(components!=1)throw new IllegalArgumentException("道路与平整设施组成的网络不连通，需要修正蓝图接点");
+        Map<String,Integer> roadAnchoredHeights=new HashMap<>();
+        if(mode==GenerationPlan.Mode.TERRAIN) {
+            int[] sculptAnchors=new int[p.terrain.length];
+            Arrays.fill(sculptAnchors,TerrainWallCutter.NO_ANCHOR);
+            for(int i:p.roadCells)sculptAnchors[i]=Math.floorDiv(p.roadHeights.get(i)+1,2);
+            for(Loaded loaded:templates) {
+                var f=loaded.definition;
+                boolean surfaceRoot=f.parent.isEmpty()?f.anchor.equals("surface"):!roadAnchoredHeights.containsKey(f.parent);
+                if(surfaceRoot)continue;
+                int x=origin.getX()+f.position[0],z=origin.getZ()+f.position[1];
+                int height;
+                if(!f.parent.isEmpty())height=roadAnchoredHeights.get(f.parent);
+                else {
+                    int reference=p.roadHeights.get(entranceNodes.get(f.id));
+                    if(!f.flatten)for(int cell:p.roadCells)if(p.x(cell)>=x-1&&p.x(cell)<=x+loaded.template.getSize().getX()&&p.z(cell)>=z-1&&p.z(cell)<=z+loaded.template.getSize().getZ())reference=Math.max(reference,p.roadHeights.get(cell));
+                    height=Math.floorDiv(reference+1,2);
+                }
+                roadAnchoredHeights.put(f.id,height);
+                if(f.tags.contains("wall")||!f.flatten&&!f.platform)continue;
+                int w=loaded.template.getSize().getX(),d=loaded.template.getSize().getZ();
+                for(int zz=z;zz<z+d;zz++)for(int xx=x;xx<x+w;xx++) {
+                    if(!p.inside(xx,zz))continue;
+                    if(loaded.footprint!=null&&!loaded.footprint.contains(xx-x,zz-z))continue;
+                    int ci=p.index(xx,zz);
+                    sculptAnchors[ci]=Math.min(sculptAnchors[ci],height);
+                }
+            }
+            var sculpted=TerrainWallCutter.sculpt(p.width,p.depth,p.naturalTerrain,p.water,sculptAnchors);
+            for(int i=0;i<p.terrain.length;i++) {
+                if(sculptAnchors[i]!=TerrainWallCutter.NO_ANCHOR||p.water[i])continue;
+                p.terrain[i]=sculpted.heights()[i];
+                p.bearing[i]=Math.min(p.bearing[i],sculpted.heights()[i]);
+            }
+            p.metrics.put("terrain_walls_detected",sculpted.wallsDetected());
+            p.metrics.put("terrain_wall_cuts",sculpted.cutCells());
+            p.metrics.put("terrain_max_cut",sculpted.maxCutDepth());
+        }
         Map<String,GenerationPlan.Facility> placed=new HashMap<>();Map<String,StructureTemplate> themed=new HashMap<>();
         int minFloor=Integer.MAX_VALUE,maxFloor=Integer.MIN_VALUE;
         for(Loaded loaded:templates) {
             var f=loaded.definition;int x=origin.getX()+f.position[0],z=origin.getZ()+f.position[1],ex=origin.getX()+f.entrance[0],ez=origin.getZ()+f.entrance[1];
             int i=p.index(ex,ez);int height;
             if(mode!=GenerationPlan.Mode.TERRAIN)height=origin.getY();
+            else if(roadAnchoredHeights.containsKey(f.id))height=roadAnchoredHeights.get(f.id);
             else if(!f.parent.isEmpty()&&placed.containsKey(f.parent))height=(int)placed.get(f.parent).surface();
-            else if(f.anchor.equals("surface"))height=p.terrain[i];
-            else {
-                int reference=p.roadHeights.get(entranceNodes.get(f.id));
-                if(!f.flatten)for(int cell:p.roadCells)if(p.x(cell)>=x-1&&p.x(cell)<=x+loaded.template.getSize().getX()&&p.z(cell)>=z-1&&p.z(cell)<=z+loaded.template.getSize().getZ())reference=Math.max(reference,p.roadHeights.get(cell));
-                height=Math.floorDiv(reference+1,2);
-            }
+            else height=p.terrain[i];
             int bottom=height-f.referenceY,top=bottom+loaded.template.getSize().getY()-1;
             if(!p.inside(x,z)||!p.inside(x+loaded.template.getSize().getX()-1,z+loaded.template.getSize().getZ()-1))throw new IllegalArgumentException("设施占地越过蓝图范围: "+f.id);
             if(bottom<level.getMinY()+1||top>level.getMaxY()-1)throw new IllegalArgumentException("设施超出世界高度: "+f.id);
@@ -232,12 +265,16 @@ public final class MapPlanner {
     private static void solve(GenerationPlan p,Map<Integer,Integer> desired,int[] parent,List<Loaded> templates,Map<String,Integer> entrances,Set<Integer> flattened) {
         Map<Integer,List<Integer>> members=new HashMap<>();
         for(int i:p.roadCells)members.computeIfAbsent(find(parent,i),unused->new ArrayList<>()).add(i);
-        Map<Integer,Set<Integer>> edges=new HashMap<>();
-        for(int i:p.roadCells) {
-            int root=find(parent,i);edges.computeIfAbsent(root,unused->new HashSet<>());
-            for(int j:neighbors(p,i))if(p.roadCells.contains(j)&&root!=find(parent,j))edges.get(root).add(find(parent,j));
-        }
         int size=parent.length,limit=(int)Math.floor(p.blueprint.settings.maxRise*2);
+        Map<Integer,Map<Integer,Integer>> edges=new HashMap<>();
+        int[] roots=new int[size];
+        for(int root:members.keySet())edges.put(root,new HashMap<>());
+        for(int i:p.roadCells) {
+            int root=find(parent,i);roots[i]=root;
+            for(int j:neighbors(p,i))if(p.roadCells.contains(j)&&root!=find(parent,j))TerrainWallCutter.addWeightedEdge(edges,root,find(parent,j),limit);
+        }
+        int proximityEdges=TerrainWallCutter.addProximityEdges(p.width,p.depth,p.roadCells,roots,limit,edges);
+        p.metrics.put("path_proximity_edges",proximityEdges);
         int[] pref=new int[size],low=new int[size],high=new int[size],lb=new int[size],ub=new int[size];
         Map<Integer,Integer> terrainFloors=new HashMap<>();
         for(var e:members.entrySet()) {
@@ -256,7 +293,7 @@ public final class MapPlanner {
             }
         }
         int start=find(parent,p.nearestRoad(p.origin.getX(),p.origin.getZ()));lb[start]=ub[start]=p.origin.getY()*2;
-        propagate(lb,edges,limit,true);propagate(ub,edges,limit,false);
+        propagate(lb,edges,true);propagate(ub,edges,false);
         for(int root:members.keySet())if(lb[root]>ub[root]) {
             var owners=entrances.entrySet().stream().filter(e->find(parent,e.getValue())==root).map(Map.Entry::getKey).sorted().toList();
             throw new IllegalArgumentException("起点高度与设施净高／道路坡度冲突，起点="+p.origin.toShortString()+"，区域="+p.x(root)+","+p.z(root)+"，设施="+owners+"，允许高度="+lb[root]/2.0+".."+ub[root]/2.0);
@@ -269,17 +306,17 @@ public final class MapPlanner {
             lb[e.getKey()]=Math.max(lb[e.getKey()],reachable);
             if(reachable<e.getValue())adjusted++;
         }
-        propagate(lb,edges,limit,true);
+        propagate(lb,edges,true);
         p.metrics.put("terrain_grade_adjustments",adjusted);
         System.arraycopy(pref,0,low,0,size);System.arraycopy(pref,0,high,0,size);
-        propagate(low,edges,limit,true);propagate(high,edges,limit,false);
+        propagate(low,edges,true);propagate(high,edges,false);
         List<Integer> rigid=new ArrayList<>();rigid.add(start);
         for(Loaded l:templates)if(l.definition.flatten) {int r=find(parent,entrances.get(l.definition.id));if(!rigid.contains(r))rigid.add(r);}
         for(int root:rigid) {
             int value=root==start?p.origin.getY()*2:(int)Math.ceil((low[root]+high[root])/4.0)*2;
             value=Math.max(lb[root],Math.min(ub[root],value));value=Math.floorDiv(value+1,2)*2;
             if(value<lb[root]||value>ub[root])throw new IllegalArgumentException("设施没有整数高度落点");
-            lb[root]=ub[root]=value;propagate(lb,edges,limit,true);propagate(ub,edges,limit,false);
+            lb[root]=ub[root]=value;propagate(lb,edges,true);propagate(ub,edges,false);
         }
         for(var e:members.entrySet()) {
             int root=e.getKey();int value=(int)Math.ceil((low[root]+high[root])/4.0)*2;
@@ -296,13 +333,14 @@ public final class MapPlanner {
         for(int i:p.roadCells)for(int j:neighbors(p,i))if(p.roadCells.contains(j)&&Math.abs(p.roadHeights.get(i)-p.roadHeights.get(j))>2)throw new IllegalArgumentException("道路离散坡度超限");
         for(int[] zone:p.flatZones)for(int i:zone)if(!p.roadHeights.get(i).equals(p.roadHeights.get(zone[0])))throw new IllegalArgumentException("入口平段未保持同高");
     }
-    private static void propagate(int[] values,Map<Integer,Set<Integer>> edges,int limit,boolean maximum) {
+    private static void propagate(int[] values,Map<Integer,Map<Integer,Integer>> edges,boolean maximum) {
         PriorityQueue<Node> queue=new PriorityQueue<>(maximum?Comparator.comparingInt(Node::value).reversed():Comparator.comparingInt(Node::value));
         for(int i:edges.keySet())queue.add(new Node(i,values[i]));
         while(!queue.isEmpty()) {
             Node n=queue.remove();if(values[n.index]!=n.value)continue;
-            for(int j:edges.get(n.index)) {
-                int candidate=n.value+(maximum?-limit:limit);
+            for(var entry:edges.get(n.index).entrySet()) {
+                int j=entry.getKey(),step=entry.getValue();
+                int candidate=n.value+(maximum?-step:step);
                 if(maximum?candidate>values[j]:candidate<values[j]) {values[j]=candidate;queue.add(new Node(j,candidate));}
             }
         }

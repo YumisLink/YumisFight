@@ -33,15 +33,19 @@ public final class ApplicationRules {
         private final ArkRules arkWar;
         private final cn.yumis.fight.modules.dungeons.api.RitualBossCatalog ritualBosses;
         private final cn.yumis.fight.modules.talents.api.TalentCatalog talents;
+        private final cn.yumis.fight.modules.skills.api.ElementalistMorphs elementalistMorphs;
+        private final cn.yumis.fight.modules.skills.api.BattleMageMorphs battleMageMorphs;
         public cn.yumis.fight.modules.dungeons.api.RitualBossCatalog ritualBosses(){return ritualBosses;}
         public cn.yumis.fight.modules.talents.api.TalentCatalog talents(){return talents;}
+        public cn.yumis.fight.modules.skills.api.ElementalistMorphs elementalistMorphs(){return elementalistMorphs;}
+        public cn.yumis.fight.modules.skills.api.BattleMageMorphs battleMageMorphs(){return battleMageMorphs;}
         public ArkRules arkWar(){return arkWar;}
         public cn.yumis.fight.modules.economy.api.ShopDefinitions shops(){return shops;}
         public cn.yumis.fight.modules.npc.api.NpcDefinitions npcs(){return npcs;}
         public cn.yumis.fight.modules.quests.api.QuestDefinitions quests(){return quests;}
         public cn.yumis.fight.modules.economy.api.ChestDefinitions chests(){return chests;}
         public JarDefinitions jars(){return jars;}
-        private Bundle(MaterialCatalog materials,DungeonCatalog dungeons,AttributeNames names,EquipmentDefinitions equipment,AffixDefinitions affixes,EquipmentLayout layout,IndustrialRules industry,cn.yumis.fight.modules.skills.api.SkillBalanceRules skills,cn.yumis.fight.modules.economy.api.ChestDefinitions chests,JarDefinitions jars,cn.yumis.fight.modules.economy.api.ShopDefinitions shops,cn.yumis.fight.modules.npc.api.NpcDefinitions npcs,cn.yumis.fight.modules.quests.api.QuestDefinitions quests,ArkRules arkWar,cn.yumis.fight.modules.dungeons.api.RitualBossCatalog ritualBosses,cn.yumis.fight.modules.talents.api.TalentCatalog talents){
+        private Bundle(MaterialCatalog materials,DungeonCatalog dungeons,AttributeNames names,EquipmentDefinitions equipment,AffixDefinitions affixes,EquipmentLayout layout,IndustrialRules industry,cn.yumis.fight.modules.skills.api.SkillBalanceRules skills,cn.yumis.fight.modules.economy.api.ChestDefinitions chests,JarDefinitions jars,cn.yumis.fight.modules.economy.api.ShopDefinitions shops,cn.yumis.fight.modules.npc.api.NpcDefinitions npcs,cn.yumis.fight.modules.quests.api.QuestDefinitions quests,ArkRules arkWar,cn.yumis.fight.modules.dungeons.api.RitualBossCatalog ritualBosses,cn.yumis.fight.modules.talents.api.TalentCatalog talents,cn.yumis.fight.modules.skills.api.ElementalistMorphs elementalistMorphs,cn.yumis.fight.modules.skills.api.BattleMageMorphs battleMageMorphs){
             this.materials=Objects.requireNonNull(materials);this.dungeons=Objects.requireNonNull(dungeons);this.names=Objects.requireNonNull(names);
             this.equipment=Objects.requireNonNull(equipment);this.affixes=Objects.requireNonNull(affixes);this.layout=Objects.requireNonNull(layout);this.industry=Objects.requireNonNull(industry);
             this.skills=Objects.requireNonNull(skills);
@@ -49,7 +53,7 @@ public final class ApplicationRules {
             this.jars=Objects.requireNonNull(jars);this.shops=Objects.requireNonNull(shops);this.npcs=Objects.requireNonNull(npcs);
             this.quests=Objects.requireNonNull(quests);
             this.arkWar=Objects.requireNonNull(arkWar);
-            this.ritualBosses=Objects.requireNonNull(ritualBosses);this.talents=Objects.requireNonNull(talents);
+            this.ritualBosses=Objects.requireNonNull(ritualBosses);this.talents=Objects.requireNonNull(talents);this.elementalistMorphs=Objects.requireNonNull(elementalistMorphs);this.battleMageMorphs=Objects.requireNonNull(battleMageMorphs);
         }
         public MaterialCatalog materials(){return materials;}
         public DungeonCatalog dungeons(){return dungeons;}
@@ -59,10 +63,10 @@ public final class ApplicationRules {
         public EquipmentLayout layout(){return layout;}
         public IndustrialRules industry(){return industry;}
         public cn.yumis.fight.modules.skills.api.SkillBalanceRules skills(){return skills;}
-        public static Bundle validated(MaterialCatalog materials,DungeonCatalog dungeons,AttributeNames names,EquipmentDefinitions equipment,AffixDefinitions affixes,EquipmentLayout layout,IndustrialRules industry,cn.yumis.fight.modules.skills.api.SkillBalanceRules skills,cn.yumis.fight.modules.economy.api.ChestDefinitions chests,JarDefinitions jars,cn.yumis.fight.modules.economy.api.ShopDefinitions shops,cn.yumis.fight.modules.npc.api.NpcDefinitions npcs,cn.yumis.fight.modules.quests.api.QuestDefinitions quests,ArkRules arkWar,cn.yumis.fight.modules.dungeons.api.RitualBossCatalog ritualBosses,cn.yumis.fight.modules.talents.api.TalentCatalog talents){
+        public static Bundle validated(MaterialCatalog materials,DungeonCatalog dungeons,AttributeNames names,EquipmentDefinitions equipment,AffixDefinitions affixes,EquipmentLayout layout,IndustrialRules industry,cn.yumis.fight.modules.skills.api.SkillBalanceRules skills,cn.yumis.fight.modules.economy.api.ChestDefinitions chests,JarDefinitions jars,cn.yumis.fight.modules.economy.api.ShopDefinitions shops,cn.yumis.fight.modules.npc.api.NpcDefinitions npcs,cn.yumis.fight.modules.quests.api.QuestDefinitions quests,ArkRules arkWar,cn.yumis.fight.modules.dungeons.api.RitualBossCatalog ritualBosses,cn.yumis.fight.modules.talents.api.TalentCatalog talents,cn.yumis.fight.modules.skills.api.ElementalistMorphs elementalistMorphs,cn.yumis.fight.modules.skills.api.BattleMageMorphs battleMageMorphs){
             var result=new Bundle(MaterialCatalog.parse(ApplicationJson.JSON.toJson(materials)),DungeonCatalog.parse(ApplicationJson.JSON.toJson(dungeons)),
                 AttributeNames.parse(ApplicationJson.JSON.toJson(names)),EquipmentDefinitions.parse(ApplicationJson.JSON.toJson(equipment)),AffixDefinitions.parse(ApplicationJson.JSON.toJson(affixes)),
-                EquipmentLayout.parse(ApplicationJson.JSON.toJson(layout)),IndustrialRules.parse(ApplicationJson.JSON.toJson(industry)),cn.yumis.fight.modules.skills.api.SkillBalanceRules.parse(ApplicationJson.JSON.toJson(skills)),cn.yumis.fight.modules.economy.api.ChestDefinitions.parse(ApplicationJson.JSON.toJson(chests)),JarDefinitions.parse(ApplicationJson.JSON.toJson(jars)),cn.yumis.fight.modules.economy.api.ShopDefinitions.parse(ApplicationJson.JSON.toJson(shops)),cn.yumis.fight.modules.npc.api.NpcDefinitions.parse(ApplicationJson.JSON.toJson(npcs)),cn.yumis.fight.modules.quests.api.QuestDefinitions.parse(ApplicationJson.JSON.toJson(quests)),ArkRules.parse(ApplicationJson.JSON.toJson(arkWar)),cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.parse(ApplicationJson.JSON.toJson(ritualBosses)),cn.yumis.fight.modules.talents.api.TalentCatalog.parse(ApplicationJson.JSON.toJson(talents)));
+                EquipmentLayout.parse(ApplicationJson.JSON.toJson(layout)),IndustrialRules.parse(ApplicationJson.JSON.toJson(industry)),cn.yumis.fight.modules.skills.api.SkillBalanceRules.parse(ApplicationJson.JSON.toJson(skills)),cn.yumis.fight.modules.economy.api.ChestDefinitions.parse(ApplicationJson.JSON.toJson(chests)),JarDefinitions.parse(ApplicationJson.JSON.toJson(jars)),cn.yumis.fight.modules.economy.api.ShopDefinitions.parse(ApplicationJson.JSON.toJson(shops)),cn.yumis.fight.modules.npc.api.NpcDefinitions.parse(ApplicationJson.JSON.toJson(npcs)),cn.yumis.fight.modules.quests.api.QuestDefinitions.parse(ApplicationJson.JSON.toJson(quests)),ArkRules.parse(ApplicationJson.JSON.toJson(arkWar)),cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.parse(ApplicationJson.JSON.toJson(ritualBosses)),cn.yumis.fight.modules.talents.api.TalentCatalog.parse(ApplicationJson.JSON.toJson(talents)),cn.yumis.fight.modules.skills.api.ElementalistMorphs.parse(ApplicationJson.JSON.toJson(elementalistMorphs)),cn.yumis.fight.modules.skills.api.BattleMageMorphs.parse(ApplicationJson.JSON.toJson(battleMageMorphs)));
             for(var dungeon:result.dungeons.dungeons)for(String material:dungeon.materials())if(!result.materials.materials.containsKey(material))throw new IllegalArgumentException("Unknown dungeon material: "+material);
             for(var boss:result.ritualBosses.ordered()){
                 if(cn.yumis.fight.modules.economy.api.CurrencyRules.find(boss.token())==null)throw new IllegalArgumentException("魔王祭坛信物未登记通货："+boss.token());
@@ -75,7 +79,7 @@ public final class ApplicationRules {
             return result;
         }
     }
-    private static final RuleStore<Bundle> STORE=new RuleStore<>(new Bundle(MaterialCatalog.current(),DungeonCatalog.current(),AttributeNames.current(),EquipmentDefinitions.current(),AffixDefinitions.current(),EquipmentLayout.current(),IndustrialRules.current(),cn.yumis.fight.modules.skills.api.SkillBalanceRules.defaults(),cn.yumis.fight.modules.economy.api.ChestDefinitions.defaults(),JarDefinitions.defaults(),cn.yumis.fight.modules.economy.api.ShopDefinitions.defaults(),cn.yumis.fight.modules.npc.api.NpcDefinitions.defaults(),cn.yumis.fight.modules.quests.api.QuestDefinitions.defaults(),ArkRules.defaults(),cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.defaults(),cn.yumis.fight.modules.talents.api.TalentCatalog.defaults()),Objects::requireNonNull);
+    private static final RuleStore<Bundle> STORE=new RuleStore<>(new Bundle(MaterialCatalog.current(),DungeonCatalog.current(),AttributeNames.current(),EquipmentDefinitions.current(),AffixDefinitions.current(),EquipmentLayout.current(),IndustrialRules.current(),cn.yumis.fight.modules.skills.api.SkillBalanceRules.defaults(),cn.yumis.fight.modules.economy.api.ChestDefinitions.defaults(),JarDefinitions.defaults(),cn.yumis.fight.modules.economy.api.ShopDefinitions.defaults(),cn.yumis.fight.modules.npc.api.NpcDefinitions.defaults(),cn.yumis.fight.modules.quests.api.QuestDefinitions.defaults(),ArkRules.defaults(),cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.defaults(),cn.yumis.fight.modules.talents.api.TalentCatalog.defaults(),cn.yumis.fight.modules.skills.api.ElementalistMorphs.defaults(),cn.yumis.fight.modules.skills.api.BattleMageMorphs.defaults()),Objects::requireNonNull);
     private ApplicationRules(){}
     public static void install(){
         MaterialCatalog.source(()->current().materials());DungeonCatalog.source(()->current().dungeons());AttributeNames.source(()->current().names());
@@ -87,6 +91,8 @@ public final class ApplicationRules {
         ArkRules.source(()->current().arkWar());
         cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.source(()->current().ritualBosses());
         cn.yumis.fight.modules.talents.api.TalentCatalog.source(()->current().talents());
+        cn.yumis.fight.modules.skills.api.ElementalistMorphs.source(()->current().elementalistMorphs());
+        cn.yumis.fight.modules.skills.api.BattleMageMorphs.source(()->current().battleMageMorphs());
         cn.yumis.fight.modules.equipment.api.EquipmentAttributes.characterEffects(cn.yumis.fight.modules.talents.api.TalentAttributes::apply);
     }
     public static Bundle current(){return STORE.snapshot().value();}
@@ -102,6 +108,6 @@ public final class ApplicationRules {
             packet.has("equipmentLayout")?EquipmentLayout.parse(packet.get("equipmentLayout").toString()):before.layout(),
             packet.has("industrialRules")?IndustrialRules.parse(packet.get("industrialRules").toString()):before.industry(),
             cn.yumis.fight.modules.skills.api.SkillBalanceRules.parse(packet.get("skillBalanceRules").toString()),cn.yumis.fight.modules.economy.api.ChestDefinitions.parse(packet.get("chestDefinitions").toString()),JarDefinitions.parse(packet.get("jarDefinitions").toString()),cn.yumis.fight.modules.economy.api.ShopDefinitions.parse(packet.get("shopDefinitions").toString()),cn.yumis.fight.modules.npc.api.NpcDefinitions.parse(packet.get("npcDefinitions").toString()),packet.has("questDefinitions")?cn.yumis.fight.modules.quests.api.QuestDefinitions.parse(packet.get("questDefinitions").toString()):before.quests(),ArkRules.parse(packet.get("arkWarRules").toString()),
-            packet.has("ritualBosses")?cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.parse(packet.get("ritualBosses").toString()):before.ritualBosses(),packet.has("talents")?cn.yumis.fight.modules.talents.api.TalentCatalog.parse(packet.get("talents").toString()):before.talents()));
+            packet.has("ritualBosses")?cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.parse(packet.get("ritualBosses").toString()):before.ritualBosses(),packet.has("talents")?cn.yumis.fight.modules.talents.api.TalentCatalog.parse(packet.get("talents").toString()):before.talents(),packet.has("elementalistMorphs")?cn.yumis.fight.modules.skills.api.ElementalistMorphs.parse(packet.get("elementalistMorphs").toString()):before.elementalistMorphs(),packet.has("battleMageMorphs")?cn.yumis.fight.modules.skills.api.BattleMageMorphs.parse(packet.get("battleMageMorphs").toString()):before.battleMageMorphs()));
     }
 }

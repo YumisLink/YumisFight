@@ -5,10 +5,11 @@ import cn.yumis.fight.modules.attributes.api.*;
 /** Existing character growth applied after item sources. */
 public final class CharacterAttributes {
     private CharacterAttributes(){}
+    public static double baseMana(Progress p){return 80+10d*(p.level-1);}
     public static void apply(Progress p,Stats s){
         double n=p.level-1;
         s.add(Stat.HEALTH,100+20*n);
-        s.add(Stat.MP,80+10*n);
+        s.add(Stat.MP,baseMana(p));
         s.add(Stat.STRENGTH,20+p.strength);
         s.add(Stat.INTELLIGENCE,15+p.intelligence);
         s.add(Stat.SPIRIT,10+p.spirit);

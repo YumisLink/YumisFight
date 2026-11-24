@@ -1,7 +1,9 @@
 package cn.yumis.fight.modules.dungeons.application;
 
 import cn.yumis.fight.foundation.Journal;
+import cn.yumis.fight.modules.combat.api.ActionPhase;
 import cn.yumis.fight.modules.combat.api.CombatPorts;
+import cn.yumis.fight.modules.combat.api.StatusLeases;
 import cn.yumis.fight.modules.combat.api.Life;
 import cn.yumis.fight.modules.combat.api.Receipt;
 import cn.yumis.fight.modules.dungeons.api.*;
@@ -66,6 +68,8 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
         final Map<String, Long> castEnds = new HashMap<>();
         public final Map<String, JsonObject> safeSpots = new LinkedHashMap<>();
         public final Map<String, String> hudLines = new LinkedHashMap<>();
+        public transient final StatusLeases leases = new StatusLeases();
+        public transient ActionPhase actionPhase = ActionPhase.IDLE;
         public RitualBossContent content;
         private RitualBossCatalog.Boss definition;
         public long noSurvivorSince;
@@ -527,6 +531,8 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
     /** Content starts one cast: the packet drives the model animation, the telegraph and the local contacts. */
     public void startMove(Run run, RitualBossCatalog.Move move, Vec3 origin, Vec3 direction, UUID lockedPlayer) {
         long now = System.currentTimeMillis();
+        var timing = run.bossTarget.actionTiming(now);
+        long durationMs = timing.duration(move.durationMs());
         run.moveUsedAt.put(move.id(), now);
         String castId = UUID.randomUUID().toString();
         JsonObject packet = new JsonObject();
@@ -535,11 +541,11 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
         packet.add("boss", JSON.toJsonTree(run.bossTarget));
         packet.addProperty("kind", move.id());
         packet.addProperty("startedAt", now);
-        packet.addProperty("durationMs", move.durationMs());
+        packet.addProperty("durationMs", durationMs);
         packet.addProperty("arenaX",run.origin.x);packet.addProperty("arenaY",run.origin.y);packet.addProperty("arenaZ",run.origin.z);
         packet.addProperty("arenaRadius",run.radius);
         var contacts = new ArrayList<Long>();
-        for (long contact : move.contactMs()) contacts.add(contact);
+        for (long contact : move.contactMs()) contacts.add(timing.duration(contact));
         packet.add("contactMs", JSON.toJsonTree(contacts));
         var shape = move.shape();
         if (shape != null) {
@@ -582,12 +588,12 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
         if (move.debtSlowSeconds() != null) packet.addProperty("selfDebtSeconds",move.debtSlowSeconds());
         if (move.safeSpots() != null && !move.safeSpots().isEmpty()) packet.add("safeKinds", JSON.toJsonTree(move.safeSpots()));
         run.casts.put(move.id(), UUID.fromString(castId));
-        run.castEnds.put(move.id(),now+move.durationMs());
+        run.castEnds.put(move.id(),now+durationMs);
         Entity entity = run.level(server) == null ? null : run.level(server).getEntity(run.bossEntity);
         if (entity instanceof RitualBossEntity boss) {
             boss.getNavigation().stop();
             if(direction!=null)boss.setYRot(yawToward(origin,origin.add(direction)));
-            boss.play(move.animation(), move.durationMs());
+            boss.play(move.animation(), durationMs);
         }
         broadcastArena(run, "ritualAttack", packet);
     }

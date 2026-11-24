@@ -16,6 +16,7 @@ public final class EconomyClientMessages {
         router.register("economy","shopBag",(context,message)->ShopClient.bag(message));
         router.register("economy","shopResult",(context,message)->ShopClient.result(message));
         router.register("economy","jarState",(context,message)->JarClient.accept(message));
+        router.register("economy","lootAcquired",(context,message)->AutoSellClient.acquired(message));
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Init.Post event)->{
             if(event.getScreen() instanceof AbstractContainerScreen<?> screen&&screen.getMenu() instanceof DimensionalMenu menu){
                 int x=screen.getLeftPos()+76,y=screen.getTopPos()+menu.rows*18+174-23;
@@ -34,7 +35,14 @@ public final class EconomyClientMessages {
                 if(fragments==null||index!=fragmentIndex++){pending=null;fragments=null;return;}fragments.append(row.get("fragment").getAsString());
                 if(row.get("last").getAsBoolean()){pending.getAsJsonArray("rows").add(JsonParser.parseString(fragments.toString()).getAsJsonObject());fragments=null;}
             }
-            if(j.get("done").getAsBoolean()){if(fragments==null)SaleClient.accept(pending);pending=null;fragments=null;}
+            if(j.get("done").getAsBoolean()){
+                var complete=pending;pending=null;
+                if(fragments==null){
+                    if(complete.has("request"))AutoSellClient.ship(complete);
+                    else SaleClient.accept(complete);
+                }
+                fragments=null;
+            }
         });
     }
 }

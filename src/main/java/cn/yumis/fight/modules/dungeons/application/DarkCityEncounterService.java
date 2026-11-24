@@ -1,6 +1,8 @@
 package cn.yumis.fight.modules.dungeons.application;
 
+import cn.yumis.fight.modules.combat.api.ActionPhase;
 import cn.yumis.fight.modules.combat.api.CombatContentTypes;
+import cn.yumis.fight.modules.combat.api.StatusLeases;
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.DarkCityEntrance;
 import cn.yumis.fight.foundation.Journal;
@@ -34,6 +36,8 @@ public final class DarkCityEncounterService {
     private static final class Brain {
         final Vec3 home;final int area;final double knockback;
         final EnumMap<DarkCityMoves,Long> ready=new EnumMap<>(DarkCityMoves.class);
+        final StatusLeases leases=new StatusLeases();
+        ActionPhase phase=ActionPhase.IDLE;
         long busy,resistantUntil;
         Brain(DungeonEnemy e,Dungeon d){area=DarkCityEntrance.area(d.wave);home=DarkCityEntrance.inside(d.cell,area,e.position());knockback=DarkCityEnemyKind.of(e)==GOLIATH?0:e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).getBaseValue();}
         boolean ready(DarkCityMoves move,long now){return now>=ready.getOrDefault(move,0L);}
@@ -94,18 +98,20 @@ public final class DarkCityEncounterService {
         };
         if(move!=null)play(d,e,b,move,direction,now);
     }
-    private boolean eligible(ServerPlayer p,String instance){return p.level()==owner.level()&&owner.participant(p,instance)&&p.isAlive()&&!players.session(p).life.dead&&!p.isSpectator();}
+    private boolean eligible(ServerPlayer p,String instance){var life=players.session(p).life;return p.level()==owner.level()&&owner.participant(p,instance)&&p.isAlive()&&!life.dead&&!life.dungeonDefeated&&!p.isSpectator();}
     private boolean available(Dungeon d,Brain b,DarkCityMoves move,double distance,long now){
         return distance<=move.range&&b.ready(move,now)&&(!move.ranged()||attacks.values().stream().filter(a->a.attack.instance.equals(d.id.toString())&&a.area==b.area&&now<a.attack.end()&&DarkCityMoves.valueOf(a.attack.kind).ranged()).map(a->a.group).distinct().count()<RANGED_GROUP_LIMIT);
     }
     private void play(Dungeon d,DungeonEnemy e,Brain b,DarkCityMoves move,Vec3 direction,long now){
-        e.getNavigation().stop();e.setAggressive(true);e.play(move.animation,move.duration());b.busy=now+move.duration();b.ready.put(move,now+move.cooldown);
-        if(move==SMASH){b.resistantUntil=now+move.windup+move.active;e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);}
-        if(move==DarkCityMoves.GUARD)guards.put(e.getUUID(),new Guard(now+move.windup,now+move.windup+move.active));
+        var timing=targets.target(e).actionTiming(now);
+        long duration=timing.duration(move.duration());e.getNavigation().stop();e.setAggressive(true);e.play(move.animation,duration);b.busy=now+duration;b.ready.put(move,now+move.cooldown);
+        long windup=timing.windup(move.windup),active=timing.active(move.active);
+        if(move==SMASH){b.resistantUntil=now+windup+active;e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);}
+        if(move==DarkCityMoves.GUARD)guards.put(e.getUUID(),new Guard(now+windup,now+windup+active));
         String group=UUID.randomUUID().toString();int count=move==NIGHTMARE?4:1;
         for(int i=0;i<count;i++){
             Vec3 heading=direction.yRot((float)(i*Math.PI/2));GblAttack a=new GblAttack();
-            a.source=e.getUUID();a.instance=e.instance();a.kind=move.name();a.shape=move.shape;a.started=now;a.windup=move.windup;a.active=move.active;
+            a.source=e.getUUID();a.instance=e.instance();a.kind=move.name();a.shape=move.shape;a.started=now;a.windup=windup;a.active=active;
             a.radius=move.range;a.width=move==CHARGE?e.getBbWidth()/2:move.width();a.halfAngle=Math.PI/3;a.coefficient=move.coefficient;a.magic=move.magic;a.element=move.element;
             a.origin(e.position().add(0,move.height(),0));
             double travel=move.shape.equals("LINE")?cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(move.range):move.range;
@@ -176,7 +182,7 @@ public final class DarkCityEncounterService {
             e.getNavigation().stop();e.setDeltaMovement(new Vec3(0,e.getDeltaMovement().y,0));e.setAggressive(false);e.play("",0);
             if(b!=null)e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(b.knockback);
         }
-        if(b!=null){b.busy=0;b.resistantUntil=0;}
+        if(b!=null){b.phase=ActionPhase.ABANDONED;b.leases.clear();b.busy=0;b.resistantUntil=0;}
     }
     public void died(UUID id){cancel(id);brains.remove(id);}
     public void track(ServerPlayer p){

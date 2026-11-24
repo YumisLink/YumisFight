@@ -22,7 +22,7 @@ public final class GenerationPlan {
     public final BlockPos origin;
     public final Mode mode;
     public final int minX,minZ,maxX,maxZ,width,depth;
-    public final int[] terrain,bearing;
+    public final int[] terrain,naturalTerrain,bearing;
     public final boolean[] water;
     public final String[] biomes;
     public final Map<Integer,Integer> roadHeights=new HashMap<>();
@@ -40,7 +40,7 @@ public final class GenerationPlan {
     public GenerationPlan(ServerLevel level,Identifier id,MapBlueprint blueprint,BlockPos origin,Mode mode) {
         this.level=level;this.id=id;this.blueprint=blueprint;this.origin=origin;this.mode=mode;
         minX=origin.getX()+blueprint.bounds[0];minZ=origin.getZ()+blueprint.bounds[1];maxX=origin.getX()+blueprint.bounds[2];maxZ=origin.getZ()+blueprint.bounds[3];
-        width=maxX-minX+1;depth=maxZ-minZ+1;terrain=new int[width*depth];bearing=new int[terrain.length];water=new boolean[terrain.length];biomes=new String[terrain.length];
+        width=maxX-minX+1;depth=maxZ-minZ+1;terrain=new int[width*depth];naturalTerrain=new int[terrain.length];bearing=new int[terrain.length];water=new boolean[terrain.length];biomes=new String[terrain.length];
     }
     public int index(int x,int z) {return (z-minZ)*width+x-minX;}
     public int x(int i) {return minX+i%width;}

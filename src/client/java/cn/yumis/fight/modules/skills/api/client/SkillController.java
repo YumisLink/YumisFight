@@ -10,9 +10,17 @@ import static cn.yumis.fight.modules.combat.api.LevelAdvantage.advantage;
 import cn.yumis.fight.modules.skills.client.Effects;
 import cn.yumis.fight.modules.skills.client.PlayerPoseChannel;
 import cn.yumis.fight.modules.skills.api.SkillPreview;
+import cn.yumis.fight.modules.dungeons.api.TowerCardEffects;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
+import cn.yumis.fight.modules.dungeons.api.TowerClimbRules;
+import cn.yumis.fight.modules.skills.client.TowerSkillCombat;
+import cn.yumis.fight.modules.combat.api.ActionPhase;
+import cn.yumis.fight.modules.combat.api.ActionStatus;
+import cn.yumis.fight.modules.combat.api.StatusLeases;
 import cn.yumis.fight.modules.combat.api.CombatTiming;
 import cn.yumis.fight.modules.combat.api.CombatRules;
 import cn.yumis.fight.modules.combat.api.CombatEffect;
+import cn.yumis.fight.modules.combat.api.LifeRules;
 import cn.yumis.fight.modules.combat.api.ElementAccumulation;
 import cn.yumis.fight.modules.combat.api.EquipmentDamage;
 import cn.yumis.fight.modules.combat.api.Life;
@@ -38,6 +46,7 @@ import static cn.yumis.fight.modules.combat.api.LifeRules.*;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
 
 import net.minecraft.world.entity.*;
 import cn.yumis.fight.modules.combat.api.ManagedEntities;
@@ -74,9 +83,18 @@ public final class SkillController {
     private final Map<Long,BleedRefresh> pendingBleeds=new HashMap<>();
     private record BleedRefresh(String session,long sourceGeneration,UUID target,long generation,String effect){}
     private final ArrayDeque<Runnable> deferred=new ArrayDeque<>();
+    private static final long DEFERRED_HIT_MILLIS=500L;
+    private static final int DEFERRED_HIT_LIMIT=32;
+    private record DeferredHit(UUID targetUuid,int entityId,String dimension,long generation,Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot equipment,SkillCast source,SkillDefinition skill,double coefficient,boolean basic,boolean passive,double knockback,Vec3 center,JsonObject nativeContext,String basicCycle,int basicSlash,String trainingRoot,boolean confirmedTail,long expiresAt){}
+    private final ArrayDeque<DeferredHit> deferredHits=new ArrayDeque<>();
+    public static final long INPUT_BUFFER_MILLIS=350L;
+    private record BufferedSkill(int slot,long expiresAt){}
+    private BufferedSkill bufferedSkill;
     public SkillCast cast;
     private final LinkedHashMap<String,Set<String>> cageHits=new LinkedHashMap<>();
     private long lastAttack,lastTick;
+    private double pendingOutRegen;
+    private long lastOutRegenReport;
     private String currentWeapon="";
     private Stats snapshotCache,snapshotBase;private Object snapshotCareer;private long snapshotTick=-1,snapshotFingerprint;
     private record Bleed(JsonObject state,long next,int index){
@@ -115,13 +133,41 @@ public final class SkillController {
         var g=p==null?null:EquipmentItems.view(p.getMainHandItem());
         return state().ready()&&g!=null&&g.slot()==Slot.WEAPON&&g.valid(state().progress(),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(Minecraft.getInstance().player));
     }
+    private final StatusLeases leases=new StatusLeases();
+    private boolean gravityManaged,gravityBaseline;
+    public StatusLeases statusLeases(){return leases;}
+    public StatusLeases.Lease acquireStatus(String owner,ActionStatus status){return acquireStatus(owner,status,Long.MAX_VALUE);}
+    public StatusLeases.Lease acquireStatus(String owner,ActionStatus status,long expiresAt){
+        var lease=leases.acquire(owner,status,expiresAt);
+        if(status==ActionStatus.NO_GRAVITY)syncGravity();
+        return lease;
+    }
+    public void releaseStatusOwner(String owner){
+        if(leases.releaseOwner(owner))syncGravity();
+    }
+    public void releaseStatus(String owner,ActionStatus status){
+        if(leases.release(owner,status)&&status==ActionStatus.NO_GRAVITY)syncGravity();
+    }
+    public void syncGravity(){
+        var p=Minecraft.getInstance().player;
+        if(p==null)return;
+        boolean need=leases.has(ActionStatus.NO_GRAVITY,cn.yumis.fight.modules.presentation.api.client.ClientUi.now());
+        if(need){
+            if(!gravityManaged){gravityBaseline=p.isNoGravity();gravityManaged=true;}
+            p.setNoGravity(true);
+            p.fallDistance=0;
+        }else if(gravityManaged){
+            p.setNoGravity(gravityBaseline);
+            p.fallDistance=0;
+            gravityManaged=false;
+        }
+    }
     public boolean locked(){
-        return cast!=null||cn.yumis.fight.modules.skills.client.ChantClient.active();
+        return cast!=null||cn.yumis.fight.modules.skills.client.ChantClient.active()||cn.yumis.fight.modules.skills.client.ElementalistChargeClient.active()||cn.yumis.fight.modules.skills.client.BattleMageChargeClient.active();
     }
     public boolean invulnerable(){
-        return cn.yumis.fight.modules.skills.client.DemonHunterClient.invulnerable()
-            ||cast!=null&&(SkillPresentation.invulnerable(cast.skill)||cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.invulnerable(cast))
-            ||ongoingEffects.stream().anyMatch(cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE::invulnerable);
+        long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
+        return leases.has(ActionStatus.INVULNERABLE,now)||TowerSkillCombat.invulnerable()||cn.yumis.fight.modules.skills.client.BattleMageClient.invulnerable();
     }
     public Stats snapshot(){
         var mc=Minecraft.getInstance();long tick=mc.player==null?-1:mc.player.tickCount;var resources=state().resources();var career=cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.view;
@@ -133,26 +179,54 @@ public final class SkillController {
         return snapshotCache.copy();
     }
     public void invalidateSnapshot(){snapshotCache=null;}
-    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();SkillBehaviors.finish(cast);cast=null;ongoingEffects.clear();PlayerPoseChannel.clear();cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;basicActions.clear();basicVisualCycles.clear();waves.clear();staffBolts.clear();nativeLaunches.clear();launchFrames.clear();bosses.clear();bossHit.clear();incomingRoots.clear();wallActions.clear();state().resources().equipmentBuffs.remove("wall");controls.clear();environment.clear();bleeds.clear();pendingBleeds.clear();equipmentReceipts.clear();elementalDots.clear();pendingElemental.clear();deferred.clear();lastAttack=lastTick=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
+    public void clearTransient(){cn.yumis.fight.modules.skills.client.ChantClient.reset();cn.yumis.fight.modules.skills.client.ElementalistChargeClient.reset();cn.yumis.fight.modules.skills.client.BattleMageChargeClient.reset();SkillBehaviors.finish(cast);if(cast!=null)cast.phase=ActionPhase.ABANDONED;cast=null;bufferedSkill=null;for(var e:ongoingEffects)e.phase=ActionPhase.ABANDONED;ongoingEffects.clear();leases.clear();syncGravity();PlayerPoseChannel.clear();cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.clear();greatCharge=null;basicActions.clear();basicVisualCycles.clear();waves.clear();staffBolts.clear();nativeLaunches.clear();launchFrames.clear();bosses.clear();bossHit.clear();incomingRoots.clear();wallActions.clear();state().resources().equipmentBuffs.remove("wall");controls.clear();environment.clear();bleeds.clear();pendingBleeds.clear();equipmentReceipts.clear();elementalDots.clear();pendingElemental.clear();deferred.clear();deferredHits.clear();lastAttack=lastTick=0;pendingOutRegen=0;lastOutRegenReport=0;currentWeapon="";invalidateSnapshot();cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.clear();TrainingCombat.clear();}
     private final List<SkillCast> ongoingEffects=new ArrayList<>();
     private SkillCast advancing;
     public boolean readyToCast(long now){
-        return !PlayerPoseChannel.coolingDown(now)&&(cast==null||PlayerPoseChannel.canYield(cast,now));
+        return readyToCast(now,null);
+    }
+    public boolean readyToCast(long now,SkillDefinition incoming){
+        if(cn.yumis.fight.modules.skills.client.BattleMageClient.canCancelActive(incoming,now))return true;
+        boolean recoveryOk=!PlayerPoseChannel.coolingDown(now)||SkillPresentation.canCancelRecovery(incoming);
+        boolean castOk=SkillPresentation.canCancel(incoming,cast,cast!=null&&PlayerPoseChannel.canYield(cast,now));
+        return recoveryOk&&castOk;
     }
     public void releaseCompletedCast(){
         if(cast!=null)yieldCast();
     }
+    private boolean canBufferSlot(int slot){
+        if(slot<0||slot>=state().progress().slots.length)return false;
+        String binding=state().progress().slots[slot];
+        if(binding==null||binding.isEmpty()||!SkillCatalog.contains(binding))return false;
+        SkillDefinition skill=SkillCatalog.require(binding);
+        return !skill.passive()&&(validWeapon()||skill.equipmentGranted);
+    }
     public boolean press(int slot){
         if(!state().ready())return false;
+        if(cn.yumis.fight.modules.dungeons.api.client.SealBossState.isFrozen())return true;
+        if(cn.yumis.fight.modules.skills.client.BattleMageClient.tryOverlayChaserCast(slot))return true;
         if(cn.yumis.fight.modules.skills.client.ChantClient.press(slot))return true;
+        if(cn.yumis.fight.modules.skills.client.ElementalistChargeClient.press(slot))return true;
+        if(cn.yumis.fight.modules.skills.client.BattleMageChargeClient.press(slot))return true;
         String initial=state().progress().slots[slot];
+        if(cn.yumis.fight.modules.dungeons.api.client.SealBossState.isSkillSealed(initial))return true;
         var p=Minecraft.getInstance().player;
         long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
         if(p.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(p))return true;
-        boolean equipmentSkill=SkillCatalog.contains(initial)&&SkillCatalog.require(initial).equipmentGranted;
+        if(cn.yumis.fight.modules.skills.client.ElementalistClient.tryManualDetonate(initial))return true;
+        if(p.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.RITUAL_ROOT)&&SkillPresentation.movement(initial)){
+            state().message("定身期间无法使用位移技能");
+            return true;
+        }
+        SkillDefinition initialDef=SkillCatalog.contains(initial)?SkillCatalog.require(initial):null;
+        boolean equipmentSkill=initialDef!=null&&initialDef.equipmentGranted;
         if(cast!=null){
             if(!validWeapon()&&!equipmentSkill)return false;
-            if(cast.slot%8==slot%8&&SkillPresentation.segmented(cast.skill)&&now>=cast.stageStart+SkillPresentation.segmentDelay(cast.skill)/cast.speed&&now<=cast.window&&cast.segment<cast.parameters.get("slashes",3)){
+            if(cast.slot%8==slot%8&&SkillPresentation.segmented(cast.skill)&&now<=cast.window&&cast.segment<cast.parameters.get("slashes",3)){
+                if(now<cast.stageStart+SkillPresentation.segmentDelay(cast.skill)/cast.speed){
+                    bufferedSkill=new BufferedSkill(slot,now+INPUT_BUFFER_MILLIS);
+                    return true;
+                }
                 // Complete the previous segment before an input arriving between movement ticks.
                 advance(now,0);
                 if(cast==null)return true;
@@ -166,30 +240,52 @@ public final class SkillController {
                 poseSegment(cast);
                 return true;
             }
-            if(!PlayerPoseChannel.canYield(cast,now))return true;
+            if(!SkillPresentation.canCancel(initialDef,cast,PlayerPoseChannel.canYield(cast,now))){
+                if(canBufferSlot(slot))bufferedSkill=new BufferedSkill(slot,now+INPUT_BUFFER_MILLIS);
+                return true;
+            }
         }
-        if(SkillCatalog.contains(initial)&&readyToCast(now))cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.prepareInput(SkillCatalog.require(initial));
+        if(PlayerPoseChannel.coolingDown(now)&&!SkillPresentation.canCancelRecovery(initialDef)&&!cn.yumis.fight.modules.skills.client.BattleMageClient.canCancelActive(initialDef,now)){
+            if(canBufferSlot(slot))bufferedSkill=new BufferedSkill(slot,now+INPUT_BUFFER_MILLIS);
+            return true;
+        }
+        if(initialDef!=null&&readyToCast(now,initialDef))cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.prepareInput(initialDef);
         if(!validWeapon()&&!equipmentSkill)return false;
         String binding=state().progress().slots[slot];
         if(binding.isEmpty())return true;
         if(!SkillCatalog.contains(binding)){state().message("该技能内容尚未加载，快捷槽已保留");return false;}
         SkillDefinition skill=cn.yumis.fight.modules.skills.client.OracleClient.INSTANCE.resolve(SkillCatalog.require(binding));
         if(skill==null)return true;
+        if(p.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.RITUAL_ROOT)&&SkillPresentation.movement(skill)){
+            state().message("定身期间无法使用位移技能");
+            return true;
+        }
         int rank=SkillLearning.effective(state().stats(),state().progress(),skill);
         if(rank<=0||skill.passive())return true;
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.request(skill,slot);return true;
     }
     public void release(int baseSlot){
+        cn.yumis.fight.modules.skills.client.ElementalistChargeClient.released(baseSlot);
+        cn.yumis.fight.modules.skills.client.BattleMageChargeClient.released(baseSlot);
         cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.released(baseSlot);
         if(cast!=null&&cast.charging&&cast.slot%8==baseSlot){cast.release=true;if(Minecraft.getInstance().player!=null)cast.direction=horizontal(Minecraft.getInstance().player.getLookAngle());}
     }
     public void begin(SkillCast c){
-        if(cast!=null)cancel(false);cancelBasicAttacks();cast=c;
         long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
+        if(cast!=null){
+            if(cast.canBreak||PlayerPoseChannel.canYield(cast,now))yieldCast();
+            else cancel(false);
+        }
+        cancelBasicAttacks();
+        greatCharge=null;
+        cast=c;
+        c.phase=ActionPhase.ACTIVE;
+        c.timelineCursor=0;
+        c.canBreak=false;
+        if(SkillPresentation.invulnerable(c.skill))acquireStatus(c.id,ActionStatus.INVULNERABLE);
         if(SkillPresentation.segmented(c.skill))c.window=now+(long)(SkillPresentation.segmentWindow(c.skill)/c.speed);
         TrainingCombat.begin(c.id,c.skill.title);
-        if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIELD))TrainingCombat.hold(c.id,"persistent",now+12000);
-        if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.KALLA)&&!c.terminal)TrainingCombat.hold(c.id,"persistent",now+20000);
+        cn.yumis.fight.modules.skills.client.SkillCastHooks.dispatch(cn.yumis.fight.modules.skills.client.SkillCastHooks.Stage.ON_CAST_START,new cn.yumis.fight.modules.skills.client.SkillCastHooks.CastEvent(c,now,true));
         PlayerPoseChannel.begin(c);
         SkillBehaviors.start(skillContext,c,now);visual(c,"START");
         if(SkillPresentation.segmented(c.skill)){visual(c,"SEGMENT");poseSegment(c);}
@@ -219,15 +315,38 @@ public final class SkillController {
     private final Map<String,BasicCycle> basicVisualCycles=new HashMap<>();
     private record GreatCharge(Stats stats,String weapon,long generation,String dimension,long start){}
     private GreatCharge greatCharge;
+    public boolean greatCharging(){return greatCharge!=null;}
+    public double greatChargeProgress(long now){return greatCharge==null?0:Math.clamp((now-greatCharge.start)/800d,0,1);}
+    public boolean greatChargeFull(long now){return greatChargeProgress(now)>=1d;}
+    public boolean shouldInterceptBlockAttack(Minecraft mc){
+        if(mc==null||mc.hitResult==null||mc.hitResult.getType()!=HitResult.Type.BLOCK)return true;
+        if(mc.player==null||mc.level==null)return true;
+        if(state().ready()&&cn.yumis.fight.modules.presentation.api.client.ClientUi.now()<state().resources().combatUntil)return true;
+        if(state().ready()&&state().own().instance!=null&&!state().own().instance.isEmpty())return true;
+        if(mc.hitResult instanceof BlockHitResult hit){
+            var blockState=mc.level.getBlockState(hit.getBlockPos());
+            if(blockState.getCollisionShape(mc.level,hit.getBlockPos()).isEmpty()||blockState.getDestroySpeed(mc.level,hit.getBlockPos())<0)return true;
+        }
+        Stats stats=snapshot();
+        boolean mastery=WeaponSkills.mastery(state().progress(),stats),great=mastery&&stats.weaponType.equals("GREATSWORD");
+        double reach=great?6:WeaponTraits.basic(stats.weaponType).range();
+        return !meleeSweep(mc.player.getEyePosition(),Vec3.directionFromRotation(0,mc.player.getYRot()),mc.player.getBoundingBox(),reach).isEmpty();
+    }
     public void attack(){
         var mc=Minecraft.getInstance();
-        if(!validWeapon()||cast!=null||cn.yumis.fight.modules.skills.client.DemonHunterClient.active()||cn.yumis.fight.modules.skills.client.ChantClient.active()||mc.player.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)||cn.yumis.fight.modules.presentation.api.client.ClientUi.now()<lastAttack)return;
+        if(!state().combatAvailable()||!validWeapon()||cast!=null||cn.yumis.fight.modules.dungeons.api.client.SealBossState.isFrozen()||cn.yumis.fight.modules.skills.client.DemonHunterClient.active()||cn.yumis.fight.modules.skills.client.ChantClient.active()||cn.yumis.fight.modules.skills.client.ElementalistChargeClient.active()||cn.yumis.fight.modules.skills.client.ElementalistClient.blocksBasic()||cn.yumis.fight.modules.skills.client.BattleMageChargeClient.active()||cn.yumis.fight.modules.skills.client.BattleMageClient.blocksBasic()||mc.player.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)||cn.yumis.fight.modules.presentation.api.client.ClientUi.now()<lastAttack)return;
         Stats stats=snapshot();if(!cn.yumis.fight.modules.skills.client.DemonHunterClient.basicAllowed(stats))return;
-        if(WeaponSkills.mastery(state().progress(),stats)&&stats.weaponType.equals("GREATSWORD")){if(greatCharge==null)greatCharge=new GreatCharge(stats,stats.weaponInstance,state().own().generation,mc.level.dimension().identifier().toString(),cn.yumis.fight.modules.presentation.api.client.ClientUi.now());return;}
+        if(WeaponSkills.mastery(state().progress(),stats)&&stats.weaponType.equals("GREATSWORD")){
+            if(greatCharge==null){
+                greatCharge=new GreatCharge(stats,stats.weaponInstance,state().own().generation,mc.level.dimension().identifier().toString(),cn.yumis.fight.modules.presentation.api.client.ClientUi.now());
+                PlayerPoseChannel.greatCharge(horizontal(mc.player.getLookAngle()));
+            }
+            return;
+        }
         sendBasic(stats);
     }
     private void sendBasic(Stats stats){
-        var mc=Minecraft.getInstance();var profile=WeaponSkills.basicAttack(state().progress(),stats);double interval=profile.interval();
+        var mc=Minecraft.getInstance();var profile=WeaponSkills.basicAttack(state().progress(),stats);double interval=cn.yumis.fight.modules.skills.client.BattleMageClient.basicInterval(stats,profile.interval());
         lastAttack=cn.yumis.fight.modules.presentation.api.client.ClientUi.now()+(long)Math.ceil(interval);
         String cycle=UUID.randomUUID().toString();stats=WeaponSkills.basicSnapshot(state().progress(),stats);var equipment=state().resources().equipment;
         JsonObject content=cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basicContent(cycle);
@@ -235,14 +354,21 @@ public final class SkillController {
         if(weapon.projectileSpeed()>0){var direction=mc.player.getLookAngle().normalize();var launch=cn.yumis.fight.modules.combat.api.ProjectileSpawn.inWorld(mc.player,mc.player.getEyePosition(),direction,weapon.range(),.15,SkillController::canTarget);content.add("staffProjectile",cn.yumis.fight.modules.combat.api.ProjectileSpawn.snapshot(launch,direction,state().serverNow()));}
         TrainingCombat.begin(cycle,"普通攻击");
         if(mc.hitResult instanceof EntityHitResult hit&&hit.getEntity() instanceof CageEntity cage){
-            JsonObject j=new JsonObject();j.addProperty("cage",cage.root());j.addProperty("operation",UUID.randomUUID().toString());state().send("cageHit",j);if(!poseBasic(stats,1))mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);return;
+            JsonObject j=new JsonObject();j.addProperty("cage",cage.root());j.addProperty("operation",UUID.randomUUID().toString());state().send("cageHit",j);
+            swingBasic();
+            return;
         }
-        if(cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basic(stats,cycle,content)){if(!poseBasic(stats,1))mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);TrainingCombat.actionFinished(cycle);return;}
+        TowerSkillCombat.basic(stats);
+        if(cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basic(stats,cycle,content)){
+            swingBasic();
+            TrainingCombat.actionFinished(cycle);
+            return;
+        }
         long start=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();int slashes=profile.slashes();double offset=profile.contactOffset();
         var accepted=new BasicCycle(cycle,state().session(),stats.weaponInstance,state().own().generation,mc.level.dimension().identifier().toString(),state().own().instance,stats,equipment,content,interval,slashes,start);
         boolean whole=BasicAttackVisuals.wholeCycle(stats.weaponType);if(whole){basicVisualCycles.put(cycle,accepted);basicVisual(accepted,0,start);}
         for(int i=0;i<slashes;i++){
-            if(!whole)basicActions.add(new BasicAction(start+i*interval/2,++basicOrder,accepted,i,false));
+            if(!whole||i>0)basicActions.add(new BasicAction(start+i*interval/2,++basicOrder,accepted,i,false));
             basicActions.add(new BasicAction(start+(i*.5+offset)*interval,++basicOrder,accepted,i,true));
         }
         advanceBasicActions(start);
@@ -254,7 +380,7 @@ public final class SkillController {
         for(var cycle:basicVisualCycles.values())cancelBasicVisual(cycle);basicVisualCycles.clear();
     }
     private boolean validBasic(BasicCycle cycle){
-        var mc=Minecraft.getInstance();return state().ready()&&mc.player!=null&&mc.level!=null&&!state().own().dead&&!mc.player.isDeadOrDying()&&!cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)&&cast==null&&!cn.yumis.fight.modules.skills.client.DemonHunterClient.active()&&!cn.yumis.fight.modules.skills.client.ChantClient.active()&&!cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.waiting()&&validWeapon()&&cycle.session.equals(state().session())&&cycle.generation==state().own().generation&&cycle.instance.equals(state().own().instance)&&cycle.dimension.equals(mc.level.dimension().identifier().toString())&&cycle.weapon.equals(EquipmentItems.view(mc.player.getMainHandItem()).instance().toString());
+        var mc=Minecraft.getInstance();return state().ready()&&mc.player!=null&&mc.level!=null&&!state().own().dead&&!mc.player.isDeadOrDying()&&!cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)&&cast==null&&!cn.yumis.fight.modules.skills.client.DemonHunterClient.active()&&!cn.yumis.fight.modules.skills.client.ChantClient.active()&&!cn.yumis.fight.modules.skills.client.ElementalistChargeClient.active()&&!cn.yumis.fight.modules.skills.client.ElementalistClient.blocksBasic()&&!cn.yumis.fight.modules.skills.client.BattleMageChargeClient.active()&&!cn.yumis.fight.modules.skills.client.BattleMageClient.blocksBasic()&&!cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.waiting()&&validWeapon()&&cycle.session.equals(state().session())&&cycle.generation==state().own().generation&&cycle.instance.equals(state().own().instance)&&cycle.dimension.equals(mc.level.dimension().identifier().toString())&&cycle.weapon.equals(EquipmentItems.view(mc.player.getMainHandItem()).instance().toString());
     }
     private void advanceBasicActions(long now){
         basicVisualCycles.values().removeIf(cycle->{if(!validBasic(cycle)){cancelBasicVisual(cycle);return true;}return now>=cycle.started+cycle.interval;});
@@ -277,11 +403,12 @@ public final class SkillController {
         basicCycle=cycle;basicSlash=index;
         if(WeaponTraits.basic(stats.weaponType).projectileSpeed()>0){staffBolts.fire(state(),stats,equipment,cycle,index,content);return;}
         boolean mastery=WeaponSkills.mastery(state().progress(),stats),great=mastery&&stats.weaponType.equals("GREATSWORD");
-        Vec3 from=p.getEyePosition(),direction=Vec3.directionFromRotation(0,p.getYRot());double reach=great?6:WeaponTraits.basic(stats.weaponType).range();
+        Vec3 from=p.getEyePosition(),direction=Vec3.directionFromRotation(0,p.getYRot());double reach=cn.yumis.fight.modules.skills.client.BattleMageClient.basicReach(stats,great?6:WeaponTraits.basic(stats.weaponType).range());
         double coefficient=stats.modifiers.getOrDefault("careerFrenzy",0d)>0?.65:great?stats.modifiers.getOrDefault("greatCharge",1d):mastery&&stats.weaponType.equals("LIGHTSABER")?.75:1;
         coefficient*=stats.modifiers.getOrDefault("basicStrikeCoefficient",1d);
         var targets=meleeSweep(from,direction,p.getBoundingBox(),reach);
         for(var target:targets)hit(target,stats,null,coefficient,true,false,.4,null);
+        if(!targets.isEmpty())cn.yumis.fight.modules.skills.client.BattleMageClient.onBasicStrikeHit(stats,targets.iterator().next());
         if(mastery&&stats.weaponType.equals("BLUNT")&&!targets.isEmpty()){
             Vec3 end=from.add(p.getLookAngle().scale(reach));
             var primary=targets.stream().min(Comparator.comparingDouble(target->{
@@ -309,19 +436,16 @@ public final class SkillController {
     }
     private void basicVisual(BasicCycle cycle,int index,long at){
         var stats=cycle.stats;var p=Minecraft.getInstance().player;
-        boolean posed=poseBasic(stats,BasicAttackVisuals.wholeCycle(stats.weaponType)?cycle.slashes:1);
-        if(WeaponTraits.basic(stats.weaponType).projectileSpeed()>0){
-            if(!posed)p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
-            return;
-        }
-        boolean mastery=WeaponSkills.mastery(state().progress(),stats),great=mastery&&stats.weaponType.equals("GREATSWORD");double reach=great?6:WeaponTraits.basic(stats.weaponType).range();
+        if(!cn.yumis.fight.modules.skills.client.BattleMageClient.onBasicSwing(stats,cycle.interval))swingBasic();
+        if(WeaponTraits.basic(stats.weaponType).projectileSpeed()>0||(index>0&&BasicAttackVisuals.wholeCycle(stats.weaponType)))return;
+        boolean mastery=WeaponSkills.mastery(state().progress(),stats),great=mastery&&stats.weaponType.equals("GREATSWORD");double reach=cn.yumis.fight.modules.skills.client.BattleMageClient.basicReach(stats,great?6:WeaponTraits.basic(stats.weaponType).range());
         JsonObject visual=visualEnvelope(UUID.nameUUIDFromBytes((cycle.id+"/"+index).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString(),"ATTACK","START",at,p.position(),p.position(),p.getLookAngle(),0);visual.addProperty("color",cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.basicColor(stats));visual.addProperty("duration",Math.max(650,(long)(cycle.interval/(mastery&&stats.weaponType.equals("LIGHTSABER")?2:1))));visual.addProperty("cosmeticOnly",true);visual.addProperty("reach",reach);visual.addProperty("sweep",great);visual.addProperty("horizontalScale",great?1:WeaponTraits.sword(stats.weaponType)?1.5:1);
-        if(!BasicAttackVisuals.apply(stats.weaponType,visual,index,cycle.interval)&&!posed)p.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+        BasicAttackVisuals.apply(stats.weaponType,visual,index,cycle.interval);
         Effects.receive(visual);state().send("visual",visual);
     }
-    private boolean poseBasic(Stats stats,int strikes){
-        var p=Minecraft.getInstance().player;
-        return PlayerPoseChannel.basic(stats,p.getMainArm()==HumanoidArm.LEFT,strikes,p.getLookAngle());
+    private void swingBasic(){
+        PlayerPoseChannel.stop();
+        Minecraft.getInstance().player.swing(InteractionHand.MAIN_HAND);
     }
     public void tick(){
         var mc=Minecraft.getInstance();
@@ -330,30 +454,51 @@ public final class SkillController {
         long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
         launchFrames.add(new LaunchFrame(state().serverNow(),ItemData.id(mc.player.getMainHandItem()),SkillPreview.currentStats(state().stats(),state().resources(),now),state().resources().equipment.copy()));while(!launchFrames.isEmpty()&&launchFrames.peek().at<state().serverNow()-10000)launchFrames.removeFirst();
         cn.yumis.fight.modules.skills.client.ChantClient.tick();
+        cn.yumis.fight.modules.skills.client.ElementalistChargeClient.tick();
+        cn.yumis.fight.modules.skills.client.BattleMageChargeClient.tick();
         if(mc.isPaused()){
             lastTick=now;
             return;
         }
         cn.yumis.fight.modules.skills.client.DemonHunterClient.tick();
+        cn.yumis.fight.modules.skills.client.ElementalistClient.tick();
+        cn.yumis.fight.modules.skills.client.BattleMageClient.tick();
         double dt=lastTick==0?.05:Math.min(.25,(now-lastTick)/1000d);
         lastTick=now;
         while(!deferred.isEmpty())deferred.removeFirst().run();
+        deferredHits.removeIf(h->now>h.expiresAt());
         String weapon=validWeapon()?EquipmentItems.view(mc.player.getMainHandItem()).instance().toString():"";
         if(!weapon.equals(currentWeapon)){
             currentWeapon=weapon;
             if(!weapon.isEmpty())Effects.spark(mc.player.position().add(0,1,0),0xffedab);
         }
         if(cast!=null&&(mc.player.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)||!cast.dimension.equals(mc.level.dimension().identifier().toString())))cancel(false);
+        if(mc.gui.screen()!=null||mc.player.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player))bufferedSkill=null;
         advanceBasicActions(now);
         if(greatCharge!=null){var charge=greatCharge;
-            if(cast!=null||mc.gui.screen()!=null||!validWeapon()||state().own().dead||mc.player.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)||!charge.weapon.equals(weapon)||charge.generation!=state().own().generation||!charge.dimension.equals(mc.level.dimension().identifier().toString()))greatCharge=null;
+            if(cast!=null||mc.gui.screen()!=null||!validWeapon()||state().own().dead||mc.player.isDeadOrDying()||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)||!charge.weapon.equals(weapon)||charge.generation!=state().own().generation||!charge.dimension.equals(mc.level.dimension().identifier().toString())){greatCharge=null;PlayerPoseChannel.cancelBasic();}
             else if(!mc.options.keyAttack.isDown()){greatCharge=null;Stats charged=charge.stats.copy();charged.modifiers.put("greatCharge",1+1.5*Math.clamp((now-charge.start)/800d,0,1));sendBasic(charged);}
         }
-        if(mc.gui.screen()==null&&mc.options.keyAttack.isDown()&&(mc.hitResult==null||mc.hitResult.getType()!=HitResult.Type.BLOCK))attack();
+        if(mc.gui.screen()==null&&mc.options.keyAttack.isDown()&&shouldInterceptBlockAttack(mc))attack();
         // A held charge keeps aiming along the caster's live crosshair instead of the frozen launch heading.
         if(cast!=null&&cast.charging&&!cast.release)cast.direction=horizontal(mc.player.getLookAngle());
         if(cast!=null)advance(now,dt);
         if(cast!=null&&cast.effectContinues&&PlayerPoseChannel.canYield(cast,now))yieldCast();
+        leases.prune(now);
+        syncGravity();
+        if(bufferedSkill!=null){
+            if(now>bufferedSkill.expiresAt()){bufferedSkill=null;}
+            else if(mc.gui.screen()==null&&!mc.player.isDeadOrDying()&&!cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)){
+                String pendingBinding=bufferedSkill.slot()>=0&&bufferedSkill.slot()<state().progress().slots.length?state().progress().slots[bufferedSkill.slot()]:"";
+                SkillDefinition pendingDef=SkillCatalog.contains(pendingBinding)?SkillCatalog.require(pendingBinding):null;
+                boolean segmentReady=cast!=null&&cast.slot%8==bufferedSkill.slot()%8&&SkillPresentation.segmented(cast.skill)&&now>=cast.stageStart+SkillPresentation.segmentDelay(cast.skill)/cast.speed&&now<=cast.window&&cast.segment<cast.parameters.get("slashes",3);
+                if(segmentReady||readyToCast(now,pendingDef)){
+                    int pendingSlot=bufferedSkill.slot();
+                    bufferedSkill=null;
+                    press(pendingSlot);
+                }
+            }
+        }
         for(SkillCast effect:new ArrayList<>(ongoingEffects)){
             if(!cn.yumis.fight.modules.skills.client.MageClient.INSTANCE.valid(effect))finishCast(effect,false);
             else advance(effect,now);
@@ -364,12 +509,24 @@ public final class SkillController {
         staffBolts.tick(state(),this::projectileBasicHit);
         nativeLaunches.values().removeIf(launch->launch.expires<now);TrainingCombat.tick();
         boolean out=now>=state().resources().combatUntil;
+        TowerSkillCombat.tick(snapshot(),now);
         if(!state().own().dead){
             Stats recovery=snapshot();double recoveryTick=1d/20;
             if(recovery.modifiers.getOrDefault("manaRecoveryBlocked",0d)<=0)state().resources().mp=Math.min(recovery.get(Stat.MP),state().resources().mp+CombatTiming.manaRegeneration(recovery.get(Stat.MP),recovery.get(Stat.SPIRIT))*recovery.get(Stat.MANA_REGENERATION)*(out?3:1)*recoveryTick);
             if(CombatTiming.shieldReady(state().resources(),now))state().resources().shield=Math.min(recovery.get(Stat.SHIELD),state().resources().shield+.2*recovery.get(Stat.SHIELD)*recovery.get(Stat.SHIELD_REGENERATION)*recoveryTick);
-            if(out&&state().predicted(state().own())<1)state().report(state().own(),CombatTiming.regeneration(recoveryTick,recovery.get(Stat.HEALTH),recovery.get(Stat.HEALTH_REGENERATION)),true,recovery.get(Stat.HEALTH),0xffffff,false,null);
-        }
+            double predicted=state().predicted(state().own());
+            if(out&&predicted<1){
+                double step=CombatTiming.regeneration(recoveryTick,recovery.get(Stat.HEALTH),recovery.get(Stat.HEALTH_REGENERATION));
+                if(step>0){
+                    pendingOutRegen+=step;
+                    if(now-lastOutRegenReport>=250||predicted+pendingOutRegen>=1d){
+                        state().report(state().own(),pendingOutRegen,true,recovery.get(Stat.HEALTH),0xffffff,false,null);
+                        pendingOutRegen=0;
+                        lastOutRegenReport=now;
+                    }
+                }
+            }else pendingOutRegen=0;
+        }else pendingOutRegen=0;
         state().resources().buffs.entrySet().removeIf(e->e.getValue()<now);
         state().resources().absorptionUntil.entrySet().removeIf(e->{
             if(e.getValue()<now){
@@ -405,8 +562,8 @@ public final class SkillController {
         try{SkillBehaviors.advance(skillContext,source,now);}finally{advancing=null;}
     }
     private void yieldCast(){
-        if(cast.effectContinues){ongoingEffects.add(cast);cast=null;}
-        else finishCast(cast,true);
+        if(cast.effectContinues){cast.phase=ActionPhase.ONGOING;ongoingEffects.add(cast);cast=null;}
+        else completeCast(cast);
     }
 
     private void passive(SkillCast c){
@@ -506,6 +663,38 @@ public final class SkillController {
             waves.remove(w);
         }
     }
+    public void contextArrived(UUID targetId){
+        if(deferredHits.isEmpty()||targetId==null)return;
+        var mc=Minecraft.getInstance();
+        if(!state().ready()||state().own().dead||mc.level==null||mc.player==null)return;
+        Target target=state().targets().get(targetId);
+        if(target==null||target.life.dead)return;
+        long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
+        String dim=mc.level.dimension().identifier().toString();
+        var matched=new ArrayList<DeferredHit>();
+        for(var iterator=deferredHits.iterator();iterator.hasNext();){
+            DeferredHit item=iterator.next();
+            if(now>item.expiresAt()){iterator.remove();continue;}
+            if(item.targetUuid().equals(targetId)){iterator.remove();matched.add(item);}
+        }
+        for(DeferredHit item:matched){
+            if(state().own().dead||item.generation()!=state().own().generation||!item.dimension().equals(dim))continue;
+            Entity raw=mc.level.getEntity(item.entityId());
+            if(!(raw instanceof LivingEntity entity)||!entity.isAlive()||!entity.getUUID().equals(targetId))continue;
+            var prevSource=hitSource;var prevEquip=hitEquipment;var prevCycle=basicCycle;int prevSlash=basicSlash;var prevRoot=trainingRoot;boolean prevTail=confirmedTail;
+            hitSource=item.source();hitEquipment=item.equipment();basicCycle=item.basicCycle();basicSlash=item.basicSlash();trainingRoot=item.trainingRoot();confirmedTail=item.confirmedTail();
+            try{
+                if(!target.training()||target.timedTraining)resolveHit(entity,target,item.stats(),item.skill(),item.coefficient(),item.basic(),item.passive(),item.knockback(),item.center(),item.nativeContext(),"");
+                else{
+                    String root=hitSource!=null?hitSource.id:!trainingRoot.isEmpty()?trainingRoot:!basicCycle.isEmpty()?basicCycle:"native/"+entity.getUUID()+"/"+now;
+                    try{resolveHit(entity,target,item.stats(),item.skill(),item.coefficient(),item.basic(),item.passive(),item.knockback(),item.center(),item.nativeContext(),root);}
+                    catch(RuntimeException failure){TrainingCombat.failed(root,item.skill()==null?"普通攻击":item.skill().title,failure);}
+                }
+            }finally{
+                hitSource=prevSource;hitEquipment=prevEquip;basicCycle=prevCycle;basicSlash=prevSlash;trainingRoot=prevRoot;confirmedTail=prevTail;
+            }
+        }
+    }
     private boolean hit(LivingEntity entity,Stats stats,SkillDefinition skill,double coefficient,boolean basic,boolean passive,double knockback,Vec3 center){
         return hit(entity,stats,skill,coefficient,basic,passive,knockback,center,null);
     }
@@ -516,14 +705,27 @@ public final class SkillController {
             if(player==null||!bag.ownedBy(player)||bag.finished()&&!confirmedTail&&nativeContext==null&&(hitSource==null||hitSource.summonSource.isBlank()))return false;
         }
         Target target=state().context(entity);
-        if(target==null)return false;
+        if(target==null){
+            var mc=Minecraft.getInstance();
+            if(mc.level!=null&&entity.isAlive()&&!state().own().dead){
+                long expiresAt=cn.yumis.fight.modules.presentation.api.client.ClientUi.now()+DEFERRED_HIT_MILLIS;
+                var equip=(hitSource!=null&&hitSource.equipment!=null?hitSource.equipment:hitEquipment!=null?hitEquipment:state().resources().equipment).copy();
+                var savedNative=nativeContext==null?null:nativeContext.deepCopy();
+                if(deferredHits.size()>=DEFERRED_HIT_LIMIT)deferredHits.removeFirst();
+                deferredHits.addLast(new DeferredHit(entity.getUUID(),entity.getId(),mc.level.dimension().identifier().toString(),state().own().generation,stats.copy(),equip,hitSource,skill,coefficient,basic,passive,knockback,center,savedNative,basicCycle,basicSlash,trainingRoot,confirmedTail,expiresAt));
+                return true;
+            }
+            return false;
+        }
         if(!target.training()||target.timedTraining)return resolveHit(entity,target,stats,skill,coefficient,basic,passive,knockback,center,nativeContext,"");
         String root=hitSource!=null?hitSource.id:!trainingRoot.isEmpty()?trainingRoot:!basicCycle.isEmpty()?basicCycle:"native/"+entity.getUUID()+"/"+cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
         try{return resolveHit(entity,target,stats,skill,coefficient,basic,passive,knockback,center,nativeContext,root);}
         catch(RuntimeException failure){TrainingCombat.failed(root,skill==null?"普通攻击":skill.title,failure);return true;}
     }
     private boolean resolveHit(LivingEntity entity,Target target,Stats stats,SkillDefinition skill,double coefficient,boolean basic,boolean passive,double knockback,Vec3 center,JsonObject nativeContext,String practiceRoot){
-        if(target==null||target.life.dead||state().predicted(target.life)<=0)return false;
+        if(target==null||target.life.dead||!state().combatAvailable())return false;
+        double before=state().predicted(target.life);
+        if(before<=0)return false;
         if(entity instanceof net.minecraft.world.entity.boss.wither.WitherBoss wither&&wither.getInvulnerableTicks()>0)return false;
         int level=target.level(state().progress().level,state().encounterSync());
         boolean magic=nativeContext==null&&(basic?WeaponTraits.basic(stats.weaponType).magic():cn.yumis.fight.modules.skills.api.CareerRules.magic(skill,state().progress()));
@@ -537,8 +739,11 @@ public final class SkillController {
         int[] elements=cn.yumis.fight.modules.skills.api.SummonerSkills.elements(stats,cn.yumis.fight.modules.skills.api.SkillPreviewRules.elements(skill));
         if(hitSource!=null&&!hitSource.damagePhase.isEmpty())magic=cn.yumis.fight.modules.skills.api.SkillDamagePhases.require(skill,hitSource.damagePhase).magic();
         boolean dot=hitSource!=null&&(hitSource.dot||!hitSource.damagePhase.isEmpty()&&cn.yumis.fight.modules.skills.api.SkillDamagePhases.require(skill,hitSource.damagePhase).dot());
+        double dotCritical=dot?stats.modifiers.getOrDefault("crit",0d):0;
         if(dot){stats=stats.copy();stats.modifiers.put("crit",0d);}
-        if(hitSource!=null&&hitSource.elementOverride>=-1)elements=hitSource.elementOverride<0?new int[0]:new int[]{hitSource.elementOverride};
+        if(hitSource!=null&&hitSource.elementsOverride!=null&&hitSource.elementsOverride.length>0)elements=hitSource.elementsOverride;
+        else if(hitSource!=null&&hitSource.elementOverride>=-1)elements=hitSource.elementOverride<0?new int[0]:new int[]{hitSource.elementOverride};
+        else elements=cn.yumis.fight.modules.skills.api.ElementalistRules.previewElements(skill,stats,elements);
         if(nativeContext==null&&basic&&stats.modifiers.getOrDefault("basicDark",0d)>0)elements=new int[]{3};
         if(nativeContext==null&&basic&&SkillLearning.effective(stats,state().progress(),SkillCatalog.require(cn.yumis.fight.modules.skills.api.CareerSkills.KEIGA))>0)elements=new int[]{3};
         double n=level-1;
@@ -550,15 +755,26 @@ public final class SkillController {
         var talents=state().progress();
         TalentCombat.Context talentContext=null;
         if(TalentCombat.conditionalLit(talents)){stats=stats.copy();talentContext=hitContext(stats,target);TalentCombat.apply(stats,talentContext,talents);}
-        var rolls=CombatRules.draw(stats,!passive&&!dot,random);
-        CombatRules.Damage parts=CombatRules.calculate(stats,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,basic&&!passive?stats.modifiers.getOrDefault("basicDamageScale",1d):coefficient*(nativeContext!=null?stats.modifiers.getOrDefault("basicDamageScale",1d):1),!passive&&!dot,rolls);
+        stats=TowerSkillCombat.damageSnapshot(stats);
+        var cardDamage=cn.yumis.fight.modules.skills.api.SkillDamageRules.rotation(stats,skill,towerHit(stats,entity,before));
+        double defenseRemaining=1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d)+TowerCardEffects.penetration(stats),0,1);
+        double basicScale=stats.modifiers.getOrDefault("basicDamageScale",1d);
+        double hitCoefficient=basic&&!passive?basicScale:coefficient*(nativeContext!=null?basicScale:1);
+        boolean includeExtras=!passive&&!dot;
+        var rolls=CombatRules.draw(stats,includeExtras,random);
+        boolean forced=TowerCardEffects.forceCritical(stats,before);
+        double extraCritical=Math.min(1,dotCritical+stats.modifiers.getOrDefault("crit",0d));
+        CombatRules.Damage parts=forced
+            ? CombatRules.recalculateCritical(cardDamage.apply(towerCritical(stats,extraCritical)),defense*defenseRemaining,resist,magic,elements,hitCoefficient,includeExtras,rolls)
+            : CombatRules.calculate(cardDamage.apply(stats),defense*defenseRemaining,resist,magic,elements,hitCoefficient,includeExtras,rolls);
         if(parts.critical()&&TalentCombat.critLit(talents)){
             var withCrit=stats.copy();TalentCombat.applyCrit(withCrit,talentContext.withCrit(),talents);
-            parts=CombatRules.recalculateCritical(withCrit,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),resist,magic,elements,basic&&!passive?stats.modifiers.getOrDefault("basicDamageScale",1d):coefficient*(nativeContext!=null?stats.modifiers.getOrDefault("basicDamageScale",1d):1),!passive&&!dot,rolls);
+            if(forced)withCrit.modifiers.merge("critDamage",extraCritical,Double::sum);
+            parts=CombatRules.recalculateCritical(cardDamage.apply(withCrit),defense*defenseRemaining,resist,magic,elements,hitCoefficient,includeExtras,rolls);
         }
         if(!mainAllowed)parts=parts.withMain(0);
         if(basic&&!passive)parts=parts.scaled(coefficient);
-        var resolved=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(parts,stats,skill,mastery(stats),basic,passive,advantage(stats.modifiers.getOrDefault("sourceLevel",(double)state().progress().level).intValue(),level));
+        var resolved=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(parts,stats,skill,mastery(stats),basic,passive,magic,advantage(stats.modifiers.getOrDefault("sourceLevel",(double)state().progress().level).intValue(),level));
         double damage=resolved.total();
         double main=resolved.main();
         double[] components=resolved.components();
@@ -629,10 +845,9 @@ public final class SkillController {
         }
         boolean appendEquipment=external&&!dot&&(hitSource==null||!hitSource.suppressEquipment);
         double primaryDamage=damage;
-        double defenseRemaining=1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1);
         if(appendEquipment){double appended=EquipmentDamage.append(damage,stats,equipment,defense*defenseRemaining,resist);damage+=appended;components[2]+=appended;}
         if(!dot&&target.life.elemental.active(ElementAccumulation.Kind.SHOCK,target.life,state().serverNow())&&cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,new int[]{0})){
-            double added=ElementAccumulation.shockDamage(damage,defense*(1-Math.clamp(stats.modifiers.getOrDefault("piercing",0d),0,1)),stats.get(Stat.LIGHT),resist[0]);damage+=added;components[1]+=added;
+            double added=ElementAccumulation.shockDamage(damage,defense*defenseRemaining,stats.get(Stat.LIGHT),resist[0]);damage+=added;components[1]+=added;
         }
         if(magic){
             double received=ElementAccumulation.magicTaken(target.life.elemental,target.life,target.bossOrElite(),state().serverNow());
@@ -652,21 +867,28 @@ public final class SkillController {
         }
         double outgoing=cn.yumis.fight.modules.combat.api.CombatEffect.outgoingScale(Minecraft.getInstance().player);
         damage*=outgoing;for(int i=0;i<components.length;i++)components[i]*=outgoing;
-        extra.add("sourceStats",JSON.toJsonTree(stats));extra.add("sourceEffects",JSON.toJsonTree(equipment));
-        double before=state().predicted(target.life);
-        double actual=target.damageImmune?0:target.training()?damage/maximum:Math.min(target.damageCapacity(before),damage/maximum);double remaining=Math.max(0,before-actual);
+        extra.add("sourceStats",JSON.toJsonTree(external?TowerSkillCombat.elements(stats):stats));extra.add("sourceEffects",JSON.toJsonTree(equipment));
+        double takenScale=Double.isFinite(target.damageTakenMultiplier)?Math.max(0d,target.damageTakenMultiplier):1d;
+        double actual=target.damageImmune?0:target.training()?damage/maximum:Math.min(target.damageCapacity(before),(damage/maximum)*takenScale);double remaining=Math.max(0,before-actual);
         if(remaining<=0&&actual>0&&!target.training()&&hitSource!=null&&!hitSource.summonSource.isEmpty())TalentCombat.summonKillExpected(target.id);
         var actor=JSON.fromJson(JSON.toJson(state().own()),Life.class);double actorBefore=actor.q=state().predicted(state().own());
         var receipt=new cn.yumis.fight.modules.combat.api.Receipt(true,"",actual,remaining,target.life.revision+1,"");
         if(external)cn.yumis.fight.modules.combat.api.EquipmentHitEffects.apply(target,receipt,!dot&&!extra.has("effect")&&(hitSource==null||hitSource.summonSource.isEmpty()),stats,snapshot().get(Stat.HEALTH),equipment,actor,state().resources(),maximum,now);
+        if(external){
+            double ownMaximum=snapshot().get(Stat.HEALTH);
+            double healing=TowerSkillCombat.hitHealing(stats,hitSource,skill,actual*maximum,parts.critical());
+            if(healing>0&&ownMaximum>0)LifeRules.apply(actor,healing/ownMaximum,true);
+        }
         if(actor.q>actorBefore)extra.addProperty("ownerHealing",(actor.q-actorBefore)*cn.yumis.fight.modules.combat.api.CombatEffect.healingScale(Minecraft.getInstance().player));
         if(actual>0&&!equipment.wallSource.isEmpty()&&equipment.wallSource.equals(state().resources().equipment.wallSource)&&(basic&&!passive||hitSource!=null&&hitSource.summonSource.isEmpty())){
             String action=hitSource!=null?hitSource.id:!basicCycle.isEmpty()?basicCycle:nativeContext!=null&&nativeContext.has("nativeRoot")?nativeContext.get("nativeRoot").getAsString():"attack/"+Minecraft.getInstance().player.tickCount;
             wallActions.values().removeIf(until->until<now);
             if(wallActions.putIfAbsent(action,now+600000)==null){cn.yumis.fight.modules.combat.api.EquipmentBuffs.wall(state().resources(),now);invalidateSnapshot();}
         }
-        if(external){cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.hit(entity,basic&&!passive&&!dot,extra,actual);
-        cn.yumis.fight.modules.skills.client.DemonHunterClient.contact(hitSource,stats,basicCycle,basic&&!passive&&!dot,actual);}
+        if(external){
+            cn.yumis.fight.modules.skills.client.SkillCastHooks.dispatch(cn.yumis.fight.modules.skills.client.SkillCastHooks.Stage.ON_HIT,
+                new cn.yumis.fight.modules.skills.client.SkillCastHooks.HitEvent(hitSource,entity,stats,basicCycle,basic&&!passive&&!dot,extra,actual));
+        }
         extra.add("damageComponents",JSON.toJsonTree(ElementAccumulation.fractions(components,maximum)));
         if(projectileContext!=null)projectileContext.entrySet().forEach(entry->extra.add(entry.getKey(),entry.getValue()));
         if(extra.has("ailment")){var ailment=extra.getAsJsonObject("ailment");if(ailment.has("effect"))cn.yumis.fight.modules.combat.api.client.DamageAnalysis.rememberEffect(ailment.get("effect").getAsString(),analysisSource,ailment.get("durationTicks").getAsLong()*50);}
@@ -677,7 +899,66 @@ public final class SkillController {
             return true;
         }
         state().report(target.life,damage/maximum,false,maximum,color,parts.critical(),extra);
+        if(external)TowerSkillCombat.hit(entity,target,stats,hitSource,skill,basic&&!passive&&!dot,actual*maximum,before);
         return true;
+    }
+    private static Stats towerCritical(Stats source,double extra){
+        Stats stats=source.copy();
+        stats.modifiers.merge("critDamage",extra,Double::sum);
+        return stats;
+    }
+    private TowerCardEffects.DamageBonus towerHit(Stats stats,LivingEntity target,double targetLife){
+        var player=Minecraft.getInstance().player;
+        return TowerCardEffects.hit(stats,state().predicted(state().own()),targetLife,player.distanceToSqr(target));
+    }
+    public void towerStrike(TowerBattleCard card,LivingEntity entity,Stats source,double coefficient,boolean magic,int element){
+        if(!canTarget(entity))return;
+        Target target=state().context(entity);
+        if(!mayDamageWithCard(entity,target))return;
+        double before=state().predicted(target.life);
+        int level=target.level(state().progress().level,state().encounterSync());
+        double penetration=source.modifiers.getOrDefault("piercing",0d)+TowerCardEffects.penetration(source);
+        double defense=target.defense(level,magic)*(1-Math.clamp(penetration,0,1));
+        double[] resist=EquipmentDamage.resistances(state().resources().equipment,target.resistances());
+        int[] elements=element<0?new int[0]:new int[]{element};
+        if(!EquipmentDamage.allowed(state().resources().equipment,elements))return;
+        source=TowerSkillCombat.damageSnapshot(source);
+        var bonus=towerHit(source,entity,before);
+        if(TowerBattleCard.VULNERABLE.held(source))
+            bonus=new TowerCardEffects.DamageBonus(bonus.increase()+TowerBattleCard.VULNERABLE.ratio("damage"),bonus.total());
+        Stats attack=bonus.apply(source);
+        boolean forced=TowerCardEffects.forceCritical(attack,before);
+        var rolls=CombatRules.draw(attack,false,random);
+        var damage=forced
+            ? CombatRules.recalculateCritical(towerCritical(attack,attack.modifiers.getOrDefault("crit",0d)),defense,resist,magic,elements,coefficient,false,rolls)
+            : CombatRules.calculate(attack,defense,resist,magic,elements,coefficient,false,rolls);
+        double amount=damage.total()*advantage(state().progress().level,level)*CombatEffect.outgoingScale(Minecraft.getInstance().player);
+        emitTowerDamage(card,target,amount,damage.element(),damage.critical());
+    }
+    public void towerFixed(TowerBattleCard card,LivingEntity entity,Stats stats,double amount){
+        if(!canTarget(entity))return;
+        Target target=state().context(entity);
+        if(!mayDamageWithCard(entity,target))return;
+        boolean critical=TowerCardEffects.forceCritical(stats,state().predicted(target.life));
+        if(critical)amount*=TowerCardEffects.criticalMultiplier(stats);
+        if(TowerBattleCard.VULNERABLE.held(stats))amount*=1+TowerBattleCard.VULNERABLE.ratio("damage");
+        emitTowerDamage(card,target,amount,-1,critical);
+    }
+    private boolean mayDamageWithCard(LivingEntity entity,Target target){
+        return target!=null&&entity.isAlive()&&!target.life.dead&&!target.damageImmune&&state().predicted(target.life)>0
+            &&!(entity instanceof net.minecraft.world.entity.boss.wither.WitherBoss wither&&wither.getInvulnerableTicks()>0);
+    }
+    private void emitTowerDamage(TowerBattleCard card,Target target,double amount,int element,boolean critical){
+        if(!(amount>0)||!Double.isFinite(amount))return;
+        double maximum=target.health(target.level(state().progress().level,state().encounterSync()));
+        double fraction=amount/maximum;
+        double[] components=new double[5];
+        components[element+1]=fraction;
+        var report=new JsonObject();
+        report.addProperty(CombatEffect.NO_TRIGGERS,true);
+        report.add("damageComponents",JSON.toJsonTree(components));
+        DamageAnalysis.attach(report,new DamageAnalysis.Source("towerCard/"+card.id(),card.title()));
+        state().report(target.life,fraction,false,maximum,element<0?0xffffff:ElementAccumulation.Kind.values()[element].color,critical,report);
     }
     private boolean projectileBasicHit(LivingEntity entity,Stats stats,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects,String cycle,int index,Vec3 point){
         var previous=hitEquipment;String oldCycle=basicCycle;int oldSlash=basicSlash;hitEquipment=effects;basicCycle=cycle;basicSlash=index;projectileContext=new JsonObject();JsonArray position=new JsonArray();position.add(point.x);position.add(point.y);position.add(point.z);projectileContext.add("projectilePoint",position);
@@ -706,23 +987,103 @@ public final class SkillController {
         Vec3 h=new Vec3(v.x,0,v.z);
         return h.lengthSqr()<.001?new Vec3(0,0,1):h.normalize();
     }
-    public void cancel(boolean normal){
-        if(!normal)cn.yumis.fight.modules.skills.client.ChantClient.cancel();
-        if(!normal)cancelBasicAttacks();
-        if(cast!=null)finishCast(cast,normal);
+    public static boolean isSteadfast(){
+        return INSTANCE.leases.has(ActionStatus.STEADFAST,cn.yumis.fight.modules.presentation.api.client.ClientUi.now());
     }
-    private void finishCast(SkillCast source,boolean normal){
-        TrainingCombat.actionFinished(source.id);
-        if(normal)PlayerPoseChannel.release(source);
-        else{
-            PlayerPoseChannel.cancel(source);
-            cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.cancel(source);
+    public void cancel(boolean normal){
+        if(!normal){pendingOutRegen=0;bufferedSkill=null;cn.yumis.fight.modules.skills.client.ChantClient.cancel();cn.yumis.fight.modules.skills.client.ElementalistChargeClient.cancel();cn.yumis.fight.modules.skills.client.BattleMageChargeClient.cancel();}
+        if(!normal)cancelBasicAttacks();
+        if(cast!=null){
+            if(normal)completeCast(cast);
+            else abandonCast(cast);
         }
-        visual(source,normal?"END":"CANCEL");
-        SkillBehaviors.finish(source);
-        if(cast==source)cast=null;
-        ongoingEffects.remove(source);
-        cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.publish();state().upload();
+    }
+    /** 强控（如封印塔伊蕾娜 80% 极寒冰封）触发时立即打断一切读条、引导与普攻。 */
+    public void cancelActiveForControl(){
+        cn.yumis.fight.modules.skills.client.DemonHunterClient.cancelChannel();
+        cn.yumis.fight.modules.skills.client.ElementalistClient.cancelChannel();
+        cn.yumis.fight.modules.skills.client.ElementalistChargeClient.cancel();
+        cn.yumis.fight.modules.skills.client.BattleMageClient.cancelChannel();
+        cn.yumis.fight.modules.skills.client.BattleMageChargeClient.cancel();
+        cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();
+        greatCharge=null;
+        cancel(false);
+    }
+    public void prepareFloorRecovery() {
+        cancelActiveForControl();
+        bosses.clear();
+        String owner = state().own().target.toString();
+        for (var dot : List.copyOf(elementalDots.entrySet())) {
+            if (owner.equals(dot.getValue().state().get("target").getAsString())) finishElemental(dot.getKey());
+        }
+        lastAttack = 0;
+        invalidateSnapshot();
+    }
+    /** 封印塔伊蕾娜终局第 1 枚巨型陨石：按玩家最大生命固定比例扣血（可被护盾/吸收抵扣，不受护甲抗性减免）。 */
+    public void sealBossRatioDamage(double ratio,JsonObject bossJson){
+        var player=Minecraft.getInstance().player;
+        if(!state().ready()||state().own().dead||player==null||player.isDeadOrDying()||invulnerable()
+            ||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(player)
+            ||player.isSpectator()||player.getAbilities().invulnerable)return;
+        double clamped=Math.clamp(ratio,0,1);
+        if(clamped<=0)return;
+        Stats current=snapshot();
+        double maximum=current.get(Stat.HEALTH);
+        if(!(maximum>0))return;
+        double rawDamage=clamped*maximum;
+        double damage=rawDamage;
+        JsonObject feedback=new JsonObject();
+        feedback.addProperty("outcome","HIT");
+        feedback.addProperty("damageTaken",rawDamage);
+        if(bossJson!=null&&bossJson.has("id"))feedback.addProperty("feedbackEntity",bossJson.get("id").getAsString());
+        for(String key:new ArrayList<>(state().resources().absorption.keySet()))if(!key.equals("overdrivePower")){
+            if(key.startsWith("towerCard/")&&state().resources().absorptionUntil.getOrDefault(key,Long.MAX_VALUE)<=cn.yumis.fight.modules.presentation.api.client.ClientUi.now())continue;
+            double value=state().resources().absorption.get(key),take=Math.min(value,damage);
+            state().resources().absorption.put(key,value-take);
+            damage-=take;
+        }
+        double absorb=Math.min(state().resources().shield,damage);
+        state().resources().shield-=absorb;
+        damage-=absorb;
+        double fraction=Math.max(0,damage/maximum);
+        feedback.add("damageComponents",JSON.toJsonTree(new double[]{fraction,0,0,0,0}));
+        state().report(state().own(),fraction,false,maximum,0xff5a2c,false,feedback);
+    }
+    /** 封印塔伊蕾娜终局第 2 轮 30 秒超时：无视位置、无敌与护盾，直接秒杀在场存活玩家。 */
+    public void sealBossInstantDefeat(JsonObject bossJson){
+        var player=Minecraft.getInstance().player;
+        if(!state().ready()||state().own().dead||player==null||player.isDeadOrDying())return;
+        JsonObject feedback=new JsonObject();
+        feedback.addProperty("outcome","HIT");
+        if(bossJson!=null&&bossJson.has("id"))feedback.addProperty("feedbackEntity",bossJson.get("id").getAsString());
+        state().report(state().own(),1.0,false,snapshot().get(Stat.HEALTH),0xff2233,false,feedback);
+    }
+    private void completeCast(SkillCast source){finishCast(source,true);}
+    private void abandonCast(SkillCast source){finishCast(source,false);}
+    private void finishCast(SkillCast source,boolean normal){
+        if(source==null||source.phase.terminal())return;
+        long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
+        source.phase=normal?ActionPhase.COMPLETED:ActionPhase.ABANDONED;
+        source.canBreak=true;
+        try{
+            TrainingCombat.actionFinished(source.id);
+            if(normal)PlayerPoseChannel.release(source);
+            else{
+                PlayerPoseChannel.cancel(source);
+                cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.cancel(source);
+            }
+            visual(source,normal?"END":"CANCEL");
+            SkillBehaviors.finish(source);
+            cn.yumis.fight.modules.skills.client.SkillCastHooks.dispatch(
+                normal?cn.yumis.fight.modules.skills.client.SkillCastHooks.Stage.ON_CAST_COMPLETE
+                    :cn.yumis.fight.modules.skills.client.SkillCastHooks.Stage.ON_CAST_ABANDON,
+                new cn.yumis.fight.modules.skills.client.SkillCastHooks.CastEvent(source,now,normal));
+        }finally{
+            releaseStatusOwner(source.id);
+            if(cast==source)cast=null;
+            ongoingEffects.remove(source);
+            cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.publish();state().upload();
+        }
     }
     private void visual(SkillCast c,String phase){
         var p=Minecraft.getInstance().player;
@@ -731,35 +1092,17 @@ public final class SkillController {
         if(phase.equals("TRAIL"))return;
         if(phase.equals("END")&&(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ORB)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRESCENT)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIRE)))return;
         JsonObject j=visualEnvelope(c.id,c.skill.id,phase,c.start,c.origin,p.position(),c.direction,++c.visualSequence);
-        if(cn.yumis.fight.modules.skills.api.CareerSkills.contains(c.skill.id)){
-            j.addProperty("terminal",c.terminal);j.addProperty("sweep",c.terminal);
-            if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIELD)){j.addProperty("x",c.center.x);j.addProperty("y",c.center.y);j.addProperty("z",c.center.z);j.addProperty("px",c.center.x);j.addProperty("py",c.center.y);j.addProperty("pz",c.center.z);}
-            if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ORB)){j.addProperty("px",c.center.x);j.addProperty("py",c.center.y+.8);j.addProperty("pz",c.center.z);}
-            if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRESCENT)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIRE)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.SWORD)&&c.terminal){j.addProperty("px",c.center.x);j.addProperty("py",c.center.y);j.addProperty("pz",c.center.z);}
-            if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.BLADE)&&phase.equals("FINISH")){j.addProperty("px",c.center.x);j.addProperty("py",c.center.y);j.addProperty("pz",c.center.z);}
-            if(c.finisher&&(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRASH)||c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ERUPTION))){j.addProperty("px",c.center.x);j.addProperty("py",c.center.y);j.addProperty("pz",c.center.z);}
-        }
         j.addProperty("weaponType",c.visualWeapon);
         j.addProperty("duration",SkillPresentation.duration(c));
         j.addProperty("castSpeed",SkillPresentation.visualSpeed(c));
         j.addProperty("rank",c.parameters.rank());
         j.addProperty("horizontalScale",c.parameters.get("meleeScale",1));
         j.addProperty("charge",Math.clamp((cn.yumis.fight.modules.presentation.api.client.ClientUi.now()-c.start)*c.speed/1000d,0,1));
-        if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.OracleSkills.REPLICA))j.addProperty("sweep",c.charging);
-        if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIELD))j.addProperty("charge",Math.min(1,c.parameters.rank()/15d));
-        if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRESCENT)&&!c.charging)j.addProperty("charge",c.moved);
-        if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.SWORD))j.addProperty("charge",Math.min(1,c.parameters.get("blood",0)/20));
-        if(c.skill.id.equals(cn.yumis.fight.modules.skills.api.CareerSkills.AGNI))j.addProperty("charge",c.parameters.get("resource",1)/5);
         j.addProperty("color",cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.visualColor(c.stats,SkillPresentation.color(c.skill,state().resources().buffs.getOrDefault("yumis_dungeon_and_fight:overdrive",0L)>cn.yumis.fight.modules.presentation.api.client.ClientUi.now())));
         if(SkillPresentation.segmented(c.skill)&&phase.equals("SEGMENT"))j.add("motion",motion(c.skill==SkillCatalog.TRIPLE?2.5:4,SkillPresentation.segmentDelay(c.skill)/c.speed,false));
         if(c.skill==SkillCatalog.RISING&&phase.equals("START"))j.add("motion",motion(4,300/c.speed,false));
-        String skill=c.skill.id;
-        if(phase.equals("RELEASE")&&(skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ORB)||skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRESCENT)||skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIRE)))j.addProperty("cosmeticOnly",true);
-        if(skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.PHANTOM)&&phase.equals("START"))j.add("motion",motion(8,250/c.speed,false));
-        if(skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRESCENT)&&phase.equals("RELEASE"))j.add("motion",motion(c.parameters.get("range",12),c.parameters.get("range",12)/15*1000,false));
-        if(skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.FIRE)&&phase.equals("RELEASE")){var path=cn.yumis.fight.modules.skills.api.FireWavePath.from(c.parameters);var m=motion(path.origin().distanceTo(path.destination()),path.millis(),false);m.addProperty("arcHeight",path.height());j.add("motion",m);}
-        if(skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ORB)&&phase.equals("RELEASE"))j.add("motion",motion(c.parameters.get("range",10),c.parameters.get("range",10)/8*1000,false));
-        if((skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRASH)||skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.ERUPTION))&&phase.equals("START")){var m=motion(skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRASH)?3:6,(skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRASH)?500:600)/c.speed,false);m.addProperty("arcHeight",skill.equals(cn.yumis.fight.modules.skills.api.CareerSkills.CRASH)?1.2:2);j.add("motion",m);}
+        cn.yumis.fight.modules.skills.client.SkillCastHooks.dispatch(cn.yumis.fight.modules.skills.client.SkillCastHooks.Stage.DECORATE_VISUAL,
+            new cn.yumis.fight.modules.skills.client.SkillCastHooks.VisualEvent(c,phase,j));
         Effects.receive(j);
         state().send("visual",j);
     }
@@ -808,6 +1151,7 @@ public final class SkillController {
         // 原版 /kill 走 genericKill：按原版语义无条件致死，不经过无敌帧、装备防护、护盾与吸收。
         if(j.get("source").getAsString().equals("genericKill")){nativeKill(j);return;}
         if(invulnerable()||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(Minecraft.getInstance().player)||Minecraft.getInstance().player.isSpectator()||Minecraft.getInstance().player.getAbilities().invulnerable&&!(j.has("bypassInvulnerability")&&j.get("bypassInvulnerability").getAsBoolean())){nativeOutcome(j,"IMMUNE");return;}
+        if(cn.yumis.fight.modules.skills.client.ElementalistClient.tryBlockProjectile(j)){nativeOutcome(j,"IMMUNE");return;}
         if(j.get("source").getAsString().equals("fall")&&Minecraft.getInstance().player.hasEffect(cn.yumis.fight.modules.combat.api.CombatContentTypes.CLOUD_STEP)){nativeOutcome(j,"IMMUNE");return;}
         double fraction;boolean enemyAttack=false;int enemyElement=-1;
         double[] componentFractions=new double[5];
@@ -904,7 +1248,7 @@ public final class SkillController {
         double defense=current.get(magic?Stat.MAGICAL_DEFENSE:Stat.PHYSICAL_DEFENSE);
         double resist=element>=0?current.get(new Stat[]{Stat.LIGHT_RESIST,Stat.FIRE_RESIST,Stat.ICE_RESIST,Stat.DARK_RESIST}[element]):Math.max(Math.max(current.get(Stat.LIGHT_RESIST),current.get(Stat.FIRE_RESIST)),Math.max(current.get(Stat.ICE_RESIST),current.get(Stat.DARK_RESIST)));
         if(element<0)resist=Math.max(0,resist);
-        double careerTaken=cn.yumis.fight.modules.skills.client.DemonHunterClient.careerDamageTaken(cn.yumis.fight.modules.character.api.JobCatalog.style(state().progress().jobId()).damageTaken());
+        double careerTaken=cn.yumis.fight.modules.skills.client.BattleMageClient.careerDamageTaken(cn.yumis.fight.modules.skills.client.ElementalistClient.careerDamageTaken(cn.yumis.fight.modules.skills.client.DemonHunterClient.careerDamageTaken(cn.yumis.fight.modules.character.api.JobCatalog.style(state().progress().jobId()).damageTaken())));
         double damage=points*1000/(1000+Math.max(0,defense))*Math.max(.3,1-resist/120)*advantage(level,state().progress().level)*careerTaken;
         if(state().resources().buffs.getOrDefault("movementProtection",0L)>cn.yumis.fight.modules.presentation.api.client.ClientUi.now())damage*=.1;
         return damage*Math.max(0,1-current.modifiers.getOrDefault("taken",0d));
@@ -937,9 +1281,32 @@ public final class SkillController {
     }
     /** Owner-side maximum-health environmental damage using normal absorption and hit reports. */
     public void environmentDamage(double fraction){
+        if(mayTakeEnvironmentDamage())ownDamage(fraction);
+    }
+    private boolean mayTakeEnvironmentDamage(){
         var player=Minecraft.getInstance().player;
-        if(player==null||!state().ready()||state().own().dead||player.isDeadOrDying()||player.isSpectator()||player.getAbilities().invulnerable||invulnerable())return;
-        ownDamage(fraction);
+        return player!=null&&state().ready()&&!state().own().dead&&!player.isDeadOrDying()
+            &&!player.isSpectator()&&!player.getAbilities().invulnerable&&!invulnerable();
+    }
+    public void towerFire(){
+        if(!mayTakeEnvironmentDamage())return;
+        double maximum=snapshot().get(Stat.HEALTH);
+        if(!(maximum>0))return;
+        double damage=monsterDamage(maximum*TowerClimbRules.FIRE_HEALTH_FRACTION,true,1,state().progress().level);
+        var feedback=new JsonObject();
+        feedback.addProperty(CombatEffect.NO_TRIGGERS,true);
+        feedback.add("damageComponents",JSON.toJsonTree(new double[]{0,0,damage/maximum,0,0}));
+        ownDamage(damage/maximum,feedback);
+    }
+    public void towerFrost(double damage){
+        var life=state().own();
+        if(life.dead||life.elemental.active(ElementAccumulation.Kind.FREEZE,life,state().serverNow()))return;
+        double maximum=snapshot().get(Stat.HEALTH);
+        if(!(maximum>0)||!(damage>0)||!Double.isFinite(damage))return;
+        var feedback=new JsonObject();
+        double[] components={0,0,0,damage*TowerClimbRules.FROST_DAMAGE_FRACTION/maximum,0};
+        advanceOwnElements(components,1,feedback);
+        state().report(life,0,false,maximum,0x83dfff,false,feedback);
     }
     private void ownDamage(double fraction){
         ownDamage(fraction,null);
@@ -947,10 +1314,13 @@ public final class SkillController {
     private void ownDamage(double fraction,JsonObject feedback){
         if(cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(Minecraft.getInstance().player)){if(feedback!=null)nativeOutcome(feedback,"IMMUNE");return;}
         if(fraction<=0||!Double.isFinite(fraction))return;
-        double damage=fraction*snapshot().get(Stat.HEALTH);
+        Stats current=snapshot();
+        double maximum=current.get(Stat.HEALTH);
+        double damage=fraction*maximum*TowerSkillCombat.incoming(current);
         if(feedback==null)feedback=new JsonObject();
         feedback.addProperty("outcome","HIT");feedback.addProperty("damageTaken",damage);
         for(String key:new ArrayList<>(state().resources().absorption.keySet()))if(!key.equals("overdrivePower")){
+            if(key.startsWith("towerCard/")&&state().resources().absorptionUntil.getOrDefault(key,Long.MAX_VALUE)<=cn.yumis.fight.modules.presentation.api.client.ClientUi.now())continue;
             double value=state().resources().absorption.get(key),take=Math.min(value,damage);
             state().resources().absorption.put(key,value-take);
             damage-=take;
@@ -960,17 +1330,23 @@ public final class SkillController {
         damage-=absorb;
         double mana=Math.min(state().resources().mp,damage*Math.clamp(state().resources().equipment.manaShare,0,1));state().resources().mp-=mana;damage-=mana;
         double[] components=feedback.has("damageComponents")?JSON.fromJson(feedback.get("damageComponents"),double[].class):new double[]{fraction,0,0,0,0};
-        double scale=damage/snapshot().get(Stat.HEALTH)/fraction;for(int i=0;i<components.length;i++)components[i]*=scale;feedback.add("damageComponents",JSON.toJsonTree(components));
-        if(damage>0&&feedback.has("selfStunTicks")&&!cn.yumis.fight.modules.skills.client.DemonHunterClient.steadfast()){
+        double scale=damage/maximum/fraction;for(int i=0;i<components.length;i++)components[i]*=scale;feedback.add("damageComponents",JSON.toJsonTree(components));
+        if(damage>0&&feedback.has("selfStunTicks")&&!isSteadfast()){
             long now=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();controls.values().removeIf(until->until<now);String id=feedback.get("controlId").getAsString();if(controls.putIfAbsent(id,now+60000)==null)Minecraft.getInstance().player.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN,feedback.get("selfStunTicks").getAsInt()));
         }
-        ownElements(components,damage/snapshot().get(Stat.HEALTH),feedback);
+        boolean triggers=CombatEffect.triggers(feedback);
+        double actual=Math.min(damage,state().predicted(state().own())*maximum);
+        if(triggers)ownElements(components,damage/maximum,feedback);
         if(damage>0)state().report(state().own(),damage/snapshot().get(Stat.HEALTH),false,snapshot().get(Stat.HEALTH),0xff5555,false,feedback);
         else if(feedback.has("nativeRoot")||feedback.has("feedbackEntity")||feedback.has("effectKind"))state().report(state().own(),0,false,snapshot().get(Stat.HEALTH),0xff5555,false,feedback);
         else state().upload();
-        if(!feedback.has("armorRetaliation")){
+        if(triggers&&!feedback.has("armorRetaliation")){
             String attacker=feedback.has("retaliationTarget")?feedback.get("retaliationTarget").getAsString():feedback.has("feedbackEntity")?feedback.get("feedbackEntity").getAsString():"";
-            if(!attacker.isEmpty())retaliate(UUID.fromString(attacker));
+            if(!attacker.isEmpty()){
+                UUID id=UUID.fromString(attacker);
+                TowerSkillCombat.hurt(current,id,actual);
+                retaliate(id);
+            }
         }
     }
     private void retaliate(UUID attacker){
@@ -998,13 +1374,18 @@ public final class SkillController {
     }
     private void counterAttack(Target target,Stats attack,double coefficient,DamageAnalysis.Source source,JsonObject report){
         var mc=Minecraft.getInstance();
-        if(mc.level==null||target==null||target.life.dead||target.damageImmune||state().predicted(target.life)<=0)return;
+        if(mc.level==null||target==null||target.life.dead||target.damageImmune)return;
+        double before=state().predicted(target.life);
+        if(before<=0)return;
         if(!(mc.level.getEntity(target.entityId) instanceof LivingEntity entity)||!target.id.equals(entity.getUUID()))return;
         if(!CombatEffect.permitsExternalHitEffects(mc.player,entity))return;
         int level=target.level(state().progress().level,state().encounterSync());
-        double defense=target.defense(level,false)*(1-Math.clamp(attack.modifiers.getOrDefault("piercing",0d),0,1));
+        double defense=target.defense(level,false)*(1-Math.clamp(attack.modifiers.getOrDefault("piercing",0d)+TowerCardEffects.penetration(attack),0,1));
         double[] resist=EquipmentDamage.resistances(state().resources().equipment,target.resistances());
-        var hit=CombatRules.calculate(attack,defense,resist,false,new int[0],coefficient,false,random);
+        var prepared=towerHit(attack,entity,before).apply(attack);
+        var hit=TowerCardEffects.forceCritical(prepared,before)
+            ? CombatRules.recalculateCritical(towerCritical(prepared,prepared.modifiers.getOrDefault("crit",0d)),defense,resist,false,new int[0],coefficient,false,CombatRules.draw(prepared,false,random))
+            : CombatRules.calculate(prepared,defense,resist,false,new int[0],coefficient,false,random);
         if(hit.total()<=0)return;
         double maximum=target.health(level);
         report.add("damageComponents",JSON.toJsonTree(ElementAccumulation.fractions(hit.components(),maximum)));
@@ -1012,8 +1393,12 @@ public final class SkillController {
         state().report(target.life,hit.total()/maximum,false,maximum,0xffffff,hit.critical(),report);
     }
     private void ownElements(double[] components,double fraction,JsonObject report){
-        if(fraction<=0)return;var life=state().own();var draft=JSON.fromJson(JSON.toJson(life),Life.class);double actual=Math.min(fraction,state().predicted(life));long now=state().serverNow();
-        var accumulated=ElementAccumulation.advance(life.elemental,draft,components,actual/fraction,null,false,false,now);life.elemental=accumulated.state();report.add("elemental",JSON.toJsonTree(life.elemental));JsonArray effects=new JsonArray();
+        if(fraction<=0)return;
+        advanceOwnElements(components,Math.min(fraction,state().predicted(state().own()))/fraction,report);
+    }
+    private void advanceOwnElements(double[] components,double acceptedScale,JsonObject report){
+        var life=state().own();var draft=JSON.fromJson(JSON.toJson(life),Life.class);long now=state().serverNow();
+        var accumulated=ElementAccumulation.advance(life.elemental,draft,components,acceptedScale,null,false,false,now);life.elemental=accumulated.state();report.add("elemental",JSON.toJsonTree(life.elemental));JsonArray effects=new JsonArray();
         for(var kind:accumulated.triggered()){
             var change=new JsonObject();change.addProperty("kind",kind.id);change.addProperty("effect",UUID.randomUUID().toString());change.addProperty("strong",false);if(kind.damaging()){change.add("stats",JSON.toJsonTree(new Stats()));change.add("equipment",JSON.toJsonTree(new cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot()));}
             var effect=new JsonObject();effect.addProperty("target",life.target.toString());effect.addProperty("generation",life.generation);effect.addProperty("owner",life.target.toString());effect.addProperty("ownerGeneration",life.generation);effect.addProperty("session",state().session());effect.addProperty("kind",kind.id);effect.addProperty("dimension",life.dimension);effect.addProperty("instance",life.instance);effect.addProperty("expires",life.elemental.until[kind.ordinal()]);effect.add("change",change);effect.addProperty("settleUntil",life.elemental.until[kind.ordinal()]+(kind.damaging()?ElementAccumulation.SETTLEMENT_GRACE:0));effect.addProperty("nextIndex",0);effect.addProperty("nextAt",now+(kind==ElementAccumulation.Kind.IGNITE?0:1000));effects.add(effect);ailment(effect);
@@ -1023,6 +1408,7 @@ public final class SkillController {
     }
     public boolean nativeAttack(Entity raw){
         var mc=Minecraft.getInstance();
+        if(!state().combatAvailable()||cn.yumis.fight.modules.dungeons.api.client.SealBossState.isFrozen())return true;
         LivingEntity target=raw instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragonPart part?part.parentMob:raw instanceof LivingEntity living?living:null;
         if(target==null)return false;
         if(!canTarget(target))return ManagedEntities.neutralCreature(target);
@@ -1042,6 +1428,7 @@ public final class SkillController {
         for(var nearby:meleeSweep(player.getEyePosition(),Vec3.directionFromRotation(0,player.getYRot()),player.getBoundingBox(),player.entityInteractionRange()))
             if(nearby!=target)hit(nearby,stats,null,coefficient,true,true,.4,null);
         mc.player.resetAttackStrengthTicker();
+        swingBasic();
         return true;
     }
     public void projectile(JsonObject j){
@@ -1085,6 +1472,7 @@ public final class SkillController {
     /** The local contact owner has already resolved geometry; all incoming damage uses this same calculation. */
     private boolean receiveBossHit(JsonObject j,Target boss){
         var p=Minecraft.getInstance().player;
+        if(boss.tower!=null&&!state().combatAvailable())return false;
         if(invulnerable()||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(p)||p.getAbilities().invulnerable||p.isSpectator())return false;
         int level=boss.level(state().progress().level,state().encounterSync());
         double points=boss.attack(level)*j.get("coefficient").getAsDouble();
@@ -1094,7 +1482,7 @@ public final class SkillController {
         if(j.has("occurredAt"))feedback.add("occurredAt",j.get("occurredAt"));
         if(points>0&&guardCounter(boss,feedback))return false;
         if(CombatRules.evades(snapshot().get(Stat.EVASION),random::nextDouble)){TalentCombat.dodged();return false;}
-        if(j.has("ritualStunTicks")&&!cn.yumis.fight.modules.skills.client.DemonHunterClient.steadfast())
+        if(j.has("ritualStunTicks")&&!isSteadfast())
             p.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.STUN,j.get("ritualStunTicks").getAsInt()));
         if(j.has("ritualRootTicks"))
             p.addEffect(new net.minecraft.world.effect.MobEffectInstance(cn.yumis.fight.modules.combat.api.CombatContentTypes.RITUAL_ROOT,j.get("ritualRootTicks").getAsInt()));
@@ -1230,7 +1618,12 @@ public final class SkillController {
                 cn.yumis.fight.modules.combat.api.client.DamageAnalysis.attach(extra,cn.yumis.fight.modules.combat.api.client.DamageAnalysis.effect(change.get("effect").getAsString()));
                 extra.addProperty("index",b.index);
                 if(target.training()&&!target.timedTraining)TrainingCombat.bleed(target,j,extra);
-                else state().report(target.life,change.get("fraction").getAsDouble(),false,target.health(target.level(state().progress().level,state().encounterSync())),0xe05360,false,extra);
+                else{
+                    Stats source=snapshot();
+                    boolean critical=TowerCardEffects.forceCritical(source,state().predicted(target.life));
+                    double fraction=change.get("fraction").getAsDouble()*(critical?TowerCardEffects.criticalMultiplier(source):1);
+                    state().report(target.life,fraction,false,target.health(target.level(state().progress().level,state().encounterSync())),0xe05360,critical,extra);
+                }
                 bleeds.put(entry.getKey(),new Bleed(j,now+1000,b.index+1));
             }
         }
@@ -1254,17 +1647,24 @@ public final class SkillController {
             if(now<pending.next)continue;
             JsonObject change=j.getAsJsonObject("change");boolean strong=change.get("strong").getAsBoolean();
             double maximum=own?snapshot().get(Stat.HEALTH):target.health(target.level(state().progress().level,state().encounterSync()));
+            Stats source=own?null:JSON.fromJson(change.get("stats"),Stats.class);
             double fraction;
             if(kind==ElementAccumulation.Kind.EROSION)fraction=ElementAccumulation.erosionFraction(strong);
             else if(own)fraction=monsterDamage(maximum*.30,true,1,state().progress().level)/maximum*ElementAccumulation.magicTaken(life.elemental,life,false,state().serverNow());
             else{
-                Stats source=JSON.fromJson(change.get("stats"),Stats.class);var equipment=JSON.fromJson(change.get("equipment"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);
+                var equipment=JSON.fromJson(change.get("equipment"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);
                 double defense=target.defense(target.level(state().progress().level,state().encounterSync()),true);
                 if(cn.yumis.fight.modules.combat.api.CombatEffect.permitsExternalHitEffects(mc.player,(LivingEntity)entity)&&cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.view.green(entity.getX(),entity.getY(),entity.getZ(),state().serverNow()))defense*=.85;
+                defense*=1-Math.clamp(TowerCardEffects.penetration(source),0,1);
                 double[] resist=cn.yumis.fight.modules.combat.api.EquipmentDamage.resistances(equipment,target.resistances());
                 fraction=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,new int[]{1})?ElementAccumulation.igniteFraction(strong,defense,source.get(Stat.FIRE),resist[1],ElementAccumulation.magicTaken(life.elemental,life,strong,state().serverNow())):0;
             }
-            if(!own)fraction*=cn.yumis.fight.modules.combat.api.CombatEffect.outgoingScale(mc.player);
+            if(!own){
+                if(source!=null)fraction*=towerHit(source,(LivingEntity)entity,state().predicted(life)).fixedMultiplier();
+                fraction*=cn.yumis.fight.modules.combat.api.CombatEffect.outgoingScale(mc.player);
+            }
+            boolean critical=!own&&source!=null&&TowerCardEffects.forceCritical(source,state().predicted(life));
+            if(critical)fraction*=TowerCardEffects.criticalMultiplier(source);
             if(own&&(invulnerable()||cn.yumis.fight.modules.combat.api.CombatEffect.protectedFromDamage(mc.player)||mc.player.getAbilities().invulnerable||mc.player.isSpectator()||kind==ElementAccumulation.Kind.IGNITE&&mc.player.hasEffect(net.minecraft.world.effect.MobEffects.FIRE_RESISTANCE)))fraction=0;
             double[] components=new double[5];components[kind==ElementAccumulation.Kind.IGNITE?2:0]=fraction;
             JsonObject extra=new JsonObject();extra.addProperty("effect",effect);extra.addProperty("effectKind",kind.id);extra.addProperty("index",pending.index);extra.add("damageComponents",JSON.toJsonTree(components));
@@ -1275,7 +1675,7 @@ public final class SkillController {
                 TrainingCombat.begin("element/"+effect,kind.title);TrainingCombat.hold("element/"+effect,"element",now+Math.max(0,j.get("settleUntil").getAsLong()-state().serverNow()));
                 TrainingCombat.report("element/"+effect,kind.title,target,values,fraction*maximum,kind.color,false,extra);
             }
-            else state().report(life,fraction,false,maximum,kind.color,false,extra);
+            else state().report(life,fraction,false,maximum,kind.color,critical,extra);
             elementalDots.put(effect,new Bleed(j,pending.next+(kind==ElementAccumulation.Kind.IGNITE?0:1000),pending.index+1));
         }
     }

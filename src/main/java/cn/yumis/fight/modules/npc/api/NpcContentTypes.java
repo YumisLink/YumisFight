@@ -16,8 +16,11 @@ public final class NpcContentTypes {
     public static final DeferredHolder<AttachmentType<?>,AttachmentType<String>> BINDING=ATTACHMENTS.register("npc_interaction",()->AttachmentType.builder(()->"").serialize(Codec.STRING.fieldOf("definition")).sync(ByteBufCodecs.STRING_UTF8).build());
     private static final DeferredRegister<EntityType<?>> ENTITIES=DeferredRegister.create(Registries.ENTITY_TYPE,ItemData.NS);
     public static final DeferredHolder<EntityType<?>,EntityType<NpcEntity>> NPC=ENTITIES.register("npc",()->EntityType.Builder.<NpcEntity>of(NpcEntity::new,MobCategory.MISC).sized(.6f,1.8f).eyeHeight(1.62f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ItemData.NS,"npc"))));
+    public static final DeferredItem<net.minecraft.world.item.Item> ELAINA_TOKEN=cn.yumis.fight.platform.ItemRegistry.ITEMS.registerItem(ElainaTokenItem.ID,p->new ElainaTokenItem(p.rarity(net.minecraft.world.item.Rarity.EPIC)));
     private NpcContentTypes(){}
     public static void register(IEventBus bus){
-        ATTACHMENTS.register(bus);ENTITIES.register(bus);bus.addListener((EntityAttributeCreationEvent event)->event.put(NPC.get(),NpcEntity.attributes().build()));
+        ATTACHMENTS.register(bus);ENTITIES.register(bus);
+        cn.yumis.fight.platform.ItemRegistry.ALL.put(ElainaTokenItem.ID,ELAINA_TOKEN);
+        bus.addListener((EntityAttributeCreationEvent event)->event.put(NPC.get(),NpcEntity.attributes().build()));
     }
 }

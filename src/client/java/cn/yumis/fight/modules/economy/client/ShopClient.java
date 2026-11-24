@@ -24,11 +24,10 @@ public final class ShopClient {
     private static int bagMenu=-1,nextPart;
     private static boolean ready;
     private static String pending="";
-    private static long pendingSequence;
     private static Result result;
     private ShopClient(){}
     public static void install(CommandRouter<Void,JsonObject> preparations,Supplier<JsonObject> view,BooleanSupplier alive,BiPredicate<LivingEntity,String> available){profile=view;living=alive;hostAvailable=available;preparations.register("economy","shopPurchase",(ignored,j)->prepare(j));}
-    public static void clear(){bag=List.of();bagMenu=-1;nextPart=0;ready=false;pending="";pendingSequence=0;result=null;}
+    public static void clear(){bag=List.of();bagMenu=-1;nextPart=0;ready=false;pending="";result=null;}
     public static boolean ready(ShopMenu menu){return ready&&bagMenu==menu.containerId;}
     public static boolean pending(){return !pending.isEmpty();}
     public static Result result(){return result;}
@@ -56,12 +55,13 @@ public final class ShopClient {
     public static void result(JsonObject value){
         if(!ClientUi.current().session().equals(value.get("session").getAsString()))return;
         String operation=value.get("operation").getAsString();if(!operation.equals(pending))return;
-        pending="";pendingSequence=0;result=new Result(operation,value.get("success").getAsBoolean(),value.get("message").getAsString());ClientUi.current().message(result.message());
+        pending="";result=new Result(operation,value.get("success").getAsBoolean(),value.get("message").getAsString());
+        if(result.success())ClientUi.current().message(result.message());
     }
-    public static void personalCommit(JsonObject value){
-        if(pending()&&pendingSequence==value.get("sequence").getAsLong()&&!value.get("received").getAsBoolean()){
-            result=new Result(pending,false,"购买状态已变化，请重新确认");pending="";pendingSequence=0;
-        }
+    public static void finished(JsonObject request,boolean committed){
+        if(!pending.equals(request.get("operation").getAsString()))return;
+        result=new Result(pending,committed,committed?"购买已完成":"购买未完成，请重新确认");
+        pending="";
     }
     public static void buy(ShopMenu menu,ShopDefinitions.Offer offer,int quantity){
         if(pending()||!valid(menu)||!affordable(menu,offer,quantity))return;
@@ -70,28 +70,27 @@ public final class ShopClient {
     }
     private record Slot(String area,int index,ItemStack before,ItemStack after) {}
     private static void prepare(JsonObject request){
-        try{
-            pendingSequence=request.get("clientTransaction").getAsLong();
-            var mc=Minecraft.getInstance();var player=mc.player;
-            if(player==null||!(player.containerMenu instanceof ShopMenu menu)||menu.containerId!=request.get("menu").getAsInt()||!valid(menu)||!ready(menu))throw new IllegalArgumentException("商店已关闭或库存尚未同步");
-            int quantity=request.get("quantity").getAsInt();var offer=menu.definition.offers().stream().filter(o->o.id().equals(request.get("offer").getAsString())).findFirst().orElseThrow(()->new IllegalArgumentException("商品已变化"));
-            if(!affordable(menu,offer,quantity))throw new IllegalArgumentException("购买数量无效或费用不足");
-            var sources=new ArrayList<Slot>();for(int i=0;i<36;i++){var stack=player.getInventory().getItem(i);sources.add(new Slot("inventory",i,stack.copy(),stack.copy()));}
-            for(int i=0;i<bag.size();i++)sources.add(new Slot("bag",i,bag.get(i).copy(),bag.get(i).copy()));
-            long goldCost=0;
-            for(var cost:offer.costs()){
-                long remaining=Math.multiplyExact(cost.count(),quantity);if(cost.gold()){goldCost=Math.addExact(goldCost,remaining);continue;}
-                var required=cost.stack();for(var slot:sources)if(remaining>0&&ItemStack.isSameItemSameComponents(slot.after(),required)){int take=(int)Math.min(remaining,slot.after().getCount());slot.after().shrink(take);remaining-=take;}
-                if(remaining>0)throw new IllegalArgumentException("道具费用已变化，请重试");
-            }
-            var edits=new JsonArray();for(var slot:sources)if(!ItemStack.matches(slot.before(),slot.after()))edits.add(InventoryEdits.change(player,slot.area(),slot.index(),slot.before(),slot.after()));request.add("inventoryChanges",edits);
-            if(goldCost>0){var before=new JsonObject();var after=new JsonObject();long revision=profile.get().get("goldRevision").getAsLong();before.addProperty("gold",gold());before.addProperty("goldRevision",revision);after.addProperty("gold",Math.subtractExact(gold(),goldCost));after.addProperty("goldRevision",Math.incrementExact(revision));request.add("beforeBalances",before);request.add("balances",after);}
-            var outputs=new JsonArray();
-            if(offer.kind().equals("item")){
-                var item=offer.create(menu.shop,RANDOM);
-                for(int remaining=quantity;remaining>0;){int count=Math.min(remaining,item.getMaxStackSize());outputs.add(InventoryEdits.encode(player,item.copyWithCount(count)));remaining-=count;}
-            }else for(int i=0;i<quantity;i++)outputs.add(InventoryEdits.encode(player,offer.create(menu.shop,RANDOM)));
-            request.add("shopOutputs",outputs);
-        }catch(RuntimeException failure){pending="";pendingSequence=0;throw failure;}
+        var mc=Minecraft.getInstance();var player=mc.player;
+        if(player==null||!(player.containerMenu instanceof ShopMenu menu)||menu.containerId!=request.get("menu").getAsInt()||!valid(menu)||!ready(menu))throw new IllegalArgumentException("商店已关闭或库存尚未同步");
+        int quantity=request.get("quantity").getAsInt();var offer=menu.definition.offers().stream().filter(o->o.id().equals(request.get("offer").getAsString())).findFirst().orElseThrow(()->new IllegalArgumentException("商品已变化"));
+        if(!affordable(menu,offer,quantity))throw new IllegalArgumentException("购买数量无效或费用不足");
+        var sources=new ArrayList<Slot>();for(int i=0;i<36;i++){var stack=player.getInventory().getItem(i);sources.add(new Slot("inventory",i,stack.copy(),stack.copy()));}
+        for(int i=0;i<bag.size();i++)sources.add(new Slot("bag",i,bag.get(i).copy(),bag.get(i).copy()));
+        long goldCost=0;
+        for(var cost:offer.costs()){
+            long remaining=Math.multiplyExact(cost.count(),quantity);if(cost.gold()){goldCost=Math.addExact(goldCost,remaining);continue;}
+            var required=cost.stack();for(var slot:sources)if(remaining>0&&ItemStack.isSameItemSameComponents(slot.after(),required)){int take=(int)Math.min(remaining,slot.after().getCount());slot.after().shrink(take);remaining-=take;}
+            if(remaining>0)throw new IllegalArgumentException("道具费用已变化，请重试");
+        }
+        var edits=new JsonArray();for(var slot:sources)if(!ItemStack.matches(slot.before(),slot.after()))edits.add(InventoryEdits.change(player,slot.area(),slot.index(),slot.before(),slot.after()));request.add("inventoryChanges",edits);
+        if(goldCost>0){var before=new JsonObject();var after=new JsonObject();long revision=profile.get().get("goldRevision").getAsLong();before.addProperty("gold",gold());before.addProperty("goldRevision",revision);after.addProperty("gold",Math.subtractExact(gold(),goldCost));after.addProperty("goldRevision",Math.incrementExact(revision));request.add("beforeBalances",before);request.add("balances",after);}
+        var outputs=new JsonArray();
+        if(offer.kind().equals("item")){
+            var item=offer.create(menu.shop,RANDOM);
+            for(int remaining=quantity;remaining>0;){int count=Math.min(remaining,item.getMaxStackSize());outputs.add(InventoryEdits.encode(player,item.copyWithCount(count)));remaining-=count;}
+        }else for(int i=0;i<quantity;i++)outputs.add(InventoryEdits.encode(player,offer.create(menu.shop,RANDOM)));
+        request.add("shopOutputs",outputs);
+        EconomyActions.draft(request,"inventoryChanges");
+        EconomyActions.draft(request,"shopOutputs");
     }
 }

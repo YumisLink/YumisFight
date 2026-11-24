@@ -86,10 +86,7 @@ public final class SkillVfx {
     public record LevelRenderContext(net.minecraft.client.renderer.state.level.LevelRenderState levelState,List<Sword> swords){
     }
     private static final net.minecraft.util.context.ContextKey<Frame> FRAME=new net.minecraft.util.context.ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","skill_meshes"));
-    public void accept(SkillVisualEvent event){
-        accept(event,1);
-    }
-    public void accept(SkillVisualEvent event,double speed){
+    void accept(SkillVisualEvent event,double speed,String summonMove){
         var mc=Minecraft.getInstance();
         if(!event.valid()||mc.level==null||!mc.level.dimension().identifier().toString().equals(event.dimension())||closed.containsKey(event.cast()))return;
         var own=SkillsClient.current().own();
@@ -100,6 +97,7 @@ public final class SkillVfx {
         if(track!=null&&event.sequence()<=track.sequence)return;
         receivedEvents++;
         if(event.phase()==SkillVisualEvent.Phase.CANCEL||event.phase()==SkillVisualEvent.Phase.END){
+            if(event.cast().equals(cameraCast))endCamera(event.phase()==SkillVisualEvent.Phase.END);
             Track ending=tracks.get(event.cast());
             if(ending!=null&&!SkillVisualRegistry.handler(event.skill()).immediateEnd()&&event.phase()==SkillVisualEvent.Phase.END){
                 ending.released=true;
@@ -107,7 +105,6 @@ public final class SkillVfx {
             }
             else tracks.remove(event.cast());
             if(event.phase()==SkillVisualEvent.Phase.CANCEL||!SkillVisualRegistry.handler(event.skill()).persistentEnd(event))closed.put(event.cast(),time+45000);
-            if(event.cast().equals(cameraCast))endCamera(event.phase()==SkillVisualEvent.Phase.END);
             return;
         }
         if(track==null){
@@ -120,13 +117,16 @@ public final class SkillVfx {
         track.speed=Double.isFinite(speed)&&speed>0?speed:1;
         track.last=event;
         track.sequence=event.sequence();
+        if(!summonMove.isEmpty()&&summonMove.length()<=32
+            &&cn.yumis.fight.modules.skills.api.SummonMoves.find(summonMove.replace("_flight","").replace("_impact",""))!=null)
+            track.summonMove=summonMove;
         if(event.phase()==SkillVisualEvent.Phase.RELEASE)track.released=true;
         if(event.phase()==SkillVisualEvent.Phase.FINISH){track.terminal=event.at();track.retirement=SkillVisualRegistry.handler(event.skill()).finishedUntil(track,event);}
         if(event.phase()!=SkillVisualEvent.Phase.TRAIL){
             track.flashes.add(event);
             while(track.flashes.size()>32)track.flashes.removeFirst();
         }
-        if(!event.skill().equals(SkillVisualRules.PLAYER_POSE)&&time-event.at()<200)SkillVisualRegistry.handler(event.skill()).play(event);
+        if(!event.skill().equals(SkillVisualRules.PLAYER_POSE)&&time-event.at()<200)SkillVisualRegistry.handler(event.skill()).play(track,event);
     }
     void poseClip(UUID cast,int sequence,String clip,String next,long lead,boolean follow,int orbColor){
         Track track=tracks.get(cast);
@@ -156,11 +156,6 @@ public final class SkillVfx {
         if(!Double.isFinite(origin.x)||!Double.isFinite(origin.y)||!Double.isFinite(origin.z)||!Double.isFinite(direction.x)||!Double.isFinite(direction.y)||!Double.isFinite(direction.z))return;
         track.motion=new Motion(origin,direction,velocity,range,started,millis,value.has("ground")&&value.get("ground").getAsBoolean(),targetEntity,target,arc,value.has("targetFeet")&&value.get("targetFeet").getAsBoolean());track.followedPoint=origin;track.followedTargetLost=false;
         if(value.has("released")&&value.get("released").getAsBoolean())track.released=true;
-    }
-    /** Skill-owned semantic tag; it is independent of character weapon presentation. */
-    public void summonMove(UUID cast,int sequence,String move){
-        Track track=tracks.get(cast);if(track==null||track.sequence!=sequence||move==null||move.length()>32)return;
-        if(cn.yumis.fight.modules.skills.api.SummonMoves.find(move.replace("_flight","").replace("_impact",""))!=null)track.summonMove=move;
     }
     private SkillVisualEvent sample(Track track,long time){
         Motion motion=track.motion;if(motion==null||track.last.phase()==SkillVisualEvent.Phase.FINISH)return track.last;var mc=Minecraft.getInstance();long at=track.terminal>0?Math.min(time,track.terminal):time;
@@ -204,9 +199,25 @@ public final class SkillVfx {
             else mc.options.setCameraType(SkillVisualRegistry.handler(t.start.skill()).cameraType(t,time));
         }
     }
-    public boolean blocksTurning(){var t=tracks.get(cameraCast);return t!=null&&SkillVisualRegistry.handler(t.start.skill()).blocksTurning();}
-    public boolean blocksHotbar(){var t=tracks.get(cameraCast);return t!=null&&SkillVisualRegistry.handler(t.start.skill()).blocksHotbar();}
+    public boolean blocksTurning(){
+        var t=tracks.get(cameraCast);
+        if(t!=null&&SkillVisualRegistry.handler(t.start.skill()).blocksTurning())return true;
+        var activeCast=cn.yumis.fight.modules.skills.api.client.SkillController.INSTANCE.cast;
+        if(activeCast!=null&&SkillVisualRegistry.handler(activeCast.skill.id).blocksTurning())return true;
+        String dh=DemonHunterClient.activeSkillId();
+        return !dh.isEmpty()&&SkillVisualRegistry.handler(dh).blocksTurning();
+    }
+    public boolean blocksHotbar(){
+        if(OracleClient.INSTANCE.locked())return true;
+        var t=tracks.get(cameraCast);
+        if(t!=null&&SkillVisualRegistry.handler(t.start.skill()).blocksHotbar())return true;
+        var activeCast=cn.yumis.fight.modules.skills.api.client.SkillController.INSTANCE.cast;
+        if(activeCast!=null&&SkillVisualRegistry.handler(activeCast.skill.id).blocksHotbar())return true;
+        String dh=DemonHunterClient.activeSkillId();
+        return !dh.isEmpty()&&SkillVisualRegistry.handler(dh).blocksHotbar();
+    }
     public void beginCamera(UUID cast){
+        if(!tracks.containsKey(cast))return;
         if(cameraCast!=null)endCamera(false);
         previousCamera=Minecraft.getInstance().options.getCameraType();
         cameraCast=cast;
@@ -236,7 +247,7 @@ public final class SkillVfx {
         Vec3 camera=context.levelState().cameraRenderState.pos;
         List<Quad> quads=new ArrayList<>();SummonAmbientVisuals.extract(quads);
         CareerSkillVisuals.actors(quads,SkillsClient.current().serverNow());
-        SunMoonSkillVisuals.actors(quads,SkillsClient.current().serverNow());DemonHunterVisuals.actors(quads,SkillsClient.current().serverNow());
+        SunMoonSkillVisuals.actors(quads,SkillsClient.current().serverNow());DemonHunterVisuals.actors(quads,SkillsClient.current().serverNow());ElementalistVisuals.actors(quads,SkillsClient.current().serverNow());BattleMageVisuals.actors(quads,SkillsClient.current().serverNow());
         for(Track t:tracks.values()){
             var event=t.start;
             if(mc.level==null||mc.level.getEntity(event.caster())==null)continue;

@@ -28,11 +28,13 @@ public class NpcEntity extends PathfinderMob implements WorldVitalEntity {
     private static final EntityDataAccessor<String> SKIN=SynchedEntityData.defineId(NpcEntity.class,EntityDataSerializers.STRING);
     private static Predicate<Entity> additionalPlayerOwned=entity->false;
     private static Predicate<NpcEntity> conversations=entity->false;
+    private static Predicate<NpcEntity> staleUnique=entity->false;
     private int waitTicks;
     public NpcEntity(EntityType<? extends NpcEntity> type,Level level){super(type,level);setPersistenceRequired();setCanPickUpLoot(false);xpReward=0;waitTicks=nextWait();}
     public static AttributeSupplier.Builder attributes(){return Mob.createMobAttributes().add(Attributes.MAX_HEALTH,20).add(Attributes.MOVEMENT_SPEED,.25).add(Attributes.FOLLOW_RANGE,12).add(Attributes.KNOCKBACK_RESISTANCE,1).add(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE,1);}
     public static void playerOwnedSources(Predicate<Entity> predicate){additionalPlayerOwned=Objects.requireNonNull(predicate);}
     public static void conversations(Predicate<NpcEntity> predicate){conversations=Objects.requireNonNull(predicate);}
+    public static void staleUnique(Predicate<NpcEntity> predicate){staleUnique=Objects.requireNonNull(predicate);}
     public static boolean playerOwned(Entity entity){return playerOwned(entity,new HashSet<>());}
     public static void rememberPlayerSource(Entity entity){if(playerOwned(entity))entity.getPersistentData().putBoolean("npc_player_source",true);}
     @Override protected void defineSynchedData(SynchedEntityData.Builder builder){super.defineSynchedData(builder);builder.define(SKIN,"zimin");}
@@ -50,7 +52,12 @@ public class NpcEntity extends PathfinderMob implements WorldVitalEntity {
     @Override protected void registerGoals(){goalSelector.addGoal(0,new FloatGoal(this));goalSelector.addGoal(2,new SlowWander());goalSelector.addGoal(5,new LookAtPlayerGoal(this,Player.class,8));goalSelector.addGoal(6,new RandomLookAroundGoal(this));}
     private int nextWait(){return 6000+getRandom().nextInt(6001);}
     public boolean trading(){return conversations.test(this)||level() instanceof ServerLevel server&&server.getServer().getPlayerList().getPlayers().stream().anyMatch(p->p.level()==level()&&p.containerMenu instanceof ShopMenu menu&&menu.host.equals(getUUID()));}
+    @Override public void onAddedToLevel(){
+        super.onAddedToLevel();
+        if(!level().isClientSide()&&staleUnique.test(this))discard();
+    }
     @Override protected void customServerAiStep(ServerLevel level){
+        if(staleUnique.test(this)){discard();return;}
         super.customServerAiStep(level);var definition=NpcInteractionComponent.query(this);
         if(definition!=null){String title=definition.displayName();if(getCustomName()==null||!getCustomName().getString().equals(title))setCustomName(ModText.of(title));}
         if(trading()||stationary())getNavigation().stop();else if(getNavigation().isDone()&&waitTicks>0)waitTicks--;

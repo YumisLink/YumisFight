@@ -1,14 +1,40 @@
 package cn.yumis.fight.modules.skills.client;
 import cn.yumis.fight.modules.skills.api.*;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
+import static cn.yumis.fight.modules.skills.api.SkillVisualEvent.Phase.*;
+import static java.util.Map.entry;
+
 /** Native three-dimensional meshes; projectiles use the synchronized source trajectory. */
 final class MageSkillVisuals {
+    private static final Map<String,List<SkillSound>> SOUNDS=Map.ofEntries(
+        entry(MageSkills.STAR,List.of(
+            new SkillSound(START,SoundEvents.FIREWORK_ROCKET_LAUNCH,.48f,1.50f),
+            new SkillSound(FINISH,SoundEvents.AMETHYST_BLOCK_CHIME,.50f,1.35f))),
+        entry(MageSkills.FANG,List.of(new SkillSound(RELEASE,SoundEvents.SPEAR_ATTACK.value(),.62f,1.20f))),
+        entry(MageSkills.JACK,List.of(
+            new SkillSound(START,SoundEvents.BLAZE_SHOOT,.56f,1.18f),
+            new SkillSound(FINISH,SoundEvents.GENERIC_EXPLODE.value(),.74f,1.22f))),
+        entry(MageSkills.HERDER,List.of(new SkillSound(START,SoundEvents.ENCHANTMENT_TABLE_USE,.55f,1.22f))),
+        entry(SummonerSkills.SPIRITS,List.of(
+            new SkillSound(START,SoundEvents.AMETHYST_BLOCK_CHIME,.52f,1.08f),
+            new SkillSound(START,SoundEvents.BEACON_POWER_SELECT,.33f,1.32f))),
+        entry(SummonerSkills.LOUISE,List.of(new SkillSound(START,SoundEvents.AMETHYST_BLOCK_RESONATE,.65f,1.36f))),
+        entry(SummonerSkills.SANDOR,List.of(new SkillSound(START,SoundEvents.ANVIL_PLACE,.58f,.82f))),
+        entry(SummonerSkills.KING,List.of(new SkillSound(START,SoundEvents.BEACON_ACTIVATE,.65f,1.12f))),
+        entry(SummonerSkills.FRENZY,List.of(new SkillSound(START,SoundEvents.RESPAWN_ANCHOR_CHARGE,.60f,.85f))),
+        entry(SummonerSkills.KASIJAS,List.of(new SkillSound(START,SoundEvents.RAVAGER_ROAR,.68f,.88f)))
+    );
+
     private MageSkillVisuals(){}
     static void install(){for(String id:java.util.stream.Stream.concat(List.of(MageSkills.STAR,MageSkills.FANG,MageSkills.JACK,MageSkills.HERDER).stream(),SummonerSkills.ALL.stream()).toList())SkillVisualRegistry.register(id,new SkillVisualRegistry.Handler(){
         @Override public long defaultDuration(){return 1500;}
+        @Override public void play(SkillVfx.Track track,SkillVisualEvent event){
+            if(track.summonMove.isEmpty())SkillSound.play(event,SOUNDS.getOrDefault(id,List.of()));
+        }
         // 宠物招式轨道（带 summonMove）不回放施法者姿态；只有玩家自己的召唤施法播姿态文档。
         @Override public String poseAnimation(SkillVfx.Track track,long time){return track.summonMove.isEmpty()?track.start.skill():null;}
         @Override public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long time,List<Quad> quads,Vec3 camera){draw(id,track,age,time,quads);}

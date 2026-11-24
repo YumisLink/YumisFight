@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.dungeons.client;
 
+import cn.yumis.fight.modules.combat.api.ActionRegistry;
 import cn.yumis.fight.modules.combat.api.CombatContentTypes;
 import cn.yumis.fight.modules.combat.api.Life;
 import cn.yumis.fight.modules.dungeons.api.*;
@@ -47,7 +48,7 @@ public final class EncounterClientContacts {
         else next.gbl=JSON.fromJson(packet,GblAttack.class);
         String key=next.key();var previous=contacts.get(key);next.cell=packet.has("cell")?packet.get("cell").getAsInt():previous==null?0:previous.cell;next.area=packet.has("area")?packet.get("area").getAsInt():previous==null?0:previous.area;
         if(family==Family.CLASSIC){
-            if(ClassicMove.find(next.palace.kind)==null)return;
+            if(ClassicMove.find(next.palace.kind)==null&&!ActionRegistry.contains(next.palace.kind))return;
             next.arc=packet.has("arc")?packet.get("arc").getAsDouble():previous==null?0:previous.arc;
             next.enemyFraction=packet.has("enemyFraction")?packet.get("enemyFraction").getAsDouble():previous==null?0:previous.enemyFraction;
             next.lockedPlayer=packet.has("lockedPlayer")?UUID.fromString(packet.get("lockedPlayer").getAsString()):previous==null?null:previous.lockedPlayer;
@@ -74,6 +75,7 @@ public final class EncounterClientContacts {
     }
     private static boolean step(Contact c,long at){
         var mc=Minecraft.getInstance();var p=mc.player;if(p==null||mc.level==null||own.get().dead||p.isDeadOrDying()||!c.instance().equals(own.get().instance)||!c.source.dimension.equals(mc.level.dimension().identifier().toString()))return true;
+        if(c.source.tower!=null&&TowerClient.blocksCombat())return true;
         var raw=mc.level.getEntity(c.source.entityId);
         if(!c.retired){
             if(raw==null)return false;
@@ -110,7 +112,10 @@ public final class EncounterClientContacts {
     }
     private static boolean palace(Contact c,Entity source,long at){
         var mc=Minecraft.getInstance();var p=mc.player;var a=c.palace;boolean classic=c.family==Family.CLASSIC;
-        if(!(classic?cn.yumis.fight.modules.dungeons.content.ClassicDungeonRooms.contains(c.cell,c.area,p.position()):cn.yumis.fight.modules.dungeons.content.CastlePalace.contains(c.cell,c.area,p.position()))){c.previous=at;return false;}
+        boolean inRoom=c.source.tower!=null?cn.yumis.fight.modules.dungeons.content.AwakeningTowerLayout.containsBattle(c.cell,p.position())
+            :classic?cn.yumis.fight.modules.dungeons.content.ClassicDungeonRooms.contains(c.cell,c.area,p.position())
+            :cn.yumis.fight.modules.dungeons.content.CastlePalace.contains(c.cell,c.area,p.position());
+        if(!inRoom){c.previous=at;return false;}
         if(c.lockedPlayer!=null&&!c.lockedPlayer.equals(p.getUUID())){c.previous=at;return false;}
         if(c.enemyFraction>0){
             int level=c.source.level(playerLevel.getAsInt(),synchronize.getAsBoolean());
@@ -130,10 +135,10 @@ public final class EncounterClientContacts {
         else if(a.shape.equals("WAVE"))inside=(!classic||Math.abs(offset.y)<1.05)&&distance>=Math.max(0,a.radius*a.progress(c.previous)-a.width*.5-.3)&&distance<=a.radius*a.progress(at)+a.width*.5+.3;
         else inside=distance<=a.radius+.3&&(!a.shape.equals("FAN")||distance<.4||direction.lengthSqr()<.001||offset.multiply(1,0,1).normalize().dot(direction)>=Math.cos(a.halfAngle));
         ClassicMove move=classic?ClassicMove.find(a.kind):null;
-        if(classic&&Set.of("inhale","tree_cage").contains(move.clip())&&distance<=a.radius+.5&&Math.abs(offset.y)<2.6&&at>=c.pullAt){
+        if(move!=null&&move.pullMode()!=ClassicMove.PullMode.NONE&&distance<=a.radius+.5&&Math.abs(offset.y)<2.6&&at>=c.pullAt){
             c.pullAt=at+200;
             if(!invulnerable.getAsBoolean()&&!p.isSpectator()&&!p.getAbilities().invulnerable&&visible(a.origin().add(0,.7,0),source)){
-                boolean cage=move.clip().equals("tree_cage");Vec3 pull=a.origin().subtract(p.position()).multiply(1,0,1);
+                boolean cage=move.pullMode()==ClassicMove.PullMode.CAGE;Vec3 pull=a.origin().subtract(p.position()).multiply(1,0,1);
                 if(pull.lengthSqr()>(cage?Math.pow(a.radius-.65,2):.25))p.setDeltaMovement(p.getDeltaMovement().add(pull.normalize().scale(cage?.17:.055)));
             }
         }
@@ -142,7 +147,10 @@ public final class EncounterClientContacts {
     }
     private static Vec3 position(Contact c,long at){Vec3 p=c.palace.position(at);return c.arc>0?p.add(0,c.arc*Math.sin(Math.PI*c.palace.progress(at)),0):p;}
     private static boolean skasa(Contact c,Entity source,long at){
-        var mc=Minecraft.getInstance();var p=mc.player;var a=c.skasa;var move=a.move();if(!cn.yumis.fight.modules.dungeons.content.SkasaLair.contains(a.cell,a.area,p.position())){c.previous=at;return false;}boolean blocked=false;
+        var mc=Minecraft.getInstance();var p=mc.player;var a=c.skasa;var move=a.move();
+        boolean inRoom=c.source.tower!=null?cn.yumis.fight.modules.dungeons.content.AwakeningTowerLayout.containsBattle(a.cell,p.position())
+            :cn.yumis.fight.modules.dungeons.content.SkasaLair.contains(a.cell,a.area,p.position());
+        if(!inRoom){c.previous=at;return false;}boolean blocked=false;
         if(move==SkasaMoves.ICE_LINE){Vec3 from=a.position(c.previous).add(0,.7,0),to=a.position(at).add(0,.7,0);var wall=mc.level.clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,source));blocked=wall.getType()!=HitResult.Type.MISS;if(blocked&&from.distanceToSqr(to)>.000001)at=c.previous+(long)((at-c.previous)*from.distanceTo(wall.getLocation())/from.distanceTo(to));}
         if(move==SkasaMoves.VORTEX&&at>=c.pullAt){c.pullAt=at+250;if(!p.isSpectator()&&!p.getAbilities().invulnerable&&a.inArena(p.position())&&Math.abs(p.getX()-a.x)<10){Vec3 pull=a.origin().subtract(p.position()).multiply(1,0,1);if(pull.lengthSqr()>.25)p.setDeltaMovement(p.getDeltaMovement().add(pull.normalize().scale(.04)));}}
         int pulse=a.pulse(at);if((move.travels()||a.contacting(at))&&a.contains(p.position(),pulse,c.previous,at)&&visible(a.origin().add(0,.7,0),source))contact(c,a.id+"/"+pulse,a.kind,move.coefficient,move.magic,move.element,ClientUi.current().serverNow(),move==SkasaMoves.ROAR?12:0);

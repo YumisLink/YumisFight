@@ -28,10 +28,19 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     /** Encounter-owned immunity, shared by prediction and the existing receipt settlement. */
     public boolean damageImmune;
     public boolean fixedLevel;
+    public AwakeningTower tower;
     public AbyssParty.Enemy abyss;
     public int abyssRewardLevel;
     /** Lower bound of this world enemy's committed health fraction. */
     public double healthFloor;
+    /** Boss shield fraction relative to own maximum health (e.g. 0.05 = 5%, 0.10 = 10%). */
+    public double shield;
+    /** Action-phase incoming damage multiplier (default 1.0; e.g. 0.10 = 90% damage reduction). */
+    public double damageTakenMultiplier=1.0;
+    /** Finale near-death 1 HP floor toggle: prevents lethal blow from producing a death receipt until lifted. */
+    public boolean lethalFloorOne;
+    /** Health fraction corresponding to the finale 1 HP floor (strictly > 0). */
+    public static final double LETHAL_ONE_HP_FLOOR=1e-5;
     /** Enemy-owned lives: intermediate depletion starts a revive phase and never publishes a death receipt. */
     public int encounterLives=1;
     public long encounterReviveUntil,encounterReviveMillis=2800;
@@ -56,27 +65,56 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     @Override public cn.yumis.fight.modules.combat.api.Receipt receive(double fraction,boolean heal){
         if(!Double.isFinite(fraction)||fraction<0)throw new IllegalArgumentException("伤害份额无效");
         if(!heal&&damageImmune)return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
-        if(!training()){
-            if(!heal&&healthFloor>0){
-                double remaining=damageCapacity(life.q);
-                if(remaining==0)return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
-                if(fraction>=remaining){
-                    var receipt=cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(remaining,false);
-                    if(!receipt.accepted())return receipt;
-                    life.q=healthFloor;
-                    life.dead=false;
-                    return new cn.yumis.fight.modules.combat.api.Receipt(true,"",receipt.actual(),life.q,life.revision,"");
-                }
-            }
-            var receipt=cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,heal);
-            if(!heal&&receipt.accepted()&&!receipt.deathId().isEmpty()&&encounterLives>1){
-                encounterLives--;life.dead=false;damageImmune=true;encounterReviveUntil=System.currentTimeMillis()+encounterReviveMillis;
-                return new cn.yumis.fight.modules.combat.api.Receipt(true,"REVIVING",receipt.actual(),life.q,life.revision,"");
-            }
-            return receipt;
+        if(training()){
+            life.q=1;life.dead=false;life.revision++;
+            return new cn.yumis.fight.modules.combat.api.Receipt(true,"",heal?0:fraction,1,life.revision,"");
         }
-        life.q=1;life.dead=false;life.revision++;
-        return new cn.yumis.fight.modules.combat.api.Receipt(true,"",heal?0:fraction,1,life.revision,"");
+        if(life.dead)return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
+        if(heal)return cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(fraction,true);
+        double takenMultiplier=Double.isFinite(damageTakenMultiplier)?Math.max(0d,damageTakenMultiplier):1d;
+        double remainingDamage=fraction*takenMultiplier;
+        if(remainingDamage<=0)return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
+        double absorbedByShield=0;
+        if(shield>0){
+            absorbedByShield=Math.min(shield,remainingDamage);
+            shield=Math.max(0,shield-absorbedByShield);
+            remainingDamage-=absorbedByShield;
+            if(remainingDamage<=0){
+                life.revision++;
+                return new cn.yumis.fight.modules.combat.api.Receipt(true,"SHIELD_ABSORBED",absorbedByShield,life.q,life.revision,"");
+            }
+        }
+        if(healthFloor>0){
+            double capacity=damageCapacity(life.q);
+            if(capacity==0){
+                if(absorbedByShield>0){
+                    life.revision++;
+                    return new cn.yumis.fight.modules.combat.api.Receipt(true,"SHIELD_ABSORBED",absorbedByShield,life.q,life.revision,"");
+                }
+                return cn.yumis.fight.modules.combat.api.LifeRules.noDamageReceipt(life);
+            }
+            if(remainingDamage>=capacity){
+                var receipt=cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(capacity,false);
+                if(!receipt.accepted())return receipt;
+                life.q=healthFloor;
+                life.dead=false;
+                return new cn.yumis.fight.modules.combat.api.Receipt(true,"PHASE_FLOOR",absorbedByShield+receipt.actual(),life.q,life.revision,"");
+            }
+        }
+        if(lethalFloorOne&&life.q-remainingDamage<=LETHAL_ONE_HP_FLOOR){
+            double actualHpLoss=Math.max(0,life.q-LETHAL_ONE_HP_FLOOR);
+            life.q=Math.min(life.q,LETHAL_ONE_HP_FLOOR);
+            if(life.q<=0)life.q=LETHAL_ONE_HP_FLOOR;
+            life.dead=false;
+            life.revision++;
+            return new cn.yumis.fight.modules.combat.api.Receipt(true,"LETHAL_FLOOR_ONE",absorbedByShield+actualHpLoss,life.q,life.revision,"");
+        }
+        var receipt=cn.yumis.fight.modules.combat.api.CombatTarget.super.receive(remainingDamage,false);
+        if(receipt.accepted()&&!receipt.deathId().isEmpty()&&encounterLives>1){
+            encounterLives--;life.dead=false;damageImmune=true;encounterReviveUntil=System.currentTimeMillis()+encounterReviveMillis;
+            return new cn.yumis.fight.modules.combat.api.Receipt(true,"REVIVING",absorbedByShield+receipt.actual(),life.q,life.revision,"");
+        }
+        return new cn.yumis.fight.modules.combat.api.Receipt(receipt.accepted(),receipt.reason(),absorbedByShield+receipt.actual(),receipt.q(),receipt.revision(),receipt.deathId());
     }
     /** Temporary encounter source, additive with the existing armor increase. */
     public double encounterDefenseIncrease;
@@ -90,6 +128,17 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         double waystoneIncrease=waystone==null?0:waystone.effect("monster_defense");
         double multiplier=waystone==null?1:waystone.multiplier();
         return base*(1+(elitePower.equals("armor")?.5:0)+encounterDefenseIncrease+waystoneIncrease)*multiplier*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);
+    }
+    /** Single boss/elite action-time entry. Cooldowns deliberately stay outside this object. */
+    public ActionTiming actionTiming(long now){
+        return new ActionTiming(cn.yumis.fight.modules.combat.api.ElementAccumulation.castTimeScale(life,now));
+    }
+    /** Snapshot of the current chill multiplier for one action; hits, windups and recoveries all use it. */
+    public record ActionTiming(double scale){
+        public long duration(long base){return scale==1?base:Math.round(base*scale);}
+        public long windup(long base){return duration(base);}
+        public long active(long base){return duration(base);}
+        public long recovery(long base){return duration(base);}
     }
     public double[] resistances(){
         double[] copy=elementalResists.clone();
@@ -109,6 +158,7 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         return true;
     }
     public int level(int playerLevel,boolean sync){
+        if(tower!=null)return TowerClimbRules.enemyLevel(playerLevel);
         return fixedLevel?originalLevel:training()?playerLevel:sync?Math.max(originalLevel,playerLevel):originalLevel;
     }
     public double health(int level){
@@ -121,13 +171,15 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         ;
         double growth=growth(level);
         double multiplier=waystone==null?1:waystone.multiplier()*(1+waystone.effect("monster_health"));
-        return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1)*multiplier;
+        double field=tower==null?1:TowerClimbRules.enemyHealthFactor(tower);
+        return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1)*multiplier*field;
     }
     public double attack(int level){
         // The added pressure grows from x3 at level 1 to x12 at level 80, then stays at x12.
         double attackScale=3+9*(Math.clamp(level,1,80)-1)/79d;
         double multiplier=waystone==null?1:waystone.multiplier()*(1+waystone.effect("monster_attack"));
-        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1)*multiplier*attackScale;
+        double field=tower==null?1:TowerClimbRules.enemyAttackFactor(tower);
+        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1)*multiplier*attackScale*field;
     }
     private static double growth(int level){if(level<1)throw new IllegalArgumentException("敌人等级无效");return level<=HEALTH_GROWTH.length?HEALTH_GROWTH[level-1]:HEALTH_GROWTH[HEALTH_GROWTH.length-1]*Math.pow(1.08,level-HEALTH_GROWTH.length);}
 }

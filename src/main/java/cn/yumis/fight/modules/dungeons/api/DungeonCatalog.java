@@ -17,6 +17,7 @@ public final class DungeonCatalog {
     public DungeonDef dungeon(String id){
         var tower=AwakeningTower.find(id);
         if(tower!=null)return tower.dungeon();
+        if(WrithingCastle.ID.equals(id))return WrithingCastle.DUNGEON;
         return dungeons.stream().filter(x->x.id.equals(id)).findFirst().orElseThrow(()->new IllegalArgumentException("未知副本"));
     }
 }

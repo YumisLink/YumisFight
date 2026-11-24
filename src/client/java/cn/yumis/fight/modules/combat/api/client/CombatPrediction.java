@@ -12,13 +12,15 @@ public final class CombatPrediction {
         Life target(UUID id); net.minecraft.world.phys.Vec3 position(UUID id);
         default boolean consumesHealth(UUID id){return true;}
         default DamageAnalysis.Kind damageKind(UUID id){return DamageAnalysis.Kind.COMBAT;}
+        default void confirmedDamage(double points,String instance,long generation){}
         void send(String action,JsonObject packet); void message(String text); void reported(JsonObject packet);
     }
     private final State state;
     private static final com.google.gson.Gson JSON=new com.google.gson.Gson();
     private long nextOperation=1,confirmedCombatUntil,confirmedShieldRecoveryAt;
+    private long recoveryOperation;
     private final Map<Long,Pending> pending=new LinkedHashMap<>();
-    private record AnalysisPending(DamageAnalysis.Ticket ticket,double maximum,boolean output,boolean taken){}
+    private record AnalysisPending(DamageAnalysis.Ticket ticket,double maximum,boolean output,boolean taken,String instance,long generation,boolean triggers){}
     private final Map<Long,AnalysisPending> analysisPending=new LinkedHashMap<>();
     private final ArrayList<DamageNumber> numbers=new ArrayList<>();
     private final List<DamageNumber> numberView=Collections.unmodifiableList(numbers);
@@ -31,11 +33,17 @@ public final class CombatPrediction {
         return Set.copyOf(targets);
     }
     public List<DamageNumber> numbers(){return numberView;}
-    public void clear(){pending.clear();analysisPending.clear();numbers.clear();confirmedCombatUntil=confirmedShieldRecoveryAt=0;}
-    public void reset(boolean newSession){if(newSession)analysisPending.clear();else retainAnalysis();pending.clear();confirmedCombatUntil=state.resources().combatUntil;confirmedShieldRecoveryAt=state.resources().shieldRecoveryAt;if(newSession)nextOperation=1;}
+    public void clear(){pending.clear();analysisPending.clear();numbers.clear();confirmedCombatUntil=confirmedShieldRecoveryAt=recoveryOperation=0;}
+    public void reset(boolean newSession){
+        if(newSession){analysisPending.clear();nextOperation=1;recoveryOperation=0;}
+        else retainAnalysis();
+        pending.clear();
+        confirmedCombatUntil=state.resources().combatUntil;
+        confirmedShieldRecoveryAt=state.resources().shieldRecoveryAt;
+    }
     public void clearPending(){retainAnalysis();pending.clear();}
     private void retainAnalysis(){pending.forEach(this::retainAnalysis);}
-    private void retainAnalysis(long operation,Pending value){if(value.analysis!=null)analysisPending.put(operation,new AnalysisPending(value.analysis,value.maximum,!value.report.get("target").getAsString().equals(state.own().target.toString()),value.report.has("damageTaken")&&value.report.get("damageTaken").getAsDouble()>0));}
+    private void retainAnalysis(long operation,Pending value){if(value.analysis!=null)analysisPending.put(operation,new AnalysisPending(value.analysis,value.maximum,!value.report.get("target").getAsString().equals(state.own().target.toString()),value.report.has("damageTaken")&&value.report.get("damageTaken").getAsDouble()>0,value.report.get("instance").getAsString(),value.report.get("sourceGeneration").getAsLong(),cn.yumis.fight.modules.combat.api.CombatEffect.triggers(value.report)));}
     public void invalidate(UUID id){pending.entrySet().removeIf(e->{if(!e.getValue().report.get("target").getAsString().equals(id.toString()))return false;retainAnalysis(e.getKey(),e.getValue());return true;});}
     public void tick(){analysisPending.values().removeIf(value->!DamageAnalysis.current(value.ticket));for(Pending pending:pending.values())if(now()-pending.sent>=1000){pending.sent=now();state.send(pending.action,pending.report);}numbers.removeIf(number->number.expires()<now());}
     public class Pending {
@@ -66,7 +74,16 @@ public final class CombatPrediction {
             if(preview!=null){if(numbers.size()>=96)numbers.removeFirst();numbers.add(preview);}
         }
     }
-    public ElementAccumulation.State elemental(ElementAccumulation.State confirmed){ElementAccumulation.State value=confirmed;for(var p:pending.values())if(p.report.get("target").getAsString().equals(state.own().target.toString())&&p.report.has("elemental"))value=JSON.fromJson(p.report.get("elemental"),ElementAccumulation.State.class);return value;}
+    public ElementAccumulation.State elemental(ElementAccumulation.State confirmed){
+        ElementAccumulation.State value=confirmed;
+        String owner=Objects.toString(state.own().target,"");
+        for(var item:pending.entrySet()){
+            var report=item.getValue().report;
+            if(item.getKey()>=recoveryOperation&&report.get("target").getAsString().equals(owner)&&report.has("elemental"))
+                value=JSON.fromJson(report.get("elemental"),ElementAccumulation.State.class);
+        }
+        return value;
+    }
     public double predicted(Life life){
         if(!state.consumesHealth(life.target))return life.q;
         double q=life.q;
@@ -74,13 +91,27 @@ public final class CombatPrediction {
         for(Pending p:pending.values())if(life.target.equals(state.own().target)&&p.report.has("ownerHealing"))q=Math.clamp(q+p.report.get("ownerHealing").getAsDouble(),0,1);
         return q;
     }
+    public void recover(double maximum) {
+        Life life = state.own();
+        life.elemental = new ElementAccumulation.State();
+        life.elemental.generation = life.generation;
+        recoveryOperation = nextOperation;
+        confirmedCombatUntil = confirmedShieldRecoveryAt = 0;
+        var recovery = new JsonObject();
+        recovery.addProperty(CombatEffect.FULL_RECOVERY, true);
+        recovery.addProperty(CombatEffect.NO_TRIGGERS, true);
+        recovery.add("elemental", JSON.toJsonTree(life.elemental));
+        report(life, 1, true, maximum, 0xffffff, false, recovery);
+    }
+
     public void report(Life life,double fraction,boolean heal,double maximum,int color,boolean critical,JsonObject extras){
-        boolean outcomeOnly=!heal&&fraction==0&&extras!=null&&extras.has("outcome")&&(extras.has("nativeRoot")||extras.has("feedbackEntity"));
+        boolean outcomeOnly=!heal&&fraction==0&&extras!=null&&(extras.has("outcome")&&(extras.has("nativeRoot")||extras.has("feedbackEntity"))
+            ||extras.has("elemental")&&life.target.equals(state.own().target));
         boolean effectSettlement=!heal&&fraction==0&&extras!=null&&extras.has("effect")&&extras.has("effectKind")&&ElementAccumulation.kind(extras.get("effectKind").getAsString())!=null;
         if(!state.ready()||life.dead||fraction<0||fraction==0&&!outcomeOnly&&!effectSettlement||!Double.isFinite(fraction))return;
         boolean own=life.target.equals(state.own().target),cost=extras!=null&&extras.has("resourceCost");
         boolean contact=own?(fraction>0||extras!=null&&extras.has("damageTaken")&&extras.get("damageTaken").getAsDouble()>0):fraction>0&&predicted(life)>0&&(state.consumesHealth(life.target)||state.damageKind(life.target)!=DamageAnalysis.Kind.COMBAT);
-        if(!heal&&!cost&&contact)EquipmentBuffs.combat(state.resources(),now());
+        if(!heal&&!cost&&contact&&cn.yumis.fight.modules.combat.api.CombatEffect.triggers(extras))EquipmentBuffs.combat(state.resources(),now());
         JsonObject j=new JsonObject();
         j.addProperty("session",state.session());
         j.addProperty("operation",nextOperation++);
@@ -112,7 +143,9 @@ public final class CombatPrediction {
     private void refreshDamageClocks(){
         state.resources().combatUntil=confirmedCombatUntil;
         state.resources().shieldRecoveryAt=confirmedShieldRecoveryAt;
-        for(Pending p:pending.values())if(!p.action.equals("heal")&&!p.report.has("resourceCost")){
+        for(var entry:pending.entrySet()){
+            Pending p=entry.getValue();
+            if(entry.getKey()<recoveryOperation||p.action.equals("heal")||p.report.has("resourceCost")||!CombatEffect.triggers(p.report))continue;
             boolean hit=!p.report.has("outcome")||p.report.get("outcome").getAsString().equals("HIT");
             if(!hit)continue;
             boolean taken=p.report.get("target").getAsString().equals(state.own().target.toString());
@@ -122,9 +155,20 @@ public final class CombatPrediction {
     }
     public void ack(JsonObject j){
         if(!state.ready()||!state.session().equals(j.get("session").getAsString()))return;
-        Pending p=pending.remove(j.get("operation").getAsLong());
+        long operation=j.get("operation").getAsLong();
+        Pending p=pending.remove(operation);
         Receipt r=JSON.fromJson(j.get("receipt"),Receipt.class);
-        if(p==null){var saved=analysisPending.remove(j.get("operation").getAsLong());if(saved!=null&&r.accepted()){if(saved.output&&r.actual()>0)DamageAnalysis.accepted(analysisTicket(saved.ticket,j),r.actual()*saved.maximum);else if(!saved.output&&(saved.taken||r.actual()>0))DamageAnalysis.combat(analysisTicket(saved.ticket,j));}return;}
+        if(p==null){
+            var saved=analysisPending.remove(operation);
+            if(saved!=null&&r.accepted()){
+                if(saved.output&&r.actual()>0){
+                    double points=r.actual()*saved.maximum;
+                    DamageAnalysis.accepted(analysisTicket(saved.ticket,j),points);
+                    if(saved.triggers&&operation>=recoveryOperation)state.confirmedDamage(points,saved.instance,saved.generation);
+                }else if(!saved.output&&(saved.taken||r.actual()>0))DamageAnalysis.combat(analysisTicket(saved.ticket,j));
+            }
+            return;
+        }
         if(!r.accepted()){
             if(p.preview!=null)numbers.remove(p.preview);
             state.own().dead=predicted(state.own())<=0;refreshDamageClocks();
@@ -132,8 +176,10 @@ public final class CombatPrediction {
             return;
         }
         if(j.has("ownerLife")){Life actor=JSON.fromJson(j.get("ownerLife"),Life.class);if(actor.generation==state.own().generation&&actor.revision>=state.own().revision){state.own().q=actor.q;state.own().revision=actor.revision;state.own().dead=actor.dead;state.own().elemental=actor.elemental;}}
-        if(j.has("combatUntil"))confirmedCombatUntil=Math.max(confirmedCombatUntil,j.get("combatUntil").getAsLong()-state.serverOffset());
-        if(j.has("shieldRecoveryAt"))confirmedShieldRecoveryAt=Math.max(confirmedShieldRecoveryAt,j.get("shieldRecoveryAt").getAsLong()-state.serverOffset());
+        if(operation>=recoveryOperation){
+            if(j.has("combatUntil"))confirmedCombatUntil=Math.max(confirmedCombatUntil,j.get("combatUntil").getAsLong()-state.serverOffset());
+            if(j.has("shieldRecoveryAt"))confirmedShieldRecoveryAt=Math.max(confirmedShieldRecoveryAt,j.get("shieldRecoveryAt").getAsLong()-state.serverOffset());
+        }
         refreshDamageClocks();
         UUID id=UUID.fromString(j.get("target").getAsString());
         if(id.equals(state.own().target)&&(r.actual()>0||p.report.has("damageTaken")&&p.report.get("damageTaken").getAsDouble()>0))DamageAnalysis.combat(analysisTicket(p.analysis,j));
@@ -141,12 +187,14 @@ public final class CombatPrediction {
         if(l!=null&&j.get("generation").getAsLong()==l.generation&&r.revision()>=l.revision){
             l.q=r.q();
             l.revision=r.revision();
-            l.dead=l.q<=0;
+            l.dead=!"REVIVING".equals(r.reason())&&l.q<=0;
             if(j.has("elemental"))l.elemental=JSON.fromJson(j.get("elemental"),ElementAccumulation.State.class);
         }
         state.own().elemental=elemental(state.own().elemental);state.own().dead=predicted(state.own())<=0;
         if(r.actual()>0&&p.action.equals("damage")&&!id.equals(state.own().target)){
             DamageAnalysis.accepted(analysisTicket(p.analysis,j),r.actual()*p.maximum);
+            if(operation>=recoveryOperation&&CombatEffect.triggers(p.report))
+                state.confirmedDamage(r.actual()*p.maximum,p.report.get("instance").getAsString(),p.report.get("sourceGeneration").getAsLong());
             if(p.preview==null){if(numbers.size()>=96)numbers.removeFirst();numbers.add(new DamageNumber(r.actual()*p.maximum,now()+DamageNumber.LIFETIME_MILLIS,p.color,p.point,p.report.get("dimension").getAsString(),id,p.critical));}
         }
     }

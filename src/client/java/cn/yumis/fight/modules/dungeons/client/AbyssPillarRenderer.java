@@ -1,5 +1,6 @@
 package cn.yumis.fight.modules.dungeons.client;
 
+import cn.yumis.fight.modules.dungeons.api.AbyssParty;
 import cn.yumis.fight.modules.dungeons.api.DungeonEnemy;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -26,7 +27,7 @@ public final class AbyssPillarRenderer extends EntityRenderer<DungeonEnemy, Abys
     public AbyssPillarRenderer(EntityRendererProvider.Context context) {
         super(context);
         models = context.getItemModelResolver();
-        shadowRadius = .52f;
+        shadowRadius = .52f * AbyssParty.PILLAR_SCALE;
     }
 
     @Override public State createRenderState() { return new State(); }
@@ -40,10 +41,14 @@ public final class AbyssPillarRenderer extends EntityRenderer<DungeonEnemy, Abys
     }
 
     @Override public void submit(State state, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+        pose.pushPose();
+        float scale = AbyssParty.PILLAR_SCALE;
+        pose.scale(scale, scale, scale);
         block(state.carved, state, pose, collector, .28f, 1.15f, .56f);
         block(state.stone, state, pose, collector, 1.52f, .94f, 1.94f);
         block(state.carved, state, pose, collector, 2.72f, 1.10f, .46f);
         block(state.stone, state, pose, collector, 3.05f, .88f, .20f);
+        pose.popPose();
         super.submit(state, pose, collector, camera);
     }
 

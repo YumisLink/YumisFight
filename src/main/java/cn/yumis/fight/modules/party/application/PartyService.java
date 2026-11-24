@@ -53,7 +53,8 @@ public final class PartyService {
                 ServerPlayer target=players.apply(j.get("name").getAsString().trim());
                 if(target==null||target.getUUID().equals(p.getUUID()))throw new IllegalArgumentException("请选择另一位在线玩家");
                 if(team(target.getUUID())!=null)throw new IllegalArgumentException("目标已有队伍");
-                if(pendingInvitations(target.getUUID(),now)>0)throw new IllegalArgumentException("对方已有待处理邀请，需等待接受、拒绝或过期");
+                boolean alreadyInvited=t!=null&&t.invitations.getOrDefault(target.getStringUUID(),0L)>now;
+                if(!alreadyInvited&&pendingInvitations(target.getUUID(),now)>=5)throw new IllegalArgumentException("对方待处理邀请已达上限（5条），请稍后再试");
                 if(t==null){t=new Team();t.leader=p.getUUID();t.members.add(p.getUUID());}
                 if(!actingLeader(t,p.getUUID(),online))throw new IllegalArgumentException("仅队长可以邀请");
                 t.invitations.put(target.getStringUUID(),now+300000);

@@ -19,6 +19,8 @@ public final class SkillReductions {
         register(DemonHunterSkills.AURA,s->{s.demonHunter.auraUntil=0;s.demonHunter.auraCast="";},r->{});
         register(DemonHunterSkills.META,s->{s.demonHunter.metamorphosisUntil=0;s.demonHunter.metamorphosisCast="";},r->{});
         for(String id:SunMoonSkills.ALL)register(id,s->s.sunMoon=new SunMoonState(),r->{});
+        for(String id:ElementalistSkills.ALL)register(id,s->s.elementalist=new ElementalistState(),r->{});
+        for(String id:BattleMageSkills.ALL)register(id,s->s.battleMage=new BattleMageState(),r->{});
     }
     private SkillReductions(){}
     public static void apply(String id,CareerState state,Runtime resources){var handler=HANDLERS.get(id);if(handler!=null){handler.state.accept(state);handler.resources.accept(resources);}}

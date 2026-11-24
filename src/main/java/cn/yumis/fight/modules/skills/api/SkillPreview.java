@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.skills.api;
 import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.combat.api.CombatRules;
 import cn.yumis.fight.modules.combat.api.EquipmentDamage;
+import cn.yumis.fight.modules.dungeons.api.TowerCardEffects;
 
 
 import cn.yumis.fight.modules.character.api.Progress;
@@ -42,16 +43,20 @@ public final class SkillPreview {
         return damage(progress,copy,skill,coefficient,type.dot(),!type.dot(),SkillPreviewRules.elements(skill),effects);
     }
     public static Damage elementDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int element,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){return damage(progress,stats,skill,coefficient,false,true,new int[]{element},effects);}
+    public static Damage multiElementDamage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,int[] elements,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){return damage(progress,stats,skill,coefficient,false,true,elements,effects);}
     private static Damage damage(Progress progress,Stats stats,SkillDefinition skill,double coefficient,boolean passive,boolean append,int[] elements,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.eyeDamage(stats,skill);
         boolean magic=stats.modifiers.containsKey("previewPhaseMagic")?stats.modifiers.get("previewPhaseMagic")>0:CareerRules.magic(skill,progress);
         elements=SummonerSkills.elements(stats,elements);
+        elements=ElementalistRules.previewElements(skill,stats,elements);
         boolean allowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(effects,elements);elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(effects,elements);
         double mastery=mastery(progress,stats);
-        var low=CombatRules.panel(stats,magic,elements,coefficient,!passive,false);
-        var high=CombatRules.panel(stats,magic,elements,coefficient,!passive,true);
+        var attack=SkillDamageRules.rotation(stats,skill,TowerCardEffects.panel(stats)).apply(stats);
+        var low=CombatRules.panel(attack,magic,elements,coefficient,!passive,false);
+        var high=CombatRules.panel(attack,magic,elements,coefficient,!passive,true);
         if(!allowed){low=low.withMain(0);high=high.withMain(0);}
-        double minimum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(low,stats,skill,mastery,false,passive,1).total(),maximum=cn.yumis.fight.modules.skills.api.SkillDamageRules.skillDamage(high,stats,skill,mastery,false,passive,1).total();
+        double minimum=SkillDamageRules.skillDamage(low,stats,skill,mastery,false,passive,magic,1).total();
+        double maximum=SkillDamageRules.skillDamage(high,stats,skill,mastery,false,passive,magic,1).total();
         if(append){
             double[] resist=new double[4];
             minimum+=EquipmentDamage.append(minimum,stats,effects,0,resist)+EquipmentDamage.appendNeutralPhysical(minimum,effects,0,resist);
@@ -61,6 +66,7 @@ public final class SkillPreview {
     }
     public static Preview resolve(Progress progress,Stats stats,SkillDefinition skill,SkillParameters.Snapshot parameters,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.castDamage(SunMoonRules.forCast(stats,skill),parameters);
+        stats=ElementalistRules.prepareCastStats(stats,parameters);
         stats=SkillPreviewRules.castStats(skill,stats);
         int rank=SkillLearning.effective(stats,progress,skill);
         var definition=SkillPreviewRules.require(skill);

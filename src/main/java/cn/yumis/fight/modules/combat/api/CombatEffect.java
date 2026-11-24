@@ -1,9 +1,28 @@
 package cn.yumis.fight.modules.combat.api;
 
+import com.google.gson.JsonObject;
+import java.util.List;
+import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 /** Declarative combat properties on native effects; state/lifetime remains in MobEffectInstance. */
 public interface CombatEffect {
+    String NO_TRIGGERS="noCombatTriggers";
+    String FULL_RECOVERY="fullRecovery";
+
+    static void recoverNativeState(Player player) {
+        for (var effect : List.copyOf(player.getActiveEffects())) {
+            if (effect.getEffect().value().getCategory() == MobEffectCategory.HARMFUL) player.removeEffect(effect.getEffect());
+        }
+        player.clearFire();
+        player.setTicksFrozen(0);
+        player.getFoodData().setFoodLevel(20);
+        player.getFoodData().setSaturation(20);
+    }
+    static boolean triggers(JsonObject report){
+        return report==null||!report.has(NO_TRIGGERS)||!report.get(NO_TRIGGERS).getAsBoolean();
+    }
     default boolean preventsDamage(){return false;}
     default double outgoingDamageScale(){return 1;}
     default double receivedHealingScale(){return 1;}

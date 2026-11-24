@@ -25,8 +25,8 @@ final class ForestEncounterService extends ClassicEncounterService {
     }
     @Override protected boolean maintain(Dungeon d,DungeonEnemy e,Brain b,List<ServerPlayer> here,long now){
         if(e.getPersistentData().getBooleanOr("ydnf_classic_tree",false)){e.getNavigation().stop();if(!e.move().equals("wood_cage"))e.play("wood_cage",Math.max(1,b.expires-now));return true;}
-        Long wake=awakening.get(e.getUUID());if(wake!=null){if(now<wake){e.getNavigation().stop();return true;}awakening.remove(e.getUUID());immune(e,false);}
-        if(familiars.containsKey(e.getUUID()))immune(e,children(e).stream().anyMatch(a->Set.of(CENTRAL_PARK_CRAZY_LION,CENTRAL_PARK_TOTTO).contains(ClassicEnemyKind.of(a))));
+        Long wake=awakening.get(e.getUUID());if(wake!=null){if(now<wake){e.getNavigation().stop();return true;}awakening.remove(e.getUUID());immune(e,"forest/awakening",false);}
+        if(familiars.containsKey(e.getUUID()))immune(e,"forest/familiars",children(e).stream().anyMatch(a->Set.of(CENTRAL_PARK_CRAZY_LION,CENTRAL_PARK_TOTTO).contains(ClassicEnemyKind.of(a))));
         Thicket thicket=thickets.get(e.getUUID());if(thicket!=null&&thicket.posts.stream().noneMatch(id->alive(entity(id)))){remove(thicket.field,true,now);thickets.remove(e.getUUID());}
         return false;
     }
@@ -50,13 +50,13 @@ final class ForestEncounterService extends ClassicEncounterService {
             ClassicEnemyKind sleeping=state.turn++%2==0?CENTRAL_PARK_CRAZY_LION_CAT:CENTRAL_PARK_TOTTO_PUPPY;
             DungeonEnemy pet=children(e).stream().filter(a->ClassicEnemyKind.of(a)==sleeping).findFirst().orElse(null);
             if(pet!=null){Vec3 at=pet.position();retire(pet);ClassicEnemyKind awakened=sleeping==CENTRAL_PARK_CRAZY_LION_CAT?CENTRAL_PARK_CRAZY_LION:CENTRAL_PARK_TOTTO;
-                DungeonEnemy fighter=child(d,e,awakened,at,0);fighter.play("transform_in",1000);awakening.put(fighter.getUUID(),now+1000);immune(fighter,true);immune(e,true);announce(d,sleeping==CENTRAL_PARK_CRAZY_LION_CAT?"蓝色魔女唤醒了疯狂莱恩。":"蓝色魔女唤醒了小狗坨坨。");}
+                DungeonEnemy fighter=child(d,e,awakened,at,0);fighter.play("transform_in",1000);awakening.put(fighter.getUUID(),now+1000);immune(fighter,"forest/awakening",true);immune(e,"forest/familiars",true);announce(d,sleeping==CENTRAL_PARK_CRAZY_LION_CAT?"蓝色魔女唤醒了疯狂莱恩。":"蓝色魔女唤醒了小狗坨坨。");}
         }
         if(move.clip().equals("tree_cage")){
             Thicket old=thickets.remove(e.getUUID());if(old!=null){remove(old.field,true,now);for(UUID id:old.posts){DungeonEnemy post=entity(id);if(alive(post))retire(post);}}
             List<UUID> posts=new ArrayList<>();
             for(int i=0;i<4;i++){Vec3 offset=new Vec3(0,0,3).yRot((float)(i*Math.PI/2));DungeonEnemy post=child(d,e,CENTRAL_PARK_HUNTING_GRASS,b.destination.add(offset),6500);post.getPersistentData().putBoolean("ydnf_classic_tree",true);post.setInvisible(true);post.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);post.setCustomName(ModText.of("荆棘木柱"));post.play("wood_cage",6500);posts.add(post.getUUID());}
-            Pending field=emit(d,e,b,move,"CIRCLE",b.destination,b.destination.add(0,0,1),now,350,6000,0,UUID.randomUUID().toString());field.attack.radius=3.2;publish(field);thickets.put(e.getUUID(),new Thicket(List.copyOf(posts),field));
+            Pending field=emit(d,e,b,move,"CIRCLE",b.destination,b.destination.add(0,0,1),now,350,6000,0,UUID.randomUUID().toString());field.attack.radius=3.2;field.attack.active=6000;publish(field);thickets.put(e.getUUID(),new Thicket(List.copyOf(posts),field));
         }
     }
     @Override protected boolean customAttack(Dungeon d,DungeonEnemy e,Brain b,ClassicMove move,ServerPlayer target,long now){
@@ -80,5 +80,5 @@ final class ForestEncounterService extends ClassicEncounterService {
         awakening.remove(e.getUUID());familiars.remove(e.getUUID());
     }
     @Override protected void onCancel(DungeonEnemy e,Brain b){Thicket old=thickets.remove(e.getUUID());if(old!=null)remove(old.field,true,System.currentTimeMillis());}
-    @Override void close(Dungeon d){super.close(d);if(d.dungeon.equals(dungeon)){familiars.keySet().removeIf(id->!brains.containsKey(id));awakening.keySet().removeIf(id->!brains.containsKey(id));thickets.keySet().removeIf(id->!brains.containsKey(id));}}
+    @Override void close(Dungeon d){super.close(d);if(uses(d)){familiars.keySet().removeIf(id->!brains.containsKey(id));awakening.keySet().removeIf(id->!brains.containsKey(id));thickets.keySet().removeIf(id->!brains.containsKey(id));}}
 }

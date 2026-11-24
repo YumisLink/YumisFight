@@ -12,6 +12,7 @@ import com.google.gson.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.InteractionHand;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.*;
 
@@ -48,20 +49,30 @@ public final class EconomyActions {
         }
     }
     private static void sale(JsonObject j,boolean dismantle){
-        var player=Minecraft.getInstance().player;var quote=SaleClient.snapshot();if(quote==null||!quote.get("token").equals(j.get("token")))throw new IllegalArgumentException("物品快照已失效");
+        var player=Minecraft.getInstance().player;
+        boolean automatic=j.has("automatic")&&j.get("automatic").getAsBoolean();
+        var quote=automatic?AutoSellClient.prepareSale(j,player):SaleClient.snapshot();
+        if(automatic&&quote==null){j.addProperty("localOnly",true);return;}
+        if(quote==null||!quote.get("token").equals(j.get("token")))throw new IllegalArgumentException("物品快照已失效");
         var rows=new HashMap<String,JsonObject>();for(var raw:quote.getAsJsonArray("rows"))rows.put(raw.getAsJsonObject().get("key").getAsString(),raw.getAsJsonObject());var seen=new HashSet<String>();var edits=new JsonArray();var drops=new JsonArray();long total=0;
-        for(var raw:j.getAsJsonArray("items")){String key=raw.getAsString();var row=rows.get(key);if(!seen.add(key)||row==null||!row.get(dismantle?"dismantleAllowed":"allowed").getAsBoolean())throw new IllegalArgumentException(dismantle?"请选择可分解的装备":"请选择可出售的物品");String area=row.get("bag").getAsBoolean()?"bag":"inventory";int slot=row.get("slot").getAsInt();var source=InventoryEdits.decode(player,row.get("source"));
+        for(var raw:j.getAsJsonArray("items")){String key=raw.getAsString();var row=rows.get(key);if(!seen.add(key)||row==null||!row.get(dismantle?"dismantleAllowed":"allowed").getAsBoolean())throw new IllegalArgumentException(dismantle?"请选择可分解的装备":"请选择可出售的物品");
+            if(automatic&&AutoSellClient.mainHand(player,row))continue;
+            String area=row.get("bag").getAsBoolean()?"bag":"inventory";int slot=row.get("slot").getAsInt();var source=InventoryEdits.decode(player,row.get("source"));
             if(area.equals("inventory")&&!row.get("source").equals(InventoryEdits.encode(player,InventoryEdits.source(player,area,slot))))throw new IllegalArgumentException("物品已变化，请刷新后重试");
             if(dismantle&&area.equals("inventory")&&slot==player.getInventory().getSelectedSlot())throw new IllegalArgumentException("当前主手不可分解");
             total=Math.addExact(total,CurrencyRules.salePrice(source));var edit=InventoryEdits.change(player,area,slot,source,ItemStack.EMPTY);edit.add("before",row.get("source").deepCopy());edits.add(edit);
             if(dismantle){var result=CurrencyRules.dismantle(EquipmentItems.gear(source).rarity,RANDOM);drops.add(InventoryEdits.encode(player,ItemRegistry.item(result.item(),result.count())));}
         }
-        if(edits.isEmpty())throw new IllegalArgumentException(dismantle?"请选择可分解的装备":"请选择可出售的物品");j.add("inventoryChanges",edits);j.add("drops",drops);if(!dismantle){balances(j,Map.of("gold",Math.addExact(balance("gold"),total)));j.addProperty("goldGain",total);}draft(j,"inventoryChanges");
+        if(edits.isEmpty()){
+            if(automatic){j.addProperty("localOnly",true);return;}
+            throw new IllegalArgumentException(dismantle?"请选择可分解的装备":"请选择可出售的物品");
+        }
+        j.add("inventoryChanges",edits);j.add("drops",drops);if(!dismantle){balances(j,Map.of("gold",Math.addExact(balance("gold"),total)));j.addProperty("goldGain",total);}draft(j,"inventoryChanges");
     }
-    private static void draft(JsonObject request,String field){
-        String value=request.get(field).toString();if(value.length()<=64000)return;String hash=cn.yumis.fight.modules.economy.application.EconomyService.Drafts.hash(value);var chunks=new ArrayList<String>();
+    static void draft(JsonObject request,String field){
+        String value=request.get(field).toString();if(value.getBytes(StandardCharsets.UTF_8).length<=64000)return;String hash=cn.yumis.fight.modules.economy.application.EconomyService.Drafts.hash(value);var chunks=new ArrayList<String>();
         for(int from=0;from<value.length();){int to=Math.min(value.length(),from+16000);if(to<value.length()&&Character.isHighSurrogate(value.charAt(to-1)))to--;chunks.add(value.substring(from,to));from=to;}
-        for(int i=0;i<chunks.size();i++){var part=new JsonObject();part.add("operation",request.get("operation"));part.add("session",request.get("session"));part.addProperty("hash",hash);part.addProperty("part",i);part.addProperty("count",chunks.size());part.addProperty("text",chunks.get(i));ClientUi.current().send("economyDraft",part);}
+        for(int i=0;i<chunks.size();i++){var part=new JsonObject();part.add("operation",request.get("operation"));part.add("session",request.get("session"));part.addProperty("field",field);part.addProperty("hash",hash);part.addProperty("part",i);part.addProperty("count",chunks.size());part.addProperty("text",chunks.get(i));ClientUi.current().send("economyDraft",part);}
         request.remove(field);request.addProperty(field+"Draft",hash);
     }
     private static void consume(JsonObject j){var player=Minecraft.getInstance().player;var hand=InteractionHand.valueOf(j.get("hand").getAsString());var source=player.getItemInHand(hand);var after=source.copy();after.shrink(1);int slot=hand==InteractionHand.MAIN_HAND?player.getInventory().getSelectedSlot():40;var changes=new JsonArray();changes.add(InventoryEdits.change(player,"inventory",slot,source,after));j.add("inventoryChanges",changes);}
@@ -75,19 +86,32 @@ public final class EconomyActions {
         long seed=UUID.fromString(j.get("operation").getAsString()).getLeastSignificantBits();
         var player=Minecraft.getInstance().player;
         var result=RewardRules.reward(current,stats.get(),player.getUUID(),context,new Random(seed));
+        long gold=result.gold();
+        var coins=cn.yumis.fight.modules.dungeons.api.TowerBattleCard.COINS;
+        if(gold>0&&j.has("towerCoins"))
+            gold=Math.multiplyExact(gold,1+coins.count("gold")/100);
         j.add("beforeProgress",JSON.toJsonTree(current));
         j.add("progress",JSON.toJsonTree(result.progress()));
         j.addProperty("experienceGain",result.experience());
         j.remove("unchanged");
-        if(result.experience()==0&&result.gold()==0&&result.drops().isEmpty())j.addProperty("unchanged",true);
+        if(result.experience()==0&&gold==0&&result.drops().isEmpty())j.addProperty("unchanged",true);
         if(context.experienceOnly())return;
-        balances(j,Map.of("gold",Math.addExact(balance("gold"),result.gold())));
-        j.addProperty("goldGain",result.gold());
+        balances(j,Map.of("gold",Math.addExact(balance("gold"),gold)));
+        j.addProperty("goldGain",gold);
         var drops=new JsonArray();
         for(var item:result.drops()){
             var row=new JsonObject();row.add("item",InventoryEdits.encode(player,item.item()));row.addProperty("privateLoot",item.privateLoot());drops.add(row);
         }
         j.add("rewardDrops",drops);
+        draft(j,"rewardDrops");
     }
-    public static void reward(JsonObject context){if(!offered.add(context.get("id").getAsString()))return;var j=ClientUi.current().operation("lootReward");j.add("context",context);j.addProperty("retryStorage",true);ClientUi.current().send("lootReward",j);}
+    public static boolean reward(JsonObject context,boolean towerCoins){
+        if(!offered.add(context.get("id").getAsString()))return false;
+        var request=ClientUi.current().operation("lootReward");
+        request.add("context",context);
+        request.addProperty("retryStorage",true);
+        if(towerCoins)request.addProperty("towerCoins",true);
+        ClientUi.current().send("lootReward",request);
+        return true;
+    }
 }

@@ -73,6 +73,7 @@
     "HumanoidModelPoseMixin",
     "PlayerPoseHeldItemMixin",
     "FirstPersonPoseHandMixin",
-    "FirstPersonPoseLayersMixin"
+    "FirstPersonPoseLayersMixin",
+    "ElainaMidnightClockMixin"
   ]
 }

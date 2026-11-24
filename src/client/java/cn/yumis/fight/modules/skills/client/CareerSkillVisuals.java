@@ -19,11 +19,15 @@ final class CareerSkillVisuals {
         public int defaultColor(){return content.color();}
         public long defaultDuration(){return (long)(content.skill().parameters(1).getOrDefault("duration",1d)*1000);}
         public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long now,List<Quad> out,Vec3 camera){draw.draw(track,age,now,out);}
-        public void play(SkillVisualEvent e){if(e.phase()!=SkillVisualEvent.Phase.START&&e.phase()!=SkillVisualEvent.Phase.FINISH&&e.phase()!=SkillVisualEvent.Phase.RELEASE)return;var level=Minecraft.getInstance().level;if(level==null)return;Vec3 p=vector(e.position());var sound=e.phase()==SkillVisualEvent.Phase.FINISH?SoundEvents.GENERIC_EXPLODE.value():content.element()==3?SoundEvents.SOUL_ESCAPE.value():SoundEvents.PLAYER_ATTACK_SWEEP;level.playLocalSound(p.x,p.y,p.z,sound,SoundSource.PLAYERS,.65f,e.phase()==SkillVisualEvent.Phase.FINISH?.7f:1.1f,false);}
+        public void play(SkillVfx.Track track,SkillVisualEvent e){if(e.phase()!=SkillVisualEvent.Phase.START&&e.phase()!=SkillVisualEvent.Phase.FINISH&&e.phase()!=SkillVisualEvent.Phase.RELEASE)return;var sound=e.phase()==SkillVisualEvent.Phase.FINISH?SoundEvents.GENERIC_EXPLODE.value():content.element()==3?SoundEvents.SOUL_ESCAPE.value():SoundEvents.PLAYER_ATTACK_SWEEP;SkillSound.playAt(e.position(),sound,.65f,e.phase()==SkillVisualEvent.Phase.FINISH?.7f:1.1f);}
     });}
     static void install(){
         SkillVisualRegistry.register(AsuraRules.GEAR_VISUAL,new SkillVisualRegistry.Handler(){
             public long defaultDuration(){return 4000;}
+            @Override public void play(SkillVfx.Track track,SkillVisualEvent event){
+                if(event.phase()==SkillVisualEvent.Phase.START)
+                    SkillSound.playAt(event.position(),SoundEvents.BREEZE_DEFLECT,.48f,1.15f);
+            }
             public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long now,List<Quad> out,Vec3 camera){
                 Vec3 p=vector(track.last.position()),d=vector(track.start.direction()).normalize(),side=new Vec3(-d.z,0,d.x).normalize(),up=d.cross(side).normalize();
                 if(side.lengthSqr()<.1){side=new Vec3(1,0,0);up=new Vec3(0,0,1);}
@@ -43,8 +47,7 @@ final class CareerSkillVisuals {
         add(CareerSkills.PHANTOM,(t,a,n,q)->{Vec3 from=vector(t.start.origin()),end=vector(t.last.position());beam(q,from.add(0,.7,0),end.add(0,.7,0),.2,0x8c4bd0,170);for(int i=0;i<4;i++)ghost(q,from.lerp(end,i/4d),0x8e59c9,70+i*20);});
         add(CareerSkills.KALLA,(t,a,n,q)->{
             if(t.motion!=null){double fade=t.last.phase()==SkillVisualEvent.Phase.FINISH?Math.max(0,1-(n-t.last.at())/180d):1;Vec3 center=vector(t.last.position());int stacks=(int)Math.round(t.last.charge()*3);if(stacks>0){for(int i=0;i<stacks;i++)flame(q,center.add(Math.cos(i*2.1+n/300d)*.4,-.5+i*.25,Math.sin(i*2.1+n/300d)*.4),.18,0x772daa,175);}else flame(q,center,.18*fade,0x8f43d0,(int)(220*fade));return;}
-            var player=Minecraft.getInstance().level.getPlayerByUUID(t.start.caster());Vec3 p=player==null?vector(t.start.origin()):player.position();
-            if(t.start.sweep()){arc(q,p.add(vector(t.start.direction()).scale(2.4)).add(0,1.1,0),vector(t.start.direction()),3,0x9645d6,210);return;}
+            if(t.start.sweep())kallaFinisher(t,n,q);
             // The attached form is drawn once by actors(), from the actor's current facing.
         });
         add(CareerSkills.BLACHE,(t,a,n,q)->{
@@ -109,6 +112,19 @@ final class CareerSkillVisuals {
             else {double pulse=.8+.2*Math.sin(a/60d);sphere(q,p.add(0,1.1,0),radius*pulse,0xb6193b,100);for(int i=0;i<12;i++){double angle=i*Math.PI/6;Vec3 end=p.add(Math.cos(angle)*radius,1+Math.sin(i+a/100d)*.5,Math.sin(angle)*radius);beam(q,p.add(0,1,0),end,.12,0xf17e85,190);}}
             ring(q,p.add(0,.07,0),radius,.2,0xe64a52,190);
         });
+    }
+    private static void kallaFinisher(SkillVfx.Track track,long now,List<Quad> out){
+        int slash=0;
+        for(var event:track.flashes){
+            if(event.phase()!=SkillVisualEvent.Phase.HIT)continue;
+            double roll=switch(slash++%3){case 0->-42;case 1->42;default->90;};
+            double progress=(now-event.at())*track.speed/310;
+            if(progress<0||progress>=1)continue;
+            double yaw=Math.toRadians(roll==90?0:roll/4);
+            Vec3 direction=vector(event.direction()).yRot((float)yaw).normalize();
+            Vec3 tip=vector(event.position()).add(0,1.1,0).add(direction.scale(2.4+1.6*progress));
+            BuiltinSkillVisuals.swordWave(out,tip,direction,roll,2.4,.22,0x9645d6,0xe2abff,(int)(235*(1-progress)));
+        }
     }
     static void transformed(SkillVfx.Track track,long age,List<Quad> out){
         if(track.start.color()!=CareerRules.EYE_COLOR)return;

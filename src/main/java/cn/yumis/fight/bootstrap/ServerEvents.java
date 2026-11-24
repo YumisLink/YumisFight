@@ -9,6 +9,7 @@ import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.platform.ItemRegistry;
 import cn.yumis.fight.modules.equipment.api.MaterialCatalog;
 import cn.yumis.fight.modules.equipment.api.EquipmentTemplates;
+import cn.yumis.fight.network.Network;
 import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.equipment.api.Rarity;
 import cn.yumis.fight.modules.equipment.api.Slot;
@@ -55,6 +56,18 @@ public final class ServerEvents {
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent e)->{
             if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof net.minecraft.world.entity.item.ItemEntity item)ServerApplication.get().loot.nativeLeft(item);
             if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof net.minecraft.world.entity.projectile.Projectile projectile&&projectile.getRemovalReason()!=net.minecraft.world.entity.Entity.RemovalReason.CHANGED_DIMENSION&&projectile.getRemovalReason()!=net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_TO_CHUNK)ServerApplication.get().nativeHits.projectileLeft(projectile.getUUID());
+            if(ServerApplication.ready()&&!e.getLevel().isClientSide()&&e.getEntity() instanceof LivingEntity living&&!(living instanceof net.minecraft.world.entity.player.Player)){
+                var reason=living.getRemovalReason();
+                if(reason==Entity.RemovalReason.KILLED||reason==Entity.RemovalReason.DISCARDED){
+                    boolean persistentSpecial=living instanceof DungeonEnemy
+                        ||living instanceof cn.yumis.fight.modules.dungeons.api.WorldTargetEntity
+                        ||living instanceof cn.yumis.fight.modules.dungeons.api.TrainingSandbag
+                        ||living instanceof cn.yumis.fight.modules.combat.api.WorldVitalEntity
+                        ||living instanceof cn.yumis.fight.modules.dungeons.api.RitualBossEntity
+                        ||living instanceof cn.yumis.fight.modules.dungeons.api.RitualMechanismEntity;
+                    ServerApplication.get().targets.forget(living.getUUID(),!persistentSpecial);
+                }
+            }
         }
         );
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST,true,(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e)->{
@@ -98,20 +111,35 @@ public final class ServerEvents {
         NeoForge.EVENT_BUS.addListener((ItemEntityPickupEvent.Post e)->{
             if(!ServerApplication.ready()||!(e.getPlayer() instanceof ServerPlayer player))return;
             var original=e.getOriginalStack();
-            if(original.getCount()<=e.getCurrentStack().getCount())return;
+            int taken=original.getCount()-e.getCurrentStack().getCount();
+            if(taken<=0)return;
             var view=EquipmentItems.view(original);
             if(view!=null&&view.creativeTemplate())ServerApplication.get().equipmentApplication.inventoryArrived(player);
-            groundPickup(player,original);
+            groundPickup(player,original.copyWithCount(taken));
         });
     }
-    static void groundPickup(ServerPlayer player,net.minecraft.world.item.ItemStack stack){
+    static void groundPickup(ServerPlayer player,ItemStack stack){
+        var runtime=ServerApplication.get();
+        lootAcquired(player,stack);
         if(stack.getItem() instanceof cn.yumis.fight.modules.industry.api.EnergyCrystalItem){
-            var session=ServerApplication.get().session(player);
-            cn.yumis.fight.network.Network.send(player,"tutorialCrystalPickup",java.util.Map.of("session",session.id.toString()));
+            Network.send(player,"tutorialCrystalPickup",Map.of("session",runtime.session(player).id.toString()));
         }
+        UUID id=player.getUUID();
+        if(runtime.inventory.bagOption(player).autoStore()
+            &&(runtime.awakeningQuests.tracksBagItem(id,stack)||runtime.commissions.tracksBagItem(id,stack)))runtime.profile(player);
+    }
+    static void lootAcquired(ServerPlayer player,ItemStack stack){
+        var gear=EquipmentItems.gear(stack);
+        if(gear==null||gear.instance==null||gear.rarity==null||gear.creativeTemplate)return;
+        Network.send(player,"lootAcquired",Map.of(
+            "session",ServerApplication.get().session(player).id.toString(),
+            "instance",gear.instance.toString(),
+            "rarity",gear.rarity.name(),
+            "level",gear.level));
     }
     private static boolean blocksDungeonEdit(LevelAccessor level, Entity actor) {
-        return level instanceof ServerLevel world && world.dimension() == DungeonService.DIMENSION
+        return level instanceof ServerLevel world
+            && (world.dimension() == DungeonService.DIMENSION || world.dimension() == cn.yumis.fight.modules.arkguard.api.ArkWar.DIMENSION)
             && (!ServerApplication.ready() || !ServerApplication.get().dungeons.canEditBlocks(actor));
     }
     private static void commands(RegisterCommandsEvent e){
@@ -163,6 +191,15 @@ public final class ServerEvents {
         points.then(Commands.literal("get").then(Commands.argument("player",EntityArgument.player()).executes(c->{var player=EntityArgument.getPlayer(c,"player");long value=ServerApplication.get().economyService.points(player);c.getSource().sendSuccess(()->ModText.of(player.getName().getString()+"："+value+"点券"),false);return 1;})));
         for(String operation:List.of("give","take"))points.then(Commands.literal(operation).then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("amount",LongArgumentType.longArg(1)).executes(c->{long amount=LongArgumentType.getLong(c,"amount")*(operation.equals("give")?1:-1);ServerApplication.get().economyService.changePoints(EntityArgument.getPlayer(c,"player"),amount);return 1;}))));
         root.then(points);
+        var gold=Commands.literal("gold").requires(source->source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
+        gold.then(Commands.literal("get").then(Commands.argument("player",EntityArgument.player()).executes(c->{var player=EntityArgument.getPlayer(c,"player");long balance=ServerApplication.get().economyService.gold(player);c.getSource().sendSuccess(()->ModText.of(player.getName().getString()+"："+balance+"金币"),false);return 1;})));
+        for(String operation:List.of("give","take"))gold.then(Commands.literal(operation).then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("amount",LongArgumentType.longArg(1)).executes(c->{
+            var r=ServerApplication.get();var player=EntityArgument.getPlayer(c,"player");long amount=LongArgumentType.getLong(c,"amount");long before=r.economyService.gold(player);long balance=r.economyService.changeGold(player,operation.equals("give")?amount:-amount);long changed=operation.equals("give")?balance-before:before-balance;
+            String text=(operation.equals("give")?"已向 ":"已从 ")+player.getName().getString()+(operation.equals("give")?" 发放 ":" 扣除 ")+changed+" 金币，当前余额 "+balance+(operation.equals("take")&&changed<amount?"（余额不足，已扣至 0）":"");
+            c.getSource().sendSuccess(()->ModText.of(text),true);
+            return 1;
+        }))));
+        root.then(gold);
         root.then(Commands.literal("profession").requires(source->source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)).then(Commands.literal("addxp").then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("profession",StringArgumentType.word()).then(Commands.argument("experience",LongArgumentType.longArg(1)).executes(c->{
             var runtime=ServerApplication.get();var player=EntityArgument.getPlayer(c,"player");runtime.professionService.awardAdmin(player.getUUID(),StringArgumentType.getString(c,"profession"),LongArgumentType.getLong(c,"experience"),"administrator/"+UUID.randomUUID());runtime.professions(player);return 1;
         }

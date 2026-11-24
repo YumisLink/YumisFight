@@ -108,6 +108,7 @@ public final class Hud {
         }
         if(mc.gui.screen()!=null)return;
         g.nextStratum();
+        cn.yumis.fight.modules.party.client.PartyInvitations.render(g);
         cn.yumis.fight.modules.combat.client.DamageNumbers.render(g,mc,now,s.dimension,s.prediction.numbers());
         cn.yumis.fight.modules.skills.client.CareerHud.renderGauge(g,width,height,now,
             (x,y)->cn.yumis.fight.modules.professions.client.AlchemyGauge.render(g,System.currentTimeMillis(),x,y));
@@ -184,7 +185,14 @@ public final class Hud {
         g.text(UiFonts.font(),practice?name:name+" Lv."+level,5,practice?10:4,t.elite?0xffffce7d:0xffecf1f5);
         if(!practice)g.text(UiFonts.font(),t.difficulty.title()+" · "+(t.kind.equals("BOSS")?"Boss":t.elite?"精英":"普通")+(t.elitePower.isEmpty()?"":" · "+switch(t.elitePower){case "strong"->"强壮";case "rage"->"狂暴";case "armor"->"坚韧";case "elemental"->"元素守护";default->"";}),5,16,0xffaab8ce);
         bar(g,5,29,174,9,q,t.kind.equals("BOSS")?0xffdfb545:0xffbe485a);
-        g.text(UiFonts.font(),cn.yumis.fight.modules.presentation.api.client.NumberText.number(q*maximum)+" / "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(maximum),8,29,0xffffffff);
+        if(t.shield>0){
+            int sw=Math.max(2,(int)Math.round(174*Math.clamp(t.shield,0,1)));
+            g.fill(5,29,5+sw,32,0xffeefaff);
+            g.fill(5,32,5+sw,38,0xaa6bd6ff);
+        }
+        String hpText=cn.yumis.fight.modules.presentation.api.client.NumberText.number(q*maximum)+" / "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(maximum);
+        if(t.shield>0)hpText+=" (+盾 "+cn.yumis.fight.modules.presentation.api.client.NumberText.number(t.shield*maximum)+")";
+        g.text(UiFonts.font(),hpText,8,29,0xffffffff);
         if(fury)rageBar(g,5,41,174,9,t.rage,s.serverNow());
         ElementAccumulationHud.render(g,t.life,t.bossOrElite(),s.serverNow(),0,height+TARGET_ELEMENT_GAP,TARGET_WIDTH);
         g.pose().popMatrix();

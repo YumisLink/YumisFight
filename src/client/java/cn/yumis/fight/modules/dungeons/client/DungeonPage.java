@@ -52,6 +52,10 @@ public final class DungeonPage {
         if(current!=null&&current.waystone==null){if(current.treasure!=null){var t=current.treasure;page.line(t.region==0?"哥布林王国 · 野外守宝战斗":"藏宝秘境 · 第"+t.region+" / 5区 · "+(t.theme.equals("palace")?"黄金王宫":t.theme.equals("tower")?"龙人之塔":"格兰之森"));page.line("Lv."+(t.baseLevel+Math.max(0,t.region-1)*2)+" · 地狱 · "+(t.cleared?"已清场":"第"+(current.wave+1)+"波"));}else{page.line("当前："+DungeonCatalog.current().dungeon(current.dungeon).name()+" · "+current.difficulty.title());page.line(objective(current,current.status));}page.rowButton("离开地下城",leave);page.gap();}
         if(current!=null&&current.dungeon.equals(GblChurch.ID)&&Minecraft.getInstance().player!=null)
             page.line("区域："+GblChurch.area(Minecraft.getInstance().player.getZ()));
+        if(current!=null&&WrithingCastle.handles(current)&&Minecraft.getInstance().player!=null){
+            var player=Minecraft.getInstance().player;
+            page.line("区域："+WrithingCastle.area(player.getX()-current.cell*512,player.getY(),player.getZ()));
+        }
         if(current!=null&&current.dungeon.equals("behemoth_forbidden"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.BehemothForbidden.AREAS[cn.yumis.fight.modules.dungeons.content.BehemothForbidden.area(current.wave)]);
         if(current!=null&&current.dungeon.equals("skasa"))page.line("区域："+cn.yumis.fight.modules.dungeons.content.SkasaLair.AREAS[cn.yumis.fight.modules.dungeons.content.SkasaLair.area(current.wave)]);
         boolean abyssChallenge=current==null&&page.remember("dungeon.abyssChallenge",false);
@@ -132,6 +136,7 @@ public final class DungeonPage {
         if(AwakeningTower.find(dungeon.dungeon)!=null)return dungeon.status.equals("COMPLETED")?"觉醒塔已通关":"进入战场 · 击败鲁卡斯";
         if(CastlePalace.handles(dungeon))return dungeon.status.equals("COMPLETED")?"城主宫殿已通关"
             :"清理宫殿 · 已到达 "+dungeon.palaceRooms.size()+" / "+CastlePalace.ROOM_COUNT+" 个区域";
+        if(WrithingCastle.handles(dungeon))return dungeon.status.equals("COMPLETED")?"蠕动之城已通关":"探索 200 层异变巨构";
         return "波次 "+(dungeon.wave+1)+" / 7 · "+status;
     }
     private static final class Choice extends ThemedScreen {

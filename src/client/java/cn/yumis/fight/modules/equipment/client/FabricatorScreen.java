@@ -102,7 +102,10 @@ public final class FabricatorScreen extends ThemedContainerScreen<FabricatorMenu
         int total=0;
         for(int i=0;i<36;i++){
             ItemStack s=minecraft.player.getInventory().getItem(i);
-            if(n.regional()?n.id().equals(EquipmentItems.material(s)):BuiltInRegistries.ITEM.getKey(s.getItem()).toString().equals(n.id()))total+=s.getCount();
+            if(!s.isEmpty()&&(n.regional()?n.id().equals(EquipmentItems.material(s)):BuiltInRegistries.ITEM.getKey(s.getItem()).toString().equals(n.id())))total+=s.getCount();
+        }
+        for(ItemStack s:BagSnapshotClient.items(menu)){
+            if(!s.isEmpty()&&(n.regional()?n.id().equals(EquipmentItems.material(s)):BuiltInRegistries.ITEM.getKey(s.getItem()).toString().equals(n.id())))total+=s.getCount();
         }
         return total;
     }

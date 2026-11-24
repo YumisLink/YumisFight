@@ -1,0 +1,6 @@
+{
+  "parent": "yumis_dungeon_and_fight:block/awakening_tower_stele_upper",
+  "textures": {
+    "inlay": "minecraft:block/blue_ice"
+  }
+}

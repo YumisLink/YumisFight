@@ -13,7 +13,7 @@ public final class ElementAccumulation {
     public enum Kind {
         SHOCK("ELEMENT_SHOCK","感电",10000,5000,0xffed8d),
         IGNITE("ELEMENT_IGNITE","点燃",15000,15000,0xff8a58),
-        FREEZE("ELEMENT_FREEZE","冻结",5000,2000,0x83dfff),
+        FREEZE("ELEMENT_FREEZE","冻结",5000,5000,0x83dfff),
         EROSION("ELEMENT_EROSION","侵蚀",5000,5000,0xc783ff);
         public final String id,title;
         public final long duration,strongDuration;
@@ -27,6 +27,8 @@ public final class ElementAccumulation {
         public long generation=1;
         public double[] buildup=new double[4];
         public long[] until=new long[4];
+        /** Boss/elite trigger for the active effect; freeze uses this to choose chill over hard control. */
+        public boolean[] strong=new boolean[4];
         private long[] resistanceUntil=new long[4];
         public double defenseMultiplier=1;
         public State copy(){
@@ -34,6 +36,7 @@ public final class ElementAccumulation {
             s.generation=generation;
             s.buildup=buildup.clone();
             s.until=until.clone();
+            s.strong=strong.clone();
             s.resistanceUntil=resistanceUntil.clone();
             s.defenseMultiplier=defenseMultiplier;
             return s;
@@ -53,6 +56,11 @@ public final class ElementAccumulation {
     public static Kind kind(String id){for(var kind:Kind.values())if(kind.id.equals(id))return kind;return null;}
     public static double defense(State state,Life life){return state.generation==life.generation?state.defenseMultiplier:1;}
     public static double magicTaken(State state,Life life,boolean strong,long now){return state.active(Kind.IGNITE,life,now)?strong?1.10:1.20:1;}
+    /** Hard freeze only applies to ordinary targets; boss/elite freeze is a cast-speed slow. */
+    public static boolean controls(Life life,long now){return life.elemental.active(Kind.FREEZE,life,now)&&!life.elemental.strong[Kind.FREEZE.ordinal()];}
+    public static boolean chilled(Life life,long now){return life.elemental.active(Kind.FREEZE,life,now)&&life.elemental.strong[Kind.FREEZE.ordinal()];}
+    /** Boss/elite freeze halves cast speed, so action and windup times take twice as long. Cooldowns are unchanged. */
+    public static double castTimeScale(Life life,long now){return chilled(life,now)?2:1;}
     /** A content source may additionally feed another buildup without converting or duplicating damage. */
     public static void addConversion(Stats stats,int damageElement,Kind buildup,double ratio){
         if(damageElement< -1||damageElement>3)throw new IllegalArgumentException("积累来源元素无效");
@@ -82,7 +90,7 @@ public final class ElementAccumulation {
             if(enemy&&now<next.resistanceUntil[index])amount*=RESISTANCE_BUILDUP;
             next.buildup[index]+=amount*acceptedScale;finite(next.buildup[index]);
             if(next.buildup[index]+Math.ulp(THRESHOLD)*8<THRESHOLD)continue;
-            next.buildup[index]=0;next.until[index]=Math.addExact(now,kind.duration(strong));
+            next.buildup[index]=0;next.until[index]=Math.addExact(now,kind.duration(strong));next.strong[index]=strong;
             if(enemy)next.resistanceUntil[index]=Math.addExact(next.until[index],RESISTANCE_MILLIS);
             if(kind==Kind.EROSION)next.defenseMultiplier*=strong?.95:.90;
             triggered.add(kind);

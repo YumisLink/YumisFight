@@ -11,10 +11,15 @@ public final class SkillDescriptions {
     public record Context(double castSpeed,SkillParameters.Snapshot parameters,SkillPreview.Preview preview){}
     private static final Map<String,java.util.function.Function<Context,String>> DESCRIPTIONS=new LinkedHashMap<>();
     static {
-        register(MageSkills.STAR,c->"魔道系 · 星弹沿瞄准方向飞行12格。\n命中：最多3个敌人，每个敌人结算一次；遇墙停止。");
-        register(MageSkills.FANG,c->"体术系 · 物理伤害，人物不位移。\n范围：向前5格、宽1.5格突刺，范围内敌人各命中一次。");
-        register(MageSkills.JACK,c->"元素系 · 基础咏唱0.5秒，期间移速为正常的20%；取消不退起手费。\n南瓜火球沿准星方向直线飞行，最远12格。\n爆炸：碰撞即爆炸，造成半径3格火属性伤害。");
-        register(MageSkills.HERDER,c->"召唤：持续120秒，最多1只。\n成长：5级解锁投石，10级解锁三连投石，包含装备加级。\n投弹：每第三轮投掷改为投弹，沿用该轮总伤害。\n继承：200%生命及双防，150%四抗及闪避值。\n属性在召唤时保存，重新召唤才更新。");
+        register(MageSkills.STAR,c->ElementalistDescriptions.inheritedCastLine(c)+"魔道系 · 星弹沿瞄准方向飞行12格。\n命中：最多3个敌人，每个敌人结算一次；遇墙停止。");
+        register(MageSkills.FANG,c->ElementalistDescriptions.inheritedCastLine(c)+"体术系 · 物理伤害，人物不位移。\n范围：向前5格、宽1.5格突刺，范围内敌人各命中一次。"+BattleMageDescriptions.dragonFangNote(c));
+        register(MageSkills.JACK,c->{
+            if(cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress().hasJob(cn.yumis.fight.modules.character.api.JobCatalog.ELEMENTALIST)){
+                return "元素系（固有属性：火）。"+ElementalistDescriptions.chargeLine(c)+"取消不退起手费。\n南瓜火球沿准星方向直线飞行，最远12格；碰撞造成半径3格火属性爆炸并点亮火灯。";
+            }
+            return "元素系 · 基础咏唱0.5秒，期间移速为正常的20%；取消不退起手费。\n南瓜火球沿准星方向直线飞行，最远12格。\n爆炸：碰撞即爆炸，造成半径3格火属性伤害。";
+        });
+        register(MageSkills.HERDER,c->ElementalistDescriptions.inheritedCastLine(c)+"召唤：持续120秒，最多1只。\n成长：5级解锁投石，10级解锁三连投石，包含装备加级。\n投弹：每第三轮投掷改为投弹，沿用该轮总伤害。\n继承：200%生命及双防，150%四抗及闪避值。\n属性在召唤时保存，重新召唤才更新。");
         register(SkillCatalog.BLINK.id,c->"位移：向水平前方至多5格闪现，不能穿墙。\n没有可站立的安全落点时，不消耗资源、不进入冷却。");
         register(SkillCatalog.GHOST.id,c->"蓄力：按住"+number(1/c.castSpeed())+"秒达到双倍系数，松开释放。\n满蓄力后，最多继续持有"+number(2/c.castSpeed())+"秒。");
         register(SkillCatalog.TRIPLE.id,c->"位移：每段冲刺2.5格，最多"+c.preview().slashes()+"段。\n续段：在窗口内再次按下原技能槽。");
@@ -36,7 +41,7 @@ public final class SkillDescriptions {
         register(SummonerSkills.FRENZY,c->"增益：20秒内，召唤伤害提升"+(20+3*(c.parameters().rank()-1))+"%。\n生效范围：期间新召出的召唤兽也会获得增益。\n已有召唤兽的装备属性保持召唤时记录。");
         register(SummonerSkills.KASIJAS,c->"召唤：持续20秒，继承400%生命与250%双防。\n攻击：固定18次拔刀，第5、10、15次改为突进斩。\n终结：18.6秒自动千鬼杀，19.5秒退场落剑，两者共用原终结总伤害。\n攻击段数不随攻速增加。");
     }
-    static {DemonHunterDescriptions.install();}
+    static {DemonHunterDescriptions.install();ElementalistDescriptions.install();BattleMageDescriptions.install();}
     private SkillDescriptions(){}
     public static void register(String id,java.util.function.Function<Context,String> description){if(DESCRIPTIONS.putIfAbsent(id,description)!=null)throw new IllegalArgumentException("Duplicate skill description: "+id);}
     public static String describe(SkillDefinition skill,Context context){return DESCRIPTIONS.getOrDefault(skill.id,c->"").apply(context);}

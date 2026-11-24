@@ -34,6 +34,10 @@ public final class DungeonActions {
         router.register("dungeons","dungeon",(ignored,j)->{
             String kind=j.get("kind").getAsString();
             if(kind.equals("leave"))return;
+            if(kind.equals("joinTower")){
+                if(!alive.getAsBoolean())throw new IllegalArgumentException("死亡状态不能参加挑战");
+                return;
+            }
             String id=j.get("dungeon").getAsString();
             if(PracticeRoom.isRoomId(id)){
                 var room=PracticeRoom.require(id);
@@ -105,7 +109,10 @@ public final class DungeonActions {
         ui.upload();
         ui.send("dungeon",request);
     }
-    private static void eligible(String id){var rule=DungeonCatalog.current().dungeon(id);if(!rule.available())throw new IllegalArgumentException("该副本尚未开放");if(progress.get().level<rule.level())throw new IllegalArgumentException("角色等级不足");if(!alive.getAsBoolean())throw new IllegalArgumentException("死亡状态不能参加挑战");}
+    private static void eligible(String id){
+        if(WrithingCastle.ID.equals(id))throw new IllegalArgumentException(WrithingCastle.SPECIAL_ENTRY_MESSAGE);
+        var rule=DungeonCatalog.current().dungeon(id);if(!rule.available())throw new IllegalArgumentException("该副本尚未开放");if(progress.get().level<rule.level())throw new IllegalArgumentException("角色等级不足");if(!alive.getAsBoolean())throw new IllegalArgumentException("死亡状态不能参加挑战");
+    }
     private static void returned(JsonObject j){
         if(j.has("id"))return;
         var context=j.getAsJsonObject("context");

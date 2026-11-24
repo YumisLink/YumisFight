@@ -62,21 +62,28 @@ public final class JarService {
             return;
         }
         var changes=new LinkedHashMap<String,JsonElement>();var drops=new ArrayList<LootService.Drop>();
+        var reward=inventory.decode(player,value.reward());
+        int[] stored={0};
         var intent=new JsonObject();intent.addProperty("finishJar",value.id());
         boolean committed=inventory.transact(player,"jar/finish/"+value.id(),intent,()->{
             var current=draw(player);if(current==null||!current.id().equals(value.id())||current.delivered())throw new IllegalArgumentException("罐子结算状态发生变化");
-            ItemStack remaining=inventory.decode(player,value.reward());
+            ItemStack remaining=reward.copy();
             if(ItemData.own(remaining)&&ItemData.id(remaining).equals(CurrencyRules.COLORLESS_CRYSTAL.id())){
                 String balance=CurrencyRules.COLORLESS_CRYSTAL.id()+"/"+player.getUUID();changes.put(balance,new JsonPrimitive(Math.addExact(journal.get(balance,Long.class,0L),remaining.getCount())));remaining=ItemStack.EMPTY;
-            }else InventoryPacking.insert(player,remaining);
+            }else{
+                InventoryPacking.insertWithOption(inventory.bagOption(player),player,remaining);
+                stored[0]=reward.getCount()-remaining.getCount();
+            }
             boolean dropped=!remaining.isEmpty();
-            if(dropped){var drop=loot.manual(player,remaining,player.position());drops.add(drop);changes.put("loot/"+drop.id,JSON.toJsonTree(drop));}
+            if(dropped){var drop=loot.prepareOverflow(player,remaining);drops.add(drop);changes.put("loot/"+drop.id,JSON.toJsonTree(drop));}
             changes.put(key(player),interrupted?JsonNull.INSTANCE:JSON.toJsonTree(value.delivered(dropped)));
         },changes);
         if(committed){
-            retryAfter.remove(player.getUUID());loot.publishDrops(drops);players.profile(player);
+            retryAfter.remove(player.getUUID());loot.publishDrops(drops);
+            if(stored[0]>0)players.lootAcquired(player,reward.copyWithCount(stored[0]));
+            players.profile(player);
             send.accept(player,envelope(player,value.delivered(!drops.isEmpty()),interrupted?"interrupted":"complete"));
-            players.message(player,(interrupted?"开罐已提前结算：":"开罐获得：")+inventory.decode(player,value.reward()).getHoverName().getString()+(drops.isEmpty()?"":"（背包已满，已生成公共掉落）"));
+            players.message(player,(interrupted?"开罐已提前结算：":"开罐获得：")+reward.getHoverName().getString()+(drops.isEmpty()?"":"（背包与次元包已满，已生成私人掉落）"));
         }
     }
     public void interrupt(ServerPlayer player){
@@ -85,6 +92,43 @@ public final class JarService {
             retryAfter.put(player.getUUID(),0L);
             LOG.warn("玩家 {} 开罐结算失败",player.getScoreboardName(),failure);
             players.message(player,"罐子原奖品已保留，结算失败："+failure.getMessage());
+        }
+    }
+    public void recoverLogin(ServerPlayer player){
+        String prefix="jarDraw/"+player.getUUID()+"/";
+        String currentKey=key(player);
+        for(String pendingKey:journal.keys(prefix)){
+            if(pendingKey.equals(currentKey))continue;
+            Draw value=journal.get(pendingKey,Draw.class,null);
+            if(value==null||value.delivered()){
+                try{journal.put(pendingKey,JsonNull.INSTANCE);}catch(Exception failure){LOG.warn("清理历史已领开罐记录失败：{}",pendingKey,failure);}
+                continue;
+            }
+            try{
+                var changes=new LinkedHashMap<String,JsonElement>();
+                var drops=new ArrayList<LootService.Drop>();
+                var reward=inventory.decode(player,value.reward());
+                int[] stored={0};
+                var intent=new JsonObject();intent.addProperty("recoverJar",value.id());
+                boolean committed=inventory.transact(player,"jar/recover/"+value.id(),intent,()->{
+                    ItemStack remaining=reward.copy();
+                    if(ItemData.own(remaining)&&ItemData.id(remaining).equals(CurrencyRules.COLORLESS_CRYSTAL.id())){
+                        String balance=CurrencyRules.COLORLESS_CRYSTAL.id()+"/"+player.getUUID();changes.put(balance,new JsonPrimitive(Math.addExact(journal.get(balance,Long.class,0L),remaining.getCount())));remaining=ItemStack.EMPTY;
+                    }else{
+                        InventoryPacking.insertWithOption(inventory.bagOption(player),player,remaining);
+                        stored[0]=reward.getCount()-remaining.getCount();
+                    }
+                    if(!remaining.isEmpty()){var drop=loot.prepareOverflow(player,remaining);drops.add(drop);changes.put("loot/"+drop.id,JSON.toJsonTree(drop));}
+                    changes.put(pendingKey,JsonNull.INSTANCE);
+                },changes);
+                if(committed){
+                    loot.publishDrops(drops);
+                    if(stored[0]>0)players.lootAcquired(player,reward.copyWithCount(stored[0]));
+                    players.message(player,"已补发上次未结算的开罐奖品："+reward.getHoverName().getString()+(drops.isEmpty()?"":"（背包与次元包已满，已生成私人掉落）"));
+                }
+            }catch(Exception failure){
+                LOG.warn("恢复玩家 {} 历史开罐奖品失败：{}",player.getScoreboardName(),pendingKey,failure);
+            }
         }
     }
     public void discard(ServerPlayer player)throws IOException{

@@ -21,11 +21,16 @@ public final class AlchemyWandItem extends Item {
         BlockState state=level.getBlockState(pos);
         if(!(state.getBlock() instanceof AlchemyCauldronBlock))return InteractionResult.PASS;
         if(!(level.getBlockEntity(pos) instanceof AlchemyCauldronBlockEntity cauldron))return InteractionResult.PASS;
-        if(!cauldron.transform(player))return InteractionResult.PASS;
+        boolean heated=AlchemyCauldronBlock.heatSource(level.getBlockState(pos.below()));
+        if(!cauldron.transform(player)){
+            player.sendOverlayMessage(cauldron.statusText(heated));
+            return InteractionResult.PASS;
+        }
         ItemStack wand=context.getItemInHand();
         int next=wand.getDamageValue()+1;
         if(next>=wand.getMaxDamage())wand.shrink(1);
         else wand.setDamageValue(next);
+        player.sendOverlayMessage(cauldron.statusText(heated));
         return InteractionResult.SUCCESS;
     }
 }

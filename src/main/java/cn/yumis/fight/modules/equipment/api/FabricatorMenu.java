@@ -4,6 +4,7 @@ import net.minecraft.world.entity.player.*;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 public final class FabricatorMenu extends AbstractContainerMenu {
+    public static java.util.function.Consumer<net.minecraft.server.level.ServerPlayer> ON_OPEN=p->{};
     public boolean initialContentsReady;
     @Override public void initializeContents(int stateId,java.util.List<ItemStack> items,ItemStack carried){super.initializeContents(stateId,items,carried);initialContentsReady=true;}
     private final ContainerLevelAccess access;

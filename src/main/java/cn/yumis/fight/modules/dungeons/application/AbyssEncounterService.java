@@ -2,7 +2,12 @@ package cn.yumis.fight.modules.dungeons.application;
 
 import cn.yumis.fight.foundation.Journal;
 import cn.yumis.fight.modules.character.api.JobCatalog;
+import cn.yumis.fight.modules.combat.api.ActionBlueprint;
+import cn.yumis.fight.modules.combat.api.ActionPhase;
+import cn.yumis.fight.modules.combat.api.ActionRegistry;
+import cn.yumis.fight.modules.combat.api.ActionStatus;
 import cn.yumis.fight.modules.combat.api.CombatContentTypes;
+import cn.yumis.fight.modules.combat.api.StatusLeases;
 import cn.yumis.fight.modules.dungeons.api.AbyssAttack;
 import cn.yumis.fight.modules.dungeons.api.AbyssParty;
 import cn.yumis.fight.modules.dungeons.api.Dungeon;
@@ -78,6 +83,8 @@ final class AbyssEncounterService {
         final Career career;
         final Map<String, Long> ready = new HashMap<>();
         final EnumMap<Form, Long> forms = new EnumMap<>(Form.class);
+        final StatusLeases leases = new StatusLeases();
+        ActionPhase phase = ActionPhase.IDLE;
         int nextSkill, sunMoonHeart;
         long busy, nextBasic, nextBone, nextColumn, nextLeap, approachUntil;
         boolean awakened;
@@ -135,6 +142,10 @@ final class AbyssEncounterService {
     boolean hasEncounter(Dungeon dungeon) {
         Run run = runs.get(dungeon.id);
         return dungeon.abyssActivation != null || run != null && run.arena != null;
+    }
+
+    boolean pendingEncounter(Dungeon dungeon) {
+        return hasEncounter(dungeon) && acceptsChallengers(dungeon);
     }
 
     boolean acceptsChallengers(Dungeon dungeon) {
@@ -336,7 +347,8 @@ final class AbyssEncounterService {
     }
 
     private void addActor(Dungeon dungeon, Run run, AbyssParty.Enemy kind, Career career, long now) throws Exception {
-        Vec3 position = around(run, run.arena.anchor(), 2.5, 7.5, kind.width, kind.height, true);
+        double pillarClearance = (PILLAR.width + kind.width) / Math.sqrt(2);
+        Vec3 position = around(run, run.arena.anchor(), Math.max(2.5, pillarClearance), 7.5, kind.width, kind.height, true);
         var actor = new Actor(spawn(dungeon, run, kind, position, career), kind, career, now);
         actor.busy = now + (career == null ? 0 : 1000 + 1650L * run.wave.size());
         run.wave.add(actor);
@@ -405,9 +417,11 @@ final class AbyssEncounterService {
         int element = actor.career != null && actor.career.job().equals(JobCatalog.SOUL_BENDER) ? 3 : -1;
         double coefficient = giant ? 1.6 : skeleton ? .65 : .75;
         long warning = giant ? 1250 : skeleton ? 700 : 750;
+        var timing = targets.target(enemy).actionTiming(now);
+        long castWarning = timing.windup(warning), castRecovery = timing.recovery(450);
         actor.nextBasic = now + (giant ? 3600 : 2450);
-        actor.busy = now + warning + 450;
-        enemy.play("abyss_basic", warning + 450);
+        actor.busy = now + castWarning + castRecovery;
+        enemy.play("abyss_basic", castWarning + castRecovery);
         boolean doubleHit = actor.form(Form.FRENZY, now);
         boolean champion = actor.career != null;
         emit(run, enemy, enemy.position(), direction, giant ? CIRCLE : ranged ? LINE : FAN,
@@ -432,23 +446,24 @@ final class AbyssEncounterService {
         }
         if (ground == null) return false;
         stop(enemy);
-        actor.busy = now + 6000;
+        var timing = targets.target(enemy).actionTiming(now);
+        actor.busy = now + timing.duration(6000);
         if (leap) {
             actor.nextLeap = now + 35000;
-            enemy.play("abyss_leap", 5500);
+            enemy.play("abyss_leap", timing.duration(5500));
             double lift = Math.min(clearance(enemy.position(), GIANT.width, GIANT.height, 50),
                 clearance(ground, GIANT.width, GIANT.height, 50));
-            actor.motion = new Motion(enemy.position(), ground, now, now + 5000, lift, true);
+            actor.motion = new Motion(enemy.position(), ground, now, now + timing.duration(5000), lift, true);
             emit(run, enemy, ground, Vec3.ZERO, CIRCLE, LANDING, 8, 0, 0, now, 5000, 375, 2.5, false, -1, true);
             for (int i = 0; i < 8; i++) {
                 Vec3 point = around(run, ground, 1.5, 9, .65, 1.8, false);
                 if (point == null) point = ground;
                 emit(run, enemy, point, Vec3.ZERO, CIRCLE, COLUMN, 1, 0, clearance(point, .65, 1.8, 8),
-                    now + i * 475L, 900, 220, .25, false, -1, true);
+                    now + i * timing.duration(475), 900, 220, .25, false, -1, true);
             }
         } else {
             actor.nextColumn = now + 25000;
-            enemy.play("abyss_column", 5500);
+            enemy.play("abyss_column", timing.duration(5500));
             emit(run, enemy, ground, Vec3.ZERO, CIRCLE, COLUMN, 8, 0, clearance(ground, 2.2, 3.5, 20),
                 now, 5000, 400, 2.5, false, -1, true);
         }
@@ -503,19 +518,28 @@ final class AbyssEncounterService {
         if (kit.form() == Form.SUN) actor.sunMoonHeart = 1;
         else if (kit.form() == Form.MOON || kit.id().equals("paradox")) actor.sunMoonHeart = 2;
         if (actor.career.job().equals(JobCatalog.ORACLE)) oracleWeapon(enemy, kit.id());
-        long castTime = kit.cues().stream().mapToLong(Cue::delay).max().orElse(0) + 400;
+        var timing = targets.target(enemy).actionTiming(now);
+        long maxDelay = kit.cues().stream().mapToLong(Cue::delay).max().orElse(0);
+        long castTime = timing.duration(maxDelay + 400);
         actor.busy = now + CAST_GAP;
+        actor.phase = ActionPhase.ACTIVE;
         stop(enemy);
         enemy.play("abyss_skill/" + kit.id(), castTime);
         Vec3 origin = enemy.position(), aim = focus.position();
         double budget = kit.coefficient() * kit.enhance();
         UUID cast = UUID.randomUUID();
-        long duration = kit.cues().stream().mapToLong(Cue::delay).max().orElse(0) + 1500;
+        long duration = timing.duration(maxDelay + 1500);
+        ActionBlueprint shared = ActionRegistry.find(kit.kind());
+        if (shared != null) {
+            for (ActionStatus status : shared.activeStatuses()) {
+                actor.leases.acquire(cast.toString(), status, now + castTime);
+            }
+        }
         owner.broadcast(enemy.instance(), "visual", visual(enemy, cast, kit, "START", 0, now, now, origin,
             heading(aim.subtract(origin)), duration, motionFor(kit, now)));
         for (int i = 0; i < kit.cues().size(); i++) {
             Cue cue = kit.cues().get(i);
-            var pending = new Queued(actor, kit, cue, cast, origin, aim, now, now + cue.delay(),
+            var pending = new Queued(actor, kit, cue, cast, origin, aim, now, now + timing.duration(cue.delay()),
                 budget * cue.share(), i + 1, i == kit.cues().size() - 1, duration);
             if (cue.delay() == 0) releaseCue(run, pending, enemy, now);
             else run.queued.add(pending);
@@ -669,10 +693,12 @@ final class AbyssEncounterService {
         double progress = Math.clamp((double) (now - motion.start()) / (motion.end() - motion.start()), 0, 1);
         if (progress >= 1) {
             enemy.setPos(motion.to());
-            enemy.setNoGravity(false);
+            actor.leases.releaseOwner("abyss/motion");
+            enemy.setNoGravity(actor.leases.has(ActionStatus.NO_GRAVITY, now));
             actor.motion = null;
             return false;
         }
+        actor.leases.acquire("abyss/motion", ActionStatus.NO_GRAVITY, motion.end());
         enemy.setNoGravity(true);
         Vec3 position;
         if (motion.plunge()) {
@@ -692,9 +718,10 @@ final class AbyssEncounterService {
     private void emit(Run run, DungeonEnemy enemy, Vec3 point, Vec3 direction, AbyssAttack.Shape shape, AbyssAttack.Effect effect,
                       double range, double width, double height, long warningAt, long warning, long active,
                       double damage, boolean magic, int element, boolean telegraph) {
-        long release = warningAt + warning;
+        var timing = targets.target(enemy).actionTiming(warningAt);
+        long release = warningAt + timing.windup(warning);
         var attack = new AbyssAttack(UUID.randomUUID(), enemy.getUUID(), run.arena, point, direction, shape, effect, range,
-            width, height, warningAt, release, release + active, damage, magic, element, telegraph);
+            width, height, warningAt, release, release + timing.active(active), damage, magic, element, telegraph);
         var live = new LiveAttack(attack, targets.target(enemy));
         run.attacks.put(attack.id(), live);
         owner.broadcast(enemy.instance(), "abyssAttack", packet(live));
@@ -732,7 +759,10 @@ final class AbyssEncounterService {
                 return true;
             });
             for (Actor state : run.wave) {
-                if (state.motion == null || !state.id.equals(actor)) continue;
+                if (!state.id.equals(actor)) continue;
+                state.phase = ActionPhase.ABANDONED;
+                state.leases.clear();
+                if (state.motion == null) continue;
                 if (owner.level().getEntity(actor) instanceof DungeonEnemy enemy) {
                     enemy.setNoGravity(false);
                     enemy.setPos(groundOrHome(run, enemy, state.home));
@@ -764,8 +794,9 @@ final class AbyssEncounterService {
     }
 
     private boolean eligible(ServerPlayer player, AbyssParty.Arena arena) {
+        var life = players.session(player).life;
         return player.isAlive() && !player.isSpectator() && !player.getAbilities().invulnerable
-            && player.level() == owner.level() && !players.session(player).life.dead && arena.contains(player.position());
+            && player.level() == owner.level() && !life.dead && !life.dungeonDefeated && arena.contains(player.position());
     }
 
     private Site site(Dungeon dungeon, Vec3 replacement) {

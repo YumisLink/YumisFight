@@ -107,7 +107,7 @@ final class ArkCombat {
         return ArkTraits.range(a.unit,a.seat.counts,a.seat.layers,b.rules)+(a.airborne?a.unit.p("rangeGain"):0);
     }
     double attackRate(Actor a){return a.unit.attackRate()*(1+a.stats.get(Stat.ATTACK_SPEED)/100);}
-    private boolean controlled(Actor a){return now<a.stasisUntil||a.target.life.elemental.active(ElementAccumulation.Kind.FREEZE,a.target.life,now)||CombatContentTypes.controlled(a.entity);}
+    private boolean controlled(Actor a){return now<a.stasisUntil||ElementAccumulation.controls(a.target.life,now)||CombatContentTypes.controlled(a.entity);}
     private boolean region(Actor source,Actor target){
         if(source.enemy||source.core)return true;
         return source.transferred?target.phase==2&&ArkWar.coreArea(target.position()):target.seat==source.seat&&target.phase==0;
@@ -516,6 +516,8 @@ final class ArkCombat {
         enemyCast(source,victim,kind,radius,angle,windup,active,recovery,coefficient,magic,cooldown,kind.toLowerCase(Locale.ROOT));
     }
     private void enemyCast(Actor source,Actor victim,String kind,double radius,double angle,long windup,long active,long recovery,double coefficient,boolean magic,int cooldown,String move){
+        var timing=source.target.actionTiming(now);
+        windup=timing.windup(windup);active=timing.active(active);recovery=timing.recovery(recovery);
         stop(source);source.lastFight=victim.lastFight=now;source.cooldowns.put(kind,now+cooldown*1000L);
         var cast=new EnemyCast();cast.source=source;cast.victim=victim;cast.kind=kind;cast.radius=radius;cast.angle=angle;
         cast.coefficient=coefficient;cast.magic=magic;cast.origin=source.position();
@@ -525,7 +527,8 @@ final class ArkCombat {
         cast.width=kind.equals("WYVERN_CHARGE")?1.4:2;cast.release=now+windup;cast.activeUntil=cast.release+active;cast.until=cast.activeUntil+recovery;
         enemyCasts.put(source,cast);
         if(!kind.equals("BASIC"))b.effects.cast(source,magic?0:-1,now,windup+active);
-        b.afterCommit.add(()->{((DungeonEnemy)source.entity).play(move,windup+active+recovery);source.entity.swing(InteractionHand.MAIN_HAND);});
+        long animation=windup+active+recovery;
+        b.afterCommit.add(()->{((DungeonEnemy)source.entity).play(move,animation);source.entity.swing(InteractionHand.MAIN_HAND);});
         if(magic)b.afterCommit.add(()->b.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,cast.point.x,cast.point.y+.1,cast.point.z,12,radius*.5,.1,radius*.5,.01));
     }
     /** The approved ark copy of Keno's decision table, phase thresholds, and fury economy. */
@@ -592,15 +595,18 @@ final class ArkCombat {
         if(flat.lengthSqr()<.01)flat=new Vec3(0,0,1);
         Vec3 from=a.position(),destination=victim.position().subtract(flat.normalize().scale(6));
         a.entity.setPos(destination.x,victim.position().y,destination.z);
-        k.followup=true;k.followupAt=now+400;
+        long step=a.target.actionTiming(now).duration(400);
+        k.followup=true;k.followupAt=now+step;
         b.afterCommit.add(()->{
-            ((DungeonEnemy)a.entity).play("blink_step",400);
+            ((DungeonEnemy)a.entity).play("blink_step",step);
             b.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,from.x,from.y+1,from.z,20,.6,1,.6,.02);
             b.level.sendParticles(ParticleTypes.ELECTRIC_SPARK,destination.x,destination.y+1,destination.z,20,.6,1,.6,.02);
         });
     }
     /** Multi-segment fury strikes: the hit check re-arms per segment; circles track the victim's live position. */
     private void multiCast(Actor source,Actor victim,String kind,String move,double radius,double angle,double coefficient,boolean magic,int segments,long windup,long segmentInterval,long recovery,long cooldown){
+        var timing=source.target.actionTiming(now);
+        windup=timing.windup(windup);segmentInterval=timing.duration(segmentInterval);recovery=timing.recovery(recovery);
         stop(source);source.lastFight=victim.lastFight=now;source.cooldowns.put(kind,now+cooldown);
         var cast=new EnemyCast();
         cast.source=source;cast.victim=victim;cast.kind=kind;cast.radius=radius;cast.angle=angle;
@@ -722,7 +728,7 @@ final class ArkCombat {
     }
     private void slow(Actor a,double value,double seconds){if(a.slowUntil<=now||value>=a.slow){a.slow=value;a.slowUntil=now+(long)(seconds*1000);}}
     private void freeze(Actor a,double seconds){
-        int index=ElementAccumulation.Kind.FREEZE.ordinal();a.target.life.elemental.until[index]=Math.max(a.target.life.elemental.until[index],now+(long)(seconds*1000));
+        int index=ElementAccumulation.Kind.FREEZE.ordinal();a.target.life.elemental.strong[index]=false;a.target.life.elemental.until[index]=Math.max(a.target.life.elemental.until[index],now+(long)(seconds*1000));
         a.target.life.revision++;b.changed(a);b.afterCommit.add(()->a.entity.addEffect(new MobEffectInstance(CombatContentTypes.FREEZE,(int)Math.ceil(seconds*20),0,false,true)));
     }
     private void stasis(Actor a,double seconds){a.stasisUntil=Math.max(a.stasisUntil,now+(long)(seconds*1000));b.afterCommit.add(()->a.entity.addEffect(new MobEffectInstance(CombatContentTypes.STUN,(int)Math.ceil(seconds*20),0,false,true)));}
@@ -844,7 +850,8 @@ final class ArkCombat {
     private void triggered(Actor source,Actor victim,List<ElementAccumulation.Kind> kinds,Stats sourceStats){
         for(var kind:kinds){
             long remaining=victim.target.life.elemental.until[kind.ordinal()]-now;
-            b.afterCommit.add(()->victim.entity.addEffect(new MobEffectInstance(CombatContentTypes.elementalEffect(kind),(int)Math.max(1,(remaining+49)/50),0,false,true)));
+            boolean strong=victim.target.bossOrElite();
+            b.afterCommit.add(()->victim.entity.addEffect(new MobEffectInstance(CombatContentTypes.elementalEffect(kind,strong),(int)Math.max(1,(remaining+49)/50),0,false,true)));
             if(kind.damaging()){
                 var ailment=new Ailment();ailment.source=source;ailment.target=victim;ailment.stats=sourceStats.copy();ailment.kind=kind;
                 ailment.next=now+(kind==ElementAccumulation.Kind.IGNITE?0:1000);ailment.remaining=kind.ticks();ailments.add(ailment);

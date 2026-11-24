@@ -38,9 +38,11 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private final List<HoverArea> hoverAreas=new ArrayList<>();
     private record Card(int x,int y,int width,int height){
     }
+    private record PageDrawing(int x,int y,int width,int height,Drawing drawing){}
     private record Icon(String path,int x,int y,int size){
     }
     private final List<Card> cards=new ArrayList<>();
+    private final List<PageDrawing> drawings=new ArrayList<>();
     private final List<Icon> icons=new ArrayList<>();
     private record Picture(String path,int x,int y,int width,int height,float u0,float u1,float v0,float v1){}
     private record RightClick(int x,int y,int width,int height,Runnable action){}
@@ -55,7 +57,8 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     private int sidebarScroll;
     private final List<AbstractWidget> body=new ArrayList<>();
     private int sidebar,left,top,panelWidth,panelHeight,scroll,contentHeight;
-    private EditBox input;
+    private EditBox input,preservedInput;
+    private String activeInputKey;
     private final Map<AbstractWidget,Hover> widgetHovers=new LinkedHashMap<>();
     private final Map<String,Object> pageState=new HashMap<>();
     private int nextY;
@@ -96,12 +99,18 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         try(var palette=themeScope()){buildContent();}
     }
     private void buildContent(){
+        EditBox keep = preservedInput;
         input=null;
-        clearWidgets();
+        if(keep!=null){
+            for(var child:new ArrayList<>(children()))if(child!=keep)removeWidget(child);
+        }else{
+            clearWidgets();
+            activeInputKey=null;
+        }
         body.clear();
         widgetHovers.clear();
         lines.clear();styledLines.clear();hoverAreas.clear();
-        cards.clear();
+        cards.clear();drawings.clear();
         icons.clear();sidebarRows=List.of();sidebarTitle="";sidebarProfile=true;
         pictures.clear();experienceBars.clear();rightClicks.clear();navigation=List.of();
         sidebar=page>=0&&customPanel==null&&panelWidth>=480?112:0;
@@ -111,11 +120,13 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         }
         );
         if(!state.ready){
+            if(keep!=null){removeWidget(keep);preservedInput=null;activeInputKey=null;}
             line("正在读取服务器角色档案…");
             contentHeight=40;
             return;
         }
         if(page<0)menu();else if(customPanel==null)PlayerPageRenderers.render(PlayerPages.at(page).id(),this);
+        if(keep!=null&&input!=keep){removeWidget(keep);if(preservedInput==keep)preservedInput=null;}
         contentHeight=nextY+12;
         setScroll(scroll);
     }
@@ -241,6 +252,12 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
         for(Card card:cards){
             int yy=bodyTop()+card.y-scroll;
             UiTheme.card(g,contentLeft()+12+card.x,yy,(contentLeft()+12+card.x+card.width)-(contentLeft()+12+card.x),(yy+card.height)-(yy));
+        }
+        for(var drawing:drawings){
+            int x=contentLeft()+12+drawing.x,y=bodyTop()+drawing.y-scroll;
+            if(y>=bodyTop()+bodyHeight()||y+drawing.height<=bodyTop())continue;
+            g.enableScissor(x,y,x+drawing.width,y+drawing.height);
+            try{drawing.drawing.render(g,x,y);}finally{g.disableScissor();}
         }
         if(input!=null&&input.visible){
             UiTheme.borderlessInput(g,input.getX()-4,input.getY()-4,input.getWidth()+8,18,input.isFocused());
@@ -404,6 +421,7 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     public void cursor(int position){nextY=position;}
     public void text(String text,int x,int y,int color){lines.add(new Line(text,x,y,color));}
     public void card(int x,int y,int width,int height){cards.add(new Card(x,y,width,height));}
+    public void drawing(int x,int y,int width,int height,Drawing drawing){drawings.add(new PageDrawing(x,y,width,height,drawing));}
     public void icon(String path,int x,int y,int size){icons.add(new Icon(path,x,y,size));}
     public void image(String path,int x,int y,int width,int height,float u0,float u1,float v0,float v1){pictures.add(new Picture(path,x,y,width,height,u0,u1,v0,v1));}
     public void experienceBar(int x,int y,int width,double progress){experienceBars.add(new ExperienceBar(x,y,width,Math.clamp(progress,0,1)));}
@@ -420,13 +438,38 @@ public final class FightScreen extends ThemedScreen implements cn.yumis.fight.mo
     public void hover(AbstractWidget widget,Hover renderer){widgetHovers.put(widget,renderer);}
     public void hover(int x,int y,int width,int height,Hover renderer){hoverAreas.add(new HoverArea(x,y,width,height,renderer));}
     public java.util.function.Supplier<String> textInput(String key,String label,int maximum){
-        var box=new EditBox(font,contentLeft()+12,bodyTop()+nextY-scroll,contentWidth()-24,20,Component.literal(label));
-        box.setValue(remember(key,""));box.setMaxLength(maximum);box.setBordered(false);box.setResponder(value->rememberValue(key,value));
-        if(UiTheme.pixelStyle()){
-            box.setTextColor(UiTheme.TEXT);
-            box.setHint(Component.literal(truncateToWidth(label,box.getWidth())));
+        int x=contentLeft()+12,y=bodyTop()+nextY-scroll,w=contentWidth()-24;
+        EditBox box;
+        if(preservedInput!=null&&key.equals(activeInputKey)){
+            box=preservedInput;
+            box.setX(x);box.setY(y);box.setWidth(w);box.setHeight(20);
+            box.setMaxLength(maximum);
+            if(UiTheme.pixelStyle()){
+                box.setTextColor(UiTheme.TEXT);
+                box.setHint(Component.literal(truncateToWidth(label,box.getWidth())));
+            }
+            if(!children().contains(box))addRenderableWidget(box);
+        }else{
+            box=new EditBox(font,x,y,w,20,Component.literal(label));
+            box.setValue(remember(key,""));box.setMaxLength(maximum);box.setBordered(false);
+            if(UiTheme.pixelStyle()){
+                box.setTextColor(UiTheme.TEXT);
+                box.setHint(Component.literal(truncateToWidth(label,box.getWidth())));
+            }
+            addRenderableWidget(box);
         }
-        box.setResponder(value->{rememberValue(key,value);boolean focus=box.isFocused();int caret=box.getCursorPosition();build();if(focus&&input!=null){setFocused(input);input.setFocused(true);input.setCursorPosition(caret);}});input=box;body.add(addRenderableWidget(box));nextY+=26;return box::getValue;
+        activeInputKey=key;
+        final EditBox currentBox=box;
+        box.setResponder(value->{
+            rememberValue(key,value);
+            preservedInput=currentBox;
+            try{
+                build();
+            }finally{
+                if(preservedInput==currentBox)preservedInput=null;
+            }
+        });
+        input=box;body.add(box);nextY+=26;return box::getValue;
     }
     @SuppressWarnings("unchecked") public <T>T remember(String key,T fallback){return (T)pageState.getOrDefault(key,fallback);}
     public void rememberValue(String key,Object value){pageState.put(key,value);}

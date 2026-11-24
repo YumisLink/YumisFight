@@ -10,6 +10,8 @@ public final class DungeonClientMessages {
     public static void register(CommandRouter<Void,JsonObject> router,Predicate<JsonObject> contact,Consumer<String> cancel){
         Consumer<JsonObject> hit=contact::test;
         router.register("dungeons","towerStele",(context,j)->DungeonActions.enterTower(j));
+        router.register("dungeons","towerLobby",(context,j)->TowerClient.receiveLobby(j));
+        router.register("dungeons","towerBattle",(context,j)->TowerClient.receiveBattle(j));
         router.register("dungeons","treasureMapClue",(context,j)->TreasureMapClient.receiveClue(j));
         router.register("dungeons","bossAction",(context,j)->{j.remove("clientContact");EnemyTelegraphs.receive(j);KenoVisuals.receive(j);hit.accept(j);});
         router.register("dungeons","cancelBossAction",(context,j)->{String id=j.get("id").getAsString();EnemyTelegraphs.cancel(id);KenoVisuals.cancel(id);cancel.accept(id);});
@@ -26,6 +28,8 @@ public final class DungeonClientMessages {
         router.register("dungeons","ritualAttack",(context,j)->RitualFightClient.attack(j,contact));
         router.register("dungeons","cancelRitualAttack",(context,j)->RitualFightClient.cancel(j.get("id").getAsString()));
         router.register("dungeons","ritualClearDebt",(context,j)->RitualFightClient.clearDebt());
+        router.register("dungeons","sealBossEvent",(context,j)->ElainaBossClient.onEvent(j));
+        router.register("dungeons","sealBossHazard",(context,j)->ElainaBossClient.onHazard(j));
     }
     private DungeonClientMessages(){}
 }

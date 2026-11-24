@@ -3,13 +3,17 @@ package cn.yumis.fight.modules.economy.client;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.modules.presentation.api.client.MenuInput;
 import com.google.gson.JsonObject;
+import java.util.function.BooleanSupplier;
 
 /** Complete, session-bound sale snapshots; choosing slots never sends a request. */
 public final class SaleClient {
     private static JsonObject snapshot;
     private static long revision;
     private static boolean bag;
+    private static BooleanSupplier manualPage=()->false;
     private SaleClient(){}
+    public static void manualPage(BooleanSupplier open){manualPage=open;}
+    static boolean manualOpen(){return manualPage.getAsBoolean();}
     public static void open(boolean dimensional){
         bag=dimensional;
         var player=net.minecraft.client.Minecraft.getInstance().player;

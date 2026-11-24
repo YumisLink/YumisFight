@@ -51,6 +51,15 @@ def block(name, pos, data=None):
     return result
 
 
+def with_loot(data, name, table):
+    data = data or nbtlib.Compound()
+    data.setdefault("id", nbtlib.String("minecraft:chest" if name == "minecraft:trapped_chest" else name))
+    data.pop("Items", None)
+    data.pop("LootTableSeed", None)
+    data["LootTable"] = nbtlib.String(table)
+    return data
+
+
 def source_template(identifier):
     namespace, path = identifier.split(":", 1)
     return nbtlib.load(ROOT / "src/main/resources/data" / namespace / "structure" / (path + ".nbt"), gzipped=True)
@@ -159,20 +168,11 @@ def compile_template(entry):
                 if not data["NeoForgeData"]:
                     del data["NeoForgeData"]
             key = (facility["id"], local)
-            table = None
             if key in barrels:
                 if name != "minecraft:barrel" or data and data.get("Items"):
                     raise ValueError(f"{entry['id']}: 战利品位置不是空木桶 {key}")
-                table = f"{NS}:chests/wild_buildings/{entry['id']}"
+                data = with_loot(data, name, f"{NS}:chests/wild_buildings/{entry['id']}")
                 assigned.add(key)
-            elif name in loot_by_block and not (data and (data.get("Items") or data.get("LootTable"))):
-                table = loot_by_block[name]
-            if table:
-                data = data or nbtlib.Compound()
-                data.setdefault("id", nbtlib.String(name))
-                data.pop("Items", None)
-                data.pop("LootTableSeed", None)
-                data["LootTable"] = nbtlib.String(table)
             put((x0 + local[0], local[1] - reference, z0 + local[2]), material, data)
         for entity in template["entities"]:
             copied = copy.deepcopy(entity)
@@ -204,6 +204,10 @@ def compile_template(entry):
     floor_offset = -minimum_y
     items = []
     for (x, y, z), (material, data) in sorted(cells.items(), key=lambda item: (item[0][1], item[0][2], item[0][0])):
+        name = str(material["Name"])
+        table = loot_by_block.get(name)
+        if table and not (data and (data.get("Items") or data.get("LootTable"))):
+            data = with_loot(data, name, table)
         key = material.snbt()
         if key not in indices:
             indices[key] = len(palette)
@@ -232,30 +236,45 @@ def compile_template(entry):
 def material_tables(tiers):
     if not tiers:
         return
+    levels = range(1, len(tiers) + 1)
+    if set(tiers) != {f"t{level}" for level in levels}:
+        raise ValueError("material_tiers 须从 t1 开始连续登记")
     assets = ROOT / "src/main/resources/assets" / NS
     industry = json.loads((assets / "industry/technology.json").read_text(encoding="utf-8"))
 
-    def pool(materials, minimum, maximum):
-        entries = []
-        for name in materials:
-            entry = {"type": "minecraft:item", "name": name}
-            if "_block" not in name:
-                entry["functions"] = [{"function": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 1, "max": 3}}]
-            entries.append(entry)
-        return {"rolls": {"type": "minecraft:uniform", "min": minimum, "max": maximum}, "entries": entries}
+    def item_entry(name):
+        entry = {"type": "minecraft:item", "name": name}
+        if "_block" not in name:
+            entry["functions"] = [{"function": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 1, "max": 3}}]
+        return entry
 
-    for tier, profession_items in tiers.items():
-        level = int(tier.removeprefix("t"))
+    table_path = "chests/wild_buildings/materials"
+    tables = {}
+    for level in levels:
+        tier = f"t{level}"
+        profession_items = tiers[tier]
         materials = [item for item in industry["material_items"] if industry["items"].get(item) == level]
         if not materials or not profession_items or len(profession_items) != len(set(profession_items)):
             raise ValueError(f"{tier}: 材料池为空或存在重复项")
         for item in profession_items:
             if not (assets / "items" / f"{item}.json").is_file():
                 raise ValueError(f"{tier}: 缺少副职业材料 {item}")
-        json_file(DATA / "loot_table/chests/wild_buildings/materials" / f"{tier}.json", {
-            "type": "minecraft:chest",
-            "pools": [pool(materials, 2, 3), pool([f"{NS}:{item}" for item in profession_items], 1, 2)],
-        })
+        pools = []
+        for category, items, minimum, maximum in (
+            ("industry", materials, 2, 3),
+            ("professions", [f"{NS}:{item}" for item in profession_items], 1, 2),
+        ):
+            tables[f"{category}/{tier}"] = [{"rolls": 1, "entries": [item_entry(item) for item in items]}]
+            pools.append({
+                "rolls": {"type": "minecraft:uniform", "min": minimum, "max": maximum},
+                "entries": [
+                    {"type": "minecraft:loot_table", "value": f"{NS}:{table_path}/{category}/t{rank}", "weight": 1}
+                    for rank in range(1, level + 1)
+                ],
+            })
+        tables[tier] = pools
+    for path, pools in tables.items():
+        json_file(DATA / "loot_table" / table_path / f"{path}.json", {"type": "minecraft:chest", "pools": pools})
 
 
 def build(only=None):

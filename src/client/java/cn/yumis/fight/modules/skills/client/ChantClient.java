@@ -19,14 +19,17 @@ public final class ChantClient {
     public static double radius(){return cast==null?0:cast.parameters.get("radius",0);}
     public static double range(){return cast==null?0:cast.parameters.get("range",16);}
     public static void begin(SkillCast source,Runnable completion){
-        clear();var state=SkillsClient.current();cast=source;release=completion;session=state.session();generation=state.own().generation;job=state.progress().jobId();instance=state.own().instance;
+        begin(source,PlayerPoseChannel.scaled(source.skill.chantSeconds*1000,SunMoonRules.chantSpeed(source.stats)),false,completion);
+    }
+    static void begin(SkillCast source,long duration,boolean canMove,Runnable completion){
+        clear();var state=SkillsClient.current();cast=source;cast.phase=cn.yumis.fight.modules.combat.api.ActionPhase.CHANTING;release=completion;session=state.session();generation=state.own().generation;job=state.progress().jobId();instance=state.own().instance;
         start=ClientUi.now();
-        until=start+PlayerPoseChannel.scaled(source.skill.chantSeconds*1000,SunMoonRules.chantSpeed(source.stats));
+        until=start+duration;
         PlayerPoseChannel.chant(source,until-start,SunMoonSkills.contains(source.skill.id)?350:0);
-        ChantRules.movement(Minecraft.getInstance().player,true);
+        ChantRules.movement(Minecraft.getInstance().player,!canMove);
     }
     public static boolean press(int slot){if(!active())return false;if(cast.skill.id.equals(SkillsClient.current().progress().slots[slot]))return true;cancel();return false;}
-    public static void cancel(){if(!active())return;var source=cast;clear();PlayerPoseChannel.cancel(source);CareerClient.INSTANCE.cancel(source);}
+    public static void cancel(){if(!active())return;var source=cast;source.phase=cn.yumis.fight.modules.combat.api.ActionPhase.ABANDONED;clear();PlayerPoseChannel.cancel(source);CareerClient.INSTANCE.cancel(source);}
     public static void reset(){clear();CoronaBlur.clear();}
     public static void clear(){var p=Minecraft.getInstance().player;if(p!=null)ChantRules.movement(p,false);cast=null;release=null;}
     public static void tick(){

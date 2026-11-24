@@ -1,8 +1,10 @@
 package cn.yumis.fight.modules.inventory.application;
 import cn.yumis.fight.modules.presentation.api.ModText;
 import cn.yumis.fight.modules.inventory.api.BagOption;
+import cn.yumis.fight.modules.inventory.api.CheckpointMenu;
 import cn.yumis.fight.modules.inventory.api.InventoryPacking;
 import cn.yumis.fight.modules.inventory.api.MenuHooks;
+import cn.yumis.fight.modules.inventory.api.RewardMenu;
 
 import cn.yumis.fight.modules.inventory.api.StorageRules;
 import cn.yumis.fight.foundation.Journal;
@@ -13,6 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
+import java.util.function.BiConsumer;
 public final class InventoryTransactions implements cn.yumis.fight.modules.inventory.api.InventoryOperations {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
@@ -24,9 +27,13 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
     private final java.util.function.Consumer<ServerPlayer> profile;
     private final java.util.function.BiConsumer<ServerPlayer,String> message;
     private final CurrencyAction currencyAction;
+    private final BiConsumer<ServerPlayer,ItemStack> lootAcquired;
     private final ContainerParticipants containers;
     private final Set<UUID> locks=new HashSet<>(),bags=new HashSet<>();
     private final Set<String> containerLocks=new HashSet<>();
+    private final Map<String,JsonElement> industrialReceipts=new LinkedHashMap<>(256,.75f,false){
+        @Override protected boolean removeEldestEntry(Map.Entry<String,JsonElement> eldest){return size()>2048;}
+    };
     private boolean inside,projectingDrops;
     public static final class NoSpace extends IllegalStateException {
         public NoSpace(){
@@ -55,8 +62,9 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             if(!entry.getKey().getItem().isEmpty())stagedDrops.add(loot.prepare(entry.getValue(),entry.getKey()));
         }
     }
-    public InventoryTransactions(Journal journal,cn.yumis.fight.modules.inventory.api.InventoryDrops loot,java.util.function.Consumer<ServerPlayer> profile,java.util.function.BiConsumer<ServerPlayer,String> message,CurrencyAction currencyAction){
+    public InventoryTransactions(Journal journal,cn.yumis.fight.modules.inventory.api.InventoryDrops loot,java.util.function.Consumer<ServerPlayer> profile,java.util.function.BiConsumer<ServerPlayer,String> message,CurrencyAction currencyAction,BiConsumer<ServerPlayer,ItemStack> lootAcquired){
         this.journal=journal;this.loot=loot;this.profile=profile;this.message=message;this.currencyAction=currencyAction;
+        this.lootAcquired=lootAcquired;
         this.containers=new ContainerParticipants(this);
     }
     public boolean inside(){
@@ -200,7 +208,8 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         boolean committed=false;
         try{
             before=target.transactionState();
-            JsonElement previous=journal.get(receipt);
+            JsonElement previous=industrialReceipts.get(receipt);
+            if(previous==null)previous=journal.get(receipt);
             if(!previous.isJsonNull()){
                 if(!previous.equals(intent))throw new IllegalArgumentException("操作号与原请求冲突");
                 return false;
@@ -209,8 +218,9 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             JsonElement after=target.transactionState();
             target.restoreTransactionState(before);
             Map<String,JsonElement> edits=new LinkedHashMap<>(changes);
-            edits.put(receipt,intent.deepCopy());
-            journal.transaction(edits);committed=true;loot.committed(edits.keySet());
+            if(!edits.isEmpty())journal.transaction(edits);
+            industrialReceipts.put(receipt,intent.deepCopy());
+            committed=true;loot.committed(edits.keySet());
             target.restoreTransactionState(after);
             return true;
         }catch(Exception failure){
@@ -222,22 +232,31 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
     }
     /** Called only after the native menu has returned its temporary inputs to the player. */
     public void finishMenu(ServerPlayer player,AbstractContainerMenu oldMenu){
-        if(inside||!ContainerParticipants.temporary(oldMenu)&&!(oldMenu instanceof cn.yumis.fight.modules.inventory.api.CheckpointMenu))return;
+        if(inside||!ContainerParticipants.temporary(oldMenu)&&!(oldMenu instanceof CheckpointMenu))return;
         JsonObject intent=new JsonObject();intent.addProperty("closedMenu",oldMenu.containerId);
         transact(player,"menu-close/"+UUID.randomUUID(),intent,()->{},Map.of());
     }
+    private java.util.function.Consumer<ServerPlayer> onActivity=p->{};
+    public void onActivity(java.util.function.Consumer<ServerPlayer> callback){this.onActivity=Objects.requireNonNull(callback);}
     public void click(ServerPlayer p,AbstractContainerMenu menu,int slot,int button,ContainerInput input){
+        onActivity.accept(p);
         try{
-            var claim=menu instanceof cn.yumis.fight.modules.inventory.api.RewardMenu reward?reward.claim(p,slot,input):null;
+            var claim=menu instanceof RewardMenu reward?reward.claim(p,slot,input):null;
+            var reward=claim==null&&menu instanceof RewardMenu&&slot>=0&&slot<54
+                &&(input==ContainerInput.PICKUP||input==ContainerInput.QUICK_MOVE)?menu.getSlot(slot).getItem().copy():ItemStack.EMPTY;
             JsonObject j=new JsonObject();
             j.addProperty("menu",menu.containerId);
             j.addProperty("slot",slot);
             j.addProperty("button",button);
             j.addProperty("input",input.name());
-            transact(p,UUID.randomUUID().toString(),j,()->{
+            boolean committed=transact(p,UUID.randomUUID().toString(),j,()->{
                 if(claim!=null)claim.take().run();else if(!currencyAction.apply(p,menu,slot,button,input))menu.clicked(slot,button,input,p);
             }
             ,claim==null?Map.of():claim.edits());
+            if(committed&&!reward.isEmpty()){
+                int taken=reward.getCount()-menu.getSlot(slot).getItem().getCount();
+                if(taken>0)lootAcquired.accept(p,reward.copyWithCount(taken));
+            }
             profile.accept(p);
         }
         catch(RuntimeException e){

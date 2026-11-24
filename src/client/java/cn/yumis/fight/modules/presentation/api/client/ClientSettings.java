@@ -15,12 +15,15 @@ public final class ClientSettings {
     public static final int MAX_DAMAGE_SCALE=4;
     public static final int TARGET_FRAME_WIDTH=184;
     public static final int MAX_NEAR_EFFECT_FADE_DISTANCE_STEPS=500;
+    public static final int MAX_SKILL_VOLUME_PERCENT = 100;
     private static final int DEFAULT_NEAR_EFFECT_FADE_DISTANCE_STEPS=85;
+    private static int skillVolumePercent = MAX_SKILL_VOLUME_PERCENT;
     public static int damageScale=2;
     public static double targetScale=1;
     public static boolean nearEffectFade=true,itemQualityFrames=true;
     public static int nearEffectFadeDistanceSteps=DEFAULT_NEAR_EFFECT_FADE_DISTANCE_STEPS;
     static boolean menuShortcutDefaultsApplied;
+    public static boolean chatEnterDefaultApplied;
     public static final int MAX_ENEMY_HEALTH_DISTANCE=256;
     public static int enemyHealthDistance=16;
     public static int veinMiningLimit=VeinMining.DEFAULT_LIMIT;
@@ -74,6 +77,13 @@ public final class ClientSettings {
         if (!collapsedQuests.remove(id)) collapsedQuests.add(id);
         save();
     }
+    public static int skillVolumePercent() {
+        return skillVolumePercent;
+    }
+    public static void setSkillVolumePercent(int percent) {
+        skillVolumePercent = Math.clamp(percent, 0, MAX_SKILL_VOLUME_PERCENT);
+        save();
+    }
     private static Path path(){
         return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("yumis_dungeon_and_fight-modules-v1-client.toml");
     }
@@ -86,10 +96,12 @@ public final class ClientSettings {
             }
             String s=Files.readString(path());
             menuShortcutDefaultsApplied=Boolean.parseBoolean(value(s,"menuShortcutDefaultsApplied","false"));
+            chatEnterDefaultApplied=Boolean.parseBoolean(value(s,"chatEnterDefaultApplied","false"));
             panel=value(s,"panelSize","medium");
             targetPosition=value(s,"targetPosition","top_center");
             damageScale=Integer.parseInt(value(s,"damageScale","2"));
             targetScale=Double.parseDouble(value(s,"targetScale","1"));
+            skillVolumePercent=readSkillVolumePercent(value(s,"skillVolumePercent",""));
             nearEffectFade=!value(s,"nearEffectFade","true").equalsIgnoreCase("false");
             nearEffectFadeDistanceSteps=readNearEffectFadeDistance(value(s,"nearEffectFadeDistance",""));
             itemQualityFrames=!value(s,"itemQualityFrames","true").equalsIgnoreCase("false");
@@ -133,6 +145,13 @@ public final class ClientSettings {
         try{return Math.clamp(Integer.parseInt(raw),1,MAX_ENEMY_HEALTH_DISTANCE);}
         catch(NumberFormatException ignored){return 16;}
     }
+    private static int readSkillVolumePercent(String raw) {
+        try {
+            return Math.clamp(Integer.parseInt(raw), 0, MAX_SKILL_VOLUME_PERCENT);
+        } catch (NumberFormatException ignored) {
+            return MAX_SKILL_VOLUME_PERCENT;
+        }
+    }
     private static int readNearEffectFadeDistance(String raw){
         try{
             double distance=Double.parseDouble(raw);
@@ -149,11 +168,13 @@ public final class ClientSettings {
             Files.createDirectories(path().getParent());
             Files.writeString(path(),"# 本机界面与战斗显示设置；保存后立即生效。\npanelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nitemQualityFrames="+itemQualityFrames+"\nitemQualityFrames="+itemQualityFrames+"\nnearEffectFade="+nearEffectFade+"\nuiFont=\""+uiFont+"\"\n# light 为灰色立体，dark 为黑灰透明，pixel 为深色像素。\nglobalTheme=\""+globalTheme+"\"\n# 取消跟随时保留该类面板当时的主题。\nmenuFollowsTheme="+menuFollowsTheme+"\nmenuTheme=\""+menuTheme+"\"\nmachineFollowsTheme="+machineFollowsTheme+"\nmachineTheme=\""+machineTheme+"\"\n"
                 +"nearEffectFadeDistance="+(nearEffectFadeDistanceSteps/100d)+"\n"
+                +"skillVolumePercent="+skillVolumePercent+"\n"
                 +"arkEnemyHealth="+arkEnemyHealth+"\narkAllyHealth="+arkAllyHealth+"\narkEnemyDamage="+arkEnemyDamage+"\narkAllyDamage="+arkAllyDamage+"\n"
                 +"enemyHealthDistance="+enemyHealthDistance+"\nenemyHealthPerspective="+enemyHealthPerspective+"\nattackNeutralMobs="+attackNeutralMobs+"\n"
                 +"veinMiningLimit="+veinMiningLimit+"\n"
                 +"bagAutoStore="+bagAutoStore+"\nbagStoreOnlyWhenFull="+bagStoreOnlyWhenFull+"\n"
                 +"menuShortcutDefaultsApplied="+menuShortcutDefaultsApplied+"\n"
+                +"chatEnterDefaultApplied="+chatEnterDefaultApplied+"\n"
                 +"collapsedQuests="+JSON.toJson(collapsedQuests)+"\n");
         }
         catch(Exception e){

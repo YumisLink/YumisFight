@@ -23,7 +23,10 @@ public final class FabricatorBlock extends Block {
     @Override protected VoxelShape getShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return Block.box(1,0,1,15,15,15);}
     @Override protected VoxelShape getCollisionShape(BlockState state,BlockGetter level,BlockPos pos,CollisionContext context){return getShape(state,level,pos,context);}
     @Override protected InteractionResult useWithoutItem(BlockState state,Level level,BlockPos pos,Player player,BlockHitResult hit){
-        if(!level.isClientSide())player.openMenu(new SimpleMenuProvider((id,inv,p)->new FabricatorMenu(id,inv,pos),ModText.of("装备制作器")));
+        if(!level.isClientSide()&&player instanceof net.minecraft.server.level.ServerPlayer sp){
+            sp.openMenu(new SimpleMenuProvider((id,inv,p)->new FabricatorMenu(id,inv,pos),ModText.of("装备制作器")));
+            FabricatorMenu.ON_OPEN.accept(sp);
+        }
         return InteractionResult.SUCCESS;
     }
 }

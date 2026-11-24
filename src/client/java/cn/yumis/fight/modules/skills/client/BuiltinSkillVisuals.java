@@ -29,19 +29,27 @@ final class BuiltinSkillVisuals {
                 public boolean immediateEnd(){return id.equals(SkillCatalog.STORM.id);}
                 public boolean persistentEnd(){return id.equals(SkillCatalog.OVERDRIVE.id);}
                 public boolean cinematic(){return id.equals(SkillCatalog.STORM.id);}
+                public boolean cinematicFromFirstPerson(){return cinematic();}
+                public boolean restoreCamera(){return cinematic();}
                 public long finishedUntil(Track track,SkillVisualEvent event){return cinematic()?track.start.startedAt()+Math.max(track.start.duration(),event.duration()):event.at()+500;}
                 public long defaultDuration(){return id.equals(SkillCatalog.STORM.id)?8000:id.equals(SkillCatalog.GHOST.id)?3800:id.equals(SkillCatalog.OVERDRIVE.id)?30000:2500;}
                 public int defaultColor(){return id.equals(SkillCatalog.GHOST.id)?SkillVisualEvent.DARK:SkillVisualEvent.CYAN;}
                 public void tick(Track track,long time){BuiltinSkillVisuals.tick(track,time);}
                 public void render(LevelRenderContext context,Track track,long age,long time,List<Quad> quads,Vec3 camera){BuiltinSkillVisuals.render(context,track,age,time,quads,camera);}
-                public void play(SkillVisualEvent event){BuiltinSkillVisuals.play(event);}
+                public void play(Track track,SkillVisualEvent event){BuiltinSkillVisuals.play(event);}
                 public void animate(Track track,net.minecraft.world.entity.LivingEntity caster,EntityRenderState state,long time){BuiltinSkillVisuals.animate(track,caster,state,time);}
                 public void decorateAvatar(Track track,Player player,AvatarRenderState state,long time){BuiltinSkillVisuals.animate(track,player,state,time);}
-                public CameraType cameraType(Track track,long time){return StormChoreography.presentationTime(time-track.start.startedAt())<StormChoreography.FINISH?CameraType.THIRD_PERSON_BACK:CameraType.FIRST_PERSON;}
-                public CameraPose camera(Track track,long time){return cinematic()?BuiltinSkillVisuals.camera(track,time):null;}
+                public CameraType cameraType(Track track,long time){return CameraType.THIRD_PERSON_BACK;}
+                public CameraPose camera(Track track,long time){return cinematic()?BuiltinSkillVisuals.camera(track):null;}
             });
         }
-        // 太刀普攻走整套 ATTACK 视觉（替代原版挥手），与战刃的整套普攻风格同构。
+        SkillVisualRegistry.register(SkillCatalog.BLINK.id,new SkillVisualRegistry.Handler(){
+            @Override public void play(Track track,SkillVisualEvent event){
+                if(event.phase()==SkillVisualEvent.Phase.START)
+                    SkillSound.playAt(event.position(),SoundEvents.ENDERMAN_TELEPORT,.65f,1.30f);
+            }
+        });
+        // 太刀的攻击特效按整个普攻周期播放。
         BasicAttackVisuals.register("KATANA",true,(visual,slash,interval)->{
             visual.addProperty("sequence",slash);
             visual.addProperty("duration",Math.max(1,(long)Math.ceil(interval)));
@@ -53,7 +61,9 @@ final class BuiltinSkillVisuals {
                 int phase=(int)Math.clamp((age-1000)/250,0,23);
                 if(age>=1000&&age<7000&&phase>t.soundPhase){
                     t.soundPhase=phase;
-                    sound(StormChoreography.actor(t.start.seed(),age),t.start,SoundEvents.PLAYER_ATTACK_SWEEP,.55f,1.1f+(phase%3)*.14f);
+                    Vec3 position = local(t.start, StormChoreography.actor(t.start.seed(), age));
+                    SkillSound.playAt(position.x, position.y, position.z, SoundEvents.PLAYER_ATTACK_SWEEP,
+                        .55f, 1.1f + (phase % 3) * .14f);
                 }
             }
     }
@@ -95,9 +105,9 @@ final class BuiltinSkillVisuals {
             }
             if(t.last.phase()==SkillVisualEvent.Phase.TRAIL&&time-t.last.at()<150)slash(quads,t.last,time-t.last.at());
     }
-    private static CameraPose camera(Track t,long time){
+    private static CameraPose camera(Track t){
         var mc=Minecraft.getInstance();
-        if(t==null||StormChoreography.presentationTime(time-t.start.startedAt())>=StormChoreography.FINISH||mc.level==null)return null;
+        if(t==null||mc.level==null)return null;
         Vec3 origin=vector(t.start.origin()),direction=vector(t.start.direction()),side=side(direction),target=origin.add(direction.scale(3)).add(0,2,0);
         Vec3 position=origin.subtract(direction.scale(10)).add(side.scale(5)).add(0,7,0);
         var wall=mc.level.clip(new ClipContext(target,position,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,mc.player));
@@ -338,13 +348,6 @@ final class BuiltinSkillVisuals {
             volume=1;
             pitch=.65f;
         }
-        var mc=Minecraft.getInstance();
-        Vec3 p=vector(e.position());
-        if(mc.level!=null)mc.level.playLocalSound(p.x,p.y,p.z,sound,SoundSource.PLAYERS,volume,pitch,false);
-    }
-    private static void sound(StormChoreography.Point relative,SkillVisualEvent e,SoundEvent sound,float volume,float pitch){
-        var mc=Minecraft.getInstance();
-        Vec3 p=local(e,relative);
-        if(mc.level!=null)mc.level.playLocalSound(p.x,p.y,p.z,sound,SoundSource.PLAYERS,volume,pitch,false);
+        SkillSound.playAt(e.position(), sound, volume, pitch);
     }
 }

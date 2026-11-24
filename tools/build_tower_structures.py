@@ -1,4 +1,4 @@
-"""Build the eight tower gates and single-floor arenas as native structure NBT.
+"""Build the eight wild entrances, arena gates and arenas as native structure NBT.
 
 The southern edge is the entrance side. Each arena uses the same 100-block
 circle, but its floor plan, circulation, perimeter and overhead work are authored
@@ -569,6 +569,358 @@ def theater_gate() -> Structure:
     scene.put(13, 5, 3, "gray_wool")
     scene.box((14, 4, 4), (14, 6, 4), state("dark_oak_log", axis="y"))
     scene.box((13, 6, 4), (13, 7, 4), "red_wool")
+    return scene
+
+
+def ruin_floor(outline: tuple[Point, ...], front: int, palette: tuple[str, ...],
+               salt: int, *, surface: int = 2) -> Structure:
+    scene = Structure()
+    approach = rect(-2, front - 4, 2, front - 1) | rect(-1, front, 1, front)
+    site = polygon(outline) | approach
+    for y in range(surface):
+        scene.layer(site, y, palette[0])
+    textured(scene, site, surface, palette, salt)
+    scene.layer(rect(-1, front - 4, 1, front), surface, palette[0])
+    return scene
+
+
+def ruin_altar(scene: Structure, platform: set[Point], base: str, tread: str, plinth: str):
+    scene.layer(platform | rect(-1, 0, 1, 2), 3, base)
+    for x in range(-1, 2):
+        scene.put(x, 3, 3, stairs(tread, "north"))
+    scene.put(0, 4, 0, base)
+    scene.put(0, 5, 0, plinth)
+
+
+def root_entrance() -> Structure:
+    stone = ("mossy_stone_bricks", "stone_bricks", "rooted_dirt", "mossy_cobblestone", "andesite")
+    outline = ((-11, -4), (-7, -7), (6, -7), (10, -5), (11, 1), (8, 6),
+               (4, 8), (-5, 8), (-9, 5), (-11, 1))
+    scene = ruin_floor(outline, 9, stone, 18)
+    rim = edge(ellipse(.5, -.5, 9, 5.5))
+    for x, z in rim:
+        if z > 1 or (x, z) in {(-7, -3), (-8, -3), (2, -6), (3, -6), (8, -2)}:
+            continue
+        scene.put(x, 3, z, stone[speckle(x, z, 2) % len(stone)])
+        if abs(x) >= 4 or z < -4:
+            scene.put(x, 4, z, "mossy_cobblestone" if (x + z) % 3 else slab("stone_brick_slab"))
+
+    root = "dark_oak_wood"
+    scene.line((-8, 5, -3), (-6, 4, 0), root)
+    scene.line((-6, 4, 0), (-5, 3, 3), root)
+    scene.line((-8, 4, -3), (-9, 3, 0), root)
+    scene.line((7, 5, -4), (5, 4, -2), root)
+    scene.line((5, 4, -2), (5, 3, 2), root)
+    scene.line((7, 4, -3), (8, 3, 1), root)
+    scene.box((-8, 3, -3), (-6, 4, -2), "mossy_stone_bricks")
+    scene.box((6, 3, -4), (8, 4, -3), "mossy_cobblestone")
+    shrubs(scene, -8, 6, -3, 2)
+    shrubs(scene, 7, 6, -4, 2)
+    scene.put(-8, 6, -3, state("dark_oak_log", axis="y"))
+    scene.put(7, 6, -4, state("dark_oak_log", axis="y"))
+    for x, z, plant in [(-6, 4, "fern"), (-8, 2, "brown_mushroom"), (-4, 5, "fern"),
+                        (4, 5, "short_grass"), (6, 3, "fern"), (9, 2, "red_mushroom"),
+                        (2, -5, "moss_carpet"), (-3, -4, "moss_carpet"), (7, 4, "azalea")]:
+        soil = "podzol" if plant.endswith("_mushroom") else "moss_block"
+        scene.put(x, 2, z, soil)
+        scene.put(x, 3, z, plant)
+    for x, z in [(-6, 5), (-9, 1), (7, 3), (5, -5), (-3, 4)]:
+        scene.put(x, 3, z, slab("mossy_stone_brick_slab"))
+
+    ruin_altar(scene, ellipse(.5, -.5, 3.6, 2.8), "mossy_stone_bricks",
+               "mossy_stone_brick_stairs", "chiseled_stone_bricks")
+    scene.put(-2, 3, 2, "mossy_stone_bricks")
+    scene.put(2, 3, 2, "mossy_stone_bricks")
+    scene.lamp(-2, 4, 2)
+    scene.lamp(2, 4, 2)
+    return scene
+
+
+def forge_entrance() -> Structure:
+    stone = ("polished_blackstone", "basalt", "blackstone", "cracked_polished_blackstone_bricks")
+    outline = ((-12, -3), (-9, -6), (8, -6), (12, -2), (12, 3),
+               (9, 7), (4, 9), (-5, 9), (-11, 6), (-12, 2))
+    scene = ruin_floor(outline, 10, stone, 23)
+    furnace = rect(-9, -3, -5, 1)
+    scene.layer(furnace, 3, "polished_blackstone_bricks")
+    for y in (4, 5):
+        scene.layer(edge(furnace) - {(-7, 1), (-6, 1)}, y, "polished_blackstone_bricks")
+    scene.box((-9, 4, -3), (-8, 5, -1), "smooth_basalt")
+    scene.put(-9, 6, -3, "cracked_polished_blackstone_bricks")
+    scene.put(-8, 6, -2, slab("polished_blackstone_brick_slab"))
+    scene.put(-7, 3, 0, "coal_block")
+    scene.put(-6, 3, 0, "blackstone")
+    scene.put(-5, 4, 1, stairs("polished_blackstone_brick_stairs", "north"))
+    scene.put(-4, 3, 2, slab("polished_blackstone_brick_slab"))
+    scene.put(-5, 3, 3, "basalt")
+    scene.put(-7, 3, 3, slab("blackstone_slab"))
+
+    scene.box((5, 3, -2), (8, 3, 1), "smooth_basalt")
+    scene.put(6, 4, 0, state("damaged_anvil", facing="east"))
+    scene.put(8, 4, -1, "raw_iron_block")
+    scene.put(9, 3, 1, "cauldron")
+    scene.put(6, 3, 3, "coal_block")
+    scene.put(7, 3, 3, slab("blackstone_slab"))
+    scene.barrels(9, 3, 2, "east")
+    scene.box((5, 3, -4), (9, 3, -4), "cracked_polished_blackstone_bricks")
+    scene.put(8, 4, -4, "polished_blackstone_bricks")
+    scene.put(9, 4, -4, stairs("polished_blackstone_brick_stairs", "west"))
+
+    ruin_altar(scene, rect(-3, -2, 3, 1) - {(-3, -2), (3, -2)},
+               "polished_blackstone_bricks", "polished_blackstone_brick_stairs", "waxed_exposed_cut_copper")
+    scene.layer({(-2, -1), (2, -1), (-2, 1), (2, 1)}, 3, "waxed_exposed_cut_copper")
+    for x in (-2, 2):
+        scene.put(x, 2, 3, "waxed_cut_copper")
+        scene.lamp(x, 3, 3)
+    return scene
+
+
+def sluice_entrance() -> Structure:
+    stone = ("stone_bricks", "andesite", "prismarine_bricks", "mossy_stone_bricks")
+    outline = ((-12, -3), (-9, -6), (9, -6), (12, -3), (12, 4),
+               (8, 7), (5, 8), (-5, 8), (-10, 6), (-12, 3))
+    scene = ruin_floor(outline, 9, stone, 25)
+    for x in (-8, 4):
+        channel = rect(x, -5, x + 4, 5)
+        banks = edge(channel)
+        water = channel - banks
+        scene.layer(channel, 0, "prismarine_bricks")
+        scene.layer(banks, 1, "prismarine_bricks")
+        scene.layer(banks, 2, "prismarine_bricks")
+        scene.layer(water, 1, state("water", level=0))
+        scene.layer(water, 2, AIR)
+        scene.put(x + 2, 0, 1, "sea_lantern")
+        scene.put(x + 1, 2, 5, "cracked_stone_bricks")
+        scene.put(x + 3, 2, 5, "polished_andesite")
+
+    scene.box((-8, 3, -4), (-8, 5, -3), state("spruce_log", axis="y"))
+    scene.box((-8, 5, -4), (-6, 5, -4), state("spruce_log", axis="x"))
+    scene.put(-6, 4, -4, state("iron_chain", axis="y", waterlogged=False))
+    scene.box((-7, 3, -5), (-5, 3, -5), state("spruce_log", axis="x"))
+    scene.put(-6, 3, -4, "waxed_oxidized_copper_grate")
+    scene.put(-6, 2, -4, "waxed_oxidized_copper_grate")
+    scene.put(-7, 4, -5, stairs("spruce_stairs", "west"))
+    scene.put(-9, 3, -2, slab("prismarine_brick_slab"))
+    scene.put(-9, 3, 0, "moss_carpet")
+    scene.put(9, 3, 2, "prismarine_bricks")
+    scene.barrels(9, 4, 2, "west")
+    scene.put(9, 3, 3, slab("prismarine_brick_slab"))
+    scene.put(9, 2, -2, "moss_block")
+    scene.put(9, 3, -2, "fern")
+
+    ruin_altar(scene, rect(-2, -2, 2, 1), "stone_bricks", "stone_brick_stairs",
+               "chiseled_stone_bricks")
+    scene.layer({(-2, 0), (2, 0)}, 3, "prismarine_bricks")
+    for x in (-2, 2):
+        scene.put(x, 2, 2, "sea_lantern")
+        scene.put(x, 2, 4, "polished_andesite")
+    return scene
+
+
+def market_entrance() -> Structure:
+    stone = ("smooth_sandstone", "sandstone", "cut_sandstone", "sand", "terracotta")
+    outline = ((-11, -3), (-8, -6), (7, -6), (11, -4), (12, 0), (10, 5),
+               (6, 8), (-4, 8), (-9, 6), (-11, 3))
+    scene = ruin_floor(outline, 9, stone, 34)
+    scene.box((5, 3, -3), (8, 3, 0), "cut_sandstone")
+    scene.box((5, 4, -3), (5, 5, -3), state("spruce_log", axis="y"))
+    scene.box((8, 4, -3), (8, 5, -3), state("spruce_log", axis="y"))
+    scene.box((5, 5, -3), (8, 5, -3), state("spruce_log", axis="x"))
+    scene.layer(rect(6, -3, 8, -3) | {(5, -2), (7, -2), (8, -2)}, 6, "orange_wool")
+    scene.put(7, 6, -3, "white_wool")
+    scene.put(8, 5, -2, "orange_wool")
+    scene.put(8, 4, -2, "white_wool")
+    scene.put(5, 4, 0, stairs("sandstone_stairs", "north"))
+    scene.put(6, 4, 0, "decorated_pot")
+    scene.put(8, 4, 0, "terracotta")
+    scene.put(7, 3, 2, "decorated_pot")
+    scene.put(8, 3, 2, slab("sandstone_slab"))
+    scene.layer({(5, 1), (6, 1), (6, 2), (8, 1), (9, -1)}, 3, "sand")
+    scene.put(6, 4, 1, "dead_bush")
+    scene.put(9, 4, -1, "dead_bush")
+
+    scene.box((-9, 3, -1), (-6, 3, 2), "sandstone")
+    scene.box((-8, 4, -1), (-8, 5, -1), "cut_sandstone")
+    scene.put(-8, 6, -1, slab("sandstone_slab"))
+    scene.put(-7, 4, 0, stairs("sandstone_stairs", "west"))
+    scene.put(-6, 4, 1, "chiseled_sandstone")
+    scene.put(-8, 4, 2, "sand")
+    scene.put(-7, 4, 2, "decorated_pot")
+    scene.put(-5, 3, 3, slab("sandstone_slab"))
+    scene.put(-7, 3, 4, slab("sandstone_slab"))
+
+    dais = rect(-3, -2, 3, 1) - {(-3, -2), (3, -2), (3, 1)}
+    ruin_altar(scene, dais, "cut_sandstone", "sandstone_stairs", "chiseled_sandstone")
+    scene.layer({(-3, -1), (-3, 0), (3, 0)}, 3, "orange_terracotta")
+    for x in (-2, 2):
+        scene.put(x, 3, 2, "sandstone")
+        scene.lamp(x, 4, 2)
+    return scene
+
+
+def frost_entrance() -> Structure:
+    stone = ("smooth_stone", "calcite", "andesite", "polished_andesite", "tuff")
+    outline = ((-11, -3), (-7, -6), (7, -6), (11, -3), (11, 4),
+               (7, 8), (-4, 8), (-9, 6), (-11, 3))
+    scene = ruin_floor(outline, 9, stone, 39)
+    ridge = ("calcite", "packed_ice", "tuff", "packed_ice")
+    rocks(scene, -7, 3, -1, 3, 4, 3, ridge)
+    rocks(scene, -6, 3, 2, 2, 2, 2, ridge)
+    scene.box((-8, 3, -2), (-8, 5, -2), "blue_ice")
+    scene.box((-7, 3, 0), (-7, 5, 0), "packed_ice")
+    scene.put(-6, 3, 4, slab("polished_andesite_slab"))
+    scene.put(-8, 3, 3, "snow_block")
+
+    split = ((4, -3), (4, -2), (5, -1), (5, 0), (6, 1), (6, 2), (7, 3), (7, 4))
+    for index, (x, z) in enumerate(split):
+        scene.put(x, 1, z, "blue_ice")
+        scene.put(x, 2, z, slab("tuff_slab") if index % 3 == 0 else "packed_ice")
+    scene.box((6, 3, -3), (9, 3, -2), "calcite")
+    scene.box((7, 4, -3), (9, 4, -3), "calcite")
+    scene.put(8, 5, -3, "packed_ice")
+    scene.put(9, 5, -3, slab("smooth_stone_slab"))
+    scene.put(8, 3, 2, slab("tuff_slab"))
+    scene.put(9, 3, 1, "snow_block")
+    scene.put(6, 3, 5, "snow_block")
+
+    ruin_altar(scene, ellipse(.5, -1, 3.9, 3), "calcite", "polished_andesite_stairs", "polished_andesite")
+    scene.layer({(-3, -1), (-3, 0), (3, -2)}, 3, "packed_ice")
+    for x in (-2, 2):
+        scene.put(x, 3, 1, "sea_lantern")
+        scene.put(x, 3, 2, slab("polished_andesite_slab"))
+    return scene
+
+
+def orrery_entrance() -> Structure:
+    stone = ("stone_bricks", "polished_andesite", "deepslate_tiles", "smooth_stone")
+    outline = ((-12, -3), (-8, -7), (8, -7), (12, -4), (12, 3),
+               (7, 8), (3, 9), (-4, 9), (-9, 6), (-12, 2))
+    scene = ruin_floor(outline, 10, stone, 44)
+    orbit = edge(ellipse(.5, 0, 9.7, 6.5)) - {(1, 6), (-5, 4), (-6, 4), (6, -5), (7, -5)}
+    scene.layer(orbit, 2, "waxed_oxidized_cut_copper")
+    scene.layer(rect(-8, 0, 8, 0) | rect(0, -5, 0, 8), 2, "polished_deepslate")
+    scene.layer({(-8, 0), (-5, 3), (-3, -4), (0, -5), (4, 4), (8, 0), (0, 7)}, 2, "chiseled_tuff")
+
+    scene.box((4, 3, -5), (5, 4, -3), "polished_deepslate")
+    scene.box((9, 3, -5), (10, 3, -3), "stone_bricks")
+    scene.box((9, 4, -5), (10, 4, -4), "chiseled_stone_bricks")
+    copper = "waxed_weathered_cut_copper"
+    scene.box((4, 5, -4), (5, 5, -4), copper)
+    scene.box((5, 6, -4), (6, 6, -4), copper)
+    scene.put(6, 6, -5, slab("waxed_weathered_cut_copper_slab"))
+    scene.put(6, 6, -4, "waxed_oxidized_cut_copper")
+    scene.box((8, 5, -4), (9, 5, -4), copper)
+    scene.put(9, 6, -4, stairs("waxed_weathered_cut_copper_stairs", "west"))
+    scene.put(8, 3, -2, slab("waxed_cut_copper_slab"))
+    scene.put(6, 3, -1, slab("waxed_weathered_cut_copper_slab"))
+
+    scene.box((-9, 3, -4), (-6, 3, -3), "stone_bricks")
+    scene.put(-7, 4, -4, "chiseled_tuff")
+    scene.put(-7, 5, -4, state("lightning_rod", facing="up", powered=False, waterlogged=False))
+    scene.put(-8, 4, -3, slab("polished_andesite_slab"))
+    scene.put(-8, 3, 2, slab("stone_brick_slab"))
+    scene.put(-6, 3, 2, slab("waxed_cut_copper_slab"))
+
+    ruin_altar(scene, ellipse(.5, -.5, 3.8, 3), "polished_andesite", "stone_brick_stairs", "chiseled_tuff")
+    scene.layer({(-2, -1), (2, -1), (-2, 1), (2, 1)}, 3, "waxed_oxidized_cut_copper")
+    scene.put(0, 3, 2, "chiseled_tuff")
+    for x in (-2, 2):
+        scene.put(x, 3, 2, "stone_bricks")
+        scene.lamp(x, 4, 2)
+    return scene
+
+
+def seal_entrance() -> Structure:
+    stone = ("deepslate_bricks", "deepslate_tiles", "cracked_deepslate_bricks", "tuff_bricks")
+    outline = ((-12, -4), (-8, -7), (8, -7), (12, -4), (12, 7),
+               (8, 10), (-5, 10), (-10, 8), (-12, 5))
+    scene = ruin_floor(outline, 11, stone, 53, surface=3)
+    room = rect(-7, -5, 7, 8)
+    textured(scene, room, 0, ("deepslate_tiles", "cracked_deepslate_tiles", "polished_deepslate"), 54)
+    for y in range(1, 4):
+        scene.layer(room, y, AIR)
+
+    wall = rect(-8, -5, -8, 7) | rect(-7, -6, 7, -6) | rect(8, -5, 8, 8)
+    scene.layer(wall, 3, "cracked_deepslate_bricks")
+    scene.layer(wall - {(-8, 1), (-8, 2), (8, -2), (3, -6), (4, -6)}, 4, "deepslate_bricks")
+    for x, z in ((-8, -4), (-8, 5), (8, -3), (8, 3), (-4, -6), (6, -6)):
+        scene.put(x, 5, z, "chiseled_deepslate")
+    for x, z, facing in [(-7, -3, "west"), (-7, 2, "west"), (7, -4, "east"),
+                         (7, 2, "east"), (-3, -5, "north"), (5, -5, "north")]:
+        scene.put(x, 1, z, "cracked_deepslate_bricks")
+        scene.put(x, 2, z, stairs("deepslate_brick_stairs", facing))
+    for x, z in ((-6, -3), (-6, 1), (-5, 5), (6, -3), (7, 1), (2, -4)):
+        scene.put(x, 1, z, slab("deepslate_brick_slab"))
+
+    tread = "deepslate_tile_stairs"
+    upper_landing = rect(-1, 6, 2, 8)
+    lower_landing = rect(4, 6, 6, 8)
+    scene.layer(upper_landing | rect(3, 6, 3, 8), 1, "polished_deepslate")
+    scene.layer(upper_landing, 2, "deepslate_tiles")
+    scene.layer(lower_landing, 1, "deepslate_tiles")
+    for x in range(-1, 2):
+        scene.put(x, 3, 9, stairs(tread, "south"))
+    for z in range(6, 9):
+        scene.put(3, 2, z, stairs(tread, "west"))
+    for x in range(4, 7):
+        scene.put(x, 1, 5, stairs(tread, "south"))
+
+    scene.layer(rect(-2, -2, 2, 2), 1, "deepslate_bricks")
+    scene.layer(rect(-2, -2, 2, 0), 2, "polished_deepslate")
+    for x in range(-1, 2):
+        scene.put(x, 1, 3, stairs(tread, "north"))
+        scene.put(x, 2, 1, stairs(tread, "north"))
+    scene.box((-1, 3, -2), (1, 3, -1), "chiseled_deepslate")
+    scene.put(0, 4, -1, "crying_obsidian")
+    scene.put(0, 5, -1, "chiseled_deepslate")
+    scene.put(-2, 2, 0, "crying_obsidian")
+    scene.put(2, 2, 0, "crying_obsidian")
+    scene.put(-2, 1, 7, "deepslate_bricks")
+    scene.put(-2, 2, 7, "deepslate_tiles")
+    scene.lamp(-2, 3, 7, soul=True)
+    scene.put(7, 1, 7, "deepslate_tiles")
+    scene.lamp(7, 2, 7, soul=True)
+    return scene
+
+
+def theater_entrance() -> Structure:
+    stone = ("tuff_bricks", "polished_andesite", "tuff", "stone_bricks")
+    outline = ((-12, -3), (-8, -6), (9, -6), (12, -3), (12, 3),
+               (9, 7), (4, 9), (-4, 9), (-10, 7), (-12, 4))
+    scene = ruin_floor(outline, 10, stone, 57)
+    dais = rect(-5, -3, 5, 1) - {(-5, -3), (5, -3), (5, 1)}
+    ruin_altar(scene, dais, "dark_oak_planks", "tuff_brick_stairs", "chiseled_tuff_bricks")
+    scene.layer(rect(-4, 1, -2, 1) | rect(2, 1, 4, 1), 3, "stripped_dark_oak_wood")
+    scene.put(-3, 4, 0, "red_carpet")
+    scene.put(4, 4, 0, "red_carpet")
+    for x in (-2, 2):
+        scene.put(x, 3, 2, "tuff_bricks")
+        scene.lamp(x, 4, 2)
+
+    for side, facing in [(-1, "west"), (1, "east")]:
+        for x, z1, z2, rise in ((4, 4, 7, 3), (6, 3, 6, 3), (7, 3, 5, 4), (9, 2, 4, 4)):
+            for z in range(z1, z2 + 1):
+                if (side, x, z) in {(-1, 4, 6), (-1, 7, 3), (1, 6, 5), (1, 9, 4)}:
+                    scene.put(side*x, 3, z, slab("tuff_brick_slab"))
+                    continue
+                scene.put(side*x, 3, z, "tuff_bricks")
+                scene.put(side*x, rise, z, stairs("tuff_brick_stairs", facing))
+
+    scene.box((5, 3, -3), (8, 3, -1), "tuff_bricks")
+    scene.box((7, 4, -3), (7, 6, -3), state("stripped_dark_oak_log", axis="y"))
+    scene.box((4, 6, -3), (7, 6, -3), state("stripped_dark_oak_log", axis="x"))
+    bracket(scene, 6, 5, -3, "dark_oak_stairs", "east")
+    scene.put(4, 5, -3, "red_wool")
+    scene.put(5, 5, -3, "red_wool")
+    scene.put(5, 4, -3, "crimson_planks")
+    scene.put(6, 4, -2, stairs("dark_oak_stairs", "west"))
+    scene.barrels(8, 4, -2, "west")
+    scene.put(8, 4, -1, "gray_wool")
+    scene.box((-8, 3, -3), (-6, 3, -1), "tuff_bricks")
+    scene.put(-7, 4, -3, state("stripped_dark_oak_log", axis="y"))
+    scene.put(-8, 4, -2, stairs("dark_oak_stairs", "north"))
+    scene.put(-7, 4, -1, "red_wool")
+    scene.put(-6, 4, -1, slab("dark_oak_slab"))
     return scene
 
 
@@ -1315,26 +1667,30 @@ def theater_arena() -> Arena:
 
 
 TOWERS = {
-    "root": (root_gate, root_arena),
-    "forge": (forge_gate, forge_arena),
-    "sluice": (sluice_gate, sluice_arena),
-    "sand_market": (market_gate, market_arena),
-    "frost": (frost_gate, frost_arena),
-    "orrery": (orrery_gate, orrery_arena),
-    "seal": (seal_gate, seal_arena),
-    "theater": (theater_gate, theater_arena),
+    "root": (root_gate, root_arena, root_entrance),
+    "forge": (forge_gate, forge_arena, forge_entrance),
+    "sluice": (sluice_gate, sluice_arena, sluice_entrance),
+    "sand_market": (market_gate, market_arena, market_entrance),
+    "frost": (frost_gate, frost_arena, frost_entrance),
+    "orrery": (orrery_gate, orrery_arena, orrery_entrance),
+    "seal": (seal_gate, seal_arena, seal_entrance),
+    "theater": (theater_gate, theater_arena, theater_entrance),
 }
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUTPUT)
-    output = parser.parse_args().output
+    parts = ("gate", "arena", "entrance")
+    parser.add_argument("--part", choices=parts)
+    args = parser.parse_args()
 
-    for name, (gate, arena) in TOWERS.items():
-        for part, build in (("gate", gate), ("arena", arena)):
+    for name, builds in TOWERS.items():
+        for part, build in zip(parts, builds, strict=True):
+            if args.part and part != args.part:
+                continue
             template = build().template()
-            path = output / name / f"{part}.nbt"
+            path = args.output / name / f"{part}.nbt"
             path.parent.mkdir(parents=True, exist_ok=True)
             _, payload = nbt_payload(template)
             compressed = gzip.compress(b"\x0a\x00\x00" + payload, mtime=0)

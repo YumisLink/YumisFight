@@ -18,6 +18,7 @@ import java.util.function.*;
 
 /** Receives owner decisions and maintains the shared world/round lifecycle. */
 public final class ArkGuardService {
+    public static final long AFK_TIMEOUT_MILLIS=600_000L;
     private static final Gson JSON=new Gson();
     private static final String RETURNS="arkWar/return/";
     private final MinecraftServer server;
@@ -27,6 +28,10 @@ public final class ArkGuardService {
     private final Function<ServerPlayer,String> session;
     private final BiConsumer<ServerPlayer,JsonObject> send;
     private final BiConsumer<ServerPlayer,String> message;
+    private Predicate<ServerPlayer> inDungeon=p->false;
+    private ToLongFunction<ServerPlayer> idleMillis=p->0L;
+    public void installDungeonExclusion(Predicate<ServerPlayer> predicate){inDungeon=Objects.requireNonNull(predicate);}
+    public void installIdleMillis(ToLongFunction<ServerPlayer> provider){idleMillis=Objects.requireNonNull(provider);}
     private final Set<UUID> waiting=new LinkedHashSet<>(),registered=new LinkedHashSet<>(),confirmed=new LinkedHashSet<>(),protectedPlayers=new HashSet<>();
     private final Map<UUID,ArkRoster> plans=new HashMap<>();
     private final Map<UUID,JsonObject> sent=new HashMap<>();
@@ -62,7 +67,7 @@ public final class ArkGuardService {
         if(!request.has("session")||!session.apply(player).equals(request.get("session").getAsString()))return;
         switch(request.get("kind").getAsString()){
             case "status"->{sent.remove(player.getUUID());publish(player);}
-            case "enter"->{if(inside(player)){publish(player);return;}waiting.add(player.getUUID());publish(player);}
+            case "enter"->{if(inside(player)){publish(player);return;}if(inDungeon.test(player))throw new IllegalArgumentException("请先退出当前副本，再进入方舟战争");waiting.add(player.getUUID());publish(player);}
             case "join"->choose(player,true);
             case "withdraw"->choose(player,false);
             case "confirm_start"->{requireLobby(request);confirm(player,true,readRoster(player,request.getAsJsonObject("roster"),lobby,1));}
@@ -112,14 +117,59 @@ public final class ArkGuardService {
             try{battle.tick(now,present);if(battle.ended)endBattle();}
             catch(Exception failure){System.getLogger("ArkWar").log(System.Logger.Level.ERROR,"方舟运行失败",failure);endBattle("方舟运行中断："+failure.getMessage());}
         }
+        if(ticks%20==0)enforceAfkTimeout(present);
         if(ticks%10==0){
             if(prepared){scene.update(battle,present,now);refreshBoard();}
             for(var p:server.getPlayerList().getPlayers())if(present.contains(p.getUUID())||sent.containsKey(p.getUUID())||waiting.contains(p.getUUID()))publish(p);
         }
     }
+    private void enforceAfkTimeout(Set<UUID> present){
+        if(battle==null){
+            boolean changed=false;
+            for(UUID id:List.copyOf(registered)){
+                ServerPlayer player=server.getPlayerList().getPlayer(id);
+                if(player==null||player.hasDisconnected()||idleMillis.applyAsLong(player)>=AFK_TIMEOUT_MILLIS){
+                    registered.remove(id);confirmed.remove(id);plans.remove(id);changed=true;
+                    if(player!=null&&!player.hasDisconnected())message.accept(player,"长时间未操作（超过600秒），已自动退出方舟战争报名");
+                }
+            }
+            if(changed){
+                if(!registered.isEmpty()&&confirmed.containsAll(registered))begin();
+                publishAll();refreshBoard();
+            }
+            return;
+        }
+        if(battle.ended)return;
+        var activeParticipants=new ArrayList<ServerPlayer>();
+        for(var seat:battle.seats){
+            if(!present.contains(seat.owner))continue;
+            ServerPlayer player=server.getPlayerList().getPlayer(seat.owner);
+            if(player!=null&&!player.hasDisconnected())activeParticipants.add(player);
+        }
+        if(activeParticipants.isEmpty())return;
+        boolean allAfk=activeParticipants.stream().allMatch(p->idleMillis.applyAsLong(p)>=AFK_TIMEOUT_MILLIS);
+        if(allAfk){
+            String reason="超过600秒无操作，方舟战争已自动结束";
+            finishBattle(reason);
+            for(ServerPlayer player:activeParticipants){
+                try{leave(player);}catch(Exception failure){System.getLogger("ArkWar").log(System.Logger.Level.WARNING,"方舟超时传送离场失败",failure);}
+            }
+            return;
+        }
+        if(battle.editing()&&activeParticipants.size()>1){
+            for(ServerPlayer player:activeParticipants){
+                var seat=battle.seat(player.getUUID());
+                if(seat!=null&&!seat.ready&&idleMillis.applyAsLong(player)>=AFK_TIMEOUT_MILLIS){
+                    message.accept(player,"长时间未操作（超过600秒），已自动移出当前方舟战争");
+                    try{leave(player);}catch(Exception failure){System.getLogger("ArkWar").log(System.Logger.Level.WARNING,"方舟准备阶段踢出挂机玩家失败",failure);}
+                }
+            }
+        }
+    }
     private void protect(ServerPlayer player){player.addEffect(new MobEffectInstance(ArkContentTypes.OBSERVER,60,0,true,false,true));protectedPlayers.add(player.getUUID());}
     private void enter(ServerPlayer player)throws Exception{
         if(!inside(player)){
+            if(inDungeon.test(player))throw new IllegalArgumentException("请先退出当前副本，再进入方舟战争");
             var point=new ReturnPoint();point.dimension=player.level().dimension().identifier().toString();point.x=player.getX();point.y=player.getY();point.z=player.getZ();point.yaw=player.getYRot();point.pitch=player.getXRot();
             journal.put(RETURNS+player.getUUID(),point);var entry=ArkWar.entrance();var pos=entry.pos();
             if(!player.teleportTo(level(),pos.getX()+.5,pos.getY(),pos.getZ()+.5,Set.of(),entry.yaw(),0,true))throw new IllegalStateException("进入方舟失败");

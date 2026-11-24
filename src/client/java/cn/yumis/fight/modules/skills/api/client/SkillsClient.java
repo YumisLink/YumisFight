@@ -4,6 +4,8 @@ import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.attributes.api.Stats;
 import cn.yumis.fight.modules.combat.api.Life;
 import cn.yumis.fight.modules.dungeons.api.Target;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleState;
 import com.google.gson.JsonObject;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -20,6 +22,10 @@ public interface SkillsClient extends ClientUi {
     cn.yumis.fight.modules.combat.api.Runtime resources();
     void resources(cn.yumis.fight.modules.combat.api.Runtime value);
     boolean encounterSync();
+    default boolean combatAvailable(){return true;}
+    default TowerBattleState towerBattle(){return null;}
+    default String towerSkill(TowerBattleCard card){return "";}
+    default void saveTowerBattle(){}
     Map<UUID,Target> targets();
     Target context(LivingEntity entity);
     double predicted(Life life);

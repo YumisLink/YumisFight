@@ -90,12 +90,14 @@
       "id": "awakening_tower_root",
       "biomes": ["forest", "flower_forest", "birch_forest", "old_growth_birch_forest", "dark_forest", "taiga", "old_growth_pine_taiga", "old_growth_spruce_taiga", "pale_garden"],
       "max_relief": 4,
+      "surface_anchor": [11, 4, 16],
       "facility": {
-        "template": "yumis_dungeon_and_fight:towers/root/gate",
+        "template": "yumis_dungeon_and_fight:towers/root/entrance",
         "referenceY": 3,
+        "foundation": "terrain_retaining",
         "fixtures": [
-          {"pos": [12, 3, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "root"}},
-          {"pos": [12, 4, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "root"}}
+          {"pos": [11, 6, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "root"}},
+          {"pos": [11, 7, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "root"}}
         ]
       }
     },
@@ -103,12 +105,14 @@
       "id": "awakening_tower_forge",
       "biomes": ["plains", "savanna", "savanna_plateau", "windswept_hills", "windswept_gravelly_hills", "badlands", "wooded_badlands", "eroded_badlands"],
       "max_relief": 4,
+      "surface_anchor": [12, 4, 16],
       "facility": {
-        "template": "yumis_dungeon_and_fight:towers/forge/gate",
+        "template": "yumis_dungeon_and_fight:towers/forge/entrance",
         "referenceY": 3,
+        "foundation": "terrain_retaining",
         "fixtures": [
-          {"pos": [13, 3, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "forge"}},
-          {"pos": [13, 4, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "forge"}}
+          {"pos": [12, 6, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "forge"}},
+          {"pos": [12, 7, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "forge"}}
         ]
       }
     },
@@ -116,12 +120,15 @@
       "id": "awakening_tower_sluice",
       "biomes": ["plains", "sunflower_plains", "forest", "birch_forest", "swamp", "mangrove_swamp"],
       "max_relief": 4,
+      "surface_anchor": [12, 4, 15],
       "facility": {
-        "template": "yumis_dungeon_and_fight:towers/sluice/gate",
+        "template": "yumis_dungeon_and_fight:towers/sluice/entrance",
         "referenceY": 3,
+        "foundation": "terrain_retaining",
+        "preserve_air": true,
         "fixtures": [
-          {"pos": [14, 3, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "sluice"}},
-          {"pos": [14, 4, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "sluice"}}
+          {"pos": [12, 6, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "sluice"}},
+          {"pos": [12, 7, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "sluice"}}
         ]
       }
     },
@@ -129,12 +136,14 @@
       "id": "awakening_tower_sand_market",
       "biomes": ["desert", "badlands", "wooded_badlands", "eroded_badlands", "savanna", "savanna_plateau"],
       "max_relief": 4,
+      "surface_anchor": [11, 4, 15],
       "facility": {
-        "template": "yumis_dungeon_and_fight:towers/sand_market/gate",
+        "template": "yumis_dungeon_and_fight:towers/sand_market/entrance",
         "referenceY": 3,
+        "foundation": "terrain_retaining",
         "fixtures": [
-          {"pos": [13, 3, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "sand_market"}},
-          {"pos": [13, 4, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "sand_market"}}
+          {"pos": [11, 6, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "sand_market"}},
+          {"pos": [11, 7, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "sand_market"}}
         ]
       }
     },
@@ -142,12 +151,14 @@
       "id": "awakening_tower_frost",
       "biomes": ["snowy_plains", "snowy_taiga", "ice_spikes", "grove", "snowy_slopes", "frozen_peaks", "jagged_peaks"],
       "max_relief": 4,
+      "surface_anchor": [11, 4, 15],
       "facility": {
-        "template": "yumis_dungeon_and_fight:towers/frost/gate",
+        "template": "yumis_dungeon_and_fight:towers/frost/entrance",
         "referenceY": 3,
+        "foundation": "terrain_retaining",
         "fixtures": [
-          {"pos": [12, 3, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "frost"}},
-          {"pos": [12, 4, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "frost"}}
+          {"pos": [11, 6, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "frost"}},
+          {"pos": [11, 7, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "frost"}}
         ]
       }
     },
@@ -155,12 +166,14 @@
       "id": "awakening_tower_orrery",
       "biomes": ["plains", "meadow", "cherry_grove", "windswept_hills", "windswept_forest", "stony_peaks"],
       "max_relief": 4,
+      "surface_anchor": [12, 4, 17],
       "facility": {
-        "template": "yumis_dungeon_and_fight:towers/orrery/gate",
+        "template": "yumis_dungeon_and_fight:towers/orrery/entrance",
         "referenceY": 3,
+        "foundation": "terrain_retaining",
         "fixtures": [
-          {"pos": [13, 3, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "orrery"}},
-          {"pos": [13, 4, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "orrery"}}
+          {"pos": [12, 6, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "orrery"}},
+          {"pos": [12, 7, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "orrery"}}
         ]
       }
     },
@@ -168,12 +181,15 @@
       "id": "awakening_tower_seal",
       "biomes": ["dark_forest", "pale_garden", "old_growth_pine_taiga", "old_growth_spruce_taiga", "windswept_forest"],
       "max_relief": 4,
+      "surface_anchor": [12, 4, 18],
       "facility": {
-        "template": "yumis_dungeon_and_fight:towers/seal/gate",
-        "referenceY": 3,
+        "template": "yumis_dungeon_and_fight:towers/seal/entrance",
+        "referenceY": 4,
+        "foundation": "terrain_retaining",
+        "preserve_air": true,
         "fixtures": [
-          {"pos": [12, 3, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "seal"}},
-          {"pos": [12, 4, 8], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "seal"}}
+          {"pos": [12, 6, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "seal"}},
+          {"pos": [12, 7, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "seal"}}
         ]
       }
     },
@@ -181,14 +197,128 @@
       "id": "awakening_tower_theater",
       "biomes": ["plains", "sunflower_plains", "flower_forest", "meadow", "birch_forest", "cherry_grove"],
       "max_relief": 4,
+      "surface_anchor": [12, 4, 16],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:towers/theater/entrance",
+        "referenceY": 3,
+        "foundation": "terrain_retaining",
+        "fixtures": [
+          {"pos": [12, 6, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "theater"}},
+          {"pos": [12, 7, 6], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "theater"}}
+        ]
+      }
+    },
+    {
+      "id": "awakening_tower_gate_root",
+      "biomes": ["forest", "flower_forest", "birch_forest", "old_growth_birch_forest", "dark_forest", "taiga", "old_growth_pine_taiga", "old_growth_spruce_taiga", "pale_garden"],
+      "max_relief": 4,
+      "surface_anchor": [12, 3, 10],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:towers/root/gate",
+        "referenceY": 3,
+        "fixtures": [
+          {"pos": [12, 3, 8], "block": "minecraft:chest", "properties": {"facing": "south", "type": "single", "waterlogged": "false"}}
+        ]
+      },
+      "container_loot": {"minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t3"}
+    },
+    {
+      "id": "awakening_tower_gate_forge",
+      "biomes": ["plains", "savanna", "savanna_plateau", "windswept_hills", "windswept_gravelly_hills", "badlands", "wooded_badlands", "eroded_badlands"],
+      "max_relief": 4,
+      "surface_anchor": [13, 3, 10],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:towers/forge/gate",
+        "referenceY": 3,
+        "fixtures": [
+          {"pos": [13, 3, 8], "block": "minecraft:chest", "properties": {"facing": "south", "type": "single", "waterlogged": "false"}}
+        ]
+      },
+      "container_loot": {"minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t3"}
+    },
+    {
+      "id": "awakening_tower_gate_sluice",
+      "biomes": ["plains", "sunflower_plains", "forest", "birch_forest", "swamp", "mangrove_swamp"],
+      "max_relief": 4,
+      "surface_anchor": [14, 3, 9],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:towers/sluice/gate",
+        "referenceY": 3,
+        "fixtures": [
+          {"pos": [14, 3, 7], "block": "minecraft:chest", "properties": {"facing": "south", "type": "single", "waterlogged": "false"}}
+        ]
+      },
+      "container_loot": {"minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t3"}
+    },
+    {
+      "id": "awakening_tower_gate_sand_market",
+      "biomes": ["desert", "badlands", "wooded_badlands", "eroded_badlands", "savanna", "savanna_plateau"],
+      "max_relief": 4,
+      "surface_anchor": [13, 3, 9],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:towers/sand_market/gate",
+        "referenceY": 3,
+        "fixtures": [
+          {"pos": [13, 3, 7], "block": "minecraft:chest", "properties": {"facing": "south", "type": "single", "waterlogged": "false"}}
+        ]
+      },
+      "container_loot": {"minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t3"}
+    },
+    {
+      "id": "awakening_tower_gate_frost",
+      "biomes": ["snowy_plains", "snowy_taiga", "ice_spikes", "grove", "snowy_slopes", "frozen_peaks", "jagged_peaks"],
+      "max_relief": 4,
+      "surface_anchor": [12, 3, 10],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:towers/frost/gate",
+        "referenceY": 3,
+        "fixtures": [
+          {"pos": [12, 3, 8], "block": "minecraft:chest", "properties": {"facing": "south", "type": "single", "waterlogged": "false"}}
+        ]
+      },
+      "container_loot": {"minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t3"}
+    },
+    {
+      "id": "awakening_tower_gate_orrery",
+      "biomes": ["plains", "meadow", "cherry_grove", "windswept_hills", "windswept_forest", "stony_peaks"],
+      "max_relief": 4,
+      "surface_anchor": [13, 3, 10],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:towers/orrery/gate",
+        "referenceY": 3,
+        "fixtures": [
+          {"pos": [13, 3, 8], "block": "minecraft:chest", "properties": {"facing": "south", "type": "single", "waterlogged": "false"}}
+        ]
+      },
+      "container_loot": {"minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t3"}
+    },
+    {
+      "id": "awakening_tower_gate_seal",
+      "biomes": ["dark_forest", "pale_garden", "old_growth_pine_taiga", "old_growth_spruce_taiga", "windswept_forest"],
+      "max_relief": 4,
+      "surface_anchor": [12, 3, 10],
+      "facility": {
+        "template": "yumis_dungeon_and_fight:towers/seal/gate",
+        "referenceY": 3,
+        "fixtures": [
+          {"pos": [12, 3, 8], "block": "minecraft:chest", "properties": {"facing": "south", "type": "single", "waterlogged": "false"}}
+        ]
+      },
+      "container_loot": {"minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t3"}
+    },
+    {
+      "id": "awakening_tower_gate_theater",
+      "biomes": ["plains", "sunflower_plains", "flower_forest", "meadow", "birch_forest", "cherry_grove"],
+      "max_relief": 4,
+      "surface_anchor": [13, 3, 9],
       "facility": {
         "template": "yumis_dungeon_and_fight:towers/theater/gate",
         "referenceY": 3,
         "fixtures": [
-          {"pos": [13, 3, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "lower", "tower": "theater"}},
-          {"pos": [13, 4, 7], "block": "yumis_dungeon_and_fight:awakening_tower_stele", "properties": {"facing": "south", "half": "upper", "tower": "theater"}}
+          {"pos": [13, 3, 7], "block": "minecraft:chest", "properties": {"facing": "south", "type": "single", "waterlogged": "false"}}
         ]
-      }
+      },
+      "container_loot": {"minecraft:chest": "yumis_dungeon_and_fight:chests/wild_buildings/materials/t3"}
     }
   ]
 }

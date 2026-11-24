@@ -27,6 +27,18 @@ public final class OracleClient {
     private OracleClient(){}
     private static SkillsClient state(){return SkillsClient.current();}
     private static net.minecraft.client.player.LocalPlayer player(){return Minecraft.getInstance().player;}
+    static void installHooks(){
+        SkillCastHooks.onRequest(SkillCastHooks.Stage.PREPARE_STATS,req->req.prepared=INSTANCE.prepareStats(req.skill,req.prepared));
+        SkillCastHooks.onRequest(SkillCastHooks.Stage.RESOLVE_PARAMETERS,req->{
+            req.parameters=INSTANCE.parameters(req.parameters,req.nextView,req.wall);
+            req.origin=INSTANCE.origin(req.parameters,req.origin);
+            req.direction=INSTANCE.direction(req.parameters,req.direction);
+            req.center=req.origin;
+        });
+        SkillCastHooks.onVisual(event->{
+            if(event.cast().skill.id.equals(OracleSkills.REPLICA))event.packet().addProperty("sweep",event.cast().charging);
+        });
+    }
     public static void install(){
         SkillBehaviors.registerStart(OracleSkills.RIFT,(x,c,now)->{c.hitIndex=0;x.path(c,x.player().position(),x.player().position(),3,3,c.parameters.get("damage",0),.2);PlayerPoseChannel.lock(c);});
         SkillBehaviors.registerStart(OracleSkills.THRUST,(x,c,now)->PlayerPoseChannel.lock(c));

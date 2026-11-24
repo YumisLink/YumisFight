@@ -65,6 +65,10 @@ final class BuiltinSkillBalance {
         SkillBalance.registerStyle(JobCatalog.SUMMONER,new SkillBalanceStyle("STAFF",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));
         SkillBalance.registerStyle(JobCatalog.MAGE,new SkillBalanceStyle("STAFF",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));
         SkillBalance.registerStyle(JobCatalog.SUN_MOON,new SkillBalanceStyle("STAFF",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));
+        double elementalistBurn=ElementalistRules.fullLampMut(9,1.0,0.06);
+        SkillBalance.registerStyle(JobCatalog.ELEMENTALIST,new SkillBalanceStyle("STAFF",false,(p,c,passive)->(1+elementalistBurn)*(1+p.personalMut()),(c,f)->basic(c,false,.25,1+elementalistBurn,0),w->NONE,1));
+        double bmMastery=BattleMageRules.spearPhysMut(9,1.0),bmGroove=4.0*BattleMageRules.groovePerStageMut(9,1.0);
+        SkillBalance.registerStyle(JobCatalog.BATTLE_MAGE,new SkillBalanceStyle("SPEAR",false,(p,c,passive)->(1+bmMastery)*(1+bmGroove)*(1+p.personalMut()),(c,f)->basic(c,false,.5,(1+bmMastery)*(1+bmGroove),10),w->NONE,1));
         double g=CareerSkills.growth(9),attack=1+.15*g,overdrive=.15*g*SkillBalance.coverage(30,40),red=1+(redMultiplier()-1)*.6;
         SkillBalance.registerStyle(JobCatalog.BASE,new SkillBalanceStyle("KATANA",false,(p,c,passive)->1+p.personalMut(),(c,f)->basic(c,false,.25,1,0),w->NONE,1));
         SkillBalance.registerStyle(JobCatalog.SWORDMASTER,new SkillBalanceStyle("KATANA",true,(p,c,passive)->(1+overdrive)*(1+p.personalMut())*(c.weapon().equals("GREATSWORD")&&!passive?1+.2*g:1),(c,f)->basic(c,false,c.weapon().equals("LIGHTSABER")?2:1,1+overdrive,0),w->w.equals("KATANA")?BLEED:w.equals("LIGHTSABER")?SHOCK:NONE,g));

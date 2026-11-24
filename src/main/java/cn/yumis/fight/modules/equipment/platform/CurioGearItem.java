@@ -16,6 +16,19 @@ public final class CurioGearItem extends Item implements ICurioItem {
         var gear=EquipmentItems.gear(stack);
         if(gear==null||!(context.entity() instanceof Player player))return false;
         String expected="ydnf_"+gear.slot.name().toLowerCase(java.util.Locale.ROOT);
-        return context.identifier().equals(expected)&&(!player.level().isClientSide()||gear.valid(EquipmentEligibility.PROGRESS.apply(player),EquipmentEligibility.allowance(player)));
+        if(!context.identifier().equals(expected))return false;
+        var progress=EquipmentEligibility.PROGRESS.apply(player);
+        return progress!=null&&gear.valid(progress,EquipmentEligibility.allowance(player));
+    }
+
+    @Override public boolean canEquipFromUse(SlotContext context,ItemStack stack){
+        var gear=EquipmentItems.gear(stack);
+        if(gear==null||!(context.entity() instanceof Player player))return false;
+        var progress=EquipmentEligibility.PROGRESS.apply(player);
+        boolean valid=progress!=null&&gear.valid(progress,EquipmentEligibility.allowance(player));
+        if(!valid&&!player.level().isClientSide()){
+            player.sendOverlayMessage(net.minecraft.network.chat.Component.literal("装备等级或穿戴条件不足（需要 Lv."+gear.level+"）"));
+        }
+        return valid;
     }
 }

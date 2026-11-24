@@ -13,7 +13,8 @@ import java.util.*;
 
 /** Take-only, session-local reward container. Unknown external slots are snapshotted by inventory transactions;
  * there is deliberately no recovery escrow: disconnect/restart forfeits the unclaimed contents. */
-public final class RewardMenu extends ChestMenu implements CheckpointMenu {
+public final class RewardMenu extends ChestMenu implements CheckpointMenu, QuickIntakeMenu {
+    @Override public boolean allowsQuickIntake(int slotIndex){return slotIndex>=0&&slotIndex<54;}
     public record Claim(Map<String,JsonElement> edits,Runnable take){}
     private record Retry(List<ItemStack> items,java.util.function.BiFunction<ServerPlayer,ItemStack,Map<String,JsonElement>> credits){}
     private static final Map<UUID,Retry> retry=new HashMap<>();

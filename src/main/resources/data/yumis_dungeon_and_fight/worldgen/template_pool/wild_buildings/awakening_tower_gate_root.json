@@ -1,0 +1,27 @@
+{
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_root",
+        "processors": {
+          "processors": [
+            {
+              "processor_type": "yumis_dungeon_and_fight:attached_entities"
+            },
+            {
+              "processor_type": "yumis_dungeon_and_fight:waterlog_fix"
+            },
+            {
+              "processor_type": "minecraft:protected_blocks",
+              "value": "#minecraft:features_cannot_replace"
+            }
+          ]
+        },
+        "projection": "rigid"
+      }
+    }
+  ]
+}

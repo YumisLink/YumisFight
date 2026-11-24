@@ -1,0 +1,23 @@
+{
+  "type": "yumis_dungeon_and_fight:wild_building",
+  "biomes": [
+    "minecraft:dark_forest",
+    "minecraft:pale_garden",
+    "minecraft:old_growth_pine_taiga",
+    "minecraft:old_growth_spruce_taiga",
+    "minecraft:windswept_forest"
+  ],
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "beard_thin",
+  "start_pool": "yumis_dungeon_and_fight:wild_buildings/awakening_tower_gate_seal",
+  "height_offset": -2,
+  "floor_offset": 3,
+  "max_relief": 4,
+  "ground_clearance": 0,
+  "surface_anchor": [
+    12,
+    3,
+    10
+  ]
+}

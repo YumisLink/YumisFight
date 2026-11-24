@@ -4,12 +4,40 @@ import cn.yumis.fight.modules.skills.api.*;
 import cn.yumis.fight.modules.skills.api.client.SkillsClient;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
 import net.minecraft.client.Minecraft;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
+import static cn.yumis.fight.modules.skills.api.SkillVisualEvent.Phase.*;
+import static java.util.Map.entry;
+
 /** Continuous full-bright spheres, light ribbons and moonlight volumes; no gameplay is rendered here. */
 final class SunMoonSkillVisuals {
+    private static final Map<String,List<SkillSound>> SOUNDS=Map.ofEntries(
+        entry(SunMoonSkills.MOON,List.of(
+            new SkillSound(START,SoundEvents.BREEZE_SHOOT,.52f,1.18f),
+            new SkillSound(FINISH,SoundEvents.AMETHYST_BLOCK_RESONATE,.62f,.88f))),
+        entry(SunMoonSkills.SUN,List.of(
+            new SkillSound(START,SoundEvents.FIRECHARGE_USE,.48f,1.12f),
+            new SkillSound(FINISH,SoundEvents.FIREWORK_ROCKET_BLAST,.66f,1.20f))),
+        entry(SunMoonSkills.REFLUX,List.of(new SkillSound(START,SoundEvents.BEACON_POWER_SELECT,.56f,1.45f))),
+        entry(SunMoonSkills.FLARE,List.of(
+            new SkillSound(START,SoundEvents.BLAZE_SHOOT,.50f,.85f),
+            new SkillSound(FINISH,SoundEvents.GENERIC_EXPLODE.value(),.76f,1.02f))),
+        entry(SunMoonSkills.CORONA,List.of(
+            new SkillSound(START,SoundEvents.BEACON_ACTIVATE,.54f,1.28f),
+            new SkillSound(FINISH,SoundEvents.FIREWORK_ROCKET_LARGE_BLAST,.80f,.76f))),
+        entry(SunMoonSkills.STARFALL,List.of(
+            new SkillSound(START,SoundEvents.AMETHYST_BLOCK_RESONATE,.54f,1.42f),
+            new SkillSound(SEGMENT,SoundEvents.AMETHYST_CLUSTER_HIT,.38f,1.30f),
+            new SkillSound(FINISH,SoundEvents.AMETHYST_BLOCK_CHIME,.52f,.97f))),
+        entry(SunMoonSkills.PARADOX,List.of(
+            new SkillSound(START,SoundEvents.BEACON_POWER_SELECT,.64f,.78f),
+            new SkillSound(FINISH,SoundEvents.GENERIC_EXPLODE.value(),.73f,.85f),
+            new SkillSound(FINISH,SoundEvents.AMETHYST_BLOCK_BREAK,.54f,.90f)))
+    );
+
     private SunMoonSkillVisuals(){}
     static void install(){for(String id:SunMoonSkills.ALL)SkillVisualRegistry.register(id,new SkillVisualRegistry.Handler(){
         @Override public long defaultDuration(){return 2600;}
@@ -20,7 +48,10 @@ final class SunMoonSkillVisuals {
         }
         @Override public long finishedUntil(SkillVfx.Track track,SkillVisualEvent event){return event.at()+(id.equals(SunMoonSkills.MOON)?2000:id.equals(SunMoonSkills.STARFALL)?600:900);}
         @Override public void render(SkillVfx.LevelRenderContext context,SkillVfx.Track track,long age,long time,List<Quad> quads,Vec3 camera){draw(id,track,age,time,quads);}
-        @Override public void play(SkillVisualEvent event){if(id.equals(SunMoonSkills.CORONA)&&event.phase()==SkillVisualEvent.Phase.FINISH)CoronaBlur.flash(SkillVfx.vector(event.position()));}
+        @Override public void play(SkillVfx.Track track,SkillVisualEvent event){
+            SkillSound.play(event,SOUNDS.getOrDefault(id,List.of()));
+            if(id.equals(SunMoonSkills.CORONA)&&event.phase()==FINISH)CoronaBlur.flash(SkillVfx.vector(event.position()));
+        }
     });}
     static void handOrb(SkillVfx.Track track,net.minecraft.world.entity.player.Player player,long now,List<Quad> out){
         double age=now-track.start.startedAt(),duration=track.start.duration();

@@ -5,7 +5,10 @@ import cn.yumis.fight.modules.skills.api.SkillSchedule;
 import cn.yumis.fight.modules.skills.api.SkillDefinition;
 import cn.yumis.fight.modules.skills.api.SkillCatalog;
 
+import cn.yumis.fight.modules.combat.api.ActionStatus;
+import cn.yumis.fight.modules.combat.api.ActionTimeline;
 import cn.yumis.fight.modules.skills.api.*;
+import cn.yumis.fight.modules.skills.api.client.SkillController;
 import cn.yumis.fight.modules.attributes.api.Stats;
 
 import net.minecraft.client.player.LocalPlayer;
@@ -30,25 +33,30 @@ public final class SkillBehaviors {
     }
     @FunctionalInterface public interface Behavior {void tick(Context context,SkillCast cast,long now,long elapsed,long stage,double speed);}
     @FunctionalInterface public interface Starter {void start(Context context,SkillCast cast,long now);}
+    public record Step(Context context,SkillCast cast){}
+    public static void runTimeline(Context context,SkillCast cast,long elapsed,ActionTimeline<Step> timeline){
+        cast.timelineCursor=timeline.advance(new Step(context,cast),cast.timelineCursor,elapsed,cast::running);
+    }
     private static final Map<String,java.util.function.Supplier<Vec3>> PREPARATIONS=new LinkedHashMap<>();
     public static Vec3 prepare(SkillDefinition skill){var preparation=PREPARATIONS.get(skill.id);return preparation==null?null:preparation.get();}
-    public static void finish(SkillCast cast){if(cast!=null&&cast.gravityLease){var player=net.minecraft.client.Minecraft.getInstance().player;if(player!=null){player.setNoGravity(cast.previousGravity);player.fallDistance=0;}cast.gravityLease=false;}}
+    public static void finish(SkillCast cast){if(cast!=null)SkillController.INSTANCE.releaseStatusOwner(cast.id);}
     private static final Map<String,Starter> STARTERS=new LinkedHashMap<>();
     public static void registerStart(String id,Starter starter){if(STARTERS.putIfAbsent(id,Objects.requireNonNull(starter))!=null)throw new IllegalArgumentException("Duplicate skill start: "+id);}
     public static void start(Context context,SkillCast cast,long now){var starter=STARTERS.get(cast.skill.id);if(starter!=null)starter.start(context,cast,now);}
     private static final Map<String,Behavior> BEHAVIORS=new LinkedHashMap<>();
     static {
         PREPARATIONS.put(SkillCatalog.BLINK.id,SkillBehaviors::blink);
-        registerStart(SkillCatalog.BLINK.id,(x,c,now)->{x.player().setPos(c.center);x.player().fallDistance=0;});
-        registerStart(SkillCatalog.STORM.id,(x,c,now)->{c.previousGravity=x.player().isNoGravity();c.gravityLease=true;x.player().setNoGravity(true);x.player().fallDistance=0;});
+        registerStart(SkillCatalog.BLINK.id,(x,c,now)->{var before=x.player().position();x.player().setPos(c.center);TowerSkillCombat.moved(c,before);x.player().fallDistance=0;});
+        registerStart(SkillCatalog.STORM.id,(x,c,now)->SkillController.INSTANCE.acquireStatus(c.id,ActionStatus.NO_GRAVITY));
         registerStart(SkillCatalog.OVERDRIVE.id,(x,c,now)->{x.buff("yumis_dungeon_and_fight:overdrive",now+30000);x.absorption("overdrivePower",.15*Math.pow(1.12,c.parameters.rank()-1));});
         registerStart(SkillCatalog.GHOST.id,(x,c,now)->PlayerPoseChannel.loop(c,c.skill.id,
             PlayerPoseChannel.scaled(c.parameters.get("maxChargeSeconds",3)*1000,c.speed),c.direction,true));
         registerStart(SkillCatalog.DANCE.id,(x,c,now)->{
             var schedule=SkillSchedule.dance(c.parameters);
-            double cycle=Math.max(1,2*schedule.intervalMillis());
-            double rate=PlayerPoseChannel.length(c.skill.id)*c.speed/cycle;
-            PlayerPoseChannel.loop(c,c.skill.id,PlayerPoseChannel.scaled(schedule.durationMillis(),c.speed),c.direction,false,rate);
+            double interval=Math.max(1,schedule.intervalMillis());
+            double attacks=Math.min(schedule.durationMillis(),interval*schedule.slashes());
+            double rate=PlayerPoseChannel.length(c.skill.id)*c.speed/interval;
+            PlayerPoseChannel.loopAt(c,c.skill.id,PlayerPoseChannel.scaled(attacks,c.speed),c.direction,false,rate,c.start);
         });
         register(List.of(SkillCatalog.GHOST),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();
@@ -80,6 +88,7 @@ public final class SkillBehaviors {
                     }
                     Vec3 before=p.position();
                     double desired=length*Math.min(1,stage/(duration*1000));double move=Math.max(0,desired-c.moved);p.move(MoverType.SELF,c.direction.scale(move));c.moved+=move;
+                    TowerSkillCombat.moved(c,before);
                     x.slash(c,1.5,2,2,c.parameters.get("damage",.8),.4,false);
                     if(move>0&&p.position().distanceToSqr(before)<.00001&&stage>50){c.stageStart=now-(long)(duration*1000/speed);c.moved=length;}
                 }
@@ -110,7 +119,7 @@ public final class SkillBehaviors {
                     c.visualTrail=now;
                 }
                 x.buff("movementProtection",now+500);
-                double risingSpan=Math.max(50,c.parameters.get("dashSeconds",.3)*1000);if(!c.finisher){double desired=Math.max(.5,c.parameters.get("dashDistance",4))*Math.min(1,elapsed/risingSpan);double move=Math.max(0,desired-c.moved);p.move(MoverType.SELF,c.direction.scale(move));c.moved+=move;}
+                double risingSpan=Math.max(50,c.parameters.get("dashSeconds",.3)*1000);if(!c.finisher){double desired=Math.max(.5,c.parameters.get("dashDistance",4))*Math.min(1,elapsed/risingSpan);double move=Math.max(0,desired-c.moved);var before=p.position();p.move(MoverType.SELF,c.direction.scale(move));TowerSkillCombat.moved(c,before);c.moved+=move;}
                 if(elapsed<risingSpan){
                     x.slash(c,1.5,2,2,c.parameters.get("damage",1.6),.5,false);
                 }
@@ -126,14 +135,28 @@ public final class SkillBehaviors {
         });
         register(List.of(SkillCatalog.DRAW),(x,c,now,elapsed,stage,speed)->{
             c.sweepDegrees=360;
-            long drawMs=(long)(Math.max(.05,c.parameters.get("drawSeconds",.4))*1000);if(elapsed>=drawMs&&!c.release){c.release=true;c.hitIndex=0;x.slash(c,c.parameters.get("range",5),5,3,c.parameters.get("damage",1),.4,true);x.visual(c,"RELEASE");if(c.stats.weaponType.equals("SHORTSWORD"))x.passive(c);}
+            long drawMs=(long)(Math.max(.05,c.parameters.get("drawSeconds",.4))*1000);
             boolean light=Set.of("LIGHTSABER","KATANA").contains(c.stats.weaponType)&&SkillLearning.effective(c.stats,cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress(),SkillCatalog.MASTERY)>0;
-            if(elapsed>=drawMs+150&&light&&!c.finisher){
-                c.finisher=true;c.hit.clear();c.hitIndex=1;c.elementOverride=0;c.passiveDamage=true;c.suppressEquipment=true;Stats original=c.stats;c.stats=original.copy();c.stats.modifiers.put("crit",0d);
-                x.slash(c,c.parameters.get("range",5),5,3,c.parameters.get("damage",1)*.2,0,true);x.visual(c,"HIT");c.stats=original;c.elementOverride=-2;c.passiveDamage=false;c.suppressEquipment=false;
-            }
-            if(c.release&&(!light||c.finisher))PlayerPoseChannel.release(c);
-            if(elapsed>=drawMs+400)x.cancel(true);
+            var timeline=ActionTimeline.<Step>builder()
+                .at(drawMs,"draw_release",s->{
+                    s.cast().release=true;s.cast().hitIndex=0;
+                    s.context().slash(s.cast(),s.cast().parameters.get("range",5),5,3,s.cast().parameters.get("damage",1),.4,true);
+                    s.context().visual(s.cast(),"RELEASE");
+                    if(s.cast().stats.weaponType.equals("SHORTSWORD"))s.context().passive(s.cast());
+                    if(!light)PlayerPoseChannel.release(s.cast());
+                })
+                .at(drawMs+150,"draw_light_followup",s->{
+                    if(!light)return;
+                    s.cast().finisher=true;s.cast().hit.clear();s.cast().hitIndex=1;s.cast().elementOverride=0;s.cast().passiveDamage=true;s.cast().suppressEquipment=true;
+                    Stats original=s.cast().stats;s.cast().stats=original.copy();s.cast().stats.modifiers.put("crit",0d);
+                    s.context().slash(s.cast(),s.cast().parameters.get("range",5),5,3,s.cast().parameters.get("damage",1)*.2,0,true);
+                    s.context().visual(s.cast(),"HIT");
+                    s.cast().stats=original;s.cast().elementOverride=-2;s.cast().passiveDamage=false;s.cast().suppressEquipment=false;
+                    PlayerPoseChannel.release(s.cast());
+                })
+                .at(drawMs+400,"draw_end",s->s.context().cancel(true))
+                .build();
+            runTimeline(x,c,elapsed,timeline);
         });
         register(List.of(SkillCatalog.DANCE),(x,c,now,elapsed,stage,speed)->{
             var p=x.player();

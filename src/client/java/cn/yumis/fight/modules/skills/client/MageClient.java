@@ -31,13 +31,13 @@ public final class MageClient {
     private MageClient(){}
     private void ensureContext(){var state=SkillsClient.current();var p=Minecraft.getInstance().player;if(p==null||!state.ready())return;String d=p.level().dimension().identifier().toString();if(!session.equals(state.session())||generation!=state.own().generation||!job.equals(state.progress().jobId())||!dimension.equals(d)||!instance.equals(state.own().instance)){clear();session=state.session();generation=state.own().generation;job=state.progress().jobId();dimension=d;instance=state.own().instance;}}
     private boolean valid(JsonObject j){ensureContext();var state=SkillsClient.current();return j.get("session").getAsString().equals(state.session())&&j.get("generation").getAsLong()==state.own().generation&&!state.own().dead&&j.get("job").getAsString().equals(state.progress().jobId())&&j.get("dimension").getAsString().equals(dimension)&&j.get("instance").getAsString().equals(instance);}
-    public void clear(){for(String root:roots){TrainingCombat.release(root,"mage");TrainingCombat.actionFinished(root);}MageSkillBehaviors.clear();SunMoonClient.clear();DemonHunterClient.clear();army.clear();environment.clear();lastPetTick=lastPetUpload=0;frenzyUntil=0;received.clear();roots.clear();summonUntil=0;summonRank=0;summonedMelee=summonedStone=summonedTriple=null;}
+    public void clear(){for(String root:roots){TrainingCombat.release(root,"mage");TrainingCombat.actionFinished(root);}MageSkillBehaviors.clear();SunMoonClient.clear();DemonHunterClient.clear();ElementalistClient.clear();BattleMageClient.clear();army.clear();environment.clear();lastPetTick=lastPetUpload=0;frenzyUntil=0;received.clear();roots.clear();summonUntil=0;summonRank=0;summonedMelee=summonedStone=summonedTriple=null;}
     public static void register(String id,Consumer<SkillCast> starter){register(id,starter,true);}
     static void registerAction(String id,Consumer<SkillCast> starter){register(id,starter,false);}
     private static void register(String id,Consumer<SkillCast> starter,boolean releaseAtStart){
         if(SPELLS.putIfAbsent(id,new Spell(starter,releaseAtStart))!=null)throw new IllegalArgumentException("Duplicate local spell: "+id);
     }
-    private static void install(){if(installed)return;installed=true;MageSkillBehaviors.install();SunMoonClient.install();DemonHunterClient.install();}
+    private static void install(){if(installed)return;installed=true;MageSkillBehaviors.install();SunMoonClient.install();DemonHunterClient.install();ElementalistClient.install();BattleMageClient.install();}
     public void prepare(SkillDefinition skill){ensureContext();install();MageSkillBehaviors.prepare(skill);String unavailable=SunMoonRules.unavailableReason(skill,CareerClient.INSTANCE.view.sunMoon.heart,CareerClient.INSTANCE.view.sunMoon.stacks);if(!unavailable.isEmpty())throw new IllegalArgumentException(unavailable);}
     public boolean start(SkillCast cast){
         install();var starter=SPELLS.get(cast.skill.id);if(starter==null)return false;
@@ -48,6 +48,11 @@ public final class MageClient {
             starter.start().accept(cast);
             if(starter.releaseAtStart())PlayerPoseChannel.release(cast);
             if(SunMoonSkills.contains(cast.skill.id)){var view=CareerClient.INSTANCE.view;view.sunMoon=SunMoonRules.released(view.sunMoon,cast.skill,cast.parameters.rank(),SkillsClient.current().progress().awakened(),cast.parameters,cast.stats);CareerClient.INSTANCE.publish();}
+            if(ElementalistSkills.contains(cast.skill.id)||(MageSkills.JACK.equals(cast.skill.id)&&SkillsClient.current().progress().hasJob(cn.yumis.fight.modules.character.api.JobCatalog.ELEMENTALIST))){
+                var view=CareerClient.INSTANCE.view;
+                view.elementalist=ElementalistRules.onSkillReleased(view.elementalist,cast.skill,SkillsClient.current().progress(),cast.stats,SkillsClient.current().serverNow());
+                CareerClient.INSTANCE.publish();
+            }
         }
         catch(RuntimeException failure){PlayerPoseChannel.cancel(cast);finished(cast);SkillsClient.current().message(Objects.toString(failure.getMessage(),"技能执行失败"));}
         return true;
@@ -55,11 +60,17 @@ public final class MageClient {
     public boolean valid(SkillCast c){var state=SkillsClient.current();var p=Minecraft.getInstance().player;return p!=null&&state.ready()&&!state.own().dead&&c.session.equals(state.session())&&c.generation==state.own().generation&&c.job.equals(state.progress().jobId())&&c.instance.equals(state.own().instance)&&c.dimension.equals(p.level().dimension().identifier().toString());}
     public void projectile(SkillCast c){MageSkillBehaviors.projectile(c);}
     public void finished(SkillCast c){CareerClient.INSTANCE.ended(c);}
-    public void cancel(SkillCast c){MageSkillBehaviors.cancel(c.id);SunMoonClient.cancel(c.id);DemonHunterClient.cancel(c.id);}
+    public void cancel(SkillCast c){MageSkillBehaviors.cancel(c.id);SunMoonClient.cancel(c.id);DemonHunterClient.cancel(c.id);ElementalistClient.cancel(c.id);BattleMageClient.cancel(c.id);}
     public boolean issue(SkillCast c,LivingEntity target,double coefficient,int element,String phase,String group){
-        if(!valid(c))return false;var source=new SkillCast();source.id=c.id;source.skill=c.skill;source.parameters=c.parameters;source.stats=c.stats;source.equipment=c.equipment;source.start=c.start;source.dimension=c.dimension;source.session=c.session;source.generation=c.generation;source.job=c.job;source.instance=c.instance;source.elementOverride=element;source.damagePhase=phase;source.contactGroup=group;source.dot=!phase.isEmpty()&&SkillDamagePhases.require(c.skill,phase).dot();
-        boolean hit=MageSkillBehaviors.contact(source,target,coefficient);
-        return hit;
+        return issueElementalist(c,target,coefficient,element,0,phase,group);
+    }
+    public boolean issueElementalist(SkillCast c,LivingEntity target,double coefficient,int element,double controlSeconds,String phase,String group){
+        if(!valid(c))return false;var source=new SkillCast();source.id=c.id;source.skill=c.skill;source.parameters=c.parameters;source.stats=c.stats;source.equipment=c.equipment;source.start=c.start;source.dimension=c.dimension;source.session=c.session;source.generation=c.generation;source.job=c.job;source.instance=c.instance;source.elementOverride=element;source.controlSeconds=controlSeconds;source.damagePhase=phase;source.contactGroup=group;source.dot=!phase.isEmpty()&&SkillDamagePhases.require(c.skill,phase).dot();
+        return MageSkillBehaviors.contact(source,target,coefficient);
+    }
+    public boolean issueMulti(SkillCast c,LivingEntity target,double coefficient,int[] elements,double controlSeconds,String phase,String group){
+        if(!valid(c))return false;var source=new SkillCast();source.id=c.id;source.skill=c.skill;source.parameters=c.parameters;source.stats=c.stats;source.equipment=c.equipment;source.start=c.start;source.dimension=c.dimension;source.session=c.session;source.generation=c.generation;source.job=c.job;source.instance=c.instance;source.elementsOverride=elements;source.controlSeconds=controlSeconds;source.damagePhase=phase;source.contactGroup=group;source.dot=!phase.isEmpty()&&SkillDamagePhases.require(c.skill,phase).dot();
+        return MageSkillBehaviors.contact(source,target,coefficient);
     }
     public void visual(SkillCast c,String id,String phase,Vec3 point,Vec3 direction,long duration,int sequence,JsonObject motion){
         var state=SkillsClient.current();var p=Minecraft.getInstance().player;if(p==null||!state.ready())return;long now=state.serverNow();var j=new JsonObject();

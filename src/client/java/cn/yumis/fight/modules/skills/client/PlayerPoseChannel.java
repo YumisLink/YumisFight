@@ -1,6 +1,5 @@
 package cn.yumis.fight.modules.skills.client;
 import cn.yumis.fight.modules.attributes.api.Stat;
-import cn.yumis.fight.modules.attributes.api.Stats;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.modules.skills.api.SkillCast;
 import cn.yumis.fight.modules.skills.api.SkillVisualRules;
@@ -83,10 +82,10 @@ public final class PlayerPoseChannel {
         if(length>0)show(cast,id,duration,length/(double)Math.max(1,duration),aim,follow,start);
     }
     public static void loop(SkillCast cast,String id,long duration,Vec3 aim,boolean follow){
-        loop(cast,id,duration,aim,follow,cast.speed);
+        loopAt(cast,id,duration,aim,follow,cast.speed,ClientUi.now());
     }
-    static void loop(SkillCast cast,String id,long duration,Vec3 aim,boolean follow,double speed){
-        if(length(id)>0)show(cast,id,duration,speed,aim,follow);
+    static void loopAt(SkillCast cast,String id,long duration,Vec3 aim,boolean follow,double speed,long start){
+        if(length(id)>0)show(cast,id,duration,speed,aim,follow,start);
     }
     private static void show(SkillCast cast,String id,long duration,double rate,Vec3 aim,boolean follow){
         show(cast,id,duration,rate,aim,follow,ClientUi.now());
@@ -111,15 +110,14 @@ public final class PlayerPoseChannel {
             transition>0?avatarClip(next):"",transition,ClientUi.now(),Math.clamp(duration,1,MAX_CLIP),
             length/(double)Math.max(1,duration-transition),true,cast.direction));
     }
-    public static boolean basic(Stats stats,boolean left,int strikes,Vec3 direction){
-        String id=strikes>1?"attack_double":left?"attack_left":"attack";
+    public static void greatCharge(Vec3 direction){
+        String id=length("draw")>0?"draw":length("ghost")>0?"ghost":"attack";
         long length=length(id);
-        if(length==0)return false;
-        double speed=Math.max(.01,stats.get(Stat.CAST_SPEED));
-        show(null,id,scaled(length,speed),speed,direction,false);
-        return true;
+        if(length<=0)return;
+        show(null,id,800,Math.max(.25,length/1600d),direction,true);
     }
     public static void release(SkillCast cast){
+        if(cast!=null)cast.canBreak=true;
         if(action!=null&&action.cast==cast&&action.recoveryEnd==Long.MAX_VALUE){
             double attackSpeed=Math.max(.01,1+cast.stats.get(Stat.ATTACK_SPEED)/100);
             action.recoveryEnd=ClientUi.now()+scaled(RECOVERY,attackSpeed);
@@ -140,7 +138,7 @@ public final class PlayerPoseChannel {
     public static void cancelBasic(){
         if(playing!=null&&playing.cast()==null)stop();
     }
-    private static void stop(){
+    public static void stop(){
         var previous=playing;
         playing=null;
         if(previous!=null&&ClientUi.now()<previous.started()+previous.duration())publish(previous,"CANCEL");
@@ -207,7 +205,7 @@ public final class PlayerPoseChannel {
                 scaled=Math.round((age-transition)*clip.duration/(double)track.poseLead);
             }
         }
-        var frame=clip.frame(Math.min(scaled,clip.loop?Long.MAX_VALUE:clip.duration));
+        var frame=clip.frame(Math.min(scaled,clip.loop?Long.MAX_VALUE:clip.duration),track.start.seed());
         // Stock documents also serve champions. Their independent torso and root channels
         // do not drive a player. Avatar-specific clips may move the entire model at the root.
         frame.mask&=~(1<<2);

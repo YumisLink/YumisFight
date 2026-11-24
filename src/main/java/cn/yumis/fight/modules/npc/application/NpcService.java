@@ -42,6 +42,59 @@ public final class NpcService {
         var below=BlockPos.containing(pos.add(0,-.01,0));
         return level.getBlockState(below).isFaceSturdy(level,below,Direction.UP)&&level.noCollision(new AABB(pos.x-.3,pos.y,pos.z-.3,pos.x+.3,pos.y+1.8,pos.z+.3));
     }
+    private static boolean standingSafe(ServerLevel level,Vec3 pos){
+        if(!standing(level,pos))return false;
+        BlockPos feet=BlockPos.containing(pos);
+        if(!level.getFluidState(feet).isEmpty()||!level.getFluidState(feet.above()).isEmpty())return false;
+        if(level.getBlockState(feet).is(net.minecraft.tags.BlockTags.FIRE)||level.getBlockState(feet.above()).is(net.minecraft.tags.BlockTags.FIRE))return false;
+        var floor=level.getBlockState(feet.below());
+        return !floor.is(net.minecraft.world.level.block.Blocks.MAGMA_BLOCK)&&!floor.is(net.minecraft.world.level.block.Blocks.CACTUS)&&!floor.is(net.minecraft.world.level.block.Blocks.CAMPFIRE)&&!floor.is(net.minecraft.world.level.block.Blocks.SOUL_CAMPFIRE);
+    }
+    public static UUID parseStoredNpcUuid(JsonElement stored){
+        if(stored==null||stored.isJsonNull())return null;
+        try{
+            if(stored.isJsonPrimitive())return UUID.fromString(stored.getAsString());
+            if(stored.isJsonObject()&&stored.getAsJsonObject().has("uuid"))return UUID.fromString(stored.getAsJsonObject().get("uuid").getAsString());
+        }catch(IllegalArgumentException ignored){}
+        return null;
+    }
+    public static boolean isStaleUniqueUuid(boolean unique,JsonElement stored,UUID entityUuid){
+        if(!unique||entityUuid==null)return false;
+        UUID active=parseStoredNpcUuid(stored);
+        return active!=null&&!active.equals(entityUuid);
+    }
+    public boolean isStaleUnique(NpcEntity entity){
+        String defId=entity.getData(NpcContentTypes.BINDING);
+        if(defId==null||defId.isEmpty())return false;
+        var def=NpcDefinitions.current().npcs.get(defId);
+        if(def==null||!def.unique())return false;
+        return isStaleUniqueUuid(true,journal.get("npcSpawn/unique/"+defId),entity.getUUID());
+    }
+    public void relocateUnique(ServerLevel overworld,String definitionId,Vec3 targetPos,float yaw){
+        if(overworld.dimension()!=net.minecraft.world.level.Level.OVERWORLD)throw new IllegalArgumentException("仅可在主世界召唤唯一NPC");
+        var def=NpcDefinitions.current().require(definitionId);
+        if(!def.unique())throw new IllegalArgumentException("仅支持唯一NPC迁移："+definitionId);
+        if(!standingSafe(overworld,targetPos))throw new IllegalArgumentException("目标位置需要实心承托和两格净空");
+        String key="npcSpawn/unique/"+definitionId;
+        JsonElement prev=journal.get(key);
+        UUID oldId=parseStoredNpcUuid(prev);
+        Entity loaded=oldId==null?null:overworld.getEntity(oldId);
+        if(loaded instanceof NpcEntity existing&&existing.isAlive()){
+            existing.relocate(targetPos,yaw);
+            try{journal.put(key,new JsonPrimitive(existing.getUUID().toString()));}
+            catch(Exception failure){throw new IllegalStateException("唯一NPC迁移记录未完成",failure);}
+            return;
+        }
+        String skin=def.skin();
+        if(skin==null||skin.isBlank()){
+            var skins=NpcDefinitions.current().randomSkins();
+            skin=skins.get(overworld.getRandom().nextInt(skins.size()));
+        }
+        UUID nextId=UUID.randomUUID();
+        create(overworld,definitionId,skin,targetPos,yaw,nextId);
+        try{journal.put(key,new JsonPrimitive(nextId.toString()));}
+        catch(Exception failure){throw new IllegalStateException("唯一NPC迁移记录未完成",failure);}
+    }
     private NpcEntity create(ServerLevel level,String definition,String skin,Vec3 pos,float yaw,UUID id){
         if(!standing(level,pos))throw new IllegalArgumentException("NPC位置需要实心承托和两格净空");
         var entity=NpcContentTypes.NPC.get().create(level,EntitySpawnReason.COMMAND);if(entity==null)throw new IllegalStateException("无法创建NPC");

@@ -17,10 +17,11 @@ import java.util.*;
 final class MageSkillBehaviors {
     private static final Gson JSON=new Gson();
     private static final class Flight {SkillCast cast;Vec3 origin,end,position;long at;double duration;int hits,sequence;final Set<UUID> struck=new HashSet<>();}
-    private record Fang(SkillCast cast,Vec3 origin,Vec3 direction,long at){}
+    private record Fang(SkillCast cast,Vec3 origin,Vec3 direction,long at,long duration){}
+    private record Throw(SkillCast cast,Vec3 lockedAim){}
     private static final List<Flight> flights=new ArrayList<>();
     private static final List<Fang> fangs=new ArrayList<>();
-    private static final List<SkillCast> throwing=new ArrayList<>();
+    private static final List<Throw> throwing=new ArrayList<>();
     private static final class SummonFlight {SkillCast cast;SummonMoves.Move move;String visual;Vec3 from,to,position;long at,duration;double arc,progress;int hits,sequence;final Set<UUID> struck=new HashSet<>();}
     private static final List<SummonFlight> summonFlights=new ArrayList<>();
     private record Contact(SkillCast cast,LivingEntity target,double coefficient,long until,String hold){}
@@ -29,17 +30,33 @@ final class MageSkillBehaviors {
     private MageSkillBehaviors(){}
     static void prepare(SkillDefinition skill){var reserved=new ArrayList<Vec3>();for(var kind:SummonerSkills.kinds(skill.id))reserved.add(summonPoint(kind,reserved.size(),reserved));if(!reserved.isEmpty())prepared.put(skill.id,reserved);}
     static void install(){
-        MageClient.registerAction(MageSkills.STAR,c->{
-            c.scheduledHitAt=c.start+PlayerPoseChannel.scaled(c.parameters.get("throwMillis",200),c.speed);
-            throwing.add(c);
-        });
+        MageClient.registerAction(MageSkills.STAR,c->throwProjectile(c,null));
         MageClient.register(MageSkills.JACK,MageSkillBehaviors::projectile);
-        MageClient.registerAction(MageSkills.FANG,c->{var p=Minecraft.getInstance().player;var direction=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z).normalize();Vec3 from=p.position().add(0,.8,0);fangs.add(new Fang(c,from,direction,ClientUi.now()+Math.max(1,(long)(c.parameters.get("fuseMillis",200)/c.speed))));MageClient.INSTANCE.visual(c,c.id,"START",from,direction,600,0,null);});
+        MageClient.registerAction(MageSkills.FANG,c->{
+            var p=Minecraft.getInstance().player;
+            Vec3 direction=new Vec3(p.getLookAngle().x,0,p.getLookAngle().z).normalize();
+            Vec3 from=p.position().add(0,.8,0);
+            long windup=Math.max(1,(long)(c.parameters.get("fuseMillis",200)/c.speed));
+            long duration=Math.clamp(windup,200,39600)+400;
+            fangs.add(new Fang(c,from,direction,ClientUi.now()+windup,duration));
+            MageClient.INSTANCE.visual(c,c.id,"START",from,direction,duration,0,null);
+        });
         MageClient.register(MageSkills.HERDER,MageSkillBehaviors::summon);
         for(String id:SummonerSkills.ALL)if(!id.equals(SummonerSkills.MASTERY))MageClient.register(id,MageSkillBehaviors::summon);
     }
+    static void throwProjectile(SkillCast cast,Vec3 lockedAim){
+        if(lockedAim!=null){
+            cast.direction=lockedAim;
+            PlayerPoseChannel.lock(cast);
+        }
+        cast.scheduledHitAt=cast.start+PlayerPoseChannel.scaled(cast.parameters.get("throwMillis",200),cast.speed);
+        throwing.add(new Throw(cast,lockedAim));
+    }
     static void projectile(SkillCast c){
-        var p=Minecraft.getInstance().player;c.direction=p.getLookAngle().normalize();Vec3 from=p.getEyePosition();double range=c.parameters.get("range",ProjectileSpawn.extendedRange(12));var spawn=ProjectileSpawn.inWorld(p,from,c.direction,range,.15,SkillController::canTarget);
+        projectile(c,null);
+    }
+    private static void projectile(SkillCast c,Vec3 lockedAim){
+        var p=Minecraft.getInstance().player;c.direction=lockedAim==null?p.getLookAngle().normalize():lockedAim;Vec3 from=p.getEyePosition();double range=c.parameters.get("range",ProjectileSpawn.extendedRange(12));var spawn=ProjectileSpawn.inWorld(p,from,c.direction,range,.15,SkillController::canTarget);
         var f=new Flight();f.cast=c;f.origin=f.position=spawn.position();f.end=from.add(c.direction.scale(range));f.at=ClientUi.now();double projectileSpeed=Math.max(1,c.parameters.get("projectileSpeed",c.skill.projectile.speed()));f.duration=Math.max(1,f.origin.distanceTo(f.end)/projectileSpeed*1000);flights.add(f);
         JsonObject motion=new JsonObject();motion.addProperty("range",f.origin.distanceTo(f.end));motion.addProperty("millis",(long)Math.ceil(f.duration));motion.addProperty("velocity",projectileSpeed);motion.addProperty("arcHeight",0);
         MageClient.INSTANCE.visual(c,c.id,"START",f.origin,c.direction,(long)Math.ceil(f.duration)+c.skill.projectile.impactMillis(),0,motion);
@@ -48,19 +65,37 @@ final class MageSkillBehaviors {
     static void tick(){
         var mc=Minecraft.getInstance();if(mc.player==null||mc.level==null)return;long now=ClientUi.now();
         tickSummons(now);
-        for(var c:new ArrayList<>(throwing)){
+        for(var pending:new ArrayList<>(throwing)){
+            var c=pending.cast();
             if(!MageClient.INSTANCE.valid(c)||cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(mc.player)){
-                throwing.remove(c);
+                throwing.remove(pending);
                 PlayerPoseChannel.cancel(c);
                 MageClient.INSTANCE.finished(c);
             }else if(now>=c.scheduledHitAt){
-                throwing.remove(c);
+                throwing.remove(pending);
                 c.start=c.stageStart=now;
-                projectile(c);
+                projectile(c,pending.lockedAim());
                 PlayerPoseChannel.release(c);
             }
         }
-        for(var fang:new ArrayList<>(fangs))if(now>=fang.at){fangs.remove(fang);var c=fang.cast;if(!MageClient.INSTANCE.valid(c))continue;double fangRange=Math.max(.5,c.parameters.get("range",5)),fangWidth=Math.max(.5,c.parameters.get("width",1.5));for(var target:SkillController.INSTANCE.targets(new AABB(fang.origin,fang.origin.add(fang.direction.scale(fangRange))).inflate(Math.max(1,fangWidth/2+.25),1.5,Math.max(1,fangWidth/2+.25)))){var delta=target.getBoundingBox().getCenter().subtract(fang.origin);double front=delta.dot(fang.direction),side=Math.abs(delta.x*fang.direction.z-delta.z*fang.direction.x);if(front>=-.5&&front<=fangRange+target.getBbWidth()*.5&&side<=fangWidth/2+target.getBbWidth()*.5&&SkillController.INSTANCE.sight(fang.origin,target.getBoundingBox().getCenter()))MageClient.INSTANCE.issue(c,target,c.parameters.get("damage",0),-2,"","");}PlayerPoseChannel.release(c);MageClient.INSTANCE.finished(c);}
+        for(var fang:new ArrayList<>(fangs))if(now>=fang.at){
+            fangs.remove(fang);
+            var c=fang.cast;
+            if(!MageClient.INSTANCE.valid(c))continue;
+            double fangRange=Math.max(.5,c.parameters.get("range",5)),fangWidth=Math.max(.5,c.parameters.get("width",1.5));
+            var bounds=new AABB(fang.origin,fang.origin.add(fang.direction.scale(fangRange)))
+                .inflate(Math.max(1,fangWidth/2+.25),1.5,Math.max(1,fangWidth/2+.25));
+            for(var target:SkillController.INSTANCE.targets(bounds)){
+                var delta=target.getBoundingBox().getCenter().subtract(fang.origin);
+                double front=delta.dot(fang.direction),side=Math.abs(delta.x*fang.direction.z-delta.z*fang.direction.x);
+                if(front>=-.5&&front<=fangRange+target.getBbWidth()*.5&&side<=fangWidth/2+target.getBbWidth()*.5
+                    &&SkillController.INSTANCE.sight(fang.origin,target.getBoundingBox().getCenter()))
+                    MageClient.INSTANCE.issue(c,target,c.parameters.get("damage",0),-2,"","");
+            }
+            MageClient.INSTANCE.visual(c,c.id,"RELEASE",fang.origin,fang.direction,fang.duration,1,null);
+            PlayerPoseChannel.release(c);
+            MageClient.INSTANCE.finished(c);
+        }
         for(var f:new ArrayList<>(flights)){
             var c=f.cast;if(!MageClient.INSTANCE.valid(c)){flights.remove(f);continue;}
             double u=Math.clamp((now-f.at)/f.duration,0,1);Vec3 next=f.origin.lerp(f.end,u);var wall=mc.level.clip(new ClipContext(f.position,next,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,mc.player));Vec3 end=wall.getType()==HitResult.Type.MISS?next:wall.getLocation(),from=f.position;
@@ -137,6 +172,6 @@ final class MageSkillBehaviors {
             if(done||u>=1){if(move.radius()>0)summonArea(f.cast,f.position,move.radius());MageClient.INSTANCE.visual(f.cast,f.visual,"FINISH",f.position,f.to.subtract(f.from).normalize(),f.duration+500,++f.sequence,null);summonFlights.remove(f);TrainingCombat.release(f.cast.id,f.visual);}
         }
     }
-    static void cancel(String id){flights.removeIf(f->f.cast.id.equals(id));fangs.removeIf(f->f.cast.id.equals(id));throwing.removeIf(c->c.id.equals(id));}
+    static void cancel(String id){flights.removeIf(f->f.cast.id.equals(id));fangs.removeIf(f->f.cast.id.equals(id));throwing.removeIf(t->t.cast().id.equals(id));}
     static void clear(){for(var contact:contacts)TrainingCombat.release(contact.cast.id,contact.hold);for(var flight:summonFlights)TrainingCombat.release(flight.cast.id,flight.visual);contacts.clear();summonFlights.clear();flights.clear();fangs.clear();throwing.clear();prepared.clear();}
 }

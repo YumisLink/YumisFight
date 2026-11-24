@@ -20,6 +20,8 @@ public final class SettingsPage {
             }
             case "combat"->{
                 page.line("战斗显示",UiTheme.GOLD);page.gap();
+                page.rowSlider(0, ClientSettings.MAX_SKILL_VOLUME_PERCENT, ClientSettings.skillVolumePercent(),
+                    value -> "技能音量："+value+"%", ClientSettings::setSkillVolumePercent);
                 page.rowButton("第一人称近身特效淡化："+(ClientSettings.nearEffectFade?"开":"关"),()->{ClientSettings.nearEffectFade=!ClientSettings.nearEffectFade;ClientSettings.save();page.rebuild();});
                 page.rowSlider(0, ClientSettings.MAX_NEAR_EFFECT_FADE_DISTANCE_STEPS, ClientSettings.nearEffectFadeDistanceSteps,
                     value -> String.format(Locale.ROOT,"近身特效淡化距离：%.2f 格",value/100d), value -> {

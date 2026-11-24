@@ -33,14 +33,19 @@ public final class ChestService {
         var prior=journal.get("inventoryReceipt/"+p.getUUID()+"/"+request.get("operation").getAsString());if(!prior.isJsonNull()){if(!prior.getAsJsonObject().get("intent").equals(request))throw new IllegalArgumentException("操作号冲突");inventory.restore(p);players.profile(p);return;}
         var rewards=new ArrayList<ItemStack>();for(var raw:drafts.value(p,request,"rewards").getAsJsonArray())rewards.add(inventory.decode(p,raw));
         var changes=new LinkedHashMap<String,JsonElement>();var drops=new ArrayList<LootService.Drop>();boolean direct=request.get("direct").getAsBoolean();
+        var acquired=new ArrayList<ItemStack>();
         boolean committed=inventory.transact(p,request.get("operation").getAsString(),request,()->{
             InventoryEdits.apply(p,inventory,request);
             if(direct)for(var reward:rewards){
                 var balance=credit(p,reward);if(!balance.isEmpty()){for(var entry:balance.entrySet()){long previous=changes.containsKey(entry.getKey())?changes.get(entry.getKey()).getAsLong():journal.get(entry.getKey(),Long.class,0L);changes.put(entry.getKey(),new JsonPrimitive(Math.addExact(previous,reward.getCount())));}continue;}
-                var remaining=reward.copy();InventoryPacking.insertWithOption(inventory.bagOption(p),p,remaining);while(!remaining.isEmpty()){var drop=loot.prepareOverflow(p,remaining.split(remaining.getMaxStackSize()));drops.add(drop);changes.put("loot/"+drop.id,new Gson().toJsonTree(drop));}
+                var remaining=reward.copy();
+                InventoryPacking.insertWithOption(inventory.bagOption(p),p,remaining);
+                int stored=reward.getCount()-remaining.getCount();
+                if(stored>0)acquired.add(reward.copyWithCount(stored));
+                while(!remaining.isEmpty()){var drop=loot.prepareOverflow(p,remaining.split(remaining.getMaxStackSize()));drops.add(drop);changes.put("loot/"+drop.id,new Gson().toJsonTree(drop));}
             }
         },changes);
-        if(committed){if(direct){loot.publishDrops(drops);players.message(p,"已开启宝箱，放不下的奖励已生成在脚下。");}else RewardMenu.open(p,request.get("title").getAsString(),rewards,inventory,this::credit);players.profile(p);
+        if(committed){if(direct){loot.publishDrops(drops);for(var stack:acquired)players.lootAcquired(p,stack);players.message(p,"已开启宝箱，放不下的奖励已生成在脚下。");}else RewardMenu.open(p,request.get("title").getAsString(),rewards,inventory,this::credit);players.profile(p);
             cn.yumis.fight.network.Network.send(p,"chestOpened",java.util.Map.of("session",players.session(p).toString()));}
     }
     private Map<String,JsonElement> credit(ServerPlayer p,ItemStack stack){if(!ItemData.own(stack)||!ItemData.id(stack).equals(CurrencyRules.COLORLESS_CRYSTAL.id()))return Map.of();String key=CurrencyRules.COLORLESS_CRYSTAL.id()+"/"+p.getUUID();return Map.of(key,new JsonPrimitive(Math.addExact(journal.get(key,Long.class,0L),stack.getCount())));}

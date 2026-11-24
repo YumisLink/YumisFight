@@ -1,7 +1,9 @@
 package cn.yumis.fight.modules.dungeons.application;
 
 import cn.yumis.fight.foundation.Journal;
+import cn.yumis.fight.modules.combat.api.ActionPhase;
 import cn.yumis.fight.modules.combat.api.CombatContentTypes;
+import cn.yumis.fight.modules.combat.api.StatusLeases;
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.CastlePalace;
 import cn.yumis.fight.network.Network;
@@ -46,6 +48,8 @@ public final class PalaceEncounterService {
     private final DungeonPorts.Targets targets;
     private static final class Brain {
         final Vec3 home;final int room;
+        final StatusLeases leases=new StatusLeases();
+        ActionPhase phase=ActionPhase.IDLE;
         long busy,next,heavy,storm;int step;
         Brain(DungeonEnemy e,int room){home=e.position();this.room=room;busy=e.moveAt()+e.moveDuration();next=busy+Math.floorMod(e.getUUID().hashCode(),450);}
     }
@@ -219,9 +223,10 @@ public final class PalaceEncounterService {
             var hit=attack(e,"LIGHTNING","CIRCLE",600,180,1.6,.25,true,0,now+400+i*400);hit.origin(point);hit.destination(point);add(hit);
         }
     }
-    private void play(DungeonEnemy e,Brain b,String move,long duration,long now){e.getNavigation().stop();e.setDeltaMovement(Vec3.ZERO);e.play(move,duration);e.setAggressive(true);b.busy=now+duration;b.next=b.busy+500;}
+    private void play(DungeonEnemy e,Brain b,String move,long duration,long now){duration=targets.target(e).actionTiming(now).duration(duration);e.getNavigation().stop();e.setDeltaMovement(Vec3.ZERO);e.play(move,duration);e.setAggressive(true);b.busy=now+duration;b.next=b.busy+500;}
     private PalaceAttack attack(DungeonEnemy e,String kind,String shape,long windup,long active,double radius,double coefficient,boolean magic,int element,long now){
-        PalaceAttack a=new PalaceAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=kind;a.shape=shape;a.started=now;a.windup=windup;a.active=active;a.radius=radius;a.coefficient=coefficient;a.magic=magic;a.element=element;a.origin(e.position());a.destination(e.position());return a;
+        var timing=targets.target(e).actionTiming(now);
+        PalaceAttack a=new PalaceAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=kind;a.shape=shape;a.started=now;a.windup=timing.windup(windup);a.active=timing.active(active);a.radius=radius;a.coefficient=coefficient;a.magic=magic;a.element=element;a.origin(e.position());a.destination(e.position());return a;
     }
     private void fan(DungeonEnemy e,ServerPlayer p,String kind,long windup,long active,double radius,double halfAngle,double coefficient,boolean magic,int element,long now){var hit=attack(e,kind,"FAN",windup,active,radius,coefficient,magic,element,now);hit.halfAngle=halfAngle;hit.destination(p.position());add(hit);}
     private void add(PalaceAttack attack){if(attack.group.isEmpty())attack.group=attack.id;attacks.put(attack.id,new Pending(attack));owner.broadcast(attack.instance,"palaceAttack",packet(attack));}
@@ -295,7 +300,7 @@ public final class PalaceEncounterService {
             e.setNoGravity(floatWithoutMotion(e,b)||motions.containsKey(source));e.setAggressive(false);e.setDeltaMovement(Vec3.ZERO);e.fallDistance=0;
             if(!e.move().isEmpty())e.play("",0);
         }
-        if(b!=null){b.busy=0;b.next=Math.max(b.next,System.currentTimeMillis()+400);}
+        if(b!=null){b.phase=ActionPhase.ABANDONED;b.leases.clear();b.busy=0;b.next=Math.max(b.next,System.currentTimeMillis()+400);}
     }
     private static boolean floatWithoutMotion(DungeonEnemy enemy,Brain brain){
         return PalaceEnemyKind.of(enemy)==GOLEM || brain!=null&&CastlePalace.submerged(brain.room);

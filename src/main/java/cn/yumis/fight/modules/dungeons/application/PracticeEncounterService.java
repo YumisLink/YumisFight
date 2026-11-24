@@ -74,7 +74,7 @@ final class PracticeEncounterService {
     void tick(Dungeon dungeon, List<ServerPlayer> players) throws Exception {
         if (dungeon.enemies.isEmpty() || defeated(dungeon)) spawn(dungeon);
         var arena = PracticeLayouts.require(dungeon.dungeon);
-        var fighters = players.stream().filter(Entity::isAlive)
+        var fighters = players.stream().filter(owner::aliveParticipant)
             .filter(player -> onFloor(dungeon, arena, player)).toList();
         int slot = 0;
         for (UUID id : List.copyOf(dungeon.enemies)) {

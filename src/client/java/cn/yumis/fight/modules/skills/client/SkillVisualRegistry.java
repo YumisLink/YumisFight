@@ -14,6 +14,7 @@ public final class SkillVisualRegistry {
         default boolean persistentEnd(){return false;}
         default boolean persistentEnd(SkillVisualEvent event){return persistentEnd();}
         default boolean cinematic(){return false;}
+        default boolean cinematicFromFirstPerson(){return false;}
         default boolean restoreCamera(){return false;}
         default boolean blocksTurning(){return false;}
         default boolean blocksHotbar(){return false;}
@@ -25,7 +26,7 @@ public final class SkillVisualRegistry {
         /** True when content consumes its own cosmetic motion snapshot. */
         default boolean motion(Track track,com.google.gson.JsonObject motion){return false;}
         default void render(LevelRenderContext context,Track track,long age,long time,List<Quad> quads,Vec3 camera){}
-        default void play(SkillVisualEvent event){}
+        default void play(Track track,SkillVisualEvent event){}
         default void animate(Track track,net.minecraft.world.entity.LivingEntity caster,EntityRenderState state,long time){}
         default void decorateAvatar(Track track,Player player,net.minecraft.client.renderer.entity.state.AvatarRenderState state,long time){}
         default int handOrbColor(){return 0;}
@@ -36,7 +37,7 @@ public final class SkillVisualRegistry {
     }
     private static final Map<String,Handler> HANDLERS=new LinkedHashMap<>();
     private static final Handler NONE=new Handler(){};
-    static {BuiltinSkillVisuals.install();CareerSkillVisuals.install();MageSkillVisuals.install();SunMoonSkillVisuals.install();OracleSkillVisuals.install();DemonHunterVisuals.install();}
+    static {BuiltinSkillVisuals.install();CareerSkillVisuals.install();MageSkillVisuals.install();SunMoonSkillVisuals.install();OracleSkillVisuals.install();DemonHunterVisuals.install();ElementalistVisuals.install();BattleMageVisuals.install();}
     private SkillVisualRegistry(){}
     public static void register(String id,Handler handler){if(HANDLERS.putIfAbsent(id,Objects.requireNonNull(handler))!=null)throw new IllegalArgumentException("Duplicate skill visual: "+id);}
     public static Handler handler(String id){return HANDLERS.getOrDefault(id,NONE);}

@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.dungeons.content;
 
 import cn.yumis.fight.modules.dungeons.api.DungeonPorts;
 import cn.yumis.fight.modules.dungeons.api.AwakeningTower;
+import cn.yumis.fight.modules.dungeons.api.WrithingCastle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -25,6 +26,7 @@ public final class DungeonLayouts {
         Map.entry("goblin_camp",new Layout(GoblinCamp.VERSION,GoblinCamp.BOUNDS,0,2,
             withFloorLighting("goblin_camp",GoblinCamp.BOUNDS,(world,origin)->GoblinCamp.build(world,origin,decorations)),(world,origin,gate,open)->{})),
         Map.entry(GoblinKingdomLayout.ID,GoblinKingdomLayout.layout()),
+        Map.entry(WrithingCastle.ID,WrithingCastleLayout.layout()),
         Map.entry("dragon_tower",new Layout(DragonTower.VERSION,DragonTower.BOUNDS,0,1,
             withFloorLighting("dragon_tower",DragonTower.BOUNDS,(world,origin)->DragonTower.build(world,origin,decorations)),(world,origin,gate,open)->{})),
         Map.entry(GblChurch.ID,new Layout(GblChurch.VERSION,GblChurch.BOUNDS,0,1,
@@ -63,13 +65,14 @@ public final class DungeonLayouts {
         };
     }
     public Layout require(String id){Layout value=all.get(id);if(value==null)throw new IllegalArgumentException("该副本尚未配置场地："+id);return value;}
-    public Bounds reuseBounds(boolean previousSkySea,boolean includesWhale,boolean includesAwakeningTower){
+    public Bounds reuseBounds(boolean previousSkySea,boolean includesWhale,boolean includesAwakeningTower,boolean includesWrithingCastle){
         // The shared footprint includes the treasure arena and the former flat palace.
         Bounds result=new Bounds(-44,-2,-44,44,49,258);
         for(var entry:all.entrySet()){
             if(!previousSkySea&&entry.getKey().equals(CastlePalace.ID))continue;
             if(!includesWhale&&entry.getKey().equals(GblChurch.ID))continue;
             if(!includesAwakeningTower&&AwakeningTower.find(entry.getKey())!=null)continue;
+            if(!includesWrithingCastle&&entry.getKey().equals(WrithingCastle.ID))continue;
             Bounds b=entry.getValue().bounds;
             result=new Bounds(Math.min(result.minX,b.minX),Math.min(result.minY,b.minY),Math.min(result.minZ,b.minZ),
                 Math.max(result.maxX,b.maxX),Math.max(result.maxY,b.maxY),Math.max(result.maxZ,b.maxZ));

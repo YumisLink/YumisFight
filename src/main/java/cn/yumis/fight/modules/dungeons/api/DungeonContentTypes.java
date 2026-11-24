@@ -85,6 +85,10 @@ public final class DungeonContentTypes {
                 .sized(kind.width,kind.height).eyeHeight(kind.height*.8f).noLootTable().noSummon()
                 .clientTrackingRange(12).fireImmune()
                 .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));
+        ENEMIES.put(cn.yumis.fight.modules.dungeons.content.SealTowerElaina.ID,ENTITIES.register(cn.yumis.fight.modules.dungeons.content.SealTowerElaina.ID,()->
+            EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER)
+                .sized(0.6f,1.8f).eyeHeight(1.62f).fireImmune().clientTrackingRange(16)
+                .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,cn.yumis.fight.modules.dungeons.content.SealTowerElaina.ID)))));
     }
     static {
         var sizes=List.of(

@@ -21,7 +21,7 @@ public final class EquipmentAffixes {
         if(g.slot!=Slot.WEAPON)return false;
         return switch(family){
             case "SWORD","GHOST","WAVE","BLOOD"->JobCatalog.weapons(JobCatalog.BASE).contains(g.weapon.name());
-            case "SUN_MOON","SUMMON","ELEMENT"->JobCatalog.weapons(JobCatalog.MAGE).contains(g.weapon.name());
+            case "SUN_MOON","SUMMON","ELEMENT","MARTIAL","CHASER"->JobCatalog.weapons(JobCatalog.MAGE).contains(g.weapon.name());
             case "HAVOC","DEVOURER","VENGEANCE"->g.weapon==Weapon.WARGLAIVE;
             case "MAGIC","PHYSICAL","PASSIVE"->true;
             default->false;

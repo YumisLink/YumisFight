@@ -27,6 +27,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
@@ -65,6 +66,12 @@ public final class CommissionService {
 
     public CommissionState state(UUID player) {
         return journal.get(key(player), CommissionState.class, CommissionState.EMPTY);
+    }
+
+    public boolean tracksBagItem(UUID player, ItemStack stack) {
+        if (stack.isEmpty() || !ItemData.own(stack)) return false;
+        Active active = state(player).active();
+        return active != null && Commissions.delivered(active) && active.item().equals(ItemData.id(stack));
     }
 
     public JsonObject view(ServerPlayer player) {

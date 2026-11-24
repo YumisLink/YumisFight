@@ -203,7 +203,25 @@ public final class ProfessionRewards {
                 if(tool.seed())drops.add(ItemRegistry.item("herb_seed",1));
             }
             case "berry"->{var before=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("before")).getOrThrow();var after=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("after")).getOrThrow();if(mature(before)&&after.is(before.getBlock())&&after.getValue(SweetBerryBushBlock.AGE)==1)profession="farmer";}
-            case "harvest"->{var state=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("state")).getOrThrow();profession=mature(state)?"farmer":ore(state)?"miner":null;}
+            case "harvest"->{
+                if(event.has("blocks")&&event.get("blocks").isJsonArray()){
+                    for(var raw:event.getAsJsonArray("blocks")){
+                        var row=raw.getAsJsonObject();
+                        var state=BlockState.CODEC.parse(JsonOps.INSTANCE,row.get("state")).getOrThrow();
+                        String p=mature(state)?"farmer":ore(state)?"miner":null;
+                        if(p==null)continue;
+                        award.accept(p,ProfessionCatalog.require(p).operationExperience());
+                        int level=changes.get(p).level();
+                        if(random.nextDouble()<ProfessionBonuses.extraYieldChance(level)&&row.has("drop")){
+                            var first=InventoryEdits.decode(player,row.get("drop"));
+                            if(!first.isEmpty())addMergedDrop(drops,new ItemStack(first.getItem(),1));
+                        }
+                    }
+                }else{
+                    var state=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("state")).getOrThrow();
+                    profession=mature(state)?"farmer":ore(state)?"miner":null;
+                }
+            }
             case "craft"->profession=craftProfession(event.get("item").getAsString());
             case "smelt"->{if(COOKED.contains(event.get("item").getAsString()))profession="cook";}
             case "brew"->profession="alchemist";
@@ -231,6 +249,17 @@ public final class ProfessionRewards {
             else if(kind.equals("smelt")&&random.nextDouble()<ProfessionBonuses.cookingYieldChance(level)&&event.has("output")){var first=InventoryEdits.decode(player,event.get("output"));if(!first.isEmpty())drops.add(new ItemStack(first.getItem(),1));}
         }
         return new Result(Map.copyOf(changes),List.copyOf(drops));
+    }
+    private static void addMergedDrop(List<ItemStack> drops,ItemStack stack){
+        for(var existing:drops){
+            if(ItemStack.isSameItemSameComponents(existing,stack)&&existing.getCount()<existing.getMaxStackSize()){
+                int move=Math.min(stack.getCount(),existing.getMaxStackSize()-existing.getCount());
+                existing.grow(move);
+                stack.shrink(move);
+                if(stack.isEmpty())return;
+            }
+        }
+        if(!stack.isEmpty())drops.add(stack);
     }
     private static ItemStack treasure(Random random,boolean obsidian,boolean blaze,boolean star){
         if(FishingRules.isDiamond(random.nextDouble()))return new ItemStack(net.minecraft.world.item.Items.DIAMOND,1);

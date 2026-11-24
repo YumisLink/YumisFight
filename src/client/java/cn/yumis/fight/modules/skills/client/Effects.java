@@ -32,16 +32,19 @@ public final class Effects {
         UUID caster=UUID.fromString(j.get("caster").getAsString());
         String dimension=j.has("dimension")?j.get("dimension").getAsString():mc.level.dimension().identifier().toString();
         var event=new SkillVisualEvent(caster,UUID.fromString(j.get("session").getAsString()),UUID.fromString(id),j.get("generation").getAsLong(),dimension,j.has("instance")?j.get("instance").getAsString():SkillsClient.current().own().instance,kind,SkillVisualEvent.Phase.valueOf(phase),sequence,started+clockDelta,(j.has("at")?j.get("at").getAsLong():Math.max(started,now))+clockDelta,duration,j.get("seed").getAsLong(),point(origin),point(point),point(direction),j.has("charge")?j.get("charge").getAsDouble():0,j.has("color")?j.get("color").getAsInt():SkillVisualRegistry.handler(kind).defaultColor(),j.has("forwardOffset")?j.get("forwardOffset").getAsDouble():0,j.has("horizontalScale")?j.get("horizontalScale").getAsDouble():1,j.has("sweep")&&j.get("sweep").getAsBoolean(),j.has("weaponType")?j.get("weaponType").getAsString():"",j.has("slashAngle")?j.get("slashAngle").getAsDouble():0);
-        VFX.accept(event,j.has("castSpeed")?j.get("castSpeed").getAsDouble():1);
+        VFX.accept(event,j.has("castSpeed")?j.get("castSpeed").getAsDouble():1,j.has("summonMove")?j.get("summonMove").getAsString():"");
         if(kind.equals(cn.yumis.fight.modules.skills.api.SkillVisualRules.PLAYER_POSE)&&j.has("poseClip")
             &&j.has("poseNext")&&j.has("poseLead")&&j.has("poseFollow")){
             VFX.poseClip(event.cast(),event.sequence(),j.get("poseClip").getAsString(),
                 j.get("poseNext").getAsString(),j.get("poseLead").getAsLong(),j.get("poseFollow").getAsBoolean(),
                 j.has("poseOrb")?j.get("poseOrb").getAsInt():0);
         }
-        if(j.has("summonMove"))VFX.summonMove(event.cast(),event.sequence(),j.get("summonMove").getAsString());
         if(j.has("motion")){JsonObject motion=j.getAsJsonObject("motion").deepCopy();if(motion.has("at"))motion.addProperty("at",motion.get("at").getAsLong()+clockDelta);VFX.motion(event.cast(),event.sequence(),motion);}
-        if(first&&!mc.options.getCameraType().isFirstPerson()&&SkillVisualRegistry.handler(kind).cinematic()&&mc.player!=null&&caster.equals(mc.player.getUUID())&&dimension.equals(mc.level.dimension().identifier().toString())&&event.session().toString().equals(SkillsClient.current().session()))VFX.beginCamera(event.cast());
+        var handler=SkillVisualRegistry.handler(kind);
+        if(first&&event.phase()==SkillVisualEvent.Phase.START&&handler.cinematic()
+            &&(handler.cinematicFromFirstPerson()||!mc.options.getCameraType().isFirstPerson())
+            &&mc.player!=null&&caster.equals(mc.player.getUUID())&&dimension.equals(mc.level.dimension().identifier().toString())
+            &&event.session().toString().equals(SkillsClient.current().session()))VFX.beginCamera(event.cast());
     }
     private static SkillVisualEvent.Point point(Vec3 v){
         return new SkillVisualEvent.Point(v.x,v.y,v.z);
