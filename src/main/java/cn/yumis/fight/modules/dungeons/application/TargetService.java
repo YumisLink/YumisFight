@@ -8,6 +8,7 @@ import cn.yumis.fight.modules.dungeons.api.Difficulty;
 import cn.yumis.fight.foundation.Journal;
 
 import cn.yumis.fight.modules.dungeons.api.Target;
+import cn.yumis.fight.modules.dungeons.content.SealTowerElaina;
 
 
 import static cn.yumis.fight.modules.combat.api.LifeRules.*;
@@ -125,10 +126,10 @@ public final class TargetService implements WorldTargets {
                         t.speciesHealth=PracticeRoom.MOB_HEALTH_MULTIPLIER;
                         t.originDungeon=e.getPersistentData().getStringOr("ydnf_origin","");
                     }
-                    if(cn.yumis.fight.modules.dungeons.content.SealTowerElaina.ID.equals(mob.appearance())){
-                        t.speciesHealth=TowerBossGrade.E.multiplier();
-                        t.speciesAttack=TowerBossGrade.S.multiplier();
-                        t.healthFloor=cn.yumis.fight.modules.dungeons.content.SealTowerElaina.FLOOR_P1;
+                    if(SealTowerElaina.ID.equals(mob.appearance())){
+                        t.speciesHealth=SealTowerElaina.HEALTH_MULTIPLIER;
+                        t.speciesAttack=SealTowerElaina.ATTACK_GRADE.multiplier();
+                        t.healthFloor=SealTowerElaina.FLOOR_P1;
                     }
                 }
             }

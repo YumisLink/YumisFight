@@ -275,7 +275,7 @@ public final class ElainaBossClient {
                     double ratio = SealTowerElaina.finaleMeteor1Ratio(dist);
                     callbacks.finaleMeteor1Damage(ratio, pkt.getAsJsonObject("boss"));
                 }
-                bannerTitle = "终局斩杀 · 30秒内击破护盾并击败伊蕾娜";
+                bannerTitle = "终局斩杀 · 击破护盾并击败伊蕾娜";
                 bannerUntil = now + SealTowerElaina.FINALE_DPS_RACE_MS;
                 bannerColor = 0xffff5c6c;
             }

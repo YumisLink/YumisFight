@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.dungeons.client;
 
 import cn.yumis.fight.modules.dungeons.api.DungeonEnemy;
+import cn.yumis.fight.modules.dungeons.content.SealTowerElaina;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.modules.equipment.api.EquipmentVisualItems;
 import cn.yumis.fight.platform.ItemData;
@@ -140,7 +141,7 @@ public final class ElainaBossRenderer extends MobRenderer<DungeonEnemy, ElainaBo
         boolean activeMove = duration > 0 && elapsed >= 0 && elapsed < duration;
         String move = activeMove ? entity.move() : "";
         boolean airborne = entity.isNoGravity();
-        state.castElapsedMs = activeMove ? Math.max(0L, elapsed) : 150L;
+        state.castElapsedMs = activeMove ? Math.round(elapsed / SealTowerElaina.CAST_TIME_MULTIPLIER) : 150L;
         state.castProgress = activeMove ? (float) Math.clamp(elapsed / (double) duration, 0.0, 1.0) : 0.0f;
         state.ridingWand = "wand_charge".equals(move) || "corona_flight".equals(move) || "pumpkin_spin".equals(move);
         state.hoveringCast = !state.ridingWand && (airborne

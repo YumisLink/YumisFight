@@ -192,7 +192,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
             }
         }
 
-        // 1. 推进追踪星辰与5秒时钟回溯
+        // 1. 推进追踪星辰与延迟触发的时钟回溯
         tickTrackingStars(d, e, t, s, fighters, now);
         tickPendingRewinds(d, s, now);
 
@@ -266,7 +266,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                     impact.add("boss", JSON.toJsonTree(t));
                     owner.broadcast(instanceId, "sealBossEvent", impact);
 
-                    // 立刻启动第2轮30秒双巨型陨石（中心 + 每位存活玩家当前脚下）
+                    // 立刻启动第2轮双巨型陨石（中心 + 每位存活玩家当前脚下）
                     scheduleFinaleWipeMeteors(d, t, s, fighters, now);
                     landToGround(e, d.cell, center);
                     t.damageImmune = false;
@@ -291,7 +291,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                     owner.broadcast(instanceId, "sealBossEvent", wipe);
                     return;
                 }
-                // 30 秒斩杀竞速期继续照常释放技能施压
+                // 斩杀竞速期间继续照常释放技能施压
             }
             default -> {}
         }
@@ -413,7 +413,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
             hoverAtCenter(e, d.cell, 90.0);
             e.play("finale_meteor_1", SealTowerElaina.FINALE_METEOR_1_WARNING_MS);
 
-            // 广播 15s 中心巨型陨石视觉预警
+            // 广播中心巨型陨石视觉预警
             JsonObject meteor1 = hazardBase(d.id.toString(), d.id + "/finale_meteor_1", "METEOR_FINALE_1", t,
                 center, center, SealTowerElaina.FINALE_METEOR_1_EDGE_DISTANCE, 0,
                 now, now + SealTowerElaina.FINALE_METEOR_1_WARNING_MS,
@@ -506,7 +506,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
         String instanceId = d.id.toString();
         Vec3 center = AwakeningTowerLayout.guard(d.cell);
         ServerLevel world = owner.level();
-        // 随机陨石：3 枚/秒
+        // 场地内随机落点
         while (now >= s.nextRandomMeteorAt && s.nextRandomMeteorAt < s.phaseUntil) {
             s.nextRandomMeteorAt += SealTowerElaina.MIDNIGHT_RANDOM_METEOR_INTERVAL_MS;
             double rx = (random.nextDouble() * 2 - 1) * 42.0;
@@ -520,7 +520,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 now, warnUntil, warnUntil + 350L, 0,
                 SealTowerElaina.COEFF_HIGH, true, SealTowerElaina.ELEMENT_FIRE, 0xb958ff));
         }
-        // 每 0.5 秒每位玩家脚下 1 枚
+        // 每位参战者脚下的定向陨石
         while (now >= s.nextTargetedMeteorAt && s.nextTargetedMeteorAt < s.phaseUntil) {
             s.nextTargetedMeteorAt += SealTowerElaina.MIDNIGHT_TARGETED_METEOR_INTERVAL_MS;
             for (ServerPlayer fighter : fighters) {
@@ -579,7 +579,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
         }
         SkillId chosen = candidates.get(random.nextInt(candidates.size()));
         s.lastSkill = chosen.id;
-        // 冷却一律使用原始毫秒值，不按冰缓缩放
+        // 冷却使用首领技能定义值，不按冰缓缩放
         s.cooldownUntil.put(chosen.id, now + chosen.cooldownMs);
         startSkill(d, e, t, s, chosen, fighters, now);
     }
@@ -623,8 +623,9 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                     feet, feet, SealTowerElaina.SKILL2_RADIUS, 0,
                     now, warnUntil, endAt, SealTowerElaina.SKILL2_TICK_MS,
                     SealTowerElaina.COEFF_LOW_DOT, true, SealTowerElaina.ELEMENT_LIGHT, 0xfff08a));
-                e.play(skill.id, timing.recovery(600L));
-                s.busyUntil = now + timing.recovery(600L);
+                long recovery = timing.recovery(SealTowerElaina.castTime(600L));
+                e.play(skill.id, recovery);
+                s.busyUntil = now + recovery;
             }
             case ELEMENTAL_ORBS -> {
                 long castMs = timing.active(SealTowerElaina.SKILL3_CAST_MS);
@@ -680,7 +681,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 cast.targetPlayer = targetPlayer.getUUID();
                 s.activeCast = cast;
                 e.getNavigation().stop();
-                e.play(skill.id, Math.max(800L, cast.endAt - now));
+                e.play(skill.id, Math.max(SealTowerElaina.castTime(800L), cast.endAt - now));
             }
             case ELEMENTALIST_AWAKENING -> {
                 long duration = timing.active(SealTowerElaina.SKILL8_DURATION_MS);
@@ -735,8 +736,9 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 pkt.addProperty("durationMs", SealTowerElaina.SKILL10_DELAY_MS);
                 pkt.add("anchors", anchorArray);
                 owner.broadcast(instanceId, "sealBossEvent", pkt);
-                e.play(skill.id, timing.recovery(800L));
-                s.busyUntil = now + timing.recovery(800L);
+                long recovery = timing.recovery(SealTowerElaina.castTime(800L));
+                e.play(skill.id, recovery);
+                s.busyUntil = now + recovery;
             }
             case TIME_SEAL -> {
                 long castMs = timing.windup(SealTowerElaina.SKILL11_CAST_MS);
@@ -786,7 +788,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                         cast.step++;
                         if (cast.step >= cast.totalSteps) {
                             interruptActiveCast(d, e, t, s, true);
-                            s.busyUntil = now + 700L;
+                            s.busyUntil = now + SealTowerElaina.castTime(700L);
                             return;
                         }
                         cast.subActive = false;
@@ -797,7 +799,8 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 }
             }
             case ELEMENTAL_ORBS -> {
-                e.setPos(cast.anchor.x, cast.anchor.y + Math.sin(now / 260.0) * 0.25, cast.anchor.z);
+                double bob = Math.sin((now - cast.startAt) / (double) SealTowerElaina.castTime(260L)) * 0.25;
+                e.setPos(cast.anchor.x, cast.anchor.y + bob, cast.anchor.z);
                 e.setDeltaMovement(Vec3.ZERO);
                 long interval = Math.max(50L, timing.duration(SealTowerElaina.SKILL3_SPAWN_INTERVAL_MS));
                 while (cast.step < cast.totalSteps && now >= cast.nextAt) {
@@ -823,7 +826,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 }
                 if (now >= cast.endAt && cast.step >= cast.totalSteps) {
                     interruptActiveCast(d, e, t, s, true);
-                    s.busyUntil = now + 700L;
+                    s.busyUntil = now + SealTowerElaina.castTime(700L);
                 }
             }
             case BLINK_FLIGHT -> {
@@ -838,7 +841,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                     e.setDeltaMovement(Vec3.ZERO);
                     e.setNoGravity(cast.to.y > 81.2);
                     s.activeCast = null;
-                    s.busyUntil = now + 400L;
+                    s.busyUntil = now + SealTowerElaina.castTime(400L);
                 }
             }
             case DRINK_POTION -> {
@@ -850,7 +853,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 }
                 if (now >= cast.endAt) {
                     s.activeCast = null;
-                    s.busyUntil = now + 600L;
+                    s.busyUntil = now + SealTowerElaina.castTime(600L);
                 }
             }
             case CORONA_BARRAGE -> {
@@ -872,7 +875,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 }
                 if (now >= cast.endAt && cast.step >= cast.totalSteps) {
                     s.activeCast = null;
-                    s.busyUntil = now + 800L;
+                    s.busyUntil = now + SealTowerElaina.castTime(800L);
                 }
             }
             case ELEMENTALIST_AWAKENING -> {
@@ -909,7 +912,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 }
                 if (now >= cast.endAt && cast.step >= cast.totalSteps) {
                     interruptActiveCast(d, e, t, s, true);
-                    s.busyUntil = now + 700L;
+                    s.busyUntil = now + SealTowerElaina.castTime(700L);
                 }
             }
             case ELEMENTALIST_TRIPLE_CAST -> {
@@ -942,7 +945,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 }
                 if (now >= cast.endAt && cast.step >= cast.totalSteps) {
                     s.activeCast = null;
-                    s.busyUntil = now + 800L;
+                    s.busyUntil = now + SealTowerElaina.castTime(800L);
                 }
             }
             case TIME_SEAL -> {
@@ -955,7 +958,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                         "durationMs", SealTowerElaina.SKILL11_SEAL_DURATION_MS
                     ));
                     s.activeCast = null;
-                    s.busyUntil = now + 900L;
+                    s.busyUntil = now + SealTowerElaina.castTime(900L);
                 }
             }
             case PUMPKIN_SPIN -> {
@@ -969,7 +972,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 ));
                 e.setPos(orbitPos.x, orbitPos.y, orbitPos.z);
                 e.setDeltaMovement(Vec3.ZERO);
-                float spinYaw = (float) ((now * 0.72) % 360.0);
+                float spinYaw = (float) ((now * (0.72 / SealTowerElaina.CAST_TIME_MULTIPLIER)) % 360.0);
                 e.setYRot(spinYaw);
                 e.setYHeadRot(spinYaw);
                 e.yBodyRot = spinYaw;
@@ -994,7 +997,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
                 }
                 if (now >= cast.endAt && cast.step >= cast.totalSteps) {
                     interruptActiveCast(d, e, t, s, true);
-                    s.busyUntil = now + 700L;
+                    s.busyUntil = now + SealTowerElaina.castTime(700L);
                 }
             }
             default -> s.activeCast = null;
@@ -1012,7 +1015,7 @@ public final class ElainaEncounterService implements CombatPorts.SkillEffects {
         Vec3 endRaw = startPos.add(dir.scale(flightDist));
         Vec3 endPos = AwakeningTowerLayout.insideBattle(d.cell, new Vec3(endRaw.x, playerPos.y + 0.9, endRaw.z));
         double actualDist = startPos.distanceTo(endPos);
-        long baseDashMs = Math.max(300L, Math.min(SealTowerElaina.SKILL1_DASH_MS,
+        long baseDashMs = Math.max(SealTowerElaina.castTime(300L), Math.min(SealTowerElaina.SKILL1_DASH_MS,
             Math.round(actualDist / SealTowerElaina.SKILL1_SPEED * 1000.0)));
         long dashMs = t.actionTiming(now).active(baseDashMs);
 
