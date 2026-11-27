@@ -27,12 +27,18 @@ public final class ChantClient {
     public static double radius(){return cast==null?0:cast.parameters.get("radius",0);}
     public static double range(){return cast==null?0:cast.parameters.get("range",16);}
     public static void begin(SkillCast source,Runnable completion){
-        begin(source,PlayerPoseChannel.scaled(source.skill.chantSeconds*1000,SunMoonRules.chantSpeed(source.stats)),false,-1,released->completion.run());
+        double seconds=SunMoonSkills.contains(source.skill.id)?SunMoonRules.chantSeconds(source.skill,source.stats):source.skill.chantSeconds;
+        boolean astralStep=SunMoonSkills.contains(source.skill.id)&&cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUNMOON_ASTRAL_STEP.held(source.stats);
+        double keepMove=astralStep?cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUNMOON_ASTRAL_STEP.ratio("move"):.2;
+        begin(source,PlayerPoseChannel.scaled(seconds*1000,SunMoonRules.chantSpeed(source.stats)),false,keepMove,-1,released->completion.run());
     }
     static void begin(SkillCast source,long duration,boolean canMove,Runnable completion){
-        begin(source,duration,canMove,-1,released->completion.run());
+        begin(source,duration,canMove,canMove?1d:.2,-1,released->completion.run());
     }
     static void begin(SkillCast source,long duration,boolean canMove,int slot,Consumer<Boolean> completion){
+        begin(source,duration,canMove,canMove?1d:.2,slot,completion);
+    }
+    static void begin(SkillCast source,long duration,boolean canMove,double moveKeepRatio,int slot,Consumer<Boolean> completion){
         clear();var state=SkillsClient.current();cast=source;cast.phase=cn.yumis.fight.modules.combat.api.ActionPhase.CHANTING;release=completion;
         boundSlot=slot;keyReleased=false;trackedByKey=slot>=0&&SkillInputs.SKILLS[slot%8].isDown();
         session=state.session();generation=state.own().generation;job=state.progress().jobId();instance=state.own().instance;
@@ -40,7 +46,7 @@ public final class ChantClient {
         until=start+Math.max(1L,duration);
         PlayerPoseChannel.chant(source,until-start,SunMoonSkills.contains(source.skill.id)?350:0);
         var p=Minecraft.getInstance().player;
-        if(p!=null)ChantRules.movement(p,!canMove);
+        if(p!=null)ChantRules.movement(p,!canMove,moveKeepRatio);
     }
     public static boolean press(int slot){
         if(!active())return false;

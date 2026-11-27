@@ -85,7 +85,152 @@ public final class TowerCareerDeck {
         }
 
         public boolean hasCards() {
-            return !chosen.isEmpty() || careerSlots > 0;
+            if (!chosen.isEmpty() || careerSlots > 0) return true;
+            for (var cards : careerCards.values()) {
+                if (!cards.isEmpty()) return true;
+            }
+            return false;
+        }
+
+        public int countCard(String cardId) {
+            if (cardId == null || cardId.isEmpty()) return 0;
+            int total = 0;
+            for (var ref : chosen) if (cardId.equals(ref.id())) total++;
+            for (var list : careerCards.values()) {
+                for (var ref : list) if (cardId.equals(ref.id())) total++;
+            }
+            return total;
+        }
+
+        public boolean holdsCard(String cardId) {
+            return countCard(cardId) > 0;
+        }
+
+        public TowerCard.Reference findCard(String cardId) {
+            if (cardId == null || cardId.isEmpty()) return null;
+            for (var ref : chosen) if (cardId.equals(ref.id())) return ref;
+            for (var list : careerCards.values()) {
+                for (var ref : list) if (cardId.equals(ref.id())) return ref;
+            }
+            return null;
+        }
+
+        public Set<String> allHeldIds() {
+            var ids = new HashSet<String>();
+            for (var ref : chosen) ids.add(ref.id());
+            for (var list : careerCards.values()) {
+                for (var ref : list) ids.add(ref.id());
+            }
+            return Set.copyOf(ids);
+        }
+
+        public Map<String, TowerCard.Reference> allHeldMap() {
+            var map = new LinkedHashMap<String, TowerCard.Reference>();
+            for (var ref : chosen) map.putIfAbsent(ref.id(), ref);
+            for (var list : careerCards.values()) {
+                for (var ref : list) map.putIfAbsent(ref.id(), ref);
+            }
+            return Map.copyOf(map);
+        }
+
+        public record CreativeMutation(DeckSnapshot deck, List<String> replacedIds) {}
+
+        public CreativeMutation creativeAdd(String fallbackDeckId, TowerCard.Reference reference) {
+            TowerCard card = TowerCard.restore(reference);
+            if (card.skillBinding() != TowerBattleCard.Binding.NONE
+                && (card.variant().isBlank() || card.variantTitle().isBlank())) {
+                throw new IllegalArgumentException("该卡牌需要绑定具体技能");
+            }
+            TowerCard.Reference normalized = card.reference();
+            String nextId = id.isEmpty() ? Objects.requireNonNull(fallbackDeckId) : id;
+            Set<String> excluded = TowerBattleCard.exclusionsFor(card.id());
+            var replaced = new ArrayList<String>();
+            if (card.careerMythic()) {
+                var nextCareerCards = new LinkedHashMap<>(careerCards);
+                var jobCards = new ArrayList<>(nextCareerCards.getOrDefault(card.job(), List.of()));
+                int existingIndex = -1;
+                for (int i = jobCards.size() - 1; i >= 0; i--) {
+                    String itemId = jobCards.get(i).id();
+                    if (excluded.contains(itemId)) {
+                        replaced.add(itemId);
+                        jobCards.remove(i);
+                    } else if (itemId.equals(card.id())) {
+                        existingIndex = i;
+                    }
+                }
+                if (existingIndex >= 0) jobCards.set(existingIndex, normalized);
+                else jobCards.add(normalized);
+                nextCareerCards.put(card.job(), List.copyOf(jobCards));
+                var nextOffers = new LinkedHashMap<>(careerOffers);
+                var previousOffer = nextOffers.get(card.job());
+                if (previousOffer != null) {
+                    nextOffers.put(card.job(), new CareerOffer(previousOffer.revision() + 1, List.of(), previousOffer.removed()));
+                }
+                return new CreativeMutation(new DeckSnapshot(nextId, chosen, careerSlots, nextCareerCards, nextOffers), List.copyOf(replaced));
+            }
+            var nextChosen = new ArrayList<>(chosen);
+            if (card.milk()) {
+                nextChosen.add(normalized);
+            } else {
+                int existingIndex = -1;
+                for (int i = nextChosen.size() - 1; i >= 0; i--) {
+                    String itemId = nextChosen.get(i).id();
+                    if (excluded.contains(itemId)) {
+                        replaced.add(itemId);
+                        nextChosen.remove(i);
+                    } else if (itemId.equals(card.id())) {
+                        existingIndex = i;
+                    }
+                }
+                if (existingIndex >= 0) nextChosen.set(existingIndex, normalized);
+                else nextChosen.add(normalized);
+            }
+            return new CreativeMutation(new DeckSnapshot(nextId, nextChosen, careerSlots, careerCards, careerOffers), List.copyOf(replaced));
+        }
+
+        public DeckSnapshot creativeRemove(String cardId) {
+            if (cardId == null || cardId.isEmpty()) return this;
+            TowerBattleCard battle = TowerBattleCard.find(cardId);
+            if (battle != null && battle.careerMythic()) {
+                String job = battle.job();
+                var existing = careerCards.get(job);
+                if (existing == null || existing.isEmpty()) return this;
+                var nextJobCards = new ArrayList<>(existing);
+                if (!nextJobCards.removeIf(ref -> cardId.equals(ref.id()))) return this;
+                var nextCareerCards = new LinkedHashMap<>(careerCards);
+                if (nextJobCards.isEmpty()) nextCareerCards.remove(job);
+                else nextCareerCards.put(job, List.copyOf(nextJobCards));
+                var nextOffers = new LinkedHashMap<>(careerOffers);
+                var previousOffer = nextOffers.get(job);
+                if (previousOffer != null) {
+                    nextOffers.put(job, new CareerOffer(previousOffer.revision() + 1, List.of(), previousOffer.removed()));
+                }
+                int maxCareerCount = 0;
+                for (var list : nextCareerCards.values()) maxCareerCount = Math.max(maxCareerCount, list.size());
+                int nextSlots = Math.min(careerSlots, maxCareerCount);
+                var next = new DeckSnapshot(id, chosen, nextSlots, nextCareerCards, nextOffers);
+                return next.hasCards() ? next : empty("");
+            }
+            var nextChosen = new ArrayList<>(chosen);
+            boolean removed = false;
+            if (TowerCard.MILK_ID.equals(cardId)) {
+                for (int i = nextChosen.size() - 1; i >= 0; i--) {
+                    if (cardId.equals(nextChosen.get(i).id())) {
+                        nextChosen.remove(i);
+                        removed = true;
+                        break;
+                    }
+                }
+            } else {
+                removed = nextChosen.removeIf(ref -> cardId.equals(ref.id()));
+            }
+            if (!removed) return this;
+            var next = new DeckSnapshot(id, nextChosen, careerSlots, careerCards, careerOffers);
+            return next.hasCards() ? next : empty("");
+        }
+
+        public static DeckSnapshot creativeClear() {
+            return empty("");
         }
 
         /** Active cards for the specified career: this job's career mythics followed by shared non-career cards. */

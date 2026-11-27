@@ -28,13 +28,6 @@ final class SummonAmbientVisuals {
                     dot(out,p.add(Math.cos(a)*auraR,.15,Math.sin(a)*auraR),.06,0xffe69c,135);
                 }
             }
-            if(e.resonanceUntil()>serverNow){
-                for(int i=0;i<4;i++){
-                    double a=globalTime*3.2+i*Math.PI/2;
-                    dot(out,p.add(Math.cos(a)*.55,.9+Math.sin(globalTime*4+i)*.15,Math.sin(a)*.55),.045,0x9af0ff,190);
-                }
-                EffectSprites.glow(sprites,p.add(0,.9,0),camera,.75,0xa8f4ff,135);
-            }
             switch(e.kind()){
                 case FIRE->{
                     for(int i=0;i<3;i++){double u=(time*.7+i*.31)%1;dot(out,p.add(Math.sin(i*2+time)*.13,.55+u*.27,Math.cos(i*2+time)*.13),.025,0xffd27a,(int)(180*(1-u)));}

@@ -94,29 +94,34 @@ public final class SkillTooltip {
             boolean overload=cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_MASTERY_OVERLOAD.held(stats);
             double shortWavePercent=20*power*WeaponSkills.shortSwordWaveDamageFactor(stats);
             double stunChance=WeaponSkills.bluntStunChance(stats)*100;
+            double greatChargeSec=WeaponSkills.greatswordChargeMillis(stats)/1000d;
             add(result,"随当前武器生效（新增效果不随等级成长）：",UiTheme.TEXT);
-            if(overload)add(result,"职业神话：攻击速度 +60%，以下全部精通强化生效。",UiTheme.GOLD);
-            add(result,"光剑：普攻"+(overload?"4连击":"双击")+"。\n巨剑：90°横扫6.8格，"+(overload?"普攻攻速+100%（取消双倍间隔、蓄力0.4秒）":"间隔翻倍")+"，松键出刀100%～250%。",UiTheme.TEXT);
+            if(overload)add(result,"职业神话：攻击速度 +"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_MASTERY_OVERLOAD.value("speed"))+"%，以下全部精通强化生效。",UiTheme.GOLD);
+            add(result,"光剑：普攻"+(overload?cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_MASTERY_OVERLOAD.count("saber")+"连击":"双击")+"。\n巨剑：90°横扫6.8格，"+(overload?"普攻攻速+"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_MASTERY_OVERLOAD.value("great"))+"%（蓄力"+number(greatChargeSec)+"秒）":"间隔翻倍")+"，松键出刀100%～250%。",UiTheme.TEXT);
             add(result,"三段斩：太刀/光剑7段，其余5段；光剑猛龙+1段。",UiTheme.TEXT);
             add(result,"太刀/光剑幻影20刀，持续1.25秒；拔刀追加固定20%光斩。",UiTheme.TEXT);
-            add(result,"太刀：10%造成流血；流血目标5%触发 "+number(2*power)+"倍伤害。"+(overload?"\n职业神话：普攻必定施加可无限叠加的重度流血（3秒内受到20%当前生命伤害，对首领仅1/12）。":""),UiTheme.TEXT);
+            add(result,"太刀：10%造成流血；流血目标5%触发 "+number(2*power)+"倍伤害。"+(overload?"\n职业神话：普攻必定施加可无限叠加的重度流血（"+cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_MASTERY_OVERLOAD.count("sec")+"秒内受到"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_MASTERY_OVERLOAD.value("bleed"))+"%当前生命伤害，对首领仅1/12）。":""),UiTheme.TEXT);
             add(result,"光剑：20%造成感电；攻击感电目标追加光伤，随触发技能的基础伤害校准。",UiTheme.TEXT);
             add(result,"巨剑：技能伤害 +"+number(20*power)+"%。",UiTheme.TEXT);
             add(result,"短剑：追加剑气"+(overload?"扩大至幻影剑舞大小":"斩面随机，拔刀剑气宽高翻倍")+"。\n普攻、三段斩、拔刀斩与剑舞追加 "+number(shortWavePercent)+"%系数剑气。",UiTheme.TEXT);
             add(result,"钝器："+number(stunChance)+"%眩晕 "+number(.5*power)+"秒，精英减半，首领仅 1/12 效果。",UiTheme.TEXT);
-            add(result,"巨剑蓄力：按住左键，基础"+(overload?"0.4":"0.8")+"秒线性升至250%；长按保持，梯云纵保留蓄力。",UiTheme.MUTED);
+            add(result,"巨剑蓄力：按住左键，基础"+number(greatChargeSec)+"秒线性升至250%；长按保持，梯云纵保留蓄力。",UiTheme.MUTED);
         }else{
             var costs=cn.yumis.fight.modules.skills.api.SkillCosts.resolve(skill,Math.max(1,rank),stats,state.resources().equipment,CareerRules.magic(skill,state.progress()));
             if(!skill.passive())add(result,"消耗："+(cn.yumis.fight.modules.skills.api.DemonHunterSkills.contains(skill.id)?"怒气 "+cn.yumis.fight.modules.skills.api.DemonHunterRules.cost(skill.id):costs.life()>0?"生命 "+number(costs.life()):"MP "+costs.mana())+" · 冷却 "+number(preview.cooldown())+"秒",UiTheme.TEXT);
             if(skill==SkillCatalog.OVERDRIVE){
                 add(result,"持续30秒，基础物理攻击 +"+number(100*parameters.get("damage",.13))+"%。",UiTheme.TEXT);
                 if(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_OVERDRIVE_LIGHT.held(stats)){
-                    add(result,"职业神话：生效期间攻击命中额外附加 20% 光属性伤害。",UiTheme.GOLD);
+                    add(result,"职业神话：生效期间攻击命中额外附加 "+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_OVERDRIVE_LIGHT.value("light"))+"% 光属性伤害。",UiTheme.GOLD);
                 }
             }else if(skill.id.equals(CareerSkills.FIELD)){
-                if(rank<8)add(result,"当前等级提供阵法增益，8级起获得持续伤害。",UiTheme.TEXT);
-                if(rank>=8)add(result,"每秒冰伤："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("iceDot",0),2,state.resources().equipment)),UiTheme.TEXT);
-                if(rank>=15)add(result,"每秒暗伤："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("darkDot",0),3,state.resources().equipment)),UiTheme.TEXT);
+                if(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SB_AURA_FIELD.held(stats)){
+                    add(result,"职业神话 · 随身鬼域：仅保留红阵与绿阵光环，已移除冰阵与紫阵伤害（怖拉修吞噬最多按"+cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SB_AURA_FIELD.count("ghosts")+"阵计）。",UiTheme.GOLD);
+                }else{
+                    if(rank<8)add(result,"当前等级提供阵法增益，8级起获得持续伤害。",UiTheme.TEXT);
+                    if(rank>=8)add(result,"每秒冰伤："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("iceDot",0),2,state.resources().equipment)),UiTheme.TEXT);
+                    if(rank>=15)add(result,"每秒暗伤："+amount(SkillPreview.dotDamage(state.progress(),stats,skill,parameters.get("darkDot",0),3,state.resources().equipment)),UiTheme.TEXT);
+                }
             }else if(skill.id.equals(cn.yumis.fight.modules.skills.api.MageSkills.HERDER)){
                 var nextSummon=SummonerSkills.inherit(stats,SummonKind.HERDER,SkillLearning.effective(stats,state.progress(),SkillCatalog.require(SummonerSkills.MASTERY)));
                 boolean cannon=cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUMMONER_HERDER_CANNON.held(stats);
@@ -126,7 +131,7 @@ public final class SkillTooltip {
                     double intervalMs=(cannon?cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUMMONER_HERDER_CANNON.value("interval")*1000d:1800d)/speed;
                     int shots=Math.max(1,(int)Math.floor((120000-Math.min(400d,intervalMs))/intervalMs)+1);
                     double shotShare=cn.yumis.fight.modules.skills.api.SummonMoves.herderShotShare(parameters,nextSummon,120000,speed,shots);
-                    add(result,(cannon?"单发烈焰重炮：":"单发爆弹：")+amount(SkillPreview.damage(state.progress(),nextSummon,skill,parameters.get("stoneDamage",0)*shotShare,false,state.resources().equipment))+(squad?" × 3只":""),UiTheme.GOLD);
+                    add(result,(cannon?"单发烈焰重炮：":"单发爆弹：")+amount(SkillPreview.damage(state.progress(),nextSummon,skill,parameters.get("stoneDamage",0)*shotShare,false,state.resources().equipment))+(squad?" × "+cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUMMONER_HERDER_SQUAD.count("count")+"只":""),UiTheme.GOLD);
                 }else{
                     add(result,"下次召唤敲击："+amount(SkillPreview.damage(state.progress(),nextSummon,skill,parameters.get("damage",0),false,state.resources().equipment)),UiTheme.TEXT);
                     add(result,"下次召唤单石："+amount(SkillPreview.damage(state.progress(),nextSummon,skill,parameters.get("stoneDamage",0),false,state.resources().equipment)),UiTheme.TEXT);
@@ -195,11 +200,11 @@ public final class SkillTooltip {
                     }
                     if("BLUNT".equals(stats.weaponType)&&cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ORACLE_BLUNT_QUAKE.held(stats)){
                         var quake=SkillPreview.damage(state.progress(),stats,skill,parameters.get("damage",0)*cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ORACLE_BLUNT_QUAKE.ratio("damage"),true,state.resources().equipment);
-                        add(result,"职业神话 · 钝器震荡波（半径"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ORACLE_BLUNT_QUAKE.value("radius"))+"格）："+amount(quake)+" · 眩晕3秒（首领0.25秒）",UiTheme.GOLD);
+                        add(result,"职业神话 · 钝器震荡波（半径"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ORACLE_BLUNT_QUAKE.value("radius"))+"格）："+amount(quake)+" · 眩晕"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ORACLE_BLUNT_QUAKE.value("stun"))+"秒（首领"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ORACLE_BLUNT_QUAKE.value("boss"))+"秒）",UiTheme.GOLD);
                     }
                 }
                 if(skill.id.equals(CareerSkills.HAND)&&cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_HAND_CLAW.held(stats)){
-                    add(result,"职业神话 · 血魔巨爪：命中生命低于50%目标伤害额外+50%并返还50%冷却",UiTheme.GOLD);
+                    add(result,"职业神话 · 血魔巨爪：命中生命低于"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_HAND_CLAW.value("threshold"))+"%目标伤害额外+"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_HAND_CLAW.value("execute"))+"%并返还"+number(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_HAND_CLAW.value("refund"))+"%冷却",UiTheme.GOLD);
                 }
                 if(skill.id.equals(CareerSkills.BLADE)&&cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_BLADE_ASSAULT.held(stats)){
                     int blasts=Math.max(1,cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_BLADE_ASSAULT.count("blasts"));

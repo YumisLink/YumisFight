@@ -7,7 +7,7 @@ import net.minecraft.world.phys.Vec3;
 /**
  * 霜塔第 20 层专属首领「霜星」的面板评级、抗性配置、双阶段强化规则与 6 项技能参数集中定义。
  * <p>
- * 面板定位：HP S (2.0) / 攻击力 B (1.6) / 超高冰抗 (90) / 超高魔防 (1800) / 两阶段复活。
+ * 面板定位：HP S (2.0) / 攻击力 B (1.6) / 超高冰抗 (90) / 超高魔防 (4500) / 两阶段复活。
  * 二阶段强化：攻击力 +50%、所有技能冰刺数量 +30%、爆发与冰阵范围 +30%，并解锁专属大招「极寒星爆」。
  */
 public final class FrostTowerFrostnova {
@@ -23,7 +23,7 @@ public final class FrostTowerFrostnova {
     public static final double FIRE_RESIST = BossBalanceRules.current().towerNum("frost_tower_frostnova", "FIRE_RESIST", -15.0);
     public static final double ICE_RESIST = BossBalanceRules.current().towerNum("frost_tower_frostnova", "ICE_RESIST", 90.0);
     public static final double DARK_RESIST = BossBalanceRules.current().towerNum("frost_tower_frostnova", "DARK_RESIST", 0.0);
-    public static final double MAGICAL_DEFENSE_BASE = BossBalanceRules.current().towerNum("frost_tower_frostnova", "MAGICAL_DEFENSE_BASE", 1800.0);
+    public static final double MAGICAL_DEFENSE_BASE = BossBalanceRules.current().towerNum("frost_tower_frostnova", "MAGICAL_DEFENSE_BASE", 4500.0);
 
     // 元素编码（沿用 ElementAccumulation：2 = 冰属性）
     public static final int ELEMENT_ICE = 2;

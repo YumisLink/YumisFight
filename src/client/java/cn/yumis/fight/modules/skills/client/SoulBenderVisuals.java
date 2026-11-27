@@ -624,7 +624,7 @@ final class SoulBenderVisuals {
             ? liveCasterPos(t.start.caster(), vector(t.start.origin()))
             : vector(t.start.origin());
         int rank = Math.max(1, (int) Math.round(t.start.charge() * 15.0));
-        int count = Math.clamp(CareerSkills.ghosts(rank), 1, 4);
+        int count = Math.clamp(CareerSkills.ghosts(rank, t.start.dual()), 1, 4);
 
         long totalDur = Math.max(1000L, t.start.duration());
         double appear = Math.clamp(age / 360.0, 0.0, 1.0);

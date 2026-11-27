@@ -185,10 +185,6 @@ final class MageSkillBehaviors {
             int lower=j.has("lowerSpirits")?j.get("lowerSpirits").getAsInt():SummonerClient.lowerSpiritCount(state.serverNow());
             if(lower>0)c.stats.modifier("skillProduct").alls*=1d+lower*cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUMMONER_KING_SOVEREIGN.ratio("damage");
         }
-        boolean resonance=j.has("resonance")&&j.get("resonance").getAsBoolean()||SummonerClient.resonanceUntil>state.serverNow();
-        if(resonance&&(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUMMONER_KING_SOVEREIGN.held(base)||cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUMMONER_KING_SOVEREIGN.held(SkillController.INSTANCE.snapshot()))){
-            c.stats.modifiers.put("summonResonanceAppend",cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUMMONER_KING_SOVEREIGN.ratio("bonus"));
-        }
         Vec3 rawAxis=ProjectileSpawn.vector(j.getAsJsonArray("axis"));
         c.equipment=JSON.fromJson(j.get("effects"),cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot.class);c.summonSlow=move.slow();c.elementOverride=element;c.origin=ProjectileSpawn.vector(j.getAsJsonArray("origin"));c.center=c.origin;Vec3 aim=ProjectileSpawn.vector(j.getAsJsonArray("aim"));c.direction=(move.id().equals("king_mega_laser")&&rawAxis.lengthSqr()>=.01?rawAxis:rawAxis.multiply(1,0,1)).normalize();c.start=ClientUi.now()-Math.max(0,state.serverNow()-j.get("at").getAsLong());c.summonMove=move.id()+"_impact";
         var actor=mc.level.getEntity(j.get("actorEntity").getAsInt());if(actor!=null&&actor.getStringUUID().equals(j.get("actor").getAsString()))c.origin=actor.getEyePosition();

@@ -72,7 +72,9 @@ public final class CareerClient {
     public void clear(){healed.clear();lastBloodGain=lastEyeProjection=lastLampPublish=lastAuraFieldPublish=0;kallaBoltIndex=0;renewQueue.clear();asura.clear();BerserkerClient.clear();SoulBenderClient.clear();OracleClient.INSTANCE.clear();ElementalistChargeClient.reset();ElementalistClient.clear();WitchClient.clear();for(var source:sources.values()){SkillController.INSTANCE.stopVisual(source);TrainingCombat.release(source.id,"persistent");TrainingCombat.actionFinished(source.id);}for(var orb:orbs){orbVisual(orb,"CANCEL");TrainingCombat.release(orb.source.id,"orb");}for(var wave:waves)TrainingCombat.release(wave.source.id,"wave");for(var bolt:bolts)TrainingCombat.release(bolt.source.id,bolt.id);for(var ball:fireBalls)TrainingCombat.release(ball.source.id,"fire");fireBalls.clear();orbClocks.clear();sources.clear();fieldTicks.clear();freezes.clear();orbs.clear();waves.clear();bolts.clear();view=new CareerState();}
     public void ensureContext(){
         var p=Minecraft.getInstance().player;if(p==null||!state().ready())return;String current=p.level().dimension().identifier().toString();boolean changed=!session.equals(state().session())||generation!=state().own().generation||!job.equals(state().progress().jobId())||!dimension.equals(current)||!instance.equals(state().own().instance)||dead!=state().own().dead;
-        if(!changed)return;clear();session=state().session();generation=state().own().generation;job=state().progress().jobId();dimension=current;instance=state().own().instance;dead=state().own().dead;view.nextBrand=state().serverNow()+brandGapMillis();DemonHunterClient.clear();if(!dead)publish();
+        if(!changed)return;clear();session=state().session();generation=state().own().generation;job=state().progress().jobId();dimension=current;instance=state().own().instance;dead=state().own().dead;view.nextBrand=state().serverNow()+brandGapMillis();DemonHunterClient.clear();
+        if(!dead&&state().progress().hasJob(JobCatalog.SUN_MOON)&&state().progress().awakened()&&TowerBattleCard.SUNMOON_PARADOX_LOOP.held(state().stats()))view.sunMoon.paradox=Math.max(view.sunMoon.paradox,1);
+        if(!dead)publish();
     }
     private void ownField(){String owner=Minecraft.getInstance().player.getStringUUID();view.fields.removeIf(f->f.owner.equals(owner));if(view.field!=null){var f=copy(view.field,CareerState.Field.class);f.friendly=true;view.fields.add(f);}}
     public void receive(JsonObject data){
@@ -138,7 +140,7 @@ public final class CareerClient {
             if(id.equals(CareerSkills.BLACHE)){
                 boolean keepField=TowerBattleCard.SB_BLACHE_VOID.held(req.prepared);
                 if(req.nextView.field!=null&&req.nextView.field.expires>req.wall)
-                    SoulBenderVisuals.recordDevouredField(req.origin,new Vec3(req.nextView.field.x,req.nextView.field.y,req.nextView.field.z),CareerSkills.ghosts(req.nextView.field.rank));
+                    SoulBenderVisuals.recordDevouredField(req.origin,new Vec3(req.nextView.field.x,req.nextView.field.y,req.nextView.field.z),CareerSkills.ghosts(req.nextView.field.rank,req.nextView.field.follow));
                 if(!keepField)req.nextView.field=null;
             }
             if(id.equals(CareerSkills.ORB))req.nextView.brands=TowerBattleCard.ASURA_ORB_OVERDRIVE.held(req.prepared)?Math.max(0,req.nextView.brands-TowerBattleCard.ASURA_ORB_OVERDRIVE.count("cost")):0;
@@ -206,7 +208,7 @@ public final class CareerClient {
                 if(skill.equals(CareerSkills.SWORD))j.addProperty("charge",Math.min(1,c.parameters.get("blood",0)/20));
                 if(skill.equals(CareerSkills.AGNI)){int orbs=Math.clamp((int)Math.round(c.parameters.get("agniOrbs",c.parameters.get("resource",1))),1,SkillResourceRules.AGNI_MAX_ORBS);j.addProperty("charge",(double)orbs/SkillResourceRules.AGNI_MAX_ORBS);}
                 if(skill.equals(CareerSkills.ORB))j.addProperty("charge",Math.clamp(c.parameters.get("resource",1)/5d,.2,1));
-                if(skill.equals(CareerSkills.BLACHE))j.addProperty("charge",CareerSkills.ghosts((int)Math.round(c.parameters.get("fieldRank",0)))/4d);
+                if(skill.equals(CareerSkills.BLACHE))j.addProperty("charge",CareerSkills.ghosts((int)Math.round(c.parameters.get("fieldRank",0)),TowerBattleCard.SB_AURA_FIELD.held(c.stats))/4d);
                 if(phase.equals("RELEASE")&&(skill.equals(CareerSkills.ORB)||skill.equals(CareerSkills.CRESCENT)||skill.equals(CareerSkills.FIRE))||phase.equals("FINISH")&&skill.equals(CareerSkills.FIRE))j.addProperty("cosmeticOnly",true);
                 if(skill.equals(CareerSkills.PHANTOM)&&(phase.equals("START")||phase.equals("SEGMENT")))j.add("motion",SkillController.motion(c.parameters.get("dashDistance",8),c.parameters.get("dashSeconds",.25)*1000/c.speed,false));
                 if(skill.equals(CareerSkills.CRESCENT)&&phase.equals("RELEASE")){long travel=(long)Math.ceil(c.parameters.get("range",12)/15*1000);j.add("motion",SkillController.motion(c.parameters.get("range",12),travel,false));j.addProperty("duration",Math.max(j.get("duration").getAsLong(),(ClientUi.now()-c.start)+travel+600L));}
@@ -303,7 +305,7 @@ public final class CareerClient {
                     else ElementalistClient.onCastPaid(skill,req.parameters,cooldownMillis,now,resources);
                 }
                 else resources.cooldowns.put(id,now+cooldownMillis);
-                OracleClient.INSTANCE.onAfterCooldownPlaced(next.oracle,resources.cooldowns,id,oracleCast.fulfilledInstruction(),req.prepared,now);
+                OracleClient.INSTANCE.onAfterCooldownPlaced(next.oracle,resources.cooldowns,id,oracleCast.fulfilledInstruction(),req.prepared,now,wall);
             }
             resources.recordedAt=now;
             var c=new SkillCast();c.id=castId;c.skill=skill;c.slot=slot;c.parameters=req.parameters;c.stats=req.prepared;c.equipment=resources.equipment;c.weapon=req.prepared.weaponInstance;c.terminal=terminal;c.origin=req.origin;c.direction=req.direction;c.center=req.center;c.start=c.stageStart=now;c.speed=Math.max(.01,req.prepared.get(Stat.CAST_SPEED));c.dimension=p.level().dimension().identifier().toString();c.charging=SkillPresentation.charging(skill)&&!(id.equals(CareerSkills.CRESCENT)&&TowerBattleCard.ASURA_CRESCENT_MAX.held(req.prepared))&&!(id.equals(SkillCatalog.GHOST.id)&&TowerBattleCard.SB_INSTANT_SOUL.held(req.prepared));
@@ -319,7 +321,8 @@ public final class CareerClient {
             };
             if(ElementalistClient.prepareCast(c,slot,progress,release))return;
             if(BattleMageClient.prepareCast(c,slot,progress,release))return;
-            if(skill.chantSeconds>0)ChantClient.begin(c,release);
+            double chantSec=SunMoonSkills.contains(skill.id)?SunMoonRules.chantSeconds(skill,c.stats):skill.chantSeconds;
+            if(chantSec>0)ChantClient.begin(c,release);
             else release.run();
         }catch(IllegalArgumentException failure){state().message(failure.getMessage());}
     }
@@ -446,7 +449,7 @@ public final class CareerClient {
             if(source.skill.id.equals(CareerSkills.EYE)&&!source.terminal&&(now-source.start>=(long)(source.parameters.get("duration",20)*1000)||view.eyeUntil>0&&view.eyeUntil<=wall))TrainingCombat.release(source.id,"persistent");
         }
         cn.yumis.fight.modules.equipment.api.EquipmentStats.applyMovement(p,SkillController.INSTANCE.snapshot());
-        if(view.field!=null&&view.field.expires>wall){SkillCast c=sources.get(view.field.id);if(c!=null){long tick=Math.max(50,(long)(c.parameters.get("fieldTickInterval",1)*1000));long next=fieldTicks.getOrDefault(c.id,c.start+tick);long fieldEnd=c.start+(long)(c.parameters.get("duration",12)*1000)+1;double fieldRadius=Math.max(.5,c.parameters.get("fieldRadius",5));while(now>=next&&next<fieldEnd){int index=(int)((next-c.start)/tick)-1;c.center=new Vec3(view.field.x,view.field.y,view.field.z);c.dot=true;c.hit.clear();if(view.field.rank>=8){c.hitIndex=index;c.elementOverride=2;c.controlSeconds=c.parameters.get("controlSeconds",.5);context.area(c,fieldRadius,c.parameters.get("iceDot",0),false);}if(view.field.rank>=15){c.hit.clear();c.hitIndex=16+index;c.elementOverride=3;c.controlSeconds=0;context.area(c,fieldRadius,c.parameters.get("darkDot",0),false);}next+=tick;}fieldTicks.put(c.id,next);}}
+        if(view.field!=null&&view.field.expires>wall&&!view.field.follow){SkillCast c=sources.get(view.field.id);if(c!=null){long tick=Math.max(50,(long)(c.parameters.get("fieldTickInterval",1)*1000));long next=fieldTicks.getOrDefault(c.id,c.start+tick);long fieldEnd=c.start+(long)(c.parameters.get("duration",12)*1000)+1;double fieldRadius=Math.max(.5,c.parameters.get("fieldRadius",5));while(now>=next&&next<fieldEnd){int index=(int)((next-c.start)/tick)-1;c.center=new Vec3(view.field.x,view.field.y,view.field.z);c.dot=true;c.hit.clear();if(view.field.rank>=8){c.hitIndex=index;c.elementOverride=2;c.controlSeconds=c.parameters.get("controlSeconds",.5);context.area(c,fieldRadius,c.parameters.get("iceDot",0),false);}if(view.field.rank>=15){c.hit.clear();c.hitIndex=16+index;c.elementOverride=3;c.controlSeconds=0;context.area(c,fieldRadius,c.parameters.get("darkDot",0),false);}next+=tick;}fieldTicks.put(c.id,next);}}
         for(var bolt:new ArrayList<>(bolts)){
             boolean impacted=false;LivingEntity directHit=null;
             while(now>=bolt.next&&bolt.remaining>0){

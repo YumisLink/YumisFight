@@ -71,9 +71,15 @@ public final class CareerSkills {
     public static Content content(String id){SkillCatalog.all();return CONTENT.get(id);}
     public static Collection<Content> all(){SkillCatalog.all();return List.copyOf(CONTENT.values());}
     public static double growth(int rank){return Math.pow(1.12,Math.max(0,rank-1));}
-    public static int ghosts(int rank){return rank<=0?0:1+(rank>=3?1:0)+(rank>=8?1:0)+(rank>=15?1:0);}
+    public static int ghosts(int rank){return ghosts(rank,false);}
+    public static int ghosts(int rank,boolean auraOnly){
+        if(rank<=0)return 0;
+        if(auraOnly)return 1+(rank>=3?1:0);
+        return 1+(rank>=3?1:0)+(rank>=8?1:0)+(rank>=15?1:0);
+    }
     public static double redBonus(int rank){return rank<=0?0:.10+.01*(rank-1);}
-    public static double blacheMut(int rank){return rank<=0?0:ghosts(rank)+.05*(rank-1);}
+    public static double blacheMut(int rank){return blacheMut(rank,false);}
+    public static double blacheMut(int rank,boolean auraOnly){return rank<=0?0:ghosts(rank,auraOnly)+.05*(rank-1);}
     public static double lowHealthMut(double fraction){return fraction<=.4?.20:fraction<=.7?.10:0;}
     public static boolean persistent(String id){return Set.of(FIELD,KALLA,EYE,SWORD,ORB,CRESCENT,FIRE).contains(id);}
     public static int orbHits(int brands){return 3+5*Math.clamp(brands,0,5);}

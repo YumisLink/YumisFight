@@ -33,20 +33,20 @@ final class CareerSkillDescriptions {
                 .append("\n当前成长：每层赫尔墨斯提升").append(Math.round(OracleRules.layer(rank)*100))
                 .append("%，武器匹配提升").append(Math.round(OracleRules.weaponReward(rank)*100)).append("%。")
                 .append("\n成功后发令间隔：").append(number(OracleRules.delay(rank,stats)/1000d)).append("秒。");
-            if(hasCard(TowerBattleCard.ORACLE_HERMES_SURGE))sb.append("\n职业神话：每次执行成功改为获得3层赫尔墨斯；施放非指令伤害技能消耗1层获得全部指令伤害加成。");
-            if(hasCard(TowerBattleCard.ORACLE_WILL_HASTE))sb.append("\n职业神话：发令间隔受冷却缩减影响，所有技能冷却额外缩短2秒。");
-            if(hasCard(TowerBattleCard.ORACLE_CYCLE_RESET))sb.append("\n职业神话：五个基础技能释放后随机结束一个转职小技能冷却，执行指令时下次指令固定刷新为该技能。");
+            if(hasCard(TowerBattleCard.ORACLE_HERMES_SURGE))sb.append("\n职业神话：每次执行成功改为获得").append(TowerBattleCard.ORACLE_HERMES_SURGE.count("gain")).append("层赫尔墨斯；施放非指令伤害技能消耗").append(TowerBattleCard.ORACLE_HERMES_SURGE.count("cost")).append("层获得全部指令伤害加成（内置冷却").append(number(TowerBattleCard.ORACLE_HERMES_SURGE.value("cooldown"))).append("秒）。");
+            if(hasCard(TowerBattleCard.ORACLE_WILL_HASTE))sb.append("\n职业神话：发令间隔受冷却缩减影响，所有技能冷却额外缩短").append(number(TowerBattleCard.ORACLE_WILL_HASTE.value("reduction"))).append("秒。");
+            if(hasCard(TowerBattleCard.ORACLE_CYCLE_RESET))sb.append("\n职业神话：五个基础技能释放后随机结束一个转职小技能冷却，执行指令时下次指令固定刷新为该技能（内置冷却").append(number(TowerBattleCard.ORACLE_CYCLE_RESET.value("cooldown"))).append("秒）。");
             return sb.toString();
         });
-        SkillDescriptions.register(OracleSkills.REPLICA,c->replica+(hasCard(TowerBattleCard.ORACLE_REPLICA_UNLEASHED)?"\n职业神话：无需9层赫尔墨斯即可直接施放并触发9层完整效果，冷却时间增加30%。":""));
+        SkillDescriptions.register(OracleSkills.REPLICA,c->replica+(hasCard(TowerBattleCard.ORACLE_REPLICA_UNLEASHED)?"\n职业神话：无需9层赫尔墨斯即可直接施放并触发9层完整效果，冷却时间增加"+number(TowerBattleCard.ORACLE_REPLICA_UNLEASHED.value("cooldown"))+"%。":""));
         oracleActions.forEach((id,text)->SkillDescriptions.register(id,c->{
             var sb=new StringBuilder(text);
-            if(hasCard(TowerBattleCard.ORACLE_CYCLE_RESET))sb.append("\n职业神话：施放后使随机一个冷却中的转职小技能冷却结束；执行指令时下次指令刷新为该技能。");
-            if(hasCard(TowerBattleCard.ORACLE_SHORTSWORD_WAVE))sb.append("\n职业神话（短剑）：附带发射造成20%伤害的剑气。");
-            if(hasCard(TowerBattleCard.ORACLE_LIGHTSABER_ECHO))sb.append("\n职业神话（光剑）：额外斩击一次，造成50%伤害。");
-            if(hasCard(TowerBattleCard.ORACLE_BLUNT_QUAKE))sb.append("\n职业神话（钝器）：使敌人眩晕3秒（首领0.25秒）并引发25%小型范围震荡波。");
-            if(hasCard(TowerBattleCard.ORACLE_GREATSWORD_CLEAVE))sb.append("\n职业神话（巨剑）：攻击范围扩大30%，伤害提高30%。");
-            if(hasCard(TowerBattleCard.ORACLE_KATANA_FLASH))sb.append("\n职业神话（太刀）：释放速度提高50%，伤害提高20%。");
+            if(hasCard(TowerBattleCard.ORACLE_CYCLE_RESET))sb.append("\n职业神话：施放后使随机一个冷却中的转职小技能冷却结束；执行指令时下次指令刷新为该技能（内置冷却").append(number(TowerBattleCard.ORACLE_CYCLE_RESET.value("cooldown"))).append("秒）。");
+            if(hasCard(TowerBattleCard.ORACLE_SHORTSWORD_WAVE))sb.append("\n职业神话（短剑）：附带发射造成").append(number(TowerBattleCard.ORACLE_SHORTSWORD_WAVE.value("damage"))).append("%伤害的剑气。");
+            if(hasCard(TowerBattleCard.ORACLE_LIGHTSABER_ECHO))sb.append("\n职业神话（光剑）：额外斩击一次，造成").append(number(TowerBattleCard.ORACLE_LIGHTSABER_ECHO.value("damage"))).append("%伤害。");
+            if(hasCard(TowerBattleCard.ORACLE_BLUNT_QUAKE))sb.append("\n职业神话（钝器）：使敌人眩晕").append(number(TowerBattleCard.ORACLE_BLUNT_QUAKE.value("stun"))).append("秒（首领").append(number(TowerBattleCard.ORACLE_BLUNT_QUAKE.value("boss"))).append("秒）并引发").append(number(TowerBattleCard.ORACLE_BLUNT_QUAKE.value("damage"))).append("%小型范围震荡波。");
+            if(hasCard(TowerBattleCard.ORACLE_GREATSWORD_CLEAVE))sb.append("\n职业神话（巨剑）：攻击范围扩大").append(number(TowerBattleCard.ORACLE_GREATSWORD_CLEAVE.value("range"))).append("%，伤害提高").append(number(TowerBattleCard.ORACLE_GREATSWORD_CLEAVE.value("damage"))).append("%。");
+            if(hasCard(TowerBattleCard.ORACLE_KATANA_FLASH))sb.append("\n职业神话（太刀）：释放速度提高").append(number(TowerBattleCard.ORACLE_KATANA_FLASH.value("speed"))).append("%，伤害提高").append(number(TowerBattleCard.ORACLE_KATANA_FLASH.value("damage"))).append("%。");
             return sb.toString();
         }));
         descriptions.forEach((id,text)->SkillDescriptions.register(id,c->text));
@@ -64,13 +64,13 @@ final class CareerSkillDescriptions {
         });
         SkillDescriptions.register(CareerSkills.FIELD,c->{
             boolean aura=hasCard(TowerBattleCard.SB_AURA_FIELD);
-            return (aura?"职业神话 · 随身鬼域：附着于自身周围随玩家移动，半径5格，持续12秒，始终视为处于自己鬼阵内。"
-                :"放置：8格内指向地面，半径5格，持续12秒。")
-                +"\n解锁：有效1级红阵、3级绿阵、8级冰阵、15级紫阵。\n红阵增益自己和队友；绿阵降低敌人双防15%。\n同类增益取最强。";
+            return aura
+                ?"职业神话 · 随身鬼域：附着于自身周围随玩家移动，半径5格，持续12秒，始终视为处于自己鬼阵内。\n仅保留有效1级红阵与3级绿阵光环，移除冰阵与紫阵（怖拉修吞噬最多按"+TowerBattleCard.SB_AURA_FIELD.count("ghosts")+"阵计）。\n红阵增益自己和队友；绿阵降低敌人双防15%。同类增益取最强。"
+                :"放置：8格内指向地面，半径5格，持续12秒。\n解锁：有效1级红阵、3级绿阵、8级冰阵、15级紫阵。\n红阵增益自己和队友；绿阵降低敌人双防15%。\n同类增益取最强。";
         });
         SkillDescriptions.register(CareerSkills.SOUL_SLASH,c->{
             StringBuilder sb=new StringBuilder(hasCard(TowerBattleCard.SB_INSTANT_SOUL)
-                ?"职业神话 · 瞬发噬灵：鬼斩无需蓄力即触发满蓄力与噬灵鬼神冲击。"
+                ?"职业神话 · 瞬发噬灵：鬼斩无需蓄力即触发满蓄力与噬灵鬼神冲击，鬼斩与噬灵伤害提高"+number(TowerBattleCard.SB_INSTANT_SOUL.value("damage"))+"%。"
                 :"触发：满蓄力鬼斩追加鬼神冲击，按本技能等级成长。");
             sb.append("\n增幅：位于自己的鬼阵内时进一步增强。\n不增加鬼斩的消耗和冷却。");
             if(hasCard(TowerBattleCard.SB_HELL_SLASH)){
@@ -86,7 +86,7 @@ final class CareerSkillDescriptions {
                 .append("段暗属性月牙斩，每段附带小幅前跨位移。\n终结：第3段").append(segs>=6?"与第6段":"")
                 .append("为半径").append(number(c.parameters().get("finisherRange",4.2))).append("格的360°满月回旋斩。");
             if(hasCard(TowerBattleCard.SB_MOON_COMBO)){
-                sb.append("\n职业神话 · 盈月连斩：最多6段，每段伤害较前段递增")
+                sb.append("\n职业神话 · 盈月连斩：最多").append(TowerBattleCard.SB_MOON_COMBO.count("slashes")).append("段，每段伤害较前段递增")
                     .append(number(TowerBattleCard.SB_MOON_COMBO.value("ramp"))).append("%。");
             }
             if(hasCard(TowerBattleCard.SB_MOON_WAVE)){
@@ -124,8 +124,8 @@ final class CareerSkillDescriptions {
                     .append(number(TowerBattleCard.SB_PHANTOM_CHAIN.value("cooldown"))).append("%。");
             }
             if(hasCard(TowerBattleCard.SB_PHANTOM_RIFT)){
-                sb.append("\n职业神话 · 次元断空：命中目标").append(number(TowerBattleCard.SB_PHANTOM_RIFT.value("delay")))
-                    .append("秒后于目标处引发半径").append(number(TowerBattleCard.SB_PHANTOM_RIFT.value("radius")))
+                sb.append("\n职业神话 · 次元断空：单次穿行仅在首个命中目标处留下1个裂隙，").append(number(TowerBattleCard.SB_PHANTOM_RIFT.value("delay")))
+                    .append("秒后引发半径").append(number(TowerBattleCard.SB_PHANTOM_RIFT.value("radius")))
                     .append("格暗影爆破，造成本次伤害").append(number(TowerBattleCard.SB_PHANTOM_RIFT.value("damage"))).append("%的暗属性伤害。");
             }
             return sb.toString();
@@ -133,7 +133,7 @@ final class CareerSkillDescriptions {
         SkillDescriptions.register(CareerSkills.KALLA,c->{
             double dur=c.parameters().get("duration",20);
             if(hasCard(TowerBattleCard.SB_KALLA_ETERNAL)){
-                return "职业神话 · 永驻冥炎：附身持续"+number(dur)+"秒，普攻每周期发射一枚10格冥炎弹。\n冥炎弹：命中敌人或地形时在撞击点引发半径2格小范围暗属性爆炸，飞满射程未命中则消散。\n无法再次按键释放终结三连冥炎剑。";
+                return "职业神话 · 永驻冥炎：附身持续"+number(dur)+"秒，普攻每周期发射一枚10格冥炎弹，冥炎弹伤害提高"+number(TowerBattleCard.SB_KALLA_ETERNAL.value("damage"))+"%。\n冥炎弹：命中敌人或地形时在撞击点引发半径2格小范围暗属性爆炸，飞满射程未命中则消散。\n无法再次按键释放终结三连冥炎剑。";
             }
             return "附身：持续"+number(dur)+"秒，普攻每周期发射一枚10格冥炎弹。\n冥炎弹：命中敌人或地形时在撞击点引发半径2格小范围暗属性爆炸，飞满射程未命中则消散。\n终结：再次按键释放三连冥炎剑。";
         });
@@ -189,19 +189,19 @@ final class CareerSkillDescriptions {
             double radius=Math.max(.5,c.parameters().get("blastRadius",2.5));
             if(hasCard(TowerBattleCard.ASURA_FIRE_TRIPLE)){
                 int blasts=(int)Math.max(1,Math.round(c.parameters().get("slashes",3)));
-                return "职业神话：沿前方地面连续向前引发"+blasts+"次火焰爆炸。\n范围：每次爆炸半径"+number(radius)+"格，依次推进并独立结算伤害。\n成功施放生成1枚刻印。";
+                return "职业神话：沿前方地面连续向前引发"+blasts+"次火焰爆炸，每次造成原伤害的"+number(TowerBattleCard.ASURA_FIRE_TRIPLE.value("ratio"))+"%。\n范围：每次爆炸半径"+number(radius)+"格，依次推进并独立结算伤害。\n成功施放生成1枚刻印。";
             }
             return "投掷：向准星10格内抛出火球，沿弧线飞到落点。\n抓取：沿途宽5格，抓取可抓敌人。\n爆炸：终点半径"+number(radius)+"格，命中一次，碰墙提前爆炸。\nBoss与完全免击退目标免抓，仍可受爆炸伤害。\n成功施放生成1枚刻印。";
         });
         SkillDescriptions.register(CareerSkills.AGNI,c->{
             boolean dbl=hasCard(TowerBattleCard.ASURA_AGNI_DOUBLE);
-            return "消耗：全部刻印"+(dbl?"，每消耗1枚刻印提供2枚刻印的效果（最多支持"+SkillResourceRules.AGNI_MAX_ORBS+"颗旋转火球）":"，消耗几印就显示几球（最多支持"+SkillResourceRules.AGNI_MAX_ORBS+"颗）")
+            return "消耗：全部刻印"+(dbl?"，每消耗1枚刻印提供"+TowerBattleCard.ASURA_AGNI_DOUBLE.count("multiplier")+"枚刻印的效果（最多支持"+SkillResourceRules.AGNI_MAX_ORBS+"颗旋转火球），且伤害提高"+number(TowerBattleCard.ASURA_AGNI_DOUBLE.value("damage"))+"%":"，消耗几印就显示几球（最多支持"+SkillResourceRules.AGNI_MAX_ORBS+"颗）")
                 +"。\n引导：站定3秒，半径5格。\n命中：每球每0.85秒攻击一次，各球错开，最后爆炸一次。\n更多刻印增加旋转命中次数；释放速度同步缩短动作和间隔。";
         });
         SkillDescriptions.register(CareerSkills.EYE,c->"附身：持续20秒。\n普攻：缓慢直行齿轮，每枚造成炸眼系数2%的伤害，每个敌人一次。\n杀意波动：每秒对半径8格无遮挡敌人造成炸眼系数0.5%的伤害。\n波动强化：地裂、冰波、火波伤害提升"+cn.yumis.fight.modules.presentation.api.client.NumberText.number(c.parameters().get("eyeBonusMut",0)*100)+"%。\n失明：周围半径16格无遮挡敌人持续失明。\n终结：再次按键或到期凝聚眼球并爆炸，炸眼1.2秒期间无敌。");
         SkillDescriptions.register(CareerSkills.FRENZY,c->{
             if(hasCard(TowerBattleCard.BERSERKER_BLOOD_AWAKENING)){
-                return "开关：双刀模式，每个普攻周期攻击两次，不持续耗血。\n属性：攻速＋15个百分点、移速提升10%（职业神话取消双防降低）。\n防护：完全免疫战斗击退。\n职业神话 · 血气唤醒：替换原低血增伤，生命每低于最大生命1%使伤害总增0.8%（≤30%时上限56%）且移速提高0.5%；每次技能消耗生命时，获得等同于耗血量400%的血气护盾（持续6秒，可累加至最大生命100%）。";
+                return "开关：双刀模式，每个普攻周期攻击两次，不持续耗血。\n属性：攻速＋15个百分点、移速提升10%（职业神话取消双防降低）。\n防护：完全免疫战斗击退。\n职业神话 · 血气唤醒：替换原低血增伤，生命每低于最大生命"+number(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("step"))+"%使伤害总增"+number(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("damage"))+"%（≤"+number(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("floor"))+"%时上限"+number(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("cap"))+"%）且移速提高"+number(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("move"))+"%；每次技能消耗生命时，获得等同于耗血量"+number(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("shield"))+"%的血气护盾（持续"+number(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("duration"))+"秒，可累加至最大生命"+number(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("shieldcap"))+"%）。";
             }
             return "开关：双刀模式，每个普攻周期攻击两次，不持续耗血。\n属性：攻速＋15个百分点、移速提升10%、双防降低15个百分点。\n防护：完全免疫战斗击退。\n低血增伤：生命≤70%时提升10%，≤40%时提升20%，两档不叠加。";
         });
@@ -210,7 +210,7 @@ final class CareerSkillDescriptions {
             double hpCost=c.parameters().get("hpCost",0);
             StringBuilder sb=new StringBuilder("动作：向前小跳3格，落地后X形血气向四周飞出。\n范围：半径").append(number(range)).append("格，下砸与冲击分别命中。");
             if(hasCard(TowerBattleCard.BERSERKER_CRASH_BLOOD)){
-                sb.append("\n职业神话 · 血气崩山：冷却降低30%，范围提高50%，伤害提高60%，改为消耗最大生命").append(number(hpCost*100)).append("%。");
+                sb.append("\n职业神话 · 血气崩山：冷却降低").append(number(TowerBattleCard.BERSERKER_CRASH_BLOOD.value("cooldown"))).append("%，范围提高").append(number(TowerBattleCard.BERSERKER_CRASH_BLOOD.value("range"))).append("%，伤害提高").append(number(TowerBattleCard.BERSERKER_CRASH_BLOOD.value("damage"))).append("%，改为消耗最大生命").append(number(hpCost*100)).append("%。");
             }else if(hpCost>0){
                 sb.append("\n生命代价：最大生命").append(number(hpCost*100)).append("%。");
             }else{
@@ -225,14 +225,24 @@ final class CareerSkillDescriptions {
             double widthScale=Math.max(.5,c.parameters().get("width",3)/3d);
             StringBuilder sb=new StringBuilder();
             if(claw){
-                sb.append("职业神话 · 血魔巨爪：脱手向前").append(number(10*rangeScale)).append("格唤出巨型血魔之爪，将沿途宽")
-                    .append(number(5*widthScale)).append("格敌人聚拢至终点捏爆，伤害提高120%；命中生命低于50%敌人时本次伤害额外提高50%并返还50%冷却。");
+                sb.append("职业神话 · 血魔巨爪：脱手向前").append(number(TowerBattleCard.BERSERKER_HAND_CLAW.value("range")*rangeScale)).append("格唤出巨型血魔之爪，将沿途宽")
+                    .append(number(TowerBattleCard.BERSERKER_HAND_CLAW.value("width")*widthScale)).append("格敌人聚拢至终点捏爆，伤害提高")
+                    .append(number(TowerBattleCard.BERSERKER_HAND_CLAW.value("damage"))).append("%；命中生命低于")
+                    .append(number(TowerBattleCard.BERSERKER_HAND_CLAW.value("threshold"))).append("%敌人时本次伤害额外提高")
+                    .append(number(TowerBattleCard.BERSERKER_HAND_CLAW.value("execute"))).append("%并返还")
+                    .append(number(TowerBattleCard.BERSERKER_HAND_CLAW.value("refund"))).append("%冷却。");
             }else{
                 sb.append("范围：前方").append(number(c.parameters().get("range",4))).append("格、宽").append(number(c.parameters().get("width",3))).append("格抓取并喷发。");
             }
             sb.append("\n回复：命中回复最大生命10%，每次施放最多回复一次；Boss同样有效，空放不回血。");
             if(siphon){
-                sb.append("\n职业神话 · 嗜血抓魂：范围提高50%、冷却降低25%；命中后获得15秒「嗜血之力」（力量+35%、伤害+25%）及最大生命15%的8秒护盾。");
+                sb.append("\n职业神话 · 嗜血抓魂：范围提高").append(number(TowerBattleCard.BERSERKER_HAND_SIPHON.value("range")))
+                    .append("%、冷却降低").append(number(TowerBattleCard.BERSERKER_HAND_SIPHON.value("cooldown")))
+                    .append("%；命中后获得").append(number(TowerBattleCard.BERSERKER_HAND_SIPHON.value("duration")))
+                    .append("秒「嗜血之力」（力量+").append(number(TowerBattleCard.BERSERKER_HAND_SIPHON.value("strength")))
+                    .append("%、伤害+").append(number(TowerBattleCard.BERSERKER_HAND_SIPHON.value("damage")))
+                    .append("%）及最大生命").append(number(TowerBattleCard.BERSERKER_HAND_SIPHON.value("shield")))
+                    .append("%的").append(number(TowerBattleCard.BERSERKER_HAND_SIPHON.value("shieldsec"))).append("秒护盾。");
             }
             return sb.toString();
         });
@@ -241,7 +251,9 @@ final class CareerSkillDescriptions {
             int hits=(int)Math.max(1,Math.round(c.parameters().get("slashes",5)));
             StringBuilder sb=new StringBuilder("范围：半径").append(number(range)).append("格，共").append(hits).append("段血气。\n生命代价：最大生命4%，不扣护盾。");
             if(hasCard(TowerBattleCard.BERSERKER_RAGE_ENDLESS)){
-                sb.append("\n职业神话 · 无尽血怒：范围提高60%，喷发段数+5段，单段伤害降低20%。");
+                sb.append("\n职业神话 · 无尽血怒：范围提高").append(number(TowerBattleCard.BERSERKER_RAGE_ENDLESS.value("range")))
+                    .append("%，喷发段数+").append(TowerBattleCard.BERSERKER_RAGE_ENDLESS.count("extra"))
+                    .append("段，单段伤害降低").append(number(TowerBattleCard.BERSERKER_RAGE_ENDLESS.value("reduction"))).append("%。");
             }
             return sb.toString();
         });
@@ -251,14 +263,21 @@ final class CareerSkillDescriptions {
             double blastRadius=c.parameters().get("blastRadius",4);
             StringBuilder sb=new StringBuilder();
             if(hasThrow&&hasAssault){
-                sb.append("职业神话 · 飞血巨刃＋血刃突袭：无敌向前突进8格穿刺并脱手投出12格巨型血剑，在首个目标或终点必定连续引爆2次半径")
-                    .append(number(blastRadius)).append("格血气爆炸（每次为强化爆炸的75%），冷却降低20%。");
+                sb.append("职业神话 · 飞血巨刃＋血刃突袭：无敌向前突进").append(number(TowerBattleCard.BERSERKER_BLADE_ASSAULT.value("dash")))
+                    .append("格穿刺并脱手投出").append(number(TowerBattleCard.BERSERKER_BLADE_THROW.value("range")))
+                    .append("格巨型血剑，在首个目标或终点必定连续引爆").append(TowerBattleCard.BERSERKER_BLADE_ASSAULT.count("blasts")).append("次半径")
+                    .append(number(blastRadius)).append("格血气爆炸（每次为强化爆炸的").append(number(TowerBattleCard.BERSERKER_BLADE_ASSAULT.value("ratio")))
+                    .append("%），冷却降低").append(number(TowerBattleCard.BERSERKER_BLADE_ASSAULT.value("cooldown"))).append("%。");
             }else if(hasThrow){
-                sb.append("职业神话 · 飞血巨刃：脱手向前投掷飞行12格巨型血剑，穿透沿途敌人并在首个目标或终点必定引发半径")
-                    .append(number(blastRadius)).append("格强化爆炸（爆炸范围+50%、爆炸伤害+40%）。");
+                sb.append("职业神话 · 飞血巨刃：脱手向前投掷飞行").append(number(TowerBattleCard.BERSERKER_BLADE_THROW.value("range")))
+                    .append("格巨型血剑，穿透沿途敌人并在首个目标或终点必定引发半径")
+                    .append(number(blastRadius)).append("格强化爆炸（爆炸范围+").append(number(TowerBattleCard.BERSERKER_BLADE_THROW.value("radius")))
+                    .append("%、爆炸伤害+").append(number(TowerBattleCard.BERSERKER_BLADE_THROW.value("damage"))).append("%）。");
             }else if(hasAssault){
-                sb.append("职业神话 · 血刃突袭：附带向前8格高速无敌突进穿刺，命中后连续引发2次半径")
-                    .append(number(blastRadius)).append("格血气爆炸（每次造成原爆炸75%伤害），冷却降低20%。");
+                sb.append("职业神话 · 血刃突袭：附带向前").append(number(TowerBattleCard.BERSERKER_BLADE_ASSAULT.value("dash")))
+                    .append("格高速无敌突进穿刺，命中后连续引发").append(TowerBattleCard.BERSERKER_BLADE_ASSAULT.count("blasts")).append("次半径")
+                    .append(number(blastRadius)).append("格血气爆炸（每次造成原爆炸").append(number(TowerBattleCard.BERSERKER_BLADE_ASSAULT.value("ratio")))
+                    .append("%伤害），冷却降低").append(number(TowerBattleCard.BERSERKER_BLADE_ASSAULT.value("cooldown"))).append("%。");
             }else{
                 sb.append("动作：前方6格突刺，命中后半径").append(number(blastRadius)).append("格爆炸。");
             }
@@ -271,10 +290,12 @@ final class CareerSkillDescriptions {
             StringBuilder sb=new StringBuilder("动作：在身前持血剑蓄势0.25秒，然后前跳6格下劈，落地后周围喷射血柱。\n范围：半径")
                 .append(number(range)).append("格，下砸加").append(hits).append("段喷发。\n生命代价：最大生命8%。");
             if(hasCard(TowerBattleCard.BERSERKER_ERUPTION_QUAKE)){
-                sb.append("\n职业神话 · 裂地血崩：范围提高60%，伤害提高50%。");
+                sb.append("\n职业神话 · 裂地血崩：范围提高").append(number(TowerBattleCard.BERSERKER_ERUPTION_QUAKE.value("range")))
+                    .append("%，伤害提高").append(number(TowerBattleCard.BERSERKER_ERUPTION_QUAKE.value("damage"))).append("%。");
             }
             if(hasCard(TowerBattleCard.BERSERKER_ERUPTION_PILLARS)){
-                sb.append("\n职业神话 · 集束血柱：血柱喷发段数+6段，范围缩小30%。");
+                sb.append("\n职业神话 · 集束血柱：血柱喷发段数+").append(TowerBattleCard.BERSERKER_ERUPTION_PILLARS.count("extra"))
+                    .append("段，范围缩小").append(number(TowerBattleCard.BERSERKER_ERUPTION_PILLARS.value("shrink"))).append("%。");
             }
             return sb.toString();
         });

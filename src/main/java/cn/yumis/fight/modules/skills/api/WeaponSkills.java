@@ -59,9 +59,10 @@ public final class WeaponSkills {
     public static double dragonWhirlwindDamageRatio(){
         return TowerBattleCard.SM_DRAGON_WHIRLWIND.ratio("damage");
     }
-    public static double risingDragonSlayRushCoeff(double baseDamage){return baseDamage*0.60;}
-    public static double risingDragonSlayUpperCoeff(double baseDamage){return baseDamage*0.70;}
-    public static double risingDragonSlaySlamCoeff(double baseFinisher){return baseFinisher*(5.0/3.0);}
+    private static double risingDragonSlayScale(){return (1.0+TowerBattleCard.SM_RISING_DRAGON_SLAY.ratio("bonus"))*0.5;}
+    public static double risingDragonSlayRushCoeff(double baseDamage){return baseDamage*0.60*risingDragonSlayScale();}
+    public static double risingDragonSlayUpperCoeff(double baseDamage){return baseDamage*0.70*risingDragonSlayScale();}
+    public static double risingDragonSlaySlamCoeff(double baseFinisher){return baseFinisher*(5.0/3.0)*risingDragonSlayScale();}
     public static String skillTitle(SkillDefinition skill,Stats stats){
         if(skill==SkillCatalog.RISING&&TowerBattleCard.SM_RISING_DRAGON_SLAY.held(stats))return "破军斩龙击";
         return skill.title;

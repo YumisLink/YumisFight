@@ -1424,7 +1424,7 @@ public final class WitchClient {
         if (shatteredFreezeUntil.getOrDefault(e.getUUID(), 0L) == freezeUntil) return;
         shatteredFreezeUntil.put(e.getUUID(), freezeUntil);
 
-        double shatterCoeff = m.cast.parameters.get("finisher", 36.0);
+        double shatterCoeff = m.cast.parameters.get("finisher", 36.0) * TowerBattleCard.WITCH_DRILL.ratio("shatter");
         int elem = m.element < 0 ? 2 : m.element;
         MageClient.INSTANCE.issueElementalist(m.cast, e, shatterCoeff, elem, 0.0, "", "shatter_" + (++shatterSequence),
             ElementAccumulation.Kind.FREEZE.id);

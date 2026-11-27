@@ -368,7 +368,7 @@ public final class BattleMageRules {
                 result.mut(Stat.PHYSICAL_ATTACK, dual);
                 result.mut(Stat.MAGICAL_ATTACK, dual);
                 result.extra(Stat.ATTACK_SPEED, 8.0);
-                result.mut(Stat.COOLDOWN_RECOVERY, clubCdRecovery(gRank) * (niu ? 2.0 : 1.0));
+                result.mut(Stat.COOLDOWN_RECOVERY, clubCdRecovery(gRank) * (niu ? 1.0 + TowerBattleCard.BM_NIU_MASTERY.ratio("mastery") : 1.0));
                 result.modifiers.put("bmAutoChaserScale", gp.get("clubAutoChaserScale", 0.80));
                 result.modifiers.put("bmChaserRadiusScale", gp.get("clubChaserRadiusScale", 1.15));
             } else if ("STAFF".equals(w) || "WAND".equals(w)) {

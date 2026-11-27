@@ -99,8 +99,8 @@ public final class OracleClient {
     public OracleRules.CastResult prepare(CareerState next,SkillDefinition skill,Stats stats,long now){
         return OracleRules.resolveCast(next.oracle,state().progress(),skill,stats,now);
     }
-    public void onAfterCooldownPlaced(OracleState next,Map<String,Long> cooldowns,String castSkillId,boolean fulfilledInstruction,Stats stats,long now){
-        OracleRules.resetSmallSkillCooldown(next,cooldowns,castSkillId,fulfilledInstruction,stats,now,random);
+    public void onAfterCooldownPlaced(OracleState next,Map<String,Long> cooldowns,String castSkillId,boolean fulfilledInstruction,Stats stats,long now,long wall){
+        OracleRules.resetSmallSkillCooldown(next,cooldowns,castSkillId,fulfilledInstruction,stats,now,wall,random);
     }
     public SkillParameters.Snapshot parameters(SkillParameters.Snapshot input,Stats stats,CareerState next,int resolvedReplicaStacks,long now){
         if(!OracleSkills.contains(input.skill().id))return input;var values=new LinkedHashMap<>(input.values());

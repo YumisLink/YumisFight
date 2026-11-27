@@ -187,7 +187,7 @@
       "healthGrade": "S",
       "healthScale": 1.0,
       "attackGrade": "B",
-      "magicalDefenseBase": 1800.0,
+      "magicalDefenseBase": 4500.0,
       "resists": [
         0.0,
         -15.0,
@@ -199,7 +199,7 @@
         "FIRE_RESIST": -15.0,
         "ICE_RESIST": 90.0,
         "DARK_RESIST": 0.0,
-        "MAGICAL_DEFENSE_BASE": 1800.0,
+        "MAGICAL_DEFENSE_BASE": 4500.0,
         "ENCOUNTER_LIVES": 2,
         "PHASE2_ATTACK_MULTIPLIER": 1.5,
         "PHASE2_SPIKE_MULTIPLIER": 1.3,

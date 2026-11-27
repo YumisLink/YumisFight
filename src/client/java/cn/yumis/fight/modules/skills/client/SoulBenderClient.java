@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.skills.client;
 
 import cn.yumis.fight.modules.combat.api.ActionStatus;
 import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
+import cn.yumis.fight.modules.dungeons.api.TowerCardEffects;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.modules.skills.api.*;
 import cn.yumis.fight.modules.skills.api.client.SkillController;
@@ -123,12 +124,17 @@ public final class SoulBenderClient {
     private static final List<DetachedTombstone> tombstones = new ArrayList<>();
     private static final List<PiercingWave> waves = new ArrayList<>();
     private static final List<PendingRift> rifts = new ArrayList<>();
+    private static final Set<String> riftSpawnedSegments = new HashSet<>();
     private static long nextGhostStepAt;
     private static int riftCounter;
 
     private SoulBenderClient() {}
 
     private static SkillsClient state() { return SkillsClient.current(); }
+
+    public static void resetCooldowns() {
+        nextGhostStepAt = 0;
+    }
 
     public static void clear() {
         for (var t : tombstones) {
@@ -146,6 +152,7 @@ public final class SoulBenderClient {
         tombstones.clear();
         waves.clear();
         rifts.clear();
+        riftSpawnedSegments.clear();
         nextGhostStepAt = 0;
         riftCounter = 0;
     }
@@ -218,12 +225,15 @@ public final class SoulBenderClient {
         emitWaveVisual(wave, "RELEASE");
     }
 
-    /** Schedules a delayed dimensional rift detonation on an enemy hit by Phantom Slash (次元断空). */
+    /** Schedules a delayed dimensional rift detonation on the first enemy hit per Phantom Slash dash (次元断空). */
     public static void schedulePhantomRift(SkillCast source, LivingEntity target) {
         var mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null || source == null || target == null) return;
         if (!source.skill.id.equals(CareerSkills.PHANTOM) || source.hitIndex >= RIFT_HIT_INDEX_BASE) return;
         if (!TowerBattleCard.SB_PHANTOM_RIFT.held(source.stats)) return;
+        String dashKey = source.id + "#" + source.hitIndex;
+        if (riftSpawnedSegments.size() > 256) riftSpawnedSegments.clear();
+        if (!riftSpawnedSegments.add(dashKey)) return;
         double coeff = SoulBenderRules.phantomRiftBurstCoefficient(source.parameters);
         if (!(coeff > 0)) return;
         long now = ClientUi.now();
@@ -253,7 +263,7 @@ public final class SoulBenderClient {
         if (SkillLearning.effective(stats, state().progress(), SkillCatalog.require(CareerSkills.KEIGA)) <= 0) return;
         long now = ClientUi.now();
         if (now < nextGhostStepAt) return;
-        nextGhostStepAt = now + Math.max(100L, TowerBattleCard.SB_GHOST_STEP.millis("cooldown"));
+        nextGhostStepAt = now + Math.max(100L, TowerCardEffects.cooldownMillis(stats, TowerBattleCard.SB_GHOST_STEP.millis("cooldown")));
 
         long invulnMs = Math.max(50L, TowerBattleCard.SB_GHOST_STEP.millis("invuln"));
         SkillController.INSTANCE.acquireStatus("sb/ghost_step", ActionStatus.INVULNERABLE, now + invulnMs);

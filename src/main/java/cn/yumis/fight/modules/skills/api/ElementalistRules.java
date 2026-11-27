@@ -286,7 +286,9 @@ public final class ElementalistRules {
 
     public static double voidCrystalFinisher(SkillParameters.Snapshot parameters, Stats stats) {
         if (parameters == null || !TowerBattleCard.ELEM_VOID_CRYSTAL.held(stats)) return 0.0;
-        return voidSphereTicks(parameters) * parameters.get("damage", 0.0) * (0.50 / 1.30);
+        double bonus = TowerBattleCard.ELEM_VOID_CRYSTAL.ratio("damage");
+        double tickMul = 1.0 + bonus * 0.40;
+        return voidSphereTicks(parameters) * parameters.get("damage", 0.0) * ((bonus * 0.60) / tickMul);
     }
 
     public static int effectiveMorphMode(String skillId, SkillParameters.Snapshot parameters, Stats stats) {

@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.attributes.api.Stats;
 import cn.yumis.fight.modules.character.api.*;
 import cn.yumis.fight.modules.combat.api.CombatBalanceRules;
 import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
+import cn.yumis.fight.modules.dungeons.api.TowerCardEffects;
 import java.util.*;
 import java.util.random.RandomGenerator;
 
@@ -81,10 +82,11 @@ public final class OracleRules {
         if(skill.id.equals(OracleSkills.REPLICA)&&!canCastReplica(stats,progress,state))throw new IllegalArgumentException("至少需要一层代行-赫尔墨斯");
         int stacks=skill.id.equals(OracleSkills.REPLICA)?replicaStacks(stats,progress,beforeHermes):0;
         if(rank>0&&succeed(state,progress,skill,stats,rank,now))return new CastResult(CastMode.INSTRUCTION,stacks);
-        if(rank>0&&TowerBattleCard.ORACLE_HERMES_SURGE.held(stats)&&!skill.passive()&&SkillBalanceRules.current().damaging(skill)){
+        if(rank>0&&TowerBattleCard.ORACLE_HERMES_SURGE.held(stats)&&!skill.passive()&&SkillBalanceRules.current().damaging(skill)&&now>=state.hermesSurgeReadyAt){
             int cost=TowerBattleCard.ORACLE_HERMES_SURGE.count("cost");
             if(state.hermes>=cost){
                 state.hermes=Math.max(0,state.hermes-cost);
+                state.hermesSurgeReadyAt=now+Math.max(0L,TowerCardEffects.cooldownMillis(stats,TowerBattleCard.ORACLE_HERMES_SURGE.millis("cooldown")));
                 if(state.hermes==0)state.hermesUntil=0;
                 else if(state.hermesUntil<=now)state.hermesUntil=now+30000;
                 if(state.hermes<9&&OracleSkills.REPLICA.equals(state.instruction)&&state.instructionUntil==0){
@@ -136,8 +138,9 @@ public final class OracleRules {
         if(boss)seconds/=TowerBattleCard.ORACLE_BLUNT_QUAKE.value("bossdivisor");
         return Math.max(1,(int)Math.round(seconds*20));
     }
-    public static String resetSmallSkillCooldown(OracleState state,Map<String,Long> cooldowns,String castSkillId,boolean fulfilledInstruction,Stats stats,long now,RandomGenerator random){
+    public static String resetSmallSkillCooldown(OracleState state,Map<String,Long> cooldowns,String castSkillId,boolean fulfilledInstruction,Stats stats,long now,long wall,RandomGenerator random){
         if(!TowerBattleCard.ORACLE_CYCLE_RESET.held(stats)||!OracleSkills.ACTIONS.contains(castSkillId))return "";
+        if(wall<state.cycleResetReadyAt)return "";
         var others=new ArrayList<String>();
         boolean selfCooling=false;
         for(String id:OracleSkills.ACTIONS){
@@ -149,6 +152,7 @@ public final class OracleRules {
         String picked=!others.isEmpty()?others.get(random.nextInt(others.size())):selfCooling?castSkillId:"";
         if(picked.isEmpty())return "";
         cooldowns.remove(picked);
+        state.cycleResetReadyAt=wall+Math.max(0L,TowerCardEffects.cooldownMillis(stats,TowerBattleCard.ORACLE_CYCLE_RESET.millis("cooldown")));
         if(fulfilledInstruction&&state.hermes<9)state.nextForcedInstruction=picked;
         return picked;
     }

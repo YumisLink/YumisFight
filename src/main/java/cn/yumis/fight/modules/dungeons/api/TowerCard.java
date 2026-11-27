@@ -19,38 +19,47 @@ import static cn.yumis.fight.modules.dungeons.api.TowerCardEffects.*;
 /** An individual card offered by the climb. Its passive changes a fresh local snapshot. */
 public record TowerCard(String id, String name, Rarity rarity, RichText description, Consumer<Stats> passive,
                         Function<RandomGenerator, TowerCard> binding, String variant, String variantTitle, String job) {
+    public static final String MILK_ID = "milk";
+    public static final String RELIABLE_WEAPON_ID = "reliable_weapon";
     private static final List<String> VALUE_COLOR = List.of("#77BDFF");
-    private static final double RELIABLE_WEAPON_BONUS = 30;
+    private static final double RELIABLE_WEAPON_BONUS = 22;
+    static final String CUTTING_EDGE_INVENTOR_ID = "cutting_edge_inventor";
     private static final List<TowerCard> CARDS = List.of(
-        strongShield(30, 50),
+        strongShield(30, 65),
         strength(20),
-        agility(60),
+        agility(40),
         bloodthirst(1),
         eureka(1),
-        modifier("giant_slayer", "巨人杀手", Rarity.MYTHIC, HIGHER_LIFE, 80,
+        modifier("giant_slayer", "巨人杀手", Rarity.MYTHIC, HIGHER_LIFE, 90,
             text("对生命百分比高于自己的敌人，伤害提高 ")),
-        goliath(200, 100, 15),
-        madScientist(15, 35),
-        inventor(50),
-        totalDamage("sniper", "狙神", Rarity.EPIC, DISTANT_HIT, 30,
+        goliath(25, 100, 13),
+        madScientist(8, 28),
+        inventor(45),
+        totalDamage("sniper", "狙神", Rarity.EPIC, DISTANT_HIT, 25,
             text("命中超过 "), value(SNIPER_RANGE, " 格"), text(" 的敌人时，伤害总增 ")),
         modifier("start_to_finish", "有始有终", Rarity.EPIC, FULL_LIFE, 100,
             text("命中满血敌人时，伤害提高 ")),
-        modifier("critical_hit", "关键暴击", Rarity.EPIC, "crit", 20, text("暴击率提高 ")),
-        astralBody(200, 10),
-        penetration(18),
-        repeatingCycle(60),
-        swiftStrike(.5),
-        killingIntent(20),
-        heavyHitter(1),
-        totalDamage("wizard_thinking", "巫师式思考", Rarity.COMMON, SPELL_DAMAGE, 20, text("法术伤害总增 ")),
-        modifier("mind_over_matter", "由心及物", Rarity.COMMON, HEALTH_FROM_MANA, 100,
+        modifier("critical_hit", "关键暴击", Rarity.EPIC, "crit", 25, text("暴击率提高 ")),
+        astralBody(170, 10),
+        penetration(30),
+        repeatingCycle(38),
+        swiftStrike(.6),
+        killingIntent(24),
+        heavyHitter(0.6),
+        totalDamage("wizard_thinking", "巫师式思考", Rarity.COMMON, SPELL_DAMAGE, 8, text("法术伤害总增 ")),
+        modifier("mind_over_matter", "由心及物", Rarity.COMMON, HEALTH_FROM_MANA, 80,
             text("增加最大生命，数值为角色基础魔力的 "))
     );
     static final TowerCard MILK = card("milk", "牛奶", Rarity.COMMON, stats -> stats.mut(Stat.HEALTH, .10),
         text("最大生命提高 "), percent(10));
 
-    public record Reference(String id, String variant, String variantTitle) {}
+    public record Reference(String id, String variant, String variantTitle) {
+        public Reference {
+            id = id == null ? "" : id;
+            variant = variant == null ? "" : variant;
+            variantTitle = variantTitle == null ? "" : variantTitle;
+        }
+    }
 
     public enum Rarity {
         COMMON(20), RARE(30), EPIC(30), MYTHIC(20);
@@ -99,8 +108,45 @@ public record TowerCard(String id, String name, Rarity rarity, RichText descript
         return List.copyOf(cards);
     }
 
+    public static List<TowerCard> catalog() {
+        var cards = new ArrayList<TowerCard>(CARDS.size() + 2 + TowerBattleCard.values().length);
+        cards.addAll(CARDS);
+        cards.add(MILK);
+        cards.add(reliableWeapon(Weapon.standard()));
+        cards.addAll(TowerBattleCard.catalog());
+        return List.copyOf(cards);
+    }
+
     public static List<TowerCard> careerMythics(String jobId) {
         return TowerBattleCard.careerMythics(jobId);
+    }
+
+    public static TowerCard milkCard() {
+        return MILK;
+    }
+
+    public static TowerCard reliableWeapon(Weapon weapon) {
+        return boundWeapon(Objects.requireNonNull(weapon));
+    }
+
+    public static TowerCard bindSkill(String cardId, String skillId, String skillTitle) {
+        var battle = TowerBattleCard.find(cardId);
+        if (battle == null || battle.binding() == TowerBattleCard.Binding.NONE) {
+            throw new IllegalArgumentException("该卡牌不需要绑定技能：" + cardId);
+        }
+        if (skillId == null || skillId.isBlank() || skillTitle == null || skillTitle.isBlank()) {
+            throw new IllegalArgumentException("绑定技能不能为空");
+        }
+        return battle.bound(skillId, skillTitle);
+    }
+
+    public boolean requiresWeaponBinding() {
+        return RELIABLE_WEAPON_ID.equals(id);
+    }
+
+    public TowerBattleCard.Binding skillBinding() {
+        var battle = TowerBattleCard.find(id);
+        return battle == null ? TowerBattleCard.Binding.NONE : battle.binding();
     }
 
     TowerCard bind(RandomGenerator random) {
@@ -111,15 +157,23 @@ public record TowerCard(String id, String name, Rarity rarity, RichText descript
         return this == MILK;
     }
 
-    Reference reference() {
+    public Reference reference() {
         return new Reference(id, variant, variantTitle);
     }
 
-    static TowerCard restore(Reference reference) {
+    public static TowerCard restore(Reference reference) {
+        if (reference == null || reference.id() == null || reference.id().isEmpty()) {
+            throw new IllegalArgumentException("无效的塔卡引用");
+        }
+        String variant = reference.variant() == null ? "" : reference.variant();
+        String variantTitle = reference.variantTitle() == null ? "" : reference.variantTitle();
         if (reference.id().equals(MILK.id())) return MILK;
-        if (reference.id().equals("reliable_weapon")) return boundWeapon(Weapon.valueOf(reference.variant()));
+        if (reference.id().equals(RELIABLE_WEAPON_ID)) {
+            if (variant.isEmpty()) throw new IllegalArgumentException("可靠武器缺少绑定的武器类型");
+            return boundWeapon(Weapon.valueOf(variant));
+        }
         for (var card : CARDS) if (card.id().equals(reference.id())) return card;
-        return TowerBattleCard.restore(reference);
+        return TowerBattleCard.restore(new Reference(reference.id(), variant, variantTitle));
     }
 
     private static TowerCard reliableWeapon(List<Weapon> weapons) {
@@ -157,7 +211,7 @@ public record TowerCard(String id, String name, Rarity rarity, RichText descript
     }
 
     private static TowerCard inventor(double reduction) {
-        return card("cutting_edge_inventor", "尖端发明家", Rarity.EPIC,
+        return card(CUTTING_EDGE_INVENTOR_ID, "尖端发明家", Rarity.EPIC,
             stats -> more(stats, CARD_COOLDOWN, -reduction / 100),
             text("卡牌自身的冷却时间总降 "), percent(reduction));
     }

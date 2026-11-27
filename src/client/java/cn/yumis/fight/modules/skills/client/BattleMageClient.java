@@ -632,7 +632,8 @@ public final class BattleMageClient {
         for (int i = 0; i < overflow.size(); i++) {
             var chaser = overflow.get(i);
             boolean isTeanaOrb = teanaActive || chaser.teana;
-            double coeff = BattleMageRules.chaserCoefficient(params, chaser.type, isTeanaOrb, teanaScale);
+            double coeff = BattleMageRules.chaserCoefficient(params, chaser.type, isTeanaOrb, teanaScale)
+                * TowerBattleCard.BM_CHASER_OVERFLOW.ratio("overflow");
             BattleMageRules.applyChaserBuff(s, chaser.type, params, wall);
 
             var orb = new ChaserOrb();
@@ -720,8 +721,11 @@ public final class BattleMageClient {
         boolean finisherHit = basicStep == 0;
         boolean teanaEvenHit = teana && basicStep == 2;
         boolean clubNiu = "CLUB".equals(stats.weaponType) && TowerBattleCard.BM_NIU_MASTERY.held(stats);
+        double clubNiuChance = clubNiu ? TowerBattleCard.BM_NIU_MASTERY.ratio("basicchance") : 0.0;
         double extraChance = gp.get("basicChaserChance", 0.0);
-        if (finisherHit || teanaEvenHit || clubNiu || (extraChance > 0 && RNG.nextDouble() < extraChance)) {
+        if (finisherHit || teanaEvenHit
+            || (clubNiuChance > 0 && RNG.nextDouble() < clubNiuChance)
+            || (extraChance > 0 && RNG.nextDouble() < extraChance)) {
             grantChasers(1, stats, progress, wall);
             schedulePublish();
         }

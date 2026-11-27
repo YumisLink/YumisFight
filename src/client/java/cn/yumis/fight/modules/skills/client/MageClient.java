@@ -47,7 +47,7 @@ public final class MageClient {
             PlayerPoseChannel.begin(cast);
             starter.start().accept(cast);
             if(starter.releaseAtStart())PlayerPoseChannel.release(cast);
-            if(SunMoonSkills.contains(cast.skill.id)){var view=CareerClient.INSTANCE.view;view.sunMoon=SunMoonRules.released(view.sunMoon,cast.skill,cast.parameters.rank(),SkillsClient.current().progress().awakened(),cast.parameters,cast.stats);CareerClient.INSTANCE.publish();}
+            if(SunMoonSkills.contains(cast.skill.id)){var view=CareerClient.INSTANCE.view;long wallNow=SkillsClient.current().serverNow();view.sunMoon=SunMoonRules.released(view.sunMoon,cast.skill,cast.parameters.rank(),SkillsClient.current().progress().awakened(),cast.parameters,cast.stats,wallNow);SunMoonClient.onSkillReleased(cast);CareerClient.INSTANCE.publish();}
             if(ElementalistSkills.contains(cast.skill.id)||(MageSkills.contains(cast.skill.id)&&SkillsClient.current().progress().hasJob(cn.yumis.fight.modules.character.api.JobCatalog.ELEMENTALIST))){
                 var view=CareerClient.INSTANCE.view;
                 view.elementalist=ElementalistRules.onSkillReleased(view.elementalist,cast.skill,SkillsClient.current().progress(),cast.stats,SkillsClient.current().serverNow());
@@ -89,7 +89,6 @@ public final class MageClient {
         if(j.has("kind")){
             String kind=j.get("kind").getAsString();
             if(kind.equals("FRENZY")){frenzyUntil=j.get("until").getAsLong();return;}
-            if(kind.equals("RESONANCE")){SummonerClient.resonanceUntil=j.get("until").getAsLong();return;}
             String source=j.get("source").getAsString();
             if(j.get("until").getAsLong()>0){
                 var old=army.get(source);

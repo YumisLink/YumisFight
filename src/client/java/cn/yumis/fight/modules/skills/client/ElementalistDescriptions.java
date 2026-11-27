@@ -62,7 +62,9 @@ final class ElementalistDescriptions {
                     .append(number(TowerBattleCard.ELEM_BURN_FOCUS.value("duration"))).append("秒。");
             }
             if (hasCard(TowerBattleCard.ELEM_BURN_PRISM)) {
-                sb.append("\n职业神话 · 圣灵万象：所有技能变为四元素属性，施放任意元素技能同时点亮全部4灯，且特效进化为圣灵色。");
+                sb.append("\n职业神话 · 圣灵万象：所有技能变为四元素属性，施放任意元素技能同时点亮全部4灯，且特效进化为圣灵色；技能额外魔力消耗+")
+                    .append(number(TowerBattleCard.ELEM_BURN_PRISM.value("mana"))).append("%，多元素转化异常积累按")
+                    .append(number(TowerBattleCard.ELEM_BURN_PRISM.value("buildup"))).append("%分摊。");
             }
             return sb.toString();
         });
@@ -119,7 +121,9 @@ final class ElementalistDescriptions {
             }
             if (hasCard(TowerBattleCard.ELEM_VORTEX_CHAIN)) {
                 sb.append("\n职业神话 · 连锁高压弧：感电异常积累+")
-                    .append(number(TowerBattleCard.ELEM_VORTEX_CHAIN.value("buildup"))).append("%，命中向周围")
+                    .append(number(TowerBattleCard.ELEM_VORTEX_CHAIN.value("buildup"))).append("%，冷却+")
+                    .append(number(TowerBattleCard.ELEM_VORTEX_CHAIN.value("cd"))).append("%，总伤害+")
+                    .append(number(TowerBattleCard.ELEM_VORTEX_CHAIN.value("bonus"))).append("%，命中向周围")
                     .append(number(TowerBattleCard.ELEM_VORTEX_CHAIN.value("range"))).append("格最多")
                     .append(TowerBattleCard.ELEM_VORTEX_CHAIN.count("targets")).append("名敌人弹射高压电弧（")
                     .append(number(TowerBattleCard.ELEM_VORTEX_CHAIN.value("damage"))).append("%伤害）。");

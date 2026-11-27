@@ -79,6 +79,12 @@ public final class ElementAccumulation {
         finite(ratio);if(ratio<0)throw new IllegalArgumentException("积累比例不可为负");
         String key=conversion(damageElement,buildup);stats.modifiers.put(key,stats.modifiers.getOrDefault(key,0d)+ratio);
     }
+    /** Scales elemental buildup rate for a single hit without altering damage components. */
+    public static void scaleBuildup(Stats stats,double factor){
+        finite(factor);if(factor<0)throw new IllegalArgumentException("积累倍率不可为负");
+        stats.modifiers.put(SCALE_KEY,stats.modifiers.getOrDefault(SCALE_KEY,1d)*factor);
+    }
+    private static final String SCALE_KEY="elementAccumulation/scale";
     private static String conversion(int element,Kind kind){return "elementAccumulation/"+element+"/"+kind.id;}
     /** Fractions include untyped, light, fire, ice and dark, all normalized to the same target maximum. */
     public static double[] fractions(double[] components,double maximum){
@@ -96,6 +102,8 @@ public final class ElementAccumulation {
         double threshold=e.threshold();
         long resistanceWindow=e.resistanceWindowMs();
         double resistanceBuildup=e.resistanceBuildupMultiplier();
+        double buildupScale=source==null?1d:source.modifiers.getOrDefault(SCALE_KEY,1d);
+        finite(buildupScale);if(buildupScale<0)throw new IllegalArgumentException("积累倍率不可为负");
         for(Kind kind:Kind.values()){
             int index=kind.ordinal();if(next.until[index]>now)continue;
             double amount=components[index+1];
@@ -103,6 +111,7 @@ public final class ElementAccumulation {
                 double ratio=source.modifiers.getOrDefault(conversion(element,kind),0d);finite(ratio);
                 if(ratio<0)throw new IllegalArgumentException("积累比例不可为负");amount+=components[element+1]*ratio;
             }
+            amount*=buildupScale;
             if(enemy&&now<next.resistanceUntil[index])amount*=resistanceBuildup;
             next.buildup[index]+=amount*acceptedScale;finite(next.buildup[index]);
             if(next.buildup[index]+Math.ulp(threshold)*8<threshold)continue;

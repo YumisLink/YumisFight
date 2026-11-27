@@ -13,7 +13,7 @@ public final class CareerHud {
     private CareerHud(){}
     public static void render(GuiGraphicsExtractor g,int center,int y){
         var state=SkillsClient.current();var v=CareerClient.INSTANCE.view;long now=state.serverNow();String text="";int color=0xffc38be5;
-        if(state.progress().hasJob(JobCatalog.SOUL_BENDER)&&v.field!=null)text="鬼阵 Lv."+v.field.rank+" · "+cn.yumis.fight.modules.skills.api.CareerSkills.ghosts(v.field.rank)+"鬼  "+seconds(v.field.expires-now)+"秒";
+        if(state.progress().hasJob(JobCatalog.SOUL_BENDER)&&v.field!=null)text="鬼阵 Lv."+v.field.rank+" · "+cn.yumis.fight.modules.skills.api.CareerSkills.ghosts(v.field.rank,v.field.follow)+"鬼  "+seconds(v.field.expires-now)+"秒";
         if(state.progress().hasJob(JobCatalog.BERSERKER)){text=v.frenzy?"血之狂暴 · "+(state.predicted(state.own())<=.4?"低血强化20%":state.predicted(state.own())<=.7?"低血强化10%":"双刀开启"):"双刀关闭";color=0xffee7d88;}
         if(text.isBlank())return;var font=UiFonts.font();int width=font.width(text)+12;UiTheme.hud(g,center-width/2,y,(center+width/2)-(center-width/2),(y+14)-(y));g.text(font,text,center-width/2+6,y+3,color,true);
     }

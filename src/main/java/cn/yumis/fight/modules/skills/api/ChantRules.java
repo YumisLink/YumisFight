@@ -8,5 +8,13 @@ import net.minecraft.world.entity.ai.attributes.*;
 public final class ChantRules {
     private static final Identifier SLOW=Identifier.parse("yumis_dungeon_and_fight:chant_movement");
     private ChantRules(){}
-    public static void movement(LivingEntity actor,boolean active){var attribute=actor.getAttribute(Attributes.MOVEMENT_SPEED);if(attribute==null)return;if(active){if(!attribute.hasModifier(SLOW))attribute.addTransientModifier(new AttributeModifier(SLOW,-.8,AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));}else attribute.removeModifier(SLOW);}
+    public static void movement(LivingEntity actor,boolean active){movement(actor,active,.2);}
+    public static void movement(LivingEntity actor,boolean active,double keepRatio){
+        var attribute=actor.getAttribute(Attributes.MOVEMENT_SPEED);if(attribute==null)return;
+        attribute.removeModifier(SLOW);
+        if(active){
+            double clamped=Math.clamp(keepRatio,0,1);
+            if(clamped<1)attribute.addTransientModifier(new AttributeModifier(SLOW,clamped-1d,AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+        }
+    }
 }

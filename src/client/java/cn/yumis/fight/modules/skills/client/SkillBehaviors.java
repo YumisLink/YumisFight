@@ -280,12 +280,12 @@ public final class SkillBehaviors {
             var timeline=ActionTimeline.<Step>builder()
                 .at(40L,"meteor_rise_hit",s->{
                     s.cast().hit.clear();s.cast().hitIndex=0;
-                    s.context().slash(s.cast(),3.4,3.2,3.4,s.cast().parameters.get("damage",11.5),.35,false);
+                    s.context().slash(s.cast(),3.4,3.2,3.4,s.cast().parameters.get("damage",7.475),.35,false);
                     s.context().visual(s.cast(),"HIT");
                 })
                 .at(tFin,"meteor_rise_apex",s->{
                     s.cast().finisher=true;s.cast().hit.clear();s.cast().hitIndex=1;
-                    s.context().slash(s.cast(),s.cast().parameters.get("range",4.2),3.4,4.2,s.cast().parameters.get("finisher",13.5),.5,false);
+                    s.context().slash(s.cast(),s.cast().parameters.get("range",4.2),3.4,4.2,s.cast().parameters.get("finisher",8.775),.5,false);
                     s.context().visual(s.cast(),"RELEASE");
                     if(s.cast().stats.weaponType.equals("SHORTSWORD"))s.context().passive(s.cast());
                     PlayerPoseChannel.release(s.cast());
@@ -313,13 +313,13 @@ public final class SkillBehaviors {
             var timeline=ActionTimeline.<Step>builder()
                 .at(60L,"meteor_leap_rush",s->{
                     s.cast().hit.clear();s.cast().hitIndex=0;
-                    s.context().slash(s.cast(),3.2,3.0,3.0,s.cast().parameters.get("damage",9.0),.25,false);
+                    s.context().slash(s.cast(),3.2,3.0,3.0,s.cast().parameters.get("damage",5.85),.25,false);
                     s.context().visual(s.cast(),"HIT");
                 })
                 .at(tLand,"meteor_leap_plunge",s->{
                     s.cast().finisher=true;s.cast().hit.clear();s.cast().hitIndex=1;
                     s.cast().center=s.context().player().position().add(s.cast().direction.scale(1.6));
-                    s.context().area(s.cast(),s.cast().parameters.get("range",4.4),s.cast().parameters.get("finisher",18.5),false);
+                    s.context().area(s.cast(),s.cast().parameters.get("range",4.4),s.cast().parameters.get("finisher",12.025),false);
                     s.context().visual(s.cast(),"RELEASE");
                     if(s.cast().stats.weaponType.equals("SHORTSWORD"))s.context().passive(s.cast());
                     PlayerPoseChannel.release(s.cast());
@@ -347,7 +347,7 @@ public final class SkillBehaviors {
                 c.hit.clear();
                 c.hitIndex=c.slashes;
                 boolean last=c.slashes==total-1;
-                x.slash(c,c.parameters.get("range",5.4),2.4,2.6,c.parameters.get("damage",8.4),last?.4:.15,false);
+                x.slash(c,c.parameters.get("range",5.4),2.4,2.6,c.parameters.get("damage",5.46),last?.4:.15,false);
                 x.visual(c,last?"RELEASE":"HIT");
                 if(last){
                     if(c.stats.weaponType.equals("SHORTSWORD"))x.passive(c);

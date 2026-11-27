@@ -111,8 +111,9 @@ final class WitchDescriptions {
             var p = c.parameters();
             if (hasCard(TowerBattleCard.WITCH_FURNACE)) {
                 return "固有属性：火 · 职业神话脱手自动装置。\n"
-                    + "部署爆炎加热炉由使魔自动操作，持续" + number(p.get("duration", 5.60)) + "秒，向半径"
-                    + number(p.get("radius", 7.5)) + "格高速喷射" + (int) Math.round(p.get("slashes", 28.0))
+                    + "部署爆炎加热炉由使魔自动操作，整体伤害降低" + number(TowerBattleCard.WITCH_FURNACE.value("reduction"))
+                    + "%，持续" + number(p.get("duration", 4.80)) + "秒，向半径"
+                    + number(p.get("radius", 7.5)) + "格高速喷射" + (int) Math.round(p.get("slashes", 24.0))
                     + "波熔岩火球，结束引发半径" + number(p.get("blastRadius", 6.5)) + "格炉体终爆；不再能主动苦涩炸炉。";
             }
             return "固有属性：火 · 骑乘装置（霸体＋" + number(p.get("channelProtection", 0.55) * 100.0) + "%减伤）。\n"
@@ -127,7 +128,7 @@ final class WitchDescriptions {
             var p = c.parameters();
             String shatter = hasCard(TowerBattleCard.WITCH_DRILL)
                 ? "\n职业神话：冻结异常积累提高" + number(TowerBattleCard.WITCH_DRILL.value("buildup"))
-                    + "%；命中冻结目标时立刻结束冻结并对其造成一次钻孔车爆炸破冰伤害。"
+                    + "%；命中冻结目标时立刻结束冻结并对其造成钻孔车终结爆炸" + number(TowerBattleCard.WITCH_DRILL.value("shatter")) + "%的破冰伤害。"
                 : "";
             return "固有属性：冰 · 自由驾驶装置（霸体＋" + number(p.get("channelProtection", 0.60) * 100.0) + "%减伤）。\n"
                 + "驾驶冰霜钻孔车持续" + number(p.get("duration", 3.20)) + "秒，期间可自由移动转向并强力吸附半径"

@@ -363,7 +363,7 @@
   "element": 1,
   "range": 18,
   "width": 0.55,
-  "radius": 4.5,
+  "radius": 4.0,
   "pierces": 1,
   "velocity": 13
  },
@@ -427,9 +427,8 @@
   "id": "fireball_volley",
   "duration": 1050,
   "contacts": [
-   300,
-   500,
-   700
+   320,
+   620
   ],
   "shape": "projectile",
   "element": 1,
@@ -444,14 +443,13 @@
   "duration": 1350,
   "contacts": [
    420,
-   720,
-   1020
+   780
   ],
   "shape": "area",
   "element": 2,
   "range": 16,
   "width": 1,
-  "radius": 3.0,
+  "radius": 2.4,
   "pierces": 128
  },
  {

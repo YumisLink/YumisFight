@@ -48,7 +48,7 @@ public final class CareerRules {
         if(red>0){result.mut(Stat.STRENGTH,red);result.mut(Stat.INTELLIGENCE,red);}
         if(state.eyeUntil>now)result.modifiers.put("careerEyeBonus",state.eyeBonusMut);
         if(ownField)result.modifiers.put("ownGhostField",1d);
-        return DemonHunterRules.current(WitchRules.current(BattleMageRules.current(ElementalistRules.current(SunMoonRules.current(OracleRules.current(result,progress,state.oracle,now),progress,state.sunMoon),progress,state.elementalist,now),progress,state.battleMage,now),progress,state.witch,now),progress,state.demonHunter,now);
+        return DemonHunterRules.current(WitchRules.current(BattleMageRules.current(ElementalistRules.current(SunMoonRules.current(OracleRules.current(result,progress,state.oracle,now),progress,state.sunMoon,now),progress,state.elementalist,now),progress,state.battleMage,now),progress,state.witch,now),progress,state.demonHunter,now);
     }
     public static Stats eyeDamage(Stats source,SkillDefinition skill){
         if(skill==null||!Set.of(SkillCatalog.WAVE.id,CareerSkills.ICE,CareerSkills.FIRE).contains(skill.id))return source;
@@ -80,7 +80,7 @@ public final class CareerRules {
             values.put("interval",base/effectiveOrbs);
         }
         if(id.equals(CareerSkills.SWORD)){double total=source.get("damage",0)+source.get("perBloodDamage",0)*Math.clamp((double)blood,0,Math.max(1,source.get("bloodCap",SkillResourceRules.BLOOD_CAP)));double share=Math.clamp(source.get("swordFirstShare",.3),0,1);int rushes=(int)Math.max(1,source.get("swordRushes",5));values.put("damage",total);values.put("previewDamage",total*(1-share)/rushes);values.put("finisher",total*share);}
-        if(id.equals(CareerSkills.BLACHE))values.put("skillMut",CareerSkills.blacheMut(fieldRank));
+        if(id.equals(CareerSkills.BLACHE))values.put("skillMut",CareerSkills.blacheMut(fieldRank,TowerBattleCard.SB_AURA_FIELD.held(stats)));
         return new SkillParameters.Snapshot(source.skill(),source.rank(),values);
     }
     public static boolean magic(SkillDefinition skill,Progress progress){

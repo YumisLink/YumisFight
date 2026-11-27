@@ -72,6 +72,64 @@ public final class TowerCardDraft {
         cards.stream().map(TowerCard::restore).forEach(chosen::add);
     }
 
+    public static Snapshot creativeApply(Snapshot current, String op, TowerCard.Reference reference, String cardId, String currentJob) {
+        if (current == null || op == null) return current;
+        if (op.equals("clear")) {
+            return new Snapshot(current.offer(), current.revision() + 1, List.of(), Set.of(), current.slots(), current.careerOffer());
+        }
+        if (op.equals("add")) {
+            TowerCard card = TowerCard.restore(reference);
+            if (card.careerMythic() && !card.job().equals(currentJob)) return current;
+            var nextChosen = new ArrayList<>(current.chosen());
+            var nextRemoved = new HashSet<>(current.removed());
+            if (card.milk()) {
+                nextChosen.add(card.reference());
+            } else {
+                var excluded = TowerBattleCard.exclusionsFor(card.id());
+                int existingIndex = -1;
+                for (int i = nextChosen.size() - 1; i >= 0; i--) {
+                    String itemId = nextChosen.get(i).id();
+                    if (excluded.contains(itemId)) nextChosen.remove(i);
+                    else if (itemId.equals(card.id())) existingIndex = i;
+                }
+                if (existingIndex >= 0) nextChosen.set(existingIndex, card.reference());
+                else nextChosen.add(card.reference());
+                nextRemoved.add(card.id());
+                nextRemoved.addAll(excluded);
+            }
+            return new Snapshot(current.offer(), current.revision() + 1, List.copyOf(nextChosen), Set.copyOf(nextRemoved),
+                current.slots(), current.careerOffer());
+        }
+        if (op.equals("remove") && cardId != null && !cardId.isEmpty()) {
+            var nextChosen = new ArrayList<>(current.chosen());
+            boolean removedAny = false;
+            if (TowerCard.MILK_ID.equals(cardId)) {
+                for (int i = nextChosen.size() - 1; i >= 0; i--) {
+                    if (cardId.equals(nextChosen.get(i).id())) {
+                        nextChosen.remove(i);
+                        removedAny = true;
+                        break;
+                    }
+                }
+            } else {
+                removedAny = nextChosen.removeIf(item -> cardId.equals(item.id()));
+            }
+            if (!removedAny) return current;
+            var nextRemoved = new HashSet<>(current.removed());
+            nextRemoved.remove(cardId);
+            nextRemoved.removeAll(TowerBattleCard.exclusionsFor(cardId));
+            for (var item : nextChosen) {
+                if (!TowerCard.MILK_ID.equals(item.id())) {
+                    nextRemoved.add(item.id());
+                    nextRemoved.addAll(TowerBattleCard.exclusionsFor(item.id()));
+                }
+            }
+            return new Snapshot(current.offer(), current.revision() + 1, List.copyOf(nextChosen), Set.copyOf(nextRemoved),
+                current.slots(), current.careerOffer());
+        }
+        return current;
+    }
+
     public boolean open(int checkpoint, List<TowerCard> pool) {
         if (checkpoint != offer + 1 || !slots.isEmpty()) return false;
         var snapshot = List.copyOf(pool);
@@ -238,13 +296,50 @@ public final class TowerCardDraft {
         return result;
     }
 
-    private static Map<Rarity, List<TowerCard>> available(List<TowerCard> pool, Set<String> excluded) {
+    private static final Set<String> DIRECT_DAMAGE_CARDS = Set.of(
+        TowerBattleCard.MERCY.id(),
+        TowerBattleCard.TNT.id(),
+        TowerBattleCard.REFLECT.id(),
+        TowerBattleCard.PORCUPINE.id(),
+        TowerBattleCard.BANG.id(),
+        TowerBattleCard.CLEANSE.id(),
+        TowerBattleCard.FLASH.id(),
+        TowerBattleCard.FIRE.id(),
+        TowerBattleCard.ICE.id(),
+        TowerBattleCard.DARK.id(),
+        TowerBattleCard.LIGHT.id(),
+        TowerBattleCard.INFUSE.id(),
+        TowerBattleCard.EXECUTE.id(),
+        TowerBattleCard.SB_GHOST_STEP.id()
+    );
+    private static final Set<String> CARD_COOLDOWN_CARDS = Set.of(
+        TowerBattleCard.TNT.id(),
+        TowerBattleCard.BRAIN.id(),
+        TowerBattleCard.DIVINE.id(),
+        TowerBattleCard.KILLING_TIME.id(),
+        TowerBattleCard.EVIL.id(),
+        TowerBattleCard.SB_GHOST_STEP.id(),
+        TowerBattleCard.ORACLE_HERMES_SURGE.id(),
+        TowerBattleCard.ORACLE_CYCLE_RESET.id()
+    );
+
+    private boolean prerequisiteMet(String cardId) {
+        if (TowerBattleCard.VULNERABLE.id().equals(cardId)) {
+            return chosen.stream().anyMatch(card -> DIRECT_DAMAGE_CARDS.contains(card.id()));
+        }
+        if (TowerCard.CUTTING_EDGE_INVENTOR_ID.equals(cardId)) {
+            return chosen.stream().anyMatch(card -> CARD_COOLDOWN_CARDS.contains(card.id()));
+        }
+        return true;
+    }
+
+    private Map<Rarity, List<TowerCard>> available(List<TowerCard> pool, Set<String> excluded) {
         var result = new EnumMap<Rarity, List<TowerCard>>(Rarity.class);
         Set<String> ids = new HashSet<>();
         for (Rarity rarity : Rarity.values()) result.put(rarity, new ArrayList<>());
         for (TowerCard card : pool) {
             if (!ids.add(card.id())) throw new IllegalArgumentException("重复的塔卡 ID " + card.id());
-            if (!excluded.contains(card.id())) result.get(card.rarity()).add(card);
+            if (!excluded.contains(card.id()) && prerequisiteMet(card.id())) result.get(card.rarity()).add(card);
         }
         if (result.get(Rarity.MYTHIC).isEmpty())
             result.get(Rarity.EPIC).removeIf(card -> card.id().equals(TowerBattleCard.MYTHIC_GIFT.id()));

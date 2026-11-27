@@ -48,6 +48,8 @@ public final class TowerClient {
     private static Entity watching;
     private static LobbyView lobby;
     private static long combatUntil;
+    private static long deckRevision;
+    private static Supplier<List<TowerBattleCard.SkillChoice>> skillSupplier = List::of;
 
     record LobbyView(String id, String title, boolean leader, boolean accepted, String deck, List<Member> members) {}
     record Member(String name, boolean ready) {}
@@ -56,6 +58,8 @@ public final class TowerClient {
 
     public static void sync(Dungeon next, JsonElement saved, JsonElement savedBattle, Progress progress,
                             Life life, Runtime resources, Supplier<List<TowerBattleCard.SkillChoice>> skills) {
+        skillSupplier = skills == null ? List::of : skills;
+        deckRevision++;
         combatUntil = resources == null ? 0 : resources.combatUntil;
         if (next != null && next.tower == null) next = null;
         var deck = saved != null && saved.isJsonObject() ? saved.getAsJsonObject() : null;
@@ -108,10 +112,16 @@ public final class TowerClient {
             battle.restore(checkpoint);
             battleSaved = Math.max(battleSaved, checkpoint.revision());
         }
-        if (!hasInRunDraft) return;
-        var state = JSON.fromJson(deck.get("draft"), TowerCardDraft.Snapshot.class);
-        if (state.revision() > draft.revision()) draft.restore(state, TowerCard.pool(progress.jobId(), skills.get()));
-        if (pending != null && state.revision() >= pending.getAsJsonObject("draft").get("revision").getAsInt()) pending = null;
+        if (hasInRunDraft) {
+            var state = JSON.fromJson(deck.get("draft"), TowerCardDraft.Snapshot.class);
+            if (state.revision() > draft.revision()) draft.restore(state, TowerCard.pool(progress.jobId(), skills.get()));
+            if (pending != null && state.revision() >= pending.getAsJsonObject("draft").get("revision").getAsInt()) pending = null;
+        }
+        if (draft != null) {
+            var heldIds = new java.util.HashSet<String>();
+            for (TowerCard card : draft.chosen()) heldIds.add(card.id());
+            battle.pruneRemoved(heldIds, resources);
+        }
     }
 
     private static TowerCareerDeck.DeckSnapshot mergeLocalCareerState(TowerCareerDeck.DeckSnapshot incoming, String job) {
@@ -129,6 +139,7 @@ public final class TowerClient {
 
     public static void tick(Progress progress, Life life, Runnable restore, Runnable fireDamage, DoubleConsumer frostDamage,
                             Supplier<List<TowerBattleCard.SkillChoice>> skills) {
+        skillSupplier = skills == null ? List::of : skills;
         long now = ClientUi.now();
         if (battle != null && battle.revision() > battleSaved && now >= battleSent + 1000) saveBattle();
         if (pendingCareer != null && now >= careerSentAt + 1000) transmitCareer();
@@ -343,9 +354,63 @@ public final class TowerClient {
     static int revision() { return draft.revision(); }
     static List<TowerCardDraft.Slot> slots() { return draft.slots(); }
     static List<TowerCard> chosenCards() { return draft == null ? List.of() : draft.chosen(); }
+    static List<TowerCard> activeChosenCards() { return chosenCards(); }
+    static TowerCareerDeck.DeckSnapshot retainedDeck() { return retainedDeck; }
+    static String currentJob() { return syncedJob; }
+    static long deckRevision() { return deckRevision; }
+    static List<TowerBattleCard.SkillChoice> availableSkills() { return skillSupplier == null ? List.of() : skillSupplier.get(); }
     static boolean finalOffer() { return draft.offer() == TowerClimbRules.FLOOR_COUNT / 5; }
     static boolean careerOffer() { return draft != null && draft.careerOffer(); }
     static boolean canRefresh(int slot) { return draft != null && draft.canRefresh(slot); }
+
+    public static boolean canOpenCreativeLibrary() {
+        var player = Minecraft.getInstance().player;
+        return player != null && player.isCreative()
+            && player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);
+    }
+
+    public static boolean isCreativeLibraryOpen() {
+        return Minecraft.getInstance().gui.screen() instanceof TowerCardLibraryScreen;
+    }
+
+    public static void openCreativeLibrary() {
+        if (!canOpenCreativeLibrary()) return;
+        Minecraft.getInstance().gui.setScreen(new TowerCardLibraryScreen());
+    }
+
+    public static void closeCreativeLibrary() {
+        var mc = Minecraft.getInstance();
+        if (mc.gui.screen() instanceof TowerCardLibraryScreen) mc.gui.setScreen(null);
+    }
+
+    static void creativeAdd(TowerCard.Reference ref) {
+        if (!canOpenCreativeLibrary() || ref == null) return;
+        clearCareerStele();
+        pendingCareer = null;
+        var request = ClientUi.current().operation("towerCreativeDeck");
+        request.addProperty("op", "add");
+        request.add("card", JSON.toJsonTree(ref));
+        ClientUi.current().send("towerClimb", request);
+    }
+
+    static void creativeRemove(String cardId) {
+        if (!canOpenCreativeLibrary() || cardId == null || cardId.isEmpty()) return;
+        clearCareerStele();
+        pendingCareer = null;
+        var request = ClientUi.current().operation("towerCreativeDeck");
+        request.addProperty("op", "remove");
+        request.addProperty("cardId", cardId);
+        ClientUi.current().send("towerClimb", request);
+    }
+
+    static void creativeClear() {
+        if (!canOpenCreativeLibrary()) return;
+        clearCareerStele();
+        pendingCareer = null;
+        var request = ClientUi.current().operation("towerCreativeDeck");
+        request.addProperty("op", "clear");
+        ClientUi.current().send("towerClimb", request);
+    }
 
     static void refresh(int slot, int version) {
         if (draft != null && draft.refresh(draft.offer(), slot, version)) save();
@@ -419,7 +484,10 @@ public final class TowerClient {
         battleSent = 0;
         lobby = null;
         combatUntil = 0;
-        if (Minecraft.getInstance().gui.screen() instanceof TowerLobbyScreen) Minecraft.getInstance().gui.setScreen(null);
+        skillSupplier = List::of;
+        deckRevision++;
+        var screen = Minecraft.getInstance().gui.screen();
+        if (screen instanceof TowerLobbyScreen || screen instanceof TowerCardLibraryScreen) Minecraft.getInstance().gui.setScreen(null);
     }
     private static void clearScene() {
         dungeon = null;

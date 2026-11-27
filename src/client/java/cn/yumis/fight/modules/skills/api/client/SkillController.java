@@ -207,6 +207,7 @@ public final class SkillController {
         if(cn.yumis.fight.modules.dungeons.api.client.SealBossState.isFrozen())return true;
         if(cn.yumis.fight.modules.skills.client.BattleMageClient.tryOverlayChaserCast(slot))return true;
         if(cn.yumis.fight.modules.skills.client.BattleMageClient.tryOverlayInstantFusion(slot))return true;
+        if(cn.yumis.fight.modules.skills.client.SunMoonClient.tryOverlaySparkSunfire(slot))return true;
         if(cn.yumis.fight.modules.skills.client.ChantClient.press(slot))return true;
         if(cn.yumis.fight.modules.skills.client.ElementalistChargeClient.press(slot))return true;
         if(cn.yumis.fight.modules.skills.client.BattleMageChargeClient.press(slot))return true;
@@ -836,7 +837,8 @@ public final class SkillController {
         if(hitSource!=null&&hitSource.elementsOverride!=null&&hitSource.elementsOverride.length>0)elements=hitSource.elementsOverride;
         else if(hitSource!=null&&hitSource.elementOverride>=-1)elements=hitSource.elementOverride<0?new int[0]:new int[]{hitSource.elementOverride};
         else elements=cn.yumis.fight.modules.skills.api.WitchRules.previewElements(skill,stats,cn.yumis.fight.modules.skills.api.ElementalistRules.previewElements(skill,stats,elements));
-        if(nativeContext==null&&!basic&&!passive&&skill!=null&&cn.yumis.fight.modules.skills.api.ElementalistRules.isPrismActive(stats))elements=cn.yumis.fight.modules.skills.api.ElementalistRules.ALL_FOUR_ELEMENTS;
+        boolean prismConverted=nativeContext==null&&!basic&&!passive&&skill!=null&&cn.yumis.fight.modules.skills.api.ElementalistRules.isPrismActive(stats);
+        if(prismConverted)elements=cn.yumis.fight.modules.skills.api.ElementalistRules.ALL_FOUR_ELEMENTS;
         if(nativeContext==null&&basic&&stats.modifiers.getOrDefault("basicDark",0d)>0)elements=new int[]{3};
         if(nativeContext==null&&basic&&SkillLearning.effective(stats,state().progress(),SkillCatalog.require(cn.yumis.fight.modules.skills.api.CareerSkills.KEIGA))>0)elements=new int[]{3};
         double n=level-1;
@@ -848,7 +850,7 @@ public final class SkillController {
         if(external){
             long shredNow=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
             resist[1]-=cn.yumis.fight.modules.skills.client.WitchClient.fireResistShred(entity,shredNow);
-            for(int e=0;e<4;e++)resist[e]-=cn.yumis.fight.modules.skills.client.ElementalistClient.resistShred(entity,e,shredNow);
+            for(int e=0;e<4;e++)resist[e]-=cn.yumis.fight.modules.skills.client.ElementalistClient.resistShred(entity,e,shredNow)+cn.yumis.fight.modules.skills.client.SunMoonClient.resistShred(entity,e,shredNow);
         }
         boolean mainAllowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,elements);
         elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(equipment,elements);
@@ -953,16 +955,6 @@ public final class SkillController {
         if(appendEquipment){double appended=EquipmentDamage.append(damage,stats,equipment,defense*defenseRemaining,resist);damage+=appended;components[2]+=appended;}
         double overdriveLight=stats.modifiers.getOrDefault("overdriveLightAppend",0d);
         if(appendEquipment&&overdriveLight>0){double appendedLight=EquipmentDamage.appendLight(primaryDamage,stats,equipment,defense*defenseRemaining,resist,overdriveLight);damage+=appendedLight;components[1]+=appendedLight;}
-        double summonResonance=stats.modifiers.getOrDefault("summonResonanceAppend",0d);
-        if(appendEquipment&&summonResonance>0){
-            int resElem=elements.length>0?elements[0]:random.nextInt(4);
-            if(EquipmentDamage.allowed(equipment,new int[]{resElem})){
-                var combat=cn.yumis.fight.modules.combat.api.CombatBalanceRules.current().combat;
-                double strength=stats.get(new Stat[]{Stat.LIGHT,Stat.FIRE,Stat.ICE,Stat.DARK}[resElem]);
-                double appendedRes=primaryDamage*summonResonance*(combat.defenseDivisor()/(combat.defenseDivisor()+Math.max(0,defense*defenseRemaining)))*Math.max(0,1+(strength-resist[resElem])/combat.elementalDivisor());
-                damage+=appendedRes;components[resElem+1]+=appendedRes;
-            }
-        }
         if(!dot&&target.life.elemental.active(ElementAccumulation.Kind.SHOCK,target.life,state().serverNow())&&cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,new int[]{0})){
             double added=ElementAccumulation.shockDamage(damage,defense*defenseRemaining,stats.get(Stat.LIGHT),resist[0]);damage+=added;components[1]+=added;
         }
@@ -984,7 +976,12 @@ public final class SkillController {
         }
         double outgoing=cn.yumis.fight.modules.combat.api.CombatEffect.outgoingScale(Minecraft.getInstance().player);
         damage*=outgoing;for(int i=0;i<components.length;i++)components[i]*=outgoing;
-        extra.add("sourceStats",JSON.toJsonTree(external?TowerSkillCombat.elements(stats):stats));extra.add("sourceEffects",JSON.toJsonTree(equipment));
+        Stats buildupStats=external?TowerSkillCombat.elements(stats):stats;
+        if(prismConverted){
+            buildupStats=buildupStats.copy();
+            ElementAccumulation.scaleBuildup(buildupStats,TowerBattleCard.ELEM_BURN_PRISM.ratio("buildup"));
+        }
+        extra.add("sourceStats",JSON.toJsonTree(buildupStats));extra.add("sourceEffects",JSON.toJsonTree(equipment));
         double takenScale=Double.isFinite(target.damageTakenMultiplier)?Math.max(0d,target.damageTakenMultiplier):1d;
         double actual=target.damageImmune?0:target.training()?damage/maximum:Math.min(target.damageCapacity(before),(damage/maximum)*takenScale);double remaining=Math.max(0,before-actual);
         if(remaining<=0&&actual>0&&!target.training()&&hitSource!=null&&!hitSource.summonSource.isEmpty())TalentCombat.summonKillExpected(target.id);
@@ -1047,7 +1044,7 @@ public final class SkillController {
         if(CombatEffect.permitsExternalHitEffects(Minecraft.getInstance().player,entity)){
             long shredNow=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
             resist[1]-=cn.yumis.fight.modules.skills.client.WitchClient.fireResistShred(entity,shredNow);
-            for(int e=0;e<4;e++)resist[e]-=cn.yumis.fight.modules.skills.client.ElementalistClient.resistShred(entity,e,shredNow);
+            for(int e=0;e<4;e++)resist[e]-=cn.yumis.fight.modules.skills.client.ElementalistClient.resistShred(entity,e,shredNow)+cn.yumis.fight.modules.skills.client.SunMoonClient.resistShred(entity,e,shredNow);
         }
         int[] elements=element<0?new int[0]:new int[]{element};
         if(!EquipmentDamage.allowed(state().resources().equipment,elements))return;
@@ -1145,6 +1142,10 @@ public final class SkillController {
         for (var dot : List.copyOf(elementalDots.entrySet())) {
             if (owner.equals(dot.getValue().state().get("target").getAsString())) finishElemental(dot.getKey());
         }
+        cn.yumis.fight.modules.skills.client.SoulBenderClient.resetCooldowns();
+        var oracle = cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.view.oracle;
+        oracle.hermesSurgeReadyAt = 0;
+        oracle.cycleResetReadyAt = 0;
         lastAttack = 0;
         invalidateSnapshot();
     }
@@ -1551,7 +1552,7 @@ public final class SkillController {
         if(CombatEffect.permitsExternalHitEffects(Minecraft.getInstance().player,entity)){
             long shredNow=cn.yumis.fight.modules.presentation.api.client.ClientUi.now();
             resist[1]-=cn.yumis.fight.modules.skills.client.WitchClient.fireResistShred(entity,shredNow);
-            for(int e=0;e<4;e++)resist[e]-=cn.yumis.fight.modules.skills.client.ElementalistClient.resistShred(entity,e,shredNow);
+            for(int e=0;e<4;e++)resist[e]-=cn.yumis.fight.modules.skills.client.ElementalistClient.resistShred(entity,e,shredNow)+cn.yumis.fight.modules.skills.client.SunMoonClient.resistShred(entity,e,shredNow);
         }
         var prepared=towerHit(attack,entity,before).apply(attack);
         var hit=TowerCardEffects.forceCritical(prepared,before)
@@ -1830,7 +1831,7 @@ public final class SkillController {
                 double[] resist=cn.yumis.fight.modules.combat.api.EquipmentDamage.resistances(equipment,target.resistances());
                 if(cn.yumis.fight.modules.combat.api.CombatEffect.permitsExternalHitEffects(mc.player,(LivingEntity)entity)){
                     resist[1]-=cn.yumis.fight.modules.skills.client.WitchClient.fireResistShred((LivingEntity)entity,now);
-                    for(int e=0;e<4;e++)resist[e]-=cn.yumis.fight.modules.skills.client.ElementalistClient.resistShred((LivingEntity)entity,e,now);
+                    for(int e=0;e<4;e++)resist[e]-=cn.yumis.fight.modules.skills.client.ElementalistClient.resistShred((LivingEntity)entity,e,now)+cn.yumis.fight.modules.skills.client.SunMoonClient.resistShred((LivingEntity)entity,e,now);
                 }
                 fraction=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(equipment,new int[]{1})?ElementAccumulation.igniteFraction(strong,defense,source.get(Stat.FIRE),resist[1],ElementAccumulation.magicTaken(life.elemental,life,strong,state().serverNow())):0;
             }

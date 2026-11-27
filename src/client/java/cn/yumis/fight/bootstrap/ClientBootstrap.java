@@ -372,6 +372,15 @@ public final class ClientBootstrap {
         if(JarClient.blocking()||cn.yumis.fight.modules.dungeons.api.client.SealBossState.isFrozen())return false;
         var mc=Minecraft.getInstance();
         boolean control=InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_LEFT_CONTROL)||InputConstants.isKeyDown(mc.getWindow(),GLFW.GLFW_KEY_RIGHT_CONTROL);
+        if(mc.player!=null&&ClientSession.INSTANCE.ready&&event.key()==GLFW.GLFW_KEY_I&&control
+            &&cn.yumis.fight.modules.dungeons.client.TowerClient.canOpenCreativeLibrary()
+            &&(mc.gui.screen()==null||mc.gui.screen() instanceof FightScreen||cn.yumis.fight.modules.dungeons.client.TowerClient.isCreativeLibraryOpen())){
+            if(action==GLFW.GLFW_PRESS){
+                if(cn.yumis.fight.modules.dungeons.client.TowerClient.isCreativeLibraryOpen())cn.yumis.fight.modules.dungeons.client.TowerClient.closeCreativeLibrary();
+                else cn.yumis.fight.modules.dungeons.client.TowerClient.openCreativeLibrary();
+            }
+            return true;
+        }
         if(mc.player!=null&&ClientSession.INSTANCE.ready&&event.key()==GLFW.GLFW_KEY_RIGHT_BRACKET&&control&&(mc.gui.screen()==null||mc.gui.screen() instanceof FightScreen)){
             if(action==GLFW.GLFW_PRESS){var state=ClientSession.INSTANCE;cn.yumis.fight.modules.combat.api.client.DamageAnalysis.toggle(state.resources.combatUntil,state.trainingMeter.has("id")&&!state.trainingMeter.get("completed").getAsBoolean());state.message("伤害分析："+(cn.yumis.fight.modules.combat.api.client.DamageAnalysis.recording()?"开始记录":"停止记录")+"；在角色页面查看结果");}
             return true;

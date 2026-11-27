@@ -7,10 +7,11 @@ import cn.yumis.fight.modules.character.api.Progress;
 
 /** Card modifiers carried by the player's detached combat snapshot. */
 public final class TowerCardEffects {
-    static final int ATTACK_PER_HASTE = 1000;
+    static final int ATTACK_PER_HASTE = 100;
     static final int HEALTH_PER_DAMAGE = 100;
     static final int LOW_HEALTH_PERCENT = 35;
     static final int SNIPER_RANGE = 8;
+    static final double GIANT_SLAYER_LEAD = 0.30;
 
     static final String ALL_DAMAGE = "towerCard/allDamage";
     static final String SPELL_DAMAGE = "towerCard/spellDamage";
@@ -94,7 +95,7 @@ public final class TowerCardEffects {
     public static DamageBonus hit(Stats stats, double ownLife, double targetLife, double distanceSquared) {
         double increase = damageIncrease(stats);
         double total = damageProduct(stats);
-        if (targetLife > ownLife) increase += stats.modifiers.getOrDefault(HIGHER_LIFE, 0d);
+        if (targetLife + GIANT_SLAYER_LEAD > ownLife) increase += stats.modifiers.getOrDefault(HIGHER_LIFE, 0d);
         if (targetLife == 1) increase += stats.modifiers.getOrDefault(FULL_LIFE, 0d);
         if (targetLife < LOW_HEALTH_PERCENT / 100d) {
             total *= stats.modifiers.getOrDefault(LOW_LIFE_TOTAL, 1d);

@@ -45,7 +45,6 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         }
     }
     private final Map<UUID,Mark> marks=new HashMap<>();
-    private final Map<UUID,Long> resonance=new HashMap<>();
     private final Map<SummonedCreature,Long> retiring=new HashMap<>();
     private static final class Source {
         String id,session,dimension,instance,job;UUID owner;long generation,expires,started,busy,lastHurt,lastSync,sequence,lastTick;int rank,level,stuck,actionIndex;SummonKind kind;long guardUntil;List<SummonMoves.Cue> cues=List.of();
@@ -138,7 +137,6 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
             s.entity=new SummonedCreature(SkillContentTypes.SUMMONS.get(s.kind).get(),p.level());s.entity.owner=p.getUUID();s.entity.setPos(vector(a.getAsJsonArray("position")));s.entity.setCustomName(cn.yumis.fight.modules.presentation.api.ModText.of(s.kind.title+" Lv."+s.rank));
             s.entity.visualScale(SummonerSkills.visualScale(s.kind,s.stats));
             s.entity.paladinAura(s.kind==SummonKind.SANDOR&&TowerBattleCard.SUMMONER_SANDOR_PALADIN.held(s.stats));
-            s.entity.resonanceUntil(resonance.getOrDefault(p.getUUID(),0L));
             s.cues=SummonMoves.cues(s.kind,s.parameters,s.stats,120000,Math.max(.01,1+s.stats.get(Stat.ATTACK_SPEED)/100));s.previous=s.entity.position();entityFeedback(s);s.entity.play("spawn",Math.max(1,s.started-System.currentTimeMillis()));s.busy=s.started;created.add(s);
             s.targetRange=Math.max(16,s.cues.stream().map(cue->SummonMoves.require(cue.move())).mapToDouble(SummonMoves.Move::reach).max().orElse(0))*(1+Math.max(-1,s.stats.modifiers.getOrDefault("summonAggro",0d)));
         }
@@ -186,23 +184,12 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         if(s.kind==SummonKind.KING&&TowerBattleCard.SUMMONER_KING_SOVEREIGN.held(s.stats)){
             mult*=1d+lowerSpiritCount(s.owner)*TowerBattleCard.SUMMONER_KING_SOVEREIGN.ratio("speed");
         }
-        if(s.kind!=SummonKind.KASIJAS&&resonance.getOrDefault(s.owner,0L)>now){
-            mult*=1d+TowerBattleCard.SUMMONER_KING_SOVEREIGN.ratio("buffspeed");
-        }
         return mult;
-    }
-    private void triggerResonance(Source king,long now){
-        if(!TowerBattleCard.SUMMONER_KING_SOVEREIGN.held(king.stats))return;
-        long until=now+TowerBattleCard.SUMMONER_KING_SOVEREIGN.millis("duration");
-        resonance.put(king.owner,until);
-        for(var s:summons.values())if(s.owner.equals(king.owner)&&s.entity!=null&&!s.entity.isRemoved())s.entity.resonanceUntil(until);
-        var p=owner(king);
-        if(p!=null)buffState(p,"RESONANCE",until);
     }
     private void buffState(ServerPlayer p,String kind,long until){var j=new JsonObject();j.addProperty("session",sessions.apply(p).id.toString());j.addProperty("generation",sessions.apply(p).life.generation);j.addProperty("job",progress.apply(p).jobId());j.addProperty("dimension",p.level().dimension().identifier().toString());j.addProperty("instance",sessions.apply(p).life.instance);j.addProperty("kind",kind);j.addProperty("until",until);Network.send(p,"herderState",j);}
     private void issue(Pulse pulse,Vec3 origin,double reach){
         Source s=pulse.source;if(!valid(s))return;long now=System.currentTimeMillis();var j=new JsonObject();
-        j.addProperty("id",UUID.randomUUID().toString());j.addProperty("source",s.id);j.addProperty("session",s.session);j.addProperty("generation",s.generation);j.addProperty("job",s.job);j.addProperty("dimension",s.dimension);j.addProperty("instance",s.instance);j.addProperty("skill",s.skill.id);j.addProperty("rank",s.rank);j.addProperty("target",pulse.target==null?"":pulse.target.toString());j.addProperty("targetGeneration",pulse.targetGeneration);j.addProperty("move",pulse.move.id());j.addProperty("share",pulse.share);j.addProperty("stone",pulse.stone);j.addProperty("frenzyPower",pulse.power);j.addProperty("sourceExpires",s.expires);j.addProperty("at",now);j.addProperty("reach",reach);j.addProperty("actor",s.entity.getStringUUID());j.addProperty("actorEntity",s.entity.getId());j.addProperty("lowerSpirits",lowerSpiritCount(s.owner));j.addProperty("resonance",resonance.getOrDefault(s.owner,0L)>now);j.addProperty("warCry",pulse.warCry);j.add("origin",JSON.toJsonTree(new double[]{origin.x,origin.y,origin.z}));j.add("aim",JSON.toJsonTree(new double[]{pulse.aim.x,pulse.aim.y,pulse.aim.z}));j.add("axis",JSON.toJsonTree(new double[]{pulse.aim.x-pulse.origin.x,pulse.aim.y-pulse.origin.y,pulse.aim.z-pulse.origin.z}));j.add("stats",JSON.toJsonTree(s.stats));j.add("effects",JSON.toJsonTree(s.effects));j.add("parameters",JSON.toJsonTree(s.parameters.values()));Network.send(owner(s),"summonAction",j);
+        j.addProperty("id",UUID.randomUUID().toString());j.addProperty("source",s.id);j.addProperty("session",s.session);j.addProperty("generation",s.generation);j.addProperty("job",s.job);j.addProperty("dimension",s.dimension);j.addProperty("instance",s.instance);j.addProperty("skill",s.skill.id);j.addProperty("rank",s.rank);j.addProperty("target",pulse.target==null?"":pulse.target.toString());j.addProperty("targetGeneration",pulse.targetGeneration);j.addProperty("move",pulse.move.id());j.addProperty("share",pulse.share);j.addProperty("stone",pulse.stone);j.addProperty("frenzyPower",pulse.power);j.addProperty("sourceExpires",s.expires);j.addProperty("at",now);j.addProperty("reach",reach);j.addProperty("actor",s.entity.getStringUUID());j.addProperty("actorEntity",s.entity.getId());j.addProperty("lowerSpirits",lowerSpiritCount(s.owner));j.addProperty("warCry",pulse.warCry);j.add("origin",JSON.toJsonTree(new double[]{origin.x,origin.y,origin.z}));j.add("aim",JSON.toJsonTree(new double[]{pulse.aim.x,pulse.aim.y,pulse.aim.z}));j.add("axis",JSON.toJsonTree(new double[]{pulse.aim.x-pulse.origin.x,pulse.aim.y-pulse.origin.y,pulse.aim.z-pulse.origin.z}));j.add("stats",JSON.toJsonTree(s.stats));j.add("effects",JSON.toJsonTree(s.effects));j.add("parameters",JSON.toJsonTree(s.parameters.values()));Network.send(owner(s),"summonAction",j);
     }
     public void tick(){
         long now=System.currentTimeMillis();
@@ -315,9 +302,6 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
                 summonVisual(s,UUID.randomUUID().toString(),"START",e.position().add(0,.3,0),e.getLookAngle(),600,"sandor_warcry_impact",null);
             }
         }
-        if(move.id().equals("king_lightning")||move.id().equals("king_laser")||move.id().equals("king_mega_laser")){
-            triggerResonance(s,now);
-        }
         s.busy=now+duration;e.getNavigation().stop();
         Vec3 origin=e.getEyePosition();
         Vec3 diff=aimPoint.subtract(origin);
@@ -383,14 +367,13 @@ public final class MageSkillService implements CombatPorts.SkillEffects,SummonAc
         following.remove(owner);
         preferred.remove(owner);
         marks.remove(owner);
-        resonance.remove(owner);
         for(var e:new ArrayList<>(retiring.keySet()))if(owner.equals(e.owner)){
             retiring.remove(e);
             e.discard();
         }
         if(notifyOwner){
             var p=server.getPlayerList().getPlayer(owner);
-            if(p!=null){buffState(p,"FRENZY",0);buffState(p,"RESONANCE",0);}
+            if(p!=null)buffState(p,"FRENZY",0);
         }
     }
     private void reduced(ServerPlayer p,String skill){if(skill.equals(SummonerSkills.MASTERY)){clear(p);return;}if(skill.equals(SummonerSkills.FRENZY)){frenzy.remove(p.getUUID());buffState(p,"FRENZY",0);}for(var s:new ArrayList<>(summons.values()))if(s.owner.equals(p.getUUID())&&s.skill.id.equals(skill))remove(s);}

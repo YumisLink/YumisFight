@@ -144,8 +144,8 @@
       "cooldown": 6.0,
       "damaging": true,
       "damage": {
-        "finisher": 13.5,
-        "damage": 11.5
+        "finisher": 8.775,
+        "damage": 7.475
       },
       "parameters": {
         "duration": 0.55,
@@ -164,8 +164,8 @@
       "cooldown": 7.0,
       "damaging": true,
       "damage": {
-        "finisher": 18.5,
-        "damage": 9.0
+        "finisher": 12.025,
+        "damage": 5.85
       },
       "parameters": {
         "duration": 0.65,
@@ -185,7 +185,7 @@
       "damaging": true,
       "damage": {
         "finisher": 0.0,
-        "damage": 8.4
+        "damage": 5.46
       },
       "parameters": {
         "duration": 0.45,

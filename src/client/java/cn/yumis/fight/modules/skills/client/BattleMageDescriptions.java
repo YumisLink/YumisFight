@@ -32,7 +32,7 @@ final class BattleMageDescriptions {
             double perCrit = p.get("perStageCrit", 0.015) * 100.0;
             double interval = BattleMageRules.autoChaserIntervalSeconds(rank, p, snap);
             double spearAspd = 10.0 + (niu ? TowerBattleCard.BM_NIU_MASTERY.value("spearspeed") : 0.0);
-            double clubCdr = BattleMageRules.clubCdRecovery(rank) * (niu ? 2.0 : 1.0) * 100.0;
+            double clubCdr = BattleMageRules.clubCdRecovery(rank) * (niu ? 1.0 + TowerBattleCard.BM_NIU_MASTERY.ratio("mastery") : 1.0) * 100.0;
             StringBuilder sb = new StringBuilder();
             sb.append("转职自动习得1级，整合战法武器精通＋斗神连击成长＋自动炫纹＋尼巫三段近战普攻。\n");
             sb.append("武器精通（随主手切换）：\n");
@@ -43,10 +43,10 @@ final class BattleMageDescriptions {
                 .append("%、攻速+8%、冷却效率+").append(number(clubCdr))
                 .append("%，自动炫纹间隔×").append(number(p.get("clubAutoChaserScale", 0.80)))
                 .append("、炫纹范围×").append(number(p.get("clubChaserRadiusScale", 1.15)))
-                .append(niu ? "，全部近战普攻100%产球。" : "。").append("\n");
+                .append(niu ? "，全部近战普攻" + number(TowerBattleCard.BM_NIU_MASTERY.value("basicchance")) + "%概率产球。" : "。").append("\n");
             sb.append("· 法杖／魔杖：魔攻+").append(number(BattleMageRules.staffMagicMut(rank, p.get("staffBonusScale", 1.0)) * 100))
                 .append("%，炫纹系冷却×").append(number(p.get("staffChaserCdScale", 0.85)))
-                .append(niu ? "，每次耗球回复3%最大魔力。" : "。").append("\n");
+                .append(niu ? "，每次耗球回复" + number(TowerBattleCard.BM_NIU_MASTERY.value("manaregen")) + "%最大魔力。" : "。").append("\n");
             sb.append("连击成长：最高").append(cap).append("阶，每阶提升").append(number(perMut))
                 .append("%伤害（MUT）与").append(number(perCrit)).append("%暴击率（满阶共+")
                 .append(number(perMut * cap)).append("%伤害 / +").append(number(perCrit * cap)).append("%暴击）。\n");
@@ -56,7 +56,11 @@ final class BattleMageDescriptions {
                 sb.append("\n单色锁定：当前强制产出【").append(BattleMageRules.chaserName(ft, false)).append("】。");
             }
             if (unbound) {
-                sb.append("\n职业神话·斗神无双：连击上限12阶、阈值减半、每阶加成翻倍、保持20秒、每次命中额外+2连击。");
+                sb.append("\n职业神话·斗神无双：连击上限").append(TowerBattleCard.BM_GROOVE_UNBOUND.count("cap"))
+                    .append("阶、阈值降低").append(number(TowerBattleCard.BM_GROOVE_UNBOUND.value("threshold")))
+                    .append("%、每阶加成提高").append(number(TowerBattleCard.BM_GROOVE_UNBOUND.value("bonus")))
+                    .append("%、保持").append(number(TowerBattleCard.BM_GROOVE_UNBOUND.value("hold")))
+                    .append("秒、每次命中额外+").append(TowerBattleCard.BM_GROOVE_UNBOUND.count("hits")).append("连击。");
             }
             if (niu) {
                 sb.append("\n职业神话·尼巫极意：矛／棍／杖三系武器精通已全面强化。");
@@ -82,7 +86,11 @@ final class BattleMageDescriptions {
                 sb.append("\n自动追击已激活：体术与普攻命中自动发射炫纹。");
             }
             if (TowerBattleCard.BM_CHASER_OVERFLOW.held(snap)) {
-                sb.append("\n职业神话·溢流炫纹：队列满球后新生成的溢出炫纹自动零硬直无消耗追踪发射，范围+35%，五色Buff效果+50%、持续翻倍。");
+                sb.append("\n职业神话·溢流炫纹：队列满球后新生成的溢出炫纹自动零硬直无消耗追踪发射（造成原炫纹")
+                    .append(number(TowerBattleCard.BM_CHASER_OVERFLOW.value("overflow"))).append("%伤害），范围+")
+                    .append(number(TowerBattleCard.BM_CHASER_OVERFLOW.value("radius"))).append("%，五色Buff效果+")
+                    .append(number(TowerBattleCard.BM_CHASER_OVERFLOW.value("buff"))).append("%、持续+")
+                    .append(number(TowerBattleCard.BM_CHASER_OVERFLOW.value("duration"))).append("%。");
             }
             appendMorph(sb, BattleMageSkills.CHASER_LAUNCHER, p);
             return sb.toString();
@@ -112,10 +120,17 @@ final class BattleMageDescriptions {
                 sb.append("\n炫纹附魔：挥扫消耗1颗炫纹并追加一道同属性魔法剑气。");
             }
             if (hasCard(TowerBattleCard.BM_SWING_EMPRESS)) {
-                sb.append("\n职业神话·闪击碎霸：前冲5格并以360°全周斩裂，物理伤害+150%，命中产3球。");
+                sb.append("\n职业神话·闪击碎霸：前冲").append(number(TowerBattleCard.BM_SWING_EMPRESS.value("dash")))
+                    .append("格并以").append(number(TowerBattleCard.BM_SWING_EMPRESS.value("arc"))).append("°全周斩裂，物理伤害+")
+                    .append(number(TowerBattleCard.BM_SWING_EMPRESS.value("damage"))).append("%，命中产")
+                    .append(TowerBattleCard.BM_SWING_EMPRESS.count("chasers")).append("球。");
             }
             if (hasCard(TowerBattleCard.BM_SWING_ARCANUM)) {
-                sb.append("\n职业神话·万象魔刃：范围+40%，最多消耗3球向前斩出推进14格的同属性魔法月牙剑气（每道80%基准倍率，空球仍斩1道无属性魔刃）。");
+                sb.append("\n职业神话·万象魔刃：范围+").append(number(TowerBattleCard.BM_SWING_ARCANUM.value("range")))
+                    .append("%，最多消耗").append(TowerBattleCard.BM_SWING_ARCANUM.count("max"))
+                    .append("球向前斩出推进").append(number(TowerBattleCard.BM_SWING_ARCANUM.value("distance")))
+                    .append("格的同属性魔法月牙剑气（每道").append(number(TowerBattleCard.BM_SWING_ARCANUM.value("ratio")))
+                    .append("%基准倍率，空球仍斩1道无属性魔刃）。");
             }
             appendMorph(sb, BattleMageSkills.FULL_SWING, p);
             return sb.toString();
@@ -132,10 +147,14 @@ final class BattleMageDescriptions {
                 .append("秒内物攻与魔攻+").append(number(BattleMageRules.fusionAttackBonus(rank, p, snap) * 100))
                 .append("%、暴击+").append(number(p.get("fusionCritBonus", 0.06) * 100)).append("%。");
             if (TowerBattleCard.BM_FUSION_INSTANT.held(snap)) {
-                sb.append("\n职业神话·炫纹簇：0硬直脱手在16格内锁定目标脚下瞬爆，范围+60%、伤害+50%，空球亦可满威力触发。");
+                sb.append("\n职业神话·炫纹簇：0硬直脱手在").append(number(TowerBattleCard.BM_FUSION_INSTANT.value("range")))
+                    .append("格内锁定目标脚下瞬爆，范围+").append(number(TowerBattleCard.BM_FUSION_INSTANT.value("radius")))
+                    .append("%、伤害+").append(number(TowerBattleCard.BM_FUSION_INSTANT.value("damage"))).append("%，空球亦可满威力触发。");
             }
             if (TowerBattleCard.BM_FUSION_OVERLOAD.held(snap)) {
-                sb.append("\n职业神话·双生共鸣：共鸣持续30秒且加成+150%，期间所有炫纹与炫纹系技能自动附带全四元素。");
+                sb.append("\n职业神话·双生共鸣：共鸣持续").append(number(TowerBattleCard.BM_FUSION_OVERLOAD.value("duration")))
+                    .append("秒且加成+").append(number(TowerBattleCard.BM_FUSION_OVERLOAD.value("bonus")))
+                    .append("%，期间所有炫纹与炫纹系技能自动附带全四元素。");
             }
             appendMorph(sb, BattleMageSkills.CHASER_FUSION, p);
             return sb.toString();
@@ -152,7 +171,9 @@ final class BattleMageDescriptions {
                 sb.append("\n引爆前先吸附半径").append(number(p.get("pullRadius", 7.5))).append("格内普通敌人。");
             }
             if (hasCard(TowerBattleCard.BM_PRESS_COLLAPSE)) {
-                sb.append("\n职业神话·引力坍缩：9格聚怪、控制延长至1.5秒，每颗炫纹的额外伤害与范围加成翻倍。");
+                sb.append("\n职业神话·引力坍缩：").append(number(TowerBattleCard.BM_PRESS_COLLAPSE.value("pull")))
+                    .append("格聚怪、控制延长至").append(number(TowerBattleCard.BM_PRESS_COLLAPSE.value("control")))
+                    .append("秒，每颗炫纹的额外伤害与范围加成提高").append(number(TowerBattleCard.BM_PRESS_COLLAPSE.value("bonus"))).append("%。");
             }
             appendMorph(sb, BattleMageSkills.CHASER_PRESS, p);
             return sb.toString();
@@ -167,10 +188,14 @@ final class BattleMageDescriptions {
                 .append(number(p.get("finisherRadius", 5.5))).append("格终结横扫。\n");
             sb.append("连刺途中可随时穿插「炫纹发射」，再次按下技能键立即打出终结横扫，或用其他体术柔化／按跳跃或Esc彻底打断。");
             if (hasCard(TowerBattleCard.BM_PUNTO_ENDLESS)) {
-                sb.append("\n职业神话·无尽雷连：段数扩至180段且持续同步延长、伤害降低50%，可持续连刺至打满或主动取消。");
+                sb.append("\n职业神话·无尽雷连：段数扩至").append(TowerBattleCard.BM_PUNTO_ENDLESS.count("slashes"))
+                    .append("段且持续同步延长、连刺伤害降低").append(number(TowerBattleCard.BM_PUNTO_ENDLESS.value("reduction")))
+                    .append("%、终结伤害提高").append(number(TowerBattleCard.BM_PUNTO_ENDLESS.value("finisher")))
+                    .append("%，可持续连刺至打满或主动取消。");
             }
             if (hasCard(TowerBattleCard.BM_PUNTO_CRESCENDO)) {
-                sb.append("\n职业神话·千击终响：前置连刺每次命中使终结横扫伤害提高1%。");
+                sb.append("\n职业神话·千击终响：前置连刺每次命中使终结横扫伤害提高")
+                    .append(number(TowerBattleCard.BM_PUNTO_CRESCENDO.value("perhit"))).append("%。");
             }
             appendMorph(sb, BattleMageSkills.PUNTO_WAVE, p);
             return sb.toString();
@@ -191,7 +216,9 @@ final class BattleMageDescriptions {
             }
             sb.append("，命中产").append((int) Math.round(p.get("chaserGen", 2.0))).append("球。");
             if (hasCard(TowerBattleCard.BM_STRIKE_TWIN)) {
-                sb.append("\n职业神话·双星折返：往返2次满额穿刺与终点爆炸（无伤害衰减），冷却增加20%。");
+                sb.append("\n职业神话·双星折返：往返").append(TowerBattleCard.BM_STRIKE_TWIN.count("dashes"))
+                    .append("次穿刺与终点爆炸（每次造成原伤害的").append(number(TowerBattleCard.BM_STRIKE_TWIN.value("ratio")))
+                    .append("%），冷却增加").append(number(TowerBattleCard.BM_STRIKE_TWIN.value("cooldown"))).append("%。");
             }
             appendMorph(sb, BattleMageSkills.DRAGON_STRIKE, p);
             return sb.toString();
@@ -201,8 +228,10 @@ final class BattleMageDescriptions {
             var p = c.parameters();
             StringBuilder sb = new StringBuilder();
             if (hasCard(TowerBattleCard.BM_SPEAR_CLEAVE)) {
-                sb.append("纯物理大招（煌龙天临形态 · 2层充能） · 跃起0.4秒瞬发煌龙巨刃重劈斩地，原魔法段全额并入物理重劈，终爆半径")
-                    .append(number(p.get("blastRadius", 6.5))).append("格，总伤害+30%。");
+                sb.append("纯物理大招（煌龙天临形态 · 冷却-").append(number(TowerBattleCard.BM_SPEAR_CLEAVE.value("cdr")))
+                    .append("%） · 跃起0.4秒瞬发煌龙巨刃重劈斩地，原魔法段全额并入物理重劈，终爆半径")
+                    .append(number(p.get("blastRadius", 6.5))).append("格，总伤害+")
+                    .append(number(TowerBattleCard.BM_SPEAR_CLEAVE.value("damage"))).append("%。");
             } else {
                 sb.append("物魔混合大招 · 物理突刺挑控（").append(number(p.get("range", 7.5))).append("格，控敌")
                     .append(number(p.get("holdSeconds", 1.4))).append("秒）＋连续引爆")
@@ -210,7 +239,8 @@ final class BattleMageDescriptions {
                     .append(number(p.get("blastRadius", 6.5))).append("格物魔双段煌龙终爆。\n");
                 sb.append("物理矛法吃突刺与物理终爆，魔法球法吃龙之炫纹与魔法终爆，双修流全段吃满！");
                 if (hasCard(TowerBattleCard.BM_SPEAR_DETACH)) {
-                    sb.append("\n职业神话·煌龙乱舞：0.4秒脱手原地倾泻16枚满倍率龙之炫纹并终爆，范围扩大30%。");
+                    sb.append("\n职业神话·煌龙乱舞：0.4秒脱手原地倾泻").append(TowerBattleCard.BM_SPEAR_DETACH.count("balls"))
+                        .append("枚满倍率龙之炫纹并终爆，范围扩大").append(number(TowerBattleCard.BM_SPEAR_DETACH.value("radius"))).append("%。");
                 }
             }
             appendMorph(sb, BattleMageSkills.DRAGON_SPEAR, p);
@@ -246,10 +276,18 @@ final class BattleMageDescriptions {
         StringBuilder sb = new StringBuilder("\n战斗法师特化：命中随机生成");
         sb.append((int) Math.round(c.parameters().get("chaserGen", 1.0))).append("颗炫纹，并开放体术柔化窗口。");
         if (hasCard(TowerBattleCard.BM_FANG_TWIN_SHRED)) {
-            sb.append("\n职业神话·破甲双牙：高速2连突刺且每段不衰减、每段产1球、冷却-40%，命中降双防20%（6秒）。");
+            sb.append("\n职业神话·破甲双牙：高速").append(TowerBattleCard.BM_FANG_TWIN_SHRED.count("hits"))
+                .append("连突刺且每段不衰减、每段产").append(TowerBattleCard.BM_FANG_TWIN_SHRED.count("chasers"))
+                .append("球、冷却-").append(number(TowerBattleCard.BM_FANG_TWIN_SHRED.value("cdr")))
+                .append("%，命中降双防").append(number(TowerBattleCard.BM_FANG_TWIN_SHRED.value("shred")))
+                .append("%（").append(number(TowerBattleCard.BM_FANG_TWIN_SHRED.value("duration"))).append("秒）。");
         }
         if (hasCard(TowerBattleCard.BM_FANG_WAVE)) {
-            sb.append("\n职业神话·炫纹牙刃：延伸至12格宽幅穿透气刃、伤害+80%、每穿1敌额外产1球，柔化下个技能伤害总增30%。");
+            sb.append("\n职业神话·炫纹牙刃：延伸至").append(number(TowerBattleCard.BM_FANG_WAVE.value("range")))
+                .append("格宽幅穿透气刃、伤害+").append(number(TowerBattleCard.BM_FANG_WAVE.value("damage")))
+                .append("%、每穿").append(TowerBattleCard.BM_FANG_WAVE.count("per")).append("敌额外产")
+                .append(TowerBattleCard.BM_FANG_WAVE.count("chasers")).append("球，柔化下个技能伤害总增")
+                .append(number(TowerBattleCard.BM_FANG_WAVE.value("cancel"))).append("%。");
         }
         appendMorph(sb, MageSkills.FANG, c.parameters());
         return sb.toString();

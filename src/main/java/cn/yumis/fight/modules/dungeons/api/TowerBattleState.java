@@ -8,6 +8,7 @@ import java.util.ArrayDeque;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static cn.yumis.fight.modules.dungeons.api.TowerBattleCard.*;
 
@@ -54,8 +55,45 @@ public final class TowerBattleState {
     }
 
     public static void clearShields(Runtime resources) {
+        if (resources == null) return;
         resources.absorption.keySet().removeIf(key -> key.startsWith("towerCard/"));
         resources.absorptionUntil.keySet().removeIf(key -> key.startsWith("towerCard/"));
+    }
+
+    public boolean pruneRemoved(Set<String> heldIds, Runtime resources) {
+        boolean persistentChanged = growth.keySet().removeIf(card -> !heldIds.contains(card.id()));
+        persistentChanged |= cooldowns.keySet().removeIf(card -> !heldIds.contains(card.id()));
+        expires.keySet().removeIf(card -> !heldIds.contains(card.id()));
+        stacks.keySet().removeIf(card -> !heldIds.contains(card.id()));
+        if (!heldIds.contains(THRILL.id())) killBuffs.clear();
+        if (!heldIds.contains(MERCY.id())) mercy = 0;
+        if (!heldIds.contains(MOUNTAIN.id())) mountainGiven = false;
+        if (resources != null) {
+            resources.absorption.keySet().removeIf(key -> key.startsWith("towerCard/") && !heldIds.contains(key.substring("towerCard/".length())));
+            resources.absorptionUntil.keySet().removeIf(key -> key.startsWith("towerCard/") && !heldIds.contains(key.substring("towerCard/".length())));
+        }
+        if (persistentChanged) revision++;
+        return persistentChanged;
+    }
+
+    public static Checkpoint pruneCheckpoint(Checkpoint saved, Set<String> heldIds) {
+        if (saved == null) return null;
+        var nextGrowth = new EnumMap<TowerBattleCard, Integer>(TowerBattleCard.class);
+        if (saved.growth() != null) {
+            for (var entry : saved.growth().entrySet()) {
+                if (entry.getKey() != null && heldIds.contains(entry.getKey().id())) nextGrowth.put(entry.getKey(), entry.getValue());
+            }
+        }
+        var nextCooldowns = new EnumMap<TowerBattleCard, Long>(TowerBattleCard.class);
+        if (saved.cooldowns() != null) {
+            for (var entry : saved.cooldowns().entrySet()) {
+                if (entry.getKey() != null && heldIds.contains(entry.getKey().id())) nextCooldowns.put(entry.getKey(), entry.getValue());
+            }
+        }
+        int prevGrowth = saved.growth() == null ? 0 : saved.growth().size();
+        int prevCooldowns = saved.cooldowns() == null ? 0 : saved.cooldowns().size();
+        if (nextGrowth.size() == prevGrowth && nextCooldowns.size() == prevCooldowns) return saved;
+        return new Checkpoint(saved.revision() + 1, Map.copyOf(nextGrowth), Map.copyOf(nextCooldowns));
     }
 
     public boolean ready(TowerBattleCard card, long wall) { return cooldowns.getOrDefault(card, 0L) <= wall; }

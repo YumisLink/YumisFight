@@ -80,11 +80,19 @@ final class SunMoonSkillVisuals {
         double radius;
         long impactDelayMs;
         double liftHeight;
+        boolean noBlur;
+        long leylineDurationMs;
 
         CastMeta(double radius, long impactDelayMs, double liftHeight) {
+            this(radius, impactDelayMs, liftHeight, false, 0L);
+        }
+
+        CastMeta(double radius, long impactDelayMs, double liftHeight, boolean noBlur, long leylineDurationMs) {
             this.radius = radius;
             this.impactDelayMs = impactDelayMs;
             this.liftHeight = liftHeight;
+            this.noBlur = noBlur;
+            this.leylineDurationMs = leylineDurationMs;
         }
     }
 
@@ -145,14 +153,16 @@ final class SunMoonSkillVisuals {
 
                 @Override public boolean motion(SkillVfx.Track track, JsonObject value) {
                     if (value == null) return false;
-                    boolean hasMeta = value.has("sunMoonRadius") || value.has("impactDelayMs") || value.has("liftHeight");
+                    boolean hasMeta = value.has("sunMoonRadius") || value.has("impactDelayMs") || value.has("liftHeight") || value.has("noBlur") || value.has("leylineDurationMs");
                     if (hasMeta) {
                         CastMeta def = defaultMeta(id);
                         double r = value.has("sunMoonRadius") ? Math.max(0.5, value.get("sunMoonRadius").getAsDouble()) : def.radius;
                         long delay = value.has("impactDelayMs") ? Math.max(0L, value.get("impactDelayMs").getAsLong()) : def.impactDelayMs;
                         double lift = value.has("liftHeight") ? Math.max(0.2, value.get("liftHeight").getAsDouble()) : def.liftHeight;
+                        boolean noBlur = value.has("noBlur") && value.get("noBlur").getAsBoolean();
+                        long leylineDur = value.has("leylineDurationMs") ? Math.max(0L, value.get("leylineDurationMs").getAsLong()) : 0L;
                         if (METAS.size() >= 256) METAS.remove(METAS.keySet().iterator().next());
-                        METAS.put(track.start.cast(), new CastMeta(r, delay, lift));
+                        METAS.put(track.start.cast(), new CastMeta(r, delay, lift, noBlur, leylineDur));
                     }
                     // Let SkillVfx build standard Motion when projectile/target tracking fields are present!
                     boolean hasStandardMotion = value.has("target") || value.has("velocity") || value.has("range");
@@ -231,7 +241,8 @@ final class SunMoonSkillVisuals {
                     SkillSound.playAt(x, y, z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, 0.88f, 0.72f);
                     SkillSound.playAt(x, y, z, SoundEvents.GENERIC_EXPLODE.value(), 0.76f, 0.78f);
                     SkillSound.playAt(x, y, z, SoundEvents.LIGHTNING_BOLT_THUNDER, 0.40f, 1.05f);
-                    CoronaBlur.flash(pos);
+                    CastMeta meta = METAS.get(event.cast());
+                    if (meta == null || !meta.noBlur) CoronaBlur.flash(pos);
                     CameraShake.impulse(pos, 22, 0.52f, 130L, 290L);
                 }
             }
@@ -607,6 +618,14 @@ final class SunMoonSkillVisuals {
     private static void drawMoonReflux(
         SkillVfx.Track t, Vec3 origin, long age, long time, List<SpriteQuad> sp, Vec3 camera
     ) {
+        CastMeta meta = METAS.get(t.start.cast());
+        if (meta != null && meta.leylineDurationMs > 0L && age < meta.leylineDurationMs) {
+            double rem = Math.max(0.0, (meta.leylineDurationMs - age) / 1000.0);
+            double fieldFade = Math.min(1.0, age / 250.0) * Math.min(1.0, rem / 0.8);
+            double pulse = 0.88 + 0.12 * Math.sin(time * 0.005);
+            emitLeyLines(sp, origin.add(0, 0.052, 0), meta.radius, -time * 0.0014, COL_MOON_DARK, COL_MOON_MAIN, COL_PARADOX_HOT, (int) (210 * fieldFade * pulse), true);
+            emitLeyLines(sp, origin.add(0, 0.068, 0), meta.radius * 0.62, time * 0.0022, COL_SUN_DARK, COL_SUN_GOLD, COL_WHITE, (int) (145 * fieldFade * pulse), true);
+        }
         double u = Math.clamp(age / 800.0, 0.0, 1.0);
         double fade = 1.0 - u * u;
         if (fade <= 0.01) return;

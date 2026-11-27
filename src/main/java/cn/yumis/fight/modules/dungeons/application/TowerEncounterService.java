@@ -6,7 +6,9 @@ import cn.yumis.fight.modules.dungeons.api.AwakeningTowerStele;
 import cn.yumis.fight.modules.dungeons.api.Dungeon;
 import cn.yumis.fight.modules.dungeons.api.DungeonContentTypes;
 import cn.yumis.fight.modules.dungeons.api.DungeonPorts;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleState;
 import cn.yumis.fight.modules.dungeons.api.TowerCard;
+import cn.yumis.fight.modules.dungeons.api.TowerCardCatalog;
 import cn.yumis.fight.modules.dungeons.api.TowerCardDraft;
 import cn.yumis.fight.modules.dungeons.api.TowerCareerDeck;
 import cn.yumis.fight.modules.dungeons.api.TowerClimbRules;
@@ -102,6 +104,10 @@ final class TowerEncounterService {
         }
         if (action.equals("towerBattle")) {
             saveBattle(player, request);
+            return;
+        }
+        if (action.equals("towerCreativeDeck")) {
+            editCreativeDeck(player, request);
             return;
         }
         Lobby lobby = lobbies.get(UUID.fromString(request.get("lobby").getAsString()));
@@ -397,6 +403,85 @@ final class TowerEncounterService {
         var offer = JSON.fromJson(request.get("offer"), TowerCareerDeck.CareerOffer.class);
         var updated = current.applyCareerUpdate(job, cards, offer);
         if (updated.isPresent()) journal.put(deckKey(id), updated.get());
+        players.profile(player);
+    }
+
+    private void editCreativeDeck(ServerPlayer player, JsonObject request) throws Exception {
+        if (!player.isCreative()
+            || !player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)) {
+            throw new IllegalArgumentException("仅管理员在创造模式下可操作全卡牌库");
+        }
+        String op = request.has("op") ? request.get("op").getAsString() : "";
+        UUID id = player.getUUID();
+        Dungeon dungeon = owner.current(id);
+        var current = readDeck(id);
+        String fallbackDeckId = current != null && !current.id().isEmpty() ? current.id()
+            : dungeon != null && dungeon.tower != null ? dungeon.id.toString()
+            : UUID.randomUUID().toString();
+        var base = current == null ? TowerCareerDeck.DeckSnapshot.empty(fallbackDeckId) : current;
+
+        TowerCareerDeck.DeckSnapshot updated;
+        TowerCard.Reference addedRef = null;
+        String removedCardId = "";
+        List<String> replacedIds = List.of();
+        switch (op) {
+            case "add" -> {
+                if (!request.has("card") || !request.get("card").isJsonObject()) {
+                    throw new IllegalArgumentException("缺少卡牌参数");
+                }
+                addedRef = JSON.fromJson(request.get("card"), TowerCard.Reference.class);
+                var result = base.creativeAdd(fallbackDeckId, addedRef);
+                updated = result.deck();
+                replacedIds = result.replacedIds();
+            }
+            case "remove" -> {
+                removedCardId = request.has("cardId") ? request.get("cardId").getAsString() : "";
+                if (removedCardId.isEmpty()) throw new IllegalArgumentException("缺少要移除的卡牌 ID");
+                updated = base.creativeRemove(removedCardId);
+            }
+            case "clear" -> updated = TowerCareerDeck.DeckSnapshot.creativeClear();
+            default -> throw new IllegalArgumentException("未知创造模式卡牌库操作：" + op);
+        }
+
+        boolean inFreshTowerRun = dungeon != null && dungeon.tower != null && !dungeon.tower.keepingCards.contains(id);
+        var writes = new LinkedHashMap<String, JsonElement>();
+        if (updated.hasCards()) {
+            writes.put(deckKey(id), JSON.toJsonTree(updated));
+            JsonElement savedBattle = battle(id);
+            if (savedBattle.isJsonObject()) {
+                var checkpoint = JSON.fromJson(savedBattle, TowerBattleState.Checkpoint.class);
+                var pruned = TowerBattleState.pruneCheckpoint(checkpoint, updated.allHeldIds());
+                if (pruned != checkpoint) writes.put(battleKey(id), JSON.toJsonTree(pruned));
+            }
+        } else {
+            writes.put(deckKey(id), inFreshTowerRun
+                ? JSON.toJsonTree(TowerCareerDeck.DeckSnapshot.empty(dungeon.id.toString()))
+                : JsonNull.INSTANCE);
+            writes.put(battleKey(id), JsonNull.INSTANCE);
+        }
+
+        if (inFreshTowerRun) {
+            JsonElement savedDraft = journal.get(cardKey(dungeon, id));
+            if (savedDraft.isJsonObject()) {
+                var draftSnapshot = JSON.fromJson(savedDraft, TowerCardDraft.Snapshot.class);
+                String currentJob = players.progress(player).jobId();
+                var updatedDraft = TowerCardDraft.creativeApply(draftSnapshot, op, addedRef, removedCardId, currentJob);
+                if (updatedDraft != draftSnapshot) writes.put(cardKey(dungeon, id), JSON.toJsonTree(updatedDraft));
+            }
+        }
+
+        journal.transaction(writes);
+        if (!replacedIds.isEmpty() && addedRef != null) {
+            var addedEntry = TowerCardCatalog.find(addedRef.id());
+            String addedName = addedEntry == null ? addedRef.id() : addedEntry.card().name();
+            var replacedNames = replacedIds.stream()
+                .map(rid -> {
+                    var entry = TowerCardCatalog.find(rid);
+                    return entry == null ? rid : entry.card().name();
+                })
+                .toList();
+            players.message(player, "已获取「" + addedName + "」（已自动替换互斥卡牌：" + String.join("、", replacedNames) + "）");
+        }
         players.profile(player);
     }
 

@@ -52,7 +52,6 @@ public final class SummonerClient {
     private static long markedUntil;
     private static long lastMarkSentAt;
     private static UUID lastMarkSentTarget;
-    public static long resonanceUntil;
     private static long lastAuraHealAt;
     private static final Map<UUID, Long> sandorShredUntil = new HashMap<>();
     private static final Map<UUID, Long> louiseSlowUntil = new HashMap<>();
@@ -68,7 +67,6 @@ public final class SummonerClient {
         markedUntil = 0;
         lastMarkSentAt = 0;
         lastMarkSentTarget = null;
-        resonanceUntil = 0;
         lastAuraHealAt = 0;
         sandorShredUntil.clear();
         louiseSlowUntil.clear();
@@ -223,7 +221,7 @@ public final class SummonerClient {
         }
     }
 
-    /** Soul Pact: heals summon 2% max HP & shield on each summon hit (throttled sync). */
+    /** Soul Pact: heals summon max HP on each summon hit (no shield recovery; throttled sync). */
     public static void onSummonHit(String sourceId, Stats ownerStats) {
         if (sourceId == null || sourceId.isEmpty() || !TowerBattleCard.SUMMONER_MASTERY_PACT.held(ownerStats)) return;
         if (SkillLearning.effective(ownerStats, state().progress(), SkillCatalog.require(SummonerSkills.MASTERY)) <= 0) return;
@@ -231,14 +229,10 @@ public final class SummonerClient {
         if (pet == null || pet.get("health").getAsDouble() <= 0) return;
         double ratio = TowerBattleCard.SUMMONER_MASTERY_PACT.ratio("heal");
         double maxHp = pet.get("maximum").getAsDouble();
-        double maxShield = pet.get("maximumShield").getAsDouble();
         double hp = pet.get("health").getAsDouble();
-        double shield = pet.get("shield").getAsDouble();
         double nextHp = Math.min(maxHp, hp + maxHp * ratio);
-        double nextShield = Math.min(maxShield, shield + maxShield * ratio);
-        if (nextHp > hp || nextShield > shield) {
+        if (nextHp > hp) {
             pet.addProperty("health", nextHp);
-            pet.addProperty("shield", nextShield);
             dirtyPets.add(sourceId);
         }
     }
@@ -355,12 +349,13 @@ public final class SummonerClient {
         long now = ClientUi.now();
         long durationMs = TowerBattleCard.SUMMONER_LOUISE_INFERNO.millis("duration");
         int ticks = Math.max(1, (int) (durationMs / 500L));
-        // Each magma tick deals 12% of the meteor impact's baked attack panel (8 ticks = 96% burn total).
+        // Each magma tick deals the configured percentage of the meteor impact's baked attack panel.
+        double tickRatio = TowerBattleCard.SUMMONER_LOUISE_INFERNO.ratio("magma");
         Stats tickStats = meteorCast.stats.copy();
         tickStats.modifiers.put("summonElement", 1.0);
         ElementAccumulation.addConversion(tickStats, 1, ElementAccumulation.Kind.IGNITE, 1.0);
         SkillCast template = copyCast(meteorCast, tickStats, 1, "louise_magma_impact");
-        magmaZones.add(new MagmaZone(template, center, radius, 0.12, now + 500L, ticks, now + durationMs));
+        magmaZones.add(new MagmaZone(template, center, radius, tickRatio, now + 500L, ticks, now + durationMs));
         TrainingCombat.hold(meteorCast.id, "louise_magma_" + now, now + durationMs + 500L);
         emitSummonVisual(template, UUID.randomUUID().toString(), "START", center, new Vec3(0, 1, 0), durationMs, 0xff6e2b, null);
     }
