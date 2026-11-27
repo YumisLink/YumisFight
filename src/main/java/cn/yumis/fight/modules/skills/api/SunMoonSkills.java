@@ -14,13 +14,13 @@ public final class SunMoonSkills {
         var cycle=add(CYCLE,"日月流转",20,30,0,0,0,0,0,SkillDefinition.Aspect.NONE,true);cycle.automaticByJob=true;cycle.attackTypeRanks=false;
         add(MOON,"月流",20,30,20,0,1,3,1,SkillDefinition.Aspect.MOON,false);
         SkillCatalog.require(MOON).projectile=new SkillDefinition.Projectile(16,1,true,2000,true);
-        add(SUN,"日炎",25,40,40,0,1.8,3,1,SkillDefinition.Aspect.SUN,false);
+        add(SUN,"日炎",25,40,16,0,1.8,3,1,SkillDefinition.Aspect.SUN,false);
         add(REFLUX,"月辰回流",30,50,0,30,0,0,0,SkillDefinition.Aspect.MOON,false);
         SkillCatalog.require(REFLUX).maximumLearnedRank=1;
-        add(FLARE,"烈日爆炎",35,50,120,0,2.5,4,1,SkillDefinition.Aspect.SUN,false);
-        add(CORONA,"日冕",40,60,27,0,1.8,4,1,SkillDefinition.Aspect.SUN,false);
+        add(FLARE,"烈日爆炎",35,50,35,0,2.5,4,1,SkillDefinition.Aspect.SUN,false);
+        add(CORONA,"日冕",40,60,9.8,0,1.8,4,1,SkillDefinition.Aspect.SUN,false);
         add(STARFALL,"月见星辉",45,80,40,0,2.5,4,8,SkillDefinition.Aspect.MOON,false);
-        add(PARADOX,"悖论",50,100,0,0,0,1,2,SkillDefinition.Aspect.NONE,false);
+        add(PARADOX,"悖论",50,100,0,0,0,2.5,2,SkillDefinition.Aspect.NONE,false);
         SkillCatalog.require(MOON).formParameter("heartGrantBonus",0);
         SkillCatalog.require(SUN).formParameter("heartGrantBonus",0).formParameter("impactDelay",.35);
         SkillCatalog.require(REFLUX).formParameter("harmonyGrantBonus",0);
@@ -33,15 +33,8 @@ public final class SunMoonSkills {
         var skill=new SkillDefinition(id,title,"ELEMENT",JobCatalog.SUN_MOON,level,sp,mp/(100+14d*(level-1)),cd,hits==0?0:1,passive,Map.of("range",16d,"radius",radius,"slashes",(double)Math.max(1,hits),"duration",chant,"interval",id.equals(STARFALL)?.25:0d));
         skill.baseJob=JobCatalog.MAGE;skill.magicDamage=skill.magicTag=true;skill.chantSeconds=chant;skill.aspect=aspect;skill.groundTargeted=Set.of(SUN,FLARE,CORONA,STARFALL,PARADOX).contains(id);return SkillCatalog.register(skill);
     }
-    static void balance(){
+    static void variants(){
         MageSkills.careerScales(JobCatalog.SUN_MOON,.5,.5);
-        var sun=SkillCatalog.require(SUN);
-        for(String id:ALL){var s=SkillCatalog.require(id);if(id.equals(CYCLE)||id.equals(REFLUX)){SkillBalance.nonDamage(s);continue;}
-            double period=s.chantSeconds>0?s.chantSeconds:1;
-            SkillBalance.register(s,new SkillBalanceProfile(id.equals(PARADOX)?10:id.equals(SUN)?1:2,period,false,false,0,(definition,rank,context)->List.of(new SkillBalanceProfile.Hit((long)(period*1000),definition.parameters(rank).get("damage"),false))));
-            if(!id.equals(SUN)){double factor=id.equals(MOON)?.6:id.equals(FLARE)?2:id.equals(CORONA)?3:id.equals(STARFALL)?1.32:10;
-                SkillBalance.registerParameters(s,values->values.put("damage",values.get("damage")/values.getOrDefault("balanceScale",1d)*SkillBalance.parameters(sun,1).get("damage")*factor));}
-        }
     }
     public static void previews(){
         for(String id:ALL){var skill=SkillCatalog.require(id);int hits=id.equals(CYCLE)||id.equals(REFLUX)?0:id.equals(STARFALL)?8:id.equals(PARADOX)?2:1;

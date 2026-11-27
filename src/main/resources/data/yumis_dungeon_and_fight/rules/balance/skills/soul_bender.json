@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "group": "soul_bender",
+  "skills": {
+    "yumis_dungeon_and_fight:keiga": {
+      "title": "残影之凯贾",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 0.0
+      },
+      "parameters": {
+        "interval": 0.0,
+        "slashes": 1.0,
+        "range": 0.0,
+        "hpCost": 0.0,
+        "duration": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:ghost_field": {
+      "title": "鬼神之阵",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.1,
+      "cooldown": 20.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "iceDot": 5.902345,
+        "darkDot": 4.721876,
+        "damage": 0.0
+      },
+      "parameters": {
+        "interval": 1.0,
+        "slashes": 1.0,
+        "range": 5.0,
+        "hpCost": 0.0,
+        "duration": 12.0,
+        "fieldRadius": 5.0,
+        "fieldTickInterval": 1.0,
+        "controlSeconds": 0.5
+      }
+    },
+    "yumis_dungeon_and_fight:soul_slash": {
+      "title": "噬灵鬼斩",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 3.78391
+      },
+      "parameters": {
+        "interval": 0.0,
+        "slashes": 1.0,
+        "range": 3.0,
+        "hpCost": 0.0,
+        "duration": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:moonlight_slash": {
+      "title": "满月斩",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.1,
+      "cooldown": 8.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 10.0,
+        "damage": 6.0
+      },
+      "parameters": {
+        "interval": 0.2,
+        "slashes": 3.0,
+        "range": 3.8,
+        "finisherRange": 4.2,
+        "width": 3.2,
+        "dashDistance": 2.4,
+        "dashSeconds": 0.2,
+        "hpCost": 0.0,
+        "duration": 0.8
+      }
+    },
+    "yumis_dungeon_and_fight:tombstone": {
+      "title": "死亡墓碑",
+      "unlock": 30,
+      "sp": 50,
+      "mpRatio": 0.14,
+      "cooldown": 15.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 8.195577
+      },
+      "parameters": {
+        "interval": 0.2,
+        "slashes": 10.0,
+        "range": 4.0,
+        "hpCost": 0.0,
+        "duration": 2.0
+      }
+    },
+    "yumis_dungeon_and_fight:phantom_slash": {
+      "title": "鬼影闪",
+      "unlock": 35,
+      "sp": 50,
+      "mpRatio": 0.18,
+      "cooldown": 22.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 126.660173
+      },
+      "parameters": {
+        "interval": 0.25,
+        "slashes": 1.0,
+        "range": 8.0,
+        "width": 3.0,
+        "hpCost": 0.0,
+        "duration": 0.4,
+        "dashDistance": 8.0,
+        "dashSeconds": 0.25,
+        "invulnerableMillis": 250.0,
+        "controlSeconds": 0.5
+      }
+    },
+    "yumis_dungeon_and_fight:kalla": {
+      "title": "冥炎之卡洛",
+      "unlock": 40,
+      "sp": 60,
+      "mpRatio": 0.22,
+      "cooldown": 30.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "boltDamage": 5.28,
+        "damage": 29.946443
+      },
+      "parameters": {
+        "interval": 0.3,
+        "slashes": 3.0,
+        "range": 6.0,
+        "hpCost": 0.0,
+        "duration": 20.0,
+        "boltRange": 10.0,
+        "blastRadius": 2.0
+      }
+    },
+    "yumis_dungeon_and_fight:blache": {
+      "title": "第七鬼神：邪神之怖拉修",
+      "unlock": 50,
+      "sp": 100,
+      "mpRatio": 0.35,
+      "cooldown": 90.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 198.495429
+      },
+      "parameters": {
+        "interval": 1.2,
+        "slashes": 1.0,
+        "range": 8.0,
+        "hpCost": 0.0,
+        "duration": 2.0,
+        "finishDelay": 1.2
+      }
+    }
+  }
+}

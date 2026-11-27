@@ -1,0 +1,316 @@
+{
+  "version": 1,
+  "group": "battle_mage",
+  "skills": {
+    "yumis_dungeon_and_fight:battle_groove": {
+      "title": "斗神意志",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "range": 0.0,
+        "duration": 0.0,
+        "slashes": 1.0,
+        "spearBonusScale": 1.0,
+        "spearRangeScale": 1.15,
+        "spearChargeScale": 0.85,
+        "clubBonusScale": 1.0,
+        "clubAutoChaserScale": 0.8,
+        "clubChaserRadiusScale": 1.15,
+        "staffBonusScale": 1.0,
+        "staffChaserCdScale": 0.85,
+        "comboStageCap": 6.0,
+        "comboThresholdScale": 1.0,
+        "comboHoldSeconds": 8.0,
+        "grooveBonusScale": 1.0,
+        "perStageCrit": 0.015,
+        "autoChaserInterval": 4.0,
+        "autoChaserChance": 1.0,
+        "basicChaserChance": 0.0,
+        "forcedChaserEnabled": 0.0,
+        "forcedChaserType": 0.0,
+        "neutralWeight": 1.0,
+        "lightWeight": 1.0,
+        "fireWeight": 1.0,
+        "iceWeight": 1.0,
+        "darkWeight": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:chaser_launcher": {
+      "title": "炫纹发射",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.021858,
+      "cooldown": 0.45,
+      "damaging": true,
+      "damage": {
+        "neutralDamage": 10.974973,
+        "lightDamage": 11.552604,
+        "fireDamage": 12.476813,
+        "iceDamage": 11.32155,
+        "darkDamage": 12.130235,
+        "damage": 11.552604
+      },
+      "parameters": {
+        "range": 16.0,
+        "duration": 0.5,
+        "slashes": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "maxChasers": 7.0,
+        "chaserDuration": 25.0,
+        "buffDuration": 20.0,
+        "radius": 2.4,
+        "projectileSpeed": 28.0,
+        "lockWindowSeconds": 1.2,
+        "neutralMoveSpeed": 0.15,
+        "lightAttackSpeed": 0.12,
+        "fireDamageMut": 0.05,
+        "iceDamageReduction": 0.08,
+        "darkCritBonus": 0.08,
+        "autoFireOnHit": 0.0,
+        "extraVolleyCount": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:palm_blast": {
+      "title": "落花掌",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.071038,
+      "cooldown": 6.0,
+      "damaging": true,
+      "damage": {
+        "damage": 15.750354
+      },
+      "parameters": {
+        "range": 5.0,
+        "duration": 0.5,
+        "slashes": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "chargeSeconds": 0.45,
+        "minChargeRatio": 0.8,
+        "chargeDamageMultiplier": 1.3,
+        "chargeDashMultiplier": 1.6,
+        "chargeScaleMultiplier": 1.2,
+        "maxHoldSeconds": 1.5,
+        "chargeMoveSpeedRatio": 0.65,
+        "dashDistance": 4.5,
+        "dashSeconds": 0.28,
+        "radius": 2.6,
+        "knockbackDistance": 3.5,
+        "cancelWindowSeconds": 0.45,
+        "chaserGen": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:full_swing": {
+      "title": "碎霸",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.09633,
+      "cooldown": 7.5,
+      "damaging": true,
+      "damage": {
+        "chaserSlash": 0.0,
+        "damage": 28.728095
+      },
+      "parameters": {
+        "range": 5.0,
+        "duration": 0.5,
+        "slashes": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "radius": 4.5,
+        "arcDegrees": 210.0,
+        "cancelWindowSeconds": 0.45,
+        "consumeChaserForBoost": 0.0,
+        "chaserGen": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:chaser_fusion": {
+      "title": "炫纹融合",
+      "unlock": 30,
+      "sp": 50,
+      "mpRatio": 0.142292,
+      "cooldown": 11.0,
+      "damaging": true,
+      "damage": {
+        "damage": 70.642836
+      },
+      "parameters": {
+        "range": 5.0,
+        "duration": 0.5,
+        "slashes": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "consumeCount": 2.0,
+        "autoGenerateOnEmpty": 0.0,
+        "radius": 4.2,
+        "centerOffset": 3.2,
+        "impactDelay": 0.25,
+        "fusionBuffDuration": 15.0,
+        "fusionAttackBonus": 0.08,
+        "fusionCritBonus": 0.06
+      }
+    },
+    "yumis_dungeon_and_fight:chaser_press": {
+      "title": "炫纹强压",
+      "unlock": 35,
+      "sp": 50,
+      "mpRatio": 0.182292,
+      "cooldown": 16.0,
+      "damaging": true,
+      "damage": {
+        "perChaserDamage": 13.096172,
+        "damage": 42.310708
+      },
+      "parameters": {
+        "range": 5.0,
+        "duration": 0.5,
+        "slashes": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "radius": 3.5,
+        "radiusPerChaser": 0.45,
+        "autoGenerateOnEmpty": 1.0,
+        "impactDelay": 0.3,
+        "controlSeconds": 0.8,
+        "pullRadius": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:punto_wave": {
+      "title": "流星闪影击",
+      "unlock": 35,
+      "sp": 50,
+      "mpRatio": 0.182292,
+      "cooldown": 18.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 49.218577,
+        "damage": 7.617161
+      },
+      "parameters": {
+        "range": 5.5,
+        "duration": 1.35,
+        "slashes": 12.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "interval": 0.09,
+        "chaserEveryHits": 3.0,
+        "width": 3.2,
+        "finisherRadius": 5.5,
+        "stepMoveSpeed": 2.0,
+        "cancelWindowSeconds": 0.45
+      }
+    },
+    "yumis_dungeon_and_fight:dragon_strike": {
+      "title": "强袭流星打",
+      "unlock": 40,
+      "sp": 60,
+      "mpRatio": 0.224458,
+      "cooldown": 24.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 77.492138,
+        "damage": 51.661425
+      },
+      "parameters": {
+        "range": 5.0,
+        "duration": 0.5,
+        "slashes": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "chargeSeconds": 0.6,
+        "minChargeRatio": 0.78,
+        "chargeDamageMultiplier": 1.3,
+        "chargeDashMultiplier": 1.45,
+        "chargeScaleMultiplier": 1.25,
+        "maxHoldSeconds": 1.5,
+        "chargeMoveSpeedRatio": 0.65,
+        "dashDistance": 9.0,
+        "dashSeconds": 0.3,
+        "width": 3.5,
+        "blastRadius": 5.0,
+        "returnToOrigin": 1.0,
+        "dashCount": 1.0,
+        "chaserGen": 2.0
+      }
+    },
+    "yumis_dungeon_and_fight:dragon_spear": {
+      "title": "煌龙偃月",
+      "unlock": 45,
+      "sp": 80,
+      "mpRatio": 0.265363,
+      "cooldown": 32.0,
+      "damaging": true,
+      "damage": {
+        "thrust": 69.001332,
+        "dragonChaser": 13.800266,
+        "finisherPhys": 48.300934,
+        "finisherMagic": 48.300934,
+        "damage": 69.001332
+      },
+      "parameters": {
+        "range": 7.5,
+        "duration": 2.0,
+        "slashes": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "dragonChaserCount": 8.0,
+        "interval": 0.14,
+        "holdSeconds": 1.4,
+        "width": 3.2,
+        "blastRadius": 6.5,
+        "chaserGen": 2.0
+      }
+    },
+    "yumis_dungeon_and_fight:teana_transformation": {
+      "title": "变身：贝亚娜",
+      "unlock": 50,
+      "sp": 100,
+      "mpRatio": 0.362595,
+      "cooldown": 90.0,
+      "damaging": true,
+      "damage": {
+        "auraPhys": 126.26607,
+        "auraMagic": 126.26607,
+        "finisherPhys": 294.620829,
+        "finisherMagic": 294.620829,
+        "damage": 126.26607
+      },
+      "parameters": {
+        "range": 10.0,
+        "duration": 0.5,
+        "slashes": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "transformSeconds": 30.0,
+        "finisherDuration": 1.4,
+        "keepTransformAfterFinisher": 0.0,
+        "teanaChaserScale": 1.45,
+        "teanaSkillScale": 1.3,
+        "teanaShieldRatio": 0.25,
+        "teanaAttackSpeed": 0.2,
+        "teanaMoveSpeed": 0.2,
+        "teanaCritBonus": 0.12,
+        "auraRadius": 5.5,
+        "finisherRadius": 8.5,
+        "chaserGen": 3.0
+      }
+    }
+  }
+}

@@ -13,11 +13,11 @@
       },
       "2": {
         "title": "极光雷冰壁",
-        "summary": "冰墙半径扩大25%，存续期间每0.5秒对贴墙敌人降下光电脉冲，拦弹次数翻倍。",
+        "summary": "冰墙半径扩大25%，存续期间每0.5秒对贴墙敌人降下光电脉冲，抵伤上限翻倍。",
         "modifiers": [
           { "parameter": "radius", "additive": 0.0, "multiplier": 1.25 },
           { "parameter": "pulseDot", "additive": 0.12, "multiplier": 1.0 },
-          { "parameter": "wallBlockQuota", "additive": 0.0, "multiplier": 2.0 }
+          { "parameter": "wallShieldMultiplier", "additive": 0.0, "multiplier": 2.0 }
         ]
       }
     },

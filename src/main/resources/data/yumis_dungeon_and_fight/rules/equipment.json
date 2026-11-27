@@ -1,12 +1,16 @@
 {
   "affixes": {
     "flat_health": {
+      "revision": 1,
       "id": "flat_health",
       "name": "生机",
       "operation": "FLAT",
       "group": "random",
       "stat": "HEALTH",
-      "element": -1
+      "element": -1,
+      "minimum": 9,
+      "maximum": 13.5,
+      "levelCurve": "armor_flat_health"
     },
     "percent_health": {
       "id": "percent_health",
@@ -1054,11 +1058,11 @@
       "operation": "FLAT",
       "group": "unique",
       "element": -1,
-      "revision": 1,
+      "revision": 2,
       "retired": false,
       "stat": "LIFE_STEAL",
-      "minimum": 80,
-      "maximum": 160
+      "minimum": 6,
+      "maximum": 9
     },
     "unique/inverse_resists": {
       "id": "unique/inverse_resists",
@@ -1278,12 +1282,16 @@
       "element": -1
     },
     "crafted/health": {
+      "revision": 1,
       "id": "crafted/health",
       "name": "工艺之生命",
       "operation": "FLAT",
       "group": "crafted",
       "stat": "HEALTH",
-      "element": -1
+      "element": -1,
+      "minimum": 9,
+      "maximum": 13.5,
+      "levelCurve": "armor_flat_health"
     },
     "crafted/mp": {
       "id": "crafted/mp",
@@ -2203,14 +2211,14 @@
           "base": 0,
           "growth": 0,
           "reference": "armor_physical",
-          "factor": 1
+          "factor": 2
         },
         {
           "stat": "MAGICAL_DEFENSE",
           "base": 0,
           "growth": 0,
           "reference": "armor_magical",
-          "factor": 1
+          "factor": 2
         }
       ]
     },
@@ -2223,14 +2231,14 @@
           "base": 0,
           "growth": 0,
           "reference": "armor_physical",
-          "factor": 1
+          "factor": 2
         },
         {
           "stat": "MAGICAL_DEFENSE",
           "base": 0,
           "growth": 0,
           "reference": "armor_magical",
-          "factor": 1
+          "factor": 2
         }
       ]
     },
@@ -2243,14 +2251,14 @@
           "base": 0,
           "growth": 0,
           "reference": "armor_physical",
-          "factor": 1
+          "factor": 2
         },
         {
           "stat": "MAGICAL_DEFENSE",
           "base": 0,
           "growth": 0,
           "reference": "armor_magical",
-          "factor": 1
+          "factor": 2
         }
       ]
     },
@@ -2263,14 +2271,14 @@
           "base": 0,
           "growth": 0,
           "reference": "armor_physical",
-          "factor": 1
+          "factor": 2
         },
         {
           "stat": "MAGICAL_DEFENSE",
           "base": 0,
           "growth": 0,
           "reference": "armor_magical",
-          "factor": 1
+          "factor": 2
         }
       ]
     },
@@ -2644,31 +2652,31 @@
   "armorTypes": {
     "CLOTH": {
       "name": "布甲",
-      "defense": 0.2,
-      "shield": 0.5,
+      "defense": 0.4,
+      "shield": 1.0,
       "evasion": 0
     },
     "LEATHER": {
       "name": "皮甲",
-      "defense": 0.2,
-      "shield": 0.25,
-      "evasion": 0.9259259259259259
+      "defense": 0.4,
+      "shield": 0.5,
+      "evasion": 1.8518518518518519
     },
     "LIGHT": {
       "name": "轻甲",
-      "defense": 0.2,
+      "defense": 0.4,
       "shield": 0,
-      "evasion": 1.8518518518518519
+      "evasion": 3.7037037037037037
     },
     "HEAVY": {
       "name": "重甲",
-      "defense": 0.6,
-      "shield": 0.25,
+      "defense": 1.2,
+      "shield": 0.5,
       "evasion": 0
     },
     "PLATE": {
       "name": "板甲",
-      "defense": 1,
+      "defense": 2,
       "shield": 0,
       "evasion": 0
     }

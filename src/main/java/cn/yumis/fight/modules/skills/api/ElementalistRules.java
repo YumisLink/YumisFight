@@ -4,10 +4,12 @@ import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.attributes.api.Stats;
 import cn.yumis.fight.modules.character.api.JobCatalog;
 import cn.yumis.fight.modules.character.api.Progress;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import java.util.*;
 
 /** Pure, shared Elementalist arithmetic: Moving Cast, Elemental Burn, dyeing and Astral Storm probability weights. */
 public final class ElementalistRules {
+    public static final int[] ALL_FOUR_ELEMENTS = {0, 1, 2, 3};
     public static final int COLOR_LIGHT = 0xFFE066;
     public static final int COLOR_FIRE = 0xFF7B39;
     public static final int COLOR_ICE = 0x75D8F5;
@@ -15,6 +17,14 @@ public final class ElementalistRules {
     public static final int COLOR_PRISM = 0xE0C8FF;
     public static final double MIN_CHARGE_SECONDS = 0.05;
     public static final double MAX_MEMORIZE_REDUCTION = 0.60;
+    private static final Set<String> CHARGE_DAMAGE_KEYS = Set.of("damage", "finisher", "emberDot", "pulseDot", "volcanoDot");
+    private static final Set<String> CHARGE_SCALE_KEYS = Set.of("radius", "blastRadius", "shockwaveRadius", "pullRadius");
+
+    public enum PostChantAction {
+        RELEASE_DIRECT,
+        RELEASE_UNCHARGED,
+        BEGIN_CHARGE
+    }
 
     private ElementalistRules() {}
 
@@ -137,6 +147,32 @@ public final class ElementalistRules {
         return parameters.get("chargeSeconds", 0.0) > 0.0;
     }
 
+    /** Decides what happens when Elementalist chant completes: non-chargeable releases directly, released key fires uncharged, held key enters charge. */
+    public static PostChantAction postChantAction(boolean chargeable, boolean keyReleased) {
+        if (!chargeable) return PostChantAction.RELEASE_DIRECT;
+        return keyReleased ? PostChantAction.RELEASE_UNCHARGED : PostChantAction.BEGIN_CHARGE;
+    }
+
+    /** Applies Elementalist charge damage/scale multipliers (and full-charge Lightning Vortex bonus orb) to a cast snapshot. */
+    public static SkillParameters.Snapshot applyChargeParameters(SkillParameters.Snapshot parameters, double progress) {
+        if (parameters == null || parameters.get("chargeSeconds", 0.0) <= 0.0) return parameters;
+        double u = Math.clamp(progress, 0.0, 1.0);
+        double dmgMul = chargeDamageMultiplier(parameters, u);
+        double scaleMul = chargeScaleMultiplier(parameters, u);
+        var values = new LinkedHashMap<>(parameters.values());
+        for (String key : CHARGE_DAMAGE_KEYS) {
+            if (values.containsKey(key)) values.put(key, values.get(key) * dmgMul);
+        }
+        for (String key : CHARGE_SCALE_KEYS) {
+            if (values.containsKey(key) && values.get(key) > 0) values.put(key, values.get(key) * scaleMul);
+        }
+        if (ElementalistSkills.LIGHTNING_VORTEX.equals(parameters.skill().id)
+            && morphMode(parameters) == 0 && u >= 0.999) {
+            values.put("orbCount", values.getOrDefault("orbCount", 4.0) + 1.0);
+        }
+        return new SkillParameters.Snapshot(parameters.skill(), parameters.rank(), values);
+    }
+
     public static int voidSphereTicks(SkillParameters.Snapshot p) {
         double duration = Math.max(0.05, p.get("duration", 4.0));
         double interval = Math.max(0.05, p.get("interval", 0.25));
@@ -156,7 +192,7 @@ public final class ElementalistRules {
 
         result.modifiers.put("memorizeReduction", memorize);
         result.mut(Stat.CAST_SPEED, castSpeedPct / 100.0);
-        result.modifiers.put("cooldownRecovery", result.modifiers.getOrDefault("cooldownRecovery", 0.0) + cdRecovery);
+        result.mut(Stat.COOLDOWN_RECOVERY, cdRecovery);
 
         int lit = state == null ? 0 : state.litCount(now);
         result.modifiers.put("elementalistBurnRank", (double) rank);
@@ -190,7 +226,7 @@ public final class ElementalistRules {
         var next = state.copy();
         boolean changed = false;
 
-        if (ElementalistSkills.ASTRAL_STORM.equals(skill.id)) {
+        if (ElementalistSkills.ASTRAL_STORM.equals(skill.id) || isPrismActive(stats)) {
             for (int i = 0; i < 4; i++) {
                 next.lampUntil[i] = Math.max(next.lampUntil[i], now + durationMs);
             }
@@ -239,8 +275,41 @@ public final class ElementalistRules {
         return copy;
     }
 
+    public static boolean isPrismActive(Stats stats) {
+        return TowerBattleCard.ELEM_BURN_PRISM.held(stats);
+    }
+
+    public static boolean isInstantFullCharge(SkillDefinition skill, Stats stats) {
+        return skill != null && ElementalistSkills.VOID_SPHERE.equals(skill.id)
+            && TowerBattleCard.ELEM_VOID_MULTICHARGE.held(stats);
+    }
+
+    public static double voidCrystalFinisher(SkillParameters.Snapshot parameters, Stats stats) {
+        if (parameters == null || !TowerBattleCard.ELEM_VOID_CRYSTAL.held(stats)) return 0.0;
+        return voidSphereTicks(parameters) * parameters.get("damage", 0.0) * (0.50 / 1.30);
+    }
+
+    public static int effectiveMorphMode(String skillId, SkillParameters.Snapshot parameters, Stats stats) {
+        int mode = morphMode(parameters);
+        if (mode != 0 || stats == null || skillId == null) return mode;
+        return switch (skillId) {
+            case ElementalistSkills.ICE_WALL -> TowerBattleCard.ELEM_ICE_WALL_WAVE.held(stats) ? 1 : 0;
+            case ElementalistSkills.LIGHTNING_VORTEX -> TowerBattleCard.ELEM_VORTEX_RAILGUN.held(stats) ? 1 : 0;
+            case ElementalistSkills.VOID_SPHERE -> TowerBattleCard.ELEM_VOID_CRYSTAL.held(stats) ? 1 : 0;
+            case ElementalistSkills.FLAME_PILLAR -> TowerBattleCard.ELEM_FLAME_CHAIN.held(stats) ? 2 : 0;
+            case ElementalistSkills.HALLOWEEN_BUSTER -> TowerBattleCard.ELEM_BUSTER_COLOSSUS.held(stats) ? 1 : 0;
+            case ElementalistSkills.ARCTIC_FEAST -> TowerBattleCard.ELEM_ARCTIC_THRONE.held(stats) ? 1 : 0;
+            case ElementalistSkills.BLACK_HOLE -> TowerBattleCard.ELEM_BH_SINGULARITY.held(stats) ? 1 : 0;
+            case ElementalistSkills.LIGHTNING_STRIKE -> TowerBattleCard.ELEM_STRIKE_CLOUD.held(stats) ? 2 : 0;
+            default -> 0;
+        };
+    }
+
     public static int[] previewElements(SkillDefinition skill, Stats stats, int[] original) {
         if (skill == null || stats == null) return original;
+        if (!skill.passive() && isPrismActive(stats)) {
+            return ALL_FOUR_ELEMENTS;
+        }
         if (!ElementalistSkills.contains(skill.id) && !MageSkills.JACK.equals(skill.id)) return original;
         int innate = ElementalistSkills.innateElement(skill.id);
         int eff = effectiveElement(null, stats, innate);
@@ -288,5 +357,38 @@ public final class ElementalistRules {
         if (mode == 0) return skill.title;
         var preset = ElementalistMorphs.current().find(skill.id, mode);
         return preset == null ? skill.title : skill.title + " · " + preset.title();
+    }
+
+    public record IceWallAbsorb(boolean absorbed, double remainingShield, boolean shattered, double discardedOverflow) {}
+
+    /** Checks whether a player position (feet) lies inside an active Ice Wall cylinder. */
+    public static boolean insideIceWall(double px, double py, double pz,
+                                        double cx, double cy, double cz,
+                                        double radius, double wallHeight) {
+        if (!(radius > 0.0) || !Double.isFinite(radius)) return false;
+        double dx = px - cx;
+        double dz = pz - cz;
+        if (dx * dx + dz * dz > radius * radius + 1e-9) return false;
+        double dy = py - cy;
+        double maxY = Math.max(3.0, Math.max(0.0, wallHeight) + 1.0);
+        return dy >= -1.0 - 1e-9 && dy <= maxY + 1e-9;
+    }
+
+    /**
+     * Resolves Ice Wall absorption for a single incoming hit.
+     * Any single hit that meets or exceeds the remaining shield breaks the wall immediately
+     * and discards all overflow damage so the protected player takes 0 damage from that hit.
+     */
+    public static IceWallAbsorb absorbIceWallDamage(double currentShield, double incomingDamage) {
+        if (!(currentShield > 0.0) || !Double.isFinite(currentShield)) {
+            return new IceWallAbsorb(false, 0.0, false, 0.0);
+        }
+        if (!(incomingDamage > 0.0) || !Double.isFinite(incomingDamage)) {
+            return new IceWallAbsorb(false, currentShield, false, 0.0);
+        }
+        if (incomingDamage < currentShield) {
+            return new IceWallAbsorb(true, currentShield - incomingDamage, false, 0.0);
+        }
+        return new IceWallAbsorb(true, 0.0, true, incomingDamage - currentShield);
     }
 }

@@ -52,9 +52,9 @@ public final class TutorialClient {
     public static void start(){starting=true;nextSave=0;tick();}
     private static void observe(){
         var progress=growth.get();if(progress.selected())observed.add("choose_job");
-        for(var entry:progress.skills.entrySet())if(entry.getValue()>0&&SkillCatalog.contains(entry.getKey())&&!SkillCatalog.require(entry.getKey()).passive()&&!SkillCatalog.require(entry.getKey()).equipmentGranted){observed.add("learn_skill");break;}
+        for(var entry:progress.skills.entrySet())if(entry.getValue()>0&&SkillCatalog.contains(entry.getKey())&&!SkillCatalog.require(entry.getKey()).passive()&&!SkillCatalog.require(entry.getKey()).equipmentGranted&&!SkillCatalog.require(entry.getKey()).cardGranted){observed.add("learn_skill");break;}
         for(String id:progress.slots)if(id!=null&&!id.isEmpty()&&SkillCatalog.contains(id)&&!SkillCatalog.require(id).passive()&&progress.learned(id)>0){observed.add("bind_skill");break;}
-        if(progress.strength>0||progress.intelligence>0||progress.spirit>0)observed.add("allocate");
+        if(progress.strength>0||progress.intelligence>0||progress.vitality>0||progress.spirit>0)observed.add("allocate");
     }
     public static void skillHit(Target target,SkillDefinition skill,double fraction){
         if(!ClientUi.current().ready()||!alive()||!state().started||target==null||!target.training()||target.timedTraining||skill==null||skill.passive()||growth.get().learned(skill.id)<=0||fraction<=0)return;

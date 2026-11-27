@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "chance": 0.01,
+  "firstFloor": 0.67,
+  "secondFloor": 0.34,
+  "skeletonThresholds": [
+    0.95,
+    0.9,
+    0.85,
+    0.8,
+    0.75,
+    0.7
+  ],
+  "secondWave": 8,
+  "champions": 5,
+  "radius": 24.0,
+  "castGapMs": 500,
+  "giantBasicCoefficient": 1.6,
+  "skeletonBasicCoefficient": 0.65,
+  "championBasicCoefficient": 0.75,
+  "championSkillEnhanceMultiplier": 1.0,
+  "enemies": {
+    "abyss_pillar": {
+      "title": "深渊柱",
+      "healthMultiplier": 3.0,
+      "attackMultiplier": 1.0
+    },
+    "abyss_skeleton": {
+      "title": "深渊骷髅",
+      "healthMultiplier": 0.6,
+      "attackMultiplier": 1.0
+    },
+    "abyss_steel_pipe": {
+      "title": "深渊钢管巨人",
+      "healthMultiplier": 1.8,
+      "attackMultiplier": 1.0
+    },
+    "abyss_champion": {
+      "title": "深渊冠军",
+      "healthMultiplier": 0.6,
+      "attackMultiplier": 1.0
+    }
+  }
+}

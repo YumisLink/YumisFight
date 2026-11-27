@@ -8,16 +8,19 @@ import net.minecraft.resources.Identifier;
 /** All nine summons use their own native cuboid skeleton and pixel atlas. */
 public final class SummonRenderer extends MobRenderer<SummonedCreature,SummonRenderer.State,EntityModel<SummonRenderer.State>> {
     public static final class State extends LivingEntityRenderState {
-        String move="";long elapsed,duration;boolean moving;
+        String move="";long elapsed,duration;boolean moving;float visualScale=1f;
     }
     private final SummonKind kind;
     public SummonRenderer(EntityRendererProvider.Context context,SummonKind kind){
         super(context,SummonCuboidModel.load(kind.model),(float)(kind.width*.45));this.kind=kind;
     }
+    @Override protected void scale(State state,com.mojang.blaze3d.vertex.PoseStack pose){
+        if(state.visualScale!=1f)pose.scale(state.visualScale,state.visualScale,state.visualScale);
+    }
     @Override public State createRenderState(){return new State();}
-    @Override protected int getBlockLightLevel(SummonedCreature entity,net.minecraft.core.BlockPos position){return kind==SummonKind.FIRE||kind==SummonKind.LIGHT||kind==SummonKind.KING?15:super.getBlockLightLevel(entity,position);}
+    @Override protected int getBlockLightLevel(SummonedCreature entity,net.minecraft.core.BlockPos position){return kind==SummonKind.FIRE||kind==SummonKind.LIGHT||kind==SummonKind.KING||entity.visualScale()>1.2f?15:super.getBlockLightLevel(entity,position);}
     @Override public void extractRenderState(SummonedCreature entity,State state,float partial){
-        super.extractRenderState(entity,state,partial);state.move=entity.move();state.elapsed=Math.max(0,SkillsClient.current().serverNow()-entity.actionAt());state.duration=entity.actionDuration();state.moving=Math.abs(entity.getX()-entity.xo)+Math.abs(entity.getZ()-entity.zo)>.002;
+        super.extractRenderState(entity,state,partial);state.move=entity.move();state.elapsed=Math.max(0,SkillsClient.current().serverNow()-entity.actionAt());state.duration=entity.actionDuration();state.moving=Math.abs(entity.getX()-entity.xo)+Math.abs(entity.getZ()-entity.zo)>.002;state.visualScale=entity.visualScale();
     }
     @Override public Identifier getTextureLocation(State state){return Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/entity/summons/"+kind.model+".png");}
 }

@@ -46,6 +46,7 @@ public final class SkillCastHooks {
         public Vec3 origin;
         public Vec3 direction;
         public Vec3 center;
+        public int oracleReplicaStacks;
         public boolean rejected;
 
         public Request(
@@ -111,6 +112,7 @@ public final class SkillCastHooks {
         SunMoonClient.installHooks();
         ElementalistClient.installHooks();
         BattleMageClient.installHooks();
+        WitchClient.installHooks();
         TowerSkillCombat.installHooks();
     }
 }

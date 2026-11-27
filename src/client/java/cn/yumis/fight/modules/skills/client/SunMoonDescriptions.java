@@ -13,6 +13,6 @@ final class SunMoonDescriptions {
         SkillDescriptions.register(SunMoonSkills.FLARE,c->"在目标位置引发猛烈的烈日爆炎，对周围敌人造成大量火属性伤害。\n成功放出获得3层日曜心，装备可额外增加获得的层数。\n基础咏唱2.5秒，伤害半径4格，无冷却。");
         SkillDescriptions.register(SunMoonSkills.CORONA,c->"需要在拥有日曜心时才能释放。召唤一颗巨大的火球，在目标位置缓缓升起，随后爆炸，造成极高的火属性伤害。\n附近第一人称下直视火球且无遮挡的玩家，视野边缘会模糊0.8秒，包括自己和队友；中心仍然清晰。\n不会获得或消耗日曜心。\n基础咏唱1.8秒，火球升起"+number(c.parameters().get("impactDelay",.8))+"秒后爆炸，伤害半径4格，无冷却。");
         SkillDescriptions.register(SunMoonSkills.STARFALL,c->"需要在拥有月弦心时才能释放。在目标位置唤下月光与星辉，持续对周围敌人造成冰属性伤害。\n成功放出后将调和补至至少3层（装备可额外提升），不会获得或消耗月弦心；多次施放的月光可以重叠。\n基础咏唱2.5秒，持续"+number(c.parameters().get("slashes",8)*c.parameters().get("interval",.25))+"秒，每"+number(c.parameters().get("interval",.25))+"秒造成一次伤害，伤害半径"+number(c.parameters().get("radius",4))+"格，无冷却。");
-        SkillDescriptions.register(SunMoonSkills.PARADOX,c->"消耗1层悖论，召唤交缠的日月光球，旋转落下后接连爆发冰与火的力量，造成巨额伤害。\n可以瞄准空地；瞄准敌人时，光球会追随目标，目标消失后在最后的位置爆炸。\n不受日曜心增伤，不会获得或改变两种心。\n无需咏唱，光球下落"+number(c.parameters().get("impactDelay",.6))+"秒，伤害半径1格，不消耗魔力，无冷却。");
+        SkillDescriptions.register(SunMoonSkills.PARADOX,c->"消耗1层悖论，召唤交缠的日月光球，旋转落下后接连爆发冰与火的力量，造成巨额伤害。\n可以瞄准空地；瞄准敌人时，光球会追随目标，目标消失后在最后的位置爆炸。\n不受日曜心增伤，不会获得或改变两种心。\n无需咏唱，光球下落"+number(c.parameters().get("impactDelay",.6))+"秒，伤害半径"+number(c.parameters().get("radius",2.5))+"格，不消耗魔力，无冷却。");
     }
 }

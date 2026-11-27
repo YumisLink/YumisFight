@@ -13,7 +13,7 @@ public final class CharacterChanges {
             case "learn","unlearn","resetSkills","bind"->skills.apply(next,stats,request);
             case "placeTalent","removeTalent","placeBirth","removeBirth"->talents.apply(next,kind,request.get("talent").getAsString());
             case "allocate"->next.allocate(request.get("stat").getAsString(),request.has("count")?request.get("count").getAsInt():1);
-            case "resetAttributes"->next.strength=next.intelligence=next.spirit=0;
+            case "resetAttributes"->next.strength=next.intelligence=next.vitality=next.spirit=0;
             case "sync"->next.sync=request.get("enabled").getAsBoolean();
             case "renameProfile"->book.rename(request.get("target").getAsString(),request.get("name").getAsString());
             case "unlockCareer"->{

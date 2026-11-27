@@ -1,0 +1,76 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "yumis_dungeon_and_fight:item/effect/witch_flyswatter"
+  },
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        50
+      ],
+      "translation": [
+        0,
+        6.0,
+        1.5
+      ],
+      "scale": [
+        1.85,
+        1.85,
+        1.15
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        -50
+      ],
+      "translation": [
+        0,
+        6.0,
+        1.5
+      ],
+      "scale": [
+        1.85,
+        1.85,
+        1.15
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -90,
+        35
+      ],
+      "translation": [
+        1.5,
+        4.0,
+        1.5
+      ],
+      "scale": [
+        1.35,
+        1.35,
+        0.95
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        90,
+        -35
+      ],
+      "translation": [
+        1.5,
+        4.0,
+        1.5
+      ],
+      "scale": [
+        1.35,
+        1.35,
+        0.95
+      ]
+    }
+  }
+}

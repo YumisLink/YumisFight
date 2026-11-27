@@ -2,7 +2,7 @@
 
 先读 [AGENTS](../AGENTS.md)，再按任务查下表；未完成事项只看根目录 [TODO](../TODO.md)。本文件只定位入口，当前行为和数值以正式源码、资源为准。
 
-新增内容先看 [创作指南](创作指南/README.md)：已有设施用在哪里、制作需哪些参数；调数另看 [数值平衡评估](创作指南/数值平衡评估.md)。
+新增内容先看 [创作指南](创作指南/README.md)。调数查 [数值平衡评估](创作指南/数值平衡评估.md)，职业输出和配装实测按 [职业伤害打桩测试规范](创作指南/职业伤害打桩测试规范.md) 执行。
 
 ## 目录与装配
 
@@ -48,7 +48,7 @@
 | 单抽罐子、奖池与演出 | `modules/economy/api/JarDefinitions.java`、`LootJarItem.java`；配置 `rules/jars.json`，本机决定奖品在客户端 `economy/client/EconomyActions.java`，演出在 `JarClient.java`、`JarScreen.java`，保存与交付在主源码 `application/JarService.java` |
 | 队伍与邀请 | `modules/party/api/Team.java`、`PartyInvitation.java` |
 | 方舟战争 | `modules/arkguard/api/ArkWar.java`、`ArkRules.java`、`ArkRoster.java`、`ArkTraits.java`；报名与回合在 `application/ArkGuardService.java`、`ArkBattle.java`，单位战斗与投射物命中在 `ArkCombat.java`，提交后的战斗演出在 `ArkEffects.java`，现场展示在 `ArkScene.java`、`ParticipationBoard.java`，客户端交互在 `arkguard/client/ArkGuardClient.java`，血条／技能条及战斗特效在 `ArkVisuals.java`；数值 `rules/ark_war.json`，地图 `map_blueprint/ark_war.json` |
-| 页面、主题、输入与通用演出 | `modules/presentation/api/`；分片染色文字 `RichText.java`，客户端 `presentation/api/client/RichTextDrawing.java`；其余绘制及页面合同查 `client/` 和 `api/client/` |
+| 页面、主题、输入与通用演出 | `modules/presentation/api/`；分片染色文字 `RichText.java`，客户端 `presentation/api/client/RichTextDrawing.java`；本机动态光照 `presentation/api/client/LocalLights.java`；其余绘制及页面合同查 `client/` 和 `api/client/` |
 | 连锁采矿 | `modules/mining/api/VeinMining.java`；客户端按键和预览为 `mining/client/VeinMiningClient.java`，数量保存在 `presentation/api/client/ClientSettings.java` |
 | 野外建筑、配置地图与出生村庄 | [野外建筑生成规则](创作指南/野外建筑生成.md)；公开入口 `modules/mapgeneration/api/MapGeneration.java`、`MapBlueprint.java`；启动开关在游戏目录 `config/ydcore.toml` |
 | 魔力花与魔力草循环 | `modules/industry/api/MagicFlora.java`；植物、液体与展示产线的制作源在 `tools/industrial_technology.py` |
@@ -60,6 +60,7 @@
 | 查什么 | 在哪里 |
 |---|---|
 | 规则整包与发布 | 主源码 `bootstrap/ApplicationRules.java`、`architecture/RuleStore.java` |
+| 统一平衡数据处理中心 | `src/main/resources/data/yumis_dungeon_and_fight/rules/balance/`（全局总控 `master.json`、玩家 `player.json`、全职业技能直出 `skills/*.json`、敌人 `enemies/*.json`、Boss `bosses/*.json`）；各模块规则入口：`combat/api/CombatBalanceRules.java`、`character/api/CharacterBalanceRules.java`、`skills/api/SkillBalanceRules.java`、`dungeons/api/EnemyBalanceRules.java`、`dungeons/api/BossBalanceRules.java`、`equipment/api/EquipmentBalanceRules.java`、`talents/api/TalentBalanceRules.java`、`economy/api/EconomyBalanceRules.java` |
 | 装备、技能、工业、副本及宝箱参数 | `src/main/resources/data/yumis_dungeon_and_fight/rules/`；装备模板在相邻 `equipment/` |
 | 配方、标签、掉落与世界生成 | `src/main/resources/data/yumis_dungeon_and_fight/{recipe,tags,loot_table,worldgen}/` |
 | 语言、模型、图标、着色器与动作 | `src/main/resources/assets/yumis_dungeon_and_fight/`，按业务目录查找 |

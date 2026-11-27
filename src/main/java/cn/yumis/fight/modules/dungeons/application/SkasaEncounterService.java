@@ -142,12 +142,12 @@ public final class SkasaEncounterService {
         SkasaMoves move=switch(kind){
             case MALE_WARRIOR -> PUNCH;
             case FEMALE_WARRIOR -> KICK;
-            case NASRA -> distance<=NASRA_CYCLONE.range&&b.ready(NASRA_CYCLONE,now)?NASRA_CYCLONE:NASRA_KICK;
-            case ICE_SPIDER -> distance<=SPIDER_BITE.range&&b.ready(SPIDER_BITE,now)?SPIDER_BITE:ICE_LINE;
+            case NASRA -> distance<=NASRA_CYCLONE.rangeVal()&&b.ready(NASRA_CYCLONE,now)?NASRA_CYCLONE:NASRA_KICK;
+            case ICE_SPIDER -> distance<=SPIDER_BITE.rangeVal()&&b.ready(SPIDER_BITE,now)?SPIDER_BITE:ICE_LINE;
             case HATCHLING -> HATCHLING_CHARGE;
             default -> throw new IllegalStateException();
         };
-        if(distance>move.range||!b.ready(move,now))return;
+        if(distance>move.rangeVal()||!b.ready(move,now))return;
         if(kind==HATCHLING){
             Vec3 to=inside(d,b.area,e.position().subtract(direction.scale(2)));
             if(owner.level().noCollision(e,e.getBoundingBox().move(to.subtract(e.position()))))e.move(MoverType.SELF,to.subtract(e.position()));
@@ -160,7 +160,7 @@ public final class SkasaEncounterService {
     }
     private void play(DungeonEnemy e,Brain b,SkasaAttack a,long now){
         SkasaMoves move=a.move();var timing=targets.target(e).actionTiming(now);long duration=timing.duration(move.duration());a.castScale=timing.scale();e.getNavigation().stop();e.setAggressive(true);e.play(move.animation(a.side),duration);
-        b.busy=now+duration;b.ready.put(move,now+move.cooldown);add(a);
+        b.busy=now+duration;b.ready.put(move,now+move.cooldownMs());add(a);
     }
     private void add(SkasaAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"skasaAttack",packet(a,false));}
     private JsonObject packet(SkasaAttack a,boolean cancelled){var frame=JSON.toJsonTree(a).getAsJsonObject();frame.addProperty("cancelled",cancelled);frame.addProperty("contactUntil",System.currentTimeMillis());var raw=owner.level().getEntity(a.source);if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));return frame;}

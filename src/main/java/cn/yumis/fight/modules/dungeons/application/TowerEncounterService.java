@@ -6,7 +6,9 @@ import cn.yumis.fight.modules.dungeons.api.AwakeningTowerStele;
 import cn.yumis.fight.modules.dungeons.api.Dungeon;
 import cn.yumis.fight.modules.dungeons.api.DungeonContentTypes;
 import cn.yumis.fight.modules.dungeons.api.DungeonPorts;
+import cn.yumis.fight.modules.dungeons.api.TowerCard;
 import cn.yumis.fight.modules.dungeons.api.TowerCardDraft;
+import cn.yumis.fight.modules.dungeons.api.TowerCareerDeck;
 import cn.yumis.fight.modules.dungeons.api.TowerClimbRules;
 import cn.yumis.fight.modules.dungeons.api.TowerClimbRun;
 import cn.yumis.fight.modules.dungeons.content.AwakeningTowerLayout;
@@ -92,6 +94,10 @@ final class TowerEncounterService {
         String action = request.get("kind").getAsString();
         if (action.equals("towerCards")) {
             saveCards(player, request);
+            return;
+        }
+        if (action.equals("towerCareerDeck")) {
+            saveCareerDeck(player, request);
             return;
         }
         if (action.equals("towerBattle")) {
@@ -199,10 +205,14 @@ final class TowerEncounterService {
         if (player != null) Network.send(player, "towerLobby", Map.of("id", lobby.id().toString(), "closed", true));
     }
 
+    private TowerCareerDeck.DeckSnapshot readDeck(UUID player) {
+        var raw = journal.get(deckKey(player));
+        return raw.isJsonObject() ? JSON.fromJson(raw, TowerCareerDeck.DeckSnapshot.class) : null;
+    }
+
     private String retainedDeck(UUID player) {
-        var deck = journal.get(deckKey(player));
-        return deck.isJsonObject() && !deck.getAsJsonObject().getAsJsonArray("chosen").isEmpty()
-            ? deck.getAsJsonObject().get("id").getAsString() : "";
+        var deck = readDeck(player);
+        return deck != null && deck.hasCards() ? deck.id() : "";
     }
 
     private EntryChoice entryChoice(UUID player, JsonObject request) {
@@ -275,7 +285,7 @@ final class TowerEncounterService {
             if (!keep.contains(id)) {
                 previousDecks.put(deckKey(id), journal.get(deckKey(id)));
                 previousDecks.put(battleKey(id), journal.get(battleKey(id)));
-                writes.put(deckKey(id), JSON.toJsonTree(Map.of("id", dungeon.id, "chosen", List.of())));
+                writes.put(deckKey(id), JSON.toJsonTree(TowerCareerDeck.DeckSnapshot.empty(dungeon.id.toString())));
                 writes.put(battleKey(id), JsonNull.INSTANCE);
             }
         }
@@ -321,9 +331,9 @@ final class TowerEncounterService {
 
     private String cardKey(Dungeon dungeon, UUID player) { return "towerCards/" + dungeon.id + "/" + player; }
 
-    private String deckKey(UUID player) { return "towerDeck/" + player; }
+    private String deckKey(UUID player) { return "towerDeck-v2/" + player; }
 
-    private String battleKey(UUID player) { return "towerDeckBattle/" + player; }
+    private String battleKey(UUID player) { return "towerDeckBattle-v2/" + player; }
 
     JsonElement battle(UUID player) {
         return journal.get(battleKey(player));
@@ -364,8 +374,29 @@ final class TowerEncounterService {
         writes.put(cardKey(dungeon, id), value);
         writes.put("instance/" + dungeon.id, JSON.toJsonTree(dungeon));
         if (next.slots().isEmpty())
-            writes.put(deckKey(id), JSON.toJsonTree(Map.of("id", dungeon.id, "chosen", next.chosen())));
+            writes.put(deckKey(id), JSON.toJsonTree(TowerCareerDeck.DeckSnapshot.fromClimb(dungeon.id.toString(), next.chosen())));
         journal.transaction(writes);
+        players.profile(player);
+    }
+
+    private void saveCareerDeck(ServerPlayer player, JsonObject request) throws Exception {
+        UUID id = player.getUUID();
+        if (players.session(player).life.dead) throw new IllegalArgumentException("死亡状态不能补选职业神话卡");
+        if (owner.current(id) != null) throw new IllegalArgumentException("请先退出当前副本再补选职业神话卡");
+        BlockPos stele = BlockPos.of(request.get("stele").getAsLong());
+        if (AwakeningTowerStele.nearby(player, stele, ENROLLMENT_DISTANCE_SQUARED) == null)
+            throw new IllegalArgumentException("请在觉醒塔石碑旁补选职业神话卡");
+        var current = readDeck(id);
+        String deckId = request.get("deck").getAsString();
+        if (current == null || !current.hasCards() || !deckId.equals(current.id())) {
+            players.profile(player);
+            return;
+        }
+        String job = request.get("job").getAsString();
+        var cards = List.of(JSON.fromJson(request.get("cards"), TowerCard.Reference[].class));
+        var offer = JSON.fromJson(request.get("offer"), TowerCareerDeck.CareerOffer.class);
+        var updated = current.applyCareerUpdate(job, cards, offer);
+        if (updated.isPresent()) journal.put(deckKey(id), updated.get());
         players.profile(player);
     }
 
@@ -409,8 +440,10 @@ final class TowerEncounterService {
             }
             return;
         }
-        boolean cleared = run.bossEntity != null ? owner.defeated(run.bossEntity)
-            : !dungeon.enemies.isEmpty() && dungeon.enemies.stream().allMatch(owner::defeated);
+        boolean cleared = cn.yumis.fight.modules.dungeons.content.ForgeTowerSwordMasters.isMemberId(run.boss)
+            ? owner.swordMasters.isCleared(dungeon)
+            : run.bossEntity != null ? owner.defeated(run.bossEntity)
+                : !dungeon.enemies.isEmpty() && dungeon.enemies.stream().allMatch(owner::defeated);
         if (cleared && TowerClimbRules.bossFloor(run.floor)) {
             bossCleared(dungeon, online);
         } else if (online.stream().allMatch(p -> players.session(p).life.dead)) {
@@ -454,7 +487,7 @@ final class TowerEncounterService {
         if (completion != null) {
             completion.publish();
             meter.freeze(dungeon);
-            for (ServerPlayer player : online) players.message(player, "觉醒塔第 50 层已通关。");
+            for (ServerPlayer player : online) players.message(player, "觉醒塔第 " + TowerClimbRules.FLOOR_COUNT + " 层已通关。");
         }
         for (ServerPlayer player : online) players.profile(player);
     }

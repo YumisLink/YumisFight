@@ -1,0 +1,273 @@
+{
+  "version": 1,
+  "bosses": {
+    "goblin_camp_keno": {
+      "title": "闪电之凯诺",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "phase2Floor": 0.65,
+      "phase3Floor": 0.3,
+      "rageMaximum": 100.0,
+      "stage3CooldownScale": 0.8,
+      "moves": {
+        "BASIC": {
+          "windup": 300,
+          "active": 200,
+          "duration": 900,
+          "cooldown": 2000,
+          "range": 3.0,
+          "coefficient": 1.0,
+          "magic": false,
+          "element": -1
+        },
+        "FAN": {
+          "windup": 800,
+          "active": 200,
+          "duration": 1800,
+          "cooldown": 6000,
+          "range": 6.0,
+          "coefficient": 1.2,
+          "magic": true,
+          "element": 0
+        },
+        "RING": {
+          "windup": 900,
+          "active": 200,
+          "duration": 1800,
+          "cooldown": 8000,
+          "range": 5.5,
+          "coefficient": 1.3,
+          "magic": true,
+          "element": 0
+        },
+        "LIGHTNING": {
+          "windup": 1200,
+          "active": 200,
+          "duration": 2400,
+          "cooldown": 10000,
+          "range": 2.0,
+          "coefficient": 1.4,
+          "magic": true,
+          "element": 0
+        },
+        "LIGHTNING_STAGE2": {
+          "windup": 1200,
+          "active": 200,
+          "duration": 2400,
+          "cooldown": 8000,
+          "range": 2.0,
+          "coefficient": 1.4,
+          "magic": true,
+          "element": 0
+        },
+        "CLAW": {
+          "windup": 400,
+          "active": 200,
+          "duration": 2200,
+          "cooldown": 6000,
+          "range": 4.5,
+          "coefficient": 0.7,
+          "magic": false,
+          "element": -1
+        },
+        "CLAW_STAGE3": {
+          "windup": 400,
+          "active": 200,
+          "duration": 2200,
+          "cooldown": 6000,
+          "range": 4.5,
+          "coefficient": 0.9,
+          "magic": false,
+          "element": -1
+        },
+        "ULTIMATE": {
+          "windup": 800,
+          "active": 200,
+          "duration": 3400,
+          "cooldown": 25000,
+          "range": 4.0,
+          "coefficient": 1.8,
+          "magic": true,
+          "element": 0
+        },
+        "ULTIMATE_STAGE3": {
+          "windup": 800,
+          "active": 200,
+          "duration": 4000,
+          "cooldown": 25000,
+          "range": 5.0,
+          "coefficient": 2.6,
+          "magic": true,
+          "element": 0
+        }
+      }
+    },
+    "dragon_tower_lucas": {
+      "title": "鲁卡斯",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "resists": [
+        15.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "params": {
+        "phase2Threshold": 0.65,
+        "phase3Threshold": 0.3,
+        "phase3CooldownScale": 0.8,
+        "cloneHealthRatio": 0.22,
+        "cloneAttackRatio": 0.55,
+        "cageBreakHits": 3,
+        "cageDurationMs": 2500,
+        "chargeWidth": 2.8,
+        "ringEndRadius": 12.0,
+        "ringWidth": 2.4,
+        "ringDurationMs": 950,
+        "skySpearCountP2": 5,
+        "skySpearCountTransition": 8,
+        "skySpearCountP3": 7,
+        "skySpearRadius": 2.5,
+        "jumpHeight": 6.5,
+        "jumpSlamRadius": 5.0,
+        "jumpRingEndRadius": 11.0,
+        "tempestSafeMin": 5.5,
+        "tempestSafeMax": 10.0,
+        "tempestOuterRadius": 18.0,
+        "tempestCrossRange": 19.0,
+        "tempestCrossWidth": 3.0
+      },
+      "moves": {
+        "SPEAR_COMBO": {
+          "animation": "spear_combo",
+          "windup": 450,
+          "active": 220,
+          "duration": 1450,
+          "cooldown": 3200,
+          "range": 4.8,
+          "coefficient": 0.72,
+          "magic": false,
+          "element": -1
+        },
+        "SPEAR_COMBO_THRUST": {
+          "animation": "spear_combo",
+          "windup": 350,
+          "active": 220,
+          "duration": 650,
+          "cooldown": 3200,
+          "range": 7.5,
+          "coefficient": 0.9,
+          "magic": true,
+          "element": 0
+        },
+        "DRAGON_CHARGE": {
+          "animation": "dragon_charge",
+          "windup": 700,
+          "active": 520,
+          "duration": 1700,
+          "cooldown": 7500,
+          "range": 13.0,
+          "coefficient": 1.25,
+          "magic": false,
+          "element": -1
+        },
+        "THUNDER_DISCHARGE": {
+          "animation": "thunder_discharge",
+          "windup": 800,
+          "active": 950,
+          "duration": 1900,
+          "cooldown": 9000,
+          "range": 12.0,
+          "coefficient": 1.2,
+          "magic": true,
+          "element": 0
+        },
+        "THUNDER_CAGE": {
+          "animation": "thunder_cage",
+          "windup": 950,
+          "active": 2500,
+          "duration": 1500,
+          "cooldown": 14000,
+          "range": 1.75,
+          "coefficient": 1.65,
+          "magic": true,
+          "element": 0
+        },
+        "SKY_SPEAR_RAIN": {
+          "animation": "sky_spear_rain",
+          "windup": 950,
+          "active": 320,
+          "duration": 2100,
+          "cooldown": 11500,
+          "range": 2.5,
+          "coefficient": 1.15,
+          "magic": true,
+          "element": 0
+        },
+        "JUMP_SLAM": {
+          "animation": "jump_slam",
+          "windup": 1050,
+          "active": 350,
+          "duration": 2250,
+          "cooldown": 12500,
+          "range": 5.0,
+          "coefficient": 1.38,
+          "magic": true,
+          "element": 0
+        },
+        "CROWN_TEMPEST": {
+          "animation": "crown_tempest",
+          "windup": 1550,
+          "active": 380,
+          "duration": 3400,
+          "cooldown": 22000,
+          "range": 18.0,
+          "coefficient": 1.9,
+          "magic": true,
+          "element": 0
+        },
+        "CROWN_TEMPEST_CROSS": {
+          "animation": "crown_tempest",
+          "windup": 750,
+          "active": 300,
+          "duration": 1200,
+          "cooldown": 22000,
+          "range": 19.0,
+          "coefficient": 1.55,
+          "magic": true,
+          "element": 0
+        }
+      }
+    },
+    "gbl_asor": {
+      "title": "堕落的阿索尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "palace_sieghart": {
+      "title": "光之城主赛格哈特",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "forbidden_marcellus": {
+      "title": "审判者马塞尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "dark_city_headless_knight": {
+      "title": "无头骑士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "skasa_ice_dragon": {
+      "title": "冰龙斯卡萨",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "castle_karl": {
+      "title": "卡尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    }
+  }
+}

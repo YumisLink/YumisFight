@@ -6,7 +6,7 @@ import java.util.*;
 public final class WaystoneRules {
     public record Affix(String id,String title,String effect,double minimum,double maximum,String group,boolean enabled){}
     public int firstMonsterLevel=81,levelsPerTier=1,maximumPlayers=8;
-    public double statGrowth=.15,tierReward=.10,affixReward=.30,rewardVariance=.20,starterChance=.75;
+    public double statGrowth=.05,tierReward=.10,affixReward=.30,rewardVariance=.20,starterChance=.75;
     public long countdownMillis=10000,deathPenaltyMillis=15000;
     public long[] timeLimitsMillis={300000,480000,900000};
     public int[] tierChanges={3,2,1,-1};

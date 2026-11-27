@@ -14,7 +14,7 @@ import static cn.yumis.fight.modules.dungeons.client.EnemyEffectGeometry.*;
 
 /** The gate's warnings and concrete skull/horse silhouettes; no hit or health state is written here. */
 public final class DarkCityVisuals {
-    private record Frame(List<Quad> quads,boolean fade){}
+    private record Frame(List<Quad> quads,List<EffectSprites.SpriteQuad> sprites,boolean fade){}
     private static final ContextKey<Frame> FRAME=new ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","dark_city_effects"));
     private static final Map<String,GblAttack> tracks=new LinkedHashMap<>();
     private static final Map<String,Long> closed=new LinkedHashMap<>();
@@ -29,43 +29,79 @@ public final class DarkCityVisuals {
     }
     private static void extract(ExtractLevelRenderStateEvent event){
         if(world!=Minecraft.getInstance().level)clear();
-        var mc=Minecraft.getInstance();List<Quad> q=new ArrayList<>();long now=ClientUi.current().serverNow();String here=instance.get();
+        var mc=Minecraft.getInstance();List<Quad> q=new ArrayList<>();List<EffectSprites.SpriteQuad> s=new ArrayList<>();
+        Vec3 cam=event.getCamera().position();
+        long now=ClientUi.current().serverNow();String here=instance.get();
         closed.values().removeIf(until->now>until);tracks.values().removeIf(a->!a.instance.equals(here)||now>a.end()+300);
         if(mc.level!=null&&mc.player!=null&&ClientUi.current().ready()){
-            for(var a:tracks.values())if(now>=a.started&&now<=a.end())draw(q,a,now);
+            for(var a:tracks.values())if(now>=a.started&&now<=a.end())draw(q,s,cam,a,now);
             for(var raw:mc.level.entitiesForRendering())if(raw instanceof DungeonEnemy e&&DarkCityEnemyKind.of(e)==DarkCityEnemyKind.TINGO&&e.guarded()&&e.isAlive()&&e.distanceToSqr(mc.player)<4096){
                 Vec3 c=e.position().add(0,.06,0);ring(q,c,1.05,.075,GOLD,180);
+                EffectSprites.sigil(s,c,1.18,now*0.0015,GOLD,175,true);
                 for(int i=0;i<8;i++){double angle=i*Math.PI/4+now/1600d;box(q,c.add(Math.cos(angle),.5+Math.sin(now/200d+i)*.08,Math.sin(angle)),.045,.11,.045,GOLD,180);}
             }
         }else tracks.clear();
-        event.getRenderState().setRenderData(FRAME,new Frame(List.copyOf(q),NearEffectRendering.enabled(event.getCamera())));
+        event.getRenderState().setRenderData(FRAME,new Frame(List.copyOf(q),List.copyOf(s),NearEffectRendering.enabled(event.getCamera())));
     }
-    private static void draw(List<Quad> q,GblAttack a,long now){
+    private static void draw(List<Quad> q,List<EffectSprites.SpriteQuad> s,Vec3 cam,GblAttack a,long now){
         DarkCityMoves move=DarkCityMoves.valueOf(a.kind);boolean warning=now<a.release();
         int color=move==DarkCityMoves.NIGHTMARE?SOUL:move==DarkCityMoves.GUARD?GOLD:a.element==3?DARK:BONE;
         Vec3 c=a.origin().add(0,.055-move.height(),0),end=new Vec3(a.ex,c.y,a.ez),direction=end.subtract(c).normalize();
+        double warnP=a.release()<=a.started?1:Math.clamp((now-a.started)/(double)(a.release()-a.started),0,1);
+        double activeP=a.end()<=a.release()?1:Math.clamp((now-a.release())/(double)(a.end()-a.release()),0,0.99);
         int alpha=warning?45:110;
         switch(a.shape){
-            case "FAN" -> fan(q,c,direction,a.radius,a.halfAngle,color,alpha);
-            case "CIRCLE" -> {disc(q,c,a.radius,color,warning?30:65);ring(q,c,a.radius,.09,color,185);if(!warning)for(int i=0;i<3;i++){double angle=now/130d+i*Math.PI*2/3;line(q,c.add(0,.75,0),c.add(Math.cos(angle)*a.radius,.75,Math.sin(angle)*a.radius),.075,BONE,180);}}
+            case "FAN" -> {
+                fan(q,c,direction,a.radius,a.halfAngle,color,alpha);
+                if(!warning)EffectSprites.slashArc(s,c.add(0,.9,0),direction,10,a.radius,activeP,color,215);
+            }
+            case "CIRCLE" -> {
+                disc(q,c,a.radius,color,warning?30:65);ring(q,c,a.radius,.09,color,185);
+                if(warning)EffectSprites.warningCircle(s,c.add(0,.015,0),a.radius,warnP,color,175);
+                else{
+                    EffectSprites.sigil(s,c.add(0,.02,0),a.radius,now*0.0028,color,195,true);
+                    EffectSprites.shockwave(s,c.add(0,.04,0),a.radius*(.35+.75*activeP),activeP*1.2,BONE,(int)(210*(1-activeP)));
+                    for(int i=0;i<3;i++){double angle=now/130d+i*Math.PI*2/3;line(q,c.add(0,.75,0),c.add(Math.cos(angle)*a.radius,.75,Math.sin(angle)*a.radius),.075,BONE,180);}
+                }
+            }
             case "WAVE" -> {
-                if(warning){disc(q,c,a.radius,color,20);ring(q,c,a.radius,.065,color,180);}
-                else{double r=Math.max(.1,a.waveRadius(now));ring(q,c,r,a.width,DARK,120);ring(q,c.add(0,.18,0),r,.1,BONE,210);}
+                if(warning){disc(q,c,a.radius,color,20);ring(q,c,a.radius,.065,color,180);EffectSprites.warningCircle(s,c.add(0,.015,0),a.radius,warnP,color,170);}
+                else{
+                    double r=Math.max(.1,a.waveRadius(now));
+                    ring(q,c,r,a.width,DARK,120);ring(q,c.add(0,.18,0),r,.1,BONE,210);
+                    EffectSprites.shockwave(s,c.add(0,.04,0),r,now*0.0022,DARK,205);
+                }
             }
             case "CHARGE" -> {
                 if(warning)rect(q,c,end,a.width*2,color,55);
-                else{Vec3 at=a.position(now).add(0,.06,0);line(q,a.origin().add(0,.06,0),at,.12,SOUL,95);ring(q,at,1.05,.08,BONE,120);}
+                else{
+                    Vec3 at=a.position(now).add(0,.06,0);line(q,a.origin().add(0,.06,0),at,.12,SOUL,95);ring(q,at,1.05,.08,BONE,120);
+                    RibbonTrail.push("dark:"+a.id,at.add(0,.55,0),.32,SOUL,205,260,ClientUi.now());
+                    EffectSprites.glow(s,at.add(0,.55,0),cam,.75,SOUL,195);
+                }
             }
             case "LINE" -> {
                 if(warning)rect(q,c,end,a.width*2,color,40);
-                else if(move==DarkCityMoves.SKULL)skull(q,a.position(now),direction);
-                else if(move==DarkCityMoves.NIGHTMARE)horse(q,a.position(now).add(0,-move.height(),0),direction,now);
-                else{
+                else if(move==DarkCityMoves.SKULL){
+                    Vec3 p=a.position(now);skull(q,p,direction);
+                    RibbonTrail.push("dark:"+a.id,p,.22,DARK,205,260,ClientUi.now());
+                    EffectSprites.glow(s,p,cam,.55,DARK,185);
+                }else if(move==DarkCityMoves.NIGHTMARE){
+                    Vec3 p=a.position(now);horse(q,p.add(0,-move.height(),0),direction,now);
+                    RibbonTrail.push("dark:"+a.id,p.add(0,.35,0),.34,SOUL,210,280,ClientUi.now());
+                    EffectSprites.glow(s,p.add(0,.5,0),cam,.85,SOUL,180);
+                }else{
                     Vec3 tip=a.position(now);line(q,tip.subtract(direction.scale(.9)),tip,.035,BONE,235);
                     Vec3 side=new Vec3(direction.z,0,-direction.x);line(q,tip.subtract(direction.scale(.18)).add(side.scale(.13)),tip,.035,GOLD,240);line(q,tip.subtract(direction.scale(.18)).subtract(side.scale(.13)),tip,.035,GOLD,240);
+                    RibbonTrail.push("dark:"+a.id,tip,.14,GOLD,195,220,ClientUi.now());
+                    EffectSprites.glow(s,tip,cam,.35,BONE,200);
                 }
             }
-            case "GUARD" -> {ring(q,c,1.2,.08,GOLD,warning?125:210);if(warning)disc(q,c,1.2,GOLD,25);}
+            case "GUARD" -> {
+                ring(q,c,1.2,.08,GOLD,warning?125:210);if(warning)disc(q,c,1.2,GOLD,25);
+                EffectSprites.sigil(s,c.add(0,.015,0),1.3,now*0.002,GOLD,warning?150:215,true);
+                EffectSprites.glow(s,c.add(0,.65,0),cam,.65,GOLD,warning?120:185);
+            }
             default -> { }
         }
     }
@@ -97,6 +133,6 @@ public final class DarkCityVisuals {
         for(int i=0;i<4;i++)cuboid(q,c,d,Math.sin(now/110d+i)*.1,1.1-i*.1,-.68-i*.15,.08,.09,.18,SOUL,110-i*12);
         Vec3 tail=c.subtract(d.scale(1.6));line(q,tail.add(0,.4,0),c.add(0,.6,0),.07,SOUL,55);
     }
-    private static void submit(SubmitCustomGeometryEvent event){Frame frame=event.getLevelRenderState().getRenderData(FRAME);if(frame!=null)WorldQuads.submit(event,frame.quads,frame.fade);}
+    private static void submit(SubmitCustomGeometryEvent event){Frame frame=event.getLevelRenderState().getRenderData(FRAME);if(frame!=null){WorldQuads.submit(event,frame.quads,frame.fade);EffectSprites.submit(event,frame.sprites,frame.fade);}}
     private DarkCityVisuals(){}
 }

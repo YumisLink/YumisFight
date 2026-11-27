@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "group": "common",
+  "skills": {
+    "yumis_dungeon_and_fight:ghost": {
+      "title": "鬼斩",
+      "unlock": 1,
+      "sp": 15,
+      "mpRatio": 0.06,
+      "cooldown": 6.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 4.312142
+      },
+      "parameters": {
+        "duration": 0.8,
+        "range": 3.8,
+        "slashes": 1.0,
+        "interval": 0.2,
+        "chargeSeconds": 1.0,
+        "chargeMultiplier": 2.0,
+        "maxChargeSeconds": 3.0
+      }
+    },
+    "yumis_dungeon_and_fight:triple": {
+      "title": "三段斩",
+      "unlock": 5,
+      "sp": 15,
+      "mpRatio": 0.08,
+      "cooldown": 8.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 3.613985
+      },
+      "parameters": {
+        "duration": 0.8,
+        "range": 3.5,
+        "slashes": 3.0,
+        "interval": 0.2,
+        "dashDistance": 3.0,
+        "dashSeconds": 0.2
+      }
+    },
+    "yumis_dungeon_and_fight:wave": {
+      "title": "地裂波动剑",
+      "unlock": 10,
+      "sp": 15,
+      "mpRatio": 0.06,
+      "cooldown": 5.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 7.014417
+      },
+      "parameters": {
+        "duration": 0.8,
+        "range": 12.0,
+        "slashes": 1.0,
+        "interval": 0.2
+      }
+    },
+    "yumis_dungeon_and_fight:blink": {
+      "title": "闪现",
+      "unlock": 1,
+      "sp": 1,
+      "mpRatio": 0.2,
+      "cooldown": 8.0,
+      "cooldownPerRank": 0.1,
+      "damaging": false,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 0.0
+      },
+      "parameters": {
+        "duration": 0.0,
+        "range": 5.0,
+        "slashes": 0.0,
+        "interval": 0.0
+      }
+    }
+  }
+}

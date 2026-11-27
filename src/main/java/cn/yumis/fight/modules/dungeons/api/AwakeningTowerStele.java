@@ -44,8 +44,18 @@ public final class AwakeningTowerStele extends DoublePlantBlock {
     public static void install(BiConsumer<ServerPlayer,BlockPos> next){interaction=next;}
 
     public static AwakeningTower at(ServerPlayer player,BlockPos pos){
+        if(!player.isWithinBlockInteractionRange(pos,0))return null;
+        return blockAt(player,pos);
+    }
+
+    public static AwakeningTower nearby(ServerPlayer player,BlockPos pos,double maxDistanceSquared){
+        if(player.distanceToSqr(pos.getX()+.5,pos.getY()+.5,pos.getZ()+.5)>maxDistanceSquared)return null;
+        return blockAt(player,pos);
+    }
+
+    private static AwakeningTower blockAt(ServerPlayer player,BlockPos pos){
         Level level=player.level();
-        if(!Level.OVERWORLD.equals(level.dimension())||!player.isWithinBlockInteractionRange(pos,0)
+        if(!Level.OVERWORLD.equals(level.dimension())
             ||!level.getChunkSource().hasChunk(pos.getX()>>4,pos.getZ()>>4))return null;
         BlockState state=level.getBlockState(pos);
         if(!(state.getBlock() instanceof AwakeningTowerStele))return null;

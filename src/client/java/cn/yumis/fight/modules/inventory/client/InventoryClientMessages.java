@@ -9,7 +9,7 @@ import java.util.*;
 public final class InventoryClientMessages {
     private InventoryClientMessages(){}
     public static void register(cn.yumis.fight.architecture.CommandRouter<Void,JsonObject> router){
-        router.register("inventory","storage_ui",(context,j)->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof DimensionalMenu menu&&j.get("menu").getAsInt()==menu.containerId&&j.get("tier").getAsInt()==menu.extra.bagTier)menu.preview=j;});
+        router.register("inventory","storage_ui",(context,j)->{if(Minecraft.getInstance().player!=null&&Minecraft.getInstance().player.containerMenu instanceof DimensionalMenu menu&&j.get("menu").getAsInt()==menu.containerId&&j.get("tier").getAsInt()==menu.extra.bagTier)menu.loadPreview(j);});
     }
     public static void applyEquipment(String raw){
         try{
@@ -19,6 +19,7 @@ public final class InventoryClientMessages {
             var context=p.registryAccess().createSerializationContext(JsonOps.INSTANCE);
             var extra=MenuHooks.extra(p);
             if(j.has("bagTier")){extra.bagTier=j.get("bagTier").getAsInt();extra.bagSchema=j.get("bagSchema").getAsInt();extra.bagPage=j.get("bagPage").getAsInt();}
+            if(j.has("bagUnlocks"))extra.categories.unlocks(j.get("bagUnlocks").getAsInt());
             if(j.has("bag")){JsonArray bag=j.getAsJsonArray("bag");extra.bag.clearContent();for(int i=0;i<Math.min(extra.bagLimit(),bag.size());i++)extra.bag.setItem(i,ItemStack.OPTIONAL_CODEC.parse(context,bag.get(i)).getOrThrow());}
         }
         catch(RuntimeException e){

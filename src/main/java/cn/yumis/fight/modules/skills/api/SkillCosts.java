@@ -23,15 +23,17 @@ public final class SkillCosts {
         double effectiveMpMul=Math.max(0d,(1d+mpMulAdd)*mpMul);
         double effectiveCdAdd=cooldownAdd*cooldownAddMul;
         double effectiveCdMul=Math.max(0d,(1d+cooldownMulAdd)*cooldownMul);
-        int original=(int)Math.round(skill.mp(rank)*effectiveMpMul*stats.modifiers.getOrDefault("skillManaMultiplier",1d));
+        var sustain=CombatBalanceRules.current().sustain;
+        int original=(int)Math.round(skill.mp(rank)*effectiveMpMul*stats.modifiers.getOrDefault("skillManaMultiplier",1d)*sustain.skillManaCostMultiplier());
         if(SummonerSkills.contains(skill.id))original=(int)Math.round(original*Math.max(0,1-stats.modifiers.getOrDefault("summonMana",0d)));
-        double recovery=stats.get(Stat.COOLDOWN_RECOVERY);if(recovery<=0)recovery=1;
+        double recovery=stats.get(Stat.COOLDOWN_RECOVERY)*sustain.cooldownRecoveryMultiplier();if(recovery<=0)recovery=1;
         double baseCd=Math.max(0d,(skill.cooldown(rank)+effectiveCdAdd)*effectiveCdMul);
         if("CHASER".equals(skill.family))baseCd*=stats.modifiers.getOrDefault("bmChaserCdScale",1d);
         double cooldown=baseCd/recovery/(1+stats.modifiers.getOrDefault("cooldownRecovery",0d));
         if(skill.basicSkill())cooldown*=1-stats.modifiers.getOrDefault("basicSkillCooldown",0d);
         if(magic)cooldown-=effects.magicCooldownReduction;
         if(TowerSkillTraits.rotating(skill.id)&&TowerBattleCard.SPIN.held(stats))cooldown*=1-TowerBattleCard.SPIN.ratio("cooldown");
+        if(TowerBattleCard.ORACLE_WILL_HASTE.held(stats))cooldown-=TowerBattleCard.ORACLE_WILL_HASTE.value("reduction");
         int mana=effects.lifeCostRatio>0?0:Math.toIntExact(Math.round(original*(1+stats.modifiers.getOrDefault(Stats.SKILL_EXTRA_MANA_COST,0d))));
         return new Cost(mana,effects.lifeCostRatio>0?original*effects.lifeCostRatio:0,Math.max(0,cooldown));
     }

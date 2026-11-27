@@ -10,9 +10,10 @@ import java.util.*;
 public final class CombatRules {
     public static double evasionChance(double rating){
         finite(rating);
+        var rules=CombatBalanceRules.current().combat;
         double value=Math.max(0,rating);
-        if(value>30000)value=30000+(value-30000)/3;
-        return Math.min(.9,value/(10000+value));
+        if(value>rules.evasionSoftCap())value=rules.evasionSoftCap()+(value-rules.evasionSoftCap())/rules.evasionSoftSlope();
+        return Math.min(rules.evasionMaxChance(),value/(rules.evasionDivisor()+value));
     }
     public static boolean evades(double rating,java.util.function.DoubleSupplier roll){return rating>0&&roll.getAsDouble()<evasionChance(rating);}
     /** Index 0 is untyped; 1..4 are light/fire/ice/dark. Values use the very same RNG draws as total. */
@@ -51,8 +52,12 @@ public final class CombatRules {
         return calculateResolved(attacker,0,new double[4],magic,elements,coefficient,includeExtras,()->maximum?1:0,false,false);
     }
     static double highestPositiveResistance(double[] resist){return Math.max(0,Arrays.stream(resist).max().orElse(0));}
-    static double defenseMultiplier(double defense){return 1000/(1000+Math.max(0,defense));}
+    static double defenseMultiplier(double defense){
+        double divisor=CombatBalanceRules.current().combat.defenseDivisor();
+        return divisor/(divisor+Math.max(0,defense));
+    }
     private static Damage calculateResolved(Stats attacker,double defense,double[] resist,boolean magic,int[] elements,double coefficient,boolean includeExtras,java.util.function.DoubleSupplier roll,boolean rollCritical,boolean forcedCritical){
+        var rules=CombatBalanceRules.current().combat;
         int element=-1;
         double delta=-highestPositiveResistance(resist);
         if(elements.length>0){
@@ -66,16 +71,17 @@ public final class CombatRules {
             }
         }
         double mitigation=defenseMultiplier(defense);
-        double main=attacker.panel(magic)*coefficient*mitigation*Math.max(0,1+delta/120),extra=0;
+        double elementalDivisor=rules.elementalDivisor();
+        double main=attacker.panel(magic)*coefficient*mitigation*Math.max(0,1+delta/elementalDivisor),extra=0;
         double[] components=component(main,element);
         if(includeExtras)for(ExtraDamage a:attacker.extras){
             double base=a.value+roll.getAsDouble()*Math.max(0,a.maximum-a.value);
             double difference=attacker.get(Stat.values()[Stat.LIGHT.ordinal()+a.element])-resist[a.element];
-            double amount=base*coefficient*mitigation*Math.max(0,1+difference/120);extra+=amount;components[a.element+1]+=amount;
+            double amount=base*coefficient*mitigation*Math.max(0,1+difference/elementalDivisor);extra+=amount;components[a.element+1]+=amount;
         }
-        double multiplier=(1+attacker.modifiers.getOrDefault("final",0d))*attacker.modifiers.getOrDefault("skillProduct",1d);
+        double multiplier=(1+attacker.modifiers.getOrDefault("final",0d))*attacker.modifiers.getOrDefault("skillProduct",1d)*rules.playerDamageMultiplier();
         boolean critical=forcedCritical||(rollCritical&&roll.getAsDouble()<attacker.modifiers.getOrDefault("crit",0d));
-        if(critical)multiplier*=1.5+attacker.modifiers.getOrDefault("critDamage",0d);
+        if(critical)multiplier*=rules.baseCritMultiplier()+attacker.modifiers.getOrDefault("critDamage",0d);
         for(int i=0;i<components.length;i++)components[i]*=multiplier;
         return new Damage(main*multiplier,extra*multiplier,element,components,critical);
     }

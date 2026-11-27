@@ -1,6 +1,7 @@
 package cn.yumis.fight.mixin;
 
 import cn.yumis.fight.modules.equipment.client.WarglaiveVisuals;
+import cn.yumis.fight.modules.skills.client.Effects;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -14,8 +15,17 @@ import org.spongepowered.asm.mixin.Mixin;
 public abstract class WarglaiveHandMixin {
     @WrapMethod(method="submitArmWithItem")
     private void ydnf$visualTwin(AbstractClientPlayer player,float partial,float pitch,InteractionHand hand,float attack,ItemStack item,float equip,PoseStack pose,SubmitNodeCollector nodes,int light,Operation<Void> original){
-        if(WarglaiveVisuals.twin(player)){
-            if(hand==InteractionHand.OFF_HAND&&item.isEmpty())item=player.getMainHandItem().copy();
+        if(hand==InteractionHand.OFF_HAND&&item.isEmpty()){
+            if(WarglaiveVisuals.twin(player)){
+                item=player.getMainHandItem().copy();
+            }else{
+                var blade=Effects.VFX.offhandBlade(player);
+                if(blade!=null){
+                    item=blade.item();
+                    attack=blade.attack();
+                    equip=blade.equip();
+                }
+            }
         }
         original.call(player,partial,pitch,hand,attack,item,equip,pose,nodes,light);
     }

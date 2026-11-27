@@ -20,7 +20,15 @@ public final class HoradricCubeScreen extends ThemedContainerScreen<HoradricCube
     public HoradricCubeScreen(HoradricCubeMenu menu,Inventory inventory,Component title){super(menu,inventory,title,176,166,ThemeDomain.MACHINE);inventoryLabelY=72;}
     @Override protected void init(){
         super.init();
+        if(ClientUi.current().ready())ClientUi.current().send("equipmentBagRefresh");
         addRenderableWidget(Button.builder(Component.literal("配方"),b->minecraft.gui.pushScreenLayer(new Recipes(this))).bounds(leftPos+134,topPos+2,34,14).build(ThemedButton::new));
+    }
+    private CraftingEssences.Recipe recipe(){
+        if(!menu.initialContentsReady||minecraft.player==null)return null;
+        var grid=menu.grid();
+        if(!grid.get(4).isEmpty())return CraftingEssences.match(grid);
+        var match=EquipmentChanges.cubeRecipe(grid,EquipmentChanges.cubeReserve(minecraft.player,BagSnapshotClient.items(menu)));
+        return selected.equals(match)?match:null;
     }
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float delta){
         boolean pixel=UiTheme.pixelStyle();
@@ -34,7 +42,7 @@ public final class HoradricCubeScreen extends ThemedContainerScreen<HoradricCube
             g.blit(Identifier.withDefaultNamespace("textures/gui/container/crafting_table.png"),leftPos,topPos,leftPos+176,topPos+166,0,176f/256,0,166f/256);
         }
         int previewTint=pixel?0x88000000|(UiTheme.PANEL&0xffffff):0x88c6c6c6;
-        var match=menu.initialContentsReady?CraftingEssences.match(menu.grid()):null;
+        var match=recipe();
         var recipe=match==null?selected:match;
         if(match==null){
             var material=CraftingEssences.ingredient(recipe);
@@ -43,6 +51,7 @@ public final class HoradricCubeScreen extends ThemedContainerScreen<HoradricCube
             if(recipe.essence().paper()&&menu.getSlot(1).getItem().isEmpty())g.item(new ItemStack(net.minecraft.world.item.Items.PAPER),leftPos+30,topPos+17);
         }
         var output=cn.yumis.fight.platform.ItemRegistry.item(recipe.essence().id(),1);
+        if(match!=null&&menu.getSlot(5).getItem().isEmpty())g.item(cn.yumis.fight.platform.ItemRegistry.item("exalted_stone",1),leftPos+48,topPos+35);
         g.item(output,leftPos+124,topPos+35);
         if(match==null)g.fill(leftPos+124,topPos+35,leftPos+140,topPos+51,previewTint);
         g.text(UiFonts.font(),match==null?"配方预览":"点击制作",leftPos+119,topPos+57,pixel?UiTheme.TEXT:0xff404040,false);
@@ -57,11 +66,12 @@ public final class HoradricCubeScreen extends ThemedContainerScreen<HoradricCube
     }
     @Override protected void drawContents(GuiGraphicsExtractor g,int mx,int my,float delta){
         super.drawContents(g,mx,my,delta);
-        var match=menu.initialContentsReady?CraftingEssences.match(menu.grid()):null;
+        var match=recipe();
         if(mx>=leftPos+123&&mx<leftPos+141&&my>=topPos+34&&my<topPos+52){
             var recipe=match==null?selected:match;var output=cn.yumis.fight.platform.ItemRegistry.item(recipe.essence().id(),1);
             var lines=new ArrayList<>(Screen.getTooltipFromItem(minecraft,output));
             lines.add(Component.literal(match==null?"按预览摆放材料；有开孔、宝石、锁定、工艺或腐化的武器不能作材料":"左键合成1枚到手中；Shift点击批量合成到背包"));
+            if(match!=null&&menu.getSlot(5).getItem().isEmpty())lines.add(Component.literal("制作时从背包补入崇高石"));
             g.setComponentTooltipForNextFrame(UiFonts.font(),lines,mx,my,output);
         }else if(match==null){
             for(int i=0;i<9;i++){var slot=menu.getSlot(i+1);if(!slot.getItem().isEmpty()||mx<leftPos+slot.x||mx>=leftPos+slot.x+16||my<topPos+slot.y||my>=topPos+slot.y+16)continue;
@@ -73,8 +83,10 @@ public final class HoradricCubeScreen extends ThemedContainerScreen<HoradricCube
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){
         if(event.button()==0&&event.x()>=leftPos+123&&event.x()<leftPos+141&&event.y()>=topPos+34&&event.y()<topPos+52){
             if(!menu.initialContentsReady||!ClientUi.current().ready())return true;
-            if(CraftingEssences.match(menu.grid())==null){ClientUi.current().message("材料、排列或装备保护条件不符合配方");return true;}
+            var recipe=recipe();
+            if(recipe==null){ClientUi.current().message("材料、排列或装备保护条件不符合配方");return true;}
             var ui=ClientUi.current();ui.upload();var request=ui.operation("cubeCraft");request.addProperty("menu",menu.containerId);
+            if(menu.getSlot(5).getItem().isEmpty())request.addProperty("supplement",recipe.essence().id());
             request.addProperty("toInventory",InputConstants.isKeyDown(minecraft.getWindow(),GLFW.GLFW_KEY_LEFT_SHIFT)||InputConstants.isKeyDown(minecraft.getWindow(),GLFW.GLFW_KEY_RIGHT_SHIFT));
             ui.send("cubeCraft",request);return true;
         }

@@ -1,10 +1,14 @@
 package cn.yumis.fight.modules.skills.client;
+import cn.yumis.fight.modules.character.api.JobCatalog;
 import cn.yumis.fight.modules.equipment.api.EquipmentVisualItems;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
-/** The nine approved 3D meshes, shared by the owner and observers through the cast seed. */
+/** Approved Ghost Swordsman 3D weapon meshes only (base + named swords), shared via cast seed. */
 public final class GhostSwordsmanWeaponVisuals {
-    public static final List<EquipmentVisualItems.WeaponModel> WEAPONS=EquipmentVisualItems.weaponModels();
+    private static final Set<String> ALLOWED_WEAPONS=JobCatalog.weapons(JobCatalog.BASE);
+    public static final List<EquipmentVisualItems.WeaponModel> WEAPONS=EquipmentVisualItems.weaponModels().stream()
+        .filter(model->ALLOWED_WEAPONS.contains(model.item().toUpperCase(Locale.ROOT)))
+        .toList();
     public record Inclination(float degrees,float azimuth){}
     public static List<Inclination> inclinations(long seed){
         var random=new SplittableRandom(seed^0x2E8F51A7L);List<Inclination> result=new ArrayList<>(24);

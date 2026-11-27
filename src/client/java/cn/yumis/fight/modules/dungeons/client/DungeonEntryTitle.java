@@ -121,7 +121,7 @@ public final class DungeonEntryTitle {
             String name = dungeonName(dungeon.dungeon);
             if (dungeon.tower != null) {
                 title = Component.translatable(KEY + "tower", name, floor);
-                subtitle = towerEffect(AwakeningTower.find(dungeon.dungeon));
+                subtitle = towerEffect(AwakeningTower.find(dungeon.dungeon), floor);
             } else if (abyss) {
                 title = Component.translatable(KEY + "abyss", name);
                 subtitle = Component.translatable(KEY + "abyss.hint");
@@ -149,14 +149,16 @@ public final class DungeonEntryTitle {
         }
     }
 
-    private static Component towerEffect(AwakeningTower tower) {
+    private static Component towerEffect(AwakeningTower tower, int floor) {
         String key = KEY + "tower." + tower.template();
         return switch (tower) {
             case ROOT -> Component.translatable(key, percent(1 - TowerClimbRules.MOVEMENT_FACTOR));
-            case FORGE -> Component.translatable(key, percent(TowerClimbRules.FIRE_HEALTH_FRACTION));
+            case FORGE -> TowerClimbRules.fireDamageActive(tower, floor)
+                ? Component.translatable(key, percent(TowerClimbRules.FIRE_HEALTH_FRACTION))
+                : Component.translatable(key + "_summit");
             case SLUICE -> Component.translatable(key, percent(1 - TowerClimbRules.ACTION_SPEED_FACTOR));
             case SAND_MARKET -> Component.translatable(key, percent(1 - TowerClimbRules.MANA_RECOVERY_FACTOR));
-            case FROST -> Component.translatable(key, percent(TowerClimbRules.FROST_DAMAGE_FRACTION));
+            case FROST -> Component.translatable(key, percent(TowerClimbRules.frostDamageFraction()));
             case ORRERY -> Component.translatable(key, percent(TowerClimbRules.enemyHealthFactor(tower) - 1),
                 percent(TowerClimbRules.enemyAttackFactor(tower) - 1));
             case SEAL -> Component.translatable(key, percent(1 - TowerClimbRules.COOLDOWN_RECOVERY_FACTOR));

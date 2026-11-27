@@ -16,8 +16,10 @@ public final class ClientSettings {
     public static final int TARGET_FRAME_WIDTH=184;
     public static final int MAX_NEAR_EFFECT_FADE_DISTANCE_STEPS=500;
     public static final int MAX_SKILL_VOLUME_PERCENT = 100;
+    public static final int MAX_CAMERA_SHAKE_PERCENT = 100;
     private static final int DEFAULT_NEAR_EFFECT_FADE_DISTANCE_STEPS=85;
     private static int skillVolumePercent = MAX_SKILL_VOLUME_PERCENT;
+    private static int cameraShakePercent = MAX_CAMERA_SHAKE_PERCENT;
     public static int damageScale=2;
     public static double targetScale=1;
     public static boolean nearEffectFade=true,itemQualityFrames=true;
@@ -26,6 +28,9 @@ public final class ClientSettings {
     public static boolean chatEnterDefaultApplied;
     public static final int MAX_ENEMY_HEALTH_DISTANCE=256;
     public static int enemyHealthDistance=16;
+    public static final int MAX_BOSS_HEALTH_SCALE_STEPS = 8;
+    private static final int DEFAULT_BOSS_HEALTH_SCALE_STEPS = 4;
+    private static int bossHealthScaleSteps = DEFAULT_BOSS_HEALTH_SCALE_STEPS;
     public static int veinMiningLimit=VeinMining.DEFAULT_LIMIT;
     public static boolean enemyHealthPerspective=false,attackNeutralMobs=false;
     /** 次元背包自动收纳：默认关；开启后默认仅在普通背包放不下时才收纳。 */
@@ -84,6 +89,23 @@ public final class ClientSettings {
         skillVolumePercent = Math.clamp(percent, 0, MAX_SKILL_VOLUME_PERCENT);
         save();
     }
+    public static int cameraShakePercent() {
+        return cameraShakePercent;
+    }
+    public static void setCameraShakePercent(int percent) {
+        cameraShakePercent = Math.clamp(percent, 0, MAX_CAMERA_SHAKE_PERCENT);
+        save();
+    }
+    public static double bossHealthScale() {
+        return bossHealthScaleSteps / 2d;
+    }
+    public static int bossHealthScaleSteps() {
+        return bossHealthScaleSteps;
+    }
+    public static void setBossHealthScaleSteps(int steps) {
+        bossHealthScaleSteps = Math.clamp(steps, 1, MAX_BOSS_HEALTH_SCALE_STEPS);
+        save();
+    }
     private static Path path(){
         return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("yumis_dungeon_and_fight-modules-v1-client.toml");
     }
@@ -102,10 +124,12 @@ public final class ClientSettings {
             damageScale=Integer.parseInt(value(s,"damageScale","2"));
             targetScale=Double.parseDouble(value(s,"targetScale","1"));
             skillVolumePercent=readSkillVolumePercent(value(s,"skillVolumePercent",""));
+            cameraShakePercent=readCameraShakePercent(value(s,"cameraShakePercent",""));
             nearEffectFade=!value(s,"nearEffectFade","true").equalsIgnoreCase("false");
             nearEffectFadeDistanceSteps=readNearEffectFadeDistance(value(s,"nearEffectFadeDistance",""));
             itemQualityFrames=!value(s,"itemQualityFrames","true").equalsIgnoreCase("false");
             enemyHealthDistance=readEnemyHealthDistance(value(s,"enemyHealthDistance","16"));
+            bossHealthScaleSteps = readBossHealthScaleSteps(value(s, "bossHealthScale", ""));
             veinMiningLimit=readVeinMiningLimit(value(s,"veinMiningLimit",Integer.toString(VeinMining.DEFAULT_LIMIT)));
             enemyHealthPerspective=Boolean.parseBoolean(value(s,"enemyHealthPerspective","false"));
             attackNeutralMobs=Boolean.parseBoolean(value(s,"attackNeutralMobs","false"));
@@ -145,11 +169,28 @@ public final class ClientSettings {
         try{return Math.clamp(Integer.parseInt(raw),1,MAX_ENEMY_HEALTH_DISTANCE);}
         catch(NumberFormatException ignored){return 16;}
     }
+    private static int readBossHealthScaleSteps(String raw) {
+        try {
+            double scale = Double.parseDouble(raw);
+            if (Double.isFinite(scale)) {
+                return (int) Math.round(Math.clamp(scale * 2, 1, MAX_BOSS_HEALTH_SCALE_STEPS));
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return DEFAULT_BOSS_HEALTH_SCALE_STEPS;
+    }
     private static int readSkillVolumePercent(String raw) {
         try {
             return Math.clamp(Integer.parseInt(raw), 0, MAX_SKILL_VOLUME_PERCENT);
         } catch (NumberFormatException ignored) {
             return MAX_SKILL_VOLUME_PERCENT;
+        }
+    }
+    private static int readCameraShakePercent(String raw) {
+        try {
+            return Math.clamp(Integer.parseInt(raw), 0, MAX_CAMERA_SHAKE_PERCENT);
+        } catch (NumberFormatException ignored) {
+            return MAX_CAMERA_SHAKE_PERCENT;
         }
     }
     private static int readNearEffectFadeDistance(String raw){
@@ -169,8 +210,10 @@ public final class ClientSettings {
             Files.writeString(path(),"# 本机界面与战斗显示设置；保存后立即生效。\npanelSize=\""+panel+"\"\ndamageScale="+damageScale+"\ntargetPosition=\""+targetPosition+"\"\ntargetScale="+targetScale+"\nitemQualityFrames="+itemQualityFrames+"\nitemQualityFrames="+itemQualityFrames+"\nnearEffectFade="+nearEffectFade+"\nuiFont=\""+uiFont+"\"\n# light 为灰色立体，dark 为黑灰透明，pixel 为深色像素。\nglobalTheme=\""+globalTheme+"\"\n# 取消跟随时保留该类面板当时的主题。\nmenuFollowsTheme="+menuFollowsTheme+"\nmenuTheme=\""+menuTheme+"\"\nmachineFollowsTheme="+machineFollowsTheme+"\nmachineTheme=\""+machineTheme+"\"\n"
                 +"nearEffectFadeDistance="+(nearEffectFadeDistanceSteps/100d)+"\n"
                 +"skillVolumePercent="+skillVolumePercent+"\n"
+                +"cameraShakePercent="+cameraShakePercent+"\n"
                 +"arkEnemyHealth="+arkEnemyHealth+"\narkAllyHealth="+arkAllyHealth+"\narkEnemyDamage="+arkEnemyDamage+"\narkAllyDamage="+arkAllyDamage+"\n"
                 +"enemyHealthDistance="+enemyHealthDistance+"\nenemyHealthPerspective="+enemyHealthPerspective+"\nattackNeutralMobs="+attackNeutralMobs+"\n"
+                +"bossHealthScale="+bossHealthScale()+"\n"
                 +"veinMiningLimit="+veinMiningLimit+"\n"
                 +"bagAutoStore="+bagAutoStore+"\nbagStoreOnlyWhenFull="+bagStoreOnlyWhenFull+"\n"
                 +"menuShortcutDefaultsApplied="+menuShortcutDefaultsApplied+"\n"

@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.dungeons.client;
 import cn.yumis.fight.modules.dungeons.api.*;
 import cn.yumis.fight.modules.dungeons.content.CastlePalace;
+import cn.yumis.fight.modules.dungeons.content.DarkCityEntrance;
 import cn.yumis.fight.modules.dungeons.content.GblChurch;
 import cn.yumis.fight.modules.equipment.api.MaterialCatalog;
 import cn.yumis.fight.modules.presentation.api.client.*;
@@ -137,6 +138,9 @@ public final class DungeonPage {
         if(CastlePalace.handles(dungeon))return dungeon.status.equals("COMPLETED")?"城主宫殿已通关"
             :"清理宫殿 · 已到达 "+dungeon.palaceRooms.size()+" / "+CastlePalace.ROOM_COUNT+" 个区域";
         if(WrithingCastle.handles(dungeon))return dungeon.status.equals("COMPLETED")?"蠕动之城已通关":"探索 200 层异变巨构";
+        if(DarkCityEntrance.ID.equals(dungeon.dungeon))
+            return dungeon.status.equals("COMPLETED")?"暗黑城入口已通关"
+                :"清理各战区 · 已抵达 "+dungeon.darkCityWaves.keySet().stream().mapToInt(DarkCityEntrance::area).distinct().count()+" / "+DarkCityEntrance.AREAS.length;
         return "波次 "+(dungeon.wave+1)+" / 7 · "+status;
     }
     private static final class Choice extends ThemedScreen {

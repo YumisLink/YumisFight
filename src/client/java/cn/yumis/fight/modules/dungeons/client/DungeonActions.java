@@ -102,6 +102,16 @@ public final class DungeonActions {
     static void enterTower(JsonObject stele){
         var ui=ClientUi.current();
         if(!ui.ready())return;
+        if(alive!=null&&!alive.getAsBoolean()){
+            ui.message("死亡状态不能参加挑战");
+            return;
+        }
+        if(TowerClient.tryOpenCareerStele(stele))return;
+        joinTower(stele);
+    }
+    static void joinTower(JsonObject stele){
+        var ui=ClientUi.current();
+        if(!ui.ready())return;
         var request=ui.operation("joinTower");
         request.add("dungeon",stele.get("dungeon"));
         request.add("stele",stele.get("pos"));

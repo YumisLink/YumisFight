@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "group": "demon_hunter",
+  "skills": {
+    "yumis_dungeon_and_fight:chaos_strike": {
+      "title": "混乱打击",
+      "unlock": 1,
+      "sp": 15,
+      "mpRatio": 0.0,
+      "cooldown": 1.0,
+      "damaging": true,
+      "damage": {
+        "damage": 2.159409
+      },
+      "parameters": {
+        "width": 3.0,
+        "range": 3.0,
+        "slashes": 2.0,
+        "duration": 0.3,
+        "interval": 0.15
+      }
+    },
+    "yumis_dungeon_and_fight:throw_glaive": {
+      "title": "利刃投掷",
+      "unlock": 5,
+      "sp": 15,
+      "mpRatio": 0.0,
+      "cooldown": 8.0,
+      "damaging": true,
+      "damage": {
+        "damage": 25.292115
+      },
+      "parameters": {
+        "range": 16.0,
+        "duration": 0.8,
+        "slashes": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:demon_sight": {
+      "title": "恶魔视觉",
+      "unlock": 10,
+      "sp": 15,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "slashes": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:immolation_aura": {
+      "title": "献祭光环",
+      "unlock": 15,
+      "sp": 15,
+      "mpRatio": 0.0,
+      "cooldown": 14.0,
+      "damaging": true,
+      "damage": {
+        "damage": 12.612232
+      },
+      "parameters": {
+        "duration": 6.0,
+        "range": 4.0,
+        "slashes": 6.0,
+        "radius": 4.0,
+        "interval": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:eye_beam": {
+      "title": "眼棱",
+      "unlock": 30,
+      "sp": 50,
+      "mpRatio": 0.0,
+      "cooldown": 30.0,
+      "damaging": true,
+      "damage": {
+        "damage": 61.652599
+      },
+      "parameters": {
+        "interval": 0.25,
+        "slashes": 8.0,
+        "range": 16.0,
+        "width": 3.0,
+        "rise": 0.2,
+        "duration": 2.0,
+        "beamWidth": 1.5,
+        "beamDamageTaken": 0.2
+      }
+    },
+    "yumis_dungeon_and_fight:fel_rush": {
+      "title": "邪能冲撞",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.0,
+      "cooldown": 12.0,
+      "damaging": true,
+      "damage": {
+        "damage": 10.296669
+      },
+      "parameters": {
+        "range": 12.0,
+        "duration": 0.4,
+        "slashes": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:blade_dance": {
+      "title": "刃舞",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.0,
+      "cooldown": 12.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 77.168361,
+        "damage": 25.722787
+      },
+      "parameters": {
+        "duration": 2.0,
+        "range": 3.0,
+        "slashes": 2.0,
+        "radius": 3.0,
+        "danceRadius": 3.0,
+        "dancePeak": 5.0
+      }
+    },
+    "yumis_dungeon_and_fight:the_hunt": {
+      "title": "恶魔追击",
+      "unlock": 40,
+      "sp": 60,
+      "mpRatio": 0.0,
+      "cooldown": 60.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 213.105807,
+        "damage": 17.758819
+      },
+      "parameters": {
+        "duration": 1.333333,
+        "range": 40.0,
+        "slashes": 8.0,
+        "interval": 0.1,
+        "huntSpeed": 30.0
+      }
+    },
+    "yumis_dungeon_and_fight:metamorphosis": {
+      "title": "恶魔变形",
+      "unlock": 50,
+      "sp": 100,
+      "mpRatio": 0.0,
+      "cooldown": 90.0,
+      "damaging": true,
+      "damage": {
+        "damage": 237.401548
+      },
+      "parameters": {
+        "slashes": 1.0,
+        "duration": 1.0,
+        "range": 16.0,
+        "radius": 4.0,
+        "transformSeconds": 20.0
+      }
+    }
+  }
+}

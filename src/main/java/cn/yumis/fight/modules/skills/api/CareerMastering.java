@@ -58,7 +58,7 @@ public final class CareerMastering {
     private static void master(Progress p){
         int budget=p.sp;
         for(var skill:SkillCatalog.all()){
-            if(skill.equipmentGranted||!skill.available(p))continue;
+            if(skill.equipmentGranted||skill.cardGranted||!skill.available(p))continue;
             int automatic=skill.automaticByJob&&p.level>=skill.unlock?1:0;
             int rank=skill.limit(p.level,p.jobId())-automatic;
             if(rank<=0)continue;
@@ -67,7 +67,7 @@ public final class CareerMastering {
         }
         p.sp=Math.max(0,budget);
         for(var skill:SkillCatalog.all()){
-            if(skill.equipmentGranted||skill.passive()&&!skill.bindingProxy||!usable(p,skill))continue;
+            if(skill.equipmentGranted||skill.cardGranted||skill.passive()&&!skill.bindingProxy||!usable(p,skill))continue;
             for(int i=0;i<p.slots.length;i++)if(p.slots[i].isEmpty()){p.slots[i]=skill.id;break;}
         }
     }

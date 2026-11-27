@@ -7,6 +7,8 @@ import cn.yumis.fight.modules.skills.api.SkillVisualRules;
 
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
+import cn.yumis.fight.modules.presentation.api.client.EffectSprites;
+import cn.yumis.fight.modules.presentation.api.client.EffectSprites.SpriteQuad;
 import cn.yumis.fight.modules.presentation.api.client.NearEffectRendering;
 import cn.yumis.fight.modules.presentation.api.client.EffectModels;
 import net.minecraft.client.*;
@@ -32,7 +34,7 @@ public final class SkillVfx {
         ItemStackRenderState[] models;
         List<GhostSwordsmanWeaponVisuals.Inclination> inclinations;
         boolean released;
-        long terminal,retirement;
+        long terminal,retirement,maxDuration;
         int soundPhase=-1;
         double speed=1;
         String poseClip="",poseNext="";
@@ -81,9 +83,9 @@ public final class SkillVfx {
     }
     public record Sword(ItemStackRenderState model,Vec3 position,float yaw,GhostSwordsmanWeaponVisuals.Inclination inclination){
     }
-    private record Frame(List<Quad> quads,List<Sword> swords,boolean nearFade){
+    private record Frame(List<Quad> quads,List<SpriteQuad> sprites,List<Sword> swords,List<PlayerAfterimages.RenderItem> afterimages,boolean nearFade){
     }
-    public record LevelRenderContext(net.minecraft.client.renderer.state.level.LevelRenderState levelState,List<Sword> swords){
+    public record LevelRenderContext(net.minecraft.client.renderer.state.level.LevelRenderState levelState,List<Sword> swords,List<SpriteQuad> sprites){
     }
     private static final net.minecraft.util.context.ContextKey<Frame> FRAME=new net.minecraft.util.context.ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","skill_meshes"));
     void accept(SkillVisualEvent event,double speed,String summonMove){
@@ -92,8 +94,10 @@ public final class SkillVfx {
         var own=SkillsClient.current().own();
         if(mc.player!=null&&event.caster().equals(mc.player.getUUID())&&(own==null||own.generation!=event.generation()||!Objects.equals(SkillsClient.current().session(),event.session().toString())))return;
         long time=now();
-        if(time>(SkillVisualRegistry.handler(event.skill()).refreshable()?event.at()+5000:event.startedAt()+event.duration()+1500)||event.at()>time+5000)return;
         Track track=tracks.get(event.cast());
+        boolean terminating=event.phase()==SkillVisualEvent.Phase.CANCEL||event.phase()==SkillVisualEvent.Phase.END;
+        long effectiveDuration=track==null?event.duration():Math.max(track.maxDuration,Math.max(track.start.duration(),event.duration()));
+        if(event.at()>time+5000||!(terminating&&track!=null)&&time>(SkillVisualRegistry.handler(event.skill()).refreshable()?event.at()+5000:event.startedAt()+effectiveDuration+1500))return;
         if(track!=null&&event.sequence()<=track.sequence)return;
         receivedEvents++;
         if(event.phase()==SkillVisualEvent.Phase.CANCEL||event.phase()==SkillVisualEvent.Phase.END){
@@ -101,7 +105,7 @@ public final class SkillVfx {
             Track ending=tracks.get(event.cast());
             if(ending!=null&&!SkillVisualRegistry.handler(event.skill()).immediateEnd()&&event.phase()==SkillVisualEvent.Phase.END){
                 ending.released=true;
-                if(!SkillVisualRegistry.handler(event.skill()).persistentEnd(event)){ending.terminal=event.at();ending.retirement=Math.max(ending.retirement,event.at()+500);}
+                if(!SkillVisualRegistry.handler(event.skill()).persistentEnd(event)){if(ending.terminal<=0)ending.terminal=event.at();ending.retirement=Math.max(ending.retirement,event.at()+500);}
             }
             else tracks.remove(event.cast());
             if(event.phase()==SkillVisualEvent.Phase.CANCEL||!SkillVisualRegistry.handler(event.skill()).persistentEnd(event))closed.put(event.cast(),time+45000);
@@ -114,6 +118,7 @@ public final class SkillVfx {
             tracks.put(event.cast(),track);
         }
         if(event.phase()==SkillVisualEvent.Phase.START)track.start=event;
+        track.maxDuration=Math.max(track.maxDuration,event.duration());
         track.speed=Double.isFinite(speed)&&speed>0?speed:1;
         track.last=event;
         track.sequence=event.sequence();
@@ -144,7 +149,11 @@ public final class SkillVfx {
     /** Semantic motion parameters are sent once at release/segment/lock; frames never wait for trail packets. */
     public void motion(UUID cast,int sequence,com.google.gson.JsonObject value){
         Track track=tracks.get(cast);if(track==null||track.sequence!=sequence||value==null)return;
-        if(SkillVisualRegistry.handler(track.start.skill()).motion(track,value))return;
+        var handler=SkillVisualRegistry.handler(track.start.skill());
+        if(handler.motion(track,value)){
+            if(track.last.phase()==SkillVisualEvent.Phase.FINISH)track.retirement=Math.max(track.retirement,handler.finishedUntil(track,track.last));
+            return;
+        }
         var event=track.last;double velocity=value.has("velocity")?value.get("velocity").getAsDouble():0,range=value.has("range")?value.get("range").getAsDouble():0;
         long millis=value.has("millis")?value.get("millis").getAsLong():0;int targetEntity=value.has("targetEntity")?value.get("targetEntity").getAsInt():-1;
         UUID target=value.has("target")?UUID.fromString(value.get("target").getAsString()):null;
@@ -169,7 +178,7 @@ public final class SkillVfx {
                 if(motion.ground){var floor=mc.level.clip(new net.minecraft.world.level.ClipContext(p.add(0,1.2,0),p.add(0,-1.5,0),net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mc.player));if(floor.getType()!=HitResult.Type.MISS)p=new Vec3(p.x,floor.getLocation().y+.15,p.z);}}
         }
         var e=track.last;var phase=e.phase()==SkillVisualEvent.Phase.FINISH?e.phase():SkillVisualEvent.Phase.TRAIL;long eventAt=phase==SkillVisualEvent.Phase.FINISH?e.at():at;
-        return new SkillVisualEvent(e.caster(),e.session(),e.cast(),e.generation(),e.dimension(),e.instance(),e.skill(),phase,e.sequence(),e.startedAt(),eventAt,e.duration(),e.seed(),e.origin(),new SkillVisualEvent.Point(p.x,p.y,p.z),e.direction(),e.charge(),e.color(),e.forwardOffset(),e.horizontalScale(),e.sweep(),e.weaponType(),e.slashAngle());
+        return new SkillVisualEvent(e.caster(),e.session(),e.cast(),e.generation(),e.dimension(),e.instance(),e.skill(),phase,e.sequence(),e.startedAt(),eventAt,e.duration(),e.seed(),e.origin(),new SkillVisualEvent.Point(p.x,p.y,p.z),e.direction(),e.charge(),e.color(),e.forwardOffset(),e.horizontalScale(),e.sweep(),e.weaponType(),e.slashAngle(),e.dual());
     }
     public void tick(){
         long time=now();
@@ -181,7 +190,8 @@ public final class SkillVfx {
             Track t=entry.getValue();
             net.minecraft.world.entity.Entity actor=mc.level==null?null:mc.level.getEntity(t.start.caster());
             boolean wrongWorld=mc.level==null||!mc.level.dimension().identifier().toString().equals(t.start.dimension());
-            long deadline=SkillVisualRegistry.handler(t.start.skill()).refreshable()?t.last.at()+5000:t.start.startedAt()+Math.max(t.start.duration(),t.last.duration())+500;
+            long baseDeadline=SkillVisualRegistry.handler(t.start.skill()).refreshable()?t.last.at()+5000:t.start.startedAt()+Math.max(t.maxDuration,Math.max(t.start.duration(),t.last.duration()))+500;
+            long deadline=t.retirement>0?Math.max(baseDeadline,t.retirement):baseDeadline;
             if(wrongWorld||actor!=null&&!actor.isAlive()||time>deadline||t.retirement>0&&time>t.retirement){
                 if(entry.getKey().equals(cameraCast))endCamera(false);
                 iterator.remove();
@@ -235,37 +245,59 @@ public final class SkillVfx {
         endCamera(false);
         tracks.clear();
         closed.clear();
+        PlayerAfterimages.clear();
+        BerserkerVisuals.clear();
+        AsuraVisuals.clear();
+        SoulBenderVisuals.clear();
+        SwordmasterVisuals.clear();
+        OracleSkillVisuals.clear();
+        SunMoonSkillVisuals.clear();
+        ElementalistVisuals.clear();
+        BattleMageVisuals.clear();
+        WitchVisuals.clear();
     }
     public record CameraPose(Vec3 position,float yaw,float pitch){
     }
 
     private void extract(net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent levelEvent){
         var mc=Minecraft.getInstance();
-        LevelRenderContext context=new LevelRenderContext(levelEvent.getRenderState(),new ArrayList<>());
+        List<SpriteQuad> sprites=new ArrayList<>();
+        LevelRenderContext context=new LevelRenderContext(levelEvent.getRenderState(),new ArrayList<>(),sprites);
         if(context.levelState().cameraRenderState==null)return;
         long before=System.nanoTime(),time=now();
         Vec3 camera=context.levelState().cameraRenderState.pos;
-        List<Quad> quads=new ArrayList<>();SummonAmbientVisuals.extract(quads);
-        CareerSkillVisuals.actors(quads,SkillsClient.current().serverNow());
-        SunMoonSkillVisuals.actors(quads,SkillsClient.current().serverNow());DemonHunterVisuals.actors(quads,SkillsClient.current().serverNow());ElementalistVisuals.actors(quads,SkillsClient.current().serverNow());BattleMageVisuals.actors(quads,SkillsClient.current().serverNow());
+        List<Quad> quads=new ArrayList<>();SummonAmbientVisuals.extract(quads,sprites,camera);
+        BerserkerVisuals.actors(quads,sprites,camera,SkillsClient.current().serverNow(),time);
+        AsuraVisuals.actors(sprites,camera,SkillsClient.current().serverNow(),time);
+        SoulBenderVisuals.actors(sprites,camera,SkillsClient.current().serverNow(),time);
+        SwordmasterVisuals.actors(sprites,camera,SkillsClient.current().serverNow(),time);
+        OracleSkillVisuals.actors(sprites,camera,SkillsClient.current().serverNow(),time);
+        SunMoonSkillVisuals.actors(sprites,camera,SkillsClient.current().serverNow(),time);
+        ElementalistVisuals.actors(sprites,camera,SkillsClient.current().serverNow(),time);
+        BattleMageVisuals.actors(sprites,camera,SkillsClient.current().serverNow(),time);
+        WitchVisuals.actors(sprites,camera,SkillsClient.current().serverNow(),time);
+        DemonHunterVisuals.actors(quads,SkillsClient.current().serverNow());
         for(Track t:tracks.values()){
             var event=t.start;
             if(mc.level==null||mc.level.getEntity(event.caster())==null)continue;
             if(event.skill().equals(SkillVisualRules.PLAYER_POSE)){
-                if(t.poseOrbColor!=0&&mc.level.getEntity(event.caster()) instanceof Player player)
-                    SunMoonSkillVisuals.handOrb(t,player,time,quads);
+                if(t.poseOrbColor!=0&&mc.level.getEntity(event.caster()) instanceof Player player){
+                    SunMoonSkillVisuals.handOrb(t,player,time,sprites,camera);
+                }
                 continue;
             }
             long age=time-event.startedAt();
-            if(age<0||!SkillVisualRegistry.handler(event.skill()).refreshable()&&age>Math.max(event.duration(),t.last.duration())+500)continue;
+            long maxLife=Math.max(t.maxDuration,Math.max(event.duration(),t.last.duration()))+500;
+            if(age<0||!SkillVisualRegistry.handler(event.skill()).refreshable()&&age>maxLife&&(t.retirement<=0||time>t.retirement))continue;
             age=(long)(age*t.speed);
             var last=t.last;t.last=sample(t,time);
-            try{SkillVisualRegistry.handler(event.skill()).render(context,t,age,time,quads,camera);CareerSkillVisuals.transformed(t,age,quads);}finally{t.last=last;}
+            try{SkillVisualRegistry.handler(event.skill()).render(context,t,age,time,quads,camera);AsuraVisuals.renderEyeBasic(t,age,sprites,camera);}finally{t.last=last;}
         }
-        context.levelState().setRenderData(FRAME,new Frame(List.copyOf(quads),List.copyOf(context.swords()),NearEffectRendering.enabled(levelEvent.getCamera())));
+        var afterimages=PlayerAfterimages.extract(time);
+        context.levelState().setRenderData(FRAME,new Frame(List.copyOf(quads),List.copyOf(sprites),List.copyOf(context.swords()),afterimages,NearEffectRendering.enabled(levelEvent.getCamera())));
         geometryFrames++;
         geometryNanos+=System.nanoTime()-before;
-        renderedQuads+=quads.size();
+        renderedQuads+=quads.size()+sprites.size();
     }
     private void submit(net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent event){
         Frame frame=event.getLevelRenderState().getRenderData(FRAME);
@@ -284,7 +316,9 @@ public final class SkillVfx {
             EffectModels.submit(sword.model(),pose,event.getSubmitNodeCollector(),0xF000F0,OverlayTexture.NO_OVERLAY,frame.nearFade());
             pose.popPose();
         }
+        PlayerAfterimages.submit(event,frame.afterimages(),frame.nearFade());
         WorldQuads.submit(event,frame.quads(),frame.nearFade());
+        EffectSprites.submit(event,frame.sprites(),frame.nearFade());
     }
 
     public CameraPose camera(){var track=tracks.get(cameraCast);return track==null?null:SkillVisualRegistry.handler(track.start.skill()).camera(track,now());}
@@ -301,14 +335,70 @@ public final class SkillVfx {
         }
         return sample;
     }
+    public record OffhandBlade(ItemStack item,float attack,float equip){}
+    BuiltinSkillVisuals.OffhandSlash offhandSlash(UUID caster,long time){
+        if(caster==null)return null;
+        SkillVisualEvent latestOffhand=null;
+        long latestOffhandAge=0;
+        long latestMainStart=Long.MIN_VALUE;
+        int activeOffhand=0;
+        for(Track t:tracks.values()){
+            var e=t.start;
+            if(!e.caster().equals(caster)||!"ATTACK".equals(e.skill())||e.phase()!=SkillVisualEvent.Phase.START||!e.dual()||e.sweep())continue;
+            long age=(long)((time-e.startedAt())*t.speed);
+            if(age<0)continue;
+            if(!BuiltinSkillVisuals.isDualOffhandStrike(e)){
+                if(e.startedAt()>latestMainStart)latestMainStart=e.startedAt();
+                continue;
+            }
+            if(BuiltinSkillVisuals.sampleOffhandSlash(e,age,false)==null)continue;
+            activeOffhand++;
+            if(latestOffhand==null||e.startedAt()>=latestOffhand.startedAt()){
+                latestOffhand=e;
+                latestOffhandAge=age;
+            }
+        }
+        if(latestOffhand==null||latestMainStart>latestOffhand.startedAt())return null;
+        return BuiltinSkillVisuals.sampleOffhandSlash(latestOffhand,latestOffhandAge,activeOffhand>1);
+    }
+    boolean hasActiveOffhandBlade(UUID caster,long time){
+        return offhandSlash(caster,time)!=null;
+    }
+    public OffhandBlade offhandBlade(Player player){
+        return offhandBlade(player,now());
+    }
+    private OffhandBlade offhandBlade(Player player,long time){
+        if(player==null||!player.isAlive()||!player.getOffhandItem().isEmpty())return null;
+        var sample=offhandSlash(player.getUUID(),time);
+        if(sample==null)return null;
+        return new OffhandBlade(BuiltinSkillVisuals.condensedBladeStack(player,sample.blade()),sample.swingProgress(),sample.equipOffset());
+    }
     public void animate(Player player,EntityRenderState state){
         long time=now();
         var pose=playerPose(player.getUUID(),time);
-        if(state instanceof PlayerPoseCarrier carrier)carrier.ydnf$skillPose(pose==null?null:pose.frame());
+        boolean broomGlide=pose==null&&WitchClient.isGlidingPlayer(player.getUUID());
+        PlayerPoseAnimation.Frame glideFrame=null;
+        if(broomGlide){
+            var clip=PlayerPoseLibrary.find("avatar/witch_broom_glide");
+            if(clip!=null)glideFrame=clip.frame(time,player.getUUID().hashCode());
+        }
+        if(state instanceof PlayerPoseCarrier carrier)carrier.ydnf$skillPose(pose!=null?pose.frame():glideFrame);
         if(state instanceof AvatarRenderState avatar){
             float head=avatar.bodyRot+avatar.yRot;
             for(var track:tracks.values())if(track.start.caster().equals(player.getUUID())){
                 SkillVisualRegistry.handler(track.start.skill()).decorateAvatar(track,player,avatar,time);
+            }
+            var blade=offhandBlade(player,time);
+            if(blade!=null)BuiltinSkillVisuals.decorateOffhandBlade(player,avatar,blade);
+            if(glideFrame!=null){
+                avatar.isFallFlying=false;
+                avatar.isCrouching=false;
+                avatar.walkAnimationSpeed=0;
+                Vec3 vel=player.getDeltaMovement();
+                Vec3 heading=vel.horizontalDistanceSqr()>0.01?vel:player.getLookAngle();
+                avatar.bodyRot=PlayerPoseChannel.yaw(heading);
+                avatar.yRot=net.minecraft.util.Mth.wrapDegrees(head-avatar.bodyRot);
+                return;
             }
             if(pose==null)return;
             var aim=pose.lockedAim();

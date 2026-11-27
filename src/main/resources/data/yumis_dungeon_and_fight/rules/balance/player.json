@@ -1,0 +1,420 @@
+{
+  "version": 1,
+  "maxLevel": 80,
+  "newbieExperienceMaxLevel": 10,
+  "newbieExperienceFactor": 2.0,
+  "experienceBase": 10,
+  "experiencePerLevel": 2,
+  "experienceFactorBase": 20,
+  "experienceFactorPerLevel": 5,
+  "spBrackets": [
+    {
+      "belowLevel": 20,
+      "spPerLevel": 15
+    },
+    {
+      "belowLevel": 30,
+      "spPerLevel": 25
+    },
+    {
+      "belowLevel": 40,
+      "spPerLevel": 40
+    },
+    {
+      "belowLevel": 999,
+      "spPerLevel": 65
+    }
+  ],
+  "baseAttributes": {
+    "healthBase": 100.0,
+    "healthPerLevel": 20.0,
+    "mpBase": 80.0,
+    "mpPerLevel": 10.0,
+    "strengthBase": 20.0,
+    "intelligenceBase": 15.0,
+    "vitalityBase": 15.0,
+    "vitalityPerLevel": 1.0,
+    "spiritBase": 10.0,
+    "spiritPerLevel": 1.0,
+    "physicalAttackBase": 5.0,
+    "physicalAttackPerLevel": 1.0,
+    "magicalAttackBase": 5.0,
+    "magicalAttackPerLevel": 1.0,
+    "physicalDefenseBase": 20.0,
+    "magicalDefenseBase": 20.0,
+    "staminaBase": 100.0,
+    "staminaRecoveryBase": 1.0,
+    "shieldCooldownRecoveryBase": 1.0,
+    "shieldRegenerationBase": 1.0,
+    "movementSpeedBase": 1.0,
+    "castSpeedBase": 1.0,
+    "manaRegenerationBase": 1.0,
+    "cooldownRecoveryBase": 1.0,
+    "experienceGainBase": 1.0
+  },
+  "vitalityConversions": {
+    "healthPerVitality": 10.0,
+    "physicalDefensePerVitality": 2.0,
+    "mpPerVitality": 2.0,
+    "staminaPerVitality": 5.0,
+    "staminaRecovery": {
+      "sweetSpot": 100.0,
+      "atSweetSpot": 0.5,
+      "maxBonus": 1.5,
+      "decayScale": 1200.0
+    },
+    "attackSpeed": {
+      "sweetSpot": 100.0,
+      "atSweetSpot": 0.35,
+      "maxBonus": 0.7,
+      "decayScale": 1200.0
+    }
+  },
+  "spiritConversions": {
+    "magicalDefensePerSpirit": 2.0,
+    "cooldownRecovery": {
+      "sweetSpot": 100.0,
+      "atSweetSpot": 0.35,
+      "maxBonus": 0.7,
+      "decayScale": 1200.0
+    },
+    "castSpeed": {
+      "sweetSpot": 100.0,
+      "atSweetSpot": 0.35,
+      "maxBonus": 0.7,
+      "decayScale": 1200.0
+    }
+  },
+  "jobs": {
+    "yumis_dungeon_and_fight:unselected": {
+      "magic": false,
+      "damageTaken": 0.65
+    },
+    "yumis_dungeon_and_fight:ghost_swordsman": {
+      "magic": false,
+      "damageTaken": 0.65
+    },
+    "yumis_dungeon_and_fight:mage": {
+      "magic": true,
+      "damageTaken": 0.65
+    },
+    "yumis_dungeon_and_fight:demon_hunter": {
+      "magic": false,
+      "damageTaken": 0.65
+    },
+    "yumis_dungeon_and_fight:havoc": {
+      "magic": false,
+      "damageTaken": 0.35
+    },
+    "yumis_dungeon_and_fight:summoner": {
+      "magic": true,
+      "damageTaken": 0.65
+    },
+    "yumis_dungeon_and_fight:sun_moon_mage": {
+      "magic": true,
+      "damageTaken": 0.65
+    },
+    "yumis_dungeon_and_fight:elementalist": {
+      "magic": true,
+      "damageTaken": 0.65
+    },
+    "yumis_dungeon_and_fight:battle_mage": {
+      "magic": false,
+      "damageTaken": 0.25
+    },
+    "yumis_dungeon_and_fight:witch": {
+      "magic": true,
+      "damageTaken": 0.50
+    },
+    "yumis_dungeon_and_fight:oracle_executor": {
+      "magic": false,
+      "damageTaken": 0.35
+    },
+    "yumis_dungeon_and_fight:swordmaster": {
+      "magic": false,
+      "damageTaken": 0.35
+    },
+    "yumis_dungeon_and_fight:soul_bender": {
+      "magic": true,
+      "damageTaken": 0.50
+    },
+    "yumis_dungeon_and_fight:asura": {
+      "magic": true,
+      "damageTaken": 0.75
+    },
+    "yumis_dungeon_and_fight:berserker": {
+      "magic": false,
+      "damageTaken": 0.25
+    }
+  },
+  "basicAttacks": {
+    "yumis_dungeon_and_fight:unselected": {
+      "defaultWeapon": "KATANA",
+      "defaultScale": 1.5,
+      "weapons": {
+        "KATANA": 1.5,
+        "LIGHTSABER": 1.35,
+        "GREATSWORD": 1.85,
+        "SHORTSWORD": 1.65,
+        "BLUNT": 1.65,
+        "STAFF": 1.5,
+        "WAND": 1.5,
+        "CLUB": 1.5,
+        "BROOM": 1.5,
+        "WARGLAIVE": 1.65,
+        "SPEAR": 1.85
+      }
+    },
+    "yumis_dungeon_and_fight:ghost_swordsman": {
+      "defaultWeapon": "KATANA",
+      "defaultScale": 1.5,
+      "weapons": {
+        "KATANA": 1.5,
+        "LIGHTSABER": 1.35,
+        "GREATSWORD": 1.85,
+        "SHORTSWORD": 1.65,
+        "BLUNT": 1.65,
+        "STAFF": 1.5,
+        "WAND": 1.5,
+        "CLUB": 1.5,
+        "BROOM": 1.5,
+        "WARGLAIVE": 1.65,
+        "SPEAR": 1.85
+      }
+    },
+    "yumis_dungeon_and_fight:mage": {
+      "defaultWeapon": "STAFF",
+      "defaultScale": 1.4,
+      "weapons": {
+        "KATANA": 1.35,
+        "LIGHTSABER": 1.25,
+        "GREATSWORD": 1.65,
+        "SHORTSWORD": 1.4,
+        "BLUNT": 1.4,
+        "STAFF": 1.4,
+        "WAND": 1.4,
+        "CLUB": 1.45,
+        "BROOM": 1.4,
+        "WARGLAIVE": 1.4,
+        "SPEAR": 1.65
+      }
+    },
+    "yumis_dungeon_and_fight:demon_hunter": {
+      "defaultWeapon": "WARGLAIVE",
+      "defaultScale": 2.4,
+      "weapons": {
+        "KATANA": 2.4,
+        "LIGHTSABER": 2.4,
+        "GREATSWORD": 2.4,
+        "SHORTSWORD": 2.4,
+        "BLUNT": 2.4,
+        "STAFF": 2.4,
+        "WAND": 2.4,
+        "CLUB": 2.4,
+        "BROOM": 2.4,
+        "WARGLAIVE": 2.4,
+        "SPEAR": 2.4
+      }
+    },
+    "yumis_dungeon_and_fight:havoc": {
+      "defaultWeapon": "WARGLAIVE",
+      "defaultScale": 5.0,
+      "weapons": {
+        "KATANA": 5.0,
+        "LIGHTSABER": 5.0,
+        "GREATSWORD": 5.0,
+        "SHORTSWORD": 5.0,
+        "BLUNT": 5.0,
+        "STAFF": 5.0,
+        "WAND": 5.0,
+        "CLUB": 5.0,
+        "BROOM": 5.0,
+        "WARGLAIVE": 5.0,
+        "SPEAR": 5.0
+      }
+    },
+    "yumis_dungeon_and_fight:summoner": {
+      "defaultWeapon": "STAFF",
+      "defaultScale": 1.25,
+      "weapons": {
+        "KATANA": 1.15,
+        "LIGHTSABER": 1.05,
+        "GREATSWORD": 1.4,
+        "SHORTSWORD": 1.25,
+        "BLUNT": 1.25,
+        "STAFF": 1.25,
+        "WAND": 1.25,
+        "CLUB": 1.2,
+        "BROOM": 1.25,
+        "WARGLAIVE": 1.25,
+        "SPEAR": 1.4
+      }
+    },
+    "yumis_dungeon_and_fight:sun_moon_mage": {
+      "defaultWeapon": "STAFF",
+      "defaultScale": 1.25,
+      "weapons": {
+        "KATANA": 1.15,
+        "LIGHTSABER": 1.05,
+        "GREATSWORD": 1.4,
+        "SHORTSWORD": 1.25,
+        "BLUNT": 1.25,
+        "STAFF": 1.25,
+        "WAND": 1.25,
+        "CLUB": 1.2,
+        "BROOM": 1.25,
+        "WARGLAIVE": 1.25,
+        "SPEAR": 1.4
+      }
+    },
+    "yumis_dungeon_and_fight:elementalist": {
+      "defaultWeapon": "STAFF",
+      "defaultScale": 1.25,
+      "weapons": {
+        "KATANA": 1.15,
+        "LIGHTSABER": 1.05,
+        "GREATSWORD": 1.4,
+        "SHORTSWORD": 1.25,
+        "BLUNT": 1.25,
+        "STAFF": 1.25,
+        "WAND": 1.25,
+        "CLUB": 1.2,
+        "BROOM": 1.25,
+        "WARGLAIVE": 1.25,
+        "SPEAR": 1.4
+      }
+    },
+    "yumis_dungeon_and_fight:battle_mage": {
+      "defaultWeapon": "SPEAR",
+      "defaultScale": 4.55,
+      "weapons": {
+        "KATANA": 3.9,
+        "LIGHTSABER": 3.6,
+        "GREATSWORD": 4.55,
+        "SHORTSWORD": 3.95,
+        "BLUNT": 3.95,
+        "STAFF": 3.35,
+        "WAND": 3.35,
+        "CLUB": 3.9,
+        "BROOM": 3.35,
+        "WARGLAIVE": 3.95,
+        "SPEAR": 4.55
+      }
+    },
+    "yumis_dungeon_and_fight:witch": {
+      "defaultWeapon": "BROOM",
+      "defaultScale": 2.65,
+      "weapons": {
+        "KATANA": 1.65,
+        "LIGHTSABER": 1.55,
+        "GREATSWORD": 1.85,
+        "SHORTSWORD": 1.65,
+        "BLUNT": 1.65,
+        "STAFF": 1.65,
+        "WAND": 1.65,
+        "CLUB": 1.80,
+        "BROOM": 2.65,
+        "WARGLAIVE": 1.65,
+        "SPEAR": 1.85
+      }
+    },
+    "yumis_dungeon_and_fight:oracle_executor": {
+      "defaultWeapon": "KATANA",
+      "defaultScale": 3.05,
+      "weapons": {
+        "KATANA": 3.05,
+        "LIGHTSABER": 2.85,
+        "GREATSWORD": 3.55,
+        "SHORTSWORD": 3.2,
+        "BLUNT": 3.25,
+        "STAFF": 3.05,
+        "WAND": 3.05,
+        "CLUB": 3.05,
+        "BROOM": 3.05,
+        "WARGLAIVE": 3.05,
+        "SPEAR": 3.55
+      }
+    },
+    "yumis_dungeon_and_fight:swordmaster": {
+      "defaultWeapon": "KATANA",
+      "defaultScale": 2.8,
+      "weapons": {
+        "KATANA": 2.8,
+        "LIGHTSABER": 2.8,
+        "GREATSWORD": 4.0,
+        "SHORTSWORD": 2.7,
+        "BLUNT": 3.0,
+        "STAFF": 2.8,
+        "WAND": 2.8,
+        "CLUB": 2.8,
+        "BROOM": 2.8,
+        "WARGLAIVE": 2.8,
+        "SPEAR": 3.2
+      }
+    },
+    "yumis_dungeon_and_fight:soul_bender": {
+      "defaultWeapon": "SHORTSWORD",
+      "defaultScale": 2.9,
+      "weapons": {
+        "KATANA": 2.75,
+        "LIGHTSABER": 2.55,
+        "GREATSWORD": 3.25,
+        "SHORTSWORD": 2.9,
+        "BLUNT": 2.9,
+        "STAFF": 2.9,
+        "WAND": 2.9,
+        "CLUB": 2.75,
+        "BROOM": 2.9,
+        "WARGLAIVE": 2.9,
+        "SPEAR": 3.25
+      }
+    },
+    "yumis_dungeon_and_fight:asura": {
+      "defaultWeapon": "SHORTSWORD",
+      "defaultScale": 2.0,
+      "weapons": {
+        "KATANA": 1.85,
+        "LIGHTSABER": 1.7,
+        "GREATSWORD": 2.25,
+        "SHORTSWORD": 2.0,
+        "BLUNT": 2.0,
+        "STAFF": 2.0,
+        "WAND": 2.0,
+        "CLUB": 1.85,
+        "BROOM": 2.0,
+        "WARGLAIVE": 2.0,
+        "SPEAR": 2.25
+      }
+    },
+    "yumis_dungeon_and_fight:berserker": {
+      "defaultWeapon": "GREATSWORD",
+      "defaultScale": 3.7,
+      "weapons": {
+        "KATANA": 3.05,
+        "LIGHTSABER": 2.8,
+        "GREATSWORD": 3.7,
+        "SHORTSWORD": 3.35,
+        "BLUNT": 3.35,
+        "STAFF": 3.05,
+        "WAND": 3.05,
+        "CLUB": 3.05,
+        "BROOM": 3.05,
+        "WARGLAIVE": 3.35,
+        "SPEAR": 3.7
+      },
+      "frenzyWeapons": {
+        "KATANA": 3.5,
+        "LIGHTSABER": 3.25,
+        "GREATSWORD": 4.25,
+        "SHORTSWORD": 3.9,
+        "BLUNT": 3.9,
+        "STAFF": 3.5,
+        "WAND": 3.5,
+        "CLUB": 3.5,
+        "BROOM": 3.5,
+        "WARGLAIVE": 3.9,
+        "SPEAR": 4.25
+      }
+    }
+  }
+}

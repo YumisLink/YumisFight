@@ -65,7 +65,9 @@ public class LootService implements InventoryDrops,cn.yumis.fight.modules.econom
             String id=nativeIdentity(e.getItemEntity());
             if(id.isEmpty()){
                 // Receptacle pickups need a durable source even when vanilla would find no free slot.
-                if(InventoryIntake.capacity(p,e.getItemEntity().getItem())<=0)return;
+                var incoming=e.getItemEntity().getItem();
+                boolean classified=inventory.get().bagOption(p).autoStore()&&cn.yumis.fight.modules.inventory.api.CategoryBags.kind(incoming)!=null;
+                if(InventoryIntake.capacity(p,incoming)<=0&&(!classified||inventory.get().room(p,incoming)<=0))return;
                 try{
                     var prepared=prepare(p,e.getItemEntity());
                     journal.put(prepared.journalKey(),prepared.state());

@@ -46,18 +46,22 @@ public final class InventoryIntake {
         return count;
     }
     /** Handles Shift+click collection from reward or machine output slots into inventory receivers. */
-    private static boolean quickCollect(ServerPlayer player,AbstractContainerMenu menu,int index,ContainerInput input){
-        if(input!=ContainerInput.QUICK_MOVE||!(menu instanceof QuickIntakeMenu intake)||!intake.allowsQuickIntake(index)||index<0||index>=menu.slots.size())return false;
+    private static boolean collect(ServerPlayer player,AbstractContainerMenu menu,int index,int button,ContainerInput input,BagOption option){
+        boolean rewardClick=menu instanceof RewardMenu&&input==ContainerInput.PICKUP&&menu.getCarried().isEmpty()&&button>=0&&button<=1;
+        if(!rewardClick&&input!=ContainerInput.QUICK_MOVE||!(menu instanceof QuickIntakeMenu intake)||!intake.allowsQuickIntake(index)||index<0||index>=menu.slots.size())return false;
         Slot slot=menu.slots.get(index);
         if(slot.container==player.getInventory()||!slot.isActive()||!slot.mayPickup(player))return false;
         ItemStack source=slot.getItem();
-        int availableCapacity=capacity(player,source);
+        boolean classified=menu instanceof RewardMenu&&option.autoStore()&&CategoryBags.kind(source)!=null;
+        if(rewardClick&&!classified)return false;
+        int availableCapacity=classified?InventoryPacking.room(option,player,source):capacity(player,source);
+        if(rewardClick&&button==1)availableCapacity=Math.min(availableCapacity,(source.getCount()+1)/2);
         if(source.isEmpty()||availableCapacity<=0)return false;
         ItemStack custom=intake.extractForQuickIntake(player,index,availableCapacity);
         if(custom!=null){
             if(custom.isEmpty())return false;
             ItemStack taken=custom.copy();
-            receive(player,custom);
+            if(classified)InventoryPacking.insertWithOption(option,player,custom);else receive(player,custom);
             if(!custom.isEmpty())throw new IllegalStateException("收纳容量发生变化，请重试");
             slot.setChanged();slot.onTake(player,taken);
             return true;
@@ -66,15 +70,15 @@ public final class InventoryIntake {
         if(take<=0)return false;
         ItemStack removed=slot.remove(take),taken=removed.copy();
         if(removed.getCount()!=take)throw new IllegalStateException("物品来源发生变化，请重试");
-        receive(player,removed);
+        if(classified)InventoryPacking.insertWithOption(option,player,removed);else receive(player,removed);
         if(!removed.isEmpty())throw new IllegalStateException("收纳容量发生变化，请重试");
         slot.setChanged();slot.onTake(player,taken);
         return true;
     }
     /** Only Shift+click on QuickIntakeMenu reward/output slots auto-intakes into receivers; normal storage keeps physical items. */
-    public static boolean click(ServerPlayer player,AbstractContainerMenu menu,int slot,int button,ContainerInput input,BooleanSupplier alternate){
+    public static boolean click(ServerPlayer player,AbstractContainerMenu menu,int slot,int button,ContainerInput input,BagOption option,BooleanSupplier alternate){
         if(alternate.getAsBoolean())return true;
-        if(quickCollect(player,menu,slot,input))return true;
+        if(collect(player,menu,slot,button,input,option))return true;
         menu.clicked(slot,button,input,player);
         return true;
     }

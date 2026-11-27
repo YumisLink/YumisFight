@@ -6,12 +6,12 @@ import java.util.*;
 /** Cosmetic wire contract; no damage, MP or cooldown values belong here. */
 public record SkillVisualEvent(UUID caster,UUID session,UUID cast,long generation,String dimension,String instance,
 String skill,Phase phase,int sequence,long startedAt,long at,long duration,long seed,
-Point origin,Point position,Point direction,double charge,int color,double forwardOffset,double horizontalScale,boolean sweep,String weaponType,double slashAngle) {
+Point origin,Point position,Point direction,double charge,int color,double forwardOffset,double horizontalScale,boolean sweep,String weaponType,double slashAngle,boolean dual) {
     public SkillVisualEvent(UUID caster,UUID session,UUID cast,long generation,String dimension,String instance,String skill,Phase phase,int sequence,long startedAt,long at,long duration,long seed,Point origin,Point position,Point direction,double charge,int color){
-        this(caster,session,cast,generation,dimension,instance,skill,phase,sequence,startedAt,at,duration,seed,origin,position,direction,charge,color,0,1,false,"",0);
+        this(caster,session,cast,generation,dimension,instance,skill,phase,sequence,startedAt,at,duration,seed,origin,position,direction,charge,color,0,1,false,"",0,false);
     }
     public SkillVisualEvent(UUID caster,UUID session,UUID cast,long generation,String dimension,String instance,String skill,Phase phase,int sequence,long startedAt,long at,long duration,long seed,Point origin,Point position,Point direction,double charge,int color,double forwardOffset){
-        this(caster,session,cast,generation,dimension,instance,skill,phase,sequence,startedAt,at,duration,seed,origin,position,direction,charge,color,forwardOffset,1,false,"",0);
+        this(caster,session,cast,generation,dimension,instance,skill,phase,sequence,startedAt,at,duration,seed,origin,position,direction,charge,color,forwardOffset,1,false,"",0,false);
     }
     public enum Element {
         LIGHT,FIRE,ICE,DARK
@@ -48,6 +48,6 @@ Point origin,Point position,Point direction,double charge,int color,double forwa
         &&Double.isFinite(charge)&&charge>=0&&charge<=1&&(color&0xFF000000)==0&&Double.isFinite(forwardOffset)&&Double.isFinite(horizontalScale)&&horizontalScale>0&&horizontalScale<=16&&weaponType!=null&&weaponType.length()<=32&&Double.isFinite(slashAngle)&&slashAngle>=0&&slashAngle<=180;
     }
     public SkillVisualEvent cancel(int next,long now){
-        return new SkillVisualEvent(caster,session,cast,generation,dimension,instance,skill,Phase.CANCEL,next,startedAt,Math.max(startedAt,now),duration,seed,origin,position,direction,charge,color,forwardOffset,horizontalScale,sweep,weaponType,slashAngle);
+        return new SkillVisualEvent(caster,session,cast,generation,dimension,instance,skill,Phase.CANCEL,next,startedAt,Math.max(startedAt,now),duration,seed,origin,position,direction,charge,color,forwardOffset,horizontalScale,sweep,weaponType,slashAngle,dual);
     }
 }

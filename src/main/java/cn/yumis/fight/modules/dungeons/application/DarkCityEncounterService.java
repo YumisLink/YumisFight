@@ -14,12 +14,14 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.*;
 import java.util.*;
+import java.util.function.Predicate;
 import static cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.*;
 import static cn.yumis.fight.modules.dungeons.api.DarkCityMoves.*;
 
 /** Server-owned defenders and world motion. Each participant owns their contact and damage result. */
 public final class DarkCityEncounterService {
     private static final Gson JSON=new Gson();
+    private static final String AREA_TAG = "ydnf_dark_city_area";
     private static final DarkCityEnemyKind ARCHER=DarkCityEnemyKind.GUARD;
     private static final DarkCityEnemyKind[][] WAVES={
         {HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_SKELETON,HEADLESS_SKELETON,HEADLESS_SKELETON},
@@ -29,6 +31,16 @@ public final class DarkCityEncounterService {
         {HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_SKELETON,HEADLESS_SKELETON,ARCHER,ARCHER,GOLIATH,GOLIATH},
         {HEADLESS_GRAVEROBBER,HEADLESS_GRAVEROBBER,HEADLESS_SKELETON,HEADLESS_SKELETON,ARCHER,ARCHER,GOLIATH,GOLIATH,GOLIATH,HUMPHREY}
     };
+    private static final DarkCityEnemyKind[][] SIDE_WAVES = {
+        {HEADLESS_GRAVEROBBER, HEADLESS_GRAVEROBBER, HEADLESS_GRAVEROBBER, HEADLESS_SKELETON,
+            HEADLESS_SKELETON, ARCHER, ARCHER, GOLIATH},
+        {HEADLESS_GRAVEROBBER, HEADLESS_SKELETON, ARCHER, ARCHER,
+            ARCHER, GOLIATH, GOLIATH, TINGO},
+        {HEADLESS_GRAVEROBBER, HEADLESS_GRAVEROBBER, HEADLESS_SKELETON, HEADLESS_SKELETON,
+            ARCHER, ARCHER, ARCHER, GOLIATH, TINGO, HUMPHREY}
+    };
+    private static final int BOSS_WAVE = WAVES.length;
+    private static final int TOTAL_WAVES = BOSS_WAVE + 1 + SIDE_WAVES.length;
     private final DungeonService owner;
     private final Journal journal;
     private final DungeonPorts.Players players;
@@ -39,7 +51,7 @@ public final class DarkCityEncounterService {
         final StatusLeases leases=new StatusLeases();
         ActionPhase phase=ActionPhase.IDLE;
         long busy,resistantUntil;
-        Brain(DungeonEnemy e,Dungeon d){area=DarkCityEntrance.area(d.wave);home=DarkCityEntrance.inside(d.cell,area,e.position());knockback=DarkCityEnemyKind.of(e)==GOLIATH?0:e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).getBaseValue();}
+        Brain(DungeonEnemy e,Dungeon d,int area){this.area=area;home=DarkCityEntrance.inside(d.cell,area,e.position());knockback=DarkCityEnemyKind.of(e)==GOLIATH?0:e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).getBaseValue();}
         boolean ready(DarkCityMoves move,long now){return now>=ready.getOrDefault(move,0L);}
     }
     private static final class Pending {
@@ -50,31 +62,85 @@ public final class DarkCityEncounterService {
     private final Map<UUID,Brain> brains=new HashMap<>();
     private final Map<String,Pending> attacks=new LinkedHashMap<>();
     private final Map<UUID,Guard> guards=new HashMap<>();
-    private final Map<UUID,Integer> announced=new HashMap<>();
     private final Map<UUID,String> tracked=new HashMap<>();
 
     DarkCityEncounterService(DungeonService owner,Journal journal,DungeonPorts.Players players,DungeonPorts.Targets targets){this.owner=owner;this.journal=journal;this.players=players;this.targets=targets;}
-    void spawn(Dungeon d){
-        if(d.wave==6){
-            DungeonEnemy boss=owner.spawn(d,HEADLESS_KNIGHT.id,false,true,d.cell*512,80,140);
-            boss.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);return;
-        }
-        int area=DarkCityEntrance.area(d.wave);
-        for(int i=0;i<WAVES[d.wave].length;i++){
-            var kind=WAVES[d.wave][i];
-            owner.spawn(d,kind.id,kind==TINGO||kind==HUMPHREY,false,d.cell*512+(i%5-2)*4,80,area*40+11+i/5*7);
-        }
+    static boolean handles(Dungeon d) {
+        return d != null && DarkCityEntrance.ID.equals(d.dungeon) && d.practice == null;
     }
-    public boolean waitsAtGate(Dungeon d,List<ServerPlayer> here){
-        if(d.wave%2!=1)return false;
-        int next=(d.wave+1)/2;
-        if(announced.getOrDefault(d.id,0)<next){announced.put(d.id,next);for(var p:here)players.message(p,"区域清场，前往"+DarkCityEntrance.AREAS[next]+"。");}
-        return here.stream().noneMatch(p->DarkCityEntrance.contains(d.cell,next,p.position()));
+
+    boolean spawnArrivals(Dungeon d, List<ServerPlayer> here) throws Exception {
+        if (d.darkCityWaves.size() == TOTAL_WAVES) return false;
+        var arrivals = new LinkedHashSet<Integer>();
+        for (ServerPlayer player : here) {
+            if (!eligible(player, d.id.toString())) continue;
+            int area = DarkCityEntrance.arrivedArea(d.cell, player.position());
+            int wave = nextWave(d, area, owner::defeated);
+            if (wave >= 0) arrivals.add(wave);
+        }
+        if (arrivals.isEmpty()) return false;
+
+        var existing = Set.copyOf(d.enemies);
+        journal.begin();
+        try {
+            for (int wave : arrivals) d.darkCityWaves.put(wave, spawn(d, wave));
+            journal.put("instance/" + d.id, d);
+            journal.finish();
+        } catch (Exception failure) {
+            journal.abort();
+            d.darkCityWaves.keySet().removeAll(arrivals);
+            d.enemies.removeIf(id -> {
+                if (existing.contains(id)) return false;
+                Entity enemy = owner.level().getEntity(id);
+                if (enemy != null) enemy.discard();
+                return true;
+            });
+            throw failure;
+        }
+        return true;
+    }
+
+    static int nextWave(Dungeon d, int area, Predicate<UUID> defeated) {
+        if (area < 0 || area >= DarkCityEntrance.AREAS.length) return -1;
+        int first = DarkCityEntrance.firstWave(area);
+        var firstGroup = d.darkCityWaves.get(first);
+        if (firstGroup == null) return first;
+        if (area >= DarkCityEntrance.BOSS_AREA || d.darkCityWaves.containsKey(first + 1)) return -1;
+        return firstGroup.stream().allMatch(defeated) ? first + 1 : -1;
+    }
+
+    boolean finishIfDefeated(Dungeon d, List<ServerPlayer> here) throws Exception {
+        if (d.darkCityWaves.size() != TOTAL_WAVES || !d.enemies.stream().allMatch(owner::defeated)) return false;
+        owner.completeOpenDungeon(d, here, "地下城通关！可拾取战利品或返回。");
+        return true;
+    }
+
+    private Set<UUID> spawn(Dungeon d, int wave) {
+        int area = DarkCityEntrance.area(wave);
+        if (wave == BOSS_WAVE) {
+            Vec3 at = DarkCityEntrance.spawnPoint(d.cell, area, 0);
+            DungeonEnemy boss = owner.spawn(d, HEADLESS_KNIGHT.id, false, true, at.x, at.y, at.z);
+            boss.getPersistentData().putInt(AREA_TAG, area);
+            boss.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
+            return Set.of(boss.getUUID());
+        }
+        var group = new LinkedHashSet<UUID>();
+        var squad = wave < BOSS_WAVE ? WAVES[wave] : SIDE_WAVES[wave - BOSS_WAVE - 1];
+        for (int i = 0; i < squad.length; i++) {
+            var kind = squad[i];
+            Vec3 at = DarkCityEntrance.spawnPoint(d.cell, area, i);
+            var enemy = owner.spawn(d, kind.id, kind == TINGO || kind == HUMPHREY, false, at.x, at.y, at.z);
+            enemy.getPersistentData().putInt(AREA_TAG, area);
+            group.add(enemy.getUUID());
+        }
+        return group;
     }
     public void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> here,long now){
-        DarkCityEnemyKind kind=DarkCityEnemyKind.of(e);if(kind==null)return;
+        DarkCityEnemyKind kind=DarkCityEnemyKind.of(e);
+        int assignedArea=e.getPersistentData().getIntOr(AREA_TAG,-1);
+        if(kind==null||assignedArea<0)return;
         Brain b=brains.get(e.getUUID());
-        if(b==null){b=new Brain(e,d);brains.put(e.getUUID(),b);if(kind==TINGO)defense(e,false);if(kind==GOLIATH)e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(b.knockback);}
+        if(b==null){b=new Brain(e,d,assignedArea);brains.put(e.getUUID(),b);if(kind==TINGO)defense(e,false);if(kind==GOLIATH)e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(b.knockback);}
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
         if(!DarkCityEntrance.contains(d.cell,b.area,e.position())){cancel(e.getUUID());e.getNavigation().moveTo(b.home.x,b.home.y,b.home.z,1);return;}
         final int area=b.area;
@@ -100,22 +166,23 @@ public final class DarkCityEncounterService {
     }
     private boolean eligible(ServerPlayer p,String instance){var life=players.session(p).life;return p.level()==owner.level()&&owner.participant(p,instance)&&p.isAlive()&&!life.dead&&!life.dungeonDefeated&&!p.isSpectator();}
     private boolean available(Dungeon d,Brain b,DarkCityMoves move,double distance,long now){
-        return distance<=move.range&&b.ready(move,now)&&(!move.ranged()||attacks.values().stream().filter(a->a.attack.instance.equals(d.id.toString())&&a.area==b.area&&now<a.attack.end()&&DarkCityMoves.valueOf(a.attack.kind).ranged()).map(a->a.group).distinct().count()<RANGED_GROUP_LIMIT);
+        return distance<=move.rangeVal()&&b.ready(move,now)&&(!move.ranged()||attacks.values().stream().filter(a->a.attack.instance.equals(d.id.toString())&&a.area==b.area&&now<a.attack.end()&&DarkCityMoves.valueOf(a.attack.kind).ranged()).map(a->a.group).distinct().count()<RANGED_GROUP_LIMIT);
     }
     private void play(Dungeon d,DungeonEnemy e,Brain b,DarkCityMoves move,Vec3 direction,long now){
         var timing=targets.target(e).actionTiming(now);
-        long duration=timing.duration(move.duration());e.getNavigation().stop();e.setAggressive(true);e.play(move.animation,duration);b.busy=now+duration;b.ready.put(move,now+move.cooldown);
-        long windup=timing.windup(move.windup),active=timing.active(move.active);
+        long duration=timing.duration(move.duration());e.getNavigation().stop();e.setAggressive(true);e.play(move.animation,duration);b.busy=now+duration;b.ready.put(move,now+move.cooldownMs());
+        long windup=timing.windup(move.windupMs()),active=timing.active(move.activeMs());
         if(move==SMASH){b.resistantUntil=now+windup+active;e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);}
         if(move==DarkCityMoves.GUARD)guards.put(e.getUUID(),new Guard(now+windup,now+windup+active));
         String group=UUID.randomUUID().toString();int count=move==NIGHTMARE?4:1;
+        double range=move.rangeVal();
         for(int i=0;i<count;i++){
             Vec3 heading=direction.yRot((float)(i*Math.PI/2));GblAttack a=new GblAttack();
             a.source=e.getUUID();a.instance=e.instance();a.kind=move.name();a.shape=move.shape;a.started=now;a.windup=windup;a.active=active;
-            a.radius=move.range;a.width=move==CHARGE?e.getBbWidth()/2:move.width();a.halfAngle=Math.PI/3;a.coefficient=move.coefficient;a.magic=move.magic;a.element=move.element;
+            a.radius=range;a.width=move==CHARGE?e.getBbWidth()/2:move.width();a.halfAngle=Math.PI/3;a.coefficient=move.coefficientVal();a.magic=move.magicVal();a.element=move.elementVal();
             a.origin(e.position().add(0,move.height(),0));
-            double travel=move.shape.equals("LINE")?cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(move.range):move.range;
-            if(travel>move.range)a.active=Math.round(a.active*travel/move.range);
+            double travel=move.shape.equals("LINE")?cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(range):range;
+            if(travel>range)a.active=Math.round(a.active*travel/range);
             Vec3 end=a.origin().add(heading.scale(travel));
             if(move==CHARGE)end=DarkCityEntrance.inside(d.cell,b.area,end);
             a.ex=end.x;a.ey=end.y;a.ez=end.z;
@@ -131,7 +198,7 @@ public final class DarkCityEncounterService {
         Set<UUID> present=new HashSet<>();
         for(var p:online)if(p.level()==owner.level()){
             var s=players.session(p);Dungeon d=owner.byId(s.life.instance);
-            if(d!=null&&d.dungeon.equals("dark_city")&&d.status.equals("RUNNING")&&owner.participant(p,d.id.toString())){
+            if(handles(d)&&d.status.equals("RUNNING")&&owner.participant(p,d.id.toString())){
                 present.add(p.getUUID());String key=d.id+"/"+s.id+"/"+s.life.generation;
                 if(!key.equals(tracked.get(p.getUUID())))track(p);
             }
@@ -187,7 +254,7 @@ public final class DarkCityEncounterService {
     public void died(UUID id){cancel(id);brains.remove(id);}
     public void track(ServerPlayer p){
         var s=players.session(p);Dungeon d=owner.byId(s.life.instance);
-        if(d==null||!d.dungeon.equals("dark_city")||!d.status.equals("RUNNING")||!owner.participant(p,d.id.toString()))return;
+        if(!handles(d)||!d.status.equals("RUNNING")||!owner.participant(p,d.id.toString()))return;
         long now=System.currentTimeMillis();
         for(var pending:attacks.values())if(pending.attack.instance.equals(d.id.toString())&&now<pending.attack.end())Network.send(p,"darkCityAttack",packet(pending));
         tracked.put(p.getUUID(),d.id+"/"+s.id+"/"+s.life.generation);
@@ -196,6 +263,6 @@ public final class DarkCityEncounterService {
         String instance=d.id.toString();
         for(var pending:new ArrayList<>(attacks.values()))if(pending.attack.instance.equals(instance))remove(pending);
         for(var entry:new ArrayList<>(brains.entrySet())){Entity raw=owner.level().getEntity(entry.getKey());if(raw instanceof DungeonEnemy e&&e.instance().equals(instance)){cancel(entry.getKey());brains.remove(entry.getKey());}}
-        announced.remove(d.id);tracked.values().removeIf(key->key.startsWith(instance+"/"));
+        tracked.values().removeIf(key->key.startsWith(instance+"/"));
     }
 }

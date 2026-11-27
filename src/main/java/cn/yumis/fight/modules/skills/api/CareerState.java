@@ -13,18 +13,19 @@ public final class CareerState {
     public SunMoonState sunMoon=new SunMoonState();
     public ElementalistState elementalist=new ElementalistState();
     public BattleMageState battleMage=new BattleMageState();
+    public WitchState witch=new WitchState();
     public DemonHunterState demonHunter=new DemonHunterState();
     public Field field;
     public Map<String,Long> reductions=new LinkedHashMap<>();
     public List<Field> fields=new ArrayList<>();
     public List<Actor> actors=new ArrayList<>();
-    public static final class Actor {public String owner="";public int keiga,brands,blood,sunMoonHeart,sunMoonStacks,elementLampsMask,grooveStage;public boolean frenzy;public long kallaUntil,eyeUntil,bloodUntil,metamorphosisUntil,auraUntil,battleMageChasers,teanaUntil;}
+    public static final class Actor {public String owner="";public int keiga,brands,blood,sunMoonHeart,sunMoonStacks,elementLampsMask,grooveStage,oracleHermes;public boolean frenzy,oracleInstructed,witchBroomGliding;public long kallaUntil,eyeUntil,bloodUntil,metamorphosisUntil,auraUntil,battleMageChasers,teanaUntil,oracleHermesUntil,overdriveUntil,witchCandyUntil;public String witchMachine="";}
     public static final class Field {
         public String id="",owner="",dimension="",instance="";
         public int rank;
         public double x,y,z;
         public long expires;
-        public boolean friendly;
+        public boolean friendly,follow;
         public boolean contains(double px,double py,double pz){return Math.abs(py-y)<=4&&(px-x)*(px-x)+(pz-z)*(pz-z)<=25;}
     }
     public double red(double x,double y,double z,long now){return fields.stream().filter(f->f.friendly&&f.expires>now&&f.contains(x,y,z)).mapToDouble(f->CareerSkills.redBonus(f.rank)).max().orElse(0);}

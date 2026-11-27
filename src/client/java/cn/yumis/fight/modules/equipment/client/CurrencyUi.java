@@ -3,6 +3,7 @@ import cn.yumis.fight.modules.equipment.client.EquipmentTooltip;
 import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.UiTheme;
 import cn.yumis.fight.modules.inventory.api.SlotAccess;
+import cn.yumis.fight.modules.inventory.api.DimensionalMenu;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.modules.equipment.api.Gear;
 import cn.yumis.fight.modules.equipment.api.EquipmentRules;
@@ -26,6 +27,13 @@ public final class CurrencyUi {
     private static final Map<PreviewKey,List<Component>> PREVIEWS=new LinkedHashMap<>(16,.75f,true);
     private CurrencyUi(){}
     public static boolean isCurrency(ItemStack stack){return SlotAccess.isCurrency(stack);}
+    public static ItemStack processingItem(AbstractContainerMenu menu){
+        if(menu instanceof DimensionalMenu dimensional){
+            var selected=dimensional.selectedMaterial();
+            if(selected!=null)return selected.item();
+        }
+        return menu.getCarried();
+    }
     public static Target target(AbstractContainerScreen<?> screen,double mouseX,double mouseY){
         var player=Minecraft.getInstance().player;
         if(player==null)return null;
@@ -62,7 +70,7 @@ public final class CurrencyUi {
         // Foreground runs before Screen extracts its deferred tooltip; Post is too late.
         NeoForge.EVENT_BUS.addListener((ScreenEvent.Render.Foreground event)->{
             if(!(event.getScreen() instanceof AbstractContainerScreen<?> screen))return;
-            ItemStack currency=screen.getMenu().getCarried();
+            ItemStack currency=processingItem(screen.getMenu());
             Target target=isCurrency(currency)?target(screen,event.getMouseX(),event.getMouseY()):null;
             Gear tracked=target==null?null:EquipmentItems.gear(target.slot().getItem());
             if(tracked!=null&&cn.yumis.fight.modules.equipment.api.Gemstones.currency(ItemData.id(currency)))GemSocketSelection.track(target.menu().containerId,target.index(),tracked);

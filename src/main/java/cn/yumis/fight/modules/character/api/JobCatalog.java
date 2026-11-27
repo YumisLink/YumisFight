@@ -8,6 +8,7 @@ public final class JobCatalog {
     public static final String SUN_MOON="yumis_dungeon_and_fight:sun_moon_mage";
     public static final String ELEMENTALIST="yumis_dungeon_and_fight:elementalist";
     public static final String BATTLE_MAGE="yumis_dungeon_and_fight:battle_mage";
+    public static final String WITCH="yumis_dungeon_and_fight:witch";
     public static final String NONE="yumis_dungeon_and_fight:unselected", MAGE="yumis_dungeon_and_fight:mage", BASE="yumis_dungeon_and_fight:ghost_swordsman", SWORDMASTER="yumis_dungeon_and_fight:swordmaster",
         ORACLE="yumis_dungeon_and_fight:oracle_executor", SOUL_BENDER="yumis_dungeon_and_fight:soul_bender", ASURA="yumis_dungeon_and_fight:asura", BERSERKER="yumis_dungeon_and_fight:berserker";
     public record CombatStyle(boolean magic,double damageTaken,String awakening,String awakeningSkill){}
@@ -23,11 +24,12 @@ public final class JobCatalog {
         register(new Definition(DEMON_HUNTER,"恶魔猎手","",1));STYLES.put(DEMON_HUNTER,new CombatStyle(false,.65,"",""));
         register(new Definition(HAVOC,"浩劫",DEMON_HUNTER,20));STYLES.put(HAVOC,new CombatStyle(false,.35,"浩劫恶魔猎手","yumis_dungeon_and_fight:metamorphosis"));
         WEAPONS.put(DEMON_HUNTER,Set.of("WARGLAIVE"));
-        QUALIFICATIONS.put("WARGLAIVE",p->p.selected()&&base(p.jobId()).equals(DEMON_HUNTER));QUALIFICATIONS.put("BROOM",p->false);QUALIFICATIONS.put("LIGHTSABER",p->p.hasJob(SWORDMASTER)||p.hasJob(ORACLE)&&p.learned("yumis_dungeon_and_fight:oracle_will")>0);
+        QUALIFICATIONS.put("WARGLAIVE",p->p.selected()&&base(p.jobId()).equals(DEMON_HUNTER));QUALIFICATIONS.put("BROOM",p->p.hasJob(WITCH));QUALIFICATIONS.put("LIGHTSABER",p->p.hasJob(SWORDMASTER)||p.hasJob(ORACLE)&&p.learned("yumis_dungeon_and_fight:oracle_will")>0);
         register(new Definition(SUMMONER,"召唤师",MAGE,20));STYLES.put(SUMMONER,new CombatStyle(true,.65,"月蚀","yumis_dungeon_and_fight:kasijas"));
         register(new Definition(SUN_MOON,"日月魔法师",MAGE,20));STYLES.put(SUN_MOON,new CombatStyle(true,.65,"日冕","yumis_dungeon_and_fight:paradox"));
         register(new Definition(ELEMENTALIST,"元素师",MAGE,20));STYLES.put(ELEMENTALIST,new CombatStyle(true,.65,"大魔导师","yumis_dungeon_and_fight:astral_storm"));
         register(new Definition(BATTLE_MAGE,"战斗法师",MAGE,20));STYLES.put(BATTLE_MAGE,new CombatStyle(false,.25,"贝亚娜斗神","yumis_dungeon_and_fight:teana_transformation"));
+        register(new Definition(WITCH,"魔道学者",MAGE,20));STYLES.put(WITCH,new CombatStyle(true,.50,"魔术师","yumis_dungeon_and_fight:fusion_craft"));
         STYLES.put(MAGE,new CombatStyle(true,.65,"",""));
         STYLES.put(BASE,new CombatStyle(false,.65,"",""));
         WEAPONS.put(BASE,Set.of("KATANA","LIGHTSABER","SHORTSWORD","GREATSWORD","BLUNT"));WEAPONS.put(MAGE,Set.of("STAFF","WAND","CLUB","BROOM","SPEAR"));
@@ -42,7 +44,12 @@ public final class JobCatalog {
         register(new Definition(id,title,BASE,20));
         STYLES.put(id,new CombatStyle(magic,taken,awakening,"yumis_dungeon_and_fight:"+awakeningSkill));
     }
-    public static CombatStyle style(String id){require(id);return STYLES.getOrDefault(id,new CombatStyle(false,.65,"",""));}
+    public static CombatStyle style(String id){
+        require(id);
+        CombatStyle base=STYLES.getOrDefault(id,new CombatStyle(false,.65,"",""));
+        var override=CharacterBalanceRules.current().jobs.get(id);
+        return override==null?base:new CombatStyle(override.magic(),override.damageTaken(),base.awakening(),base.awakeningSkill());
+    }
     /** Awakening titles follow each profile's level and the character-wide qualification. */
     public static String displayName(String jobId,int level,boolean awakened){
         var job=require(jobId);String awakening=style(jobId).awakening();

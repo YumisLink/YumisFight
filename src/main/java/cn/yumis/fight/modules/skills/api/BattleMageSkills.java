@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.skills.api;
 
 import cn.yumis.fight.modules.character.api.JobCatalog;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import java.util.*;
 
 /**
@@ -10,7 +11,6 @@ import java.util.*;
 public final class BattleMageSkills {
     private static final String NS = "yumis_dungeon_and_fight:";
     public static final String
-        WEAPON_MASTERY = NS + "battle_weapon_mastery",
         BATTLE_GROOVE = NS + "battle_groove",
         CHASER_LAUNCHER = NS + "chaser_launcher",
         PALM_BLAST = NS + "palm_blast",
@@ -23,7 +23,7 @@ public final class BattleMageSkills {
         TEANA_TRANSFORMATION = NS + "teana_transformation";
 
     public static final List<String> ALL = List.of(
-        WEAPON_MASTERY, BATTLE_GROOVE, CHASER_LAUNCHER, PALM_BLAST, FULL_SWING,
+        BATTLE_GROOVE, CHASER_LAUNCHER, PALM_BLAST, FULL_SWING,
         CHASER_FUSION, CHASER_PRESS, PUNTO_WAVE, DRAGON_STRIKE, DRAGON_SPEAR, TEANA_TRANSFORMATION
     );
 
@@ -41,26 +41,20 @@ public final class BattleMageSkills {
     }
 
     static void install() {
-        // 1. Lv20 Passive: Weapon Mastery (auto Lv1, upgradeable to Lv13)
-        var mastery = register(WEAPON_MASTERY, "战法武器精通", "MARTIAL", 20, 30, 0, 0, 0, true, false,
+        // 1. Lv20 Unified Core Passive: Battle Groove + Weapon Mastery + Auto Chaser + Niu Combat Art (auto Lv1, upgradeable to Lv13)
+        var groove = register(BATTLE_GROOVE, "斗神意志", "MARTIAL", 20, 30, 0, 0, 0, true, false,
             Map.of("range", 0d, "slashes", 1d, "duration", 0d));
-        mastery.automaticByJob = true;
-        mastery.attackTypeRanks = false;
-        mastery.formParameter("spearBonusScale", 1.0)
+        groove.automaticByJob = true;
+        groove.attackTypeRanks = false;
+        groove.formParameter("spearBonusScale", 1.0)
             .formParameter("spearRangeScale", 1.15)
             .formParameter("spearChargeScale", 0.85)
             .formParameter("clubBonusScale", 1.0)
             .formParameter("clubAutoChaserScale", 0.80)
             .formParameter("clubChaserRadiusScale", 1.15)
             .formParameter("staffBonusScale", 1.0)
-            .formParameter("staffChaserCdScale", 0.85);
-
-        // 2. Lv20 Core Passive: Battle Groove + Auto Chaser + Niu Combat Art (auto Lv1, upgradeable to Lv13)
-        var groove = register(BATTLE_GROOVE, "斗神意志", "MARTIAL", 20, 30, 0, 0, 0, true, false,
-            Map.of("range", 0d, "slashes", 1d, "duration", 0d));
-        groove.automaticByJob = true;
-        groove.attackTypeRanks = false;
-        groove.formParameter("comboStageCap", 6.0)
+            .formParameter("staffChaserCdScale", 0.85)
+            .formParameter("comboStageCap", 6.0)
             .formParameter("comboThresholdScale", 1.0)
             .formParameter("comboHoldSeconds", 8.0)
             .formParameter("grooveBonusScale", 1.0)
@@ -250,93 +244,12 @@ public final class BattleMageSkills {
         return SkillCatalog.register(skill);
     }
 
-    private static SkillBalanceProfile.Hit hit(double seconds, double coeff) {
-        return new SkillBalanceProfile.Hit(Math.round(seconds * 1000), coeff, false);
-    }
-
-    static void balance() {
+    static void variants() {
         MageSkills.careerScales(JobCatalog.BATTLE_MAGE, 1.0, 0.5);
-        SkillBalance.nonDamage(SkillCatalog.require(WEAPON_MASTERY));
-        SkillBalance.nonDamage(SkillCatalog.require(BATTLE_GROOVE));
-
-        // Chaser Launcher uses a 2.5s effective generation cadence for balance reference so its short 0.45s burst CD doesn't starve per-orb damage.
-        SkillBalance.register(SkillCatalog.require(CHASER_LAUNCHER), new SkillBalanceProfile(1.8, 2.5, false, false, 0, (s, r, c) -> {
-            var p = s.parameters(r);
-            double avg = (p.get("neutralDamage") + p.get("lightDamage") + p.get("fireDamage")
-                + p.get("iceDamage") + p.get("darkDamage")) / 5.0;
-            return List.of(hit(0.10, avg));
-        }));
-
-        registerProfile(PALM_BLAST, 1.8, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.30);
-            return List.of(hit(Math.max(0.05, p.getOrDefault("dashSeconds", 0.28)), p.get("damage") * cm));
-        });
-
-        registerProfile(FULL_SWING, 2.4, (s, r, c) -> {
-            var p = s.parameters(r);
-            return List.of(hit(0.16, p.get("damage")));
-        });
-
-        registerProfile(CHASER_FUSION, 3.0, (s, r, c) -> {
-            var p = s.parameters(r);
-            return List.of(hit(Math.max(0.05, p.getOrDefault("impactDelay", 0.25)), p.get("damage")));
-        });
-
-        registerProfile(CHASER_PRESS, 4.0, (s, r, c) -> {
-            var p = s.parameters(r);
-            int cap = (int) Math.max(1, SkillCatalog.require(CHASER_LAUNCHER).parameters(r).getOrDefault("maxChasers", 7.0));
-            double total = p.get("damage") + p.get("perChaserDamage") * (cap - 1);
-            return List.of(hit(Math.max(0.05, p.getOrDefault("impactDelay", 0.30)), total));
-        });
-
-        registerProfile(PUNTO_WAVE, 3.8, (s, r, c) -> {
-            var p = s.parameters(r);
-            int hits = (int) Math.max(1, p.getOrDefault("slashes", 12.0));
-            double gap = Math.max(0.05, p.getOrDefault("interval", 0.09));
-            var out = new ArrayList<SkillBalanceProfile.Hit>(hits + 1);
-            for (int i = 0; i < hits; i++) out.add(hit(0.10 + i * gap, p.get("damage")));
-            out.add(hit(0.10 + hits * gap + 0.15, p.get("finisher")));
-            return out;
-        });
-
-        registerProfile(DRAGON_STRIKE, 5.0, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.30);
-            double dash = Math.max(0.05, p.getOrDefault("dashSeconds", 0.30));
-            return List.of(hit(dash * 0.5, p.get("damage") * cm), hit(dash + 0.12, p.get("finisher") * cm));
-        });
-
-        registerProfile(DRAGON_SPEAR, 5.6, (s, r, c) -> {
-            var p = s.parameters(r);
-            int balls = (int) Math.max(1, p.getOrDefault("dragonChaserCount", 8.0));
-            double gap = Math.max(0.05, p.getOrDefault("interval", 0.14));
-            var out = new ArrayList<SkillBalanceProfile.Hit>(balls + 3);
-            out.add(hit(0.15, p.get("thrust")));
-            for (int i = 0; i < balls; i++) out.add(hit(0.35 + i * gap, p.get("dragonChaser")));
-            double endAt = Math.max(0.55, 0.35 + balls * gap + 0.20);
-            out.add(hit(endAt, p.get("finisherPhys")));
-            out.add(hit(endAt, p.get("finisherMagic")));
-            return out;
-        });
-
-        registerProfile(TEANA_TRANSFORMATION, 10.0, (s, r, c) -> {
-            var p = s.parameters(r);
-            return List.of(
-                hit(0.20, p.get("auraPhys")),
-                hit(0.20, p.get("auraMagic")),
-                hit(1.20, p.get("finisherPhys")),
-                hit(1.20, p.get("finisherMagic"))
-            );
-        });
-    }
-
-    private static void registerProfile(String id, double weight, SkillBalanceProfile.Pattern pattern) {
-        SkillBalance.register(SkillCatalog.require(id), new SkillBalanceProfile(weight, 0, false, false, 0, pattern));
     }
 
     public static void previews() {
-        SkillPreviewRules.register(SkillCatalog.require(WEAPON_MASTERY), new SkillPreviewRules.Definition(p -> 0, false, false, false, -1));
+        SkillPreviewRules.pattern(MageSkills.skill(MageSkills.FANG), p -> new SkillPreviewRules.Pattern((int) Math.max(1, p.get("slashes", 1)), p.get("damage", 0), 0));
         SkillPreviewRules.register(SkillCatalog.require(BATTLE_GROOVE), new SkillPreviewRules.Definition(p -> 0, false, false, false, -1));
 
         // Chaser Launcher: deterministic expectation across 5 color weights
@@ -346,13 +259,14 @@ public final class BattleMageSkills {
             var gp = BattleMageRules.grooveParams(stats, progress);
             double[] probs = BattleMageRules.chaserProbabilities(gp);
             boolean teana = stats.modifiers.getOrDefault("bmTeana", 0.0) > 0;
+            boolean allFour = BattleMageRules.allFourElementsActive(stats, teana);
             double teanaScale = stats.modifiers.getOrDefault("bmTeanaChaserScale", 1.45);
             int volley = 1 + (int) Math.max(0, p.get("extraVolleyCount", 0));
             double min = 0, max = 0;
             for (int c = 0; c < 5; c++) {
                 if (probs[c] <= 0) continue;
                 double coeff = BattleMageRules.chaserCoefficient(p, c, teana, teanaScale);
-                int[] elems = BattleMageRules.chaserElements(c, teana);
+                int[] elems = BattleMageRules.chaserElements(c, allFour);
                 var dmg = SkillPreview.multiElementDamage(progress, stats, launcher, coeff, elems, effects);
                 min += probs[c] * dmg.minimum();
                 max += probs[c] * dmg.maximum();
@@ -365,24 +279,39 @@ public final class BattleMageSkills {
         SkillPreviewRules.register(palm, new SkillPreviewRules.Definition(p -> 1, false, false, false, -1));
         SkillPreviewRules.pattern(palm, p -> new SkillPreviewRules.Pattern(1, p.get("damage", 0) * BattleMageRules.fullChargeMultiplier(p), 0));
 
-        // Full Swing (phys + optional magicWave)
+        // Full Swing (phys + optional magicWave / 万象魔刃)
         var swing = SkillCatalog.require(FULL_SWING);
         SkillPreviewRules.register(swing, new SkillPreviewRules.Definition(p -> 1, false, false, false, -1));
         SkillPreviewRules.phases(swing, "phys", "");
         SkillPreviewRules.total(swing, (progress, stats, p, effects) -> {
-            double teanaScale = stats.modifiers.getOrDefault("bmTeana", 0.0) > 0 ? stats.modifiers.getOrDefault("bmTeanaSkillScale", 1.30) : 1.0;
-            var phys = SkillPreview.phaseDamage(progress, stats, swing, p.get("damage", 0) * teanaScale, "phys", effects);
+            boolean teana = stats.modifiers.getOrDefault("bmTeana", 0.0) > 0;
+            double teanaScale = teana ? stats.modifiers.getOrDefault("bmTeanaSkillScale", 1.30) : 1.0;
+            var total = SkillPreview.phaseDamage(progress, stats, swing, p.get("damage", 0) * teanaScale, "phys", effects);
             double waveCoeff = p.get("chaserSlash", 0);
             if (waveCoeff > 0) {
-                var wave = SkillPreview.phaseDamage(progress, stats, swing, waveCoeff, "magicWave", effects);
-                return phys.plus(wave);
+                total = total.plus(SkillPreview.phaseDamage(progress, stats, swing, waveCoeff, "magicWave", effects));
             }
-            return phys;
+            if (TowerBattleCard.BM_SWING_ARCANUM.held(stats)) {
+                double empressScale = TowerBattleCard.BM_SWING_EMPRESS.held(stats)
+                    ? 1.0 + TowerBattleCard.BM_SWING_EMPRESS.ratio("damage") : 1.0;
+                double baseCoeff = p.get("damage", 0) / empressScale;
+                double arcanumCoeff = baseCoeff * TowerBattleCard.BM_SWING_ARCANUM.ratio("ratio") * teanaScale;
+                int waves = TowerBattleCard.BM_SWING_ARCANUM.count("max");
+                int[] elems = BattleMageRules.allFourElementsActive(stats, teana) ? BattleMageRules.ALL_FOUR_ELEMENTS : new int[0];
+                total = total.plus(multiPhaseMagic(progress, stats, swing, arcanumCoeff, "magicWave", elems, effects).times(waves));
+            }
+            return total;
         });
 
         // Chaser Fusion
         var fusion = SkillCatalog.require(CHASER_FUSION);
         SkillPreviewRules.register(fusion, new SkillPreviewRules.Definition(p -> 1, false, false, true, -1));
+        SkillPreviewRules.total(fusion, (progress, stats, p, effects) -> {
+            boolean teana = stats.modifiers.getOrDefault("bmTeana", 0.0) > 0;
+            boolean allFour = BattleMageRules.allFourElementsActive(stats, teana) || TowerBattleCard.BM_FUSION_OVERLOAD.held(stats);
+            int[] elems = allFour ? BattleMageRules.ALL_FOUR_ELEMENTS : new int[0];
+            return SkillPreview.multiElementDamage(progress, stats, fusion, p.get("damage", 0), elems, effects);
+        });
 
         // Chaser Press (preview at full maxChasers)
         var press = SkillCatalog.require(CHASER_PRESS);
@@ -392,7 +321,7 @@ public final class BattleMageSkills {
             int maxCap = (int) Math.max(1, lp.get("maxChasers", 7.0));
             double coeff = p.get("damage", 0) + p.get("perChaserDamage", 0) * (maxCap - 1);
             boolean teana = stats.modifiers.getOrDefault("bmTeana", 0.0) > 0;
-            int[] elems = teana ? BattleMageRules.ALL_FOUR_ELEMENTS : new int[0];
+            int[] elems = BattleMageRules.allFourElementsActive(stats, teana) ? BattleMageRules.ALL_FOUR_ELEMENTS : new int[0];
             return SkillPreview.multiElementDamage(progress, stats, press, coeff, elems, effects);
         });
 
@@ -413,7 +342,7 @@ public final class BattleMageSkills {
 
         // Dragon Spear (hybrid physical + magic)
         var spear = SkillCatalog.require(DRAGON_SPEAR);
-        SkillPreviewRules.register(spear, new SkillPreviewRules.Definition(p -> 1 + (int) Math.max(0, p.get("dragonChaserCount", 8)), true, false, false, -1));
+        SkillPreviewRules.register(spear, new SkillPreviewRules.Definition(p -> 1 + (p.get("dragonChaser", 0) > 0 ? (int) Math.max(0, p.get("dragonChaserCount", 8)) : 0), true, false, false, -1));
         SkillPreviewRules.phases(spear, "thrust", "finisherPhys");
         SkillPreviewRules.finisherLabel(spear, "煌龙终爆");
         SkillPreviewRules.total(spear, (progress, stats, p, effects) -> {

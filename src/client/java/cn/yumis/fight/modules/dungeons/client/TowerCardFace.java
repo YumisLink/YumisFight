@@ -37,7 +37,7 @@ final class TowerCardFace {
             case COMMON -> new Colors(card.milk() ? "保底" : "普通", 0xffeaf1f8, 0xff9cadbd, 0xff232c39);
             case RARE -> new Colors("稀有", 0xffb78cff, 0xff7255a1, 0xff292038);
             case EPIC -> new Colors("史诗", 0xffffa24e, 0xffa66534, 0xff33241d);
-            case MYTHIC -> new Colors("神话", 0xfff5b2c9, 0xfff3d79c, 0xff37252d);
+            case MYTHIC -> new Colors(card.careerMythic() ? "职业神话" : "神话", 0xfff5b2c9, 0xfff3d79c, 0xff37252d);
         };
     }
 

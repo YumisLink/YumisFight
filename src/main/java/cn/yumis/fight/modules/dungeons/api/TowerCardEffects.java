@@ -39,6 +39,13 @@ public final class TowerCardEffects {
             double attack = Math.max(0, Math.max(stats.get(Stat.PHYSICAL_ATTACK), stats.get(Stat.MAGICAL_ATTACK)));
             stats.mut(Stat.COOLDOWN_RECOVERY, Math.floor(attack / ATTACK_PER_HASTE) * hastePerStep);
         }
+        if (TowerBattleCard.SM_FLOWING_STANCE.held(stats)) {
+            int level = progress == null ? 20 : Math.max(1, progress.level);
+            int rank = Math.max(1, 1 + Math.max(0, level - 20) / 5);
+            stats.ranks.merge("grant/yumis_dungeon_and_fight:meteor_rise", rank, Math::max);
+            stats.ranks.merge("grant/yumis_dungeon_and_fight:meteor_leap", rank, Math::max);
+            stats.ranks.merge("grant/yumis_dungeon_and_fight:meteor_pierce", rank, Math::max);
+        }
     }
 
     public static long cooldownMillis(Stats stats, long baseMillis) {

@@ -27,7 +27,17 @@ public enum DarkCityMoves {
     DarkCityMoves(String animation,String shape,long windup,long active,long recovery,long cooldown,double range,double coefficient,boolean magic,int element){
         this.animation=animation;this.shape=shape;this.windup=windup;this.active=active;this.recovery=recovery;this.cooldown=cooldown;this.range=range;this.coefficient=coefficient;this.magic=magic;this.element=element;
     }
-    public long duration(){return windup+active+recovery;}
+    private EnemyBalanceRules.TimedMoveData data(){return EnemyBalanceRules.current().darkCityMove(name());}
+    public long windupMs(){var d=data();return d==null?windup:d.windup();}
+    public long activeMs(){var d=data();return d==null?active:d.active();}
+    public long recoveryMs(){var d=data();return d==null?recovery:d.recovery();}
+    public long cooldownMs(){var d=data();return d==null?cooldown:d.cooldown();}
+    public double rangeVal(){var d=data();return d==null?range:d.range();}
+    public double coefficientVal(){var d=data();return d==null?coefficient:d.coefficient();}
+    public boolean magicVal(){var d=data();return d==null?magic:d.magic();}
+    public int elementVal(){var d=data();return d==null?element:d.element();}
+    public static double guardDefenseIncrease(){return EnemyBalanceRules.current().darkCityGuardDefenseIncrease;}
+    public long duration(){return windupMs()+activeMs()+recoveryMs();}
     public boolean ranged(){return shape.equals("LINE")||shape.equals("WAVE");}
     public double height(){return this==ARROW?1.25:this==SKULL||this==NIGHTMARE?1.1:0;}
     public double width(){return this==NIGHTMARE?.7:this==QUAKE?1.15:.25;}

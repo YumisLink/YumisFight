@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.dungeons.api.client.SealBossState;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.modules.skills.api.*;
+import cn.yumis.fight.modules.skills.api.client.SkillInputs;
 import cn.yumis.fight.modules.skills.api.client.SkillsClient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -12,20 +13,18 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.phys.Vec3;
-import java.util.*;
 
 /**
- * Owning-client hold-to-charge state machine for Elementalist Moving Cast.
- * MP and cooldown are already deducted on press; cancel never refunds.
+ * Owning-client post-chant hold-to-charge state machine for Elementalist Moving Cast.
+ * MP and cooldown are already deducted on press; releasing fires immediately; cancel never refunds.
  */
 public final class ElementalistChargeClient {
     private static final Identifier MOVE_MODIFIER = Identifier.parse("yumis_dungeon_and_fight:elementalist_charge_move");
-    private static final Set<String> DAMAGE_KEYS = Set.of("damage", "finisher", "emberDot", "pulseDot", "volcanoDot");
-    private static final Set<String> SCALE_KEYS = Set.of("radius", "blastRadius", "shockwaveRadius", "pullRadius");
 
     private static SkillCast cast;
     private static Runnable release;
     private static int boundSlot = -1;
+    private static boolean trackedByKey;
     private static String session = "", job = "", instance = "";
     private static long generation, start, chargeMillis, fullAt, autoReleaseAt;
 
@@ -74,21 +73,33 @@ public final class ElementalistChargeClient {
     }
 
     public static double previewRadius(long now) {
-        if (cast == null) return 0.0;
-        double base = cast.parameters.get("radius", 0.0);
+        return previewRadius(cast, chargeProgress(now));
+    }
+
+    static double previewRadius(SkillCast source, double progress) {
+        if (source == null) return 0.0;
+        double base = source.parameters.get("radius", 0.0);
         if (base <= 0.0) return 0.0;
-        return base * ElementalistRules.chargeScaleMultiplier(cast.parameters, chargeProgress(now));
+        return base * ElementalistRules.chargeScaleMultiplier(source.parameters, progress);
     }
 
     public static double previewRange() {
-        if (cast == null) return 16.0;
-        return Math.max(1.0, cast.parameters.get("range", 16.0));
+        return previewRange(cast);
+    }
+
+    static double previewRange(SkillCast source) {
+        if (source == null) return 16.0;
+        return Math.max(1.0, source.parameters.get("range", 16.0));
     }
 
     public static boolean showsGroundRing() {
-        if (cast == null) return false;
-        String id = cast.skill.id;
-        return cast.skill.groundTargeted
+        return showsGroundRing(cast);
+    }
+
+    static boolean showsGroundRing(SkillCast source) {
+        if (source == null) return false;
+        String id = source.skill.id;
+        return source.skill.groundTargeted
             || ElementalistSkills.ARCTIC_FEAST.equals(id)
             || ElementalistSkills.LIGHTNING_STRIKE.equals(id);
     }
@@ -100,6 +111,7 @@ public final class ElementalistChargeClient {
         cast.phase = cn.yumis.fight.modules.combat.api.ActionPhase.CHANTING;
         release = completion;
         boundSlot = slot;
+        trackedByKey = slot >= 0 && SkillInputs.SKILLS[slot % 8].isDown();
         session = state.session();
         generation = state.own().generation;
         job = state.progress().jobId();
@@ -122,6 +134,16 @@ public final class ElementalistChargeClient {
         }
     }
 
+    /** Immediately releases a chargeable skill at 0% charge when the key was already released during chant. */
+    static void releaseUncharged(SkillCast source, Runnable completion) {
+        finalizeAndRelease(source, 0.0, completion);
+    }
+
+    /** Immediately releases a chargeable skill at 100% full charge (e.g. 多星储能). */
+    static void releaseFull(SkillCast source, Runnable completion) {
+        finalizeAndRelease(source, 1.0, completion);
+    }
+
     /** Pressing the same skill consumes the repeat; pressing another skill cancels charge without refund. */
     public static boolean press(int slot) {
         if (!active()) return false;
@@ -131,7 +153,7 @@ public final class ElementalistChargeClient {
         return false;
     }
 
-    /** Releasing the bound key locks in the current charge and begins the cast. */
+    /** Releasing the bound key locks in the current charge and immediately fires the skill. */
     public static void released(int baseSlot) {
         if (!active()) return;
         if (boundSlot >= 0 && boundSlot % 8 == baseSlot) {
@@ -142,6 +164,7 @@ public final class ElementalistChargeClient {
     public static void cancel() {
         if (!active()) return;
         var source = cast;
+        source.phase = cn.yumis.fight.modules.combat.api.ActionPhase.ABANDONED;
         clear();
         PlayerPoseChannel.cancel(source);
         CareerClient.INSTANCE.cancel(source);
@@ -157,6 +180,7 @@ public final class ElementalistChargeClient {
         cast = null;
         release = null;
         boundSlot = -1;
+        trackedByKey = false;
     }
 
     public static void tick() {
@@ -174,6 +198,10 @@ public final class ElementalistChargeClient {
             cancel();
             return;
         }
+        if (trackedByKey && boundSlot >= 0 && !SkillInputs.SKILLS[boundSlot % 8].isDown()) {
+            releaseNow();
+            return;
+        }
         long now = ClientUi.now();
         if (now >= autoReleaseAt) {
             releaseNow();
@@ -182,34 +210,26 @@ public final class ElementalistChargeClient {
 
     private static void releaseNow() {
         if (!active()) return;
-        var player = Minecraft.getInstance().player;
         var source = cast;
         var completion = release;
-        long now = ClientUi.now();
-        double u = chargeProgress(now);
+        double u = chargeProgress(ClientUi.now());
         clear();
-        if (player == null || completion == null) {
+        finalizeAndRelease(source, u, completion);
+    }
+
+    private static void finalizeAndRelease(SkillCast source, double progress, Runnable completion) {
+        var player = Minecraft.getInstance().player;
+        if (player == null || source == null || completion == null) {
             if (source != null) {
                 PlayerPoseChannel.cancel(source);
                 CareerClient.INSTANCE.cancel(source);
             }
             return;
         }
+        long now = ClientUi.now();
+        double u = Math.clamp(progress, 0.0, 1.0);
         source.chargeProgress = u;
-        double dmgMul = ElementalistRules.chargeDamageMultiplier(source.parameters, u);
-        double scaleMul = ElementalistRules.chargeScaleMultiplier(source.parameters, u);
-        var values = new LinkedHashMap<>(source.parameters.values());
-        for (String key : DAMAGE_KEYS) {
-            if (values.containsKey(key)) values.put(key, values.get(key) * dmgMul);
-        }
-        for (String key : SCALE_KEYS) {
-            if (values.containsKey(key) && values.get(key) > 0) values.put(key, values.get(key) * scaleMul);
-        }
-        if (ElementalistSkills.LIGHTNING_VORTEX.equals(source.skill.id)
-            && ElementalistRules.morphMode(source.parameters) == 0 && u >= 0.999) {
-            values.put("orbCount", values.getOrDefault("orbCount", 4.0) + 1.0);
-        }
-        source.parameters = new SkillParameters.Snapshot(source.skill, source.parameters.rank(), values);
+        source.parameters = ElementalistRules.applyChargeParameters(source.parameters, u);
         source.start = source.stageStart = now;
         source.origin = player.position();
         Vec3 look = player.getLookAngle();

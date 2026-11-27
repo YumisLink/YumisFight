@@ -67,13 +67,17 @@
     "DemonVisionMixin",
     "WarglaiveHandMixin",
     "NearEffectRenderPassMixin",
-    "LightsaberBlockLightMixin",
-    "LightsaberEntityLightMixin",
+    "LocalBlockLightMixin",
+    "LocalEntityLightMixin",
+    "LambDynamicLightsMixin",
     "HumanoidRenderStatePoseMixin",
     "HumanoidModelPoseMixin",
     "PlayerPoseHeldItemMixin",
     "FirstPersonPoseHandMixin",
     "FirstPersonPoseLayersMixin",
-    "ElainaMidnightClockMixin"
+    "ElainaMidnightClockMixin",
+    "RoxyStormWeatherMixin",
+    "RoxyStormClientLevelMixin",
+    "RoxyStormClockMixin"
   ]
 }

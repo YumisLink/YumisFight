@@ -15,7 +15,8 @@ public final class EnhancementRules {
     private static final int SUCCESS_FLOOR=20,SUCCESS_CEILING=100,SUCCESS_STEP=5;
     /** 普通、稀有、神器、传说、史诗、神话、太初的金币倍率。 */
     private static final long[] RARITY_MULTIPLIERS={1,2,3,5,8,12,20};
-    public static final List<Stat> DIMENSIONS=List.of(Stat.STRENGTH,Stat.INTELLIGENCE,Stat.SPIRIT);
+    public static final List<Stat> DIMENSIONS=List.of(Stat.STRENGTH,Stat.INTELLIGENCE,Stat.VITALITY,Stat.SPIRIT);
+    private static final List<Stat> ACCESSORY_ENHANCE_STATS=List.of(Stat.STRENGTH,Stat.INTELLIGENCE);
 
     private EnhancementRules(){}
 
@@ -92,10 +93,12 @@ public final class EnhancementRules {
             addBaseShare(out,g,Stat.PHYSICAL_DEFENSE,bonus);
             addBaseShare(out,g,Stat.MAGICAL_DEFENSE,bonus);
         }else{
-            for(Stat stat:DIMENSIONS)out.merge(stat,bonus,Double::sum);
+            for(Stat stat:ACCESSORY_ENHANCE_STATS)out.merge(stat,bonus,Double::sum);
         }
         Stat dimensional=contaminationStat(g);
         if(dimensional!=null)out.merge(dimensional,bonus,Double::sum);
+        double scale=EquipmentBalanceRules.current().enhancementContributionMultiplier;
+        if(scale!=1d)out.replaceAll((stat,value)->value*scale);
         return out;
     }
     private static void addBaseShare(Map<Stat,Double> out,Gear g,Stat stat,double bonusPercent){

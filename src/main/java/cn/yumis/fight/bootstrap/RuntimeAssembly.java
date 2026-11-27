@@ -38,7 +38,7 @@ public final class RuntimeAssembly {
         public void lootAcquired(ServerPlayer p,ItemStack stack){ServerEvents.lootAcquired(p,stack);}
     };}
     public static cn.yumis.fight.modules.dungeons.application.TargetService targetService(ServerApplication runtime){return new cn.yumis.fight.modules.dungeons.application.TargetService(runtime.journal,runtime.random,()->runtime.worldDifficulty,id->runtime.dungeons.byId(id));}
-    public static cn.yumis.fight.modules.inventory.application.InventoryTransactions.CurrencyAction currencyAction(ServerApplication runtime){return (p,menu,slot,button,input)->cn.yumis.fight.modules.inventory.api.InventoryIntake.click(p,menu,slot,button,input,()->runtime.equipmentApplication.versionlessCurrencyClick(p,menu,slot,button,input));}
+    public static cn.yumis.fight.modules.inventory.application.InventoryTransactions.CurrencyAction currencyAction(ServerApplication runtime){return (p,menu,slot,button,input)->cn.yumis.fight.modules.inventory.api.InventoryIntake.click(p,menu,slot,button,input,runtime.inventory.bagOption(p),()->runtime.equipmentApplication.versionlessCurrencyClick(p,menu,slot,button,input));}
 
     public static cn.yumis.fight.modules.combat.application.NativeHits nativeHits(ServerApplication runtime){return new cn.yumis.fight.modules.combat.application.NativeHits(runtime.journal,runtime::session,runtime.targets::resolve,cn.yumis.fight.modules.combat.api.ManagedEntities::includes,()->runtime.bridge,runtime.inventory::encode);}
     public static cn.yumis.fight.modules.skills.application.VisualService visualService(ServerApplication runtime){return new cn.yumis.fight.modules.skills.application.VisualService(runtime.server,runtime::session);}

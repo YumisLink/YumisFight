@@ -8,6 +8,9 @@ public enum Difficulty {
             attack=a;
             xp=x;
         }
+        public double effectiveHealth(){return EnemyBalanceRules.current().global.difficulty(this).health();}
+        public double effectiveAttack(){return EnemyBalanceRules.current().global.difficulty(this).attack();}
+        public double effectiveXp(){return EnemyBalanceRules.current().global.difficulty(this).xp();}
         public String title(){
             return new String[]{
                 "普通","冒险","勇士","王者","地狱"

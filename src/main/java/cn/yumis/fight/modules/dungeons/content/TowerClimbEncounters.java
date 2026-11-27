@@ -94,7 +94,7 @@ public final class TowerClimbEncounters {
     public static List<String> ordinary(AwakeningTower tower, int floor, RandomGenerator random) {
         var choices = FORMATIONS.get(tower);
         var formation = choices.get(random.nextInt(choices.size()));
-        int stage = (floor - 1) / 15;
+        int stage = Math.min(formation.reinforcements().size(), Math.max(0, (floor - 1) / 5));
         var result = new ArrayList<String>(24 + stage * 2);
         for (Group group : formation.base()) {
             for (int index = 0; index < group.count(); index++) result.add(group.enemy());
@@ -109,6 +109,21 @@ public final class TowerClimbEncounters {
     public static String boss(AwakeningTower tower, int floor, Set<String> clearedRandomBosses, RandomGenerator random) {
         if (tower == AwakeningTower.SEAL && floor == TowerClimbRules.FLOOR_COUNT) {
             return SealTowerElaina.ID;
+        }
+        if (tower == AwakeningTower.THEATER && floor == TowerClimbRules.FLOOR_COUNT) {
+            return TheaterTowerLiangyue.ID;
+        }
+        if (tower == AwakeningTower.FROST && floor == TowerClimbRules.FLOOR_COUNT) {
+            return FrostTowerFrostnova.ID;
+        }
+        if (tower == AwakeningTower.ORRERY && floor == TowerClimbRules.FLOOR_COUNT) {
+            return OrreryTowerGilgamesh.ID;
+        }
+        if (tower == AwakeningTower.FORGE && floor == TowerClimbRules.FLOOR_COUNT) {
+            return ForgeTowerSwordMasters.LEAD_ID;
+        }
+        if (tower == AwakeningTower.SLUICE && floor == TowerClimbRules.FLOOR_COUNT) {
+            return SluiceTowerRoxy.ID;
         }
         var pool = TowerClimbRules.specialBossFloor(floor) ? BOSSES :
             BOSSES.stream().filter(id -> !clearedRandomBosses.contains(id)).toList();

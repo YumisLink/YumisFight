@@ -3,7 +3,7 @@ loaderVersion="[11,)"
 license="All Rights Reserved"
 [[mods]]
 modId="yumis_dungeon_and_fight"
-version="0.37"
+version="0.45"
 displayName="YumisDungeonAndFight"
 authors="Yumis"
 description='''独立地下城战斗、词条装备与副职业模组。'''

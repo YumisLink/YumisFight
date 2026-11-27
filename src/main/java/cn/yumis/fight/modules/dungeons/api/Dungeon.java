@@ -18,5 +18,6 @@ public class Dungeon {
     public boolean syncFor(UUID player){if(practice!=null)return true;if(treasure!=null||waystone!=null||tower!=null)return false;Boolean value=synchronization.get(player);if(value==null)throw new IllegalArgumentException("玩家没有本场同步选择");return value;}
     public Set<UUID> roster=new LinkedHashSet<>(),withdrawn=new HashSet<>(),enemies=new HashSet<>();
     public Set<Integer> palaceRooms=new HashSet<>();
+    public Map<Integer,Set<UUID>> darkCityWaves=new LinkedHashMap<>();
     public Map<String,ReturnPoint> returns=new HashMap<>();
 }

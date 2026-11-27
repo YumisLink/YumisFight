@@ -133,7 +133,7 @@ public final class TowerSkillCombat {
 
     public static void finish(SkillCast cast, boolean completed) {
         if (!completed || battle() == null || cast.towerStart == null || !FLASH.held(cast.stats)
-            || !TowerSkillTraits.displaces(cast.skill.id)) return;
+            || !TowerSkillTraits.displaces(cast.skill.id, cast.stats)) return;
         Vec3 destination = cast.towerDestination;
         cast.towerStart = null;
         if (destination == null) return;

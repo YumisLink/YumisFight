@@ -329,7 +329,7 @@
    "title": "汲血",
    "effects": [
     {
-     "channel": "mut",
+     "channel": "add",
      "key": "LIFE_STEAL",
      "value": 0
     }
@@ -370,7 +370,7 @@
    "title": "嗜战",
    "effects": [
     {
-     "channel": "mut",
+     "channel": "add",
      "key": "LIFE_STEAL",
      "value": 0
     }
@@ -398,7 +398,7 @@
    "title": "燃血",
    "effects": [
     {
-     "channel": "mut",
+     "channel": "add",
      "key": "LIFE_STEAL",
      "value": 0,
      "condition": {
@@ -1507,7 +1507,7 @@
    "title": "淬体",
    "effects": [
     {
-     "channel": "mut",
+     "channel": "add",
      "key": "LIFE_STEAL",
      "value": 0
     }

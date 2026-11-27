@@ -1,0 +1,348 @@
+{
+  "version": 1,
+  "group": "elementalist",
+  "skills": {
+    "yumis_dungeon_and_fight:moving_cast": {
+      "title": "移动施法",
+      "unlock": 20,
+      "sp": 1,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "range": 0.0,
+        "duration": 0.0,
+        "slashes": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:elemental_burn": {
+      "title": "圣灵符文",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "range": 0.0,
+        "duration": 0.0,
+        "slashes": 1.0,
+        "lampDuration": 30.0,
+        "perLampBonusScale": 1.0,
+        "allLampsBonusMut": 0.06,
+        "allLampsAllElem": 12.0,
+        "memorizeBonus": 0.0,
+        "festivalSpeedScale": 1.0,
+        "festivalCdRecoveryAdd": 0.0,
+        "autoRefreshAllOnUpper": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:ice_wall": {
+      "title": "冰墙",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.087432,
+      "cooldown": 12.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 7.12905,
+        "pulseDot": 0.0,
+        "damage": 16.634453
+      },
+      "parameters": {
+        "range": 10.0,
+        "duration": 6.0,
+        "slashes": 1.0,
+        "chargeSeconds": 0.0,
+        "minChargeRatio": 1.0,
+        "chargeDamageMultiplier": 1.0,
+        "chargeScaleMultiplier": 1.0,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "radius": 3.5,
+        "blastRadius": 4.0,
+        "wallHeight": 2.2,
+        "wallSegments": 12.0,
+        "interval": 0.5,
+        "knockbackDistance": 2.5,
+        "slowRatio": 0.3,
+        "wallShieldMultiplier": 2.0
+      }
+    },
+    "yumis_dungeon_and_fight:lightning_vortex": {
+      "title": "雷旋",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.081967,
+      "cooldown": 7.0,
+      "damaging": true,
+      "damage": {
+        "damage": 5.730011
+      },
+      "parameters": {
+        "range": 14.0,
+        "duration": 0.75,
+        "slashes": 3.0,
+        "chargeSeconds": 0.4,
+        "minChargeRatio": 0.8,
+        "chargeDamageMultiplier": 1.2,
+        "chargeScaleMultiplier": 1.25,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "orbCount": 4.0,
+        "radius": 4.0,
+        "centerOffset": 2.0,
+        "interval": 0.25
+      }
+    },
+    "yumis_dungeon_and_fight:void_sphere": {
+      "title": "虚无之球",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.119266,
+      "cooldown": 9.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 1.644234
+      },
+      "parameters": {
+        "range": 12.0,
+        "duration": 4.0,
+        "slashes": 16.0,
+        "chargeSeconds": 0.5,
+        "minChargeRatio": 0.75,
+        "chargeDamageMultiplier": 1.25,
+        "chargeScaleMultiplier": 1.3,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "radius": 1.8,
+        "blastRadius": 3.8,
+        "projectileSpeed": 3.0,
+        "pushStrength": 0.35,
+        "interval": 0.25,
+        "manualDetonate": 0.0,
+        "earlyDetonateKeepRatio": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:flame_pillar": {
+      "title": "烈焰冲击",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.119266,
+      "cooldown": 10.0,
+      "damaging": true,
+      "damage": {
+        "damage": 17.071798
+      },
+      "parameters": {
+        "range": 14.0,
+        "duration": 0.6,
+        "slashes": 1.0,
+        "chargeSeconds": 0.5,
+        "minChargeRatio": 0.8,
+        "chargeDamageMultiplier": 1.25,
+        "chargeScaleMultiplier": 1.25,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "radius": 3.0,
+        "pillarCount": 1.0,
+        "pillarSpread": 2.8,
+        "impactDelay": 0.2,
+        "controlSeconds": 0.6
+      }
+    },
+    "yumis_dungeon_and_fight:halloween_buster": {
+      "title": "杰克降临",
+      "unlock": 30,
+      "sp": 50,
+      "mpRatio": 0.187747,
+      "cooldown": 18.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 14.397843,
+        "emberDot": 0.0,
+        "damage": 33.594968
+      },
+      "parameters": {
+        "range": 16.0,
+        "duration": 0.75,
+        "slashes": 1.0,
+        "chargeSeconds": 0.65,
+        "minChargeRatio": 0.75,
+        "chargeDamageMultiplier": 1.25,
+        "chargeScaleMultiplier": 1.25,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "fallDelay": 0.55,
+        "radius": 4.5,
+        "shockwaveRadius": 7.0,
+        "meteorCount": 1.0,
+        "twinGapSeconds": 0.3,
+        "emberDuration": 0.0,
+        "emberInterval": 0.5
+      }
+    },
+    "yumis_dungeon_and_fight:arctic_feast": {
+      "title": "极冰盛宴",
+      "unlock": 35,
+      "sp": 50,
+      "mpRatio": 0.199653,
+      "cooldown": 22.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 17.899919,
+        "damage": 6.71247
+      },
+      "parameters": {
+        "range": 14.0,
+        "duration": 2.0,
+        "slashes": 8.0,
+        "chargeSeconds": 0.7,
+        "minChargeRatio": 0.75,
+        "chargeDamageMultiplier": 1.25,
+        "chargeScaleMultiplier": 1.25,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "radius": 5.5,
+        "centerOffset": 4.5,
+        "interval": 0.22,
+        "channeling": 0.0,
+        "pullRadius": 0.0,
+        "pullStrength": 0.0,
+        "freezeSeconds": 1.5
+      }
+    },
+    "yumis_dungeon_and_fight:black_hole": {
+      "title": "湮灭黑洞",
+      "unlock": 40,
+      "sp": 60,
+      "mpRatio": 0.232198,
+      "cooldown": 28.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 40.516328,
+        "volcanoDot": 0.0,
+        "damage": 6.077449
+      },
+      "parameters": {
+        "range": 16.0,
+        "duration": 3.0,
+        "slashes": 10.0,
+        "chargeSeconds": 0.8,
+        "minChargeRatio": 0.75,
+        "chargeDamageMultiplier": 1.25,
+        "chargeScaleMultiplier": 1.25,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "radius": 4.2,
+        "blastRadius": 6.0,
+        "pullRadius": 7.5,
+        "pullStrength": 4.5,
+        "interval": 0.3,
+        "manualDetonate": 1.0,
+        "earlyDetonateKeepRatio": 0.4,
+        "subHoleDuration": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:lightning_strike": {
+      "title": "天雷",
+      "unlock": 45,
+      "sp": 80,
+      "mpRatio": 0.265363,
+      "cooldown": 32.0,
+      "damaging": true,
+      "damage": {
+        "damage": 21.720587
+      },
+      "parameters": {
+        "range": 18.0,
+        "duration": 1.75,
+        "slashes": 5.0,
+        "chargeSeconds": 0.8,
+        "minChargeRatio": 0.75,
+        "chargeDamageMultiplier": 1.25,
+        "chargeScaleMultiplier": 1.25,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "radius": 3.5,
+        "interval": 0.35,
+        "cursorSpeed": 14.0,
+        "pullOnHit": 1.8,
+        "channeling": 1.0,
+        "channelProtection": 0.65
+      }
+    },
+    "yumis_dungeon_and_fight:astral_storm": {
+      "title": "陨星幻灭",
+      "unlock": 50,
+      "sp": 100,
+      "mpRatio": 0.362595,
+      "cooldown": 90.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 155.738041,
+        "damage": 18.076737
+      },
+      "parameters": {
+        "range": 16.0,
+        "duration": 4.0,
+        "slashes": 16.0,
+        "chargeSeconds": 0.0,
+        "minChargeRatio": 1.0,
+        "chargeDamageMultiplier": 1.0,
+        "chargeScaleMultiplier": 1.0,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "maxCharges": 1.0,
+        "morphMode": 0.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0,
+        "centerOffset": 4.0,
+        "fieldRadius": 10.0,
+        "meteorRadius": 4.2,
+        "finisherRadius": 11.0,
+        "interval": 0.18,
+        "homingBias": 0.65,
+        "channeling": 1.0
+      }
+    }
+  }
+}

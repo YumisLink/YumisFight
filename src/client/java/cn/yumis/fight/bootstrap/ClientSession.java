@@ -249,6 +249,12 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         TowerClient.clear();
         DungeonEntryTitle.clear();
         cn.yumis.fight.modules.dungeons.client.ElainaBossClient.clear();
+        cn.yumis.fight.modules.dungeons.client.LiangyueBossClient.clear();
+        cn.yumis.fight.modules.dungeons.client.FrostnovaBossClient.clear();
+        cn.yumis.fight.modules.dungeons.client.GilgameshBossClient.clear();
+        cn.yumis.fight.modules.dungeons.client.SwordMastersBossClient.clear();
+        cn.yumis.fight.modules.dungeons.client.RoxyBossClient.clear();
+        cn.yumis.fight.modules.dungeons.client.LucasBossClient.clear();
         cn.yumis.fight.modules.arkguard.client.ArkGuardClient.clear();
         personalQueue.clear();personalSequence=personalSentAt=0;personalSent=null;personalAcknowledged=personalReceived=false;personalRetries=personalTimeouts=0;
         lastUpload=lastUploadCheck=lastStatsCheck=0;uploadDeferred=false;

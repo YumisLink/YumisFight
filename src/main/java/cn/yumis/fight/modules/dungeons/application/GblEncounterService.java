@@ -116,38 +116,42 @@ public final class GblEncounterService {
         }
         if(kind==GblEnemyKind.DRAGON_CANNON&&seen&&distance<=range&&now<state.next&&!e.move().equals("reload"))e.play("reload",state.next-now);
         if(now<state.next||!seen||distance>18||kind==GblEnemyKind.DRAGON_CANNON&&distance>range)return;
+        var rules=EnemyBalanceRules.current();
         switch(kind){
-            case CULTIST -> {if(distance<2.4){play(e,state,"stab",1250,now);sector(e,p,350,200,2.5,Math.PI/3,1);}}
-            case FEMALE_CULTIST -> {if(distance<13){play(e,state,"throw",1400,now);projectile(e,p,"KNIFE",450,700,13,1,false,-1,0);}}
+            case CULTIST -> {var m=rules.gblMove("CULTIST_STAB");if(distance<2.4){play(e,state,"stab",m.duration(),now);sector(e,p,m.windup(),m.active(),m.range(),Math.PI/3,m.coefficient());}}
+            case FEMALE_CULTIST -> {var m=rules.gblMove("FEMALE_KNIFE");if(distance<m.range()){play(e,state,"throw",m.duration(),now);projectile(e,p,"KNIFE",m.windup(),m.active(),m.range(),m.coefficient(),m.magic(),m.element(),0);}}
             case DRAGON_CANNON -> {
-                boolean lob=state.step++%2==1;play(e,state,lob?"lob_shot":"straight_shot",lob?2200:1800,now);
-                if(lob){var a=attack(e,"CANNON_LOB","LOB",700,1100,1.9,1.3,false,-1);a.origin(e.position().add(0,1,0));setDestination(a,ground(p.position(),p.position()));add(a);}
-                else projectile(e,p,"CANNONBALL",600,800,15,1.2,false,-1,0);
-                state.next=state.busy+1800;
+                boolean lob=state.step++%2==1;var m=rules.gblMove(lob?"CANNON_LOB":"CANNONBALL");
+                play(e,state,lob?"lob_shot":"straight_shot",m.duration(),now);
+                if(lob){var a=attack(e,"CANNON_LOB","LOB",m.windup(),m.active(),m.range(),m.coefficient(),m.magic(),m.element());a.origin(e.position().add(0,1,0));setDestination(a,ground(p.position(),p.position()));add(a);}
+                else projectile(e,p,"CANNONBALL",m.windup(),m.active(),m.range(),m.coefficient(),m.magic(),m.element(),0);
+                state.next=state.busy+m.cooldown();
             }
             case YASHA -> {
-                if(distance>3&&distance<8&&state.step++%2==0){play(e,state,"pounce",1700,now);leap(e,p,450,700,1.1);impact(e,"POUNCE",1150,180,landing(e),2,1.35,false);}
-                else if(distance<3){play(e,state,"claw",1450,now);sector(e,p,440,150,2.8,Math.PI/2,.6);sector(e,p,850,150,2.8,Math.PI/2,.6);}
+                var pounce=rules.gblMove("YASHA_POUNCE");var claw=rules.gblMove("YASHA_CLAW");
+                if(distance>3&&distance<8&&state.step++%2==0){play(e,state,"pounce",pounce.duration(),now);leap(e,p,450,700,1.1);impact(e,"POUNCE",pounce.windup(),pounce.active(),landing(e),pounce.range(),pounce.coefficient(),pounce.magic());}
+                else if(distance<3){play(e,state,"claw",claw.duration(),now);sector(e,p,claw.windup(),claw.active(),claw.range(),Math.PI/2,claw.coefficient());sector(e,p,claw.windup()+410,claw.active(),claw.range(),Math.PI/2,claw.coefficient());}
             }
             case FALLEN_PRIEST -> {
+                var slam=rules.gblMove("PRIEST_SLAM");var needle=rules.gblMove("PRIEST_NEEDLE");
                 if(now>=state.auraReady){play(e,state,"defense_aura",2400,now);auras.put(e.getUUID(),new Aura(e.getUUID(),e.instance(),now+500,now+4500));state.auraReady=now+12000;}
-                else if(distance<3.5&&now>=state.slamReady){play(e,state,"jump_slam",2000,now);leap(e,e.position(),450,800,1);impact(e,"PRIEST_SLAM",1300,200,e.position(),3.5,1.2,true);state.slamReady=now+7000;}
-                else if(distance<13){play(e,state,"triple_needles",2000,now);for(int i=0;i<3;i++)projectile(e,p,"NEEDLE",480+i*300,650,13,.5,false,-1,(i-1)*.09);}
+                else if(distance<slam.range()&&now>=state.slamReady){play(e,state,"jump_slam",slam.duration(),now);leap(e,e.position(),450,800,1);impact(e,"PRIEST_SLAM",slam.windup(),slam.active(),e.position(),slam.range(),slam.coefficient(),slam.magic());state.slamReady=now+slam.cooldown();}
+                else if(distance<needle.range()){play(e,state,"triple_needles",needle.duration(),now);for(int i=0;i<3;i++)projectile(e,p,"NEEDLE",needle.windup()+i*300,needle.active(),needle.range(),needle.coefficient(),needle.magic(),needle.element(),(i-1)*.09);}
             }
             case ASOR -> {
                 int move=state.step++%3;
-                if(move==0){play(e,state,"needle_burst",2200,now);for(int i=0;i<6;i++)projectile(e,p,"ASOR_NEEDLE",530+i*165,650,15,.4,false,-1,(i-2.5)*.065);}
-                else if(move==1){play(e,state,"shockwave",2300,now);leap(e,e.position(),550,950,1.4);var a=attack(e,"ASOR_WAVE","WAVE",1500,800,8,1.6,true,-1);a.origin(e.position());a.width=1.15;add(a);}
+                if(move==0){var m=rules.gblMove("ASOR_NEEDLE");play(e,state,"needle_burst",m.duration(),now);for(int i=0;i<6;i++)projectile(e,p,"ASOR_NEEDLE",m.windup()+i*165,m.active(),m.range(),m.coefficient(),m.magic(),m.element(),(i-2.5)*.065);state.next=state.busy+m.cooldown();}
+                else if(move==1){var m=rules.gblMove("ASOR_WAVE");play(e,state,"shockwave",m.duration(),now);leap(e,e.position(),550,950,1.4);var a=attack(e,"ASOR_WAVE","WAVE",m.windup(),m.active(),m.range(),m.coefficient(),m.magic(),m.element());a.origin(e.position());a.width=1.15;add(a);state.next=state.busy+m.cooldown();}
                 else{
-                    play(e,state,"goddess_spears",3000,now);Vec3 side=new Vec3(direction.z,0,-direction.x);
+                    var m=rules.gblMove("GODDESS_SPEAR");play(e,state,"goddess_spears",m.duration(),now);Vec3 side=new Vec3(direction.z,0,-direction.x);
                     for(int i=0;i<5;i++){
                         Vec3 to=ground(p.position().add(side.scale((i-2)*2.1)),null);
                         if(to==null)continue;
-                        var a=attack(e,"GODDESS_SPEAR","SPEAR",1150+i*200,180,1.4,.85,true,0);
+                        var a=attack(e,"GODDESS_SPEAR","SPEAR",m.windup()+i*200,m.active(),m.range(),m.coefficient(),m.magic(),m.element());
                         a.origin(to);setDestination(a,to);add(a);
                     }
+                    state.next=state.busy+m.cooldown();
                 }
-                state.next=state.busy+700;
             }
         }
     }

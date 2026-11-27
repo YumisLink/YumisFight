@@ -73,8 +73,9 @@ public final class CraftingEssences {
             if(g.affixes.stream().filter(a->!a.base).anyMatch(a->d.operation().equals("SKILL_FAMILY")?a.operation.equals("SKILL_FAMILY"):sameEffect(a,d)))throw new IllegalArgumentException("装备已有同效果词条，不能重复工艺");
             if(d.operation().equals("PERCENT")&&EquipmentAffixes.base(g,d.stat())<=0)throw new IllegalArgumentException("装备没有对应的基础属性");
         }
-        Affix a=craftAffix(g,essence,d,quality,forced);
-        AffixResolver.anchor(a,g.instance+"/"+UUID.randomUUID(),d,d.revision(),d.effectiveScale(g.level));
+        Affix a=craftAffix(g,essence,AffixLevelCurves.atLevel(d,g.level),quality,forced);
+        var resolved=AffixLevelCurves.atLevel(d,g.level);
+        AffixResolver.anchor(a,g.instance+"/"+UUID.randomUUID(),resolved,resolved.revision(),resolved.effectiveScale(g.level));
         g.affixes.add(a);g.rarity=Rarity.LEGENDARY;g.revision++;
         return EquipmentResolution.initialize(g);
     }
@@ -87,7 +88,7 @@ public final class CraftingEssences {
             gear.level=target==null?80:target.level;
             gear.slot=essence.slots().getFirst();
         }
-        var affix=craftAffix(gear,essence,definition,()->.5,false);
+        var affix=craftAffix(gear,essence,AffixLevelCurves.atLevel(definition,gear.level),()->.5,false);
         var range=EquipmentAffixRanges.reroll(affix,Rarity.LEGENDARY,false,gear.level);
         if(range==null)return AffixText.affix(affix);
         if(range.interval()){

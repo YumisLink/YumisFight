@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "group": "summoner",
+  "skills": {
+    "yumis_dungeon_and_fight:four_spirits": {
+      "title": "精灵召唤：四灵契约",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.163934,
+      "cooldown": 20.0,
+      "damaging": true,
+      "damage": {
+        "damage": 242.67086
+      },
+      "parameters": {
+        "slashes": 1.0,
+        "duration": 0.4,
+        "range": 16.0,
+        "summonDuration": 120.0
+      }
+    },
+    "yumis_dungeon_and_fight:summon_mastery": {
+      "title": "召唤兽强化",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "slashes": 1.0,
+        "duration": 0.4,
+        "range": 16.0,
+        "summonDuration": 120.0
+      }
+    },
+    "yumis_dungeon_and_fight:louise": {
+      "title": "契约召唤：路易丝",
+      "unlock": 30,
+      "sp": 50,
+      "mpRatio": 0.197628,
+      "cooldown": 25.0,
+      "damaging": true,
+      "damage": {
+        "damage": 353.810331
+      },
+      "parameters": {
+        "slashes": 1.0,
+        "duration": 0.4,
+        "range": 16.0,
+        "summonDuration": 120.0
+      }
+    },
+    "yumis_dungeon_and_fight:sandor": {
+      "title": "契约召唤：桑德尔",
+      "unlock": 35,
+      "sp": 50,
+      "mpRatio": 0.190972,
+      "cooldown": 25.0,
+      "damaging": true,
+      "damage": {
+        "damage": 231.961505
+      },
+      "parameters": {
+        "slashes": 1.0,
+        "duration": 0.4,
+        "range": 16.0,
+        "summonDuration": 120.0
+      }
+    },
+    "yumis_dungeon_and_fight:echeverria": {
+      "title": "精灵召唤：伊伽贝拉",
+      "unlock": 40,
+      "sp": 60,
+      "mpRatio": 0.247678,
+      "cooldown": 30.0,
+      "damaging": true,
+      "damage": {
+        "damage": 538.311775
+      },
+      "parameters": {
+        "slashes": 1.0,
+        "duration": 0.4,
+        "range": 16.0,
+        "summonDuration": 120.0
+      }
+    },
+    "yumis_dungeon_and_fight:summon_frenzy": {
+      "title": "召唤兽狂化",
+      "unlock": 45,
+      "sp": 80,
+      "mpRatio": 0.259777,
+      "cooldown": 60.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "slashes": 1.0,
+        "duration": 0.4,
+        "range": 16.0,
+        "summonDuration": 120.0
+      }
+    },
+    "yumis_dungeon_and_fight:kasijas": {
+      "title": "契约召唤：征服者卡西利亚斯",
+      "unlock": 50,
+      "sp": 100,
+      "mpRatio": 0.381679,
+      "cooldown": 120.0,
+      "damaging": true,
+      "damage": {
+        "damage": 373.669324
+      },
+      "parameters": {
+        "slashes": 1.0,
+        "duration": 1.0,
+        "range": 16.0,
+        "summonDuration": 20.0
+      }
+    }
+  }
+}

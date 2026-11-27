@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "group": "mage",
+  "skills": {
+    "yumis_dungeon_and_fight:magic_star": {
+      "title": "魔法星弹",
+      "unlock": 1,
+      "sp": 15,
+      "mpRatio": 0.06,
+      "cooldown": 1.2,
+      "damaging": true,
+      "damage": {
+        "damage": 4.312142
+      },
+      "parameters": {
+        "pierces": 3.0,
+        "range": 12.0,
+        "duration": 0.4,
+        "slashes": 1.0,
+        "projectileSpeed": 20.0,
+        "throwMillis": 200.0,
+        "witchBounceCount": 3.0,
+        "witchBounceRange": 5.5,
+        "witchBlastRadius": 2.2,
+        "witchSoloEchoRatio": 0.6,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:dragon_fang": {
+      "title": "龙牙",
+      "unlock": 5,
+      "sp": 15,
+      "mpRatio": 0.076923,
+      "cooldown": 5.0,
+      "damaging": true,
+      "damage": {
+        "damage": 6.776222
+      },
+      "parameters": {
+        "width": 1.5,
+        "range": 5.0,
+        "duration": 0.4,
+        "slashes": 1.0,
+        "fuseMillis": 200.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "cancelBonusMut": 0.05,
+        "cancelWindowSeconds": 0.45,
+        "chaserGen": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:jack_bomb": {
+      "title": "杰克爆弹",
+      "unlock": 5,
+      "sp": 15,
+      "mpRatio": 0.102564,
+      "cooldown": 8.0,
+      "damaging": true,
+      "damage": {
+        "damage": 10.841956
+      },
+      "parameters": {
+        "radius": 3.0,
+        "range": 12.0,
+        "duration": 0.4,
+        "slashes": 1.0,
+        "projectileSpeed": 15.0,
+        "chargeSeconds": 0.4,
+        "minChargeRatio": 0.85,
+        "chargeDamageMultiplier": 1.2,
+        "chargeScaleMultiplier": 1.3,
+        "maxHoldSeconds": 2.0,
+        "chargeMoveSpeedRatio": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:herder": {
+      "title": "契约召唤：赫尔德",
+      "unlock": 10,
+      "sp": 15,
+      "mpRatio": 0.199115,
+      "cooldown": 20.0,
+      "damaging": true,
+      "damage": {
+        "stoneDamage": 1.020279,
+        "damage": 0.850232
+      },
+      "parameters": {
+        "stoneGap": 0.2,
+        "summonDuration": 120.0,
+        "meleeInterval": 1.2,
+        "stoneInterval": 4.0,
+        "range": 16.0,
+        "duration": 0.4,
+        "slashes": 1.0,
+        "stoneVolley": 3.0,
+        "stoneUnlockRank": 5.0,
+        "heavyEvery": 3.0,
+        "bombEvery": 3.0
+      }
+    }
+  }
+}

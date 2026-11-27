@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "group": "asura",
+  "skills": {
+    "yumis_dungeon_and_fight:wave_brands": {
+      "title": "波动刻印",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 0.0
+      },
+      "parameters": {
+        "interval": 0.0,
+        "slashes": 1.0,
+        "range": 0.0,
+        "hpCost": 0.0,
+        "duration": 0.0,
+        "brandCap": 5.0,
+        "brandInterval": 5.0
+      }
+    },
+    "yumis_dungeon_and_fight:ghost_orb": {
+      "title": "鬼印珠",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.08,
+      "cooldown": 8.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "perBrandDamage": 1.455632,
+        "damage": 10.917236
+      },
+      "parameters": {
+        "interval": 0.5,
+        "slashes": 28.0,
+        "range": 10.0,
+        "hpCost": 0.0,
+        "duration": 5.0,
+        "orbBaseHits": 3.0,
+        "orbHitsPerBrand": 5.0,
+        "orbTickInterval": 0.35
+      }
+    },
+    "yumis_dungeon_and_fight:spirit_crescent": {
+      "title": "邪光斩",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.12,
+      "cooldown": 12.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 7.278841
+      },
+      "parameters": {
+        "interval": 0.1,
+        "slashes": 3.0,
+        "range": 12.0,
+        "hpCost": 0.0,
+        "duration": 3.0,
+        "crescentChargeSeconds": 1.0
+      }
+    },
+    "yumis_dungeon_and_fight:ice_wave": {
+      "title": "冰刃·波动剑",
+      "unlock": 30,
+      "sp": 50,
+      "mpRatio": 0.14,
+      "cooldown": 15.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 10.321283
+      },
+      "parameters": {
+        "interval": 0.2,
+        "slashes": 3.0,
+        "range": 12.0,
+        "hpCost": 0.0,
+        "duration": 0.6,
+        "controlSeconds": 1.5
+      }
+    },
+    "yumis_dungeon_and_fight:fire_wave": {
+      "title": "爆炎·波动剑",
+      "unlock": 35,
+      "sp": 50,
+      "mpRatio": 0.18,
+      "cooldown": 22.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 50.236229
+      },
+      "parameters": {
+        "interval": 0.2,
+        "slashes": 1.0,
+        "range": 10.0,
+        "blastRadius": 2.5,
+        "hpCost": 0.0,
+        "duration": 3.0
+      }
+    },
+    "yumis_dungeon_and_fight:agni": {
+      "title": "不动明王阵",
+      "unlock": 40,
+      "sp": 60,
+      "mpRatio": 0.22,
+      "cooldown": 30.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 37.851604,
+        "damage": 5.677741
+      },
+      "parameters": {
+        "interval": 0.283333,
+        "slashes": 10.0,
+        "range": 5.0,
+        "hpCost": 0.0,
+        "duration": 3.0,
+        "agniControlSeconds": 3.0,
+        "agniBaseHits": 3.0,
+        "agniIntervalBase": 0.85,
+        "controlSeconds": 3.0
+      }
+    },
+    "yumis_dungeon_and_fight:wave_eye": {
+      "title": "暗天波动眼",
+      "unlock": 50,
+      "sp": 100,
+      "mpRatio": 0.35,
+      "cooldown": 90.0,
+      "damaging": true,
+      "damage": {
+        "finisher": 0.0,
+        "damage": 229.174224
+      },
+      "parameters": {
+        "interval": 0.8,
+        "slashes": 1.0,
+        "range": 16.0,
+        "hpCost": 0.0,
+        "duration": 20.0,
+        "auraPulses": 20.0,
+        "auraRadius": 8.0,
+        "auraRatio": 0.005,
+        "gearRange": 10.0,
+        "gearSpeed": 3.0,
+        "gearRatio": 0.02,
+        "eyeBonusMut": 0.5
+      }
+    }
+  }
+}

@@ -49,10 +49,10 @@ public final class DungeonContentTypes {
     public static final DeferredItem<net.minecraft.world.item.Item> KARL_TOKEN = cn.yumis.fight.platform.ItemRegistry.ITEMS.registerItem("karl_token",
         p -> new net.minecraft.world.item.Item(p.rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
     static {
-        for(String name:List.of("goblin","goblin_thrower","goblin_captain","goblin_shaman","dragonman","wyvern","blue_dragonman","blue_wyvern","lucas","golden_king"))ENEMIES.put(name,ENTITIES.register(name,()->{
-            float width=name.contains("wyvern")||name.equals("lucas")?1.1f:name.equals("goblin_captain")?1:name.equals("goblin_shaman")?1.3f:.9f;
-            float height=name.contains("wyvern")?1.2f:name.equals("lucas")?2.25f:name.equals("goblin_shaman")?2.6f:name.equals("goblin_captain")?1.5f:name.startsWith("goblin")?1.25f:1.95f;
-            return EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(width,height).eyeHeight(height*.8f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,name)));
+        for(String name:List.of("goblin","goblin_thrower","goblin_captain","goblin_shaman","dragonman","wyvern","blue_dragonman","blue_wyvern","lucas","lucas_clone","golden_king"))ENEMIES.put(name,ENTITIES.register(name,()->{
+            float width=name.contains("wyvern")||name.equals("lucas")||name.equals("lucas_clone")?1.15f:name.equals("goblin_captain")?1:name.equals("goblin_shaman")?1.3f:.9f;
+            float height=name.contains("wyvern")?1.2f:name.equals("lucas")||name.equals("lucas_clone")?2.45f:name.equals("goblin_shaman")?2.6f:name.equals("goblin_captain")?1.5f:name.startsWith("goblin")?1.25f:1.95f;
+            return EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(width,height).eyeHeight(height*.8f).clientTrackingRange(14).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,name)));
         }
         ));
         for(var kind:GblEnemyKind.values())ENEMIES.put(kind.id,ENTITIES.register(kind.id,()->EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(kind.width,kind.height).eyeHeight(kind.height*.75f).clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,kind.id)))));
@@ -89,6 +89,28 @@ public final class DungeonContentTypes {
             EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER)
                 .sized(0.6f,1.8f).eyeHeight(1.62f).fireImmune().clientTrackingRange(16)
                 .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,cn.yumis.fight.modules.dungeons.content.SealTowerElaina.ID)))));
+        ENEMIES.put(cn.yumis.fight.modules.dungeons.content.TheaterTowerLiangyue.ID,ENTITIES.register(cn.yumis.fight.modules.dungeons.content.TheaterTowerLiangyue.ID,()->
+            EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER)
+                .sized(0.6f,1.8f).eyeHeight(1.62f).fireImmune().clientTrackingRange(16)
+                .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,cn.yumis.fight.modules.dungeons.content.TheaterTowerLiangyue.ID)))));
+        ENEMIES.put(cn.yumis.fight.modules.dungeons.content.FrostTowerFrostnova.ID,ENTITIES.register(cn.yumis.fight.modules.dungeons.content.FrostTowerFrostnova.ID,()->
+            EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER)
+                .sized(0.6f,1.8f).eyeHeight(1.62f).fireImmune().clientTrackingRange(16)
+                .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,cn.yumis.fight.modules.dungeons.content.FrostTowerFrostnova.ID)))));
+        ENEMIES.put(cn.yumis.fight.modules.dungeons.content.OrreryTowerGilgamesh.ID,ENTITIES.register(cn.yumis.fight.modules.dungeons.content.OrreryTowerGilgamesh.ID,()->
+            EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER)
+                .sized(0.6f,1.85f).eyeHeight(1.65f).fireImmune().clientTrackingRange(16)
+                .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,cn.yumis.fight.modules.dungeons.content.OrreryTowerGilgamesh.ID)))));
+        for(var member:cn.yumis.fight.modules.dungeons.content.ForgeTowerSwordMasters.Member.values()){
+            ENEMIES.put(member.id,ENTITIES.register(member.id,()->
+                EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER)
+                    .sized(0.65f,1.9f).eyeHeight(1.68f).fireImmune().clientTrackingRange(16)
+                    .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,member.id)))));
+        }
+        ENEMIES.put(cn.yumis.fight.modules.dungeons.content.SluiceTowerRoxy.ID,ENTITIES.register(cn.yumis.fight.modules.dungeons.content.SluiceTowerRoxy.ID,()->
+            EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER)
+                .sized(0.6f,1.8f).eyeHeight(1.56f).fireImmune().clientTrackingRange(18)
+                .build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,cn.yumis.fight.modules.dungeons.content.SluiceTowerRoxy.ID)))));
     }
     static {
         var sizes=List.of(
@@ -106,7 +128,10 @@ public final class DungeonContentTypes {
             new java.util.AbstractMap.SimpleEntry<>("ritual_campfire",new float[]{.9f,.9f}),
             new java.util.AbstractMap.SimpleEntry<>("ritual_stele",new float[]{.7f,2.2f}),
             new java.util.AbstractMap.SimpleEntry<>("ritual_confessional",new float[]{1.4f,2.6f}),
-            new java.util.AbstractMap.SimpleEntry<>("ritual_shard",new float[]{.5f,.9f})
+            new java.util.AbstractMap.SimpleEntry<>("ritual_shard",new float[]{.5f,.9f}),
+            new java.util.AbstractMap.SimpleEntry<>(cn.yumis.fight.modules.dungeons.content.OrreryTowerGilgamesh.WEDGE_MECHANISM_ID,new float[]{.9f,2.4f}),
+            new java.util.AbstractMap.SimpleEntry<>(cn.yumis.fight.modules.dungeons.content.OrreryTowerGilgamesh.ENKIDU_MECHANISM_ID,new float[]{1.1f,2.0f}),
+            new java.util.AbstractMap.SimpleEntry<>(cn.yumis.fight.modules.dungeons.content.SluiceTowerRoxy.HYDRO_CORE_MECHANISM_ID,new float[]{1.0f,2.1f})
         );
         for(var entry:sizes)MECHANISMS.put(entry.getKey(),ENTITIES.register(entry.getKey(),()->EntityType.Builder.<RitualMechanismEntity>of(RitualMechanismEntity::new,MobCategory.MISC).sized(entry.getValue()[0],entry.getValue()[1]).eyeHeight(entry.getValue()[1]*.75f).clientTrackingRange(10).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,entry.getKey())))));
     }

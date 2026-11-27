@@ -8,6 +8,7 @@
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower": "%s · Floor %s",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.root": "Final movement speed reduced by %s",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.forge": "In combat, take raw fire damage equal to %s of max health per second",
+  "hud.yumis_dungeon_and_fight.dungeon_entry.tower.forge_summit": "Forge flames subside — duel the Four Sword Masters",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.sluice": "Cast speed and attack speed each reduced by %s",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.sand_market": "Mana recovery rate reduced by %s",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.frost": "%s of damage dealt becomes Frost buildup on you",
@@ -654,5 +655,16 @@
   "item.yumis_dungeon_and_fight.aura_transform_box": "Aura Transform Box",
   "item.yumis_dungeon_and_fight.elaina_token": "Elaina's Token",
   "item.yumis_dungeon_and_fight.elaina_token.hint": "Right-click a block in the Overworld to summon Elaina here (not consumed)",
-  "entity.yumis_dungeon_and_fight.seal_tower_elaina": "Elaina"
+  "entity.yumis_dungeon_and_fight.seal_tower_elaina": "Elaina",
+  "entity.yumis_dungeon_and_fight.theater_tower_liangyue": "Phantom of Divine Sword Liangyue",
+  "entity.yumis_dungeon_and_fight.frost_tower_frostnova": "FrostNova",
+  "entity.yumis_dungeon_and_fight.orrery_tower_gilgamesh": "Gilgamesh",
+  "entity.yumis_dungeon_and_fight.gilgamesh_wedge": "Treasury Wedge",
+  "entity.yumis_dungeon_and_fight.gilgamesh_enkidu": "Chains of Heaven",
+  "entity.yumis_dungeon_and_fight.forge_tower_bwanga": "Bwanga",
+  "entity.yumis_dungeon_and_fight.forge_tower_baan": "Vaughn Walshuted",
+  "entity.yumis_dungeon_and_fight.forge_tower_aganzo": "Aganzo",
+  "entity.yumis_dungeon_and_fight.forge_tower_siran": "Siran",
+  "entity.yumis_dungeon_and_fight.sluice_tower_roxy": "Roxy",
+  "entity.yumis_dungeon_and_fight.roxy_hydro_core": "Hydro Resonance Core"
 }

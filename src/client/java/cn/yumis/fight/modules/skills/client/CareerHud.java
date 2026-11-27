@@ -21,6 +21,7 @@ public final class CareerHud {
         ChantClient.render(g,width,height);
         ElementalistHud.renderCastBars(g,width,height);
         BattleMageHud.renderCastBars(g,width,height);
+        WitchHud.renderCastBars(g,width,height);
         var state=SkillsClient.current();var view=CareerClient.INSTANCE.view;
         if(state.own().dead)return;
         if(SkillController.INSTANCE.greatCharging()){
@@ -43,6 +44,7 @@ public final class CareerHud {
             if(state.progress().hasJob(JobCatalog.SUN_MOON))y=SunMoonHud.render(g,x,y,state.serverNow());
             if(state.progress().hasJob(JobCatalog.ELEMENTALIST))y=ElementalistHud.render(g,x,y,state.serverNow());
             if(state.progress().hasJob(JobCatalog.BATTLE_MAGE))y=BattleMageHud.render(g,x,y,state.serverNow());
+            if(state.progress().hasJob(JobCatalog.WITCH))y=WitchHud.render(g,x,y,state.serverNow());
             if(OracleRules.rank(state.stats(),state.progress())>0)y=oracle(g,x,y,state.serverNow());
             long overdrive=state.resources().buffs.getOrDefault(SkillCatalog.OVERDRIVE.id,0L)-now;
             if(overdrive>0){timer(g,SkillCatalog.OVERDRIVE,x,y,overdrive,30000,0xfff6d16d);y+=68;}
@@ -76,10 +78,12 @@ public final class CareerHud {
             String id=rows.get(i);var skill=SkillCatalog.require(id);int y=i*32;
             var entries=army.army.values().stream().filter(j->j.get("skill").getAsString().equals(id)&&j.get("until").getAsLong()>now).toList();
             long left=id.equals(SummonerSkills.FRENZY)?army.frenzyUntil-now:entries.stream().mapToLong(j->j.get("until").getAsLong()).min().orElse(now)-now;
+            boolean permanent=!id.equals(SummonerSkills.FRENZY)&&entries.stream().anyMatch(j->SummonerSkills.isPermanent(j.get("until").getAsLong()));
             long duration=id.equals(SummonerSkills.KASIJAS)||id.equals(SummonerSkills.FRENZY)?20000:120000;
+            String countText=id.equals(SummonerSkills.SPIRITS)?" · "+entries.size()+" / 4":(id.equals(MageSkills.HERDER)&&entries.size()>1?" · "+entries.size()+" / "+cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SUMMONER_HERDER_SQUAD.count("count"):"");
             UiTheme.hud(g,0,y,(panel)-(0),(y+30)-(y));g.blit(net.minecraft.resources.Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","textures/gui/skills/"+skill.icon()+".png"),2,y+3,26,y+27,0,1,0,1);
-            g.text(font,skill.title,30,y+3,UiTheme.HUD_TEXT,true);g.text(font,"剩余 "+seconds(left)+" 秒"+(id.equals(SummonerSkills.SPIRITS)?" · "+entries.size()+" / 4":""),30,y+15,UiTheme.HUD_MUTED,true);
-            g.fill(30,y+27,30+(int)((panel-32)*Math.clamp(left/(double)duration,0,1)),y+29,id.equals(SummonerSkills.FRENZY)?0xffee7d88:0xff92d49b);
+            g.text(font,skill.title,30,y+3,UiTheme.HUD_TEXT,true);g.text(font,(permanent?"常驻":("剩余 "+seconds(left)+" 秒"))+countText,30,y+15,UiTheme.HUD_MUTED,true);
+            g.fill(30,y+27,30+(int)((panel-32)*(permanent?1d:Math.clamp(left/(double)duration,0,1))),y+29,id.equals(SummonerSkills.FRENZY)?0xffee7d88:0xff92d49b);
         }
         g.pose().popMatrix();
     }

@@ -18,14 +18,14 @@ import static cn.yumis.fight.modules.dungeons.api.TowerCardEffects.*;
 
 /** An individual card offered by the climb. Its passive changes a fresh local snapshot. */
 public record TowerCard(String id, String name, Rarity rarity, RichText description, Consumer<Stats> passive,
-                        Function<RandomGenerator, TowerCard> binding, String variant, String variantTitle) {
+                        Function<RandomGenerator, TowerCard> binding, String variant, String variantTitle, String job) {
     private static final List<String> VALUE_COLOR = List.of("#77BDFF");
     private static final double RELIABLE_WEAPON_BONUS = 30;
     private static final List<TowerCard> CARDS = List.of(
         strongShield(30, 50),
         strength(20),
         agility(60),
-        bloodthirst(0.15),
+        bloodthirst(1),
         eureka(1),
         modifier("giant_slayer", "巨人杀手", Rarity.MYTHIC, HIGHER_LIFE, 80,
             text("对生命百分比高于自己的敌人，伤害提高 ")),
@@ -74,10 +74,20 @@ public record TowerCard(String id, String name, Rarity rarity, RichText descript
         Objects.requireNonNull(passive);
         Objects.requireNonNull(variant);
         Objects.requireNonNull(variantTitle);
+        Objects.requireNonNull(job);
+    }
+
+    public TowerCard(String id, String name, Rarity rarity, RichText description, Consumer<Stats> passive,
+                     Function<RandomGenerator, TowerCard> binding, String variant, String variantTitle) {
+        this(id, name, rarity, description, passive, binding, variant, variantTitle, "");
     }
 
     public TowerCard(String id, String name, Rarity rarity, RichText description, Consumer<Stats> passive) {
-        this(id, name, rarity, description, passive, null, "", "");
+        this(id, name, rarity, description, passive, null, "", "", "");
+    }
+
+    public boolean careerMythic() {
+        return rarity == Rarity.MYTHIC && !job.isEmpty();
     }
 
     public static List<TowerCard> pool(String jobId, List<TowerBattleCard.SkillChoice> skills) {
@@ -85,8 +95,12 @@ public record TowerCard(String id, String name, Rarity rarity, RichText descript
         var weapons = Weapon.standard().stream().filter(weapon -> types.contains(weapon.name())).toList();
         var cards = new ArrayList<>(CARDS);
         if (!weapons.isEmpty()) cards.add(reliableWeapon(weapons));
-        cards.addAll(TowerBattleCard.pool(skills));
+        cards.addAll(TowerBattleCard.pool(jobId, skills));
         return List.copyOf(cards);
+    }
+
+    public static List<TowerCard> careerMythics(String jobId) {
+        return TowerBattleCard.careerMythics(jobId);
     }
 
     TowerCard bind(RandomGenerator random) {
@@ -233,8 +247,8 @@ public record TowerCard(String id, String name, Rarity rarity, RichText descript
 
     private static TowerCard bloodthirst(double lifeSteal) {
         return new TowerCard("bloodthirst", "渴血", Rarity.COMMON,
-            new RichText(List.of(text("获得 "), percent(lifeSteal), text(" 吸血"))),
-            stats -> stats.modifiers.merge("lifeStealRateAdd", lifeSteal / 100, Double::sum));
+            new RichText(List.of(text("获得 "), value(lifeSteal, " 点"), text("吸血值"))),
+            stats -> stats.extra(Stat.LIFE_STEAL, lifeSteal));
     }
 
     private static RichText.Span text(String text) {

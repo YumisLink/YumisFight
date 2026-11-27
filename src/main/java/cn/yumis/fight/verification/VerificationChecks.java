@@ -363,7 +363,8 @@ public final class VerificationChecks {
             mutate(()->player.getInventory().setItem(0,EquipmentItems.material("goblin_ingot",64)));
             MenuHooks.extra(player).bagPage=0;
             runtime.handle(player,"bag",new JsonObject());
-            runtime.inventory.click(player,player.containerMenu,cn.yumis.fight.modules.inventory.api.DimensionalMenu.PLAYER_START+27,0,ContainerInput.QUICK_MOVE);
+            var bagMenu=(DimensionalMenu)player.containerMenu;
+            runtime.inventory.click(player,bagMenu,bagMenu.playerStart()+27,0,ContainerInput.QUICK_MOVE);
             check(MenuHooks.extra(player).bag.getItem(0).getCount()==64&&player.getInventory().getItem(0).isEmpty(),"dimensional_bag_shift_insert");
             runtime.inventory.click(player,player.containerMenu,0,0,ContainerInput.QUICK_MOVE);
             check(MenuHooks.extra(player).bag.getItem(0).isEmpty()&&regional("goblin_ingot")==64,"dimensional_bag_shift_withdraw");

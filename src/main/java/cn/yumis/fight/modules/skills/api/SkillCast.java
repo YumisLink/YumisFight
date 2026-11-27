@@ -14,6 +14,8 @@ public class SkillCast {
     public Stats stats;
     public cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot equipment;
     public String weapon, id, dimension, session = "", job = "", instance = "";
+    public String visualId = "";
+    public long visualStart;
     public long generation;
     public long cooldownMillis;
     public Vec3 towerStart, towerDestination;
@@ -35,7 +37,7 @@ public class SkillCast {
     public int hitIndex, elementOverride = -2;
     public int[] elementsOverride;
     public double chargeProgress = 1.0;
-    public String damagePhase = "", contactGroup = "";
+    public String damagePhase = "", contactGroup = "", endElemental = "";
     public boolean dot, terminal, effectContinues;
     public double controlSeconds;
     public Set<UUID> hit = new HashSet<>();

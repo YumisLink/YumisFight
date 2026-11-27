@@ -179,48 +179,54 @@ public final class PalaceEncounterService {
         else if(distance>(ranged?8:2.6))move(d,e,b,kind,CastlePalace.inside(d.cell,b.room,p.position()),now);
         else e.getNavigation().stop();
         if(now<b.next||distance>22)return;
+        var rules=EnemyBalanceRules.current();
         switch(kind){
             case EXPELLER, AXION -> {
-                if(distance>3&&distance<9&&now>=b.heavy){play(e,b,"thrust",1700,now);Vec3 to=clipMove(e,CastlePalace.inside(d.cell,b.room,e.position().add(direction.scale(Math.min(6,distance)))));motion(e,to,650,450,0,"DASH",now);var hit=attack(e,"THRUST","DASH",650,450,1,1.5,false,-1,now);hit.destination(to);hit.width=1.5;add(hit);b.heavy=now+6000;}
-                else if(distance<3.4){play(e,b,"slash",1200,now);fan(e,p,"SWORD",450,180,3.3,Math.PI/3,1,false,-1,now);}
+                var thrust=rules.palaceMove("THRUST");var sword=rules.palaceMove("SWORD");
+                if(distance>3&&distance<9&&now>=b.heavy){play(e,b,"thrust",thrust.duration(),now);Vec3 to=clipMove(e,CastlePalace.inside(d.cell,b.room,e.position().add(direction.scale(Math.min(thrust.range(),distance)))));motion(e,to,thrust.windup(),thrust.active(),0,"DASH",now);var hit=attack(e,"THRUST","DASH",thrust.windup(),thrust.active(),1,thrust.coefficient(),thrust.magic(),thrust.element(),now);hit.destination(to);hit.width=1.5;add(hit);b.heavy=now+thrust.cooldown();}
+                else if(distance<3.4){play(e,b,"slash",sword.duration(),now);fan(e,p,"SWORD",sword.windup(),sword.active(),sword.range(),Math.PI/3,sword.coefficient(),sword.magic(),sword.element(),now);}
             }
             case AXE_EXPELLER -> {
-                if(distance<5&&now>=b.heavy){play(e,b,"cleave",2100,now);var hit=attack(e,"AXE_CLEAVE","RECT",950,200,5,1.5,false,-1,now);hit.destination(e.position().add(direction.scale(5)));hit.width=2.5;add(hit);b.heavy=now+6000;}
-                else if(distance<3.8){play(e,b,"sweep",1500,now);fan(e,p,"AXE_SWEEP",650,200,3.7,Math.PI/2,1,false,-1,now);}
+                var cleave=rules.palaceMove("AXE_CLEAVE");var sweep=rules.palaceMove("AXE_SWEEP");
+                if(distance<cleave.range()&&now>=b.heavy){play(e,b,"cleave",cleave.duration(),now);var hit=attack(e,"AXE_CLEAVE","RECT",cleave.windup(),cleave.active(),cleave.range(),cleave.coefficient(),cleave.magic(),cleave.element(),now);hit.destination(e.position().add(direction.scale(cleave.range())));hit.width=2.5;add(hit);b.heavy=now+cleave.cooldown();}
+                else if(distance<3.8){play(e,b,"sweep",sweep.duration(),now);fan(e,p,"AXE_SWEEP",sweep.windup(),sweep.active(),sweep.range(),Math.PI/2,sweep.coefficient(),sweep.magic(),sweep.element(),now);}
             }
             case COMMANDER -> {
-                if(distance<3){play(e,b,"clamp",1250,now);fan(e,p,"CLAMP",450,180,3,Math.PI/2,1,false,-1,now);}
-                else if(distance<13){play(e,b,"pillar",1900,now);var hit=attack(e,"STONE_PILLAR","CIRCLE",950,200,1.7,1.5,true,-1,now);hit.origin(CastlePalace.inside(d.cell,b.room,p.position()));hit.destination(hit.origin());add(hit);b.next=now+3500;}
+                var clamp=rules.palaceMove("CLAMP");var pillar=rules.palaceMove("STONE_PILLAR");
+                if(distance<clamp.range()){play(e,b,"clamp",clamp.duration(),now);fan(e,p,"CLAMP",clamp.windup(),clamp.active(),clamp.range(),Math.PI/2,clamp.coefficient(),clamp.magic(),clamp.element(),now);}
+                else if(distance<13){play(e,b,"pillar",pillar.duration(),now);var hit=attack(e,"STONE_PILLAR","CIRCLE",pillar.windup(),pillar.active(),pillar.range(),pillar.coefficient(),pillar.magic(),pillar.element(),now);hit.origin(CastlePalace.inside(d.cell,b.room,p.position()));hit.destination(hit.origin());add(hit);b.next=now+pillar.cooldown();}
             }
             case GOLEM -> {
-                if(distance<8&&now>=b.heavy){play(e,b,"slam",2100,now);Vec3 delta=p.position().subtract(e.position()).multiply(1,0,1);if(delta.length()>4)delta=delta.normalize().scale(4);Vec3 to=clipMove(e,CastlePalace.inside(d.cell,b.room,e.position().add(delta))).add(0,.45,0);motion(e,to,500,700,2.3,"LEAP",now);var hit=attack(e,"GOLEM_SLAM","CIRCLE",1200,200,2.8,1.5,false,-1,now);hit.origin(to);hit.destination(to);add(hit);b.heavy=now+6000;}
-                else if(distance<3.5){play(e,b,"punch",1400,now);fan(e,p,"STONE_FIST",550,180,3.4,Math.PI/3,1,false,-1,now);}
+                var slam=rules.palaceMove("GOLEM_SLAM");var fist=rules.palaceMove("STONE_FIST");
+                if(distance<8&&now>=b.heavy){play(e,b,"slam",slam.duration(),now);Vec3 delta=p.position().subtract(e.position()).multiply(1,0,1);if(delta.length()>4)delta=delta.normalize().scale(4);Vec3 to=clipMove(e,CastlePalace.inside(d.cell,b.room,e.position().add(delta))).add(0,.45,0);motion(e,to,500,700,2.3,"LEAP",now);var hit=attack(e,"GOLEM_SLAM","CIRCLE",slam.windup(),slam.active(),slam.range(),slam.coefficient(),slam.magic(),slam.element(),now);hit.origin(to);hit.destination(to);add(hit);b.heavy=now+slam.cooldown();}
+                else if(distance<3.5){play(e,b,"punch",fist.duration(),now);fan(e,p,"STONE_FIST",fist.windup(),fist.active(),fist.range(),Math.PI/3,fist.coefficient(),fist.magic(),fist.element(),now);}
             }
             case IAE -> {
-                if(b.step++%2==0){play(e,b,"darts",1800,now);String group=UUID.randomUUID().toString();Vec3 from=e.position().add(0,.9,0);
-                    double range=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(14);
-                    for(int i=0;i<4;i++){var hit=attack(e,"IAE_DART","DART",650,Math.round(950*range/14),.15,1,false,-1,now);hit.group=group;hit.origin(from);hit.destination(from.add(direction.yRot((float)(i*Math.PI/2)).scale(range)));hit.width=.16;add(hit);}}
-                else{play(e,b,"bomb",2300,now);var hit=attack(e,"IAE_BOMB","BOMB",750,1000,2.5,1.5,true,1,now);hit.origin(e.position().add(0,1,0));hit.destination(CastlePalace.inside(d.cell,b.room,p.position()).add(0,.2,0));add(hit);}
-                b.next=b.busy+900;
+                var dart=rules.palaceMove("IAE_DART");var bomb=rules.palaceMove("IAE_BOMB");
+                if(b.step++%2==0){play(e,b,"darts",dart.duration(),now);String group=UUID.randomUUID().toString();Vec3 from=e.position().add(0,.9,0);
+                    double range=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(dart.range());
+                    for(int i=0;i<4;i++){var hit=attack(e,"IAE_DART","DART",dart.windup(),Math.round(dart.active()*range/dart.range()),.15,dart.coefficient(),dart.magic(),dart.element(),now);hit.group=group;hit.origin(from);hit.destination(from.add(direction.yRot((float)(i*Math.PI/2)).scale(range)));hit.width=.16;add(hit);}
+                    b.next=b.busy+dart.cooldown();}
+                else{play(e,b,"bomb",bomb.duration(),now);var hit=attack(e,"IAE_BOMB","BOMB",bomb.windup(),bomb.active(),bomb.range(),bomb.coefficient(),bomb.magic(),bomb.element(),now);hit.origin(e.position().add(0,1,0));hit.destination(CastlePalace.inside(d.cell,b.room,p.position()).add(0,.2,0));add(hit);b.next=b.busy+bomb.cooldown();}
             }
             case SIEGHART -> {
                 if(now>=b.storm){storm(d,e,b,here,now);return;}
                 int step=b.step++%3;
-                if(step==0&&distance<4){play(e,b,"light_sword",1400,now);fan(e,p,"LIGHT_SWORD",500,200,4,Math.PI/3,1,false,0,now);}
-                else if(step==2&&distance<6){play(e,b,"nova",2100,now);var hit=attack(e,"LIGHT_NOVA","WAVE",900,650,5.5,1.5,true,0,now);hit.width=.65;add(hit);}
-                else{play(e,b,"beam",2300,now);for(int i=0;i<2;i++){var hit=attack(e,"LIGHT_BEAM","RECT",1000+i*250,130,20,.75,true,0,now);hit.width=2.6;hit.destination(e.position().add(direction.scale(20)));add(hit);}}
-                b.next=b.busy+600;
+                if(step==0&&distance<4){var m=rules.palaceMove("LIGHT_SWORD");play(e,b,"light_sword",m.duration(),now);fan(e,p,"LIGHT_SWORD",m.windup(),m.active(),m.range(),Math.PI/3,m.coefficient(),m.magic(),m.element(),now);b.next=b.busy+m.cooldown();}
+                else if(step==2&&distance<6){var m=rules.palaceMove("LIGHT_NOVA");play(e,b,"nova",m.duration(),now);var hit=attack(e,"LIGHT_NOVA","WAVE",m.windup(),m.active(),m.range(),m.coefficient(),m.magic(),m.element(),now);hit.width=.65;add(hit);b.next=b.busy+m.cooldown();}
+                else{var m=rules.palaceMove("LIGHT_BEAM");play(e,b,"beam",m.duration(),now);for(int i=0;i<2;i++){var hit=attack(e,"LIGHT_BEAM","RECT",m.windup()+i*250,m.active(),m.range(),m.coefficient(),m.magic(),m.element(),now);hit.width=2.6;hit.destination(e.position().add(direction.scale(m.range())));add(hit);}b.next=b.busy+m.cooldown();}
             }
         }
     }
     private void storm(Dungeon d,DungeonEnemy e,Brain b,List<ServerPlayer> here,long now){
-        play(e,b,"rise",4000,now);e.play("rise",500);b.storm=now+15000;b.next=now+4700;
-        motion(e,e.position(),0,4000,6,"FLIGHT",now);
+        var m=EnemyBalanceRules.current().palaceMove("LIGHTNING");
+        play(e,b,"rise",m.duration(),now);e.play("rise",500);b.storm=now+m.cooldown();b.next=now+m.duration()+700;
+        motion(e,e.position(),0,m.duration(),6,"FLIGHT",now);
         List<ServerPlayer> candidates=here.stream().filter(p->canFight(p)&&CastlePalace.contains(d.cell,b.room,p.position())).toList();
         for(int i=0;i<6;i++){
             Vec3 anchor=candidates.isEmpty()?b.home:candidates.get(i%candidates.size()).position();double angle=i*Math.PI/3;
             Vec3 point=CastlePalace.inside(d.cell,b.room,anchor.add(Math.cos(angle)*(i%2==0?0:3),0,Math.sin(angle)*(i%2==0?0:3)));
-            var hit=attack(e,"LIGHTNING","CIRCLE",600,180,1.6,.25,true,0,now+400+i*400);hit.origin(point);hit.destination(point);add(hit);
+            var hit=attack(e,"LIGHTNING","CIRCLE",m.windup(),m.active(),m.range(),m.coefficient(),m.magic(),m.element(),now+400+i*400);hit.origin(point);hit.destination(point);add(hit);
         }
     }
     private void play(DungeonEnemy e,Brain b,String move,long duration,long now){duration=targets.target(e).actionTiming(now).duration(duration);e.getNavigation().stop();e.setDeltaMovement(Vec3.ZERO);e.play(move,duration);e.setAggressive(true);b.busy=now+duration;b.next=b.busy+500;}

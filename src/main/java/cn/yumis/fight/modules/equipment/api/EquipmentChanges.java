@@ -7,12 +7,75 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
+import java.util.function.Predicate;
 import static cn.yumis.fight.modules.equipment.api.EquipmentJson.JSON;
 
 /** Personal processing rules. Random results are produced once by the owning client. */
 public final class EquipmentChanges {
     public record Result(ItemStack equipment,ItemStack currency,List<ItemStack> outputs){}
     private EquipmentChanges(){}
+
+    private record Material(String area,int slot,ItemStack item,long quantity){}
+    private static final class Materials {
+        private final Player player;
+        private final List<Material> sources=new ArrayList<>();
+        private final long[] remaining;
+
+        Materials(Player player,List<ItemStack> bag){
+            this.player=player;
+            for(int i=0;i<36;i++)add("inventory",i,player.getInventory().getItem(i));
+            for(var stored:MenuHooks.extra(player).categories.stock())
+                sources.add(new Material(stored.kind().area(),stored.slot(),stored.item(),stored.quantity()));
+            for(int i=0;i<bag.size();i++)add("bag",i,bag.get(i));
+            remaining=sources.stream().mapToLong(Material::quantity).toArray();
+        }
+        private void add(String area,int slot,ItemStack stack){
+            if(!stack.isEmpty())sources.add(new Material(area,slot,stack.copy(),stack.getCount()));
+        }
+        int count(Predicate<ItemStack> accepts){
+            int count=0;
+            for(int i=0;i<sources.size();i++)if(accepts.test(sources.get(i).item()))
+                count+=(int)Math.min(Integer.MAX_VALUE-count,remaining[i]);
+            return count;
+        }
+        boolean take(Predicate<ItemStack> accepts,int count){
+            for(int i=0;i<sources.size()&&count>0;i++)if(accepts.test(sources.get(i).item())){
+                int amount=(int)Math.min(remaining[i],count);
+                remaining[i]-=amount;
+                count-=amount;
+            }
+            return count==0;
+        }
+        JsonArray edits(){
+            var edits=new JsonArray();
+            for(int i=0;i<sources.size();i++){
+                var source=sources.get(i);
+                if(remaining[i]==source.quantity())continue;
+                if(source.area().equals(CategoryBags.Kind.CURRENCY.area()))
+                    edits.add(InventoryEdits.debitCurrency(source.slot(),source.quantity(),source.quantity()-remaining[i]));
+                else edits.add(InventoryEdits.change(player,source.area(),source.slot(),source.item(),source.item().copyWithCount((int)remaining[i])));
+            }
+            return edits;
+        }
+    }
+    private static boolean matches(MaterialCatalog.Need need,ItemStack stack){
+        return need.regional()?EquipmentItems.material(stack).equals(need.id()):BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().equals(need.id());
+    }
+    private static boolean fuel(ItemStack stack,boolean amplified){
+        String id=ItemData.id(stack);
+        return amplified?ItemData.own(stack)&&id.equals(EnhancementRules.INTENSE_AURA):stack.is(net.minecraft.world.item.Items.COAL)||stack.is(net.minecraft.world.item.Items.CHARCOAL);
+    }
+    private static int countMaterials(Player player,List<ItemStack> bag,Predicate<ItemStack> accepts){
+        long count=MenuHooks.extra(player).categories.count(accepts);
+        for(int i=0;i<36;i++){
+            var stack=player.getInventory().getItem(i);
+            if(!stack.isEmpty()&&accepts.test(stack))count+=stack.getCount();
+        }
+        for(var stack:bag)if(!stack.isEmpty()&&accepts.test(stack))count+=stack.getCount();
+        return (int)Math.min(Integer.MAX_VALUE,count);
+    }
+    public static int materialCount(Player player,List<ItemStack> bag,MaterialCatalog.Need need){return countMaterials(player,bag,stack->matches(need,stack));}
+    public static int fuelCount(Player player,List<ItemStack> bag,boolean amplified){return countMaterials(player,bag,stack->fuel(stack,amplified));}
     public static Result process(ItemStack source,ItemStack input,int socket,Random random){
         var gear=EquipmentItems.gear(source);if(gear==null||input.isEmpty())throw new IllegalArgumentException("请选择装备和通货");String id=ItemData.id(input);var currency=input.copy();currency.shrink(1);var outputs=new ArrayList<ItemStack>();
         if(gear.corrupted&&!Gemstones.currency(id)&&!id.equals(EnhancementRules.OTHERWORLD_AURA)&&!id.equals(EnhancementRules.AURA_TRANSFORM_BOX))throw new IllegalArgumentException("腐化装备仅允许继续镶嵌宝石");
@@ -38,20 +101,12 @@ public final class EquipmentChanges {
         Slot slot=Slot.valueOf(j.get("slot").getAsString());int level=j.get("level").getAsInt();if(level>progress.level)throw new IllegalArgumentException("制作等级超过角色等级");
         Weapon weapon=Weapon.valueOf(j.get("weapon").getAsString());ArmorType armor=j.has("armorType")?ArmorType.valueOf(j.get("armorType").getAsString()):ArmorType.UNTYPED;JewelryType jewelry=j.has("jewelryType")?JewelryType.valueOf(j.get("jewelryType").getAsString()):JewelryType.UNTYPED;
         if(slot.armor()&&(armor==ArmorType.UNTYPED||jewelry!=JewelryType.UNTYPED)||slot.jewelry()&&(jewelry==JewelryType.UNTYPED||armor!=ArmorType.UNTYPED)||!slot.armor()&&!slot.jewelry()&&(armor!=ArmorType.UNTYPED||jewelry!=JewelryType.UNTYPED))throw new IllegalArgumentException("请选择有效装备类型");
-        var before=new ArrayList<ItemStack>();var after=new ArrayList<ItemStack>();for(int i=0;i<36;i++){before.add(player.getInventory().getItem(i).copy());after.add(before.get(i).copy());}
-        var bagBefore=new ArrayList<ItemStack>(bag.size());var bagAfter=new ArrayList<ItemStack>(bag.size());
-        for(int i=0;i<bag.size();i++){ItemStack s=bag.get(i).copy();bagBefore.add(s);bagAfter.add(s.copy());}
+        var materials=new Materials(player,bag);
         String alternative=j.has("recipe")?j.get("recipe").getAsString():"";
         for(var need:MaterialCatalog.current().recipe(slot,level,alternative)){
-            int left=need.count();
-            for(int i=0;i<36&&left>0;i++){var stack=after.get(i);if(!stack.isEmpty()&&(need.regional()?EquipmentItems.material(stack).equals(need.id()):BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().equals(need.id()))){int count=Math.min(left,stack.getCount());stack.shrink(count);left-=count;}}
-            for(int i=0;i<bagAfter.size()&&left>0;i++){var stack=bagAfter.get(i);if(!stack.isEmpty()&&(need.regional()?EquipmentItems.material(stack).equals(need.id()):BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().equals(need.id()))){int count=Math.min(left,stack.getCount());stack.shrink(count);left-=count;}}
-            if(left>0)throw new IllegalArgumentException("材料不足："+need.id());
+            if(!materials.take(stack->matches(need,stack),need.count()))throw new IllegalArgumentException("材料不足："+need.id());
         }
-        var edits=new JsonArray();
-        for(int i=0;i<36;i++)if(!ItemStack.matches(before.get(i),after.get(i)))edits.add(InventoryEdits.change(player,"inventory",i,before.get(i),after.get(i)));
-        for(int i=0;i<bagBefore.size();i++)if(!ItemStack.matches(bagBefore.get(i),bagAfter.get(i)))edits.add(InventoryEdits.change(player,"bag",i,bagBefore.get(i),bagAfter.get(i)));
-        j.add("inventoryChanges",edits);j.addProperty("menu",player.containerMenu.containerId);
+        j.add("inventoryChanges",materials.edits());j.addProperty("menu",player.containerMenu.containerId);
         var outputs=new JsonArray();outputs.add(InventoryEdits.encode(player,EquipmentItems.gear(EquipmentRules.create(slot,weapon,Rarity.COMMON,level,armor,jewelry,random))));j.add("outputs",outputs);
         var value=EquipmentJson.copy(profession,cn.yumis.fight.modules.professions.api.Profession.class);j.add("beforeProfession",JSON.toJsonTree(value));value.award(60,false);value.grantTitle("craftsman");j.add("profession",JSON.toJsonTree(value));
     }
@@ -68,7 +123,9 @@ public final class EquipmentChanges {
         if (!SlotAccess.isWritable(slot, player)) throw new IllegalArgumentException("该栏位不能加工装备");
         var source = slot.getItem();
         var gear = EquipmentItems.gear(source);
-        var cursor = menu.getCarried();
+        var selected = !creativeCursor && request.has("storageMaterial") && menu instanceof DimensionalMenu dimensional ? dimensional.selectedMaterial() : null;
+        if(request.has("storageMaterial")&&selected==null)throw new IllegalArgumentException("袋内材料已变化，请重新选择");
+        var cursor = selected==null?menu.getCarried():selected.item();
         if (gear == null || !gear.instance.toString().equals(request.get("equipment").getAsString())
                 || gear.revision != request.get("revision").getAsInt() || !InventoryEdits.encode(player, cursor).equals(request.get("cursor"))) {
             throw new IllegalArgumentException("装备或通货已变化");
@@ -80,7 +137,10 @@ public final class EquipmentChanges {
         var edits = new JsonArray();
         edits.add(InventoryEdits.change(player, "menu", index, source, result.equipment()));
         // The creative picker carries its stack on the client; the server only receives the inventory edits.
-        if (!creativeCursor) edits.add(InventoryEdits.change(player, "cursor", 0, cursor, result.currency()));
+        if(selected!=null){
+            if(selected.kind()==CategoryBags.Kind.CURRENCY)edits.add(InventoryEdits.debitCurrency(selected.slot(),selected.quantity(),1));
+            else edits.add(InventoryEdits.change(player,selected.kind().area(),selected.slot(),cursor,result.currency()));
+        }else if (!creativeCursor) edits.add(InventoryEdits.change(player, "cursor", 0, cursor, result.currency()));
         request.add("inventoryChanges", edits);
         var outputs = new JsonArray();
         for (var item : result.outputs()) outputs.add(InventoryEdits.encode(player, item));
@@ -109,21 +169,8 @@ public final class EquipmentChanges {
         int current=EnhancementRules.level(gear);
         int target=request.get("target").getAsInt();
         if(target<=current||target>EnhancementRules.MAXIMUM)throw new IllegalArgumentException("强化目标无效");
-        var before=new ArrayList<ItemStack>();var after=new ArrayList<ItemStack>();
-        for(int i=0;i<36;i++){before.add(player.getInventory().getItem(i).copy());after.add(before.get(i).copy());}
-        var bagBefore=new ArrayList<ItemStack>(bag.size());var bagAfter=new ArrayList<ItemStack>(bag.size());
-        for(int i=0;i<bag.size();i++){ItemStack s=bag.get(i).copy();bagBefore.add(s);bagAfter.add(s.copy());}
-        long available=0;
-        for(var stack:after){
-            if(stack.isEmpty())continue;
-            String id=ItemData.id(stack);
-            if(amplified?id.equals(EnhancementRules.INTENSE_AURA):id.equals("coal")||id.equals("charcoal"))available+=stack.getCount();
-        }
-        for(var stack:bagAfter){
-            if(stack.isEmpty())continue;
-            String id=ItemData.id(stack);
-            if(amplified?id.equals(EnhancementRules.INTENSE_AURA):id.equals("coal")||id.equals("charcoal"))available+=stack.getCount();
-        }
+        var materials=new Materials(player,bag);
+        int available=materials.count(stack->fuel(stack,amplified));
         long gold=0;int fuel=0,successes=0,failures=0;
         int from=current;boolean shattered=false;
         while(current<target&&!shattered){
@@ -146,26 +193,8 @@ public final class EquipmentChanges {
                 current-=EnhancementRules.failureLoss(current);failures++;
             }
         }
-        int left=fuel;
-        for(int i=0;i<36&&left>0;i++){
-            var stack=after.get(i);
-            if(stack.isEmpty())continue;
-            String id=ItemData.id(stack);
-            if(amplified?id.equals(EnhancementRules.INTENSE_AURA):id.equals("coal")||id.equals("charcoal")){
-                int take=(int)Math.min(left,stack.getCount());stack.shrink(take);left-=take;
-            }
-        }
-        for(int i=0;i<bagAfter.size()&&left>0;i++){
-            var stack=bagAfter.get(i);
-            if(stack.isEmpty())continue;
-            String id=ItemData.id(stack);
-            if(amplified?id.equals(EnhancementRules.INTENSE_AURA):id.equals("coal")||id.equals("charcoal")){
-                int take=(int)Math.min(left,stack.getCount());stack.shrink(take);left-=take;
-            }
-        }
-        var edits=new JsonArray();
-        for(int i=0;i<36;i++)if(!ItemStack.matches(before.get(i),after.get(i)))edits.add(InventoryEdits.change(player,"inventory",i,before.get(i),after.get(i)));
-        for(int i=0;i<bagBefore.size();i++)if(!ItemStack.matches(bagBefore.get(i),bagAfter.get(i)))edits.add(InventoryEdits.change(player,"bag",i,bagBefore.get(i),bagAfter.get(i)));
+        materials.take(stack->fuel(stack,amplified),fuel);
+        var edits=materials.edits();
         if(shattered){
             edits.add(InventoryEdits.change(player,"menu",0,source,ItemStack.EMPTY));
         }else if(current!=from){
@@ -183,14 +212,31 @@ public final class EquipmentChanges {
     }
 
     public static void prepareCube(net.minecraft.world.entity.player.Player player,cn.yumis.fight.modules.professions.api.Profession profession,JsonObject request){
+        prepareCube(player,profession,request,List.of());
+    }
+    private static boolean exaltedStone(ItemStack stack){return ItemData.own(stack)&&ItemData.id(stack).equals("exalted_stone");}
+    public static int cubeReserve(Player player,List<ItemStack> bag){return countMaterials(player,bag,EquipmentChanges::exaltedStone);}
+    public static CraftingEssences.Recipe cubeRecipe(List<ItemStack> grid,int reserve){
+        if(!grid.get(4).isEmpty()||reserve<=0)return CraftingEssences.match(grid);
+        var supplemented=new ArrayList<>(grid);
+        supplemented.set(4,cn.yumis.fight.platform.ItemRegistry.item("exalted_stone",1));
+        return CraftingEssences.match(supplemented);
+    }
+    public static void prepareCube(Player player,cn.yumis.fight.modules.professions.api.Profession profession,JsonObject request,List<ItemStack> bag){
         if(!(player.containerMenu instanceof HoradricCubeMenu menu)||!menu.initialContentsReady)throw new IllegalArgumentException("请等待赫拉迪姆方块材料同步");
         if(request.get("menu").getAsInt()!=menu.containerId)throw new IllegalArgumentException("合成界面已变化");
         if(request.get("rulesRevision").getAsLong()!=EquipmentDefinitions.current().revision)throw new IllegalArgumentException("装备规则已更新，请重试");
-        var grid=menu.grid();var recipe=CraftingEssences.match(grid);if(recipe==null)throw new IllegalArgumentException("材料、排列或装备保护条件不符合配方");
+        var grid=menu.grid();
+        var materials=new Materials(player,bag);
+        boolean supplement=grid.get(4).isEmpty()&&request.has("supplement");
+        int reserve=supplement?materials.count(EquipmentChanges::exaltedStone):0;
+        var recipe=cubeRecipe(grid,reserve);
+        if(recipe==null||supplement&&!recipe.essence().id().equals(request.get("supplement").getAsString()))throw new IllegalArgumentException("材料、排列或装备保护条件不符合配方");
         int count=1;
         boolean toInventory=request.has("toInventory")&&request.get("toInventory").getAsBoolean();
-        if(toInventory){count=64;for(var stack:grid)if(!stack.isEmpty())count=Math.min(count,stack.getCount());}
-        var edits=new JsonArray();
+        if(toInventory){count=supplement?Math.min(64,reserve):64;for(var stack:grid)if(!stack.isEmpty())count=Math.min(count,stack.getCount());}
+        if(supplement&&!materials.take(EquipmentChanges::exaltedStone,count))throw new IllegalArgumentException("崇高石不足");
+        var edits=materials.edits();
         for(int i=0;i<9;i++){var before=grid.get(i);var after=before.copy();if(!after.isEmpty())after.shrink(count);edits.add(InventoryEdits.change(player,"menu",i+1,before,after));}
         var output=cn.yumis.fight.platform.ItemRegistry.item(recipe.essence().id(),count);
         if(toInventory){var outputs=new JsonArray();outputs.add(InventoryEdits.encode(player,output));request.add("outputs",outputs);}

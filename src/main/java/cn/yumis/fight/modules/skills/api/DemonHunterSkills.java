@@ -30,18 +30,9 @@ public final class DemonHunterSkills {
     private static SkillDefinition add(String id,String title,boolean advanced,int level,int sp,double cd,double damage,boolean magic,Map<String,Double> values){
         var s=new SkillDefinition(id,title,"HAVOC",advanced?JobCatalog.HAVOC:"",level,sp,0,cd,damage,id.equals(SIGHT),values);s.baseJob=JobCatalog.DEMON_HUNTER;s.magicDamage=magic;s.magicTag=magic;return SkillCatalog.register(s);
     }
-    static void balance(){
-        for(String job:List.of(JobCatalog.DEMON_HUNTER,JobCatalog.HAVOC))SkillBalance.registerStyle(job,new SkillBalanceStyle("WARGLAIVE",false,(p,c,passive)->1+p.personalMut(),(c,f)->basicReference(),w->SkillBalanceStyle.Intrinsic.NONE,1));
-        SkillBalance.nonDamage(SkillCatalog.require(SIGHT));
-        for(String id:ALL){if(id.equals(SIGHT))continue;var skill=SkillCatalog.require(id);double weight=id.equals(DANCE)?3.5:id.equals(BEAM)?5:id.equals(HUNT)?2:id.equals(RUSH)?.25:1;
-            SkillBalance.register(skill,new SkillBalanceProfile(weight,0,false,false,0,(s,r,c)->{var p=new SkillParameters.Snapshot(s,r,s.parameters(r));var hits=new ArrayList<SkillBalanceProfile.Hit>();int count=id.equals(CHAOS)?(int)p.get("slashes",2d):id.equals(AURA)?(int)p.get("slashes",6d):id.equals(BEAM)?(int)p.get("slashes",8d):id.equals(DANCE)?(int)p.get("slashes",2d):id.equals(HUNT)?(int)p.get("slashes",8d):1;
-                if(id.equals(HUNT))hits.add(new SkillBalanceProfile.Hit((long)(p.get("duration",4d)*1000),p.get("finisher",0d),false));
-                for(int i=0;i<count;i++){long at=id.equals(AURA)?(long)((i+1)*p.get("interval",1d)*1000):id.equals(BEAM)?(long)((p.get("rise",.2)+(i+1)*p.get("interval",.25))*1000):id.equals(DANCE)?Math.round(new DemonHunterChoreography.Dance((long)(p.get("duration",2d)*1000),count).slashHitAt(i)):id.equals(HUNT)?(long)(p.get("duration",4d)*1000)+i*(long)(p.get("interval",.1)*1000):id.equals(CHAOS)?i*(long)(p.get("interval",.15)*1000):id.equals(META)?1000:100;hits.add(new SkillBalanceProfile.Hit(at,p.get("damage",0d),id.equals(AURA)));}
-                if(id.equals(DANCE))hits.add(new SkillBalanceProfile.Hit((long)(p.get("duration",2d)*1000),p.get("finisher",0d),false));return hits;}));
-        }
-        SkillBalance.registerVariant(SkillCatalog.require(DANCE),(p,progress,stats)->{if(stats.modifiers.getOrDefault("demonTransformed",0d)<=0)return p;var values=new LinkedHashMap<>(p.values());values.merge("slashes",2d,Double::sum);return new SkillParameters.Snapshot(p.skill(),p.rank(),values);});
+    static void variants(){
+        SkillParameters.registerVariant(SkillCatalog.require(DANCE),(p,progress,stats)->{if(stats.modifiers.getOrDefault("demonTransformed",0d)<=0)return p;var values=new LinkedHashMap<>(p.values());values.merge("slashes",2d,Double::sum);return new SkillParameters.Snapshot(p.skill(),p.rank(),values);});
     }
-    private static SkillBalanceStyle.Basic basicReference(){var hits=new ArrayList<SkillBalanceProfile.Hit>();for(long at=0;at<SkillBalance.WINDOW;at+=650){hits.add(new SkillBalanceProfile.Hit(at,.5,false));if(at+325<SkillBalance.WINDOW)hits.add(new SkillBalanceProfile.Hit(at+325,.5,false));}return new SkillBalanceStyle.Basic(.25,.65,hits);}
     public static void previews(){
         for(String id:ALL){var s=SkillCatalog.require(id);SkillPreviewRules.register(s,new SkillPreviewRules.Definition(p->(int)p.get("slashes",1d),id.equals(DANCE)||id.equals(HUNT),false,Boolean.TRUE.equals(s.magicDamage),3));}
         SkillPreviewRules.castStats(SkillCatalog.require(META),DemonHunterRules::transformed);

@@ -31,6 +31,9 @@ public abstract class PlayerPoseHeldItemMixin {
         int offset=bone*PlayerPoseAnimation.AXES;
         pose.pushPose();
         try{
+            if(frame.values[offset+3]!=0f||frame.values[offset+4]!=0f||frame.values[offset+5]!=0f){
+                pose.translate(frame.values[offset+3]/16f,frame.values[offset+4]/16f,frame.values[offset+5]/16f);
+            }
             pose.mulPose(Axis.XP.rotationDegrees(frame.values[offset]));
             pose.mulPose(Axis.YP.rotationDegrees(frame.values[offset+1]));
             pose.mulPose(Axis.ZP.rotationDegrees(frame.values[offset+2]));

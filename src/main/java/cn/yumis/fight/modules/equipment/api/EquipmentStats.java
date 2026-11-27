@@ -25,7 +25,7 @@ public final class EquipmentStats {
     private static long lookups,hits,builds,revisions;
     private static final class PlayerCache {final LinkedHashMap<Key,Entry> entries=new LinkedHashMap<>(4,.75f,true);Key active;long revision;}
     private record ItemKey(net.minecraft.world.item.Item item,DataComponentPatch components,int count,boolean wearable){}
-    private record ProgressKey(int level,int strength,int intelligence,int spirit,String job,Map<String,Integer> skills){}
+    private record ProgressKey(int level,int strength,int intelligence,int vitality,int spirit,String job,Map<String,Integer> skills){}
     private record Key(ProgressKey progress,List<ItemKey> items,List<String> groups,double nativeAttack,int strength,int weakness,int allowance,AttributeSources sources,long sourceRevision,AffixDefinitions affixes,long affixRevision,EquipmentDefinitions definitions,long equipmentRevision,EquipmentLayout layout){}
     private record Entry(Stats stats,EquipmentEffects.Snapshot effects){}
     public record CacheMetrics(long lookups,long hits,long builds,int players,int entries){}
@@ -64,7 +64,7 @@ public final class EquipmentStats {
         for(EquipmentSlot part:List.of(EquipmentSlot.HEAD,EquipmentSlot.CHEST,EquipmentSlot.LEGS,EquipmentSlot.FEET))items.add(itemKey(player.getItemBySlot(part),true));
         var extra=MenuHooks.extra(player);for(int i=0;i<extra.getContainerSize();i++){var item=extra.getItem(i);items.add(itemKey(item,!item.isEmpty()&&extra.canPlaceItem(i,item)));}
         var affixes=AffixDefinitions.current();var definitions=EquipmentDefinitions.current();
-        return new Key(new ProgressKey(progress.level,progress.strength,progress.intelligence,progress.spirit,progress.jobId(),Map.copyOf(progress.skills)),List.copyOf(items),List.copyOf(extra.groups),player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE),amplifier(player,net.minecraft.world.effect.MobEffects.STRENGTH),amplifier(player,net.minecraft.world.effect.MobEffects.WEAKNESS),EquipmentEligibility.allowance(player),sources,sources.revision(),affixes,affixes.revision,definitions,definitions.revision,EquipmentLayout.current());
+        return new Key(new ProgressKey(progress.level,progress.strength,progress.intelligence,progress.vitality,progress.spirit,progress.jobId(),Map.copyOf(progress.skills)),List.copyOf(items),List.copyOf(extra.groups),player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE),amplifier(player,net.minecraft.world.effect.MobEffects.STRENGTH),amplifier(player,net.minecraft.world.effect.MobEffects.WEAKNESS),EquipmentEligibility.allowance(player),sources,sources.revision(),affixes,affixes.revision,definitions,definitions.revision,EquipmentLayout.current());
     }
     private static synchronized Entry cached(Player player,Progress progress,AttributeSources sources,ItemStack weapon){
         Key key=key(player,progress,sources,weapon);lookups++;

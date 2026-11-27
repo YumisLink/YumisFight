@@ -3,7 +3,7 @@ import cn.yumis.fight.modules.attributes.api.Stat;
 import java.util.*;
 public final class WeaponTraits {
     public record Basic(double range,double projectileSpeed,boolean magic){}
-    public static Basic basic(String weapon){return Set.of("STAFF","WAND").contains(weapon)?new Basic(36,20,true):new Basic(sword(weapon)||weapon.equals("SPEAR")?4.5:3,0,false);}
+    public static Basic basic(String weapon){if(Set.of("STAFF","WAND").contains(weapon))return new Basic(36,20,true);if(weapon.equals("BROOM"))return new Basic(4.5,0,true);return new Basic(sword(weapon)||weapon.equals("SPEAR")?4.5:3,0,false);}
     private WeaponTraits(){}
     public static double attackScale(Weapon weapon,Stat stat){
         boolean physical=stat==Stat.PHYSICAL_ATTACK;

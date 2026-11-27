@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "waveSize": 12,
+  "mobEliteChance": 0.1,
+  "mobHealthMultiplier": 3.0,
+  "mobExperienceMultiplier": 0.25
+}

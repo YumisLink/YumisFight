@@ -15,31 +15,32 @@ public final class SkasaAttack {
     public SkasaMoves move(){return SkasaMoves.valueOf(kind);}
     public Vec3 origin(){return new Vec3(x,y,z);}
     public Vec3 direction(){return new Vec3(dx,0,dz).normalize();}
-    public long release(){return started+Math.round(move().windup*castScale);}
-    public long end(){return release()+Math.round(move().active*castScale);}
-    public long contactAt(int pulse){return release()+Math.round(pulse*move().interval*castScale);}
-    public int pulse(long now){return move().hits==1?0:(int)Math.clamp((now-release())/Math.max(1,move().interval*castScale),0,move().hits-1);}
+    public long release(){return started+Math.round(move().windupMs()*castScale);}
+    public long end(){return release()+Math.round(move().activeMs()*castScale);}
+    public long contactAt(int pulse){return release()+Math.round(pulse*move().intervalMs()*castScale);}
+    public int pulse(long now){int h=move().hitsVal();return h==1?0:(int)Math.clamp((now-release())/Math.max(1,move().intervalMs()*castScale),0,h-1);}
     public boolean contacting(long now){return now>=release()&&now<=end()&&(move().travels()||now-contactAt(pulse(now))<=move().contactWindow());}
     public int side(int pulse){return move()==SkasaMoves.TRIPLE&&pulse%2==1?-side:side;}
-    public Vec3 position(long now){return origin().add(direction().scale(move().range*Math.clamp((now-release())/Math.max(1,move().active*castScale),0,1)));}
+    public Vec3 position(long now){return origin().add(direction().scale(move().rangeVal()*Math.clamp((now-release())/Math.max(1,move().activeMs()*castScale),0,1)));}
     public boolean safeBreath(Vec3 p){double u=Math.abs(p.x-cell*512);return u>=2.3&&u<=6&&p.z>=146&&p.z<=151;}
     public boolean inArena(Vec3 p){return Math.abs(p.x-cell*512)<=19.3&&p.z>=120.7&&p.z<=151.3;}
     public boolean contains(Vec3 p,int pulse,long previous,long now){
         Vec3 offset=p.subtract(origin());
         if(Math.abs(offset.y)>2.6)return false;
+        double range=move().rangeVal();
         return switch(move()){
             case SLAM,TRIPLE -> inArena(p)&&(p.x-cell*512)*side(pulse)>=-.3;
-            case CLAW -> fan(p,new Vec3(side*.70710678,0,-.70710678),move().range,Math.PI/4+.04);
-            case ROAR -> fan(p,direction(),move().range,Math.PI/3);
-            case BREATH -> !safeBreath(p)&&fan(p,direction(),move().range,Math.toRadians(75));
-            case ROUTE_BREATH -> strip(p,3,move().range);
-            case NASRA_CYCLONE,VORTEX -> offset.horizontalDistanceSqr()<=Math.pow(move().range+.3,2);
+            case CLAW -> fan(p,new Vec3(side*.70710678,0,-.70710678),range,Math.PI/4+.04);
+            case ROAR -> fan(p,direction(),range,Math.PI/3);
+            case BREATH -> !safeBreath(p)&&fan(p,direction(),range,Math.toRadians(75));
+            case ROUTE_BREATH -> strip(p,3,range);
+            case NASRA_CYCLONE,VORTEX -> offset.horizontalDistanceSqr()<=Math.pow(range+.3,2);
             case NASRA_KICK,HATCHLING_CHARGE,ICE_LINE -> {
                 Vec3 from=position(Math.max(release(),previous)),to=position(now),delta=to.subtract(from);
                 double t=delta.lengthSqr()<.00001?0:Math.clamp(p.subtract(from).dot(delta)/delta.lengthSqr(),0,1);
                 yield p.subtract(from.add(delta.scale(t))).horizontalDistanceSqr()<=Math.pow(move()==SkasaMoves.ICE_LINE?.75:1.35,2);
             }
-            default -> fan(p,direction(),move().range,Math.PI/3);
+            default -> fan(p,direction(),range,Math.PI/3);
         };
     }
     private boolean fan(Vec3 p,Vec3 direction,double radius,double half){

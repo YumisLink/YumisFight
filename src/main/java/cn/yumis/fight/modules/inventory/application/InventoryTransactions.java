@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.inventory.application;
 import cn.yumis.fight.modules.presentation.api.ModText;
 import cn.yumis.fight.modules.inventory.api.BagOption;
 import cn.yumis.fight.modules.inventory.api.CheckpointMenu;
+import cn.yumis.fight.modules.inventory.api.CategoryBags;
 import cn.yumis.fight.modules.inventory.api.InventoryPacking;
 import cn.yumis.fight.modules.inventory.api.MenuHooks;
 import cn.yumis.fight.modules.inventory.api.RewardMenu;
@@ -19,7 +20,8 @@ import java.util.function.BiConsumer;
 public final class InventoryTransactions implements cn.yumis.fight.modules.inventory.api.InventoryOperations {
     private static final com.google.gson.Gson JSON=new com.google.gson.GsonBuilder().disableHtmlEscaping().create();
 
-    public record Snapshot(List<JsonElement> items,List<JsonElement> equipment,List<JsonElement> bag,JsonElement cursor,String operation,List<String> groups,List<JsonElement> crafting,boolean curios,int bagSchema,int bagTier,int bagPage) {
+    public record Snapshot(List<JsonElement> items,List<JsonElement> equipment,List<JsonElement> bag,JsonElement cursor,String operation,List<String> groups,List<JsonElement> crafting,boolean curios,int bagSchema,int bagTier,int bagPage,JsonObject categories,String categoryCommit) {
+        Snapshot categoryCommit(String operation){return new Snapshot(items,equipment,bag,cursor,this.operation,groups,crafting,curios,bagSchema,bagTier,bagPage,categories,operation);}
     }
     @FunctionalInterface public interface CurrencyAction {boolean apply(ServerPlayer player,AbstractContainerMenu menu,int slot,int button,ContainerInput input);}
     private final Journal journal;
@@ -94,7 +96,7 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         for(int i=0;i<extra.bagLimit();i++)bag.add(encode(p,extra.bag.getItem(i)));
         List<JsonElement> crafting=new ArrayList<>();
         for(int i=1;i<=4;i++)crafting.add(encode(p,p.inventoryMenu.getSlot(i).getItem()));
-        return new Snapshot(items,eq,bag,encode(p,p.containerMenu.getCarried()),operation,List.copyOf(extra.groups),crafting,true,extra.bagSchema,extra.bagTier,extra.bagPage);
+        return new Snapshot(items,eq,bag,encode(p,p.containerMenu.getCarried()),operation,List.copyOf(extra.groups),crafting,true,extra.bagSchema,extra.bagTier,extra.bagPage,extra.categories.save(p),extra.categoryCommit);
     }
     private void apply(ServerPlayer p,Snapshot s){
         for(int i=0;i<s.items.size();i++)p.getInventory().setItem(i,decode(p,s.items.get(i)));
@@ -110,8 +112,16 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
     public void restore(ServerPlayer p){
         try{
             String nativeState=p.getData(cn.yumis.fight.modules.inventory.api.InventoryContentTypes.STATE);
+            Snapshot stored=nativeState.isEmpty()?null:JSON.fromJson(nativeState,Snapshot.class);
+            var committed=journal.get(categoryKey(p));
+            if(!committed.isJsonNull()){
+                Snapshot receipt=JSON.fromJson(committed,Snapshot.class);
+                if(stored==null||!Objects.equals(receipt.categoryCommit,stored.categoryCommit)){
+                    apply(p,receipt);
+                    return;
+                }
+            }
             if(!nativeState.isEmpty()){
-                Snapshot stored=JSON.fromJson(nativeState,Snapshot.class);
                 var e=MenuHooks.extra(p);
                 if(stored.groups!=null)e.layout(stored.groups);
                 restoreBag(p,stored);
@@ -129,11 +139,14 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
         int limit=cn.yumis.fight.modules.inventory.api.StorageRules.capacity(snapshot.bagTier);
         if(snapshot.bag==null||snapshot.bag.size()>limit)throw new IllegalStateException("次元储物记录超出容量，原数据已保留");
         extra.bag.clearContent();extra.bagSchema=3;extra.bagTier=snapshot.bagTier;
-        extra.bagPage=Math.clamp(snapshot.bagPage,0,Math.max(0,(extra.bagLimit()+8)/9-1));
+        extra.bagPage=Math.clamp(snapshot.bagPage,0,limit-1);
         for(int i=0;i<snapshot.bag.size();i++)extra.bag.setItem(i,decode(p,snapshot.bag.get(i)));
+        extra.categories.load(p,snapshot.categories==null?new CategoryBags().summary():snapshot.categories);
+        extra.categoryCommit=snapshot.categoryCommit;
     }
+    private static String categoryKey(ServerPlayer p){return "inventoryCategoryCommit/"+p.getUUID();}
     public String clientStorageState(ServerPlayer p){
-        var extra=MenuHooks.extra(p);JsonObject value=new JsonObject();value.addProperty("bagSchema",extra.bagSchema);value.addProperty("bagTier",extra.bagTier);value.addProperty("bagPage",extra.bagPage);return value.toString();
+        var extra=MenuHooks.extra(p);JsonObject value=new JsonObject();value.addProperty("bagSchema",extra.bagSchema);value.addProperty("bagTier",extra.bagTier);value.addProperty("bagPage",extra.bagPage);value.addProperty("bagUnlocks",extra.categories.unlocks());return value.toString();
     }
     public void verificationRestore(ServerPlayer player,Snapshot snapshot){
         if(!Boolean.getBoolean("ydnf.verify"))throw new IllegalStateException("verification disabled");
@@ -167,10 +180,13 @@ public final class InventoryTransactions implements cn.yumis.fight.modules.inven
             mutation.run();
             prepareDrops();
             Snapshot after=capture(p,operation);
+            boolean categoriesChanged=!after.categories.equals(before.categories);
+            if(categoriesChanged)after=after.categoryCommit(operation);
             var externalAfter=containers.after(p,external);
             apply(p,before);
             containers.apply(p,external,null,null);
             Map<String,JsonElement> edits=new LinkedHashMap<>(changes);
+            if(categoriesChanged)edits.put(categoryKey(p),JSON.toJsonTree(after));
             JsonObject r=new JsonObject();
             r.add("intent",intent.deepCopy());
             edits.put(key,r);

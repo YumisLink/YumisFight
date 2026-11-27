@@ -43,7 +43,7 @@ public final class RitualBossCatalog {
     private static final class Defaults {
         private static final String JSON=read();
         private static String read(){
-            try(var input=RitualBossCatalog.class.getResourceAsStream("/data/"+ItemData.NS+"/rules/altar_bosses.json")){
+            try(var input=RitualBossCatalog.class.getResourceAsStream("/data/"+ItemData.NS+"/rules/balance/bosses/altar_bosses.json")){
                 if(input==null)throw new IllegalStateException("缺少默认魔王祭坛Boss配置");
                 return new String(input.readAllBytes(),StandardCharsets.UTF_8);
             }catch(Exception failure){throw new ExceptionInInitializerError(failure);}

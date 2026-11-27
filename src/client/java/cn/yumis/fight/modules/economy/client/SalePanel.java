@@ -13,12 +13,14 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
+import java.awt.geom.Rectangle2D;
 import java.util.*;
 
 /** Nine real inventory columns, a detail pane, and fixed batch totals inside the I menu. */
 public final class SalePanel implements ClientPagePanel {
     private record Row(String key,boolean bag,int slot,boolean allowed,String name,String reason,long price,String dismantle,Rarity rarity,JsonElement identity,ItemStack preview,List<Component> details){}
     private record Cell(Row row,int x,int y){}
+    private record SelectionDrag(boolean selecting,double x,double y){}
     private record InventoryValue(Object item,int count,Object components){}
     private record ConfigCell(int index,int top,int chipX,int chipW,int cmpX,int minusX,int plusX,int deleteX,int cardWidth){}
     private final Map<String,Row> rows=new LinkedHashMap<>();
@@ -29,6 +31,7 @@ public final class SalePanel implements ClientPagePanel {
     private JsonObject quote;
     private Region region;
     private boolean draggingScroll;private double scrollGrab;
+    private SelectionDrag selectionDrag;
     private String focused="",detailKey="";
     private boolean bag=SaleClient.bag(),requested,waiting,confirming,dismantling,configuring,layoutDirty=true;
     private long favoriteRevision=AffixFavorites.revision();
@@ -61,7 +64,7 @@ public final class SalePanel implements ClientPagePanel {
         }
         if(dirtyAt>=0&&!waiting&&!configuring&&now-dirtyAt>=250&&now-lastRequest>=250)request();
     }
-    private void request(){waiting=true;lastRequest=ClientUi.now();dirtyAt=-1;SaleClient.request();}
+    private void request(){selectionDrag=null;waiting=true;lastRequest=ClientUi.now();dirtyAt=-1;SaleClient.request();}
     private void accept(JsonObject data){
         Map<String,Row> next=new LinkedHashMap<>();var mc=Minecraft.getInstance();if(mc.player==null)return;
         for(var value:data.getAsJsonArray("rows")){
@@ -81,10 +84,12 @@ public final class SalePanel implements ClientPagePanel {
             next.put(key,new Row(key,row.get("bag").getAsBoolean(),row.get("slot").getAsInt(),allowed,row.get("name").getAsString(),reason,price,dismantle,rarity,identity,preview,List.copyOf(lines)));
         }
         selected.removeIf(key->{var old=rows.get(key);var current=next.get(key);return old==null||current==null||!current.allowed||!old.identity.equals(current.identity)||old.price!=current.price;});
-        rows.clear();rows.putAll(next);quote=data;waiting=false;confirming=false;layoutDirty=true;detailKey="";sum();
+        rows.clear();rows.putAll(next);quote=data;selectionDrag=null;waiting=false;confirming=false;layoutDirty=true;detailKey="";sum();
     }
     private void sum(){total=0;for(String key:selected)total=Math.addExact(total,rows.get(key).price);}
-    private void select(String key){var row=rows.get(key);focused=key;detailScroll=0;detailKey="";if(row.allowed){if(!selected.remove(key))selected.add(key);sum();}}
+    private boolean setSelected(Row row,boolean choosing){
+        return row.allowed&&(choosing?selected.add(row.key):selected.remove(row.key));
+    }
     private boolean valid(){return quote!=null&&!waiting&&dirtyAt<0&&ClientUi.current().ready()&&quote.get("session").getAsString().equals(ClientUi.current().session());}
     private void sell(){
         if(!valid()||selected.isEmpty())return;
@@ -226,7 +231,7 @@ public final class SalePanel implements ClientPagePanel {
         layoutDirty=true;
     }
     @Override public void render(GuiGraphicsExtractor g,Region area,int mx,int my,float delta){
-        if(!area.equals(region)){region=area;layoutDirty=true;}layout();
+        if(!area.equals(region)){region=area;selectionDrag=null;layoutDirty=true;}layout();
         g.enableScissor(area.x(),area.y(),area.x()+area.width(),area.y()+area.height());
         int x=area.x()+6,y=area.y()+4;
         int toolWidth=area.width()>=330?76:Math.max(30,(area.width()-24)/4);
@@ -270,7 +275,12 @@ public final class SalePanel implements ClientPagePanel {
         }else if(detail!=null&&area.height()>=180){Component title=Component.literal(UiFonts.font().plainSubstrByWidth(detail.name,area.width()-12));MythicDisplay.text(g,UiFonts.font(),(detail.rarity==Rarity.MYTHIC?MythicDisplay.mark(title):title).getVisualOrderText(),gridLeft,gridBottom+5,UiTheme.GOLD,false);text(g,detail.allowed?(dismantling?detail.dismantle:"售价 "+detail.price+"金币"):detail.reason,gridLeft,gridBottom+18,detail.allowed?UiTheme.TEXT:UiTheme.ERROR,area.width()-12);}
         int bottom=area.y()+area.height();boolean compact=area.height()<160;int footer=compact?48:70;UiTheme.card(g,area.x()+2,bottom-footer,area.width()-4,footer-2);
         text(g,waiting?"正在读取报价…":dirtyAt>=0?"背包已变化，正在更新报价…":compact&&confirming?(dismantling?"宝石一并销毁 · 分解":"物品及内容一并出售 · ")+selected.size()+"格":dismantling?"已选 "+selected.size()+" 格 · 产物公开落地":"已选 "+selected.size()+" 格 · 合计 "+total+"金币",x,bottom-(compact?43:61),confirming?UiTheme.ERROR:UiTheme.GOLD,area.width()-12);
-        if(!compact)text(g,confirming?(dismantling?"宝石一并销毁。再次确认后不可撤回。":"整组物品及其中内容一并出售。再次确认后不可撤回。"):dismantling?"当前主手与穿戴装备不可分解。":"按整组出售；穿戴装备请先放入背包。",x,bottom-46,confirming?UiTheme.ERROR:UiTheme.MUTED,area.width()-12);
+        if(!compact){
+            String hint=dismantling?"当前主手与穿戴装备不可分解。":"按整组出售；穿戴装备请先放入背包。";
+            if(confirming)hint=dismantling?"宝石一并销毁。再次确认后不可撤回。":"整组物品及其中内容一并出售。再次确认后不可撤回。";
+            else if(valid()&&(selectionDrag!=null||hovered!=null&&hovered.allowed))hint="按住左键拖动可批量选中或取消选中。";
+            text(g,hint,x,bottom-46,confirming?UiTheme.ERROR:UiTheme.MUTED,area.width()-12);
+        }
         int confirmWidth=Math.min(144,Math.max(84,(area.width()-22)/2));
         button(g,confirming?(dismantling?"确定分解":"确定出售"):(dismantling?"确认分解":"确认出售"),x,bottom-26,confirmWidth,valid()&&!selected.isEmpty(),confirming,mx,my);
         button(g,confirming?"取消确认":"清空选择",x+confirmWidth+6,bottom-26,Math.min(88,Math.max(64,area.width()-confirmWidth-24)),!waiting,false,mx,my);
@@ -281,6 +291,8 @@ public final class SalePanel implements ClientPagePanel {
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice){
         if(region==null||!inside(event.x(),event.y(),region.x(),region.y(),region.width(),region.height()))return false;
         if(event.button()!=0)return true;double x=event.x(),y=event.y();int left=region.x()+6,top=region.y()+4,bottom=region.y()+region.height();
+        selectionDrag=null;
+        layout();
         if(configuring){
             if(mode(x,y))return true;
             configClick(x,y);
@@ -296,12 +308,53 @@ public final class SalePanel implements ClientPagePanel {
         int confirmWidth=Math.min(144,Math.max(84,(region.width()-22)/2));
         if(inside(x,y,left,bottom-26,confirmWidth,20)){if(valid()&&!selected.isEmpty()){if(confirming)sell();else confirming=true;}return true;}
         if(inside(x,y,left+confirmWidth+6,bottom-26,Math.min(88,Math.max(64,region.width()-confirmWidth-24)),20)){if(confirming)confirming=false;else{selected.clear();sum();}return true;}
-        for(Cell slot:cells)if(inside(x,y,slot.x,slot.y,cell-2,cell-2)){select(slot.row.key);confirming=false;return true;}
+        for(Cell slot:cells)if(inside(x,y,slot.x,slot.y,cell-2,cell-2)){
+            focused=slot.row.key;
+            detailScroll=0;
+            detailKey="";
+            confirming=false;
+            boolean choosing=!selected.contains(slot.row.key);
+            if(valid()&&setSelected(slot.row,choosing)){
+                selectionDrag=new SelectionDrag(choosing,x,y);
+                sum();
+            }
+            return true;
+        }
         return true;
     }
     private void drag(double y){int h=Math.max(20,gridBottom-gridTop),thumb=Math.max(10,h/(maxScroll+1));scroll=Math.clamp((int)Math.round((y-gridTop-scrollGrab)*maxScroll/Math.max(1,h-thumb)),0,maxScroll);layoutDirty=true;}
-    @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){if(!draggingScroll)return false;drag(event.y());return true;}
-    @Override public boolean mouseReleased(MouseButtonEvent event){boolean old=draggingScroll;draggingScroll=false;return old;}
+    @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){
+        if(event.button()!=0)return false;
+        if(draggingScroll){drag(event.y());return true;}
+        if(selectionDrag==null)return false;
+        dragSelection(event.x(),event.y());
+        return true;
+    }
+    private void dragSelection(double x,double y){
+        var previous=selectionDrag;
+        if(!valid()){
+            selectionDrag=null;
+            return;
+        }
+        if(x==previous.x&&y==previous.y)return;
+        var bounds=new Rectangle2D.Double();
+        boolean changed=false;
+        for(Cell slot:cells){
+            if(!slot.row.allowed||selected.contains(slot.row.key)==previous.selecting)continue;
+            bounds.setRect(slot.x,slot.y,cell-2,cell-2);
+            if(bounds.intersectsLine(previous.x,previous.y,x,y))changed|=setSelected(slot.row,previous.selecting);
+        }
+        if(changed)sum();
+        selectionDrag=new SelectionDrag(previous.selecting,x,y);
+    }
+    @Override public boolean mouseReleased(MouseButtonEvent event){
+        if(event.button()!=0)return false;
+        boolean consumed=draggingScroll||selectionDrag!=null;
+        if(selectionDrag!=null)dragSelection(event.x(),event.y());
+        draggingScroll=false;
+        selectionDrag=null;
+        return consumed;
+    }
     @Override public boolean mouseScrolled(double x,double y,double sx,double sy){
         if(region==null||!inside(x,y,region.x(),region.y(),region.width(),region.height()))return false;
         if(configuring){
@@ -309,6 +362,6 @@ public final class SalePanel implements ClientPagePanel {
             if(next!=configScroll){configScroll=next;layoutDirty=true;}
             return true;
         }
-        if(detailWidth>0&&x>=detailLeft)detailScroll=Math.max(0,detailScroll-(int)Math.signum(sy));else{int next=Math.clamp(scroll-(int)Math.signum(sy),0,maxScroll);if(next!=scroll){scroll=next;layoutDirty=true;}}return true;
+        if(detailWidth>0&&x>=detailLeft)detailScroll=Math.max(0,detailScroll-(int)Math.signum(sy));else{int next=Math.clamp(scroll-(int)Math.signum(sy),0,maxScroll);if(next!=scroll){selectionDrag=null;scroll=next;layoutDirty=true;}}return true;
     }
 }

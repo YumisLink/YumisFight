@@ -18,7 +18,7 @@ import net.neoforged.neoforge.client.event.*;
 public final class TreasureWeaponVisuals {
     private record Track(GoldenWeapon weapon,long received){}
     private record Sword(ItemStackRenderState model,Vec3 position,Vec3 direction){}
-    private record Frame(List<Sword> swords,List<Quad> quads,boolean nearFade){}
+    private record Frame(List<Sword> swords,List<Quad> quads,List<EffectSprites.SpriteQuad> sprites,boolean nearFade){}
     private static final Map<UUID,Track> weapons=new LinkedHashMap<>();
     private static final Map<UUID,Long> closed=new LinkedHashMap<>();
     private static final ContextKey<Frame> FRAME=new ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","treasure_weapons"));
@@ -29,23 +29,39 @@ public final class TreasureWeaponVisuals {
         var w=new Gson().fromJson(packet,GoldenWeapon.class);
         if(packet.get("remove").getAsBoolean()){
             weapons.remove(w.id);
-            if(closed.putIfAbsent(w.id,now+15000)==null&&w.phase.equals("EXPLODE"))EffectParticles.explosion(w.position());
+            if(closed.putIfAbsent(w.id,now+15000)==null&&w.phase.equals("EXPLODE")){
+                Vec3 pos=w.position();
+                EffectParticles.explosion(pos);
+                WorldEffects.playImpact(pos.add(0,.15,0),GoldenWeapon.RADIUS*1.1,0xffcf4a,240,420,true);
+                WorldEffects.playShockwave(pos.add(0,.06,0),.4,GoldenWeapon.RADIUS*1.25,0xffbf38,225,420);
+                CameraShake.impulse(pos,16,.24f,70,150);
+            }
             while(closed.size()>8192)closed.remove(closed.keySet().iterator().next());
         }else if(!closed.containsKey(w.id))weapons.put(w.id,new Track(w,now));
     }
     public static void register(){net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(TreasureWeaponVisuals::extract);net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(TreasureWeaponVisuals::submit);}
     private static void extract(ExtractLevelRenderStateEvent event){
         var mc=Minecraft.getInstance();if(world!=mc.level){weapons.clear();closed.clear();world=mc.level;}if(mc.player==null)return;
-        List<Sword> swords=new ArrayList<>();List<Quad> quads=new ArrayList<>();long now=ClientUi.now();
+        List<Sword> swords=new ArrayList<>();List<Quad> quads=new ArrayList<>();List<EffectSprites.SpriteQuad> sprites=new ArrayList<>();
+        Vec3 cam=event.getCamera().position();long now=ClientUi.now();
         weapons.values().removeIf(t->now-t.received()>15000||t.weapon().position().distanceToSqr(mc.player.position())>128*128);
         for(var t:weapons.values()){
             var w=t.weapon();var model=new ItemStackRenderState();mc.getItemModelResolver().updateForLiving(model,EquipmentVisualItems.weaponModel(w.model),ItemDisplayContext.NONE,mc.player);
-            Vec3 p=w.position();if(w.phase.equals("FLY"))p=p.add(w.direction().scale(Math.min(.25,GoldenWeapon.SPEED*(now-t.received())/1000d)));
+            Vec3 p=w.position();if(w.phase.equals("FLY")){
+                p=p.add(w.direction().scale(Math.min(.25,GoldenWeapon.SPEED*(now-t.received())/1000d)));
+                RibbonTrail.push("tw:"+w.id,p,.20,0xffd25a,210,240,now);
+                EffectSprites.glow(sprites,p,cam,.65,0xffe490,205);
+            }
             swords.add(new Sword(model,p,w.direction()));
-            if(w.phase.equals("LAND")){for(int i=0;i<48;i++){double a=i*Math.PI/24,b=(i+1)*Math.PI/24;double r=GoldenWeapon.RADIUS;Vec3 p0=p.add(Math.cos(a)*r,.04,Math.sin(a)*r),p1=p.add(Math.cos(b)*r,.04,Math.sin(b)*r),p2=p.add(Math.cos(b)*(r-.12),.04,Math.sin(b)*(r-.12)),p3=p.add(Math.cos(a)*(r-.12),.04,Math.sin(a)*(r-.12));quads.add(new Quad(p0,p1,p2,p3,0xffbf38,190));}}
+            if(w.phase.equals("LAND")){
+                for(int i=0;i<48;i++){double a=i*Math.PI/24,b=(i+1)*Math.PI/24;double r=GoldenWeapon.RADIUS;Vec3 p0=p.add(Math.cos(a)*r,.04,Math.sin(a)*r),p1=p.add(Math.cos(b)*r,.04,Math.sin(b)*r),p2=p.add(Math.cos(b)*(r-.12),.04,Math.sin(b)*(r-.12)),p3=p.add(Math.cos(a)*(r-.12),.04,Math.sin(a)*(r-.12));quads.add(new Quad(p0,p1,p2,p3,0xffbf38,190));}
+                double age=Math.clamp((now-t.received())/1200d,0,1);
+                EffectSprites.warningCircle(sprites,p.add(0,.05,0),GoldenWeapon.RADIUS,age,0xffbf38,185);
+                EffectSprites.glow(sprites,p.add(0,.45,0),cam,.55,0xffe490,185);
+            }
         }
-        event.getRenderState().setRenderData(FRAME,new Frame(List.copyOf(swords),List.copyOf(quads),NearEffectRendering.enabled(event.getCamera())));
+        event.getRenderState().setRenderData(FRAME,new Frame(List.copyOf(swords),List.copyOf(quads),List.copyOf(sprites),NearEffectRendering.enabled(event.getCamera())));
     }
-    private static void submit(SubmitCustomGeometryEvent event){var frame=event.getLevelRenderState().getRenderData(FRAME);if(frame==null||event.getLevelRenderState().cameraRenderState==null)return;Vec3 camera=event.getLevelRenderState().cameraRenderState.pos;var pose=event.getPoseStack();for(var sword:frame.swords()){var p=sword.position();pose.pushPose();pose.translate(p.x-camera.x,p.y-camera.y,p.z-camera.z);Vec3 d=sword.direction();pose.mulPose(new org.joml.Quaternionf().rotationTo(new org.joml.Vector3f(0,1,0),new org.joml.Vector3f((float)d.x,(float)d.y,(float)d.z)));pose.scale(1.2f,1.2f,1.2f);EffectModels.submit(sword.model(),pose,event.getSubmitNodeCollector(),0xF000F0,OverlayTexture.NO_OVERLAY,frame.nearFade());pose.popPose();}WorldQuads.submit(event,frame.quads(),frame.nearFade());}
+    private static void submit(SubmitCustomGeometryEvent event){var frame=event.getLevelRenderState().getRenderData(FRAME);if(frame==null||event.getLevelRenderState().cameraRenderState==null)return;Vec3 camera=event.getLevelRenderState().cameraRenderState.pos;var pose=event.getPoseStack();for(var sword:frame.swords()){var p=sword.position();pose.pushPose();pose.translate(p.x-camera.x,p.y-camera.y,p.z-camera.z);Vec3 d=sword.direction();pose.mulPose(new org.joml.Quaternionf().rotationTo(new org.joml.Vector3f(0,1,0),new org.joml.Vector3f((float)d.x,(float)d.y,(float)d.z)));pose.scale(1.2f,1.2f,1.2f);EffectModels.submit(sword.model(),pose,event.getSubmitNodeCollector(),0xF000F0,OverlayTexture.NO_OVERLAY,frame.nearFade());pose.popPose();}WorldQuads.submit(event,frame.quads(),frame.nearFade());EffectSprites.submit(event,frame.sprites(),frame.nearFade());}
     private TreasureWeaponVisuals(){}
 }

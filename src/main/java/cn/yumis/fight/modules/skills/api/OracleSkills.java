@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.skills.api;
 
 import cn.yumis.fight.modules.character.api.JobCatalog;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import cn.yumis.fight.modules.equipment.api.WeaponTraits;
 import java.util.*;
 
@@ -16,42 +17,57 @@ public final class OracleSkills {
     private OracleSkills(){}
     static void install(){
         add(WILL,"指令之意",20,30,0,0,0,true,0,0,0);SkillCatalog.require(WILL).bindingProxy=true;
-        add(DOWN,"重量下压",25,40,.12,12,1,false,4,1,.6);
-        add(THRUST,"直线突刺",30,50,.14,12,1,false,6,1,.55);
-        add(SWEEP,"沉重横批",35,50,.18,12,1,false,5,1,.9);
-        add(SMILE,"举刃对笑",40,60,.22,12,1,false,4,2,.6);
-        add(RIFT,"空间斩裂",45,80,.26,12,1,false,5,1,.65);
-        add(REPLICA,"Furioso-Replica",50,100,.35,90,1,false,8,FINISH_STEP*2+1,FULL_DURATION);
-        SkillCatalog.require(REPLICA).formParameter("preludeStepSeconds",.35).formParameter("comboStepSeconds",.1).formParameter("comboMoveDistance",8).formParameter("finisherShare",.35);
+        add(DOWN,"重量下压",25,40,.12,12,1,false,4.8,1,.6);
+        add(THRUST,"直线突刺",30,50,.14,12,1,false,7.0,1,.55);
+        add(SWEEP,"沉重横批",35,50,.18,12,1,false,5.8,1,.9);
+        add(SMILE,"举刃对笑",40,60,.22,12,1,false,4.8,2,.6);
+        add(RIFT,"空间斩裂",45,80,.26,12,1,false,6.0,1,.65);
+        add(REPLICA,"Furioso-Replica",50,100,.35,90,1,false,9.0,FINISH_STEP*2+1,FULL_DURATION);
+        SkillCatalog.require(REPLICA).formParameter("preludeStepSeconds",.35).formParameter("comboStepSeconds",.1).formParameter("comboMoveDistance",8.5).formParameter("finisherShare",.35);
     }
     private static void add(String id,String name,int unlock,int sp,double mp,double cd,double coefficient,boolean passive,double range,int hits,double duration){
         var skill=SkillCatalog.register(new SkillDefinition(id,name,"SWORD",JobCatalog.ORACLE,unlock,sp,mp,cd,coefficient,passive,Map.of("range",range,"slashes",(double)hits,"duration",duration,"finisher",0d)));
         skill.magicDamage=false;CareerSkills.register(new CareerSkills.Content(skill,-1,0xf2cb72,hits,false,false,id.equals(REPLICA),0));
     }
-    static void balance(){
+    static void variants(){
         SkillPreviewRules.pattern(SkillCatalog.require(SMILE),p->new SkillPreviewRules.Pattern(2,p.get("damage",0)*.5,0));
         SkillPreviewRules.pattern(SkillCatalog.require(REPLICA),p->{int stacks=(int)p.get("replicaStacks",9);return new SkillPreviewRules.Pattern(Math.min(8,stacks),p.get("damage",0)*.0625,stacks==9?p.get("damage",0)*.75:0);});
         SkillPreviewRules.finisherLabel(SkillCatalog.require(REPLICA),"连斩与终结合计");
-        SkillBalance.registerVariant(SkillCatalog.require(REPLICA),(input,p,stats)->{var values=new LinkedHashMap<>(input.values());int stacks=Math.clamp(stats.modifiers.getOrDefault("oracleHermes",9d).intValue(),1,OracleRules.cap(p));values.put("replicaStacks",(double)stacks);values.put("duration",stacks==9?FULL_DURATION:stacks*.35);return new SkillParameters.Snapshot(input.skill(),input.rank(),values);});
-        SkillBalance.registerStyle(JobCatalog.ORACLE,new SkillBalanceStyle("KATANA",false,(p,c,passive)->1.45*(1+p.personalMut()),(c,f)->{
-            double interval=Math.max(.05,.65/(1+WeaponTraits.speed(c.weapon())/100));var hits=new ArrayList<SkillBalanceProfile.Hit>();
-            for(double t=0;t<120;t+=interval)hits.add(new SkillBalanceProfile.Hit(Math.round(t*1000),1.45,false));
-            return new SkillBalanceStyle.Basic(.25,interval,hits);
-        },w->SkillBalanceStyle.Intrinsic.NONE,1));
-        SkillBalance.nonDamage(SkillCatalog.require(WILL));
+        SkillParameters.registerVariant(SkillCatalog.require(REPLICA),(input,p,stats)->{var values=new LinkedHashMap<>(input.values());int stacks=OracleRules.replicaStacks(stats,p,stats.modifiers.getOrDefault("oracleHermes",9d).intValue());values.put("replicaStacks",(double)stacks);values.put("duration",stacks==9?FULL_DURATION:stacks*.35);return new SkillParameters.Snapshot(input.skill(),input.rank(),values);});
         for(int i=0;i<ACTIONS.size();i++){
-            var skill=SkillCatalog.require(ACTIONS.get(i));double weight=new double[]{1.2,1.8,2.4,3,3}[i];
-            SkillBalance.register(skill,new SkillBalanceProfile(weight,0,false,false,0,(s,r,c)->{
-                double coefficient=s.parameters(r).get("damage");
-                return s.id.equals(SMILE)?List.of(new SkillBalanceProfile.Hit(100,coefficient*.5,false),new SkillBalanceProfile.Hit(300,coefficient*.5,false)):List.of(new SkillBalanceProfile.Hit(s.id.equals(SWEEP)?500:300,coefficient,false));
-            }));
-            SkillBalance.registerVariant(skill,(input,p,stats)->{int index=ACTIONS.indexOf(input.skill().id);if(!WEAPONS.get(index).equals(stats.weaponType))return input;var values=new LinkedHashMap<>(input.values());values.computeIfPresent("damage",(k,v)->v*MATCH[index]);return new SkillParameters.Snapshot(input.skill(),input.rank(),values);});
+            var skill=SkillCatalog.require(ACTIONS.get(i));
+            SkillParameters.registerVariant(skill,(input,p,stats)->{
+                int index=ACTIONS.indexOf(input.skill().id);
+                var values=new LinkedHashMap<>(input.values());
+                boolean changed=false;
+                if(WEAPONS.get(index).equals(stats.weaponType)){
+                    values.computeIfPresent("damage",(k,v)->v*MATCH[index]);
+                    changed=true;
+                }
+                if("GREATSWORD".equals(stats.weaponType)&&TowerBattleCard.ORACLE_GREATSWORD_CLEAVE.held(stats)){
+                    double rangeScale=1+TowerBattleCard.ORACLE_GREATSWORD_CLEAVE.ratio("range");
+                    double damageScale=1+TowerBattleCard.ORACLE_GREATSWORD_CLEAVE.ratio("damage");
+                    values.computeIfPresent("damage",(k,v)->v*damageScale);
+                    values.put("meleeScale",values.getOrDefault("meleeScale",1d)*rangeScale);
+                    if(input.skill().id.equals(THRUST)||input.skill().id.equals(RIFT))values.computeIfPresent("range",(k,v)->v*rangeScale);
+                    changed=true;
+                }
+                if("KATANA".equals(stats.weaponType)&&TowerBattleCard.ORACLE_KATANA_FLASH.held(stats)){
+                    double damageScale=1+TowerBattleCard.ORACLE_KATANA_FLASH.ratio("damage");
+                    values.computeIfPresent("damage",(k,v)->v*damageScale);
+                    changed=true;
+                }
+                return changed?new SkillParameters.Snapshot(input.skill(),input.rank(),values):input;
+            });
+            SkillPreviewRules.supplement(skill,(progress,stats,parameters,effects)->{
+                var extra=new SkillPreview.Damage(0,0);
+                if("LIGHTSABER".equals(stats.weaponType)&&TowerBattleCard.ORACLE_LIGHTSABER_ECHO.held(stats))
+                    extra=extra.plus(SkillPreview.damage(progress,stats,skill,parameters.get("damage",0)*TowerBattleCard.ORACLE_LIGHTSABER_ECHO.ratio("damage"),false,effects));
+                if("BLUNT".equals(stats.weaponType)&&TowerBattleCard.ORACLE_BLUNT_QUAKE.held(stats))
+                    extra=extra.plus(SkillPreview.damage(progress,stats,skill,parameters.get("damage",0)*TowerBattleCard.ORACLE_BLUNT_QUAKE.ratio("damage"),true,effects));
+                return extra;
+            });
         }
-        // Preserve the original calibration basis: the additional five strikes are a real damage increase.
-        SkillBalance.register(SkillCatalog.require(REPLICA),new SkillBalanceProfile(7.5,90,false,false,0,(s,r,c)->{
-            double total=s.parameters(r).get("damage");var hits=new ArrayList<SkillBalanceProfile.Hit>();for(int i=0;i<8;i++)hits.add(new SkillBalanceProfile.Hit(i*600+300,total*.0625,false));
-            for(int i=0;i<3;i++)hits.add(new SkillBalanceProfile.Hit(4800+i*250,total*.05,false));hits.add(new SkillBalanceProfile.Hit(6150,total*.35,false));return hits;
-        }));
     }
     public static boolean contains(String id){return id.equals(WILL)||id.equals(REPLICA)||ACTIONS.contains(id);}
     public static int action(int seed,int index){var random=new Random(seed);int previous=-1;for(int i=0;i<=index;i++){int next=random.nextInt(previous<0?5:4);if(previous>=0&&next>=previous)next++;previous=next;}return previous;}

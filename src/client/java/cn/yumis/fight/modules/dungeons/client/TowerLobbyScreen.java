@@ -16,7 +16,8 @@ final class TowerLobbyScreen extends ThemedScreen {
 
     @Override protected void init() {
         boolean chooseDeck = !view.deck().isEmpty() && !view.accepted();
-        boxHeight = 83 + Math.min(8, view.members().size()) * 13 + (chooseDeck ? 51 : 0);
+        int pendingCareer = chooseDeck ? TowerClient.pendingCareerPicks() : 0;
+        boxHeight = 83 + Math.min(8, view.members().size()) * 13 + (chooseDeck ? 51 : 0) + (pendingCareer > 0 ? 13 : 0);
         left = width / 2 - 120;
         top = (height - boxHeight) / 2;
         String action = view.leader() ? "start" : "accept";
@@ -65,6 +66,10 @@ final class TowerLobbyScreen extends ThemedScreen {
         if (!view.deck().isEmpty() && !view.accepted()) {
             graphics.text(type, "重新选牌将清空你在塔内获得的全部增益和卡牌。", left + 12, y, UiTheme.GOLD, false);
             graphics.text(type, "保留卡牌则本次爬塔全程无法选牌。", left + 12, y + 13, UiTheme.TEXT, false);
+            int pendingCareer = TowerClient.pendingCareerPicks();
+            if (pendingCareer > 0) {
+                graphics.text(type, "本职业有 " + pendingCareer + " 张职业神话卡待补选，取消后点石碑。", left + 12, y + 26, UiTheme.GOLD, false);
+            }
         }
         super.drawContents(graphics, mouseX, mouseY, delta);
     }

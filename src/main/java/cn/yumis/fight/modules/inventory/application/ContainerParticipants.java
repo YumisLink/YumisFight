@@ -35,7 +35,7 @@ final class ContainerParticipants {
                 var parts=(CompoundContainerAccessor)compound;int first=parts.ydnf$first().getContainerSize();
                 if(index<first)container=parts.ydnf$first();else{index-=first;container=parts.ydnf$second();}
             }
-            if(index<0||index>=container.getContainerSize()||container==player.getInventory()||container==extra||container==extra.bag||generated(slot))continue;
+            if(index<0||index>=container.getContainerSize()||container==player.getInventory()||container==extra||container==extra.bag||extra.categories.owns(container)||generated(slot))continue;
             if(player.inventoryMenu.slots.stream().anyMatch(s->s.container==slot.container))continue;
             if(!seen.computeIfAbsent(container,ignored->new HashSet<>()).add(index))continue;
             refs.add(new Ref(container,index,inventory.encode(player,container.getItem(index)),temporary(player.containerMenu)));

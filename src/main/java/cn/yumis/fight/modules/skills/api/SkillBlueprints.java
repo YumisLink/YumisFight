@@ -60,8 +60,26 @@ public final class SkillBlueprints {
         registerFrom(SkillCatalog.BLINK, 100, 0)
             .effect(0, "blink", "START", true)
             .buildAndRegister();
+        registerFrom(SkillCatalog.METEOR_RISE, 550, 260)
+            .dash(0, 2.4, 2.6, 0.46, "START")
+            .slash(220, 4.2, 3.4, 4.2, 0.54, 0.45, "RELEASE")
+            .buildAndRegister();
+        registerFrom(SkillCatalog.METEOR_LEAP, 650, 320)
+            .dash(0, 6.5, 2.8, 0.33, "START")
+            .area(280, 4.4, 0.67, false, false, "RELEASE")
+            .buildAndRegister();
+        registerFrom(SkillCatalog.METEOR_PIERCE, 450, 280)
+            .dash(0, 3.2, 2.4, 0.34, "START")
+            .slash(120, 5.4, 2.4, 2.6, 0.33, 0.25, "HIT")
+            .slash(240, 5.4, 2.4, 2.6, 0.33, 0.35, "RELEASE")
+            .buildAndRegister();
 
         // Soul Bender / Asura / Berserker reusable blueprints
+        registerFrom(SkillCatalog.require(CareerSkills.MOONLIGHT), 800, 200)
+            .dash(0, 2.4, 3.2, 6.0 / 22.0, "SEGMENT")
+            .dash(220, 2.4, 3.2, 6.0 / 22.0, "SEGMENT")
+            .area(460, 4.2, 10.0 / 22.0, false, true, "FINISH")
+            .buildAndRegister();
         {
             var tomb = registerFrom(SkillCatalog.require(CareerSkills.TOMBSTONE), 2000, 200);
             for (int i = 0; i < 10; i++) tomb.area((i + 1) * 200L, 4.0, 0.1, false, true, "HIT");
@@ -102,32 +120,32 @@ public final class SkillBlueprints {
             .buildAndRegister();
         registerFrom(SkillCatalog.require(CareerSkills.CRASH), 700, 500)
             .dash(0, 3.0, 2.5, 0.25, "START")
-            .area(500, 3.0, 0.75, false, true, "FINISH")
+            .area(500, 4.0, 0.75, false, true, "FINISH")
             .buildAndRegister();
         registerFrom(SkillCatalog.require(CareerSkills.HAND), 600, 350)
-            .slash(350, 3.0, 2.0, 3.0, 1.0, 0.0, "RELEASE")
+            .slash(350, 4.0, 3.0, 3.0, 1.0, 0.0, "RELEASE")
             .buildAndRegister();
         {
             var rage = registerFrom(SkillCatalog.require(CareerSkills.RAGE), 800, 150);
-            for (int i = 0; i < 5; i++) rage.area(i * 150L, 4.0, 0.2, false, true, "HIT");
+            for (int i = 0; i < 5; i++) rage.area(i * 150L, 5.0, 0.2, false, true, "HIT");
             rage.buildAndRegister();
         }
         registerFrom(SkillCatalog.require(CareerSkills.BLADE), 650, 200)
-            .slash(200, 5.0, 2.0, 3.0, 0.25, 0.0, "RELEASE")
-            .area(350, 3.0, 0.75, false, true, "FINISH")
+            .slash(200, 6.0, 3.0, 3.0, 0.25, 0.0, "RELEASE")
+            .area(350, 4.0, 0.75, false, true, "FINISH")
             .buildAndRegister();
         {
             var eruption = registerFrom(SkillCatalog.require(CareerSkills.ERUPTION), 1650, 850)
                 .dash(250, 6.0, 3.0, 0.0, "START")
-                .area(850, 6.0, 0.35, false, true, "RELEASE");
-            for (int i = 0; i < 4; i++) eruption.area(850 + i * 200L, 6.0, 0.65 / 4.0, false, true, "HIT");
+                .area(850, 7.0, 0.35, false, true, "RELEASE");
+            for (int i = 0; i < 4; i++) eruption.area(850 + i * 200L, 7.0, 0.65 / 4.0, false, true, "HIT");
             eruption.buildAndRegister();
         }
         {
             var sword = registerFrom(SkillCatalog.require(CareerSkills.SWORD), 2000, 300)
                 .status(ActionStatus.INVULNERABLE)
-                .area(300, StormChoreography.RADIUS, 0.3, false, true, "RELEASE");
-            for (int i = 0; i < 5; i++) sword.area(600 + i * 300L, StormChoreography.RADIUS, 0.14, false, true, i == 4 ? "FINISH" : "HIT");
+                .area(300, 7.5, 0.3, false, true, "RELEASE");
+            for (int i = 0; i < 5; i++) sword.area(600 + i * 300L, 7.5, 0.14, false, true, i == 4 ? "FINISH" : "HIT");
             sword.buildAndRegister();
         }
 
@@ -172,6 +190,28 @@ public final class SkillBlueprints {
         registerFrom(SkillCatalog.require(BattleMageSkills.DRAGON_SPEAR), 2000, 1900)
             .slash(150, 7.5, 3.2, 2.2, 0.25, 0.2, "START")
             .area(1750, 6.5, 0.35, false, true, "FINISH").buildAndRegister();
+        registerFrom(SkillCatalog.require(WitchSkills.SHADOW_CLOAK), 650, 450)
+            .status(ActionStatus.INVULNERABLE)
+            .area(120, 4.5, 0.34, true, true, "START")
+            .area(450, 4.5, 0.66, false, true, "FINISH").buildAndRegister();
+        registerFrom(SkillCatalog.require(WitchSkills.GIANT_FLYSWATTER), 500, 220)
+            .area(220, 3.8, 1.0, false, true, "RELEASE").buildAndRegister();
+        registerFrom(SkillCatalog.require(WitchSkills.ANTI_GRAVITY), 1200, 350)
+            .area(350, 5.5, 0.26, false, true, "RELEASE")
+            .area(850, 6.2, 0.74, false, true, "FINISH").buildAndRegister();
+        registerFrom(SkillCatalog.require(WitchSkills.RAGING_FLAME_FURNACE), 2800, 250)
+            .area(1400, 7.5, 0.69, false, true, "HIT")
+            .area(2800, 6.5, 0.31, false, true, "FINISH").buildAndRegister();
+        registerFrom(SkillCatalog.require(WitchSkills.MEGA_DRILL), 3200, 250)
+            .area(1600, 4.2, 0.67, true, true, "HIT")
+            .area(3200, 6.8, 0.33, false, true, "FINISH").buildAndRegister();
+        registerFrom(SkillCatalog.require(WitchSkills.FLORAE_COLLIDER), 3000, 250)
+            .area(1500, 8.5, 0.67, false, true, "HIT")
+            .area(3000, 8.5, 0.33, false, true, "FINISH").buildAndRegister();
+        registerFrom(SkillCatalog.require(WitchSkills.FUSION_CRAFT), 3600, 600)
+            .status(ActionStatus.INVULNERABLE)
+            .area(1800, 7.5, 0.63, true, true, "HIT")
+            .area(3600, 10.5, 0.37, false, true, "FINISH").buildAndRegister();
         {
             var starfall = registerFrom(SkillCatalog.require(SunMoonSkills.STARFALL), 2200, 200);
             for (int i = 0; i < 8; i++) starfall.area(i * 250L, 4.0, 0.125, false, true, "SEGMENT");

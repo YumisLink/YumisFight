@@ -30,7 +30,7 @@ public final class DemonHunterClient {
     private static SkillsClient state(){return SkillsClient.current();}
     private static LocalPlayer player(){return Minecraft.getInstance().player;}
     private static DemonHunterState resource(){return CareerClient.INSTANCE.view.demonHunter;}
-    public static void registerResource(){PrimaryResource.register(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER,()->new PrimaryResource.View("怒气",resource().fury,DemonHunterRules.MAX_FURY,DemonHunterRules.COLOR,List.of("攻击命中及眼棱引导产生怒气，技能按各自说明消耗怒气。","脱战后每秒减少10点；怒气上限100，不受魔力与魔力恢复属性影响。")));}
+    public static void registerResource(){PrimaryResource.register(cn.yumis.fight.modules.character.api.JobCatalog.DEMON_HUNTER,()->new PrimaryResource.View("怒气",resource().fury,DemonHunterRules.MAX_FURY,DemonHunterRules.COLOR,List.of("攻击积累怒气，用于释放技能，脱战后逐渐减少。")));}
     static void installHooks(){
         SkillCastHooks.onRequest(SkillCastHooks.Stage.BEFORE_REQUEST,req->{
             if(!beforeRequest(req.skill))req.rejected=true;
@@ -212,7 +212,7 @@ public final class DemonHunterClient {
             if(p.distanceToSqr(a.target)>9||!SkillController.INSTANCE.sight(p.getEyePosition(),a.target.getBoundingBox().getCenter())){finish(a,false);return;}
             int huntHits=(int)Math.max(1,a.cast.parameters.get("slashes",8));long huntInterval=Math.max(50,(long)(a.cast.parameters.get("interval",.1)*1000));while(a.index<huntHits&&now-a.comboAt>=(a.index+1)*huntInterval/a.cast.speed){hit(a,a.target,a.cast.parameters.get("damage",0),"strike","");MageClient.INSTANCE.visual(a.cast,a.cast.id,"HIT",p.position(),a.target.position().subtract(p.position()).normalize(),5200,++a.sequence,null);a.index++;}if(a.index>=huntHits)finish(a,false);
         }else if(id.equals(DemonHunterSkills.META)){
-            double u=Math.clamp(elapsed/a.duration,0,1);position(a,a.from.lerp(a.to,u).add(0,4*a.arc*u*(1-u),0));if(u>=1){if(p.position().distanceToSqr(a.to)>.04||!floor(p.position())){finish(a,true);return;}r.metamorphosisUntil=wall+(long)(a.cast.parameters.get("transformSeconds",20)*1000);r.metamorphosisCast=a.cast.id;area(a,p.position(),Math.max(.5,a.cast.parameters.get("radius",4)),a.cast.parameters.get("damage",0),"strike","");MageClient.INSTANCE.visual(a.cast,a.cast.id,"FINISH",p.position(),Vec3.ZERO,1500,++a.sequence,null);finish(a,false);changed=true;}
+            double u=Math.clamp(elapsed/a.duration,0,1);position(a,a.from.lerp(a.to,u).add(0,4*a.arc*u*(1-u),0));if(u>=1){if(p.position().distanceToSqr(a.to)>.04||!floor(p.position())){finish(a,true);return;}r.metamorphosisUntil=wall+(long)(a.cast.parameters.get("transformSeconds",20)*1000);r.metamorphosisCast=a.cast.id;area(a,p.position(),Math.max(.5,a.cast.parameters.get("radius",4)),a.cast.parameters.get("damage",0),"strike","");MageClient.INSTANCE.visual(a.cast,a.cast.id,"FINISH",p.position(),Vec3.ZERO,Math.max(1500L,(long)Math.ceil(a.duration)+600L),++a.sequence,null);finish(a,false);changed=true;}
         }
         p.fallDistance=0;if(changed)CareerClient.INSTANCE.publish();
     }
@@ -227,7 +227,7 @@ public final class DemonHunterClient {
         SkillController.INSTANCE.releaseStatusOwner(a.cast.id);
         if(a==aura){aura=null;resource().auraUntil=0;resource().auraCast="";}if(a==primary){primary=null;var p=player();if(p!=null&&!a.cast.skill.id.equals(DemonHunterSkills.CHAOS)){p.setDeltaMovement(Vec3.ZERO);p.fallDistance=0;}if(a.cast.skill.id.equals(DemonHunterSkills.DANCE))Effects.VFX.completeCamera(UUID.fromString(a.cast.id));}
         if(cancelled)PlayerPoseChannel.cancel(a.cast);else PlayerPoseChannel.release(a.cast);
-        if(player()!=null)MageClient.INSTANCE.visual(a.cast,a.cast.id,cancelled?"CANCEL":"END",player().position(),Vec3.ZERO,1000,++a.sequence,null);CareerClient.INSTANCE.ended(a.cast);CareerClient.INSTANCE.publish();
+        if(player()!=null)MageClient.INSTANCE.visual(a.cast,a.cast.id,cancelled?"CANCEL":"END",player().position(),Vec3.ZERO,Math.max(1000L,(ClientUi.now()-a.at)+600L),++a.sequence,null);CareerClient.INSTANCE.ended(a.cast);CareerClient.INSTANCE.publish();
     }
     public static void cancel(String id){if(primary!=null&&primary.cast.id.equals(id))finish(primary,true);if(aura!=null&&aura.cast.id.equals(id))finish(aura,true);}
     public static void clear(){var p=player();if(primary!=null){SkillController.INSTANCE.releaseStatusOwner(primary.cast.id);if(p!=null){p.setDeltaMovement(Vec3.ZERO);p.fallDistance=0;}}if(aura!=null)SkillController.INSTANCE.releaseStatusOwner(aura.cast.id);if(primary!=null&&primary.cast.skill.id.equals(DemonHunterSkills.DANCE))Effects.VFX.completeCamera(UUID.fromString(primary.cast.id));primary=aura=null;aimed=null;}

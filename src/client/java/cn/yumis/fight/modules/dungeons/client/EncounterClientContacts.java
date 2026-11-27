@@ -153,7 +153,7 @@ public final class EncounterClientContacts {
         if(!inRoom){c.previous=at;return false;}boolean blocked=false;
         if(move==SkasaMoves.ICE_LINE){Vec3 from=a.position(c.previous).add(0,.7,0),to=a.position(at).add(0,.7,0);var wall=mc.level.clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,source));blocked=wall.getType()!=HitResult.Type.MISS;if(blocked&&from.distanceToSqr(to)>.000001)at=c.previous+(long)((at-c.previous)*from.distanceTo(wall.getLocation())/from.distanceTo(to));}
         if(move==SkasaMoves.VORTEX&&at>=c.pullAt){c.pullAt=at+250;if(!p.isSpectator()&&!p.getAbilities().invulnerable&&a.inArena(p.position())&&Math.abs(p.getX()-a.x)<10){Vec3 pull=a.origin().subtract(p.position()).multiply(1,0,1);if(pull.lengthSqr()>.25)p.setDeltaMovement(p.getDeltaMovement().add(pull.normalize().scale(.04)));}}
-        int pulse=a.pulse(at);if((move.travels()||a.contacting(at))&&a.contains(p.position(),pulse,c.previous,at)&&visible(a.origin().add(0,.7,0),source))contact(c,a.id+"/"+pulse,a.kind,move.coefficient,move.magic,move.element,ClientUi.current().serverNow(),move==SkasaMoves.ROAR?12:0);
+        int pulse=a.pulse(at);if((move.travels()||a.contacting(at))&&a.contains(p.position(),pulse,c.previous,at)&&visible(a.origin().add(0,.7,0),source))contact(c,a.id+"/"+pulse,a.kind,move.coefficientVal(),move.magicVal(),move.elementVal(),ClientUi.current().serverNow(),move==SkasaMoves.ROAR?12:0);
         c.previous=at;return blocked;
     }
 }

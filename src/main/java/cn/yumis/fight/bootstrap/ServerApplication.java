@@ -144,6 +144,13 @@ public final class ServerApplication {
             value.add("ritualBosses",JSON.toJsonTree(bundle.ritualBosses()));
             value.add("elementalistMorphs",JSON.toJsonTree(bundle.elementalistMorphs()));
             value.add("battleMageMorphs",JSON.toJsonTree(bundle.battleMageMorphs()));
+            value.add("combatBalance",JSON.toJsonTree(bundle.combatBalance()));
+            value.add("characterBalance",JSON.toJsonTree(bundle.characterBalance()));
+            value.add("equipmentBalance",JSON.toJsonTree(bundle.equipmentBalance()));
+            value.add("talentBalance",JSON.toJsonTree(bundle.talentBalance()));
+            value.add("economyBalance",JSON.toJsonTree(bundle.economyBalance()));
+            value.add("enemyBalance",JSON.toJsonTree(bundle.enemyBalance()));
+            value.add("bossBalance",JSON.toJsonTree(bundle.bossBalance()));
             wireDefinitions=value;definitionsKey=ProfileSync.digest(value);definitionsBundle=bundle;
         }
         return wireDefinitions;
@@ -412,8 +419,6 @@ public final class ServerApplication {
             if(!java.util.regex.Pattern.compile("(?m)^\\s*killGoldMultiplier\\s*=").matcher(text).find())additions+="\n# 仅杀怪金币倍率；出售价格不变\nkillGoldMultiplier=1.0\n";
             if(!additions.isEmpty())Files.writeString(config,additions,StandardOpenOption.APPEND);
             var nextSkills=cn.yumis.fight.modules.skills.api.SkillBalanceRules.defaults();
-            var skillResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/skills.json"));
-            if(skillResource.isPresent())try(var reader=skillResource.get().openAsReader()){nextSkills=cn.yumis.fight.modules.skills.api.SkillBalanceRules.parse(JsonParser.parseReader(reader).toString());}
             var nextChests=cn.yumis.fight.modules.economy.api.ChestDefinitions.defaults();
             var chestResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/chests.json"));
             if(chestResource.isPresent())try(var reader=chestResource.get().openAsReader()){nextChests=cn.yumis.fight.modules.economy.api.ChestDefinitions.parse(JsonParser.parseReader(reader).toString());}
@@ -432,7 +437,7 @@ public final class ServerApplication {
             var arkResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/ark_war.json"));
             if(arkResource.isPresent())try(var reader=arkResource.get().openAsReader()){nextArk=cn.yumis.fight.modules.arkguard.api.ArkRules.parse(JsonParser.parseReader(reader).toString());}
             var nextRitualBosses=cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.defaults();
-            var ritualResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/altar_bosses.json"));
+            var ritualResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/balance/bosses/altar_bosses.json"));
             if(ritualResource.isPresent())try(var reader=ritualResource.get().openAsReader()){nextRitualBosses=cn.yumis.fight.modules.dungeons.api.RitualBossCatalog.parse(JsonParser.parseReader(reader).toString());}
             var nextTalents=cn.yumis.fight.modules.talents.api.TalentCatalog.defaults();
             var talentResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/talents.json"));
@@ -443,7 +448,14 @@ public final class ServerApplication {
             var nextBattleMageMorphs=cn.yumis.fight.modules.skills.api.BattleMageMorphs.defaults();
             var battleMageResource=server.getResourceManager().getResource(Identifier.fromNamespaceAndPath(ItemData.NS,"rules/battle_mage.json"));
             if(battleMageResource.isPresent())try(var reader=battleMageResource.get().openAsReader()){nextBattleMageMorphs=cn.yumis.fight.modules.skills.api.BattleMageMorphs.parse(JsonParser.parseReader(reader).toString());}
-            var candidate=cn.yumis.fight.bootstrap.ApplicationRules.Bundle.validated(nextCatalog,nextDungeons,nextNames,nextDefinitions,nextAffixes,nextLayout,nextIndustrial,nextSkills,nextChests,nextJars,nextShops,nextNpcs,nextQuests,nextArk,nextRitualBosses,nextTalents,nextElementalistMorphs,nextBattleMageMorphs);
+            var nextCombatBalance=cn.yumis.fight.modules.combat.api.CombatBalanceRules.defaults();
+            var nextCharacterBalance=cn.yumis.fight.modules.character.api.CharacterBalanceRules.defaults();
+            var nextEquipmentBalance=cn.yumis.fight.modules.equipment.api.EquipmentBalanceRules.defaults();
+            var nextTalentBalance=cn.yumis.fight.modules.talents.api.TalentBalanceRules.defaults();
+            var nextEconomyBalance=cn.yumis.fight.modules.economy.api.EconomyBalanceRules.defaults();
+            var nextEnemyBalance=cn.yumis.fight.modules.dungeons.api.EnemyBalanceRules.defaults();
+            var nextBossBalance=cn.yumis.fight.modules.dungeons.api.BossBalanceRules.defaults();
+            var candidate=cn.yumis.fight.bootstrap.ApplicationRules.Bundle.validated(nextCatalog,nextDungeons,nextNames,nextDefinitions,nextAffixes,nextLayout,nextIndustrial,nextSkills,nextChests,nextJars,nextShops,nextNpcs,nextQuests,nextArk,nextRitualBosses,nextTalents,nextElementalistMorphs,nextBattleMageMorphs,nextCombatBalance,nextCharacterBalance,nextEquipmentBalance,nextTalentBalance,nextEconomyBalance,nextEnemyBalance,nextBossBalance);
             journal.transaction(Map.ofEntries(Map.entry("definitions/equipment",JSON.toJsonTree(candidate.equipment())),Map.entry("definitions/affixes",JSON.toJsonTree(candidate.affixes())),Map.entry("definitions/skills",JSON.toJsonTree(candidate.skills())),Map.entry("definitions/chests",JSON.toJsonTree(candidate.chests())),Map.entry("definitions/jars",JSON.toJsonTree(candidate.jars())),Map.entry("definitions/shops",JSON.toJsonTree(candidate.shops())),Map.entry("definitions/npcs",JSON.toJsonTree(candidate.npcs())),Map.entry("definitions/quests",JSON.toJsonTree(candidate.quests())),Map.entry("definitions/ark_war",JSON.toJsonTree(candidate.arkWar())),Map.entry("definitions/ritual_bosses",JSON.toJsonTree(candidate.ritualBosses())),Map.entry("definitions/talents",JSON.toJsonTree(candidate.talents())),Map.entry("definitions/elementalist",JSON.toJsonTree(candidate.elementalistMorphs())),Map.entry("definitions/battle_mage",JSON.toJsonTree(candidate.battleMageMorphs()))));
             cn.yumis.fight.bootstrap.ApplicationRules.publish(candidate);
             worldDifficulty=nextDifficulty;
@@ -837,6 +849,11 @@ public final class ServerApplication {
         conveyorConstruction.tick();
         dungeons.treasure.tick();
         dungeons.tickElaina();
+        dungeons.tickLiangyue();
+        dungeons.tickFrostnova();
+        dungeons.tickGilgamesh();
+        dungeons.tickSwordMasters();
+        dungeons.tickRoxy();
         for(ServerPlayer p:server.getPlayerList().getPlayers())cn.yumis.fight.modules.inventory.api.RewardMenu.tick(p,inventory);
         for(ServerPlayer viewer:server.getPlayerList().getPlayers()){var sender=viewSenders.get(viewer.getUUID());if(sender!=null)sender.flush((action,packet)->Network.send(viewer,action,packet));}
         cn.yumis.fight.modules.industry.platform.IndustrialWorld.tick(server);

@@ -35,7 +35,7 @@ public final class EquipmentAffixes {
             case STAMINA->slot==Slot.LEGS;
             case ATTACK_SPEED->slot==Slot.WEAPON||sixJewelry(slot);
             case HEALTH->slot.armor();
-            case MP,STRENGTH,INTELLIGENCE,SPIRIT->slot.armor()||slot.jewelry();
+            case MP,STRENGTH,INTELLIGENCE,VITALITY,SPIRIT->slot.armor()||slot.jewelry();
             case PHYSICAL_ATTACK,MAGICAL_ATTACK->slot==Slot.WEAPON;
             case PHYSICAL_DEFENSE,MAGICAL_DEFENSE->true;
             case LIGHT,FIRE,ICE,DARK,LIGHT_RESIST,FIRE_RESIST,ICE_RESIST,DARK_RESIST->elementFlat(slot);
@@ -51,7 +51,7 @@ public final class EquipmentAffixes {
             case MOVEMENT_SPEED,CAST_SPEED,LIFE_STEAL,MANA_REGENERATION,COOLDOWN_RECOVERY,EXPERIENCE_GAIN,STAMINA,STAMINA_RECOVERY,SHIELD_COOLDOWN_RECOVERY,SHIELD_REGENERATION,HEALTH_REGENERATION->false;
             case ATTACK_SPEED->false;
             case HEALTH,MP->slot.armor()||slot.jewelry();
-            case STRENGTH,INTELLIGENCE,SPIRIT->true;
+            case STRENGTH,INTELLIGENCE,VITALITY,SPIRIT->true;
             case PHYSICAL_ATTACK,MAGICAL_ATTACK->!slot.armor();
             case PHYSICAL_DEFENSE,MAGICAL_DEFENSE,SHIELD->slot.armor();
             case LIGHT,FIRE,ICE,DARK->slot==Slot.WEAPON||slot==Slot.SUB_EQUIPMENT||slot==Slot.MAGIC_STONE||slot==Slot.EARRING;
@@ -85,6 +85,7 @@ public final class EquipmentAffixes {
             case MP->100+14*n;
             case STRENGTH->20+3*n;
             case INTELLIGENCE->15+2*n;
+            case VITALITY->15+2*n;
             case SPIRIT->10+2*n;
             case PHYSICAL_ATTACK,MAGICAL_ATTACK->15+4*n;
             case PHYSICAL_DEFENSE->g.slot.armor()?defenses(g.level,false)[g.slot.ordinal()-1]:(80+15*n)/4d;
@@ -100,7 +101,7 @@ public final class EquipmentAffixes {
         if(a.operation.equals("PERCENT"))return percentBaseline(g.level,s);
         if(s==Stat.DROP_RATE)return 2;
         if(s.ordinal()>=Stat.LIGHT.ordinal()&&s.ordinal()<=Stat.DARK_RESIST.ordinal())return reference(g,s);
-        return reference(g,s)*(s==Stat.HEALTH||s==Stat.MP||s==Stat.SHIELD?.045:.075);
+        return reference(g,s)*(s==Stat.HEALTH?.1125:s==Stat.MP||s==Stat.SHIELD?.045:.075);
     }
     public static void grow(Gear g){
         for(Affix a:g.affixes){

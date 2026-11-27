@@ -117,7 +117,11 @@ final class GoblinCampEncounterService {
             k.probes.remove(probe);
             if(players.stream().filter(Entity::isAlive).anyMatch(player->connected(probe,player)))addRage(e,t,players,1);
         }
-        int stage=t.life.q<=PHASE_3?3:t.life.q<=PHASE_2?2:1;
+        var kenoBoss=cn.yumis.fight.modules.dungeons.api.BossBalanceRules.current().dungeonBoss("goblin_camp_keno");
+        double p2=kenoBoss==null?PHASE_2:kenoBoss.param("phase2Floor",PHASE_2);
+        double p3=kenoBoss==null?PHASE_3:kenoBoss.param("phase3Floor",PHASE_3);
+        double rageMax=kenoBoss==null?RAGE_MAXIMUM:kenoBoss.param("rageMaximum",RAGE_MAXIMUM);
+        int stage=t.life.q<=p3?3:t.life.q<=p2?2:1;
         if(k.stage==0)k.stage=stage;
         else if(stage>k.stage){transition(dungeon,e,t,k,stage,players,now);return;}
         if(now<k.transitionUntil){e.getNavigation().stop();return;}
@@ -131,7 +135,7 @@ final class GoblinCampEncounterService {
         if(distance<3.5){if(k.meleeSince==0)k.meleeSince=now;}
         else k.meleeSince=0;
         if(k.stage>=2&&k.meleeSince>0&&now-k.meleeSince>=3000&&ready(k,"BLINK",now)){blink(dungeon,e,p,k,now);return;}
-        if(k.stage>=3&&t.rage>=RAGE_MAXIMUM&&ready(k,"ULTIMATE",now)){ultimate(e,p,t,k,players,now);return;}
+        if(k.stage>=3&&t.rage>=rageMax&&ready(k,"ULTIMATE",now)){ultimate(e,p,t,k,players,now);return;}
         String kind=distance<3.5?weighted(k,now,"BASIC","45","FAN","30","CLAW","25")
             :distance<=8?weighted(k,now,"FAN","40","RING","25","LIGHTNING","20")
             :distance<12?"LIGHTNING":null;
@@ -152,17 +156,20 @@ final class GoblinCampEncounterService {
         return kinds.getLast();
     }
     private long cooldown(Keno k,String kind,long base,long now){
-        long scaled=k.stage>=3?Math.round(base*.8):base;
+        var kenoBoss=cn.yumis.fight.modules.dungeons.api.BossBalanceRules.current().dungeonBoss("goblin_camp_keno");
+        double stage3Scale=kenoBoss==null?.8:kenoBoss.param("stage3CooldownScale",.8);
+        long scaled=k.stage>=3?Math.round(base*stage3Scale):base;
         k.cooldowns.put(kind,now+scaled*1000);
         return scaled*1000;
     }
     private void cast(DungeonEnemy e,ServerPlayer p,Keno k,long now,String kind){
+        var kenoBoss=cn.yumis.fight.modules.dungeons.api.BossBalanceRules.current().dungeonBoss("goblin_camp_keno");
         switch(kind){
-            case "LIGHTNING"->{cooldown(k,"LIGHTNING",k.stage>=2?8:10,now);strike(e,p,k,now,"LIGHTNING","lightning_cast","CIRCLE",true,2,Math.PI,1200,200,1000,1.4,true);}
-            case "FAN"->{cooldown(k,"FAN",6,now);strike(e,p,k,now,"FAN","fan_swipe","FAN",false,6,Math.PI/4,800,200,800,1.2,true);}
-            case "BASIC"->{cooldown(k,"BASIC",2,now);strike(e,p,k,now,"BASIC","basic_strike","FAN",false,3,Math.PI/3,300,200,400,1,false);}
-            case "RING"->{cooldown(k,"RING",8,now);strike(e,p,k,now,"RING","ring_burst","CIRCLE",false,5.5,Math.PI,900,200,700,1.3,true);}
-            case "CLAW"->{cooldown(k,"CLAW",6,now);claw(e,p,k,now,k.stage>=3?.9:.7);}
+            case "LIGHTNING"->{var m=kenoBoss.move(k.stage>=2?"LIGHTNING_STAGE2":"LIGHTNING");cooldown(k,"LIGHTNING",m.cooldown()/1000,now);strike(e,p,k,now,"LIGHTNING","lightning_cast","CIRCLE",true,m.range(),Math.PI,m.windup(),m.active(),Math.max(0,m.duration()-m.windup()-m.active()),m.coefficient(),m.magic());}
+            case "FAN"->{var m=kenoBoss.move("FAN");cooldown(k,"FAN",m.cooldown()/1000,now);strike(e,p,k,now,"FAN","fan_swipe","FAN",false,m.range(),Math.PI/4,m.windup(),m.active(),Math.max(0,m.duration()-m.windup()-m.active()),m.coefficient(),m.magic());}
+            case "BASIC"->{var m=kenoBoss.move("BASIC");cooldown(k,"BASIC",m.cooldown()/1000,now);strike(e,p,k,now,"BASIC","basic_strike","FAN",false,m.range(),Math.PI/3,m.windup(),m.active(),Math.max(0,m.duration()-m.windup()-m.active()),m.coefficient(),m.magic());}
+            case "RING"->{var m=kenoBoss.move("RING");cooldown(k,"RING",m.cooldown()/1000,now);strike(e,p,k,now,"RING","ring_burst","CIRCLE",false,m.range(),Math.PI,m.windup(),m.active(),Math.max(0,m.duration()-m.windup()-m.active()),m.coefficient(),m.magic());}
+            case "CLAW"->{var m=kenoBoss.move(k.stage>=3?"CLAW_STAGE3":"CLAW");cooldown(k,"CLAW",m.cooldown()/1000,now);claw(e,p,k,now,m.coefficient());}
             default->{return;}
         }
     }
@@ -197,10 +204,12 @@ final class GoblinCampEncounterService {
     }
     /** Furious storm: circles rain on the player's live position, one per 600 ms, so staying still is punished. */
     private void ultimate(DungeonEnemy e,ServerPlayer p,Target t,Keno k,List<ServerPlayer> players,long now)throws Exception{
+        var kenoBoss=cn.yumis.fight.modules.dungeons.api.BossBalanceRules.current().dungeonBoss("goblin_camp_keno");
         boolean stage3=k.stage>=3;
+        var ultMove=kenoBoss.move(stage3?"ULTIMATE_STAGE3":"ULTIMATE");
         int circles=stage3?4:3;
-        double radius=stage3?5:4,coefficient=stage3?2.6:1.8;
-        cooldown(k,"ULTIMATE",25,now);
+        double radius=ultMove.range(),coefficient=ultMove.coefficient();
+        cooldown(k,"ULTIMATE",ultMove.cooldown()/1000,now);
         t.rage=0;sync(e,t,players);
         var timing=owner.targets().target(e).actionTiming(now);
         long lead=timing.windup(800),gap=timing.duration(600),tail=timing.recovery(800),duration=lead+(circles-1)*gap+tail;

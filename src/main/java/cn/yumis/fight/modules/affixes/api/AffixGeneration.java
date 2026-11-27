@@ -57,4 +57,21 @@ public final class AffixGeneration {
         var definition=selected.definitions.get(random.nextInt(selected.definitions.size()));
         return selected.group.factory.create(context,definition,roll,random);
     }
+    /** Samples an eligible affix whose definition matches the filter at a fixed roll (1 = maximum); null when nothing matches. */
+    public static Affix sample(Item item,boolean duplicates,Random random,Predicate<AffixDefinition> filter,double roll){
+        Context context=new Context(item,duplicates);
+        record Choice(Group group,List<AffixDefinition> definitions,double weight){}
+        List<Choice> choices=new ArrayList<>();double total=0;
+        for(Group group:GROUPS.values()){
+            var candidates=group.candidates.apply(context).stream().filter(filter).toList();
+            double weight=candidates.isEmpty()?0:group.weight.applyAsDouble(context);
+            if(!Double.isFinite(weight)||weight<0)throw new IllegalArgumentException("Invalid affix group weight");
+            if(weight>0){choices.add(new Choice(group,candidates,weight));total+=weight;}
+        }
+        if(total==0)return null;
+        double choice=random.nextDouble()*total;Choice selected=choices.getLast();
+        for(Choice candidate:choices){if(choice<candidate.weight){selected=candidate;break;}choice-=candidate.weight;}
+        var definition=selected.definitions.get(random.nextInt(selected.definitions.size()));
+        return selected.group.factory.create(context,definition,roll,random);
+    }
 }

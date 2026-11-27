@@ -16,6 +16,13 @@ public final class SkillPreview {
         if(resources.buffs.getOrDefault("yumis_dungeon_and_fight:overdrive",0L)>now){
             double power=resources.absorption.getOrDefault("overdrivePower",0d);
             stats.mut(Stat.PHYSICAL_ATTACK,power);
+            if(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_OVERDRIVE_LIGHT.held(stats)){
+                stats.modifiers.put("overdriveLightAppend",cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_OVERDRIVE_LIGHT.ratio("light"));
+            }
+        }
+        if(resources.buffs.getOrDefault("towerCard/"+cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_HAND_SIPHON.id(),0L)>now){
+            stats.mut(Stat.STRENGTH,cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_HAND_SIPHON.ratio("strength"));
+            stats.modifier("final").mut+=cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_HAND_SIPHON.ratio("damage");
         }
         cn.yumis.fight.modules.combat.api.EquipmentBuffs.apply(stats,resources,now);
         cn.yumis.fight.modules.equipment.api.EquipmentEffects.finish(stats,resources.equipment);
@@ -49,6 +56,7 @@ public final class SkillPreview {
         boolean magic=stats.modifiers.containsKey("previewPhaseMagic")?stats.modifiers.get("previewPhaseMagic")>0:CareerRules.magic(skill,progress);
         elements=SummonerSkills.elements(stats,elements);
         elements=ElementalistRules.previewElements(skill,stats,elements);
+        elements=WitchRules.previewElements(skill,stats,elements);
         boolean allowed=cn.yumis.fight.modules.combat.api.EquipmentDamage.allowed(effects,elements);elements=cn.yumis.fight.modules.combat.api.EquipmentDamage.elements(effects,elements);
         double mastery=mastery(progress,stats);
         var attack=SkillDamageRules.rotation(stats,skill,TowerCardEffects.panel(stats)).apply(stats);
@@ -59,37 +67,42 @@ public final class SkillPreview {
         double maximum=SkillDamageRules.skillDamage(high,stats,skill,mastery,false,passive,magic,1).total();
         if(append){
             double[] resist=new double[4];
-            minimum+=EquipmentDamage.append(minimum,stats,effects,0,resist)+EquipmentDamage.appendNeutralPhysical(minimum,effects,0,resist);
-            maximum+=EquipmentDamage.append(maximum,stats,effects,0,resist)+EquipmentDamage.appendNeutralPhysical(maximum,effects,0,resist);
+            double overdriveLight=stats.modifiers.getOrDefault("overdriveLightAppend",0d);
+            double baseMin=minimum,baseMax=maximum;
+            minimum+=EquipmentDamage.append(baseMin,stats,effects,0,resist)+EquipmentDamage.appendNeutralPhysical(baseMin,effects,0,resist)+EquipmentDamage.appendLight(baseMin,stats,effects,0,resist,overdriveLight);
+            maximum+=EquipmentDamage.append(baseMax,stats,effects,0,resist)+EquipmentDamage.appendNeutralPhysical(baseMax,effects,0,resist)+EquipmentDamage.appendLight(baseMax,stats,effects,0,resist,overdriveLight);
         }
         return new Damage(minimum,maximum);
     }
     public static Preview resolve(Progress progress,Stats stats,SkillDefinition skill,SkillParameters.Snapshot parameters,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){
         stats=CareerRules.castDamage(SunMoonRules.forCast(stats,skill),parameters);
         stats=ElementalistRules.prepareCastStats(stats,parameters);
+        stats=WitchRules.prepareCastStats(stats,parameters);
         stats=SkillPreviewRules.castStats(skill,stats);
         int rank=SkillLearning.effective(stats,progress,skill);
         var definition=SkillPreviewRules.require(skill);
         int count=definition.hits().applyAsInt(parameters);
         double coefficient=parameters.get("previewDamage",parameters.get("damage",0));
         var pattern=SkillPreviewRules.pattern(skill,parameters);if(pattern!=null){count=pattern.hits();coefficient=pattern.coefficient();}
-        if(skill.id.equals(CareerSkills.CRESCENT))coefficient/=3;
+        if(skill.id.equals(CareerSkills.CRESCENT)&&!cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ASURA_CRESCENT_MAX.held(stats))coefficient/=3;
         Damage hit=count==0?new Damage(0,0):SkillPreviewRules.hitPhase(skill)!=null?phaseDamage(progress,stats,skill,coefficient,SkillPreviewRules.hitPhase(skill),effects):damage(progress,stats,skill,coefficient,false,effects);
         if(skill.id.equals(MageSkills.HERDER)){
             var inherited=SummonerSkills.inherit(stats,SummonKind.HERDER,SkillLearning.effective(stats,progress,SkillCatalog.require(SummonerSkills.MASTERY)));var melee=damage(progress,inherited,skill,parameters.get("damage",0),false,effects);var stone=damage(progress,inherited,skill,parameters.get("stoneDamage",0),false,effects);Damage total=new Damage(0,0);
-            for(var action:SummonMoves.cues(SummonKind.HERDER,parameters,120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus((action.stone()?stone:melee).times(action.share()));
-            hit=total;
+            for(var action:SummonMoves.cues(SummonKind.HERDER,parameters,inherited,120000,Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100)))total=total.plus((action.stone()?stone:melee).times(action.share()));
+            hit=total.times(SummonerSkills.spawnKinds(skill.id,stats).size());
         }
         if(SummonerSkills.contains(skill.id)&&!SummonerSkills.kinds(skill.id).isEmpty()){
             Damage total=new Damage(0,0);int masteryRank=SkillLearning.effective(stats,progress,SkillCatalog.require(SummonerSkills.MASTERY));
-            for(var kind:SummonerSkills.kinds(skill.id)){var inherited=SummonerSkills.inherit(stats,kind,masteryRank);double speed=Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100);for(var action:SummonMoves.cues(kind,parameters,120000,speed)){inherited.modifiers.put("summonElement",(double)SummonMoves.require(action.move()).element());total=total.plus(damage(progress,inherited,skill,parameters.get("damage",0)*action.share(),false,effects));}}
+            for(var kind:SummonerSkills.kinds(skill.id)){var inherited=SummonerSkills.inherit(stats,kind,masteryRank);double speed=Math.max(.01,1+inherited.get(Stat.ATTACK_SPEED)/100);for(var action:SummonMoves.cues(kind,parameters,inherited,120000,speed)){inherited.modifiers.put("summonElement",(double)SummonMoves.require(action.move()).element());total=total.plus(damage(progress,inherited,skill,parameters.get("damage",0)*action.share(),false,effects));}}
             hit=total;
         }
         Damage finisher=pattern!=null&&pattern.finisher()>0?damage(progress,stats,skill,pattern.finisher(),false,effects):definition.finisher()?damage(progress,stats,skill,parameters.get("finisher",0),false,effects):new Damage(0,0);
         if(SkillPreviewRules.finisherPhase(skill)!=null)finisher=phaseDamage(progress,stats,skill,parameters.get("finisher",0),SkillPreviewRules.finisherPhase(skill),effects);
         Damage wave=new Damage(0,0);
         if(stats.weaponType.equals("SHORTSWORD")&&mastery(progress,stats)>0&&definition.shortSwordWave())
-            wave=damage(progress,stats,skill,parameters.get("damage",0)*.2*mastery(progress,stats),true,effects);
+            wave=damage(progress,stats,skill,parameters.get("damage",0)*.2*mastery(progress,stats)*WeaponSkills.shortSwordWaveDamageFactor(stats),true,effects);
+        else if(stats.weaponType.equals("SHORTSWORD")&&OracleSkills.ACTIONS.contains(skill.id)&&cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ORACLE_SHORTSWORD_WAVE.held(stats))
+            wave=damage(progress,stats,skill,parameters.get("damage",0)*cn.yumis.fight.modules.dungeons.api.TowerBattleCard.ORACLE_SHORTSWORD_WAVE.ratio("damage"),true,effects);
         Damage total=SkillPreviewRules.total(skill,progress,stats,parameters,effects);if(total==null)total=hit.times(count).plus(finisher).plus(SkillPreviewRules.supplement(skill,progress,stats,parameters,effects));
         var cost=SkillCosts.resolve(skill,Math.max(1,rank),stats,effects,CareerRules.magic(skill,progress));
         return new Preview(rank,count,hit,finisher,total,wave,cost.mana(),cost.cooldown(),parameters,effects);

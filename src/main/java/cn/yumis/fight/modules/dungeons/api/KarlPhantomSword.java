@@ -34,7 +34,8 @@ public final class KarlPhantomSword extends ThrowableItemProjectile {
         sword.setItem(blade);
         sword.setOwner(owner);
         sword.setPos(origin);
-        sword.shoot(direction.x, direction.y, direction.z, SPEED, 0);
+        var c = EnemyBalanceRules.current().castle;
+        sword.shoot(direction.x, direction.y, direction.z, (float) c.phantomSwordSpeed(), 0);
         level.addFreshEntity(sword);
     }
 
@@ -45,7 +46,8 @@ public final class KarlPhantomSword extends ThrowableItemProjectile {
     @Override public boolean canUsePortal(boolean ignorePassenger) { return false; }
 
     @Override public void tick() {
-        if (level() instanceof ServerLevel && (tickCount > FLIGHT_TICKS || getOwner() == null || !getOwner().isAlive())) {
+        int flightTicks = EnemyBalanceRules.current().castle.phantomSwordFlightTicks();
+        if (level() instanceof ServerLevel && (tickCount > flightTicks || getOwner() == null || !getOwner().isAlive())) {
             discard();
             return;
         }

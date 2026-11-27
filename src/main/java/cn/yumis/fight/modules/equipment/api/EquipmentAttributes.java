@@ -78,12 +78,20 @@ public final class EquipmentAttributes {
         sources.applyCharacter(s);
         characterEffects.accept(p,s);
         for(Gear g:equipped)if(g.valid(p,allowance)&&MageBlood.is(g))MageBlood.apply(cn.yumis.fight.modules.equipment.api.EquipmentResolution.resolve(g),s);
+        var balance=EquipmentBalanceRules.current();
+        double vitality=s.get(Stat.VITALITY);
+        var vc=balance.vitalityConversions;
+        s.attribute(Stat.HEALTH).fadd+=vc.healthPerVitality()*vitality;
+        s.attribute(Stat.PHYSICAL_DEFENSE).fadd+=vc.physicalDefensePerVitality()*vitality;
+        s.attribute(Stat.MP).fadd+=vc.mpPerVitality()*vitality;
+        s.attribute(Stat.STAMINA).fadd+=vc.staminaPerVitality()*vitality;
+        s.mut(Stat.STAMINA_RECOVERY,vc.staminaRecovery().evaluate(vitality));
+        s.attribute(Stat.ATTACK_SPEED).fadd+=vc.attackSpeed().evaluate(vitality)*100d;
         double spirit=s.get(Stat.SPIRIT);
-        s.attribute(Stat.MP).fadd+=2*spirit;
-        s.attribute(Stat.MAGICAL_DEFENSE).fadd+=2*spirit;
-        s.attribute(Stat.STAMINA).fadd+=5*spirit;
-        s.mut(Stat.STAMINA_RECOVERY,.05*spirit);
-        s.mut(Stat.COOLDOWN_RECOVERY,.002*spirit);
+        var sc=balance.spiritConversions;
+        s.attribute(Stat.MAGICAL_DEFENSE).fadd+=sc.magicalDefensePerSpirit()*spirit;
+        s.mut(Stat.COOLDOWN_RECOVERY,sc.cooldownRecovery().evaluate(spirit));
+        s.mut(Stat.CAST_SPEED,sc.castSpeed().evaluate(spirit));
         EquipmentEffects.finish(s,EquipmentEffects.resolve(p,equipped,allowance));
         return s;
     }

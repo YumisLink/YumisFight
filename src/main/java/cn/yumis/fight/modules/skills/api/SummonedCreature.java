@@ -11,14 +11,23 @@ public final class SummonedCreature extends PathfinderMob {
     private static final EntityDataAccessor<Long> ACTION_AT=SynchedEntityData.defineId(SummonedCreature.class,EntityDataSerializers.LONG);
     private static final EntityDataAccessor<String> MOVE=SynchedEntityData.defineId(SummonedCreature.class,EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Long> DURATION=SynchedEntityData.defineId(SummonedCreature.class,EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<Float> VISUAL_SCALE=SynchedEntityData.defineId(SummonedCreature.class,EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> PALADIN_AURA=SynchedEntityData.defineId(SummonedCreature.class,EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Long> RESONANCE_UNTIL=SynchedEntityData.defineId(SummonedCreature.class,EntityDataSerializers.LONG);
     public java.util.UUID owner;
     public SummonKind kind(){return SkillContentTypes.kind(getType());}
     public long actionAt(){return entityData.get(ACTION_AT);}
+    public float visualScale(){return entityData.get(VISUAL_SCALE);}
+    public void visualScale(float value){entityData.set(VISUAL_SCALE,Math.max(.5f,value));}
+    public boolean paladinAura(){return entityData.get(PALADIN_AURA);}
+    public void paladinAura(boolean value){entityData.set(PALADIN_AURA,value);}
+    public long resonanceUntil(){return entityData.get(RESONANCE_UNTIL);}
+    public void resonanceUntil(long value){entityData.set(RESONANCE_UNTIL,value);}
     @Override public boolean isPushable(){return false;}
     @Override public boolean isAttackable(){return false;}
     public SummonedCreature(EntityType<? extends SummonedCreature> type,Level level){super(type,level);setPersistenceRequired();setCanPickUpLoot(false);xpReward=0;}
     public static AttributeSupplier.Builder attributes(){return Mob.createMobAttributes().add(Attributes.MAX_HEALTH,100).add(Attributes.MOVEMENT_SPEED,.28).add(Attributes.FOLLOW_RANGE,24);}
-    @Override protected void defineSynchedData(SynchedEntityData.Builder builder){super.defineSynchedData(builder);builder.define(ACTION_AT,0L);builder.define(SHIELD,0f);builder.define(MOVE,"");builder.define(DURATION,1000L);}
+    @Override protected void defineSynchedData(SynchedEntityData.Builder builder){super.defineSynchedData(builder);builder.define(ACTION_AT,0L);builder.define(SHIELD,0f);builder.define(MOVE,"");builder.define(DURATION,1000L);builder.define(VISUAL_SCALE,1f);builder.define(PALADIN_AURA,false);builder.define(RESONANCE_UNTIL,0L);}
     public String move(){return entityData.get(MOVE);}
     public long actionDuration(){return entityData.get(DURATION);}
     public void play(String move,long duration){entityData.set(MOVE,move);entityData.set(DURATION,duration);entityData.set(ACTION_AT,System.currentTimeMillis());}

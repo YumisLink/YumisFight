@@ -64,7 +64,10 @@ public final class CastleEnemy extends DungeonEnemy {
             isWithinHome(target.blockPosition()) && (!hasHome() || Math.abs(target.getY() - getHomePosition().getY()) < 4)));
     }
 
-    @Override public int dungeonLevel() { return karl ? 15 : 10; }
+    @Override public int dungeonLevel() {
+        var c = EnemyBalanceRules.current().castle;
+        return karl ? c.karlLevel() : c.knightLevel();
+    }
     @Override public boolean boss() { return karl; }
     @Override public boolean fixedLevel() { return true; }
     @Override protected boolean convertsInWater() { return false; }
@@ -135,8 +138,9 @@ public final class CastleEnemy extends DungeonEnemy {
 
         @Override public boolean canUse() {
             var target = getTarget();
+            double castRange = EnemyBalanceRules.current().castle.phantomSwordCastRange();
             return level().getGameTime() >= readyTick && isWithinHome() && !CombatContentTypes.controlled(CastleEnemy.this)
-                && target != null && target.isAlive() && distanceToSqr(target) <= CAST_RANGE * CAST_RANGE
+                && target != null && target.isAlive() && distanceToSqr(target) <= castRange * castRange
                 && getSensing().hasLineOfSight(target);
         }
 
@@ -146,9 +150,10 @@ public final class CastleEnemy extends DungeonEnemy {
         @Override public void start() {
             var target = getTarget();
             if (target == null) return;
+            var c = EnemyBalanceRules.current().castle;
             aim = target.getBoundingBox().getCenter();
-            releaseTick = level().getGameTime() + WINDUP;
-            readyTick = releaseTick + COOLDOWN;
+            releaseTick = level().getGameTime() + c.phantomSwordWindupTicks();
+            readyTick = releaseTick + c.phantomSwordCooldownTicks();
             getNavigation().stop();
             setAggressive(true);
             playSound(SoundEvents.EVOKER_PREPARE_ATTACK, .8f, 1.25f);

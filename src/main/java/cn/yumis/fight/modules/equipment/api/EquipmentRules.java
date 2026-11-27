@@ -86,10 +86,20 @@ public final class EquipmentRules {
         for(Stat s:flats.keySet())flats.put(s,flats.get(s)*(1+percent.getOrDefault(s,0d)));
         // This is the item's final addition. Its complete contribution subsequently enters player BASE.
         finalAdds.forEach((stat,value)->flats.merge(stat,value,Double::sum));
+        double scale=EquipmentBalanceRules.current().baseContributionMultiplier;
+        if(scale!=1d)flats.replaceAll((stat,value)->value*scale);
         return flats;
     }
     public static void appendRandom(Gear g,Random random){
         appendRandom(g,random,false);
+    }
+    /** Admin path: appends one matching affix at a fixed roll (1 = maximum); false when nothing matches. */
+    public static boolean appendRolled(Gear g,Random random,java.util.function.Predicate<cn.yumis.fight.modules.affixes.api.AffixDefinition> filter,double roll){
+        requireRoomAfterMasterCrystal(g);
+        var affix=cn.yumis.fight.modules.affixes.api.AffixGeneration.sample(generationItem(g),false,random,filter==null?ignored->true:filter,roll);
+        if(affix==null)return false;
+        g.affixes.add(affix);
+        return true;
     }
     private static void appendRandom(Gear g,Random random,boolean allowDuplicates){
         requireRoomAfterMasterCrystal(g);

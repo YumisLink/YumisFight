@@ -31,7 +31,7 @@ public final class Effects {
         Vec3 direction=new Vec3(j.get("dx").getAsDouble(),j.has("dy")?j.get("dy").getAsDouble():0,j.get("dz").getAsDouble());
         UUID caster=UUID.fromString(j.get("caster").getAsString());
         String dimension=j.has("dimension")?j.get("dimension").getAsString():mc.level.dimension().identifier().toString();
-        var event=new SkillVisualEvent(caster,UUID.fromString(j.get("session").getAsString()),UUID.fromString(id),j.get("generation").getAsLong(),dimension,j.has("instance")?j.get("instance").getAsString():SkillsClient.current().own().instance,kind,SkillVisualEvent.Phase.valueOf(phase),sequence,started+clockDelta,(j.has("at")?j.get("at").getAsLong():Math.max(started,now))+clockDelta,duration,j.get("seed").getAsLong(),point(origin),point(point),point(direction),j.has("charge")?j.get("charge").getAsDouble():0,j.has("color")?j.get("color").getAsInt():SkillVisualRegistry.handler(kind).defaultColor(),j.has("forwardOffset")?j.get("forwardOffset").getAsDouble():0,j.has("horizontalScale")?j.get("horizontalScale").getAsDouble():1,j.has("sweep")&&j.get("sweep").getAsBoolean(),j.has("weaponType")?j.get("weaponType").getAsString():"",j.has("slashAngle")?j.get("slashAngle").getAsDouble():0);
+        var event=new SkillVisualEvent(caster,UUID.fromString(j.get("session").getAsString()),UUID.fromString(id),j.get("generation").getAsLong(),dimension,j.has("instance")?j.get("instance").getAsString():SkillsClient.current().own().instance,kind,SkillVisualEvent.Phase.valueOf(phase),sequence,started+clockDelta,(j.has("at")?j.get("at").getAsLong():Math.max(started,now))+clockDelta,duration,j.get("seed").getAsLong(),point(origin),point(point),point(direction),j.has("charge")?j.get("charge").getAsDouble():0,j.has("color")?j.get("color").getAsInt():SkillVisualRegistry.handler(kind).defaultColor(),j.has("forwardOffset")?j.get("forwardOffset").getAsDouble():0,j.has("horizontalScale")?j.get("horizontalScale").getAsDouble():1,j.has("sweep")&&j.get("sweep").getAsBoolean(),j.has("weaponType")?j.get("weaponType").getAsString():"",j.has("slashAngle")?j.get("slashAngle").getAsDouble():0,j.has("dual")&&j.get("dual").getAsBoolean());
         VFX.accept(event,j.has("castSpeed")?j.get("castSpeed").getAsDouble():1,j.has("summonMove")?j.get("summonMove").getAsString():"");
         if(kind.equals(cn.yumis.fight.modules.skills.api.SkillVisualRules.PLAYER_POSE)&&j.has("poseClip")
             &&j.has("poseNext")&&j.has("poseLead")&&j.has("poseFollow")){
@@ -41,7 +41,7 @@ public final class Effects {
         }
         if(j.has("motion")){JsonObject motion=j.getAsJsonObject("motion").deepCopy();if(motion.has("at"))motion.addProperty("at",motion.get("at").getAsLong()+clockDelta);VFX.motion(event.cast(),event.sequence(),motion);}
         var handler=SkillVisualRegistry.handler(kind);
-        if(first&&event.phase()==SkillVisualEvent.Phase.START&&handler.cinematic()
+        if(first&&event.phase()==SkillVisualEvent.Phase.START&&handler.cinematic(event)
             &&(handler.cinematicFromFirstPerson()||!mc.options.getCameraType().isFirstPerson())
             &&mc.player!=null&&caster.equals(mc.player.getUUID())&&dimension.equals(mc.level.dimension().identifier().toString())
             &&event.session().toString().equals(SkillsClient.current().session()))VFX.beginCamera(event.cast());
@@ -55,15 +55,18 @@ public final class Effects {
     public static void clear(){
         VFX.clear();
         PlayerPoseChannel.clear();
+        cn.yumis.fight.modules.presentation.api.client.WorldEffects.clear();
         sequences.clear();
     }
     public static void warning(Vec3 center,double radius,int color){
-        for(int i=0;i<40;i++){
-            double a=i*Math.PI/20;
+        cn.yumis.fight.modules.presentation.api.client.WorldEffects.playShockwave(center.add(0,.06,0),radius*.25,radius,color,210,360);
+        for(int i=0;i<24;i++){
+            double a=i*Math.PI/12;
             cn.yumis.fight.modules.presentation.api.client.EffectParticles.dust(center.add(Math.cos(a)*radius,.06,Math.sin(a)*radius),color,.5f);
         }
     }
     public static void spark(Vec3 point,int color){
+        cn.yumis.fight.modules.presentation.api.client.WorldEffects.playGlow(point,.55,color,220,180);
         cn.yumis.fight.modules.presentation.api.client.EffectParticles.dust(point,color,.7f);
     }
 

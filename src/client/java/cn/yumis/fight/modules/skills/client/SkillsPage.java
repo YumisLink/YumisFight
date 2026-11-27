@@ -23,19 +23,24 @@ public final class SkillsPage {
         int base=page.cursor()+6,cell=(page.contentWidth()-24)/4,index=0;
         for(var skill:SkillCatalog.all()){
             if(skill.advanced()&&!progress.hasJob(skill.requiredJob))continue;
-            if(!skill.equipmentGranted&&!skill.advanced()&&!progress.baseJob().equals(skill.baseJob))continue;
-            if(skill.equipmentGranted&&SkillLearning.effective(stats,progress,skill)<=0&&!java.util.Arrays.asList(progress.slots).contains(skill.id))continue;
+            if(!skill.equipmentGranted&&!skill.cardGranted&&!skill.advanced()&&!progress.baseJob().equals(skill.baseJob))continue;
+            if((skill.equipmentGranted||skill.cardGranted)&&SkillLearning.effective(stats,progress,skill)<=0&&!java.util.Arrays.asList(progress.slots).contains(skill.id))continue;
             int x=(index%4)*cell,y=base+(index/4)*108,w=cell-5;index++;
             page.card(x,y,w,102);
             var row=page.button("",x+3,y+3,w-6,()->{var state=cn.yumis.fight.modules.skills.api.client.SkillsClient.current();if(SkillLearning.canBind(state.stats(),state.progress(),skill))Minecraft.getInstance().gui.pushScreenLayer(new SkillBindingScreen(skill));});row.setHeight(66);
             page.icon("textures/gui/skills/"+skill.icon()+".png",x+(w-26)/2,y+7,26);
-            String title=cn.yumis.fight.modules.presentation.api.client.UiFonts.font().plainSubstrByWidth(cn.yumis.fight.modules.skills.api.DemonHunterRules.title(skill,cn.yumis.fight.modules.skills.api.client.SkillController.INSTANCE.snapshot()),Math.max(1,w-10));
+            var liveStats=cn.yumis.fight.modules.skills.api.client.SkillController.INSTANCE.snapshot();
+            String rawTitle=cn.yumis.fight.modules.skills.api.WeaponSkills.skillTitle(skill,liveStats);
+            if(rawTitle.equals(skill.title))rawTitle=cn.yumis.fight.modules.skills.api.DemonHunterRules.title(skill,liveStats);
+            String title=cn.yumis.fight.modules.presentation.api.client.UiFonts.font().plainSubstrByWidth(rawTitle,Math.max(1,w-10));
             page.text(title,x+5,y+38,UiTheme.TEXT);
-            page.text(skill.equipmentGranted?"装备授予":SkillLearning.baseRank(progress,skill)+"级"+(skill.automaticByJob?" · 固有1级":""),x+5,y+53,UiTheme.MUTED);
+            boolean granted=skill.equipmentGranted||skill.cardGranted;
+            String grantLabel=skill.cardGranted?"塔牌授予":"装备授予";
+            page.text(granted?grantLabel:SkillLearning.baseRank(progress,skill)+"级"+(skill.automaticByJob?" · 固有1级":""),x+5,y+53,UiTheme.MUTED);
             boolean full=SkillLearning.baseRank(progress,skill)>=skill.limit(progress.level,progress.jobId());
-            var buy=page.button(skill.equipmentGranted?"装备授予":progress.level<skill.unlock?"未解锁":skill.unlock>=50&&!progress.awakened()?"未觉醒":full?"已达学习上限":"学习",x+4,y+76,w-8,()->learn.accept(skill.id));buy.active=!skill.equipmentGranted&&skill.available(progress)&&!full;
+            var buy=page.button(granted?grantLabel:progress.level<skill.unlock?"未解锁":skill.unlock>=50&&!progress.awakened()?"未觉醒":full?"已达学习上限":"学习",x+4,y+76,w-8,()->learn.accept(skill.id));buy.active=!granted&&skill.available(progress)&&!full;
             page.hover(x,y,w,102,(g,mx,my)->SkillTooltip.render(g,skill,mx,my));
-            page.rightClick(x,y,w,102,()->{if(!skill.equipmentGranted&&cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress().learned(skill.id)>0)unlearn.accept(skill.id);});
+            page.rightClick(x,y,w,102,()->{if(!granted&&cn.yumis.fight.modules.skills.api.client.SkillsClient.current().progress().learned(skill.id)>0)unlearn.accept(skill.id);});
         }
         page.cursor(base+((index+3)/4)*108);page.gap();page.rowButton("洗点并返还技能SP",reset);
         cn.yumis.fight.modules.character.api.client.CareerControls.footer(page,progress);

@@ -47,7 +47,20 @@ public record ClassicMove(ClassicEnemyKind actor,String clip,String title,long d
             }
         }
     }
-    public static List<ClassicMove> forActor(ClassicEnemyKind kind){return ACTORS.getOrDefault(kind,List.of());}
-    public static ClassicMove find(String id){return IDS.get(id);}
+    private static ClassicMove applyBalance(ClassicMove base){
+        if(base==null)return null;
+        var data=EnemyBalanceRules.current().classicMove(base.id());
+        if(data==null)return base;
+        return new ClassicMove(base.actor,base.clip,data.title(),data.duration(),data.cooldown(),data.shape(),
+            data.range(),data.width(),data.coefficient(),data.magic(),data.element(),data.effect(),data.stunTicks(),data.contacts());
+    }
+    public static List<ClassicMove> forActor(ClassicEnemyKind kind){
+        var base=ACTORS.getOrDefault(kind,List.of());
+        if(base.isEmpty())return base;
+        var out=new ArrayList<ClassicMove>(base.size());
+        for(var m:base)out.add(applyBalance(m));
+        return List.copyOf(out);
+    }
+    public static ClassicMove find(String id){return applyBalance(IDS.get(id));}
     public static ClassicMove find(ClassicEnemyKind actor,String clip){return actor==null?null:find(actor.id+"/"+clip);}
 }

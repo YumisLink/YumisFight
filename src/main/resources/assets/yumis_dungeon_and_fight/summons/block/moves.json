@@ -352,5 +352,174 @@
   "range": 16,
   "width": 1,
   "pierces": 3
+ },
+ {
+  "id": "herder_cannon",
+  "duration": 750,
+  "contacts": [
+   280
+  ],
+  "shape": "projectile",
+  "element": 1,
+  "range": 18,
+  "width": 0.55,
+  "radius": 4.5,
+  "pierces": 1,
+  "velocity": 13
+ },
+ {
+  "id": "fire_blast",
+  "duration": 850,
+  "contacts": [
+   360
+  ],
+  "shape": "projectile",
+  "element": 1,
+  "range": 14,
+  "width": 0.4,
+  "radius": 2.5,
+  "pierces": 1,
+  "velocity": 15
+ },
+ {
+  "id": "ice_burst",
+  "duration": 850,
+  "contacts": [
+   380
+  ],
+  "shape": "projectile",
+  "element": 2,
+  "range": 14,
+  "width": 0.4,
+  "radius": 2.5,
+  "pierces": 1,
+  "velocity": 15
+ },
+ {
+  "id": "chain_light",
+  "duration": 700,
+  "contacts": [
+   260,
+   460
+  ],
+  "shape": "area",
+  "element": 0,
+  "range": 14,
+  "width": 1,
+  "radius": 2.5,
+  "pierces": 128
+ },
+ {
+  "id": "dark_wave",
+  "duration": 850,
+  "contacts": [
+   340
+  ],
+  "shape": "projectile",
+  "element": 3,
+  "range": 14,
+  "width": 0.45,
+  "radius": 2.5,
+  "pierces": 1,
+  "velocity": 14
+ },
+ {
+  "id": "fireball_volley",
+  "duration": 1050,
+  "contacts": [
+   300,
+   500,
+   700
+  ],
+  "shape": "projectile",
+  "element": 1,
+  "range": 16,
+  "width": 0.4,
+  "radius": 1.8,
+  "pierces": 1,
+  "velocity": 15
+ },
+ {
+  "id": "ice_pillar_tri",
+  "duration": 1350,
+  "contacts": [
+   420,
+   720,
+   1020
+  ],
+  "shape": "area",
+  "element": 2,
+  "range": 16,
+  "width": 1,
+  "radius": 3.0,
+  "pierces": 128
+ },
+ {
+  "id": "king_mega_laser",
+  "duration": 1400,
+  "contacts": [
+   460,
+   620,
+   780,
+   940,
+   1100
+  ],
+  "shape": "beam",
+  "element": 0,
+  "range": 20,
+  "width": 3.5,
+  "pierces": 128
+ },
+ {
+  "id": "sacrifice_burst",
+  "duration": 500,
+  "contacts": [
+   100
+  ],
+  "shape": "area",
+  "element": -1,
+  "range": 16,
+  "width": 1,
+  "radius": 4.5,
+  "pierces": 128
+ },
+ {
+  "id": "sandor_warcry",
+  "duration": 600,
+  "contacts": [
+   100
+  ],
+  "shape": "area",
+  "element": -1,
+  "range": 8,
+  "width": 1,
+  "radius": 8,
+  "pierces": 128
+ },
+ {
+  "id": "louise_magma",
+  "duration": 600,
+  "contacts": [
+   100
+  ],
+  "shape": "area",
+  "element": 1,
+  "range": 16,
+  "width": 1,
+  "radius": 6,
+  "pierces": 128
+ },
+ {
+  "id": "louise_shatter",
+  "duration": 450,
+  "contacts": [
+   100
+  ],
+  "shape": "area",
+  "element": 2,
+  "range": 16,
+  "width": 1,
+  "radius": 2.4,
+  "pierces": 128
  }
 ]

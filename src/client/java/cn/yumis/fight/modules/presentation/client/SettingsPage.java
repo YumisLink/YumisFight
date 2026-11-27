@@ -22,6 +22,8 @@ public final class SettingsPage {
                 page.line("战斗显示",UiTheme.GOLD);page.gap();
                 page.rowSlider(0, ClientSettings.MAX_SKILL_VOLUME_PERCENT, ClientSettings.skillVolumePercent(),
                     value -> "技能音量："+value+"%", ClientSettings::setSkillVolumePercent);
+                page.rowSlider(0, ClientSettings.MAX_CAMERA_SHAKE_PERCENT, ClientSettings.cameraShakePercent(),
+                    value -> value==0?"屏幕震动：关":"屏幕震动强度："+value+"%", ClientSettings::setCameraShakePercent);
                 page.rowButton("第一人称近身特效淡化："+(ClientSettings.nearEffectFade?"开":"关"),()->{ClientSettings.nearEffectFade=!ClientSettings.nearEffectFade;ClientSettings.save();page.rebuild();});
                 page.rowSlider(0, ClientSettings.MAX_NEAR_EFFECT_FADE_DISTANCE_STEPS, ClientSettings.nearEffectFadeDistanceSteps,
                     value -> String.format(Locale.ROOT,"近身特效淡化距离：%.2f 格",value/100d), value -> {
@@ -52,6 +54,8 @@ public final class SettingsPage {
                         ClientSettings.enemyHealthDistance = value;
                         ClientSettings.save();
                     });
+                page.rowSlider(1, ClientSettings.MAX_BOSS_HEALTH_SCALE_STEPS, ClientSettings.bossHealthScaleSteps(),
+                    value -> "首领头顶血条倍率："+(value / 2d)+"×", ClientSettings::setBossHealthScaleSteps);
             }
             case "machines"->{
                 page.line("机器与背包",UiTheme.GOLD);page.gap();

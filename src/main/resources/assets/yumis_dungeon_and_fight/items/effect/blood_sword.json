@@ -1,12 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:item/netherite_sword",
-    "tints": [
-      {
-        "type": "minecraft:constant",
-        "value": 4294910042
-      }
-    ]
+    "model": "yumis_dungeon_and_fight:item/effect/blood_sword"
   }
 }

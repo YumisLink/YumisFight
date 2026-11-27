@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Player;
 public interface CombatEffect {
     String NO_TRIGGERS="noCombatTriggers";
     String FULL_RECOVERY="fullRecovery";
+    String END_ELEMENTAL="endElemental";
 
     static void recoverNativeState(Player player) {
         for (var effect : List.copyOf(player.getActiveEffects())) {

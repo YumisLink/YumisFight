@@ -33,6 +33,10 @@ public final class FightMod {
             return !player.level().isClientSide()||gear.valid(cn.yumis.fight.modules.equipment.api.EquipmentEligibility.PROGRESS.apply(player),cn.yumis.fight.modules.equipment.api.EquipmentEligibility.allowance(player));
         });
         cn.yumis.fight.modules.inventory.api.SlotAccess.currencyPolicy(stack->!stack.isEmpty()&&cn.yumis.fight.platform.ItemData.own(stack)&&cn.yumis.fight.modules.economy.api.CurrencyRules.find(cn.yumis.fight.platform.ItemData.id(stack))!=null);
+        var gemstoneIds=new ArrayList<>(cn.yumis.fight.modules.equipment.api.Gemstones.all().stream().map(cn.yumis.fight.modules.equipment.api.Gemstones.Definition::id).toList());
+        gemstoneIds.add("affix_gem");
+        cn.yumis.fight.modules.inventory.api.CategoryBags.install(cn.yumis.fight.modules.economy.api.CurrencyRules.standardStorageIds(),gemstoneIds,
+            cn.yumis.fight.modules.equipment.api.CraftingEssences.all().stream().map(cn.yumis.fight.modules.equipment.api.CraftingEssences.Definition::id).toList());
         cn.yumis.fight.modules.equipment.platform.EquipmentContent.register();
         cn.yumis.fight.modules.professions.platform.ProfessionContent.register();
         cn.yumis.fight.modules.professions.platform.HerbContent.register(bus);

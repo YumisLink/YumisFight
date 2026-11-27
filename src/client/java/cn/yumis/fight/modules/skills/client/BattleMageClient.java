@@ -5,6 +5,7 @@ import cn.yumis.fight.modules.attributes.api.Stats;
 import cn.yumis.fight.modules.character.api.JobCatalog;
 import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.combat.api.CombatContentTypes;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import cn.yumis.fight.modules.dungeons.api.client.SealBossState;
 import cn.yumis.fight.modules.equipment.api.EquipmentStats;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
@@ -37,7 +38,7 @@ public final class BattleMageClient {
         SkillCast cast;
         String visualId;
         int colorType;
-        boolean teana;
+        boolean teana, allFour;
         double coeff, radius, speed;
         Vec3 pos, dir;
         UUID targetUuid;
@@ -45,11 +46,25 @@ public final class BattleMageClient {
         int sequence;
     }
 
+    private static final class CrescentWave {
+        SkillCast cast;
+        String visualId;
+        Vec3 origin, pos, dir;
+        double range, width, speed, coeff;
+        int[] elements;
+        int color;
+        long launchAt, start, lastTick, expiresAt;
+        boolean launched;
+        int sequence;
+        final Set<UUID> struck = new HashSet<>();
+    }
+
     private static final class DashState {
         SkillCast cast;
+        String visualId;
         Vec3 origin, dir, endpoint;
         double distance, width, blastRadius, knockback;
-        long start, dashMs, impactAt;
+        long start, visualStart, dashMs, impactAt;
         boolean returnToOrigin, returned, impacted, isDragonStrike, isTeana;
         int mode, dashesLeft, dashIndex, sequence;
         final Set<UUID> pathHit = new HashSet<>();
@@ -62,7 +77,7 @@ public final class BattleMageClient {
         int[] elements;
         int color, mode, sequence;
         boolean isPress, isFusion, isFullSwing, isDragonFangSecond;
-        long impactAt;
+        long impactAt, visualDuration;
     }
 
     public static final class PuntoState {
@@ -70,7 +85,7 @@ public final class BattleMageClient {
         public Vec3 dir;
         public double range, width, finisherRadius, stepSpeed;
         public long start, intervalMs, nextHitAt, endAt;
-        public int totalHits, delivered, chaserEvery, mode, sequence;
+        public int totalHits, delivered, hitCount, chaserEvery, mode, sequence;
         public boolean finishing;
     }
 
@@ -88,7 +103,7 @@ public final class BattleMageClient {
         public SkillCast cast;
         public Vec3 origin, dir, targetPos;
         public double range, radius;
-        public long start, impactAt, endAt;
+        public long start, impactAt, endAt, finishMs;
         public boolean impacted, keepTransform;
         public int mode, sequence;
     }
@@ -99,6 +114,7 @@ public final class BattleMageClient {
     }
 
     private static final List<ChaserOrb> orbs = new ArrayList<>();
+    private static final List<CrescentWave> waves = new ArrayList<>();
     private static final List<DashState> dashes = new ArrayList<>();
     private static final List<DelayedBlast> blasts = new ArrayList<>();
     private static PuntoState activePunto;
@@ -108,6 +124,8 @@ public final class BattleMageClient {
 
     private static final Map<String, ChargePool> chargePools = new HashMap<>();
     private static final Map<UUID, Vec3> pendingMotions = new LinkedHashMap<>();
+    private static final Map<UUID, Long> fangShredUntil = new HashMap<>();
+    private static final Set<String> fangBaseGenDone = new HashSet<>();
     private static long lastMotionSendAt = 0L;
     private static long lastStatePublishAt = 0L;
     private static boolean pendingStatePublish = false;
@@ -123,6 +141,7 @@ public final class BattleMageClient {
 
     // Niu 3-hit basic combo step (0, 1, 2)
     private static int basicStep = 0;
+    private static int lastEmittedBasicStep = 0;
     private static long basicComboResetAt = 0L;
 
     // Invulnerability window during Teana activation burst
@@ -157,9 +176,13 @@ public final class BattleMageClient {
             if (!req.progress.hasJob(JobCatalog.BATTLE_MAGE)) return;
             if (cancelBonusConsumedThisCast) {
                 double bonus = req.parameters.get("cancelBonusMut", 0.05);
-                if (bonus > 0) {
+                boolean fangWaveBonus = MageSkills.FANG.equals(cancelSourceSkill) && TowerBattleCard.BM_FANG_WAVE.held(req.prepared);
+                if (bonus > 0 || fangWaveBonus) {
                     req.prepared = req.prepared.copy();
-                    req.prepared.modifier("final").mut += bonus;
+                    if (bonus > 0) req.prepared.modifier("final").mut += bonus;
+                    if (fangWaveBonus) {
+                        req.prepared.modifier("skillProduct").alls *= (1.0 + TowerBattleCard.BM_FANG_WAVE.ratio("cancel"));
+                    }
                 }
                 cancelWindowUntil = 0L;
                 cancelSourceSkill = "";
@@ -194,10 +217,21 @@ public final class BattleMageClient {
                 }
             }
 
-            // Base Dragon Fang linkage for Battle Mage: generate chasers & open cancel window
+            // Base Dragon Fang linkage for Battle Mage: generate chasers, shred armor & open cancel window
             if (hit.source() != null && MageSkills.FANG.equals(hit.source().skill.id)) {
-                int gen = Math.max(1, (int) Math.round(hit.source().parameters.get("chaserGen", 1.0)));
-                BattleMageRules.generateChasers(s, gen, stats, progress, wall, RNG);
+                if (TowerBattleCard.BM_FANG_TWIN_SHRED.held(stats)) {
+                    fangShredUntil.put(hit.target().getUUID(), now + TowerBattleCard.BM_FANG_TWIN_SHRED.millis("duration"));
+                }
+                String thrustKey = hit.source().id + "/" + (hit.source().contactGroup == null ? "" : hit.source().contactGroup);
+                int gen = 0;
+                if (fangBaseGenDone.add(thrustKey)) {
+                    if (fangBaseGenDone.size() > 128) fangBaseGenDone.clear();
+                    gen += Math.max(1, (int) Math.round(hit.source().parameters.get("chaserGen", 1.0)));
+                }
+                if (TowerBattleCard.BM_FANG_WAVE.held(stats)) {
+                    gen += Math.max(1, TowerBattleCard.BM_FANG_WAVE.count("chasers"));
+                }
+                if (gen > 0) grantChasers(gen, stats, progress, wall);
                 openCancelWindow(MageSkills.FANG, hit.source().parameters.get("cancelWindowSeconds", 0.45));
             }
             schedulePublish();
@@ -250,15 +284,38 @@ public final class BattleMageClient {
             && !bmState().teanaFinisherUsed;
     }
 
+    /** Defense multiplier applied to enemies shredded by Dragon Fang's 破甲双牙 card. */
+    public static double defenseScale(LivingEntity entity, long now) {
+        if (entity == null) return 1.0;
+        if (fangShredUntil.getOrDefault(entity.getUUID(), 0L) > now) {
+            return Math.max(0.0, 1.0 - TowerBattleCard.BM_FANG_TWIN_SHRED.ratio("shred"));
+        }
+        return 1.0;
+    }
+
+    /** Re-pressing Punto Wave while channeling immediately triggers the finishing sweep. */
+    public static boolean tryTriggerPuntoFinisher(String skillId) {
+        if (!BattleMageSkills.PUNTO_WAVE.equals(skillId) || activePunto == null || activePunto.finishing) return false;
+        var st = activePunto;
+        long now = ClientUi.now();
+        st.finishing = true;
+        st.endAt = now + 120L;
+        if (st.mode != 1) {
+            PlayerPoseChannel.play(st.cast, "punto_wave_finish", 360L, st.dir, false);
+        }
+        return true;
+    }
+
     public static double careerDamageTaken(double normal) {
         double taken = normal;
         if (!isBattleMage()) return taken;
         long wall = state().serverNow();
         var s = bmState();
         if (s.buffUntil != null && s.buffUntil[BattleMageState.ICE] > wall) {
-            int lRank = Math.max(1, BattleMageRules.launcherRank(state().stats(), state().progress()));
-            var lp = BattleMageRules.launcherParams(state().stats(), state().progress());
-            double dr = BattleMageRules.iceDamageReduction(lRank, lp);
+            Stats snap = state().stats();
+            int lRank = Math.max(1, BattleMageRules.launcherRank(snap, state().progress()));
+            var lp = BattleMageRules.launcherParams(snap, state().progress());
+            double dr = BattleMageRules.iceDamageReduction(lRank, lp, snap);
             taken *= (1.0 - dr);
         }
         if (!dashes.isEmpty()) {
@@ -297,10 +354,10 @@ public final class BattleMageClient {
 
     static boolean prepareCast(SkillCast cast, int slot, Progress progress, Runnable release) {
         if (!progress.hasJob(JobCatalog.BATTLE_MAGE)) return false;
-        // Base Dragon Fang Morph A/B hook
+        // Base Dragon Fang Morph A / 破甲双牙 twin thrust hook
         if (MageSkills.FANG.equals(cast.skill.id)) {
             int mode = BattleMageRules.morphMode(cast.parameters);
-            if (mode == 1) {
+            if (mode == 1 || TowerBattleCard.BM_FANG_TWIN_SHRED.held(cast.stats)) {
                 // Schedule rapid 2nd thrust after the 1st base thrust
                 var second = new DelayedBlast();
                 second.cast = cast;
@@ -319,6 +376,77 @@ public final class BattleMageClient {
             return true;
         }
         return false;
+    }
+
+    /**
+     * 0-GCD overlay cast for Chaser Fusion when 炫纹簇·瞬发核爆 is held: fires without interrupting
+     * ongoing skills, basic attacks, or poses.
+     */
+    public static boolean tryOverlayInstantFusion(int slot) {
+        if (!isBattleMage()) return false;
+        var progress = state().progress();
+        if (slot < 0 || slot >= progress.slots.length) return false;
+        if (!BattleMageSkills.CHASER_FUSION.equals(progress.slots[slot])) return false;
+        Stats stats = SkillController.INSTANCE.snapshot();
+        if (!TowerBattleCard.BM_FUSION_INSTANT.held(stats)) return false;
+        if (!SkillController.INSTANCE.validWeapon()) return false;
+        if (invulnerable()) return true;
+        var mc = Minecraft.getInstance();
+        var p = mc.player;
+        if (p == null || mc.level == null || !state().ready() || state().own().dead || p.isDeadOrDying()
+            || CombatContentTypes.controlled(p) || SealBossState.isFrozen()) return true;
+        long now = ClientUi.now();
+        var skill = SkillCatalog.require(BattleMageSkills.CHASER_FUSION);
+        int rank = SkillLearning.effective(stats, progress, skill);
+        if (rank <= 0) return true;
+        if (!skill.weaponAllowed(progress, stats)) {
+            state().message("主手需要本职业可用武器");
+            return true;
+        }
+        var resources = state().resources();
+        var params = WeaponSkills.skill(SkillParameters.forCast(p.getUUID(), skill, rank, stats.parameters), progress, stats);
+        if (!p.isCreative() && !resources.training && resources.cooldowns.getOrDefault(skill.id, 0L) > now && !hasCharge(skill, params, now)) {
+            state().message("技能冷却中");
+            return true;
+        }
+        var effects = EquipmentStats.projectileEffects(p, progress, p.getMainHandItem());
+        var cost = SkillCosts.resolve(skill, rank, stats, effects, true);
+        if (!resources.training && !p.isCreative() && resources.mp < cost.mana()) {
+            state().message("MP不足");
+            return true;
+        }
+        long cdMs = Math.max(50L, Math.round(cost.cooldown() * 1000.0));
+        if (!resources.training && !p.isCreative()) {
+            resources.mp = Math.max(0, resources.mp - cost.mana());
+            if (params.get("maxCharges", 1.0) > 1.0) onCastPaid(skill, params, cdMs, now, resources);
+            else resources.cooldowns.put(skill.id, now + cdMs);
+        }
+        resources.recordedAt = now;
+
+        var cast = new SkillCast();
+        cast.id = UUID.randomUUID().toString();
+        cast.skill = skill;
+        cast.slot = slot;
+        cast.parameters = params;
+        cast.stats = stats.copy();
+        cast.stats.modifiers.put("sourceLevel", (double) progress.level);
+        cast.equipment = effects;
+        cast.weapon = stats.weaponInstance;
+        cast.origin = p.position();
+        cast.direction = horizontal(p.getLookAngle());
+        cast.center = cast.origin;
+        cast.start = cast.stageStart = now;
+        cast.speed = Math.max(0.01, stats.get(Stat.CAST_SPEED));
+        cast.dimension = mc.level.dimension().identifier().toString();
+        cast.session = state().session();
+        cast.generation = state().own().generation;
+        cast.job = progress.jobId();
+        cast.instance = state().own().instance;
+        cast.cooldownMillis = cdMs;
+        TrainingCombat.begin(cast.id, skill.title);
+        TowerSkillCombat.cast(cast);
+        startChaserFusion(cast);
+        return true;
     }
 
     /**
@@ -416,6 +544,7 @@ public final class BattleMageClient {
             orb.visualId = UUID.randomUUID().toString();
             orb.colorType = chaser.type;
             orb.teana = isTeanaOrb;
+            orb.allFour = BattleMageRules.allFourElementsActive(stats, isTeanaOrb);
             orb.coeff = coeff;
             orb.radius = radius;
             orb.speed = speed;
@@ -432,17 +561,121 @@ public final class BattleMageClient {
             var motion = new JsonObject();
             motion.addProperty("color", BattleMageRules.chaserColor(orb.colorType, orb.teana));
             motion.addProperty("radius", orb.radius);
+            motion.addProperty("range", params.get("range", 16.0));
+            motion.addProperty("speed", orb.speed);
+            if (lockedTarget != null) motion.addProperty("targetEntity", lockedTarget.getId());
             motion.addProperty("teana", orb.teana);
             motion.addProperty("chaserType", orb.colorType);
             MageClient.INSTANCE.visual(cast, orb.visualId, "START", orb.pos, orb.dir, orb.expiresAt - now + 350L, 0, motion);
             fired++;
         }
         if (fired > 0) {
+            onChasersConsumed(fired, stats);
             TrainingCombat.begin(cast.id, skill.title);
             schedulePublish();
             return true;
         }
         return false;
+    }
+
+    /** Generates chasers and immediately auto-fires any overflow chasers when 溢流炫纹 is held. */
+    private static void grantChasers(int count, Stats stats, Progress progress, long wall) {
+        if (count <= 0) return;
+        var overflow = BattleMageRules.generateChasersWithOverflow(bmState(), count, stats, progress, wall, RNG);
+        if (!overflow.isEmpty()) {
+            fireOverflowChasers(overflow, stats, progress, wall);
+        }
+    }
+
+    private static void fireOverflowChasers(List<BattleMageState.Chaser> overflow, Stats stats, Progress progress, long wall) {
+        var mc = Minecraft.getInstance();
+        var p = mc.player;
+        if (p == null || mc.level == null || !state().ready() || state().own().dead || p.isDeadOrDying()) return;
+        var skill = SkillCatalog.require(BattleMageSkills.CHASER_LAUNCHER);
+        int rank = SkillLearning.effective(stats, progress, skill);
+        if (rank <= 0 || !skill.weaponAllowed(progress, stats)) return;
+        long now = ClientUi.now();
+        var params = WeaponSkills.skill(SkillParameters.forCast(p.getUUID(), skill, rank, stats.parameters), progress, stats);
+        var effects = EquipmentStats.projectileEffects(p, progress, p.getMainHandItem());
+        var s = bmState();
+        boolean teanaActive = s.transformed(wall);
+        double teanaScale = stats.modifiers.getOrDefault("bmTeanaChaserScale", 1.45);
+        double radiusScale = stats.modifiers.getOrDefault("bmChaserRadiusScale", 1.0) * (teanaActive ? 1.35 : 1.0);
+        double radius = params.get("radius", 2.4) * radiusScale;
+        double range = params.get("range", 16.0);
+        double speed = Math.max(8.0, params.get("projectileSpeed", 28.0));
+
+        var cast = new SkillCast();
+        cast.id = UUID.randomUUID().toString();
+        cast.skill = skill;
+        cast.parameters = params;
+        cast.stats = stats.copy();
+        cast.stats.modifiers.put("sourceLevel", (double) progress.level);
+        cast.equipment = effects;
+        cast.weapon = stats.weaponInstance;
+        cast.origin = p.position().add(0, 1.15, 0);
+        cast.direction = p.getLookAngle().lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : p.getLookAngle().normalize();
+        cast.center = cast.origin;
+        cast.start = cast.stageStart = now;
+        cast.speed = Math.max(0.01, stats.get(Stat.CAST_SPEED));
+        cast.dimension = mc.level.dimension().identifier().toString();
+        cast.session = state().session();
+        cast.generation = state().own().generation;
+        cast.job = progress.jobId();
+        cast.instance = state().own().instance;
+
+        LivingEntity target = resolveRecentTarget(p, range, now);
+        if (target == null) target = findNearestTarget(p, range);
+        Vec3 side = new Vec3(-cast.direction.z, 0, cast.direction.x);
+        if (side.lengthSqr() > 1e-6) side = side.normalize();
+
+        for (int i = 0; i < overflow.size(); i++) {
+            var chaser = overflow.get(i);
+            boolean isTeanaOrb = teanaActive || chaser.teana;
+            double coeff = BattleMageRules.chaserCoefficient(params, chaser.type, isTeanaOrb, teanaScale);
+            BattleMageRules.applyChaserBuff(s, chaser.type, params, wall);
+
+            var orb = new ChaserOrb();
+            orb.cast = cast;
+            orb.visualId = UUID.randomUUID().toString();
+            orb.colorType = chaser.type;
+            orb.teana = isTeanaOrb;
+            orb.allFour = BattleMageRules.allFourElementsActive(stats, isTeanaOrb);
+            orb.coeff = coeff;
+            orb.radius = radius;
+            orb.speed = speed;
+            double angleOffset = (i - (overflow.size() - 1) * 0.5) * 0.42;
+            orb.pos = p.position().add(0, 1.3 + (i % 2) * 0.2, 0).add(side.scale(angleOffset));
+            orb.dir = target != null ? target.getBoundingBox().getCenter().subtract(orb.pos).normalize() : cast.direction;
+            orb.targetUuid = target != null ? target.getUUID() : null;
+            orb.start = orb.lastTick = now;
+            orb.expiresAt = now + Math.max(300L, Math.round(range / speed * 1000.0) + 200L);
+            orbs.add(orb);
+
+            var motion = new JsonObject();
+            motion.addProperty("color", BattleMageRules.chaserColor(orb.colorType, orb.teana));
+            motion.addProperty("radius", orb.radius);
+            motion.addProperty("range", range);
+            motion.addProperty("speed", orb.speed);
+            if (target != null) motion.addProperty("targetEntity", target.getId());
+            motion.addProperty("teana", orb.teana);
+            motion.addProperty("chaserType", orb.colorType);
+            MageClient.INSTANCE.visual(cast, orb.visualId, "START", orb.pos, orb.dir, orb.expiresAt - now + 350L, 0, motion);
+        }
+        TrainingCombat.begin(cast.id, skill.title);
+        schedulePublish();
+    }
+
+    private static void onChasersConsumed(int consumedCount, Stats stats) {
+        if (consumedCount <= 0 || stats == null || !TowerBattleCard.BM_NIU_MASTERY.held(stats)) return;
+        String w = stats.weaponType == null ? "" : stats.weaponType;
+        if (!"STAFF".equals(w) && !"WAND".equals(w)) return;
+        var res = state().resources();
+        double maxMp = Math.max(0.0, stats.get(Stat.MP));
+        if (maxMp > 0) {
+            res.mp = Math.min(maxMp, res.mp + maxMp * TowerBattleCard.BM_NIU_MASTERY.ratio("manaregen") * consumedCount);
+            res.recordedAt = ClientUi.now();
+        }
     }
 
     private static void startChaserLauncherFallback(SkillCast cast) {
@@ -453,6 +686,8 @@ public final class BattleMageClient {
 
     // --- Niu 3-Hit Basic Attack & Teana Golden Spear Basic Combo ---
 
+    public static int lastBasicStep() { return lastEmittedBasicStep; }
+
     /** Called by SkillController when Battle Mage performs a basic attack swing. Returns true if custom pose was started. */
     public static boolean onBasicSwing(Stats stats, double intervalMillis) {
         if (!isBattleMage()) return false;
@@ -461,6 +696,7 @@ public final class BattleMageClient {
         long now = ClientUi.now();
         if (now > basicComboResetAt) basicStep = 0;
         int step = basicStep;
+        lastEmittedBasicStep = step;
         basicStep = (basicStep + 1) % 3;
         basicComboResetAt = now + 1600L;
 
@@ -483,9 +719,10 @@ public final class BattleMageClient {
         // basicStep was already incremented in onBasicSwing: step==0 means we just executed 3rd hit!
         boolean finisherHit = basicStep == 0;
         boolean teanaEvenHit = teana && basicStep == 2;
+        boolean clubNiu = "CLUB".equals(stats.weaponType) && TowerBattleCard.BM_NIU_MASTERY.held(stats);
         double extraChance = gp.get("basicChaserChance", 0.0);
-        if (finisherHit || teanaEvenHit || (extraChance > 0 && RNG.nextDouble() < extraChance)) {
-            BattleMageRules.generateChasers(s, 1, stats, progress, wall, RNG);
+        if (finisherHit || teanaEvenHit || clubNiu || (extraChance > 0 && RNG.nextDouble() < extraChance)) {
+            grantChasers(1, stats, progress, wall);
             schedulePublish();
         }
         // Open short cancel window on basic hit so player can seamlessly cancel basic -> Full Swing / Palm Blast
@@ -526,13 +763,14 @@ public final class BattleMageClient {
 
         var d = new DashState();
         d.cast = c;
+        d.visualId = c.id;
         d.origin = p.position();
         d.dir = horizontal(p.getLookAngle());
         d.distance = c.parameters.get("dashDistance", 4.5) * (teana ? 1.25 : 1.0);
         d.width = c.parameters.get("radius", 2.6) * (teana ? 1.15 : 1.0);
         d.blastRadius = c.parameters.get("radius", 2.6) * (teana ? 1.25 : 1.0);
         d.knockback = c.parameters.get("knockbackDistance", 3.5);
-        d.start = now;
+        d.start = d.visualStart = now;
         d.dashMs = Math.max(120L, Math.round(c.parameters.get("dashSeconds", 0.28) * 1000.0 / c.speed));
         d.impactAt = now + d.dashMs;
         d.isTeana = teana;
@@ -553,10 +791,11 @@ public final class BattleMageClient {
         var motion = new JsonObject();
         motion.addProperty("range", d.distance);
         motion.addProperty("radius", d.blastRadius);
+        motion.addProperty("dashMs", d.dashMs);
         motion.addProperty("teana", teana);
         motion.addProperty("mode", mode);
         motion.addProperty("color", teana ? BattleMageRules.COLOR_TEANA : BattleMageRules.COLOR_FIRE);
-        MageClient.INSTANCE.visual(c, c.id, "START", d.origin.add(0, 0.9, 0), d.dir, d.dashMs + 420L, 0, motion);
+        MageClient.INSTANCE.visualAt(c, d.visualId, "START", d.origin.add(0, 0.9, 0), d.dir, d.visualStart, d.dashMs + 460L, 0, motion);
     }
 
     // --- Skill 2: Full Swing (碎霸 / 天地碎霸) ---
@@ -574,9 +813,15 @@ public final class BattleMageClient {
         Vec3 dir = horizontal(p.getLookAngle());
         double radius = c.parameters.get("radius", 4.5) * rangeScale * (teana ? 1.35 : 1.0);
 
-        // Morph A (闪击碎霸·终极女皇): forward leap-dash 5 blocks before full 360° slam
-        if (mode == 1) {
-            Vec3 end = advanceClear(p, p.position(), dir, 5.0);
+        boolean empress = mode == 1 || TowerBattleCard.BM_SWING_EMPRESS.held(c.stats);
+        boolean arcanum = TowerBattleCard.BM_SWING_ARCANUM.held(c.stats);
+        int visualMode = empress ? 1 : mode;
+
+        // Morph A / 闪击碎霸·终极女皇: forward leap-dash 5 blocks before full 360° slam
+        if (empress) {
+            double dashDist = TowerBattleCard.BM_SWING_EMPRESS.held(c.stats)
+                ? TowerBattleCard.BM_SWING_EMPRESS.value("dash") : 5.0;
+            Vec3 end = advanceClear(p, p.position(), dir, dashDist);
             p.move(MoverType.SELF, end.subtract(p.position()));
         }
 
@@ -587,9 +832,10 @@ public final class BattleMageClient {
         if (c.parameters.get("consumeChaserForBoost", 0.0) >= 1.0) {
             var ch = bmState().pollChaser(wall);
             if (ch != null) {
-                waveElems = BattleMageRules.chaserElements(ch.type, teana || ch.teana);
+                waveElems = BattleMageRules.chaserElements(ch.type, BattleMageRules.allFourElementsActive(c.stats, teana || ch.teana));
                 waveColor = BattleMageRules.chaserColor(ch.type, teana || ch.teana);
                 BattleMageRules.applyChaserBuff(bmState(), ch.type, BattleMageRules.launcherParams(c.stats, state().progress()), wall);
+                onChasersConsumed(1, c.stats);
                 schedulePublish();
             } else {
                 waveCoeff *= 0.5;
@@ -605,21 +851,78 @@ public final class BattleMageClient {
         b.waveCoeff = waveCoeff;
         b.elements = waveElems;
         b.color = waveColor;
-        b.mode = mode;
+        b.mode = visualMode;
         b.isFullSwing = true;
         b.impactAt = now + Math.max(90L, Math.round(160.0 / c.speed));
+        long poseMs = Math.max(300L, Math.round((empress ? 560.0 : 420.0) / c.speed));
+        b.visualDuration = Math.max(poseMs + 120L, (b.impactAt - now) + 460L);
         blasts.add(b);
 
-        String clip = mode == 1 ? "full_swing_empress" : (teana ? "teana_full_swing" : "full_swing");
-        PlayerPoseChannel.play(c, clip, Math.max(300L, Math.round((mode == 1 ? 560.0 : 420.0) / c.speed)), dir, false);
+        // 万象魔刃: consume up to 3 Chasers to unleash traveling 14-block magic crescent waves
+        if (arcanum) {
+            int maxWaves = Math.max(1, TowerBattleCard.BM_SWING_ARCANUM.count("max"));
+            double waveDist = TowerBattleCard.BM_SWING_ARCANUM.value("distance");
+            double empressScale = TowerBattleCard.BM_SWING_EMPRESS.held(c.stats)
+                ? 1.0 + TowerBattleCard.BM_SWING_EMPRESS.ratio("damage") : 1.0;
+            double arcanumCoeff = (c.parameters.get("damage", 0.0) / empressScale)
+                * TowerBattleCard.BM_SWING_ARCANUM.ratio("ratio") * teanaScale;
+            var launcherParams = BattleMageRules.launcherParams(c.stats, state().progress());
+            var consumed = new ArrayList<BattleMageState.Chaser>(maxWaves);
+            for (int i = 0; i < maxWaves; i++) {
+                var ch = bmState().pollChaser(wall);
+                if (ch == null) break;
+                consumed.add(ch);
+            }
+            if (!consumed.isEmpty()) {
+                onChasersConsumed(consumed.size(), c.stats);
+                for (var ch : consumed) {
+                    BattleMageRules.applyChaserBuff(bmState(), ch.type, launcherParams, wall);
+                }
+                schedulePublish();
+            }
+            int waveTotal = Math.max(1, consumed.size());
+            for (int i = 0; i < waveTotal; i++) {
+                var ch = i < consumed.size() ? consumed.get(i) : null;
+                boolean isTeanaWave = teana || (ch != null && ch.teana);
+                boolean allFour = BattleMageRules.allFourElementsActive(c.stats, isTeanaWave);
+                int[] elems = ch != null
+                    ? BattleMageRules.chaserElements(ch.type, allFour)
+                    : (allFour ? BattleMageRules.ALL_FOUR_ELEMENTS.clone() : new int[0]);
+                int wColor = ch != null
+                    ? BattleMageRules.chaserColor(ch.type, isTeanaWave)
+                    : (teana ? BattleMageRules.COLOR_TEANA : BattleMageRules.COLOR_NEUTRAL);
+
+                var w = new CrescentWave();
+                w.cast = c;
+                w.visualId = UUID.randomUUID().toString();
+                w.origin = b.center.add(dir.scale(0.6));
+                w.pos = w.origin;
+                w.dir = dir;
+                w.range = waveDist;
+                w.width = 3.2;
+                w.speed = 26.0;
+                w.coeff = arcanumCoeff;
+                w.elements = elems;
+                w.color = wColor;
+                w.launchAt = b.impactAt + i * 85L;
+                w.expiresAt = w.launchAt + Math.max(350L, Math.round(waveDist / w.speed * 1000.0) + 180L);
+                waves.add(w);
+                if (i == 0 && waveColor == BattleMageRules.COLOR_MARTIAL) waveColor = wColor;
+            }
+        }
+
+        String clip = empress ? "full_swing_empress" : (teana ? "teana_full_swing" : "full_swing");
+        PlayerPoseChannel.play(c, clip, poseMs, dir, false);
 
         var motion = new JsonObject();
         motion.addProperty("radius", radius);
         motion.addProperty("arc", c.parameters.get("arcDegrees", 210.0));
+        motion.addProperty("swingMs", poseMs);
         motion.addProperty("teana", teana);
-        motion.addProperty("mode", mode);
+        motion.addProperty("chaserWave", waveCoeff > 0 || arcanum);
+        motion.addProperty("mode", visualMode);
         motion.addProperty("color", waveColor);
-        MageClient.INSTANCE.visual(c, c.id, "START", b.center, dir, 560L, 0, motion);
+        MageClient.INSTANCE.visual(c, c.id, "START", b.center, dir, b.visualDuration, 0, motion);
     }
 
     // --- Skill 3: Chaser Fusion (炫纹融合) ---
@@ -631,6 +934,8 @@ public final class BattleMageClient {
         long wall = state().serverNow();
         var s = bmState();
         int mode = BattleMageRules.morphMode(c.parameters);
+        boolean instant = mode == 1 || TowerBattleCard.BM_FUSION_INSTANT.held(c.stats);
+        int visualMode = instant ? 1 : mode;
         boolean teana = s.transformed(wall);
 
         int want = Math.max(1, (int) Math.round(c.parameters.get("consumeCount", 2.0)));
@@ -639,21 +944,33 @@ public final class BattleMageClient {
             var ch = s.pollChaser(wall);
             if (ch != null) consumed.add(ch);
         }
-        double ratio = 1.0;
-        if (consumed.isEmpty()) {
-            ratio = 0.55;
-        } else if (consumed.size() < want) {
-            ratio = 0.65;
+        onChasersConsumed(consumed.size(), c.stats);
+        if (instant && !consumed.isEmpty()) {
+            var lp = BattleMageRules.launcherParams(c.stats, state().progress());
+            for (var ch : consumed) BattleMageRules.applyChaserBuff(s, ch.type, lp, wall);
         }
-        int[] elems = BattleMageRules.unionElements(consumed, teana);
+        double ratio = 1.0;
+        if (!instant) {
+            if (consumed.isEmpty()) {
+                ratio = 0.55;
+            } else if (consumed.size() < want) {
+                ratio = 0.65;
+            }
+        }
+        boolean forceAll4 = BattleMageRules.allFourElementsActive(c.stats, teana) || TowerBattleCard.BM_FUSION_OVERLOAD.held(c.stats);
+        int[] elems = BattleMageRules.unionElements(consumed, forceAll4);
         int color = teana ? BattleMageRules.COLOR_TEANA
             : (consumed.isEmpty() ? BattleMageRules.COLOR_DARK : BattleMageRules.chaserColor(consumed.getFirst().type, false));
 
         Vec3 dir = horizontal(p.getLookAngle());
         Vec3 center;
-        if (mode == 1) {
-            var locked = resolveRecentTarget(p, 14.0, now);
-            center = locked != null ? locked.position().add(0, 0.9, 0) : p.position().add(dir.scale(c.parameters.get("centerOffset", 3.2))).add(0, 0.9, 0);
+        if (instant) {
+            double lockRange = TowerBattleCard.BM_FUSION_INSTANT.held(c.stats)
+                ? TowerBattleCard.BM_FUSION_INSTANT.value("range") : 14.0;
+            var locked = resolveRecentTarget(p, lockRange, now);
+            if (locked == null) locked = findNearestTarget(p, lockRange);
+            center = locked != null ? locked.position().add(0, 0.9, 0)
+                : p.position().add(dir.scale(Math.max(4.5, c.parameters.get("centerOffset", 3.2)))).add(0, 0.9, 0);
         } else {
             center = p.position().add(dir.scale(c.parameters.get("centerOffset", 3.2))).add(0, 0.9, 0);
         }
@@ -661,7 +978,7 @@ public final class BattleMageClient {
         // Apply Fusion Resonance buff
         long buffMs = Math.max(1000L, Math.round(c.parameters.get("fusionBuffDuration", 15.0) * 1000.0));
         s.fusionUntil = wall + buffMs;
-        s.fusionAttackBonus = BattleMageRules.fusionAttackBonus(c.parameters.rank(), c.parameters);
+        s.fusionAttackBonus = BattleMageRules.fusionAttackBonus(c.parameters.rank(), c.parameters, c.stats);
         s.fusionCritBonus = c.parameters.get("fusionCritBonus", 0.06);
         s.revision++;
         schedulePublish();
@@ -674,20 +991,21 @@ public final class BattleMageClient {
         b.coeff = c.parameters.get("damage", 0.0) * ratio;
         b.elements = elems;
         b.color = color;
-        b.mode = mode;
+        b.mode = visualMode;
         b.isFusion = true;
         b.impactAt = now + Math.max(60L, Math.round(c.parameters.get("impactDelay", 0.25) * 1000.0 / c.speed));
+        b.visualDuration = (b.impactAt - now) + 600L;
         blasts.add(b);
 
-        if (mode != 1) {
+        if (!instant) {
             PlayerPoseChannel.play(c, "chaser_fusion", 460L, dir, false);
         }
         var motion = new JsonObject();
         motion.addProperty("radius", b.radius);
         motion.addProperty("color", color);
-        motion.addProperty("mode", mode);
+        motion.addProperty("mode", visualMode);
         motion.addProperty("teana", teana);
-        MageClient.INSTANCE.visual(c, c.id, "START", center, dir, 720L, 0, motion);
+        MageClient.INSTANCE.visual(c, c.id, "START", center, dir, b.visualDuration, 0, motion);
     }
 
     // --- Skill 4: Chaser Press (炫纹强压) ---
@@ -703,8 +1021,9 @@ public final class BattleMageClient {
 
         int keepCount = mode == 1 ? 2 : 0;
         var consumed = s.drainChasers(wall, keepCount);
+        onChasersConsumed(consumed.size(), c.stats);
         int count = Math.max(1, consumed.size());
-        int[] elems = BattleMageRules.unionElements(consumed, teana);
+        int[] elems = BattleMageRules.unionElements(consumed, BattleMageRules.allFourElementsActive(c.stats, teana));
         int color = teana ? BattleMageRules.COLOR_TEANA
             : (consumed.isEmpty() ? BattleMageRules.COLOR_NEUTRAL : BattleMageRules.chaserColor(consumed.getLast().type, false));
         schedulePublish();
@@ -729,7 +1048,19 @@ public final class BattleMageClient {
         b.mode = mode;
         b.isPress = true;
         b.impactAt = now + Math.max(80L, Math.round(c.parameters.get("impactDelay", 0.30) * 1000.0 / c.speed));
+        b.visualDuration = Math.max(mode == 1 ? 380L : 620L, (b.impactAt - now) + 700L);
         blasts.add(b);
+
+        // Pre-detonation gravity pull so enemies are sucked into the blast center before impact
+        if (b.pullRadius > 0.5) {
+            for (var victim : SkillController.INSTANCE.targets(new AABB(b.center, b.center).inflate(b.pullRadius, 3.0, b.pullRadius))) {
+                Vec3 toCenter = b.center.subtract(victim.position());
+                double len = Math.sqrt(toCenter.x * toCenter.x + toCenter.z * toCenter.z);
+                if (len > 0.8 && len <= b.pullRadius) {
+                    queueMotion(victim, new Vec3(toCenter.x / len, 0.10, toCenter.z / len).scale(Math.min(2.4, len * 0.65)));
+                }
+            }
+        }
 
         PlayerPoseChannel.play(c, mode == 1 ? "chaser_fusion" : "chaser_press", mode == 1 ? 380L : 620L, dir, false);
         var motion = new JsonObject();
@@ -739,7 +1070,7 @@ public final class BattleMageClient {
         motion.addProperty("color", color);
         motion.addProperty("mode", mode);
         motion.addProperty("teana", teana);
-        MageClient.INSTANCE.visual(c, c.id, "START", center, dir, 950L, 0, motion);
+        MageClient.INSTANCE.visual(c, c.id, "START", center, dir, b.visualDuration, 0, motion);
     }
 
     // --- Skill 5: Punto Wave (流星闪影击 / 啦啦啦) ---
@@ -767,6 +1098,7 @@ public final class BattleMageClient {
         st.nextHitAt = now + 80L;
         st.endAt = st.nextHitAt + st.totalHits * st.intervalMs + 280L;
         activePunto = st;
+        TrainingCombat.hold(c.id, "mage", Math.max(20000L, (st.endAt - now) + 2500L));
 
         openCancelWindow(BattleMageSkills.PUNTO_WAVE, (st.endAt - now) / 1000.0);
         if (mode == 1) {
@@ -779,9 +1111,12 @@ public final class BattleMageClient {
         motion.addProperty("range", st.range);
         motion.addProperty("width", st.width);
         motion.addProperty("finisherRadius", st.finisherRadius);
+        motion.addProperty("totalHits", st.totalHits);
         motion.addProperty("mode", mode);
-        motion.addProperty("color", bmState().transformed(state().serverNow()) ? BattleMageRules.COLOR_TEANA : BattleMageRules.COLOR_MARTIAL);
-        MageClient.INSTANCE.visual(c, c.id, "START", p.position().add(0, 1.0, 0), st.dir, st.endAt - now + 350L, 0, motion);
+        boolean teanaNow = bmState().transformed(state().serverNow());
+        motion.addProperty("teana", teanaNow);
+        motion.addProperty("color", teanaNow ? BattleMageRules.COLOR_TEANA : BattleMageRules.COLOR_MARTIAL);
+        MageClient.INSTANCE.visual(c, c.id, "START", p.position().add(0, 0.9, 0).add(st.dir.scale(st.range * 0.5)), st.dir, (st.endAt - now) + 500L, 0, motion);
     }
 
     public static boolean cancelPunto(boolean playerAborted) {
@@ -793,7 +1128,7 @@ public final class BattleMageClient {
         }
         var p = player();
         if (p != null) {
-            MageClient.INSTANCE.visual(st.cast, st.cast.id, "CANCEL", p.position().add(0, 1.0, 0), st.dir, 200L, ++st.sequence, null);
+            MageClient.INSTANCE.visual(st.cast, st.cast.id, "CANCEL", p.position().add(0, 1.0, 0), st.dir, Math.max(200L, (ClientUi.now() - st.start) + 200L), ++st.sequence, null);
         }
         MageClient.INSTANCE.finished(st.cast);
         return true;
@@ -808,6 +1143,7 @@ public final class BattleMageClient {
         int mode = BattleMageRules.morphMode(c.parameters);
         var d = new DashState();
         d.cast = c;
+        d.visualId = c.id;
         d.origin = p.position();
         d.dir = horizontal(p.getLookAngle());
         d.distance = c.parameters.get("dashDistance", 9.0);
@@ -817,7 +1153,7 @@ public final class BattleMageClient {
         d.isDragonStrike = true;
         d.mode = mode;
         d.dashesLeft = Math.max(1, (int) Math.round(c.parameters.get("dashCount", 1.0)));
-        d.start = now;
+        d.start = d.visualStart = now;
         d.dashMs = Math.max(140L, Math.round(c.parameters.get("dashSeconds", 0.30) * 1000.0 / c.speed));
         d.impactAt = now + d.dashMs + 90L;
         dashes.add(d);
@@ -827,9 +1163,12 @@ public final class BattleMageClient {
         motion.addProperty("range", d.distance);
         motion.addProperty("width", d.width);
         motion.addProperty("blastRadius", d.blastRadius);
+        motion.addProperty("dashMs", d.dashMs);
         motion.addProperty("mode", mode);
+        motion.addProperty("charge", c.chargeProgress);
+        motion.addProperty("teana", bmState().transformed(state().serverNow()));
         motion.addProperty("color", 0xFF5A36);
-        MageClient.INSTANCE.visual(c, c.id, "START", d.origin.add(0, 1.0, 0), d.dir, d.dashMs + 650L, 0, motion);
+        MageClient.INSTANCE.visualAt(c, d.visualId, "START", d.origin.add(0, 1.0, 0), d.dir, d.visualStart, d.dashMs + 650L, 0, motion);
     }
 
     // --- Skill 7: Dragon Spear (煌龙偃月) ---
@@ -839,6 +1178,9 @@ public final class BattleMageClient {
         if (p == null) { MageClient.INSTANCE.finished(c); return; }
         long now = ClientUi.now();
         int mode = BattleMageRules.morphMode(c.parameters);
+        boolean cleave = mode == 1 || TowerBattleCard.BM_SPEAR_CLEAVE.held(c.stats);
+        boolean detach = !cleave && (mode == 2 || TowerBattleCard.BM_SPEAR_DETACH.held(c.stats));
+        int visualMode = cleave ? 1 : (detach ? 2 : mode);
         double atkSpeed = Math.max(0.5, 1.0 + c.stats.get(Stat.ATTACK_SPEED) / 100.0);
 
         var st = new DragonSpearState();
@@ -848,26 +1190,26 @@ public final class BattleMageClient {
         st.range = c.parameters.get("range", 7.5);
         st.width = c.parameters.get("width", 3.2);
         st.blastRadius = c.parameters.get("blastRadius", 6.5);
-        st.holdSeconds = c.parameters.get("holdSeconds", 1.4);
+        st.holdSeconds = cleave ? 0.0 : c.parameters.get("holdSeconds", 1.4);
         st.tipPos = st.origin.add(st.dir.scale(Math.min(4.8, st.range * 0.65)));
-        st.totalBalls = mode == 1 ? 0 : (int) Math.max(1, Math.round(c.parameters.get("dragonChaserCount", 8.0)));
+        st.totalBalls = cleave ? 0 : (int) Math.max(1, Math.round(c.parameters.get("dragonChaserCount", 8.0)));
         st.intervalMs = Math.max(50L, Math.round(c.parameters.get("interval", 0.14) * 1000.0 / atkSpeed));
-        st.mode = mode;
+        st.mode = visualMode;
         st.start = now;
-        st.nextBallAt = now + (mode == 1 ? 260L : 340L);
-        st.finishAt = mode == 1
+        st.nextBallAt = now + (cleave ? 260L : 340L);
+        st.finishAt = cleave
             ? now + Math.max(280L, Math.round(420.0 / c.speed))
             : Math.max(now + 650L, st.nextBallAt + st.totalBalls * st.intervalMs + 180L);
         st.holdUntil = now + Math.round(st.holdSeconds * 1000.0);
 
-        if (mode == 2) {
-            // Morph B: after 400ms thrust, detaches dragon phantom so player is free to move
+        if (detach) {
+            // Morph B / 煌龙乱舞·脱手龙阵: after 400ms thrust, detaches dragon phantom so player is free to move
             st.detached = false;
             detachedSpears.add(st);
             PlayerPoseChannel.play(c, "dragon_spear_thrust", 460L, st.dir, false);
         } else {
             activeSpear = st;
-            String clip = mode == 1 ? "dragon_spear_cleave" : "dragon_spear";
+            String clip = cleave ? "dragon_spear_cleave" : "dragon_spear";
             PlayerPoseChannel.play(c, clip, st.finishAt - now + 220L, st.dir, false);
         }
 
@@ -875,9 +1217,9 @@ public final class BattleMageClient {
         motion.addProperty("range", st.range);
         motion.addProperty("blastRadius", st.blastRadius);
         motion.addProperty("balls", st.totalBalls);
-        motion.addProperty("mode", mode);
+        motion.addProperty("mode", visualMode);
         motion.addProperty("color", 0xFFB833);
-        MageClient.INSTANCE.visual(c, c.id, "START", st.origin.add(0, 1.0, 0), st.dir, st.finishAt - now + 550L, 0, motion);
+        MageClient.INSTANCE.visual(c, c.id, "START", st.origin.add(0, 1.0, 0), st.dir, (st.finishAt - now) + 750L, 0, motion);
     }
 
     // --- Skill 8: Teana Transformation (变身：贝亚娜 + 2nd-Press Apostle Spear Finisher) ---
@@ -908,16 +1250,18 @@ public final class BattleMageClient {
             long totalMs = Math.max(600L, Math.round(c.parameters.get("finisherDuration", 1.4) * 1000.0));
             fin.impactAt = now + Math.round(totalMs * 0.58);
             fin.endAt = now + totalMs;
+            fin.finishMs = Math.max(820L, (fin.endAt - fin.impactAt) + 150L);
             activeTeanaFinisher = fin;
 
             PlayerPoseChannel.play(c, "teana_finisher", totalMs, dir, false);
             var motion = new JsonObject();
             motion.addProperty("range", fin.range);
             motion.addProperty("radius", fin.radius);
+            motion.addProperty("finishMs", fin.finishMs);
             motion.addProperty("finisher", true);
             motion.addProperty("mode", mode);
             motion.addProperty("color", BattleMageRules.COLOR_TEANA);
-            MageClient.INSTANCE.visual(c, c.id, "START", fin.origin.add(0, 1.1, 0), dir, totalMs + 650L, 0, motion);
+            MageClient.INSTANCE.visual(c, c.id, "START", fin.origin.add(0, 1.1, 0), dir, Math.max(totalMs + 650L, (fin.impactAt - now) + fin.finishMs + 120L), 0, motion);
             schedulePublish();
             return;
         }
@@ -932,7 +1276,7 @@ public final class BattleMageClient {
             for (var ch : s.chasers) if (ch != null) ch.teana = true;
         }
         int gen = Math.max(1, (int) Math.round(c.parameters.get("chaserGen", 3.0)));
-        BattleMageRules.generateChasers(s, gen, c.stats, state().progress(), wall, RNG);
+        grantChasers(gen, c.stats, state().progress(), wall);
         teanaActivationInvulnUntil = now + 600L;
         s.revision++;
 
@@ -996,8 +1340,8 @@ public final class BattleMageClient {
                         double chance = gp.get("autoChaserChance", 1.0);
                         var lp = BattleMageRules.launcherParams(snap, state().progress());
                         int maxCap = (int) Math.max(1, lp.get("maxChasers", 7.0));
-                        if (s.chaserCount(wall) < maxCap && RNG.nextDouble() <= chance) {
-                            BattleMageRules.generateChasers(s, 1, snap, state().progress(), wall, RNG);
+                        if ((s.chaserCount(wall) < maxCap || TowerBattleCard.BM_CHASER_OVERFLOW.held(snap)) && RNG.nextDouble() <= chance) {
+                            grantChasers(1, snap, state().progress(), wall);
                             pendingStatePublish = true;
                         }
                     }
@@ -1010,8 +1354,9 @@ public final class BattleMageClient {
             }
         }
 
-        // 2. Tick active Chaser Launcher orbs
+        // 2. Tick active Chaser Launcher orbs & 万象魔刃 crescent waves
         tickOrbs(p, now);
+        tickWaves(p, now);
 
         // 3. Tick active dashes (Palm Blast & Dragon Strike)
         tickDashes(p, now, wall);
@@ -1074,7 +1419,7 @@ public final class BattleMageClient {
             orb.pos = wallHit.getType() != HitResult.Type.MISS ? wallHit.getLocation() : next;
 
             if (explode) {
-                int[] elems = BattleMageRules.chaserElements(orb.colorType, orb.teana);
+                int[] elems = BattleMageRules.chaserElements(orb.colorType, orb.teana || orb.allFour);
                 double slow = orb.colorType == BattleMageState.ICE ? 0.6 : 0.0;
                 for (var victim : SkillController.INSTANCE.targets(new AABB(orb.pos, orb.pos).inflate(orb.radius, 2.5, orb.radius))) {
                     if (victim.getBoundingBox().getCenter().distanceToSqr(orb.pos) <= (orb.radius + victim.getBbWidth() * 0.5) * (orb.radius + victim.getBbWidth() * 0.5)) {
@@ -1085,8 +1430,64 @@ public final class BattleMageClient {
                 motion.addProperty("radius", orb.radius);
                 motion.addProperty("color", BattleMageRules.chaserColor(orb.colorType, orb.teana));
                 motion.addProperty("teana", orb.teana);
-                MageClient.INSTANCE.visual(orb.cast, orb.visualId, "FINISH", orb.pos, orb.dir, 360L, ++orb.sequence, motion);
+                MageClient.INSTANCE.visual(orb.cast, orb.visualId, "FINISH", orb.pos, orb.dir, Math.max(orb.expiresAt - orb.start + 380L, (now - orb.start) + 400L), ++orb.sequence, motion);
                 TrainingCombat.actionFinished(orb.cast.id);
+                it.remove();
+            }
+        }
+    }
+
+    private static void tickWaves(LocalPlayer p, long now) {
+        var mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        for (var it = waves.iterator(); it.hasNext(); ) {
+            var w = it.next();
+            if (!MageClient.INSTANCE.valid(w.cast)) {
+                it.remove();
+                continue;
+            }
+            if (now < w.launchAt) continue;
+            if (!w.launched) {
+                w.launched = true;
+                w.start = w.lastTick = now;
+                var motion = new JsonObject();
+                motion.addProperty("arcWave", true);
+                motion.addProperty("range", w.range);
+                motion.addProperty("width", w.width);
+                motion.addProperty("speed", w.speed);
+                motion.addProperty("color", w.color);
+                motion.addProperty("teana", w.color == BattleMageRules.COLOR_TEANA);
+                MageClient.INSTANCE.visualAt(w.cast, w.visualId, "START", w.pos, w.dir, w.start, Math.max(350L, w.expiresAt - w.start + 300L), 0, motion);
+            }
+            double dt = Math.clamp((now - w.lastTick) / 1000.0, 0.005, 0.12);
+            w.lastTick = now;
+            Vec3 from = w.pos;
+            Vec3 next = from.add(w.dir.scale(w.speed * dt));
+            var wallHit = mc.level.clip(new ClipContext(from, next, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+            Vec3 end = wallHit.getType() != HitResult.Type.MISS ? wallHit.getLocation() : next;
+            double halfW = w.width * 0.5;
+            var sweepBox = new AABB(from, end).inflate(halfW + 0.5, 1.8, halfW + 0.5);
+            for (var victim : SkillController.INSTANCE.targets(sweepBox)) {
+                if (w.struck.add(victim.getUUID())) {
+                    Vec3 delta = victim.getBoundingBox().getCenter().subtract(from);
+                    double segLen = from.distanceTo(end);
+                    double front = delta.dot(w.dir);
+                    double side = Math.abs(delta.x * w.dir.z - delta.z * w.dir.x);
+                    if (front >= -0.8 && front <= segLen + victim.getBbWidth() * 0.5 + 0.6 && side <= halfW + victim.getBbWidth() * 0.5) {
+                        MageClient.INSTANCE.issueMulti(w.cast, victim, w.coeff, w.elements, 0, "magicWave", "arcanum_" + w.visualId);
+                    } else {
+                        w.struck.remove(victim.getUUID());
+                    }
+                }
+            }
+            w.pos = end;
+            boolean done = now >= w.expiresAt || wallHit.getType() != HitResult.Type.MISS || w.pos.distanceToSqr(w.origin) >= w.range * w.range;
+            if (done) {
+                var motion = new JsonObject();
+                motion.addProperty("arcWave", true);
+                motion.addProperty("width", w.width);
+                motion.addProperty("color", w.color);
+                MageClient.INSTANCE.visualAt(w.cast, w.visualId, "FINISH", w.pos, w.dir, w.start, (now - w.start) + 340L, ++w.sequence, motion);
                 it.remove();
             }
         }
@@ -1140,7 +1541,7 @@ public final class BattleMageClient {
                     motion.addProperty("blastRadius", d.blastRadius);
                     motion.addProperty("color", 0xFF5A36);
                     motion.addProperty("mode", d.mode);
-                    MageClient.INSTANCE.visual(d.cast, d.cast.id, "FINISH", center, d.dir, 520L, ++d.sequence, motion);
+                    MageClient.INSTANCE.visualAt(d.cast, d.visualId, "FINISH", center, d.dir, d.visualStart, (now - d.visualStart) + 600L, ++d.sequence, motion);
                 } else {
                     for (var target : SkillController.INSTANCE.targets(new AABB(center, center).inflate(d.blastRadius, 2.2, d.blastRadius))) {
                         if (d.pathHit.add(target.getUUID()) && target.position().subtract(d.endpoint).horizontalDistanceSqr() <= d.blastRadius * d.blastRadius) {
@@ -1153,26 +1554,37 @@ public final class BattleMageClient {
                     motion.addProperty("radius", d.blastRadius);
                     motion.addProperty("teana", d.isTeana);
                     motion.addProperty("color", d.isTeana ? BattleMageRules.COLOR_TEANA : BattleMageRules.COLOR_FIRE);
-                    MageClient.INSTANCE.visual(d.cast, d.cast.id, "RELEASE", center, d.dir, 400L, ++d.sequence, motion);
+                    MageClient.INSTANCE.visualAt(d.cast, d.visualId, "RELEASE", center, d.dir, d.visualStart, (now - d.visualStart) + 460L, ++d.sequence, motion);
                     openCancelWindow(BattleMageSkills.PALM_BLAST, d.cast.parameters.get("cancelWindowSeconds", 0.45));
                 }
 
                 if (hitAny) {
-                    BattleMageRules.generateChasers(bmState(), gen, d.cast.stats, state().progress(), wall, RNG);
+                    grantChasers(gen, d.cast.stats, state().progress(), wall);
                     schedulePublish();
                 }
 
-                // Morph B Dragon Strike: second return dash!
+                // Morph B / 双星折返 Dragon Strike: second return dash!
                 if (d.isDragonStrike && d.dashesLeft > 1) {
                     d.dashesLeft--;
                     d.dashIndex++;
                     d.dir = d.dir.scale(-1.0);
                     d.origin = p.position();
-                    d.start = now;
+                    d.returnToOrigin = false;
+                    d.start = d.visualStart = now;
                     d.impactAt = now + d.dashMs + 90L;
                     d.impacted = false;
                     d.pathHit.clear();
+                    d.visualId = UUID.nameUUIDFromBytes((d.cast.id + "/dash/" + d.dashIndex).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+                    d.sequence = 0;
                     PlayerPoseChannel.play(d.cast, "dragon_strike", d.dashMs + 280L, d.dir, false);
+                    var nextMotion = new JsonObject();
+                    nextMotion.addProperty("range", d.distance);
+                    nextMotion.addProperty("width", d.width);
+                    nextMotion.addProperty("blastRadius", d.blastRadius);
+                    nextMotion.addProperty("dashMs", d.dashMs);
+                    nextMotion.addProperty("mode", d.mode);
+                    nextMotion.addProperty("color", 0xFF5A36);
+                    MageClient.INSTANCE.visualAt(d.cast, d.visualId, "START", d.origin.add(0, 1.0, 0), d.dir, d.visualStart, d.dashMs + 650L, 0, nextMotion);
                     continue;
                 }
 
@@ -1205,10 +1617,19 @@ public final class BattleMageClient {
                 for (var target : SkillController.INSTANCE.targets(bounds)) {
                     Vec3 delta = target.getBoundingBox().getCenter().subtract(from);
                     double front = delta.dot(b.dir), side = Math.abs(delta.x * b.dir.z - delta.z * b.dir.x);
-                    if (front >= -0.5 && front <= fangRange + target.getBbWidth() * 0.5 && side <= fangWidth * 0.5 + target.getBbWidth() * 0.5) {
+                    if (front >= -0.5 && front <= fangRange + target.getBbWidth() * 0.5 && side <= fangWidth * 0.5 + target.getBbWidth() * 0.5
+                        && SkillController.INSTANCE.sight(from, target.getBoundingBox().getCenter())) {
                         MageClient.INSTANCE.issueElementalist(b.cast, target, b.coeff, -1, 0.35, "", "fang_2");
                     }
                 }
+                var fangMotion = new JsonObject();
+                fangMotion.addProperty("range", fangRange);
+                fangMotion.addProperty("width", fangWidth);
+                fangMotion.addProperty("mode", Math.max(1, BattleMageRules.morphMode(b.cast.parameters)));
+                fangMotion.addProperty("twinFang", true);
+                fangMotion.addProperty("waveFang", TowerBattleCard.BM_FANG_WAVE.held(b.cast.stats));
+                fangMotion.addProperty("teana", bmState().transformed(wall));
+                MageClient.INSTANCE.visual(b.cast, b.cast.id, "HIT", from, b.dir, 620L, 2, fangMotion);
                 continue;
             }
 
@@ -1231,7 +1652,7 @@ public final class BattleMageClient {
                 }
                 if (hitAny) {
                     int gen = Math.max(1, (int) Math.round(b.cast.parameters.get("chaserGen", 1.0)));
-                    BattleMageRules.generateChasers(bmState(), gen, b.cast.stats, state().progress(), wall, RNG);
+                    grantChasers(gen, b.cast.stats, state().progress(), wall);
                     schedulePublish();
                 }
                 openCancelWindow(BattleMageSkills.FULL_SWING, b.cast.parameters.get("cancelWindowSeconds", 0.45));
@@ -1239,7 +1660,7 @@ public final class BattleMageClient {
                 motion.addProperty("radius", b.radius);
                 motion.addProperty("color", b.color);
                 motion.addProperty("mode", b.mode);
-                MageClient.INSTANCE.visual(b.cast, b.cast.id, "RELEASE", b.center, b.dir, 420L, ++b.sequence, motion);
+                MageClient.INSTANCE.visual(b.cast, b.cast.id, "RELEASE", b.center, b.dir, Math.max(b.visualDuration, (now - b.cast.start) + 460L), ++b.sequence, motion);
                 PlayerPoseChannel.release(b.cast);
                 MageClient.INSTANCE.finished(b.cast);
                 continue;
@@ -1266,7 +1687,7 @@ public final class BattleMageClient {
             motion.addProperty("radius", b.radius);
             motion.addProperty("color", b.color);
             motion.addProperty("mode", b.mode);
-            MageClient.INSTANCE.visual(b.cast, b.cast.id, "FINISH", b.center, b.dir, 580L, ++b.sequence, motion);
+            MageClient.INSTANCE.visual(b.cast, b.cast.id, "FINISH", b.center, b.dir, Math.max(b.visualDuration, (now - b.cast.start) + (b.isPress ? 700L : 600L)), ++b.sequence, motion);
             MageClient.INSTANCE.finished(b.cast);
         }
     }
@@ -1283,9 +1704,8 @@ public final class BattleMageClient {
             cancelPunto(true);
             return;
         }
-        if (st.mode == 2) {
-            st.dir = horizontal(p.getLookAngle());
-        }
+        // Base optimization: Punto Wave thrusts always follow player's facing direction
+        st.dir = horizontal(p.getLookAngle());
         // Subtle forward stepping during thrusts
         if (!st.finishing && st.stepSpeed > 0 && Minecraft.getInstance().options.keyUp.isDown()) {
             Vec3 step = advanceClear(p, p.position(), st.dir.scale(st.stepSpeed * 0.05));
@@ -1302,12 +1722,14 @@ public final class BattleMageClient {
                 Vec3 delta = target.getBoundingBox().getCenter().subtract(from);
                 double front = delta.dot(st.dir), side = Math.abs(delta.x * st.dir.z - delta.z * st.dir.x);
                 if (front >= -0.4 && front <= st.range + target.getBbWidth() * 0.5 && side <= st.width * 0.5 + target.getBbWidth() * 0.5) {
-                    MageClient.INSTANCE.issueElementalist(st.cast, target, st.cast.parameters.get("damage", 0.054), -1, 0, "", "punto_" + st.delivered);
+                    if (MageClient.INSTANCE.issueElementalist(st.cast, target, st.cast.parameters.get("damage", 0.054), -1, 0, "", "punto_" + st.delivered)) {
+                        st.hitCount++;
+                    }
                     hitAny = true;
                 }
             }
             if (hitAny && (st.delivered % st.chaserEvery == 0)) {
-                BattleMageRules.generateChasers(bmState(), 1, st.cast.stats, state().progress(), wall, RNG);
+                grantChasers(1, st.cast.stats, state().progress(), wall);
                 schedulePublish();
             }
             if (st.mode == 1) {
@@ -1319,7 +1741,7 @@ public final class BattleMageClient {
             motion.addProperty("width", st.width);
             motion.addProperty("hitIndex", st.delivered);
             motion.addProperty("color", bmState().transformed(wall) ? BattleMageRules.COLOR_TEANA : BattleMageRules.COLOR_MARTIAL);
-            MageClient.INSTANCE.visual(st.cast, st.cast.id, "HIT", from.add(st.dir.scale(st.range * 0.5)), st.dir, 240L, ++st.sequence, motion);
+            MageClient.INSTANCE.visual(st.cast, st.cast.id, "HIT", from.add(st.dir.scale(st.range * 0.5)), st.dir, Math.max((st.endAt - st.start) + 500L, (now - st.start) + 650L), ++st.sequence, motion);
         }
 
         if (!st.finishing && st.delivered >= st.totalHits) {
@@ -1331,9 +1753,13 @@ public final class BattleMageClient {
         }
         if (st.finishing && now >= st.endAt) {
             Vec3 center = p.position().add(st.dir.scale(1.8)).add(0, 0.9, 0);
+            double finCoeff = st.cast.parameters.get("finisher", 0.35);
+            if (TowerBattleCard.BM_PUNTO_CRESCENDO.held(st.cast.stats) && st.hitCount > 0) {
+                finCoeff *= (1.0 + st.hitCount * TowerBattleCard.BM_PUNTO_CRESCENDO.ratio("perhit"));
+            }
             for (var target : SkillController.INSTANCE.targets(new AABB(center, center).inflate(st.finisherRadius, 2.5, st.finisherRadius))) {
                 if (target.position().subtract(p.position()).horizontalDistanceSqr() <= st.finisherRadius * st.finisherRadius) {
-                    MageClient.INSTANCE.issueElementalist(st.cast, target, st.cast.parameters.get("finisher", 0.35), -1, 0.35, "", "punto_fin");
+                    MageClient.INSTANCE.issueElementalist(st.cast, target, finCoeff, -1, 0.35, "", "punto_fin");
                     Vec3 away = target.position().subtract(p.position());
                     if (away.horizontalDistanceSqr() > 1e-4) {
                         queueMotion(target, new Vec3(away.x, 0, away.z).normalize().scale(0.65).add(0, 0.15, 0));
@@ -1343,7 +1769,7 @@ public final class BattleMageClient {
             var motion = new JsonObject();
             motion.addProperty("finisherRadius", st.finisherRadius);
             motion.addProperty("color", bmState().transformed(wall) ? BattleMageRules.COLOR_TEANA : BattleMageRules.COLOR_MARTIAL);
-            MageClient.INSTANCE.visual(st.cast, st.cast.id, "FINISH", center, st.dir, 460L, ++st.sequence, motion);
+            MageClient.INSTANCE.visual(st.cast, st.cast.id, "FINISH", center, st.dir, Math.max((st.endAt - st.start) + 500L, (now - st.start) + 500L), ++st.sequence, motion);
             activePunto = null;
             PlayerPoseChannel.release(st.cast);
             MageClient.INSTANCE.finished(st.cast);
@@ -1378,7 +1804,7 @@ public final class BattleMageClient {
             }
             if (hitAny) {
                 int gen = Math.max(1, (int) Math.round(st.cast.parameters.get("chaserGen", 2.0)));
-                BattleMageRules.generateChasers(bmState(), gen, st.cast.stats, state().progress(), wall, RNG);
+                grantChasers(gen, st.cast.stats, state().progress(), wall);
                 schedulePublish();
             }
             if (allowDetach) {
@@ -1388,22 +1814,24 @@ public final class BattleMageClient {
         }
 
         // Fire Dragon Chasers along spear blade (Pure Magic 4-element!)
+        double ballRadius = 4.2 * (st.mode == 2 && TowerBattleCard.BM_SPEAR_DETACH.held(st.cast.stats)
+            ? 1.0 + TowerBattleCard.BM_SPEAR_DETACH.ratio("radius") : 1.0);
         while (st.delivered < st.totalBalls && now >= st.nextBallAt) {
             st.delivered++;
             st.nextBallAt += st.intervalMs;
             double ballCoeff = st.cast.parameters.get("dragonChaser", 0.05);
             if (ballCoeff > 0) {
                 Vec3 hitCenter = st.tipPos.add(0, 1.0, 0);
-                for (var target : SkillController.INSTANCE.targets(new AABB(hitCenter, hitCenter).inflate(4.2, 3.0, 4.2))) {
-                    if (target.position().subtract(st.tipPos).horizontalDistanceSqr() <= 4.2 * 4.2) {
+                for (var target : SkillController.INSTANCE.targets(new AABB(hitCenter, hitCenter).inflate(ballRadius, 3.0, ballRadius))) {
+                    if (target.position().subtract(st.tipPos).horizontalDistanceSqr() <= ballRadius * ballRadius) {
                         MageClient.INSTANCE.issueMulti(st.cast, target, ballCoeff, BattleMageRules.ALL_FOUR_ELEMENTS, 0, "dragonChaser", "spear_ball_" + st.delivered);
                     }
                 }
                 var motion = new JsonObject();
-                motion.addProperty("radius", 3.8);
+                motion.addProperty("radius", ballRadius * 0.9);
                 motion.addProperty("ballIndex", st.delivered);
                 motion.addProperty("color", BattleMageRules.chaserColor(st.delivered % 5, st.delivered % 3 == 0));
-                MageClient.INSTANCE.visual(st.cast, st.cast.id, "HIT", hitCenter, st.dir, 300L, ++st.sequence, motion);
+                MageClient.INSTANCE.visual(st.cast, st.cast.id, "HIT", hitCenter, st.dir, Math.max((st.finishAt - st.start) + 750L, (now - st.start) + 750L), ++st.sequence, motion);
             }
         }
 
@@ -1423,7 +1851,7 @@ public final class BattleMageClient {
             motion.addProperty("blastRadius", st.blastRadius);
             motion.addProperty("mode", st.mode);
             motion.addProperty("color", 0xFFB833);
-            MageClient.INSTANCE.visual(st.cast, st.cast.id, "FINISH", center, st.dir, 650L, ++st.sequence, motion);
+            MageClient.INSTANCE.visual(st.cast, st.cast.id, "FINISH", center, st.dir, Math.max((st.finishAt - st.start) + 750L, (now - st.start) + 750L), ++st.sequence, motion);
             if (!allowDetach) PlayerPoseChannel.release(st.cast);
             MageClient.INSTANCE.finished(st.cast);
             return true;
@@ -1455,9 +1883,10 @@ public final class BattleMageClient {
             }
             var motion = new JsonObject();
             motion.addProperty("radius", fin.radius);
+            motion.addProperty("finishMs", fin.finishMs);
             motion.addProperty("finisher", true);
             motion.addProperty("color", BattleMageRules.COLOR_TEANA);
-            MageClient.INSTANCE.visual(fin.cast, fin.cast.id, "FINISH", center, fin.dir, 850L, ++fin.sequence, motion);
+            MageClient.INSTANCE.visual(fin.cast, fin.cast.id, "FINISH", center, fin.dir, (now - fin.start) + fin.finishMs + 120L, ++fin.sequence, motion);
         }
         if (now >= fin.endAt) {
             if (!fin.keepTransform) {
@@ -1557,6 +1986,19 @@ public final class BattleMageClient {
         return null;
     }
 
+    private static LivingEntity findNearestTarget(LocalPlayer p, double maxRange) {
+        double best = maxRange * maxRange;
+        LivingEntity chosen = null;
+        for (var cand : SkillController.INSTANCE.targets(p.getBoundingBox().inflate(maxRange, 6.0, maxRange))) {
+            double d2 = cand.position().distanceToSqr(p.position());
+            if (d2 < best) {
+                best = d2;
+                chosen = cand;
+            }
+        }
+        return chosen;
+    }
+
     private static Vec3 horizontal(Vec3 look) {
         Vec3 h = new Vec3(look.x, 0, look.z);
         return h.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : h.normalize();
@@ -1628,11 +2070,13 @@ public final class BattleMageClient {
         }
         dashes.removeIf(d -> d.cast.id.equals(castId));
         blasts.removeIf(b -> b.cast.id.equals(castId));
+        waves.removeIf(w -> w.cast.id.equals(castId));
     }
 
     public static void clear() {
         BattleMageChargeClient.clear();
         orbs.clear();
+        waves.clear();
         dashes.clear();
         blasts.clear();
         activePunto = null;
@@ -1641,6 +2085,8 @@ public final class BattleMageClient {
         activeTeanaFinisher = null;
         chargePools.clear();
         pendingMotions.clear();
+        fangShredUntil.clear();
+        fangBaseGenDone.clear();
         recentHitTarget = null;
         recentHitUntil = 0L;
         cancelWindowUntil = 0L;

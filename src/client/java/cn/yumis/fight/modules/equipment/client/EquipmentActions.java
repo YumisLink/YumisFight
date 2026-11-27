@@ -28,7 +28,11 @@ public final class EquipmentActions {
     private static PendingEnhance pendingEnhance;
     private EquipmentActions(){}
     public static void clear(){initializing.clear();creativeCurrency=null;pendingCurrencyOp="";pendingEnhance=null;EnhanceClient.clear();BagSnapshotClient.clear();}
-    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<JsonObject> view,Function<String,Profession> professions){progress=p;profile=view;profession=professions;router.register("equipment","craft",(ignored,j)->craft(j));router.register("equipment","cubeCraft",(ignored,j)->EquipmentChanges.prepareCube(Minecraft.getInstance().player,profession.apply("craftsman"),j));router.register("equipment","currency",(ignored,j)->currency(j));router.register("equipment","enhance",(ignored,j)->enhance(j));router.register("equipment","initializeEquipment",(ignored,j)->initialize(j));}
+    public static void install(CommandRouter<Void,JsonObject> router,Supplier<Progress> p,Supplier<JsonObject> view,Function<String,Profession> professions){progress=p;profile=view;profession=professions;router.register("equipment","craft",(ignored,j)->craft(j));router.register("equipment","cubeCraft",(ignored,j)->cube(j));router.register("equipment","currency",(ignored,j)->currency(j));router.register("equipment","enhance",(ignored,j)->enhance(j));router.register("equipment","initializeEquipment",(ignored,j)->initialize(j));}
+    private static void cube(JsonObject request){
+        var player=Minecraft.getInstance().player;
+        EquipmentChanges.prepareCube(player,profession.apply("craftsman"),request,BagSnapshotClient.items(player.containerMenu));
+    }
     /** 当前账户快照（金币等），供强化界面做预算展示。 */
     public static JsonObject accountView(){return profile.get();}
     private static void enhance(JsonObject j){

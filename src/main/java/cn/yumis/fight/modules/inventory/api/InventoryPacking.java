@@ -13,7 +13,7 @@ public final class InventoryPacking {
     public static int room(BagOption option,Player player,ItemStack incoming){
         int base=room(player,incoming);
         if(!option.autoStore())return base;
-        return (int)Math.min(Integer.MAX_VALUE,(long)base+bagRoom(player,incoming));
+        return (int)Math.min(Integer.MAX_VALUE,(long)base+bagRoom(player,incoming)+MenuHooks.extra(player).categories.room(incoming));
     }
     /** 次元背包的同类合并与空格容量。 */
     public static int bagRoom(Player player,ItemStack incoming){
@@ -30,6 +30,7 @@ public final class InventoryPacking {
     /** 按偏好入库：直收模式先进次元背包，其余先进普通背包，放不下再按开关收进次元背包。 */
     public static void insertWithOption(BagOption option,Player player,ItemStack incoming){
         if(incoming.isEmpty())return;
+        if(option.autoStore())MenuHooks.extra(player).categories.insert(incoming);
         if(option.autoStore()&&!option.onlyWhenFull())insertBag(player,incoming);
         if(!incoming.isEmpty())insert(player,incoming);
         if(!incoming.isEmpty()&&option.autoStore())insertBag(player,incoming);

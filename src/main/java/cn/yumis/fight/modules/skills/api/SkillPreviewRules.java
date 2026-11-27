@@ -34,8 +34,41 @@ public final class SkillPreviewRules {
         register(SkillCatalog.DRAGON,new Definition(p->(int)p.get("slashes",1),false,false,false,-1));
         register(SkillCatalog.DANCE,new Definition(p->SkillSchedule.dance(p).slashes(),true,true,false,-1));
         register(SkillCatalog.STORM,new Definition(p->StormChoreography.schedule(p.values()).slashes(),true,false,false,-1));
-        SUPPLEMENTS.put(SkillCatalog.DRAW,(progress,stats,parameters,effects)->SkillPreview.mastery(progress,stats)>0&&Set.of("LIGHTSABER","KATANA").contains(stats.weaponType)?SkillPreview.passiveElementDamage(progress,stats,SkillCatalog.DRAW,parameters.get("damage",0)*.2,0,effects):new SkillPreview.Damage(0,0));
-        SunMoonSkills.previews();ElementalistSkills.previews();BattleMageSkills.previews();DemonHunterSkills.previews();
+        register(SkillCatalog.METEOR_RISE,new Definition(p->1,true,true,false,-1));
+        register(SkillCatalog.METEOR_LEAP,new Definition(p->1,true,true,false,-1));
+        register(SkillCatalog.METEOR_PIERCE,new Definition(p->(int)Math.max(1,p.get("slashes",3)),false,true,false,-1));
+        SUPPLEMENTS.put(SkillCatalog.DRAW,(progress,stats,parameters,effects)->{
+            if(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_DRAW_BARRAGE.held(stats))return new SkillPreview.Damage(0,0);
+            SkillPreview.Damage extra=new SkillPreview.Damage(0,0);
+            if(SkillPreview.mastery(progress,stats)>0&&Set.of("LIGHTSABER","KATANA").contains(stats.weaponType))
+                extra=extra.plus(SkillPreview.passiveElementDamage(progress,stats,SkillCatalog.DRAW,parameters.get("damage",0)*.2,0,effects));
+            if(cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_DRAW_ARC_WAVE.held(stats))
+                extra=extra.plus(SkillPreview.damage(progress,stats,SkillCatalog.DRAW,parameters.get("damage",0)*WeaponSkills.drawArcWaveDamageRatio(),false,effects));
+            return extra;
+        });
+        TOTALS.put(SkillCatalog.DRAW,(progress,stats,parameters,effects)->{
+            if(!cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_DRAW_BARRAGE.held(stats))return null;
+            int count=WeaponSkills.drawBarrageCount(stats);
+            return SkillPreview.damage(progress,stats,SkillCatalog.DRAW,parameters.get("damage",0)*WeaponSkills.drawBarrageDamageRatio(),false,effects).times(count);
+        });
+        TOTALS.put(SkillCatalog.RISING,(progress,stats,parameters,effects)->{
+            if(!cn.yumis.fight.modules.dungeons.api.TowerBattleCard.SM_RISING_DRAGON_SLAY.held(stats))return null;
+            double d=parameters.get("damage",0),f=parameters.get("finisher",0);
+            var rush=SkillPreview.damage(progress,stats,SkillCatalog.RISING,WeaponSkills.risingDragonSlayRushCoeff(d),false,effects).times(3);
+            var upper=SkillPreview.damage(progress,stats,SkillCatalog.RISING,WeaponSkills.risingDragonSlayUpperCoeff(d),false,effects);
+            var slam=SkillPreview.damage(progress,stats,SkillCatalog.RISING,WeaponSkills.risingDragonSlaySlamCoeff(f),false,effects);
+            return rush.plus(upper).plus(slam);
+        });
+        TOTALS.put(SkillCatalog.require(CareerSkills.BLADE),(progress,stats,parameters,effects)->{
+            if(!cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_BLADE_ASSAULT.held(stats))return null;
+            var blade=SkillCatalog.require(CareerSkills.BLADE);
+            var pierce=SkillPreview.damage(progress,stats,blade,parameters.get("damage",0),false,effects);
+            int blasts=Math.max(1,cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_BLADE_ASSAULT.count("blasts"));
+            double ratio=cn.yumis.fight.modules.dungeons.api.TowerBattleCard.BERSERKER_BLADE_ASSAULT.ratio("ratio");
+            var burst=SkillPreview.damage(progress,stats,blade,parameters.get("finisher",0)*ratio,false,effects).times(blasts);
+            return pierce.plus(burst);
+        });
+        SoulBenderRules.previews();SunMoonSkills.previews();ElementalistSkills.previews();BattleMageSkills.previews();WitchSkills.previews();DemonHunterSkills.previews();
     }
     private SkillPreviewRules(){}
     public static void total(SkillDefinition skill,Supplement resolver){if(TOTALS.putIfAbsent(skill,resolver)!=null)throw new IllegalArgumentException("Duplicate total preview");}
@@ -44,6 +77,7 @@ public final class SkillPreviewRules {
     public static Pattern pattern(SkillDefinition skill,SkillParameters.Snapshot parameters){var pattern=PATTERNS.get(skill);return pattern==null?null:pattern.apply(parameters);}
     public static void finisherLabel(SkillDefinition skill,String label){if(FINISHER_LABELS.putIfAbsent(skill,label)!=null)throw new IllegalArgumentException("Duplicate preview label");}
     public static String finisherLabel(SkillDefinition skill){return FINISHER_LABELS.get(skill);}
+    public static void supplement(SkillDefinition skill,Supplement resolver){if(SUPPLEMENTS.putIfAbsent(skill,resolver)!=null)throw new IllegalArgumentException("Duplicate preview supplement");}
     public static SkillPreview.Damage supplement(SkillDefinition skill,cn.yumis.fight.modules.character.api.Progress progress,cn.yumis.fight.modules.attributes.api.Stats stats,SkillParameters.Snapshot parameters,cn.yumis.fight.modules.equipment.api.EquipmentEffects.Snapshot effects){var supplement=SUPPLEMENTS.get(skill);return supplement==null?new SkillPreview.Damage(0,0):supplement.resolve(progress,stats,parameters,effects);}
     public static void register(SkillDefinition skill,Definition definition){if(DEFINITIONS.putIfAbsent(skill,Objects.requireNonNull(definition))!=null)throw new IllegalArgumentException("Duplicate skill preview: "+skill);}
     public static Definition require(SkillDefinition skill){

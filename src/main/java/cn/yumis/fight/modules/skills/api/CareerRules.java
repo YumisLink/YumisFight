@@ -2,6 +2,7 @@ package cn.yumis.fight.modules.skills.api;
 
 import cn.yumis.fight.modules.attributes.api.*;
 import cn.yumis.fight.modules.character.api.*;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import java.util.*;
 
 /** Pure, shared arithmetic for career sources and resource snapshots. */
@@ -12,20 +13,42 @@ public final class CareerRules {
         Stats result=base.copy();
         double defense=cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);
         for(var stat:List.of(Stat.PHYSICAL_DEFENSE,Stat.MAGICAL_DEFENSE)){var value=result.attribute(stat);value.more(defense-1);value.fadd*=defense;}
-        if(SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.KEIGA))>0){var value=result.attribute(Stat.EVASION);value.more(1);value.fadd*=2;}
+        if(SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.KEIGA))>0){
+            var value=result.attribute(Stat.EVASION);value.more(1);value.fadd*=2;
+            if(TowerBattleCard.SB_GHOST_STEP.held(result)){
+                result.mut(Stat.MOVEMENT_SPEED,TowerBattleCard.SB_GHOST_STEP.ratio("movement"));
+                result.mut(Stat.EVASION,TowerBattleCard.SB_GHOST_STEP.ratio("evasion"));
+            }
+        }
         int brands=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.BRANDS));
-        if(brands>0)result.mut(Stat.MANA_REGENERATION,.5*state.brands);
+        if(brands>0&&state.brands>0){
+            double manaPerBrand=.5;
+            if(TowerBattleCard.ASURA_BRAND_FLOW.held(result)){
+                manaPerBrand+=TowerBattleCard.ASURA_BRAND_FLOW.ratio("mana");
+                result.mut(Stat.COOLDOWN_RECOVERY,TowerBattleCard.ASURA_BRAND_FLOW.ratio("haste")*state.brands);
+            }
+            result.mut(Stat.MANA_REGENERATION,manaPerBrand*state.brands);
+            if(TowerBattleCard.ASURA_BRAND_CAP.held(result))
+                result.modifier("final").mut+=TowerBattleCard.ASURA_BRAND_CAP.ratio("damage")*state.brands;
+        }
         int frenzy=SkillLearning.effective(result,progress,SkillCatalog.require(CareerSkills.FRENZY));
         if(state.frenzy&&frenzy>0){
             result.extra(Stat.ATTACK_SPEED,15);result.mut(Stat.MOVEMENT_SPEED,.10);
-            result.mut(Stat.PHYSICAL_DEFENSE,-.15);result.mut(Stat.MAGICAL_DEFENSE,-.15);
-            result.modifier("final").mut+=CareerSkills.lowHealthMut(fraction);
+            if(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.held(result)){
+                double totalBonus=bloodAwakeningDamageBonus(fraction);
+                double moveBonus=bloodAwakeningMoveBonus(fraction);
+                if(totalBonus>0)result.modifier("skillProduct").alls*=1+totalBonus;
+                if(moveBonus>0)result.mut(Stat.MOVEMENT_SPEED,moveBonus);
+            }else{
+                result.mut(Stat.PHYSICAL_DEFENSE,-.15);result.mut(Stat.MAGICAL_DEFENSE,-.15);
+                result.modifier("final").mut+=CareerSkills.lowHealthMut(fraction);
+            }
             result.modifiers.put("basicSlashes",2d);result.modifiers.put("careerFrenzy",1d);
         }
         if(red>0){result.mut(Stat.STRENGTH,red);result.mut(Stat.INTELLIGENCE,red);}
         if(state.eyeUntil>now)result.modifiers.put("careerEyeBonus",state.eyeBonusMut);
         if(ownField)result.modifiers.put("ownGhostField",1d);
-        return DemonHunterRules.current(BattleMageRules.current(ElementalistRules.current(SunMoonRules.current(OracleRules.current(result,progress,state.oracle,now),progress,state.sunMoon),progress,state.elementalist,now),progress,state.battleMage,now),progress,state.demonHunter,now);
+        return DemonHunterRules.current(WitchRules.current(BattleMageRules.current(ElementalistRules.current(SunMoonRules.current(OracleRules.current(result,progress,state.oracle,now),progress,state.sunMoon),progress,state.elementalist,now),progress,state.battleMage,now),progress,state.witch,now),progress,state.demonHunter,now);
     }
     public static Stats eyeDamage(Stats source,SkillDefinition skill){
         if(skill==null||!Set.of(SkillCatalog.WAVE.id,CareerSkills.ICE,CareerSkills.FIRE).contains(skill.id))return source;
@@ -33,10 +56,29 @@ public final class CareerRules {
         Stats result=source.copy();result.modifier("final").mut+=desired-applied;result.modifiers.put("careerEye",1d);result.modifiers.put("careerEyeApplied",desired);return result;
     }
     public static SkillParameters.Snapshot resourceSnapshot(SkillParameters.Snapshot source,int brands,int blood,int fieldRank,boolean terminal){
+        return resourceSnapshot(source,null,brands,blood,fieldRank,terminal);
+    }
+    public static SkillParameters.Snapshot resourceSnapshot(SkillParameters.Snapshot source,Stats stats,int brands,int blood,int fieldRank,boolean terminal){
         var values=new LinkedHashMap<>(source.values());String id=source.skill().id;
         values.put("resource",(double)brands);values.put("blood",(double)blood);values.put("fieldRank",(double)fieldRank);values.put("terminal",terminal?1d:0d);
-        if(id.equals(CareerSkills.ORB)){int hits=(int)Math.max(1,source.get("orbBaseHits",3)+source.get("orbHitsPerBrand",5)*Math.clamp(brands,0,5));double tick=Math.max(.05,source.get("orbTickInterval",SkillResourceRules.ORB_INTERVAL/1000d));double total=source.get("damage",0)+source.get("perBrandDamage",0)*brands;values.put("slashes",(double)hits);values.put("damage",total/hits);values.put("finisher",0d);values.put("interval",tick);values.put("duration",2+hits*tick);}
-        if(id.equals(CareerSkills.AGNI)){double base=Math.max(.05,source.get("agniIntervalBase",.85));values.put("slashes",(double)(int)Math.max(1,Math.floor(source.get("agniBaseHits",3)*Math.clamp(brands,1,5)/base)));values.put("interval",base/Math.clamp(brands,1,5));}
+        if(id.equals(CareerSkills.ORB)){
+            boolean orbCard=TowerBattleCard.ASURA_ORB_OVERDRIVE.held(stats);
+            int effectiveBrands=orbCard&&brands>0?TowerBattleCard.ASURA_ORB_OVERDRIVE.count("effect"):brands;
+            if(orbCard&&brands>0)values.put("resource",(double)effectiveBrands);
+            int hits=(int)Math.max(1,source.get("orbBaseHits",3)+source.get("orbHitsPerBrand",5)*Math.clamp(effectiveBrands,0,5));
+            double tick=Math.max(.05,source.get("orbTickInterval",SkillResourceRules.ORB_INTERVAL/1000d));
+            if(orbCard)tick=Math.max(.05,Math.min(tick,TowerBattleCard.ASURA_ORB_OVERDRIVE.value("interval")));
+            double total=source.get("damage",0)+source.get("perBrandDamage",0)*effectiveBrands;
+            values.put("slashes",(double)hits);values.put("damage",total/hits);values.put("finisher",0d);values.put("interval",tick);values.put("orbTickInterval",tick);values.put("duration",2+hits*tick);
+        }
+        if(id.equals(CareerSkills.AGNI)){
+            int multiplier=TowerBattleCard.ASURA_AGNI_DOUBLE.held(stats)?Math.max(1,TowerBattleCard.ASURA_AGNI_DOUBLE.count("multiplier")):1;
+            int effectiveOrbs=(int)Math.clamp((long)Math.max(1,brands)*multiplier,1,SkillResourceRules.AGNI_MAX_ORBS);
+            double base=Math.max(.05,source.get("agniIntervalBase",.85));
+            values.put("agniOrbs",(double)effectiveOrbs);
+            values.put("slashes",(double)(int)Math.max(1,Math.floor(source.get("agniBaseHits",3)*effectiveOrbs/base)));
+            values.put("interval",base/effectiveOrbs);
+        }
         if(id.equals(CareerSkills.SWORD)){double total=source.get("damage",0)+source.get("perBloodDamage",0)*Math.clamp((double)blood,0,Math.max(1,source.get("bloodCap",SkillResourceRules.BLOOD_CAP)));double share=Math.clamp(source.get("swordFirstShare",.3),0,1);int rushes=(int)Math.max(1,source.get("swordRushes",5));values.put("damage",total);values.put("previewDamage",total*(1-share)/rushes);values.put("finisher",total*share);}
         if(id.equals(CareerSkills.BLACHE))values.put("skillMut",CareerSkills.blacheMut(fieldRank));
         return new SkillParameters.Snapshot(source.skill(),source.rank(),values);
@@ -48,6 +90,25 @@ public final class CareerRules {
         return skill!=null&&SkillPreviewRules.require(skill).magicBeforePromotion();
     }
     public static boolean producesBrand(String id){return Set.of(SkillCatalog.WAVE.id,CareerSkills.CRESCENT,CareerSkills.ICE,CareerSkills.FIRE).contains(id);}
+    public static double bloodAwakeningLostSteps(double fraction){
+        double floor=TowerBattleCard.BERSERKER_BLOOD_AWAKENING.ratio("floor");
+        double clamped=Math.clamp(Double.isFinite(fraction)?fraction:1d,floor,1d);
+        double step=Math.max(1e-6,TowerBattleCard.BERSERKER_BLOOD_AWAKENING.value("step"));
+        return Math.max(0d,(1d-clamped)*100d/step);
+    }
+    public static double bloodAwakeningDamageBonus(double fraction){
+        double bonus=bloodAwakeningLostSteps(fraction)*TowerBattleCard.BERSERKER_BLOOD_AWAKENING.ratio("damage");
+        return Math.min(TowerBattleCard.BERSERKER_BLOOD_AWAKENING.ratio("cap"),Math.max(0d,bonus));
+    }
+    public static double bloodAwakeningMoveBonus(double fraction){
+        return bloodAwakeningLostSteps(fraction)*TowerBattleCard.BERSERKER_BLOOD_AWAKENING.ratio("move");
+    }
+    public static double bloodAwakeningShieldAmount(double existingShield,double maxHealth,double spentHealth){
+        if(!(maxHealth>0)||!(spentHealth>0))return Math.max(0d,existingShield);
+        double cap=maxHealth*TowerBattleCard.BERSERKER_BLOOD_AWAKENING.ratio("shieldcap");
+        double gained=spentHealth*TowerBattleCard.BERSERKER_BLOOD_AWAKENING.ratio("shield");
+        return Math.min(cap,Math.max(0d,existingShield)+gained);
+    }
     public static Stats castDamage(Stats source,SkillParameters.Snapshot parameters){
         double desired=parameters.get("skillMut",0),applied=source.modifiers.getOrDefault("careerCastMut",0d);
         if(desired==applied)return source;

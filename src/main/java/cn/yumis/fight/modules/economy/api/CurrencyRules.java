@@ -94,16 +94,34 @@ public final class CurrencyRules {
         if(level<1||level>80||multiplier<0)throw new IllegalArgumentException("奖励参数无效");
         return roundedReward(level*(1+level/50d)*(boss?10:elite?3:1)*difficulty.xp*multiplier);
     }
+    private static long saleMultiplier(Rarity rarity){
+        return switch(rarity){
+            case COMMON->1L;
+            case RARE->2L;
+            case ARTIFACT->5L;
+            case LEGENDARY->10L;
+            case EPIC->25L;
+            case MYTHIC->50L;
+            case PRIMORDIAL->0L;
+        };
+    }
     public static long salePrice(cn.yumis.fight.modules.equipment.api.Gear gear){
         if(gear.level<1||gear.level>85)throw new IllegalArgumentException("装备等级无效");
-        return Math.multiplyExact(gear.level,new long[]{1,2,5,10,25,50}[gear.rarity.ordinal()]);
+        long multiplier=saleMultiplier(gear.rarity);
+        if(multiplier==0L)throw new IllegalArgumentException("装备暂无出售定价");
+        return Math.multiplyExact(gear.level,multiplier);
     }
-    /** Prices the complete stack; equipment keeps its existing per-item price. */
-    public static long salePrice(net.minecraft.world.item.ItemStack stack){
-        if(stack.isEmpty())throw new IllegalArgumentException("空槽不可出售");
+    /** Returns the complete stack price when the stack can be sold. */
+    public static OptionalLong saleQuote(net.minecraft.world.item.ItemStack stack){
+        if(stack.isEmpty())return OptionalLong.empty();
         var gear=cn.yumis.fight.modules.equipment.api.EquipmentItems.gear(stack);
-        long unitPrice=gear!=null&&gear.rarity!=null&&gear.level>=1&&gear.level<=85?salePrice(gear):1L;
-        return Math.multiplyExact(unitPrice,stack.getCount());
+        long multiplier=gear==null||gear.rarity==null?1L:saleMultiplier(gear.rarity);
+        if(multiplier==0L)return OptionalLong.empty();
+        long unitPrice=gear!=null&&gear.rarity!=null&&gear.level>=1&&gear.level<=85?Math.multiplyExact(gear.level,multiplier):1L;
+        return OptionalLong.of(Math.multiplyExact(unitPrice,stack.getCount()));
+    }
+    public static long salePrice(net.minecraft.world.item.ItemStack stack){
+        return saleQuote(stack).orElseThrow(()->new IllegalArgumentException(stack.isEmpty()?"空槽不可出售":"装备暂无出售定价"));
     }
     private static Tier tier(Rarity rarity,double baseWeight){
         List<Currency> currencies=DROP_POOL.stream().filter(c->c.rarity()==rarity).toList();
@@ -111,6 +129,14 @@ public final class CurrencyRules {
         return new Tier(rarity,baseWeight,currencies);
     }
     public static Currency find(String id){return BY_ID.get(id);}
+    public static List<String> standardStorageIds(){
+        return List.of("transmutation_stone","augmentation_stone","regal_stone","exalted_stone",
+            "stripping_stone","divine_stone","advanced_divine_stone","perfect_divine_stone","chaos_stone",
+            "upgrade_stone","fracturing_orb","socket_stone","set_extraction_stone","affix_extraction_stone",
+            "epic_upgrade_stone","mythic_upgrade_stone","delezie_blood",EnhancementRules.OTHERWORLD_AURA,
+            EnhancementRules.INTENSE_AURA,EnhancementRules.AURA_TRANSFORM_BOX,cn.yumis.fight.modules.equipment.api.EquipmentRules.MASTER_CRYSTAL);
+    }
+    public static final long STORAGE_UNLOCK_PRICE=100_000;
     public static int upgradeTier(String id){var currency=find(id);return currency!=null&&currency.naturalDrop()&&currency.rarity().ordinal()<Rarity.EPIC.ordinal()?currency.rarity().ordinal():-1;}
     public static List<Currency> upgradeResults(int tier){if(tier<0||tier>=Rarity.EPIC.ordinal())return List.of();return DROP_POOL.stream().filter(c->c.rarity().ordinal()==tier+1).toList();}
     public static long upgradeCost(int tier){return switch(tier){case 0->100;case 1->1000;case 2->10000;case 3->100000;default->throw new IllegalArgumentException("不可升级的通货稀有度");};}

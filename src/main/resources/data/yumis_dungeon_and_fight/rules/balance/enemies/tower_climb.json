@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "floorCount": 20,
+  "enemyLevelOffset": 5,
+  "orreryHealthFactor": 3.0,
+  "orreryAttackFactor": 1.5,
+  "movementFactor": 0.5,
+  "fireHealthFraction": 0.01,
+  "actionSpeedFactor": 0.5,
+  "manaRecoveryFactor": 0.1,
+  "frostDamageFraction": 0.0001,
+  "cooldownRecoveryFactor": 0.5,
+  "grades": {
+    "E": 1.0,
+    "D": 1.2,
+    "C": 1.4,
+    "B": 1.6,
+    "A": 1.8,
+    "S": 2.0
+  }
+}

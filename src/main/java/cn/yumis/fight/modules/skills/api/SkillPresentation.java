@@ -38,7 +38,7 @@ public final class SkillPresentation {
 
     private static final Map<SkillDefinition, Traits> CONTENT = new LinkedHashMap<>();
     private static final Set<String> CAREER_MOVEMENT = Set.of(
-        CareerSkills.PHANTOM, CareerSkills.CRASH, CareerSkills.ERUPTION, OracleSkills.THRUST
+        CareerSkills.MOONLIGHT, CareerSkills.PHANTOM, CareerSkills.CRASH, CareerSkills.ERUPTION, OracleSkills.THRUST
     );
     private static final Set<String> CAREER_SUPER_STIFF = Set.of(
         CareerSkills.BLACHE, CareerSkills.AGNI, OracleSkills.REPLICA
@@ -53,18 +53,24 @@ public final class SkillPresentation {
             register(SkillCatalog.require(id), new Traits(false, false, true, false, 0, 0, SkillCatalog.require(id).aspect == SkillDefinition.Aspect.SUN ? 0xff9b35 : 0x9ddcff, false, c -> 3500));
         ElementalistSkills.presentation();
         BattleMageSkills.presentation();
+        WitchSkills.presentation();
         DemonHunterSkills.presentation();
         register(SkillCatalog.BLINK, new Traits(false, true, true, false, 0, 0, 0xb4f2ff, false, c -> 100, true, CANCEL_MOBILITY, STIFF_NORMAL));
         register(SkillCatalog.GHOST, new Traits(true, false, false, false, 0, 0, 0x8E56D9, false, c -> 3800));
-        register(SkillCatalog.TRIPLE, new Traits(false, false, false, false, 200, 1200, 0xB4F2FF, true, c -> (long) (1200 * c.parameters.get("slashes", 3) + 500), true, CANCEL_MOBILITY, STIFF_NORMAL));
+        register(SkillCatalog.TRIPLE, new Traits(false, false, false, false, 200, 1200, 0xB4F2FF, true, c -> Math.min(35000L, (long) (1200 * c.parameters.get("slashes", 3) + 500)), true, CANCEL_MOBILITY, STIFF_NORMAL));
         register(SkillCatalog.WAVE, new Traits(false, false, false, false, 0, 0, 0xB4F2FF, false, c -> 1800));
         register(SkillCatalog.MASTERY, new Traits(false, false, false, false, 0, 0, 0xB4F2FF, false, c -> 1800));
         register(SkillCatalog.OVERDRIVE, new Traits(false, false, true, false, 0, 0, 0xB4F2FF, false, c -> 30000));
         register(SkillCatalog.RISING, new Traits(false, false, false, false, 0, 0, 0xB4F2FF, true, c -> 1800, true, CANCEL_MOBILITY, STIFF_NORMAL));
         register(SkillCatalog.DRAW, new Traits(false, false, false, false, 0, 0, 0xB4F2FF, true, c -> 1800));
-        register(SkillCatalog.DRAGON, new Traits(false, false, false, false, 250, 1050, 0xB4F2FF, true, c -> (long) (1050 * c.parameters.get("slashes", 4) + 500), true, CANCEL_MOBILITY, STIFF_NORMAL));
+        register(SkillCatalog.DRAGON, new Traits(false, false, false, false, 250, 1050, 0xB4F2FF, true, c -> Math.min(35000L, (long) (1050 * c.parameters.get("slashes", 4) + 500)), true, CANCEL_MOBILITY, STIFF_NORMAL));
         register(SkillCatalog.DANCE, new Traits(false, false, false, false, 0, 0, 0xB4F2FF, true, c -> (long) (c.parameters.get("duration", 1.25) * 1000 + 600)));
         register(SkillCatalog.STORM, new Traits(false, true, true, true, 0, 0, 0xB4F2FF, true, c -> StormChoreography.schedule(c.parameters.values()).endAt(), false, CANCEL_NORMAL, STIFF_SUPER));
+        register(SkillCatalog.METEOR_RISE, new Traits(false, false, false, false, 0, 0, 0xB4F2FF, true, c -> 900, true, CANCEL_MOBILITY, STIFF_NORMAL));
+        register(SkillCatalog.METEOR_LEAP, new Traits(false, false, false, false, 0, 0, 0xB4F2FF, true, c -> 1000, true, CANCEL_MOBILITY, STIFF_NORMAL));
+        register(SkillCatalog.METEOR_PIERCE, new Traits(false, false, false, false, 0, 0, 0xB4F2FF, true, c -> 900, true, CANCEL_MOBILITY, STIFF_NORMAL));
+        register(SkillCatalog.require(CareerSkills.MOONLIGHT), new Traits(false, false, false, false, 200, 1100, 0xa86cf5, false, c -> Math.min(35000L, (long) (1100 * c.parameters.get("slashes", 3) + 500)), true, CANCEL_MOBILITY, STIFF_NORMAL));
+        register(SkillCatalog.require(CareerSkills.PHANTOM), new Traits(false, false, false, false, 260, 1100, 0x9e65ee, false, c -> Math.min(35000L, (long) (1100 * c.parameters.get("slashes", 1) + 500)), true, CANCEL_MOBILITY, STIFF_NORMAL));
     }
 
     private SkillPresentation() {}

@@ -415,7 +415,8 @@ final class AbyssEncounterService {
         boolean giant = actor.kind == GIANT, skeleton = actor.kind == SKELETON;
         boolean magic = actor.career != null && (ranged || JobCatalog.style(actor.career.job()).magic());
         int element = actor.career != null && actor.career.job().equals(JobCatalog.SOUL_BENDER) ? 3 : -1;
-        double coefficient = giant ? 1.6 : skeleton ? .65 : .75;
+        var abyssRules = cn.yumis.fight.modules.dungeons.api.EnemyBalanceRules.current().abyss;
+        double coefficient = giant ? abyssRules.giantBasicCoefficient() : skeleton ? abyssRules.skeletonBasicCoefficient() : abyssRules.championBasicCoefficient();
         long warning = giant ? 1250 : skeleton ? 700 : 750;
         var timing = targets.target(enemy).actionTiming(now);
         long castWarning = timing.windup(warning), castRecovery = timing.recovery(450);
@@ -526,7 +527,7 @@ final class AbyssEncounterService {
         stop(enemy);
         enemy.play("abyss_skill/" + kit.id(), castTime);
         Vec3 origin = enemy.position(), aim = focus.position();
-        double budget = kit.coefficient() * kit.enhance();
+        double budget = kit.coefficient() * kit.enhance() * cn.yumis.fight.modules.dungeons.api.EnemyBalanceRules.current().abyss.championSkillEnhanceMultiplier();
         UUID cast = UUID.randomUUID();
         long duration = timing.duration(maxDelay + 1500);
         ActionBlueprint shared = ActionRegistry.find(kit.kind());

@@ -1,6 +1,7 @@
 package cn.yumis.fight.modules.skills.api;
 
 import cn.yumis.fight.modules.character.api.JobCatalog;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import java.util.*;
 
 /** Elementalist (元素师 / 大魔导师) skill definitions, calibrated balance profiles, previews and presentation traits. */
@@ -76,7 +77,7 @@ public final class ElementalistSkills {
             .formParameter("wallHeight", 2.2).formParameter("wallSegments", 12.0)
             .formParameter("duration", 6.0).formParameter("interval", 0.50).formParameter("slashes", 1.0)
             .formParameter("knockbackDistance", 2.5).formParameter("slowRatio", 0.30)
-            .formParameter("wallDamageReduction", 0.25).formParameter("wallBlockQuota", 6.0);
+            .formParameter("wallShieldMultiplier", 2.0);
         SkillDamagePhases.register(ICE_WALL, "pulse", true, true);
 
         var vortex = active(LIGHTNING_VORTEX, "雷旋", 20, 30, 30, 7.0, 1.0, false, 0.40, 0.80, 1.20, 1.25);
@@ -96,6 +97,7 @@ public final class ElementalistSkills {
             .formParameter("pillarCount", 1.0).formParameter("pillarSpread", 2.8)
             .formParameter("impactDelay", 0.20).formParameter("controlSeconds", 0.60)
             .formParameter("slashes", 1.0).formParameter("duration", 0.60);
+        SkillDamagePhases.register(FLAME_PILLAR, "volcano", true, true);
 
         var buster = active(HALLOWEEN_BUSTER, "杰克降临", 30, 50, 95, 18.0, 0.70, true, 0.65, 0.75, 1.25, 1.25);
         buster.damageParameter("finisher", 0.30).damageParameter("emberDot", 0.0)
@@ -166,111 +168,41 @@ public final class ElementalistSkills {
         return SkillCatalog.register(skill);
     }
 
-    private static SkillBalanceProfile.Hit hit(double seconds, double coeff) {
-        return new SkillBalanceProfile.Hit(Math.round(seconds * 1000), coeff, false);
-    }
-
-    static void balance() {
+    static void variants() {
         MageSkills.careerScales(JobCatalog.ELEMENTALIST, 1.0, 0.5);
-        SkillBalance.nonDamage(SkillCatalog.require(MOVING_CAST));
-        SkillBalance.nonDamage(SkillCatalog.require(ELEMENTAL_BURN));
-
-        registerProfile(ICE_WALL, 1.6, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.0);
-            return List.of(hit(0.15, p.get("damage") * cm), hit(p.getOrDefault("duration", 6.0), p.get("finisher") * cm));
-        });
-
-        registerProfile(LIGHTNING_VORTEX, 2.0, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.20);
-            int hits = (int) Math.max(1, p.getOrDefault("slashes", 3.0));
-            double gap = Math.max(0.05, p.getOrDefault("interval", 0.25));
-            var out = new ArrayList<SkillBalanceProfile.Hit>(hits);
-            for (int i = 0; i < hits; i++) out.add(hit(0.15 + i * gap, p.get("damage") * cm));
-            return out;
-        });
-
-        registerProfile(VOID_SPHERE, 2.4, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.25);
-            double gap = Math.max(0.05, p.getOrDefault("interval", 0.25));
-            int ticks = Math.max(1, (int) Math.floor(p.getOrDefault("duration", 4.0) / gap + 1e-9));
-            var out = new ArrayList<SkillBalanceProfile.Hit>(ticks);
-            for (int i = 1; i <= ticks; i++) out.add(hit(i * gap, p.get("damage") * cm));
-            return out;
-        });
-
-        // The direct hit accounted for 80% of the former reference damage budget.
-        registerProfile(FLAME_PILLAR, 1.76, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.25);
-            double delay = Math.max(0.05, p.getOrDefault("impactDelay", 0.20));
-            return List.of(hit(delay, p.get("damage") * cm));
-        });
-
-        registerProfile(HALLOWEEN_BUSTER, 3.6, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.25);
-            double fall = Math.max(0.05, p.getOrDefault("fallDelay", 0.55));
-            return List.of(hit(fall, p.get("damage") * cm), hit(fall + 0.08, p.get("finisher") * cm));
-        });
-
-        registerProfile(ARCTIC_FEAST, 4.2, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.25);
-            int hits = (int) Math.max(1, p.getOrDefault("slashes", 8.0));
-            double gap = Math.max(0.05, p.getOrDefault("interval", 0.22));
-            var out = new ArrayList<SkillBalanceProfile.Hit>(hits + 1);
-            for (int i = 1; i <= hits; i++) out.add(hit(i * gap, p.get("damage") * cm));
-            out.add(hit(p.getOrDefault("duration", 2.0), p.get("finisher") * cm));
-            return out;
-        });
-
-        registerProfile(BLACK_HOLE, 5.0, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.25);
-            int hits = (int) Math.max(1, p.getOrDefault("slashes", 10.0));
-            double gap = Math.max(0.05, p.getOrDefault("interval", 0.30));
-            var out = new ArrayList<SkillBalanceProfile.Hit>(hits + 1);
-            for (int i = 1; i <= hits; i++) out.add(hit(i * gap, p.get("damage") * cm));
-            out.add(hit(p.getOrDefault("duration", 3.0), p.get("finisher") * cm));
-            return out;
-        });
-
-        registerProfile(LIGHTNING_STRIKE, 5.5, (s, r, c) -> {
-            var p = s.parameters(r);
-            double cm = p.getOrDefault("chargeDamageMultiplier", 1.25);
-            int hits = (int) Math.max(1, p.getOrDefault("slashes", 5.0));
-            double gap = Math.max(0.05, p.getOrDefault("interval", 0.35));
-            var out = new ArrayList<SkillBalanceProfile.Hit>(hits);
-            for (int i = 1; i <= hits; i++) out.add(hit(i * gap, p.get("damage") * cm));
-            return out;
-        });
-
-        registerProfile(ASTRAL_STORM, 10.0, (s, r, c) -> {
-            var p = s.parameters(r);
-            int hits = (int) Math.max(1, p.getOrDefault("slashes", 16.0));
-            double gap = Math.max(0.05, p.getOrDefault("interval", 0.18));
-            var out = new ArrayList<SkillBalanceProfile.Hit>(hits + 1);
-            for (int i = 1; i <= hits; i++) out.add(hit(i * gap, p.get("damage")));
-            out.add(hit(p.getOrDefault("duration", 4.0), p.get("finisher")));
-            return out;
-        });
-    }
-
-    private static void registerProfile(String id, double weight, SkillBalanceProfile.Pattern pattern) {
-        SkillBalance.register(SkillCatalog.require(id), new SkillBalanceProfile(weight, 0, false, false, 0, pattern));
     }
 
     public static void previews() {
         SkillPreviewRules.register(SkillCatalog.require(MOVING_CAST), new SkillPreviewRules.Definition(p -> 0, false, false, true, -1));
         SkillPreviewRules.register(SkillCatalog.require(ELEMENTAL_BURN), new SkillPreviewRules.Definition(p -> 0, false, false, true, -1));
 
+        SkillPreviewRules.total(MageSkills.skill(MageSkills.JACK), (progress, stats, p, effects) -> {
+            if (!progress.hasJob(JobCatalog.ELEMENTALIST)) return null;
+            boolean triple = TowerBattleCard.ELEM_JACK_TRIPLE.held(stats);
+            boolean split = TowerBattleCard.ELEM_JACK_SPLIT.held(stats);
+            double cm = ElementalistRules.fullChargeMultiplier(p);
+            double base = p.get("damage", 0) * cm;
+            int volley = triple ? Math.max(1, TowerBattleCard.ELEM_JACK_TRIPLE.count("count")) : 1;
+            double mainScale = triple ? TowerBattleCard.ELEM_JACK_TRIPLE.ratio("damage") : 1.0;
+            double splitTotal = split ? TowerBattleCard.ELEM_JACK_SPLIT.count("count") * TowerBattleCard.ELEM_JACK_SPLIT.ratio("damage") : 0.0;
+            double totalCoeff = base * volley * mainScale * (1.0 + splitTotal);
+            return SkillPreview.damage(progress, stats, p.skill(), totalCoeff, false, effects);
+        });
+
         registerPreview(ICE_WALL, p -> 1, true, 2);
         SkillPreviewRules.pattern(SkillCatalog.require(ICE_WALL), p -> {
             double cm = ElementalistRules.fullChargeMultiplier(p);
             return new SkillPreviewRules.Pattern(1, p.get("damage", 0) * cm, p.get("finisher", 0) * cm);
+        });
+        SkillPreviewRules.supplement(SkillCatalog.require(ICE_WALL), (progress, stats, p, effects) -> {
+            if (TowerBattleCard.ELEM_ICE_WALL_WAVE.held(stats) && TowerBattleCard.ELEM_ICE_WALL_MOBILE.held(stats)) {
+                int extraWaves = Math.max(0, TowerBattleCard.ELEM_ICE_WALL_MOBILE.count("waves") - 1);
+                if (extraWaves > 0) {
+                    double cm = ElementalistRules.fullChargeMultiplier(p);
+                    return SkillPreview.damage(progress, stats, p.skill(), p.get("damage", 0) * cm, false, effects).times(extraWaves);
+                }
+            }
+            return new SkillPreview.Damage(0, 0);
         });
         SkillPreviewRules.finisherLabel(SkillCatalog.require(ICE_WALL), "碎冰终结");
 
@@ -285,6 +217,12 @@ public final class ElementalistSkills {
             double cm = ElementalistRules.fullChargeMultiplier(p);
             return new SkillPreviewRules.Pattern(ElementalistRules.voidSphereTicks(p), p.get("damage", 0) * cm, p.get("finisher", 0) * cm);
         });
+        SkillPreviewRules.supplement(SkillCatalog.require(VOID_SPHERE), (progress, stats, p, effects) -> {
+            double crystalFin = ElementalistRules.voidCrystalFinisher(p, stats);
+            if (!(crystalFin > 0)) return new SkillPreview.Damage(0, 0);
+            double cm = ElementalistRules.fullChargeMultiplier(p);
+            return SkillPreview.damage(progress, stats, p.skill(), crystalFin * cm, false, effects);
+        });
         SkillPreviewRules.finisherLabel(SkillCatalog.require(VOID_SPHERE), "坍缩终爆");
 
         registerPreview(FLAME_PILLAR, p -> (int) Math.max(1, p.get("pillarCount", 1)), false, 1);
@@ -292,12 +230,28 @@ public final class ElementalistSkills {
             double cm = ElementalistRules.fullChargeMultiplier(p);
             return new SkillPreviewRules.Pattern((int) Math.max(1, p.get("pillarCount", 1)), p.get("damage", 0) * cm, 0);
         });
+        SkillPreviewRules.supplement(SkillCatalog.require(FLAME_PILLAR), (progress, stats, p, effects) -> {
+            if (!TowerBattleCard.ELEM_FLAME_VOLCANO.held(stats)) return new SkillPreview.Damage(0, 0);
+            double cm = ElementalistRules.fullChargeMultiplier(p);
+            int bombs = Math.max(1, (int) Math.floor(TowerBattleCard.ELEM_FLAME_VOLCANO.value("duration")
+                / Math.max(0.05, TowerBattleCard.ELEM_FLAME_VOLCANO.value("interval")) + 1e-9));
+            double bombCoeff = p.get("damage", 0) * cm * TowerBattleCard.ELEM_FLAME_VOLCANO.ratio("damage");
+            int[] elems = ElementalistRules.isPrismActive(stats) ? ElementalistRules.ALL_FOUR_ELEMENTS : new int[]{1, 3};
+            return SkillPreview.multiElementDamage(progress, stats, p.skill(), bombCoeff, elems, effects).times(bombs);
+        });
 
         registerPreview(HALLOWEEN_BUSTER, p -> (int) Math.max(1, p.get("meteorCount", 1)), true, 1);
         SkillPreviewRules.pattern(SkillCatalog.require(HALLOWEEN_BUSTER), p -> {
             double cm = ElementalistRules.fullChargeMultiplier(p);
             int count = (int) Math.max(1, p.get("meteorCount", 1));
             return new SkillPreviewRules.Pattern(count, p.get("damage", 0) * cm, p.get("finisher", 0) * cm * count);
+        });
+        SkillPreviewRules.supplement(SkillCatalog.require(HALLOWEEN_BUSTER), (progress, stats, p, effects) -> {
+            if (!TowerBattleCard.ELEM_BUSTER_TRIPLE.held(stats)) return new SkillPreview.Damage(0, 0);
+            double cm = ElementalistRules.fullChargeMultiplier(p);
+            int ticks = Math.max(1, (int) Math.floor(p.get("emberDuration", 4.0) / Math.max(0.1, p.get("emberInterval", 0.5)) + 1e-9));
+            double emberCoeff = Math.max(p.get("emberDot", 0), p.get("damage", 0) * 0.08) * cm;
+            return SkillPreview.damage(progress, stats, p.skill(), emberCoeff, true, effects).times(ticks);
         });
         SkillPreviewRules.finisherLabel(SkillCatalog.require(HALLOWEEN_BUSTER), "熔岩冲击波");
 
@@ -327,6 +281,11 @@ public final class ElementalistSkills {
             int meteors = (int) Math.max(1, p.get("slashes", 16));
             double meteorCoeff = p.get("damage", 0);
             double coreCoeff = p.get("finisher", 0);
+            if (ElementalistRules.isPrismActive(stats)) {
+                var meteorSingle = SkillPreview.multiElementDamage(progress, stats, p.skill(), meteorCoeff, ElementalistRules.ALL_FOUR_ELEMENTS, effects);
+                var coreDamage = SkillPreview.multiElementDamage(progress, stats, p.skill(), coreCoeff, ElementalistRules.ALL_FOUR_ELEMENTS, effects);
+                return meteorSingle.times(meteors).plus(coreDamage);
+            }
             int dyed = ElementalistRules.effectiveElement(p, stats, -1);
             SkillPreview.Damage meteorSingle;
             SkillPreview.Damage coreDamage;

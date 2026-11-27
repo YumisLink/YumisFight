@@ -56,7 +56,8 @@ public final class RewardRules {
         }
         if(instance&&boss)for(var jar:JarDefinitions.current().jars.entrySet())if(random.nextDouble()<jar.getValue().bossDropChance())drops.add(new Drop(LootJarItem.create(jar.getKey(),1),true));
         var stone=encounter!=null&&encounter.waystone!=null?encounter.waystone.stone:null;
-        double experienceMultiplier=stone==null?1:stone.experienceMultiplier,goldMultiplier=stone==null?1:stone.goldMultiplier,quantityMultiplier=stone==null?1:stone.quantityMultiplier;
+        var ecoBalance=EconomyBalanceRules.current();
+        double experienceMultiplier=(stone==null?1:stone.experienceMultiplier)*ecoBalance.killExperienceMultiplier(),goldMultiplier=(stone==null?1:stone.goldMultiplier)*ecoBalance.killGoldMultiplier(),quantityMultiplier=(stone==null?1:stone.quantityMultiplier)*ecoBalance.dropQuantityMultiplier();
         double luck=stone==null?stats.get(Stat.DROP_RATE):stone.effectiveDropRate(stats.get(Stat.DROP_RATE));
         int level=target.level(progress.level,instance?encounter.syncFor(player):progress.sync);
         long xp=progress.earnExperience(killExperience(progress,level,target,context.settings(),stats,experienceMultiplier,practiceMob));
@@ -144,7 +145,7 @@ public final class RewardRules {
 
     /** Combat kill experience: level curve, difficulty, server config, experience stat, the newcomer doubling at or below level 10, then waystone and practice factors. */
     public static long killExperience(Progress progress,int targetLevel,Target target,RewardSettings settings,Stats stats,double stoneExperienceMultiplier,boolean practiceMob){
-        return CurrencyRules.roundedReward((10d+2d*targetLevel)*(target.boss()?10:target.elite?3:1)*target.difficulty.xp*settings.combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*CharacterRules.newbieExperienceFactor(progress.level)*stoneExperienceMultiplier*(practiceMob?PracticeRoom.MOB_EXPERIENCE_MULTIPLIER:1));
+        return CurrencyRules.roundedReward((10d+2d*targetLevel)*(target.boss()?10:target.elite?3:1)*target.difficulty.effectiveXp()*settings.combatExperienceMultiplier()*stats.get(Stat.EXPERIENCE_GAIN)*CharacterRules.newbieExperienceFactor(progress.level)*stoneExperienceMultiplier*(practiceMob?EnemyBalanceRules.current().practice.mobExperienceMultiplier():1));
     }
 
     /** Player-inherent experience rate for display hints: server config times the experience stat, doubled by the newcomer rule at or below level 10. Dungeon-side factors such as waystones and practice rooms settle inside each kill and never appear here. */

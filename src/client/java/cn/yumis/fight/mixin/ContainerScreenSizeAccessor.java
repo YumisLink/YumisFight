@@ -8,4 +8,5 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(AbstractContainerScreen.class)
 public interface ContainerScreenSizeAccessor {
     @Mutable @Accessor("imageHeight") void ydnf$height(int value);
+    @Mutable @Accessor("imageWidth") void ydnf$width(int value);
 }

@@ -13,7 +13,7 @@ public final class DemonHunterRules {
     public static Stats transformed(Stats source){
         if(source.modifiers.getOrDefault("demonTransformed",0d)>0)return source;
         Stats result=source.copy();result.mut(Stat.PHYSICAL_ATTACK,.30);result.mut(Stat.MAGICAL_ATTACK,.30);
-        result.modifiers.merge("allSkillAttackProduct",1.30,(a,b)->a*b);result.modifiers.merge("lifeStealRateAdd",.10,Double::sum);result.modifiers.put("demonTransformed",1d);return result;
+        result.modifiers.merge("allSkillAttackProduct",1.30,(a,b)->a*b);result.extra(Stat.LIFE_STEAL,11);result.modifiers.put("demonTransformed",1d);return result;
     }
     public static Stats current(Stats source,Progress progress,DemonHunterState state,long now){
         if(!progress.baseJob().equals(JobCatalog.DEMON_HUNTER))return source;

@@ -4,7 +4,6 @@ import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.attributes.api.client.AttributeLabels;
 import cn.yumis.fight.modules.equipment.api.*;
 import cn.yumis.fight.modules.presentation.api.client.*;
-import cn.yumis.fight.platform.ItemData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -84,19 +83,7 @@ public final class EnhanceScreen extends ThemedContainerScreen<EnhanceMenu> {
     private long fuel(boolean amplified){
         var player=Minecraft.getInstance().player;
         if(player==null)return 0;
-        long total=0;
-        for(int i=0;i<36;i++){
-            var stack=player.getInventory().getItem(i);
-            if(stack.isEmpty())continue;
-            String id=ItemData.id(stack);
-            if(amplified?id.equals(EnhancementRules.INTENSE_AURA):id.equals("coal")||id.equals("charcoal"))total+=stack.getCount();
-        }
-        for(var stack:BagSnapshotClient.items(menu)){
-            if(stack.isEmpty())continue;
-            String id=ItemData.id(stack);
-            if(amplified?id.equals(EnhancementRules.INTENSE_AURA):id.equals("coal")||id.equals("charcoal"))total+=stack.getCount();
-        }
-        return total;
+        return EquipmentChanges.fuelCount(player,BagSnapshotClient.items(menu),amplified);
     }
     private String fuelName(boolean amplified){return amplified?"强烈的气息":"煤/木炭";}
 

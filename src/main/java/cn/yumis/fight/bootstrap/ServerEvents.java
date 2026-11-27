@@ -206,7 +206,15 @@ public final class ServerEvents {
         ))))));
         var dev=Commands.literal("dev").requires(s->s.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER));
         dev.then(Commands.literal("level").then(Commands.argument("player",EntityArgument.player()).then(Commands.argument("level",IntegerArgumentType.integer(1,cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL)).executes(c->{
-            ServerPlayer p=EntityArgument.getPlayer(c,"player");var r=ServerApplication.get();Progress pr=r.session(p).progress;int level=IntegerArgumentType.getInteger(c,"level");while(pr.level<level)pr.grant(nextExperience(pr.level));r.savePlayer(p);r.profile(p);r.message(p,"开发测试：角色等级已提高");return 1;
+            ServerPlayer p=EntityArgument.getPlayer(c,"player");var r=ServerApplication.get();Progress pr=r.session(p).progress;int level=IntegerArgumentType.getInteger(c,"level");int before=pr.level;
+            if(level<before){
+                var change=pr.lowerLevel(level);r.savePlayer(p);r.profile(p);
+                StringBuilder text=new StringBuilder("开发测试：角色等级已降至 ").append(level);
+                if(change.refunded()>0)text.append("，退还 ").append(change.refunded()).append(" 点已分配属性");
+                if(change.talentsRemoved()>0)text.append("，移除 ").append(change.talentsRemoved()).append(" 个超限天赋点");
+                r.message(p,text.toString());return 1;
+            }
+            while(pr.level<level)pr.grant(nextExperience(pr.level));r.savePlayer(p);r.profile(p);r.message(p,before<level?"开发测试：角色等级已提高至 "+level:"开发测试：角色等级已是 "+level);return 1;
         }
         ))));
         dev.then(Commands.literal("white").executes(c->white(c,Weapon.KATANA)).then(Commands.argument("weapon",StringArgumentType.word()).suggests((context,builder)->{for(var kind:Weapon.values())builder.suggest(kind.name());return builder.buildFuture();}).executes(c->white(c,Weapon.valueOf(StringArgumentType.getString(c,"weapon").toUpperCase())))));
@@ -230,7 +238,7 @@ public final class ServerEvents {
         cn.yumis.fight.modules.npc.application.NpcService.commands(root,()->ServerApplication.get().npcs);
         cn.yumis.fight.modules.quests.application.CommissionService.commands(root,()->ServerApplication.get().commissions);
         cn.yumis.fight.modules.dungeons.application.DungeonCommands.commands(root,()->ServerApplication.get().dungeons);
-        cn.yumis.fight.modules.equipment.application.EquipmentCommands.commands(root,()->new cn.yumis.fight.modules.equipment.application.EquipmentCommands.Admin(ServerApplication.get().inventory,ServerApplication.get()::profile));
+        cn.yumis.fight.modules.equipment.application.EquipmentCommands.commands(root,()->new cn.yumis.fight.modules.equipment.application.EquipmentCommands.Admin(ServerApplication.get().inventory,ServerApplication.get()::profile,p->ServerApplication.get().session(p).progress));
         e.getDispatcher().register(root);
     }
     private static int white(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack> c,Weapon weapon)throws com.mojang.brigadier.exceptions.CommandSyntaxException{
@@ -250,7 +258,7 @@ public final class ServerEvents {
         JsonObject intent=new JsonObject();intent.addProperty("job",definition.id());
         r.inventory.transact(p,UUID.randomUUID().toString(),intent,()->{
             for(var type:cn.yumis.fight.modules.character.api.JobCatalog.weapons(definition.id())){
-                if(type.equals("BROOM"))continue;
+                if(type.equals("BROOM")&&!definition.id().equals(cn.yumis.fight.modules.character.api.JobCatalog.WITCH))continue;
                 r.inventory.requireSpace(p,EquipmentItems.gear(EquipmentTemplates.createStandard(Slot.WEAPON,Weapon.valueOf(type),Rarity.COMMON,cn.yumis.fight.modules.character.api.CharacterRules.MAX_LEVEL,r.random)));
             }
         },writes);

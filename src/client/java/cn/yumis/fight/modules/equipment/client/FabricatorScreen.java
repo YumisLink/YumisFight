@@ -7,6 +7,7 @@ import cn.yumis.fight.modules.presentation.api.client.UiFonts;
 import cn.yumis.fight.modules.presentation.api.client.UiTheme;
 import cn.yumis.fight.modules.equipment.api.FabricatorMenu;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
+import cn.yumis.fight.modules.equipment.api.EquipmentChanges;
 import cn.yumis.fight.modules.equipment.api.MaterialCatalog;
 import cn.yumis.fight.modules.equipment.api.ArmorType;
 import cn.yumis.fight.modules.equipment.api.JewelryType;
@@ -99,15 +100,7 @@ public final class FabricatorScreen extends ThemedContainerScreen<FabricatorMenu
         return n.regional()?EquipmentItems.material(n.id(),1):new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse(n.id())));
     }
     private int held(MaterialCatalog.Need n){
-        int total=0;
-        for(int i=0;i<36;i++){
-            ItemStack s=minecraft.player.getInventory().getItem(i);
-            if(!s.isEmpty()&&(n.regional()?n.id().equals(EquipmentItems.material(s)):BuiltInRegistries.ITEM.getKey(s.getItem()).toString().equals(n.id())))total+=s.getCount();
-        }
-        for(ItemStack s:BagSnapshotClient.items(menu)){
-            if(!s.isEmpty()&&(n.regional()?n.id().equals(EquipmentItems.material(s)):BuiltInRegistries.ITEM.getKey(s.getItem()).toString().equals(n.id())))total+=s.getCount();
-        }
-        return total;
+        return EquipmentChanges.materialCount(minecraft.player,BagSnapshotClient.items(menu),n);
     }
     @Override protected void drawBackground(GuiGraphicsExtractor g,int mx,int my,float a){
         g.fill(0,0,width,height,UiTheme.OVERLAY);

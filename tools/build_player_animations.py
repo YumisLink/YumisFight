@@ -298,6 +298,57 @@ def build_catalog():
         'right_arm': sem('right_arm', x=[(0, 0), (90, 20), (420, 0)]),
         'left_arm': sem('left_arm', x=[(0, 0), (90, -16), (420, 0)]),
     }, duration=420)
+    # rising_slay (破军斩龙击): rapid triple rush-cuts -> soaring uppercut -> heavy two-hand dragon-slaying slam.
+    catalog['rising_slay'] = anim({
+        'right_arm': sem('right_arm',
+                         x=[(0, 0), (90, -52, 'out'), (220, -124, 'in'), (340, -172, 'in'), (480, -176), (560, -18, 'in'), (760, -14), (920, 0)],
+                         y=[(0, 0), (90, -18), (220, 32), (340, 22), (480, -8), (560, 16, 'in'), (920, 0)],
+                         z=[(0, 0), (340, -16), (480, 14), (560, -24, 'in'), (920, 0)]),
+        'left_arm': sem('left_arm',
+                        x=[(0, 0), (90, -24), (340, 18), (480, -152, 'out'), (560, -16, 'in'), (920, 0)],
+                        y=[(0, 0), (480, 24), (560, 18), (920, 0)]),
+        'body': body(x=[(0, 0), (90, 18), (260, 16), (340, -14, 'in'), (480, -18), (560, 28, 'in'), (760, 22), (920, 0)],
+                     y=[(0, 0), (90, 18), (220, -20, 'in'), (340, 16, 'in'), (560, -14, 'in'), (920, 0)]),
+        'root': root(py=[(0, 0), (120, -1.2), (340, 2.8, 'in'), (460, 3.2), (560, -1.8, 'in'), (760, -1.0), (920, 0)]),
+        'right_leg': sem('right_leg', x=[(0, 0), (120, -22), (340, -28), (560, -20), (920, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (120, 20), (340, 18), (560, 24), (920, 0)]),
+    }, duration=920)
+    # meteor_rise (流星·升): nimble flowing-stance coil -> soaring upward spiral crescent cut.
+    catalog['meteor_rise'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 0), (80, 32, 'out'), (220, -168, 'in'), (380, -142), (550, 0)],
+                         y=[(0, 0), (80, -24), (220, 36, 'in'), (550, 0)],
+                         z=[(0, 0), (80, 10), (220, -22, 'in'), (550, 0)]),
+        'left_arm': sem('left_arm', x=[(0, 0), (80, -20), (220, 28, 'in'), (550, 0)]),
+        'body': body(x=[(0, 0), (80, 14), (220, -16, 'in'), (380, -10), (550, 0)],
+                     y=[(0, 0), (80, 22), (220, -26, 'in'), (550, 0)]),
+        'root': root(py=[(0, 0), (80, -1.4, 'out'), (240, 2.9, 'in'), (380, 2.0), (550, 0)]),
+        'right_leg': sem('right_leg', x=[(0, 0), (80, -14), (240, -30, 'in'), (550, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (80, 14), (240, 20, 'in'), (550, 0)]),
+    }, duration=550)
+    # meteor_leap (流星·跃): agile forward pounce arc -> forceful overhead plunging cleave.
+    catalog['meteor_leap'] = anim({
+        'right_arm': sem('right_arm', x=[(0, 0), (120, -158, 'out'), (280, -170), (360, -22, 'in'), (500, -16), (650, 0)],
+                         y=[(0, 0), (120, -14), (360, 24, 'in'), (650, 0)],
+                         z=[(0, 0), (120, 16), (360, -18, 'in'), (650, 0)]),
+        'left_arm': sem('left_arm', x=[(0, 0), (120, -110, 'out'), (360, -18, 'in'), (650, 0)]),
+        'body': body(x=[(0, 0), (120, 12), (280, 18), (360, 26, 'in'), (500, 18), (650, 0)],
+                     y=[(0, 0), (120, 14), (360, -18, 'in'), (650, 0)]),
+        'root': root(py=[(0, 0), (140, 2.6, 'out'), (280, 1.4), (360, -1.6, 'in'), (500, -.8), (650, 0)]),
+        'right_leg': sem('right_leg', x=[(0, 0), (140, -32), (360, -18), (650, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (140, 26), (360, 22), (650, 0)]),
+    }, duration=650)
+    # meteor_pierce (流星·刺): low fencer's stance -> lightning-fast triple forward sword thrusts.
+    catalog['meteor_pierce'] = anim({
+        'right_arm': sem('right_arm',
+                         x=[(0, 0), (60, -48, 'out'), (120, -104, 'in'), (180, -54), (240, -108, 'in'), (300, -52), (360, -112, 'in'), (450, 0)],
+                         y=[(0, 0), (120, 8), (240, -6), (360, 10), (450, 0)]),
+        'left_arm': sem('left_arm', x=[(0, 0), (60, 28), (360, 34), (450, 0)]),
+        'body': body(x=[(0, 0), (60, 18), (360, 22), (450, 0)],
+                     y=[(0, 0), (60, 24), (120, -18, 'in'), (180, 18), (240, -20, 'in'), (300, 16), (360, -22, 'in'), (450, 0)]),
+        'root': root(py=[(0, 0), (60, -1.4), (360, -1.4), (450, 0)]),
+        'right_leg': sem('right_leg', x=[(0, 0), (60, -28), (360, -32), (450, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (60, 24), (360, 28), (450, 0)]),
+    }, duration=450)
 
     # --- asura wave school -------------------------------------------------
     # ghost_orb: the orb condenses from the brands orbiting the body, so the
@@ -398,6 +449,18 @@ def build_catalog():
                      y=[(0, 0), (200, -14), (380, 16, 'in'), (460, 13), (720, 0)]),
         'root': root(py=[(0, 0), (200, .4), (380, -.5, 'in'), (460, -.5), (720, 0)]),
     }, duration=720)
+    # moonlight_slash: swift advancing dark-moon crescent cut with sweeping follow-through.
+    catalog['moonlight_slash'] = anim({
+        'right_arm': sem('right_arm',
+                         x=[(0, 0), (70, -132, 'out'), (170, -48, 'in'), (240, -54), (320, 0)],
+                         y=[(0, 0), (70, 42, 'out'), (170, -58, 'in'), (240, -46), (320, 0)],
+                         z=[(0, 0), (70, 14), (170, -20), (320, 0)]),
+        'left_arm': sem('left_arm', x=[(0, 0), (70, -26), (170, -12), (320, 0)]),
+        'body': body(x=[(0, 0), (70, 14), (170, 10), (320, 0)],
+                     y=[(0, 0), (70, -22, 'out'), (170, 26, 'in'), (320, 0)]),
+        'right_leg': sem('right_leg', x=[(0, 0), (70, -20), (170, 12), (320, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (70, 18), (170, -14), (320, 0)]),
+    }, duration=320)
     # tombstone: call the sky, then CONDUCT the fall - two pressing waves ride
     # the ten-stone cadence, torso bowing with every push.
     catalog['tombstone'] = anim({
@@ -1168,6 +1231,62 @@ def build_catalog():
         'body': body(x=[(0, -8), (380, -18, 'out'), (780, 34, 'in'), (1120, 28), (1400, 0)]),
     }, duration=1400)
 
+    # Witch (魔道学者 / 魔术师) stock clips
+    catalog['shadow_cloak'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -24), (160, -108, 'out'), (380, -96, 'hold'), (520, -22, 'in'), (650, 0)],
+                         z=[(0, 14), (160, 74, 'out'), (380, 62), (520, 18), (650, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -24), (160, -108, 'out'), (380, -96, 'hold'), (520, -22, 'in'), (650, 0)],
+                        z=[(0, 14), (160, 74, 'out'), (380, 62), (520, 18), (650, 0)]),
+        'body': body(x=[(0, 6), (160, 18), (450, -12, 'out'), (650, 0)]),
+    }, duration=650)
+    catalog['giant_flyswatter'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -40), (140, -168, 'out'), (240, -18, 'in'), (380, -20), (500, 0)],
+                         z=[(0, 12), (140, 26), (240, 8), (500, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -34), (140, -148, 'out'), (240, -28, 'in'), (500, 0)]),
+        'body': body(x=[(0, -6), (140, -18, 'out'), (240, 28, 'in'), (500, 0)]),
+    }, duration=500)
+    catalog['lava_potion'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -20), (140, -148, 'out'), (260, -52, 'in'), (450, 0)],
+                         z=[(0, 8), (140, 24), (260, 10), (450, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -18), (140, -48), (260, -22), (450, 0)]),
+    }, duration=450)
+    catalog['acid_rain'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -30), (160, -152, 'out'), (340, -124), (480, 0)],
+                         z=[(0, 10), (160, 32), (480, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -26), (160, -142, 'out'), (340, -112), (480, 0)],
+                        z=[(0, 10), (160, 28), (480, 0)]),
+    }, duration=480)
+    catalog['anti_gravity'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -24), (160, -116, 'out'), (340, -142), (560, 0)],
+                         z=[(0, 12), (160, 42), (340, 18), (560, 0)]),
+        'left_arm': sem('left_arm', x=[(0, -24), (160, -116, 'out'), (340, -142), (560, 0)],
+                        z=[(0, 12), (160, 42), (340, 18), (560, 0)]),
+    }, duration=560)
+    catalog['raging_flame_furnace'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -68), (200, -82), (400, -68)], z=[(0, 16), (200, 24), (400, 16)]),
+        'left_arm': sem('left_arm', x=[(0, -68), (200, -82), (400, -68)], z=[(0, 16), (200, 24), (400, 16)]),
+        'right_leg': sem('right_leg', x=[(0, -62), (200, -54), (400, -62)], z=[(0, 18), (200, 22), (400, 18)]),
+        'left_leg': sem('left_leg', x=[(0, -62), (200, -54), (400, -62)], z=[(0, 18), (200, 22), (400, 18)]),
+    }, duration=400, loop=True)
+    catalog['mega_drill'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -84), (160, -90), (320, -84)], z=[(0, 12), (160, 16), (320, 12)]),
+        'left_arm': sem('left_arm', x=[(0, -84), (160, -90), (320, -84)], z=[(0, 12), (160, 16), (320, 12)]),
+        'right_leg': sem('right_leg', x=[(0, -68), (160, -64), (320, -68)], z=[(0, 16), (160, 18), (320, 16)]),
+        'left_leg': sem('left_leg', x=[(0, -68), (160, -64), (320, -68)], z=[(0, 16), (160, 18), (320, 16)]),
+    }, duration=320, loop=True)
+    catalog['florae_collider'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -96), (180, -104), (360, -96)], z=[(0, 24), (180, 32), (360, 24)]),
+        'left_arm': sem('left_arm', x=[(0, -96), (180, -104), (360, -96)], z=[(0, 24), (180, 32), (360, 24)]),
+        'right_leg': sem('right_leg', x=[(0, -48), (180, -44), (360, -48)], z=[(0, 14), (180, 16), (360, 14)]),
+        'left_leg': sem('left_leg', x=[(0, -48), (180, -44), (360, -48)], z=[(0, 14), (180, 16), (360, 14)]),
+    }, duration=360, loop=True)
+    catalog['fusion_craft'] = anim({
+        'right_arm': sem('right_arm', x=[(0, -112), (200, -138), (400, -112)], z=[(0, 28), (200, 42), (400, 28)]),
+        'left_arm': sem('left_arm', x=[(0, -112), (200, -138), (400, -112)], z=[(0, 28), (200, 42), (400, 28)]),
+        'right_leg': sem('right_leg', x=[(0, -66), (200, -58), (400, -66)], z=[(0, 16), (200, 20), (400, 16)]),
+        'left_leg': sem('left_leg', x=[(0, -66), (200, -58), (400, -66)], z=[(0, 16), (200, 20), (400, 16)]),
+    }, duration=400, loop=True)
+
     return catalog
 
 
@@ -1294,6 +1413,12 @@ def build_avatar_catalog(catalog):
                    y=[(0, 32, 'out'), (150, -55), (300, -60, 'out'),
                       (450, 54), (600, 66, 'inout'), (760, -65), (900, -45)]),
     }, 900)
+    poses['moonlight_slash'] = anim({
+        right: sem(right, x=[(0, -134, 'out'), (110, -52, 'in'), (175, -56), (220, -24)],
+                   y=[(0, 46, 'out'), (110, -58, 'in'), (175, -48), (220, -22)],
+                   z=[(0, 12), (110, -18), (220, 0)]),
+        left: sem(left, x=[(0, -28), (110, -14), (220, 0)]),
+    }, 220)
     poses['ghost_field'] = anim({
         left: sem(left, x=[(0, -30), (135, -93, 'in'), (245, -92, 'hold'), (420, 0)],
                   y=[(0, 13), (135, 0), (420, 0)]),
@@ -1765,6 +1890,72 @@ def build_avatar_catalog(catalog):
         'right_leg': sem('right_leg', x=[(0, 0), (380, -32), (780, 42, 'in'), (1400, 0)]),
         'left_leg': sem('left_leg', x=[(0, 0), (380, 24), (780, 26, 'in'), (1400, 0)]),
     }, 1400)
+    for clip_name in ('teana_basic_1', 'teana_basic_2', 'teana_basic_3',
+                      'teana_palm_blast', 'teana_full_swing',
+                      'teana_transformation', 'teana_finisher'):
+        poses[clip_name]['heldModel'] = 'effect/teana_spear'
+    for clip_name in ('dragon_spear', 'dragon_spear_thrust', 'dragon_spear_cleave'):
+        poses[clip_name]['heldModel'] = 'effect/dragon_halberd'
+
+    # Witch (魔道学者 / 魔术师) player avatar clips
+    # 1. Elytra-style broomstick gliding riding pose: seated legs, right hand gripping broom,
+    #    left hand extended for balance/casting, equipped BROOM shifted horizontally beneath seated legs!
+    poses['witch_broom_glide'] = anim({
+        'root': root(py=[(0, -2.5), (450, -3.5), (900, -2.5)], x=[(0, 10), (450, 13), (900, 10)]),
+        right: sem(right, x=[(0, -38), (450, -42), (900, -38)], y=[(0, -18), (450, -16), (900, -18)], z=[(0, 8), (450, 10), (900, 8)]),
+        left: sem(left, x=[(0, -64), (450, -72), (900, -64)], z=[(0, 18), (450, 24), (900, 18)]),
+        'right_leg': sem('right_leg', x=[(0, -66), (450, -62), (900, -66)], z=[(0, 14), (450, 16), (900, 14)]),
+        'left_leg': sem('left_leg', x=[(0, -56), (450, -60), (900, -56)], z=[(0, 14), (450, 12), (900, 14)]),
+        'held_item': bone_doc(
+            rot={'x': stops((0, 72), (450, 72), (900, 72)), 'y': stops((0, 8), (450, 8), (900, 8)), 'z': stops((0, -12), (450, -12), (900, -12))},
+            pos={'x': stops((0, -4.5), (450, -4.5), (900, -4.5)), 'y': stops((0, 4.5), (450, 4.5), (900, 4.5)), 'z': stops((0, -2.0), (450, -2.0), (900, -2.0))},
+        ),
+    }, 900, loop=True)
+
+    poses['giant_flyswatter'] = anim({
+        'root': root(py=[(0, 0), (140, -1.5, 'out'), (240, 1.0, 'in'), (500, 0)]),
+        right: sem(right, x=[(0, -42), (140, -172, 'out'), (240, -14, 'in'), (380, -18), (500, 0)],
+                   z=[(0, 12), (140, 26), (240, 8), (500, 0)]),
+        left: sem(left, x=[(0, -36), (140, -152, 'out'), (240, -24, 'in'), (500, 0)], z=[(0, 10), (140, 22), (500, 0)]),
+        'held_item': bone_doc(rot={'x': stops((0, -12), (140, -24), (240, 32, 'in'), (380, 24), (500, 0))}),
+        'right_leg': sem('right_leg', x=[(0, 0), (140, -18), (240, 22), (500, 0)]),
+        'left_leg': sem('left_leg', x=[(0, 0), (140, 14), (240, -18), (500, 0)]),
+    }, 500)
+    poses['giant_flyswatter']['heldModel'] = 'effect/witch_flyswatter'
+    poses['giant_flyswatter_giant'] = json.loads(json.dumps(poses['giant_flyswatter']))
+    poses['giant_flyswatter_giant']['heldModel'] = 'effect/witch_flyswatter_giant'
+
+    poses['raging_flame_furnace'] = anim({
+        'root': root(py=[(0, -12.0), (100, -14.5, 'out'), (200, -11.5, 'in'), (300, -14.0, 'out'), (400, -12.0)]),
+        right: sem(right, x=[(0, -72), (200, -88), (400, -72)], z=[(0, 18), (200, 26), (400, 18)]),
+        left: sem(left, x=[(0, -72), (200, -88), (400, -72)], z=[(0, 18), (200, 26), (400, 18)]),
+        'right_leg': sem('right_leg', x=[(0, -68), (200, -58), (400, -68)], z=[(0, 20), (200, 24), (400, 20)]),
+        'left_leg': sem('left_leg', x=[(0, -68), (200, -58), (400, -68)], z=[(0, 20), (200, 24), (400, 20)]),
+    }, 400, loop=True)
+
+    poses['mega_drill'] = anim({
+        'root': root(py=[(0, -7.5), (160, -8.5), (320, -7.5)], x=[(0, 12), (160, 15), (320, 12)]),
+        right: sem(right, x=[(0, -86), (160, -94), (320, -86)], z=[(0, 14), (160, 18), (320, 14)]),
+        left: sem(left, x=[(0, -86), (160, -94), (320, -86)], z=[(0, 14), (160, 18), (320, 14)]),
+        'right_leg': sem('right_leg', x=[(0, -70), (160, -66), (320, -70)], z=[(0, 18), (160, 20), (320, 18)]),
+        'left_leg': sem('left_leg', x=[(0, -70), (160, -66), (320, -70)], z=[(0, 18), (160, 20), (320, 18)]),
+    }, 320, loop=True)
+
+    poses['florae_collider'] = anim({
+        'root': root(py=[(0, -6.0), (180, -7.0), (360, -6.0)]),
+        right: sem(right, x=[(0, -96), (180, -108), (360, -96)], z=[(0, 26), (180, 34), (360, 26)]),
+        left: sem(left, x=[(0, -96), (180, -108), (360, -96)], z=[(0, 26), (180, 34), (360, 26)]),
+        'right_leg': sem('right_leg', x=[(0, -50), (180, -46), (360, -50)], z=[(0, 16), (180, 18), (360, 16)]),
+        'left_leg': sem('left_leg', x=[(0, -50), (180, -46), (360, -50)], z=[(0, 16), (180, 18), (360, 16)]),
+    }, 360, loop=True)
+
+    poses['fusion_craft'] = anim({
+        'root': root(py=[(0, -14.0), (200, -16.5), (400, -14.0)]),
+        right: sem(right, x=[(0, -118), (200, -148), (400, -118)], z=[(0, 32), (200, 48), (400, 32)]),
+        left: sem(left, x=[(0, -118), (200, -148), (400, -118)], z=[(0, 32), (200, 48), (400, 32)]),
+        'right_leg': sem('right_leg', x=[(0, -68), (200, -60), (400, -68)], z=[(0, 18), (200, 22), (400, 18)]),
+        'left_leg': sem('left_leg', x=[(0, -68), (200, -60), (400, -68)], z=[(0, 18), (200, 22), (400, 18)]),
+    }, 400, loop=True)
 
     # Slice the individual strokes so multi-hit skills contribute one cut per beat.
     stroke_ranges = (

@@ -26,8 +26,19 @@ public enum SkasaMoves {
         this.animation=animation;this.windup=windup;this.active=active;this.recovery=recovery;this.cooldown=cooldown;
         this.range=range;this.coefficient=coefficient;this.magic=magic;this.element=element;this.hits=hits;this.interval=interval;
     }
-    public long duration(){return windup+active+recovery;}
-    public long contactWindow(){return hits==1?active:Math.min(250,interval);}
+    private EnemyBalanceRules.TimedMoveData data(){return EnemyBalanceRules.current().skasaMove(name());}
+    public long windupMs(){var d=data();return d==null?windup:d.windup();}
+    public long activeMs(){var d=data();return d==null?active:d.active();}
+    public long recoveryMs(){var d=data();return d==null?recovery:d.recovery();}
+    public long cooldownMs(){var d=data();return d==null?cooldown:d.cooldown();}
+    public double rangeVal(){var d=data();return d==null?range:d.range();}
+    public double coefficientVal(){var d=data();return d==null?coefficient:d.coefficient();}
+    public boolean magicVal(){var d=data();return d==null?magic:d.magic();}
+    public int elementVal(){var d=data();return d==null?element:d.element();}
+    public int hitsVal(){var d=data();return d==null?hits:d.hits();}
+    public long intervalMs(){var d=data();return d==null?interval:d.interval();}
+    public long duration(){return windupMs()+activeMs()+recoveryMs();}
+    public long contactWindow(){return hitsVal()==1?activeMs():Math.min(250,intervalMs());}
     public boolean travels(){return this==NASRA_KICK||this==HATCHLING_CHARGE||this==ICE_LINE;}
     public boolean movesBody(){return this==NASRA_KICK||this==HATCHLING_CHARGE;}
     public String animation(int side){return this==CLAW||this==SLAM||this==TRIPLE?animation+(side<0?"_left":"_right"):animation;}

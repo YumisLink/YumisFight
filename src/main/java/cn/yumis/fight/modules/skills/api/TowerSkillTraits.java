@@ -14,7 +14,8 @@ public final class TowerSkillTraits {
     private static final Set<String> BUFFS = Set.of(SkillCatalog.OVERDRIVE.id, CareerSkills.EYE,
         CareerSkills.KALLA, CareerSkills.SWORD, SummonerSkills.FRENZY, DemonHunterSkills.META);
     private static final Set<String> MOVEMENT = Set.of(SkillCatalog.BLINK.id, SkillCatalog.TRIPLE.id,
-        SkillCatalog.RISING.id, SkillCatalog.DRAGON.id, CareerSkills.PHANTOM, CareerSkills.CRASH,
+        SkillCatalog.RISING.id, SkillCatalog.DRAGON.id, SkillCatalog.METEOR_RISE.id, SkillCatalog.METEOR_LEAP.id,
+        SkillCatalog.METEOR_PIERCE.id, CareerSkills.MOONLIGHT, CareerSkills.PHANTOM, CareerSkills.CRASH,
         CareerSkills.ERUPTION, DemonHunterSkills.RUSH, DemonHunterSkills.HUNT, DemonHunterSkills.DANCE,
         DemonHunterSkills.BEAM, DemonHunterSkills.META);
 
@@ -22,6 +23,10 @@ public final class TowerSkillTraits {
 
     public static boolean rotating(String skill) { return ROTATION.contains(skill); }
     public static boolean displaces(String skill) { return MOVEMENT.contains(skill); }
+    public static boolean displaces(String skill, Stats stats) {
+        return MOVEMENT.contains(skill)
+            || CareerSkills.BLADE.equals(skill) && TowerBattleCard.BERSERKER_BLADE_ASSAULT.held(stats);
+    }
 
     public static List<TowerBattleCard.SkillChoice> choices(Progress progress, Stats stats) {
         var skills = new ArrayList<TowerBattleCard.SkillChoice>();
@@ -29,7 +34,7 @@ public final class TowerSkillTraits {
             if (skill.passive()) continue;
             int rank = SkillLearning.effective(stats, progress, skill);
             if (rank <= 0) continue;
-            boolean damage = SkillBalance.weight(skill) > 0 && (!skill.id.equals(CareerSkills.FIELD) || rank >= 8);
+            boolean damage = SkillBalanceRules.current().damaging(skill) && (!skill.id.equals(CareerSkills.FIELD) || rank >= 8);
             boolean single = skill.id.equals(DemonHunterSkills.HUNT);
             if (skill.projectile != null && !skill.projectile.explodes()) {
                 double pierces = skill.parameters(rank).getOrDefault("pierces", (double) skill.projectile.pierces());

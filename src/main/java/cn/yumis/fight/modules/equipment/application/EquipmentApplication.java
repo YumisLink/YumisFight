@@ -20,7 +20,7 @@ public final class EquipmentApplication {
     public EquipmentApplication(Journal journal,InventoryOperations inventory,Function<ServerPlayer,UUID> sessionId,Consumer<ServerPlayer> profile,BiConsumer<ServerPlayer,String> message,java.util.function.BiFunction<ServerPlayer,JsonObject,Map<String,JsonElement>> balanceReceiver){this.journal=journal;this.inventory=inventory;this.sessionId=sessionId;this.profile=profile;this.message=message;this.balanceReceiver=balanceReceiver;}
     public void register(CommandRouter<ServerPlayer,JsonObject> router){router.register("equipment","craft",this::craft);router.register("equipment","cubeCraft",(p,j)->professionCraft(p,j,false));router.register("equipment","currency",this::receive);router.register("equipment","enhance",this::enhance);router.register("equipment","initializeEquipment",this::receive);router.register("equipment","equipmentBagRefresh",(p,j)->sendBagSnapshot(p));}
     public void sendBagSnapshot(ServerPlayer p){
-        if(!(p.containerMenu instanceof cn.yumis.fight.modules.equipment.api.EnhanceMenu||p.containerMenu instanceof cn.yumis.fight.modules.equipment.api.FabricatorMenu))return;
+        if(!(p.containerMenu instanceof cn.yumis.fight.modules.equipment.api.EnhanceMenu||p.containerMenu instanceof cn.yumis.fight.modules.equipment.api.FabricatorMenu||p.containerMenu instanceof cn.yumis.fight.modules.equipment.api.HoradricCubeMenu))return;
         var menu=p.containerMenu;
         var extra=MenuHooks.extra(p);
         var rows=new JsonArray();
@@ -32,19 +32,30 @@ public final class EquipmentApplication {
             row.addProperty("slot",slot);
             row.add("item",inventory.encode(p,stack));
             int length=row.toString().length();
-            if(size+length>90000&&!rows.isEmpty()){sendBagPart(p,menu.containerId,extra.bagTier,part++,false,rows);rows=new JsonArray();size=0;}
+            if(size+length>90000&&!rows.isEmpty()){sendBagPart(p,menu.containerId,extra,part++,false,rows);rows=new JsonArray();size=0;}
             rows.add(row);size+=length;
         }
-        sendBagPart(p,menu.containerId,extra.bagTier,part,true,rows);
+        for(var entry:extra.categories.stock()){
+            if(entry.kind()==CategoryBags.Kind.CURRENCY)continue;
+            var row=new JsonObject();
+            row.addProperty("area",entry.kind().id);
+            row.addProperty("slot",entry.slot());
+            row.add("item",inventory.encode(p,entry.item()));
+            int length=row.toString().length();
+            if(size+length>90000&&!rows.isEmpty()){sendBagPart(p,menu.containerId,extra,part++,false,rows);rows=new JsonArray();size=0;}
+            rows.add(row);size+=length;
+        }
+        sendBagPart(p,menu.containerId,extra,part,true,rows);
     }
-    private void sendBagPart(ServerPlayer p,int menuId,int tier,int part,boolean done,JsonArray rows){
+    private void sendBagPart(ServerPlayer p,int menuId,ExtraInventory extra,int part,boolean done,JsonArray rows){
         var value=new JsonObject();
         value.addProperty("session",sessionId.apply(p).toString());
         value.addProperty("menu",menuId);
-        value.addProperty("tier",tier);
+        value.addProperty("tier",extra.bagTier);
         value.addProperty("part",part);
         value.addProperty("done",done);
         value.add("rows",rows);
+        if(part==0)value.add("categories",extra.categories.summary());
         Network.send(p,"equipmentBag",value);
     }
     public void creativeArrived(ServerPlayer player,int menuSlot){Network.send(player,"equipmentArrival",Map.of("slot",menuSlot));}

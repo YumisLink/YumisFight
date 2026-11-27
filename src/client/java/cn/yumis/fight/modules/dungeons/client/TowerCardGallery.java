@@ -13,13 +13,16 @@ public final class TowerCardGallery {
 
     public static void render(PlayerPageSurface page) {
         var chosen = TowerClient.chosenCards();
+        int pending = TowerClient.pendingCareerPicks();
         page.gap();
         page.line("塔牌", UiTheme.GOLD);
-        if (chosen.isEmpty()) {
+        if (chosen.isEmpty() && pending <= 0) {
             page.line("还没有选到塔牌", UiTheme.MUTED);
             return;
         }
-        page.line("已持有 " + chosen.size() + " 张", UiTheme.MUTED);
+        if (!chosen.isEmpty()) page.line("已持有 " + chosen.size() + " 张", UiTheme.MUTED);
+        if (pending > 0) page.line("当前职业有 " + pending + " 张职业神话卡待补选，前往任意觉醒塔石碑交互即可选择。", UiTheme.GOLD);
+        if (chosen.isEmpty()) return;
         page.gap();
 
         int width = Math.max(1, page.contentWidth() - 24);

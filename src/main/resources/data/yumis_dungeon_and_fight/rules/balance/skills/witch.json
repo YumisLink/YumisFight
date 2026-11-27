@@ -1,0 +1,288 @@
+{
+  "version": 1,
+  "group": "witch",
+  "skills": {
+    "yumis_dungeon_and_fight:witchcraft_mastery": {
+      "title": "魔道学概论",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "range": 0.0,
+        "duration": 0.0,
+        "slashes": 1.0,
+        "broomBonusScale": 1.0,
+        "familiarBaseElem": 6.0,
+        "buildupBonusRatio": 0.35,
+        "ailmentResonancePerKind": 0.025,
+        "broomAirDashCount": 2.0,
+        "broomDashSpeed": 1.15
+      }
+    },
+    "yumis_dungeon_and_fight:shadow_cloak": {
+      "title": "暗影斗篷",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.076503,
+      "cooldown": 8.0,
+      "damaging": true,
+      "damage": {
+        "damage": 6.5,
+        "finisher": 13.5
+      },
+      "parameters": {
+        "range": 5.5,
+        "centerOffset": 2.8,
+        "radius": 4.5,
+        "pullRadius": 5.0,
+        "invulnerableMillis": 650.0,
+        "grabDelay": 0.12,
+        "burstDelay": 0.45,
+        "controlSeconds": 0.65,
+        "slashes": 1.0,
+        "duration": 0.65,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:giant_flyswatter": {
+      "title": "变异苍蝇拍",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.081967,
+      "cooldown": 7.5,
+      "damaging": true,
+      "damage": {
+        "damage": 16.5,
+        "puppetDamage": 2.8
+      },
+      "parameters": {
+        "range": 5.5,
+        "centerOffset": 2.8,
+        "radius": 3.8,
+        "impactDelay": 0.22,
+        "buffDuration": 15.0,
+        "buffDamageMut": 0.06,
+        "buffCastSpeed": 0.12,
+        "buffMoveSpeed": 0.10,
+        "summonBaseCount": 2.0,
+        "summonBonusCount": 1.0,
+        "summonRadius": 2.4,
+        "summonSeekRange": 10.0,
+        "summonLifetime": 1.8,
+        "slashes": 1.0,
+        "duration": 0.50,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:lava_potion": {
+      "title": "熔岩药瓶",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.105505,
+      "cooldown": 11.0,
+      "damaging": true,
+      "damage": {
+        "damage": 1.35,
+        "geyserDamage": 4.6
+      },
+      "parameters": {
+        "range": 16.0,
+        "radius": 7.68,
+        "geyserRadius": 5.12,
+        "throwDelay": 0.25,
+        "duration": 8.0,
+        "interval": 0.50,
+        "slashes": 16.0,
+        "geyserCount": 3.0,
+        "slowRatio": 0.30,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:acid_rain": {
+      "title": "魔道酸雨云",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.110092,
+      "cooldown": 12.0,
+      "damaging": true,
+      "damage": {
+        "damage": 1.10,
+        "lightningDamage": 4.2
+      },
+      "parameters": {
+        "range": 16.0,
+        "radius": 8.32,
+        "boltRadius": 5.12,
+        "cloudHeight": 5.4,
+        "spawnDelay": 0.20,
+        "duration": 8.0,
+        "interval": 0.50,
+        "slashes": 16.0,
+        "boltCount": 4.0,
+        "boltInterval": 1.60,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:anti_gravity": {
+      "title": "反重力装置",
+      "unlock": 30,
+      "sp": 50,
+      "mpRatio": 0.154150,
+      "cooldown": 15.0,
+      "damaging": true,
+      "damage": {
+        "damage": 12.5,
+        "finisher": 35.5
+      },
+      "parameters": {
+        "range": 15.0,
+        "radius": 5.5,
+        "blastRadius": 6.2,
+        "liftDelay": 0.35,
+        "slamDelay": 0.85,
+        "controlSeconds": 0.50,
+        "slashes": 1.0,
+        "duration": 1.20,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:raging_flame_furnace": {
+      "title": "爆炎加热炉",
+      "unlock": 35,
+      "sp": 50,
+      "mpRatio": 0.187500,
+      "cooldown": 20.0,
+      "damaging": true,
+      "damage": {
+        "damage": 3.95,
+        "finisher": 26.0
+      },
+      "parameters": {
+        "range": 8.0,
+        "radius": 7.5,
+        "blastRadius": 6.5,
+        "duration": 2.80,
+        "interval": 0.20,
+        "slashes": 14.0,
+        "channelProtection": 0.55,
+        "minChannelSeconds": 0.0,
+        "bitterKeepRatio": 0.65,
+        "bitterLaunchHeight": 2.2,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:mega_drill": {
+      "title": "冰霜钻孔车",
+      "unlock": 40,
+      "sp": 60,
+      "mpRatio": 0.213622,
+      "cooldown": 24.0,
+      "damaging": true,
+      "damage": {
+        "damage": 4.50,
+        "finisher": 36.0
+      },
+      "parameters": {
+        "range": 7.5,
+        "pullRadius": 7.5,
+        "pullStrength": 4.8,
+        "radius": 4.2,
+        "blastRadius": 6.8,
+        "driveSpeedRatio": 1.35,
+        "duration": 3.20,
+        "interval": 0.20,
+        "slashes": 16.0,
+        "channelProtection": 0.60,
+        "minChannelSeconds": 0.0,
+        "bitterKeepRatio": 0.65,
+        "bitterDashDistance": 3.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:florae_collider": {
+      "title": "电鳗碰撞机",
+      "unlock": 45,
+      "sp": 80,
+      "mpRatio": 0.248603,
+      "cooldown": 30.0,
+      "damaging": true,
+      "damage": {
+        "damage": 6.80,
+        "finisher": 42.0
+      },
+      "parameters": {
+        "range": 9.0,
+        "radius": 8.5,
+        "blastRadius": 8.5,
+        "duration": 3.00,
+        "interval": 0.25,
+        "slashes": 12.0,
+        "controlSeconds": 0.40,
+        "bitterControlSeconds": 0.80,
+        "channelProtection": 0.55,
+        "minChannelSeconds": 0.0,
+        "bitterKeepRatio": 0.65,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:fusion_craft": {
+      "title": "技艺融合",
+      "unlock": 50,
+      "sp": 100,
+      "mpRatio": 0.362595,
+      "cooldown": 90.0,
+      "damaging": true,
+      "damage": {
+        "damage": 15.0,
+        "finisher": 145.0
+      },
+      "parameters": {
+        "range": 10.5,
+        "pullRadius": 9.5,
+        "radius": 7.5,
+        "finisherRadius": 10.5,
+        "windupSeconds": 0.40,
+        "duration": 3.60,
+        "interval": 0.20,
+        "slashes": 16.0,
+        "driveSpeedRatio": 0.55,
+        "minChannelSeconds": 0.0,
+        "bitterKeepRatio": 0.65,
+        "invulnerable": 1.0,
+        "morphMode": 0.0,
+        "maxCharges": 1.0,
+        "dyeEnabled": 0.0,
+        "dyeElement": 0.0
+      }
+    }
+  }
+}

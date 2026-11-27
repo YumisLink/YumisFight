@@ -15,6 +15,7 @@ public final class AffixLevelCurves {
         interval("stamina_capacity",l->100+200d*(l-1)/79,l->200+300d*(l-1)/79);
         interval("shield_wait_recovery",l->.035+.215*(l-1)/79,l->.175+1.075*(l-1)/79);
         interval("shield_regeneration",l->.2+.4*(l-1)/79,l->.4+.6*(l-1)/79);
+        interval("armor_flat_health",l->(100+20d*(l-1))*.09,l->(100+20d*(l-1))*.135);
     }
     private AffixLevelCurves(){}
     public static void register(String id,IntToDoubleFunction curve){if(CURVES.putIfAbsent(id,Objects.requireNonNull(curve))!=null)throw new IllegalArgumentException("Duplicate affix curve: "+id);}

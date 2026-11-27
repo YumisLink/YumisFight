@@ -23,6 +23,9 @@ import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 
 public final class EnemyHealthBars {
+    private static final double BAR_HALF_HEIGHT = .065;
+    private static final double BORDER_HEIGHT = .022;
+
     private record Label(Vec3 position, float scale, String text) {}
     private record Frame(List<Quad> quads, List<Label> labels) {}
     private static final ContextKey<Frame> FRAME = new ContextKey<>(
@@ -30,13 +33,14 @@ public final class EnemyHealthBars {
 
     private EnemyHealthBars() {}
 
-    public static void register(Predicate<LivingEntity> excluded, ToDoubleFunction<LivingEntity> maximumHealth) {
-        NeoForge.EVENT_BUS.addListener((ExtractLevelRenderStateEvent event) -> extract(event, excluded, maximumHealth));
+    public static void register(Predicate<LivingEntity> excluded, Predicate<LivingEntity> isBoss,
+                                ToDoubleFunction<LivingEntity> maximumHealth) {
+        NeoForge.EVENT_BUS.addListener((ExtractLevelRenderStateEvent event) -> extract(event, excluded, isBoss, maximumHealth));
         NeoForge.EVENT_BUS.addListener(EnemyHealthBars::submit);
     }
 
     private static void extract(ExtractLevelRenderStateEvent event, Predicate<LivingEntity> excluded,
-                                ToDoubleFunction<LivingEntity> maximumHealth) {
+                                Predicate<LivingEntity> isBoss, ToDoubleFunction<LivingEntity> maximumHealth) {
         var mc = Minecraft.getInstance();
         var player = mc.player;
         if (player == null || mc.gui.hud.isHidden() || event.getLevel() != player.level()) return;
@@ -56,12 +60,17 @@ public final class EnemyHealthBars {
             double fraction = Math.clamp((double) enemy.getHealth() / enemy.getMaxHealth(), 0, 1);
             Vec3 anchor = enemy.getPosition(partial).add(0, enemy.getBbHeight() + .25, 0);
             double scale = ClientSettings.enemyHealthPerspective ? 1 : Math.max(.12, anchor.distanceTo(camera.position()) / 12);
+            if (isBoss.test(enemy)) {
+                double bossScale = ClientSettings.bossHealthScale();
+                anchor = anchor.add(up.scale((BAR_HALF_HEIGHT + BORDER_HEIGHT) * scale * (bossScale - 1)));
+                scale *= bossScale;
+            }
             Vec3 horizontal = left.scale(.625 * scale);
-            Vec3 vertical = up.scale(.065 * scale);
+            Vec3 vertical = up.scale(BAR_HALF_HEIGHT * scale);
             Vec3 start = anchor.add(horizontal);
             Vec3 end = anchor.subtract(horizontal);
             Vec3 borderWidth = left.scale(.025 * scale);
-            Vec3 borderHeight = up.scale(.022 * scale);
+            Vec3 borderHeight = up.scale(BORDER_HEIGHT * scale);
             Vec3 outerStart = start.add(borderWidth);
             Vec3 outerEnd = end.subtract(borderWidth);
             var outerHeight = vertical.add(borderHeight);

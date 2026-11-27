@@ -4,9 +4,13 @@ import cn.yumis.fight.modules.dungeons.api.AbyssAttack;
 import cn.yumis.fight.modules.dungeons.api.AbyssParty;
 import cn.yumis.fight.modules.dungeons.api.DungeonEnemy;
 import cn.yumis.fight.modules.dungeons.api.Target;
+import cn.yumis.fight.modules.presentation.api.client.CameraShake;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.modules.presentation.api.client.EffectParticles;
+import cn.yumis.fight.modules.presentation.api.client.EffectSprites;
+import cn.yumis.fight.modules.presentation.api.client.LightningBolt;
 import cn.yumis.fight.modules.presentation.api.client.NearEffectRendering;
+import cn.yumis.fight.modules.presentation.api.client.RibbonTrail;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads;
 import cn.yumis.fight.modules.presentation.api.client.WorldQuads.Quad;
 import com.google.gson.Gson;
@@ -23,9 +27,11 @@ import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -44,13 +50,14 @@ public final class AbyssVisuals {
     private static final int EPIC_GOLD = cn.yumis.fight.modules.equipment.api.Rarity.EPIC.color();
     private static final int MYTHIC_GOLD = cn.yumis.fight.modules.equipment.api.Rarity.MYTHIC.color(), MYTHIC_ACCENT = 0xfff6d8;
     private static final Map<UUID, Long> cancelled = new LinkedHashMap<>();
+    private static final Set<String> shook = new HashSet<>();
     private static Supplier<String> instance = () -> "";
     private static Consumer<JsonObject> hit = ignored -> {};
     private static Object world;
     private static String room = "";
     private static long lastBoneHit;
 
-    private record Frame(List<Quad> quads, boolean fade) {}
+    private record Frame(List<Quad> quads, List<EffectSprites.SpriteQuad> sprites, boolean fade) {}
 
     private static final class Cue {
         final AbyssAttack attack;
@@ -117,10 +124,12 @@ public final class AbyssVisuals {
             if (mythic && !running.mythic) {
                 running.mythic = true;
                 running.end = now + MYTHIC_FLASH;
+                CameraShake.impulse(position, 24, 0.32f, 120, 260);
             }
             return;
         }
         flashes.put(key, new Flash(position, mythic, now, now + (mythic ? MYTHIC_FLASH : EPIC_FLASH)));
+        if (mythic) CameraShake.impulse(position, 24, 0.32f, 120, 260);
     }
 
     private static void syncInstance() {
@@ -132,6 +141,7 @@ public final class AbyssVisuals {
         cues.clear();
         cancelled.clear();
         flashes.clear();
+        shook.clear();
         lastBoneHit = 0;
     }
 
@@ -194,52 +204,72 @@ public final class AbyssVisuals {
     private static void extract(ExtractLevelRenderStateEvent event) {
         syncInstance();
         var quads = new ArrayList<Quad>();
+        var sprites = new ArrayList<EffectSprites.SpriteQuad>();
+        Vec3 camera = event.getCamera().position();
         var minecraft = Minecraft.getInstance();
         if (minecraft.level != null && minecraft.player != null && ClientUi.current().ready()) {
             long now = ClientUi.current().serverNow();
+            if (shook.size() > 256) shook.clear();
             for (Cue cue : cues.values()) {
                 AbyssAttack attack = cue.attack;
-                if (attack.telegraph() && now >= attack.warning() && now < attack.end()) draw(quads, attack, now);
+                if (attack.telegraph() && now >= attack.warning() && now < attack.end()) draw(quads, sprites, camera, attack, now);
             }
-            for (Flash flash : flashes.values()) flashPillar(quads, flash, now);
+            for (Flash flash : flashes.values()) flashPillar(quads, sprites, camera, flash, now);
             for (var raw : minecraft.level.entitiesForRendering()) {
-                if (raw instanceof DungeonEnemy enemy && enemy.appearance().equals(AbyssParty.Enemy.PILLAR.id) && enemy.guarded())
-                    ring(quads, enemy.position().add(0, .06, 0), 1.05, .11, 0xb49ae1, 210);
+                if (raw instanceof DungeonEnemy enemy && enemy.appearance().equals(AbyssParty.Enemy.PILLAR.id) && enemy.guarded()) {
+                    Vec3 pos = enemy.position().add(0, .06, 0);
+                    ring(quads, pos, 1.05, .11, 0xb49ae1, 210);
+                    EffectSprites.sigil(sprites, pos, 1.22, now * 0.0016, 0xb49ae1, 185, true);
+                }
             }
         }
-        event.getRenderState().setRenderData(FRAME, new Frame(List.copyOf(quads), NearEffectRendering.enabled(event.getCamera())));
+        event.getRenderState().setRenderData(FRAME, new Frame(List.copyOf(quads), List.copyOf(sprites), NearEffectRendering.enabled(event.getCamera())));
     }
 
-    private static void draw(List<Quad> quads, AbyssAttack attack, long now) {
+    private static void draw(List<Quad> quads, List<EffectSprites.SpriteQuad> sprites, Vec3 camera, AbyssAttack attack, long now) {
         var origin = attack.origin().add(0, .065, 0);
         var direction = attack.direction();
         boolean active = now >= attack.release();
         int color = attack.color(), alpha = active ? 104 : 56;
+        double warnP = attack.release() <= attack.warning() ? 1 : Math.clamp((now - attack.warning()) / (double) (attack.release() - attack.warning()), 0, 1);
         switch (attack.shape()) {
             case CIRCLE -> {
                 disc(quads, origin, attack.range(), color, alpha);
                 ring(quads, origin, attack.range(), .07, color, 214);
+                if (!active) EffectSprites.warningCircle(sprites, origin.add(0, .01, 0), attack.range(), warnP, color, 170);
+                else EffectSprites.sigil(sprites, origin.add(0, .015, 0), attack.range(), now * 0.002, color, 165, false);
             }
             case FAN -> fan(quads, origin, direction, attack.range(), attack.width(), color, alpha);
             case LINE -> rect(quads, origin, origin.add(direction.scale(attack.range())), attack.width(), color, alpha);
-            case RING -> ring(quads, origin, attack.range() - attack.width() / 2, attack.width(), color, active ? 205 : 130);
+            case RING -> {
+                ring(quads, origin, attack.range() - attack.width() / 2, attack.width(), color, active ? 205 : 130);
+                if (active) EffectSprites.shockwave(sprites, origin.add(0, .02, 0), attack.range(), now * 0.002, color, 200);
+            }
         }
         switch (attack.effect()) {
             case BONE -> {
                 if (active) {
                     box(quads, origin.add(0, .57, 0), .10, .57, .10, 0xe4d6ba, 255);
                     box(quads, origin.add(0, 1.14, 0), .23, .13, .14, 0xf0e6d5, 255);
-                    double pulse = .65 + (attack.range() - .65) * ((now - attack.release()) % 1000) / 1000d;
+                    double cycle = ((now - attack.release()) % 1000) / 1000d;
+                    double pulse = .65 + (attack.range() - .65) * cycle;
                     ring(quads, origin.add(0, .015, 0), pulse, .08, color, 178);
+                    EffectSprites.shockwave(sprites, origin.add(0, .03, 0), pulse, cycle * 1.2, color, (int) (195 * (1 - cycle)));
                 }
             }
             case COLUMN -> {
                 double progress = attack.release() == attack.warning() ? 1
-                    : (now - attack.warning()) / (double) (attack.release() - attack.warning());
+                    : Math.clamp((now - attack.warning()) / (double) (attack.release() - attack.warning()), 0, 1);
                 double size = attack.range() >= 8 ? 1.6 : .31, height = attack.range() >= 8 ? 3.2 : 1.4;
                 double y = Math.max(0, 1 - progress * progress) * attack.elevation();
                 box(quads, origin.add(0, y + height / 2, 0), size, height / 2, size, 0xa9a9ad, 246);
                 box(quads, origin.add(0, y + height - .18, 0), size * 1.12, .18, size * 1.12, 0xc9c7cc, 246);
+                if (progress >= 0.92) {
+                    double impP = Math.clamp((now - attack.release()) / 380d, 0, 0.99);
+                    EffectSprites.shockwave(sprites, origin.add(0, .04, 0), attack.range() * (.3 + .8 * impP), impP * 1.1, color, (int) (225 * (1 - impP)));
+                    EffectSprites.impactBurst(sprites, origin.add(0, .08, 0), camera, Math.min(4.5, attack.range() * .85), impP, 0xe0d8ff, 225, true);
+                    if (shook.add(attack.id() + "#col")) CameraShake.impulse(origin, Math.max(16, attack.range() * 3), attack.range() >= 8 ? 0.38f : 0.24f, 100, 210);
+                }
             }
             case SUMMON, PROJECTION -> {
                 Vec3 projected = origin.add(direction.scale(.7));
@@ -247,52 +277,82 @@ public final class AbyssVisuals {
                 box(quads, projected.add(0, 1.02, 0), .34, .44, .22, color, opacity);
                 box(quads, projected.add(0, 1.68, 0), .25, .25, .25, color, opacity);
                 Vec3 side = new Vec3(-direction.z, 0, direction.x);
-                for(int sign : new int[]{-1, 1}) {
+                for (int sign : new int[]{-1, 1}) {
                     Vec3 limb = projected.add(side.scale(sign * .50));
                     line(quads, limb.add(0, 1.38, 0), limb.add(direction.scale(.26)).add(0, .72, 0), .13, color, opacity);
                     box(quads, projected.add(side.scale(sign * .16)).add(0, .34, 0), .095, .32, .13, color, opacity);
                 }
+                EffectSprites.sigil(sprites, projected.add(0, .02, 0), 1.35, now * 0.0022, color, active ? 195 : 135, true);
+                EffectSprites.glow(sprites, projected.add(0, 1.1, 0), camera, .75, color, active ? 175 : 115);
             }
             case BEAM, ORB, ICE, SLASH, WAVE, FIRE, LANDING -> {
-                if (active) impact(quads, attack, origin, color, now);
+                if (active) impact(quads, sprites, camera, attack, origin, color, now);
             }
         }
     }
 
-    private static void impact(List<Quad> quads, AbyssAttack attack, Vec3 origin, int color, long now) {
-        double progress = attack.progress(now);
+    private static void impact(List<Quad> quads, List<EffectSprites.SpriteQuad> sprites, Vec3 camera, AbyssAttack attack, Vec3 origin, int color, long now) {
+        double progress = Math.clamp(attack.progress(now), 0, 0.99);
         if (attack.shape() == AbyssAttack.Shape.LINE) {
             Vec3 head = origin.add(attack.direction().scale(attack.range() * progress)).add(0, .55, 0);
-            if (attack.effect() == AbyssAttack.Effect.BEAM)
-                line(quads, origin.add(0, .67, 0), origin.add(attack.direction().scale(attack.range())).add(0, .67, 0),
-                    attack.width() * .25, color, 218);
-            else if (attack.effect() == AbyssAttack.Effect.ICE)
+            if (attack.effect() == AbyssAttack.Effect.BEAM) {
+                Vec3 from = origin.add(0, .67, 0);
+                Vec3 to = origin.add(attack.direction().scale(attack.range())).add(0, .67, 0);
+                line(quads, from, to, attack.width() * .25, color, 218);
+                EffectSprites.texturedBeam(sprites, from, to, camera, Math.max(.26, attack.width() * .28), now, true, color, 230);
+                LightningBolt.helixArcs(sprites, from, to, camera, now, Math.max(.24, attack.width() * .25), 2, color, 185);
+            } else if (attack.effect() == AbyssAttack.Effect.ICE) {
                 box(quads, head, .22, .65, .22, color, 215);
-            else
+                RibbonTrail.push("abyss:" + attack.id(), head, .26, color, 205, 240, ClientUi.now());
+                EffectSprites.glow(sprites, head, camera, .6, color, 210);
+            } else {
                 box(quads, head, .35, .36, .35, color, 215);
+                RibbonTrail.push("abyss:" + attack.id(), head, .28, color, 210, 240, ClientUi.now());
+                EffectSprites.glow(sprites, head, camera, .68, color, 215);
+            }
+        } else if (attack.effect() == AbyssAttack.Effect.SLASH) {
+            EffectSprites.slashArc(sprites, origin.add(0, .95, 0), attack.direction(), 10, attack.range(), progress, color, 225);
         } else {
             double radius = .1 + Math.max(0, attack.range() - .1) * progress;
             ring(quads, origin.add(0, .11, 0), radius, .18, color, 200);
+            EffectSprites.shockwave(sprites, origin.add(0, .04, 0), radius, progress * 1.2, color, (int) (220 * (1 - progress * .75)));
+            EffectSprites.impactBurst(sprites, origin.add(0, .08, 0), camera, Math.min(5.0, attack.range() * .85), progress, color, 215, true);
+            if (attack.effect() == AbyssAttack.Effect.LANDING && shook.add(attack.id() + "#land")) {
+                CameraShake.impulse(origin, Math.max(18, attack.range() * 3.5), 0.32f, 100, 200);
+            }
         }
     }
 
     private static void submit(SubmitCustomGeometryEvent event) {
         Frame frame = event.getLevelRenderState().getRenderData(FRAME);
-        if (frame != null) WorldQuads.submit(event, frame.quads(), frame.fade());
+        if (frame != null) {
+            WorldQuads.submit(event, frame.quads(), frame.fade());
+            EffectSprites.submit(event, frame.sprites(), frame.fade());
+        }
     }
 
-    /** Ground rings for the committed abyss flash; the landed items themselves carry their rarity beams. */
-    private static void flashPillar(List<Quad> quads, Flash flash, long now) {
+    /** Ground rings, arcane sigil and sky beam for the committed abyss flash; landed items keep their rarity beams. */
+    private static void flashPillar(List<Quad> quads, List<EffectSprites.SpriteQuad> sprites, Vec3 camera, Flash flash, long now) {
         if (now < flash.start || now >= flash.end) return;
         double fade = Math.min(1, (flash.end - now) / 1000d);
         Vec3 origin = flash.position.add(0, .03, 0);
         int color = flash.mythic ? MYTHIC_GOLD : EPIC_GOLD;
         int alpha = (int) ((flash.mythic ? 214 : 190) * fade);
-        double pulse = .55 + (flash.mythic ? 2.1 : 1.5) * ((now - flash.start) % 1100) / 1100d;
+        double cycle = ((now - flash.start) % 1100) / 1100d;
+        double pulse = .55 + (flash.mythic ? 2.1 : 1.5) * cycle;
         ring(quads, origin, pulse, .10, color, (int) (170 * fade));
         ring(quads, origin, .78, .14, color, alpha);
         if (flash.mythic)
             ring(quads, origin, 1.05 + .45 * Math.sin((now - flash.start) * Math.PI / 900), .12, MYTHIC_ACCENT, (int) (150 * fade));
+
+        double pillarHeight = flash.mythic ? 11.0 : 7.5;
+        EffectSprites.sigil(sprites, origin.add(0, .02, 0), flash.mythic ? 1.85 : 1.35, now * 0.0018, color, (int) (215 * fade), true);
+        EffectSprites.shockwave(sprites, origin.add(0, .04, 0), pulse, cycle * 1.4, color, (int) (200 * fade * (1 - cycle)));
+        EffectSprites.texturedBeam(sprites, origin, origin.add(0, pillarHeight, 0), camera, flash.mythic ? .44 : .28, now, flash.mythic, color, (int) (205 * fade));
+        EffectSprites.glow(sprites, origin.add(0, .55, 0), camera, flash.mythic ? 1.45 : 1.0, flash.mythic ? MYTHIC_ACCENT : color, (int) (220 * fade));
+        if (flash.mythic) {
+            LightningBolt.helixArcs(sprites, origin.add(0, .2, 0), origin.add(0, pillarHeight * .85, 0), camera, now, .72, 2, MYTHIC_ACCENT, (int) (175 * fade));
+        }
     }
 
     private AbyssVisuals() {}

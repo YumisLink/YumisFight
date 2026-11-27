@@ -22,7 +22,12 @@ public final class TowerCardDraft {
     public record Slot(TowerCard card, int refreshesLeft) {}
     public record SavedSlot(TowerCard.Reference card, int refreshesLeft) {}
     public record Snapshot(int offer, int revision, List<TowerCard.Reference> chosen, Set<String> removed,
-                           List<SavedSlot> slots) {
+                           List<SavedSlot> slots, boolean careerOffer) {
+        public Snapshot(int offer, int revision, List<TowerCard.Reference> chosen, Set<String> removed,
+                        List<SavedSlot> slots) {
+            this(offer, revision, chosen, removed, slots, false);
+        }
+
         public int selectedThrough() {
             return slots.isEmpty() ? offer : offer - 1;
         }
@@ -35,6 +40,7 @@ public final class TowerCardDraft {
     private List<Slot> slots = List.of();
     private int offer = -1;
     private int revision;
+    private boolean careerOffer;
 
     public TowerCardDraft(RandomGenerator random) {
         this.random = Objects.requireNonNull(random);
@@ -42,10 +48,11 @@ public final class TowerCardDraft {
 
     public int offer() { return offer; }
     public int revision() { return revision; }
+    public boolean careerOffer() { return careerOffer; }
 
     public Snapshot snapshot() {
         return new Snapshot(offer, revision, chosen.stream().map(TowerCard::reference).toList(), Set.copyOf(removed),
-            slots.stream().map(slot -> new SavedSlot(slot.card().reference(), slot.refreshesLeft())).toList());
+            slots.stream().map(slot -> new SavedSlot(slot.card().reference(), slot.refreshesLeft())).toList(), careerOffer);
     }
 
     public void restore(Snapshot saved, List<TowerCard> pool) {
@@ -54,7 +61,9 @@ public final class TowerCardDraft {
         restoreChosen(saved.chosen());
         removed.clear();
         removed.addAll(saved.removed());
+        for (TowerCard card : chosen) removed.addAll(TowerBattleCard.exclusionsFor(card.id()));
         slots = saved.slots().stream().map(slot -> new Slot(TowerCard.restore(slot.card()), slot.refreshesLeft())).toList();
+        careerOffer = !slots.isEmpty() && saved.careerOffer();
         eligible = slots.isEmpty() ? List.of() : List.copyOf(pool);
     }
 
@@ -68,17 +77,52 @@ public final class TowerCardDraft {
         var snapshot = List.copyOf(pool);
         var candidates = available(snapshot, removed);
 
-        var next = new ArrayList<Slot>(CARDS_PER_OFFER);
-        for (int index = 0; index < CARDS_PER_OFFER; index++) {
-            TowerCard card = draw(candidates);
-            candidates.get(card.rarity()).remove(card);
-            next.add(new Slot(card.bind(random), REFRESHES_PER_CARD));
+        List<Slot> next;
+        if (checkpoint == 0) {
+            var careerPool = availableCareerMythics(snapshot, removed);
+            if (!careerPool.isEmpty()) {
+                next = dealCareerOffer(careerPool, candidates);
+                careerOffer = true;
+            } else {
+                next = dealNormalOffer(candidates);
+                careerOffer = false;
+            }
+        } else {
+            next = dealNormalOffer(candidates);
+            careerOffer = false;
         }
         offer = checkpoint;
         revision++;
         eligible = snapshot;
         slots = List.copyOf(next);
         return true;
+    }
+
+    private List<Slot> dealNormalOffer(Map<Rarity, List<TowerCard>> candidates) {
+        var next = new ArrayList<Slot>(CARDS_PER_OFFER);
+        for (int index = 0; index < CARDS_PER_OFFER; index++) {
+            TowerCard card = draw(candidates);
+            candidates.get(card.rarity()).remove(card);
+            next.add(new Slot(card.bind(random), REFRESHES_PER_CARD));
+        }
+        return next;
+    }
+
+    private List<Slot> dealCareerOffer(List<TowerCard> careerPool, Map<Rarity, List<TowerCard>> fallbackCandidates) {
+        var remaining = new ArrayList<>(careerPool);
+        var next = new ArrayList<Slot>(CARDS_PER_OFFER);
+        for (int index = 0; index < CARDS_PER_OFFER; index++) {
+            TowerCard card;
+            if (!remaining.isEmpty()) {
+                card = remaining.remove(random.nextInt(remaining.size()));
+                fallbackCandidates.get(card.rarity()).remove(card);
+            } else {
+                card = draw(fallbackCandidates);
+                fallbackCandidates.get(card.rarity()).remove(card);
+            }
+            next.add(new Slot(card.bind(random), REFRESHES_PER_CARD));
+        }
+        return next;
     }
 
     public List<Slot> slots() {
@@ -94,16 +138,45 @@ public final class TowerCardDraft {
         return "";
     }
 
+    public boolean canRefresh(int index) {
+        if (index < 0 || index >= slots.size()) return false;
+        Slot current = slots.get(index);
+        if (current.refreshesLeft() == 0) return false;
+        if (careerOffer) {
+            Set<String> excluded = new HashSet<>(removed);
+            for (Slot slot : slots) excluded.add(slot.card().id());
+            return !availableCareerMythics(eligible, excluded).isEmpty();
+        }
+        if (current.card().rarity() == Rarity.MYTHIC
+            && slots.stream().anyMatch(slot -> slot.card().id().equals(TowerBattleCard.MYTHIC_GIFT.id()))
+            && mythics(current.card().id()).isEmpty()) return false;
+        return true;
+    }
+
     public boolean refresh(int checkpoint, int index, int version) {
         if (!matches(checkpoint, index, version)) return false;
         Slot current = slots.get(index);
         if (current.refreshesLeft() == 0) return false;
+
+        Set<String> excluded = new HashSet<>(removed);
+        for (Slot slot : slots) excluded.add(slot.card().id());
+
+        if (careerOffer) {
+            var careerPool = availableCareerMythics(eligible, excluded);
+            if (careerPool.isEmpty()) return false;
+            TowerCard picked = careerPool.get(random.nextInt(careerPool.size())).bind(random);
+            var next = new ArrayList<>(slots);
+            next.set(index, new Slot(picked, current.refreshesLeft() - 1));
+            if (!current.card().milk()) removed.add(current.card().id());
+            revision++;
+            slots = List.copyOf(next);
+            return true;
+        }
+
         if (current.card().rarity() == Rarity.MYTHIC
             && slots.stream().anyMatch(slot -> slot.card().id().equals(TowerBattleCard.MYTHIC_GIFT.id()))
             && mythics(current.card().id()).isEmpty()) return false;
 
-        Set<String> excluded = new HashSet<>(removed);
-        for (Slot slot : slots) excluded.add(slot.card().id());
         var candidates = available(eligible, excluded);
 
         var next = new ArrayList<>(slots);
@@ -123,10 +196,19 @@ public final class TowerCardDraft {
             var awarded = pool.get(random.nextInt(pool.size())).bind(random);
             chosen.add(awarded);
             removed.add(awarded.id());
+            removed.addAll(TowerBattleCard.exclusionsFor(awarded.id()));
         }
         chosen.add(card);
-        if (!card.milk()) removed.add(card.id());
+        if (!card.milk()) {
+            removed.add(card.id());
+            removed.addAll(TowerBattleCard.exclusionsFor(card.id()));
+        }
         revision++;
+        if (careerOffer) {
+            careerOffer = false;
+            slots = List.copyOf(dealNormalOffer(available(eligible, removed)));
+            return Optional.of(card);
+        }
         slots = List.of();
         eligible = List.of();
         return Optional.of(card);
@@ -146,6 +228,14 @@ public final class TowerCardDraft {
     private List<TowerCard> mythics(String excluded) {
         return eligible.stream().filter(card -> card.rarity() == Rarity.MYTHIC
             && !removed.contains(card.id()) && !excluded.equals(card.id())).toList();
+    }
+
+    private static List<TowerCard> availableCareerMythics(List<TowerCard> pool, Set<String> excluded) {
+        var result = new ArrayList<TowerCard>();
+        for (TowerCard card : pool) {
+            if (card.careerMythic() && !excluded.contains(card.id())) result.add(card);
+        }
+        return result;
     }
 
     private static Map<Rarity, List<TowerCard>> available(List<TowerCard> pool, Set<String> excluded) {

@@ -17,7 +17,9 @@ public final class ExtraInventory extends SimpleContainer {
     public static final String[] SLOTS={"bracelet","necklace","ring","sub_equipment","magic_stone","earring"};
     public final Player player;
     public final TrackedContainer bag=new TrackedContainer(416);
-    public int bagSchema=3,bagTier=1,bagPage;
+    public final CategoryBags categories=new CategoryBags();
+    public String categoryCommit;
+    public int bagSchema=3,bagTier=1,bagPage; // bagPage is the first visible index, independent of screen columns.
     public int bagLimit(){return cn.yumis.fight.modules.inventory.api.StorageRules.capacity(bagTier);}
     public List<String> groups=new ArrayList<>();
     public int page;

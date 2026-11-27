@@ -25,16 +25,18 @@ public final class AbyssChampionSkills {
 
     static void install() {
         // 剑魂冠军持光剑（用户指定，光剑资格为剑魂专属）；其余职业取平衡登记的默认武器。
+        var skillRules = SkillBalanceRules.current();
         AbyssChampionKits.install(JobCatalog.SWORDMASTER, swordmaster(), "LIGHTSABER");
-        AbyssChampionKits.install(JobCatalog.ORACLE, oracle(), SkillBalance.defaultWeapon(JobCatalog.ORACLE));
-        AbyssChampionKits.install(JobCatalog.SOUL_BENDER, soulBender(), SkillBalance.defaultWeapon(JobCatalog.SOUL_BENDER));
-        AbyssChampionKits.install(JobCatalog.ASURA, asura(), SkillBalance.defaultWeapon(JobCatalog.ASURA));
-        AbyssChampionKits.install(JobCatalog.BERSERKER, berserker(), SkillBalance.defaultWeapon(JobCatalog.BERSERKER));
-        AbyssChampionKits.install(JobCatalog.HAVOC, havoc(), SkillBalance.defaultWeapon(JobCatalog.HAVOC));
-        AbyssChampionKits.install(JobCatalog.SUMMONER, summoner(), SkillBalance.defaultWeapon(JobCatalog.SUMMONER));
-        AbyssChampionKits.install(JobCatalog.SUN_MOON, sunMoon(), SkillBalance.defaultWeapon(JobCatalog.SUN_MOON));
-        AbyssChampionKits.install(JobCatalog.ELEMENTALIST, elementalist(), SkillBalance.defaultWeapon(JobCatalog.ELEMENTALIST));
-        AbyssChampionKits.install(JobCatalog.BATTLE_MAGE, battleMage(), SkillBalance.defaultWeapon(JobCatalog.BATTLE_MAGE));
+        AbyssChampionKits.install(JobCatalog.ORACLE, oracle(), skillRules.defaultWeapon(JobCatalog.ORACLE));
+        AbyssChampionKits.install(JobCatalog.SOUL_BENDER, soulBender(), skillRules.defaultWeapon(JobCatalog.SOUL_BENDER));
+        AbyssChampionKits.install(JobCatalog.ASURA, asura(), skillRules.defaultWeapon(JobCatalog.ASURA));
+        AbyssChampionKits.install(JobCatalog.BERSERKER, berserker(), skillRules.defaultWeapon(JobCatalog.BERSERKER));
+        AbyssChampionKits.install(JobCatalog.HAVOC, havoc(), skillRules.defaultWeapon(JobCatalog.HAVOC));
+        AbyssChampionKits.install(JobCatalog.SUMMONER, summoner(), skillRules.defaultWeapon(JobCatalog.SUMMONER));
+        AbyssChampionKits.install(JobCatalog.SUN_MOON, sunMoon(), skillRules.defaultWeapon(JobCatalog.SUN_MOON));
+        AbyssChampionKits.install(JobCatalog.ELEMENTALIST, elementalist(), skillRules.defaultWeapon(JobCatalog.ELEMENTALIST));
+        AbyssChampionKits.install(JobCatalog.BATTLE_MAGE, battleMage(), skillRules.defaultWeapon(JobCatalog.BATTLE_MAGE));
+        AbyssChampionKits.install(JobCatalog.WITCH, witch(), skillRules.defaultWeapon(JobCatalog.WITCH));
     }
 
     // ------------------------------------------------------------------ sword family
@@ -220,6 +222,22 @@ public final class AbyssChampionSkills {
                 slash(7.5, 2.8, 0, .25), drop(CIRCLE, ORB, 4.0, 0, 450, .35), drop(CIRCLE, COLUMN, 6.5, 0, 1100, .4)),
             gated("teana_transformation", false, 0, 10, 2, Condition.AWAKENING,
                 ring(5.5, 1.5, 0, .3), drop(CIRCLE, COLUMN, 8.5, 0, 900, .7))));
+        return List.copyOf(kit);
+    }
+
+    private static List<Kit> witch() {
+        var kit = new java.util.ArrayList<>(mageBase());
+        kit.addAll(List.of(
+            plain("shadow_cloak", true, 3, 5.5, 2, circle(4.5, 0, 1)),
+            plain("giant_flyswatter", true, 3, 5.5, 2, drop(CIRCLE, SLASH, 3.8, 0, 0, 1)),
+            plain("lava_potion", true, 1, 14, 2, drop(CIRCLE, FIRE, 4.8, 0, 0, .5), drop(CIRCLE, FIRE, 3.2, 0, 600, .5)),
+            plain("acid_rain", true, 2, 14, 2, drop(CIRCLE, ICE, 5.2, 0, 0, .5), drop(CIRCLE, COLUMN, 3.2, 0, 600, .5)),
+            plain("anti_gravity", true, 3, 14, 2, drop(CIRCLE, WAVE, 5.5, 0, 0, .3), drop(CIRCLE, WAVE, 6.2, 0, 500, .7)),
+            plain("raging_flame_furnace", true, 1, 8, 2, circle(7.5, 0, .5), drop(CIRCLE, FIRE, 6.5, 0, 700, .5)),
+            plain("mega_drill", true, 2, 7.5, 2, circle(4.8, 0, .5), drop(CIRCLE, ICE, 6.8, 0, 700, .5)),
+            plain("florae_collider", true, 0, 9, 2, circle(8.5, 0, .5), drop(CIRCLE, COLUMN, 8.5, 0, 700, .5)),
+            gated("fusion_craft", true, 1, 10, 2, Condition.AWAKENING,
+                circle(7.5, 0, .4), drop(CIRCLE, FIRE, 10.5, 0, 900, .6))));
         return List.copyOf(kit);
     }
 

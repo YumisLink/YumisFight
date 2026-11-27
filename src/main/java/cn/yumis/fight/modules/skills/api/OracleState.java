@@ -4,6 +4,6 @@ package cn.yumis.fight.modules.skills.api;
 public final class OracleState {
     public int hermes,karma;
     public long hermesUntil,karmaUntil,nextInstruction,instructionUntil,instructionPausedLeft,weaponUntil,castingUntil,outOfCombatSince;
-    public String instruction="",weapon="",cast="";
+    public String instruction="",weapon="",cast="",nextForcedInstruction="";
     public boolean initialized,awakeningObserved,awakeningLearned,awakeningGrantPending;
 }

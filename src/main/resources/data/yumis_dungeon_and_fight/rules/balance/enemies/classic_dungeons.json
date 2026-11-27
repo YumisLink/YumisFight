@@ -1,0 +1,6024 @@
+{
+  "version": 1,
+  "enemies": {
+    "moonlight_tavern_city_thug": {
+      "title": "市井混混",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "moonlight_tavern_street_hooligan": {
+      "title": "平凡的地痞",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "moonlight_tavern_drunkard": {
+      "title": "醉酒的疯汉",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "moonlight_tavern_pickpocket": {
+      "title": "扒手",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "moonlight_tavern_poison_nightblade": {
+      "title": "毒夜刃",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "moonlight_tavern_crazy_junk": {
+      "title": "疯狂囧克",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "moonlight_tavern_holio": {
+      "title": "疾行者霍利奥",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "moonlight_tavern_aganzo": {
+      "title": "阿甘左",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "moonlight_tavern_chang_sanlang": {
+      "title": "长三郎",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "moonlight_tavern",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "hamelin_mad_thief": {
+      "title": "疯狂盗贼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "hamelin",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "hamelin_mad_female_thief": {
+      "title": "疯狂女盗贼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "hamelin",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "hamelin_enchanted_bandit": {
+      "title": "受笛声影响的疯狂盗匪",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "hamelin",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "hamelin_giant_rat": {
+      "title": "巨鼠",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "hamelin",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "hamelin_man_eating_rat": {
+      "title": "食人鼠",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "hamelin",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "hamelin_siwoo": {
+      "title": "鼠头人西乌",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "hamelin",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "hamelin_roksa": {
+      "title": "老鼠商人洛克沙",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "hamelin",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "hamelin_peter": {
+      "title": "魔笛使者皮特",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "hamelin",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_cartel_soldier": {
+      "title": "卡勒特士兵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_cartel_rifleman": {
+      "title": "卡勒特普通士兵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_cartel_arsonist": {
+      "title": "卡勒特纵火兵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_modified_soldier": {
+      "title": "卡勒特改造士兵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_reinforced_soldier": {
+      "title": "卡勒特强化改造士兵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_rocket_turret": {
+      "title": "火箭炮塔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_tank_bunker": {
+      "title": "坦克碉堡",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_old_sergeant": {
+      "title": "老中士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_meron": {
+      "title": "强袭兵梅隆",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_kamoka": {
+      "title": "黑夜使者卡莫卡",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_spark_gamma": {
+      "title": "ZX-5斯帕克γ",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_gizel": {
+      "title": "机械吉赛尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_engineer": {
+      "title": "卡勒特工程师",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_spark_beta": {
+      "title": "斯帕克β防御支援机",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_mechanical_mouse": {
+      "title": "机械鼠",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "pursuit_time_machine": {
+      "title": "时间机器",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "pursuit",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_male_merman": {
+      "title": "雄人鱼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_merman_shaman": {
+      "title": "雄人鱼术士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_mermaid_warrior": {
+      "title": "美人鱼战士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_mermaid_mage": {
+      "title": "美人鱼魔法师",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_croc_spearman": {
+      "title": "长枪鳄鱼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_croc_biter": {
+      "title": "利齿鳄鱼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_turtle": {
+      "title": "普通海龟",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_turtle_spinner": {
+      "title": "缩壳旋转海龟",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_turtle_gunner": {
+      "title": "炮弹海龟",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_phily": {
+      "title": "银钩菲力",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_greatfang": {
+      "title": "巨齿鳄",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_shana": {
+      "title": "独眼夏娜",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_mobeni": {
+      "title": "黑鳞莫贝尼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_kongkongyi": {
+      "title": "小美人鱼空空伊",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_masaccio": {
+      "title": "蓝影马萨乔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_bodir": {
+      "title": "烈焰盾波迪尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "sea_train_toothpick_bird": {
+      "title": "牙签鸟",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_jellyfish": {
+      "title": "束缚海蜇",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "sea_train_crocodile_totem": {
+      "title": "鳄鱼图腾／反制图腾",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "sea_train",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_arsonist": {
+      "title": "疯狂的纵火犯",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_jungle_warrior": {
+      "title": "丛林男战士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_minotaur_guard": {
+      "title": "牛头护卫",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_utara": {
+      "title": "兽王乌塔拉",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_blood_ghoul": {
+      "title": "嗜血盗尸者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_infected": {
+      "title": "中度感染者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_plague_melter": {
+      "title": "瘟疫溶解怪",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_skeleton_knight": {
+      "title": "骷髅骑士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_axe_outlaw": {
+      "title": "手斧无法者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_goblin_gunner": {
+      "title": "哥布林枪手",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_human_hunter": {
+      "title": "人类狩猎者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_young_belait": {
+      "title": "年轻的沙影贝利特",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_scissor_imp": {
+      "title": "剪刀怪",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_pincer_imp": {
+      "title": "钳子怪",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_chaos_spirit": {
+      "title": "混沌之灵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "time_rift_nilvas": {
+      "title": "尼尔巴斯·格拉西亚",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_imperial_soldier": {
+      "title": "帝国士兵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_imperial_researcher": {
+      "title": "帝国研究员",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_ghost_cat": {
+      "title": "鬼面猫妖",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_cerberus": {
+      "title": "地狱三头犬",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_mist_soldier": {
+      "title": "紫雾团初级团员",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_mist_spellcaster": {
+      "title": "紫雾团符咒师",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_grief_firebee": {
+      "title": "悲鸣火蜂",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "time_rift_kane": {
+      "title": "凯恩",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_young_skasa": {
+      "title": "年轻时的斯卡萨",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_disease_source": {
+      "title": "疾病之源",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "time_rift_research_cage": {
+      "title": "研究区猫妖笼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "time_rift",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_space_soldier": {
+      "title": "空间玩具士兵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_time_soldier": {
+      "title": "时间玩具士兵",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_axe_puppet": {
+      "title": "人偶斧手",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_whip_puppet": {
+      "title": "人偶谋士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_sword_puppet": {
+      "title": "人偶剑士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_fighter_puppet": {
+      "title": "人偶斗士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_gramophone": {
+      "title": "留声机",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_ice_soul": {
+      "title": "堕落的冰翼之魂",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "mysterious_awareness_fire_soul": {
+      "title": "堕落的炎魔之魂",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "mysterious_awareness_daru": {
+      "title": "饿鬼达鲁",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_mirror_demon": {
+      "title": "混沌心魔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_iris": {
+      "title": "吟游诗人艾丽丝",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "mysterious_awareness_marilete": {
+      "title": "玛丽蕾特",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "mysterious_awareness",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "grandi_assault_granite": {
+      "title": "突击格莱尼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "grandi_flying_granite": {
+      "title": "飞行格莱尼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": false,
+      "flying": true,
+      "passive": false
+    },
+    "grandi_magma_slime": {
+      "title": "岩浆史莱姆",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "grandi_lava_spider": {
+      "title": "熔岩蜘蛛",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "grandi_magma_octopus": {
+      "title": "岩浆章鱼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "grandi_potura": {
+      "title": "巨人波图拉",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "grandi_furman": {
+      "title": "虚空之弗曼",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "grandi_furman_phantom": {
+      "title": "弗曼幻影",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": false,
+      "flying": false,
+      "passive": true
+    },
+    "grandi_generator": {
+      "title": "波图拉供能发电机",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "grandi_void_core": {
+      "title": "粉碎时空打断核心",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "grandi",
+      "stationary": true,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_giza_guard": {
+      "title": "吉萨族森林守护者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_luka_guard": {
+      "title": "卢卡族森林守护者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_chamcham": {
+      "title": "查姆查姆",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_lalof_yellow": {
+      "title": "拉洛夫·黄型",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_lalof_blue": {
+      "title": "拉洛夫·蓝型",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_lalof_purple": {
+      "title": "拉洛夫·紫型",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_periya": {
+      "title": "佩利雅",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_rotting_woodcutter": {
+      "title": "腐朽的樵夫",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_hill_guard": {
+      "title": "山丘守护者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_nature_guardian": {
+      "title": "大自然守护者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_sunishal": {
+      "title": "苏妮沙尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_hunting_grass": {
+      "title": "猎杀草",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_glaide_ikos": {
+      "title": "格来德·艾科斯",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_scarecrow": {
+      "title": "稻草人 Scare Crow",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_blue_witch": {
+      "title": "蓝色魔女",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_crazy_lion": {
+      "title": "疯狂莱恩·战斗形态",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_crazy_lion_cat": {
+      "title": "疯狂莱恩·猫人原形",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": true
+    },
+    "central_park_totto": {
+      "title": "小狗坨坨·战斗形态",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": false
+    },
+    "central_park_totto_puppy": {
+      "title": "小狗坨坨·小狗形态",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0,
+      "dungeon": "central_park",
+      "stationary": false,
+      "flying": false,
+      "passive": true
+    }
+  },
+  "moves": {
+    "moonlight_tavern_city_thug": {
+      "punch": {
+        "title": "近身打击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.55
+        ]
+      }
+    },
+    "moonlight_tavern_street_hooligan": {
+      "slash": {
+        "title": "短刀斜砍",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "kick": {
+        "title": "蹬踢",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "moonlight_tavern_drunkard": {
+      "bottle_swing": {
+        "title": "持瓶挥击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "moonlight_tavern_pickpocket": {
+      "stealth_stab": {
+        "title": "现身突刺",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "moonlight_tavern_poison_nightblade": {
+      "poison_cut": {
+        "title": "毒刃切入",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "phantom_strike": {
+        "title": "幻影近击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": 3,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "moonlight_tavern_crazy_junk": {
+      "duck_dash": {
+        "title": "俯冲",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "duck_dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "sway": {
+        "title": "摆动",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "sway",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "rapid_punch": {
+        "title": "快速连拳",
+        "duration": 1800,
+        "cooldown": 2700,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.3625,
+          0.4875,
+          0.6125,
+          0.7375
+        ]
+      }
+    },
+    "moonlight_tavern_holio": {
+      "moonlight_slash": {
+        "title": "月光斩",
+        "duration": 1550,
+        "cooldown": 2450,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "ghost_array": {
+        "title": "鬼阵",
+        "duration": 1800,
+        "cooldown": 2700,
+        "shape": "CIRCLE",
+        "range": 5.5,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 3,
+        "effect": "ghost_array",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      },
+      "ghost_flash": {
+        "title": "鬼影闪",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "moonlight_tavern_aganzo": {
+      "draw_slash": {
+        "title": "拔刀斩",
+        "duration": 1300,
+        "cooldown": 2200,
+        "shape": "FAN",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "raging_dragon": {
+        "title": "猛龙断空斩",
+        "duration": 1600,
+        "cooldown": 3400,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "phantom_dance": {
+        "title": "幻影剑舞",
+        "duration": 2600,
+        "cooldown": 3500,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.35,
+          0.45,
+          0.55,
+          0.65,
+          0.75
+        ]
+      }
+    },
+    "moonlight_tavern_chang_sanlang": {
+      "throw_net": {
+        "title": "抛网",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "DART",
+        "range": 12.0,
+        "width": 1.1,
+        "coefficient": 0.7,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "brick_strike": {
+        "title": "砖击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "grab_burst": {
+        "title": "抓取爆破",
+        "duration": 1500,
+        "cooldown": 2400,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "mount_punch": {
+        "title": "骑压拳",
+        "duration": 2300,
+        "cooldown": 3200,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.3833,
+          0.55,
+          0.7167
+        ]
+      },
+      "suplex": {
+        "title": "背摔",
+        "duration": 1800,
+        "cooldown": 2700,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "hamelin_mad_thief": {
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "hamelin_mad_female_thief": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.4,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "hamelin_enchanted_bandit": {
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "hamelin_giant_rat": {
+      "bite": {
+        "title": "咬击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "burrow": {
+        "title": "钻地",
+        "duration": 1650,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "burrow",
+        "stunTicks": 0,
+        "contacts": [
+          0.8
+        ]
+      },
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "hamelin_man_eating_rat": {
+      "bite": {
+        "title": "咬击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "burrow": {
+        "title": "钻地",
+        "duration": 1650,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "burrow",
+        "stunTicks": 0,
+        "contacts": [
+          0.8
+        ]
+      }
+    },
+    "hamelin_siwoo": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "hamelin_roksa": {
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "guard": {
+        "title": "防御姿态",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "guard",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "hamelin_peter": {
+      "flute": {
+        "title": "吹笛",
+        "duration": 2500,
+        "cooldown": 4300,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "flute",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "rat_wave": {
+        "title": "释放鼠波",
+        "duration": 2000,
+        "cooldown": 3800,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.85,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "rat_wave",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "mark": {
+        "title": "点名倒数",
+        "duration": 2000,
+        "cooldown": 2900,
+        "shape": "CIRCLE",
+        "range": 2.2,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "mark",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "rat_tower": {
+        "title": "登上鼠塔",
+        "duration": 2500,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "rat_tower",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "revive": {
+        "title": "倒地与复活",
+        "duration": 2800,
+        "cooldown": 3700,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "revive",
+        "stunTicks": 0,
+        "contacts": [
+          0.96
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_cartel_soldier": {
+      "kick": {
+        "title": "踢击",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_cartel_rifleman": {
+      "shoot": {
+        "title": "枪械射击",
+        "duration": 1050,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_cartel_arsonist": {
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_modified_soldier": {
+      "shoot": {
+        "title": "枪械射击",
+        "duration": 1050,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "guard": {
+        "title": "防御姿态",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "guard",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_reinforced_soldier": {
+      "shoot": {
+        "title": "枪械射击",
+        "duration": 1050,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_rocket_turret": {
+      "shoot": {
+        "title": "枪械射击",
+        "duration": 1050,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      },
+      "missile": {
+        "title": "发射导弹",
+        "duration": 1800,
+        "cooldown": 3600,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.7,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_tank_bunker": {
+      "shoot": {
+        "title": "枪械射击",
+        "duration": 1050,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      }
+    },
+    "pursuit_old_sergeant": {
+      "kick": {
+        "title": "踢击",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "teleport": {
+        "title": "瞬移姿态",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "teleport",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_meron": {
+      "shoot": {
+        "title": "枪械射击",
+        "duration": 1050,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      },
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_kamoka": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "teleport": {
+        "title": "瞬移姿态",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "teleport",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_spark_gamma": {
+      "split": {
+        "title": "四向分裂",
+        "duration": 1700,
+        "cooldown": 2600,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "split",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "bombard": {
+        "title": "分裂体轰炸",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.7,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_gizel": {
+      "saw": {
+        "title": "电锯挥扫",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 4.2,
+        "width": 1.0,
+        "coefficient": 1.2,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.36,
+          0.48,
+          0.6
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "missile": {
+        "title": "发射导弹",
+        "duration": 1800,
+        "cooldown": 3600,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.7,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "support_call": {
+        "title": "开启支援舱",
+        "duration": 2000,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "support_call",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "time_call": {
+        "title": "召唤时间机器",
+        "duration": 2100,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "time_call",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "repair_stance": {
+        "title": "受维修姿态",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "repair_stance",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_engineer": {
+      "repair": {
+        "title": "修理",
+        "duration": 1800,
+        "cooldown": 2700,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "repair",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_spark_beta": {
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_mechanical_mouse": {
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "explode": {
+        "title": "自爆准备",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "pursuit_time_machine": {
+      "time": {
+        "title": "时间机器启动",
+        "duration": 2600,
+        "cooldown": 3500,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "time",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "core": {
+        "title": "核心暴露／打断",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "core",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_male_merman": {
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.4,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_merman_shaman": {
+      "water": {
+        "title": "水柱／波浪",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      },
+      "heal": {
+        "title": "恢复施法",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "heal",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_mermaid_warrior": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_mermaid_mage": {
+      "bubble": {
+        "title": "泡沫施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "water": {
+        "title": "水柱／波浪",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      }
+    },
+    "sea_train_croc_spearman": {
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.4,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_croc_biter": {
+      "bite": {
+        "title": "咬击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_turtle": {
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "bite": {
+        "title": "咬击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_turtle_spinner": {
+      "guard": {
+        "title": "防御姿态",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "guard",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "spin": {
+        "title": "旋转攻击",
+        "duration": 1600,
+        "cooldown": 2500,
+        "shape": "CIRCLE",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_turtle_gunner": {
+      "cannon": {
+        "title": "手炮连发",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      },
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_phily": {
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_greatfang": {
+      "bite": {
+        "title": "咬击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_shana": {
+      "bubble": {
+        "title": "泡沫施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_mobeni": {
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "cannon": {
+        "title": "手炮连发",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      },
+      "totem": {
+        "title": "插图腾",
+        "duration": 1500,
+        "cooldown": 2400,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "totem",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "spin": {
+        "title": "旋转攻击",
+        "duration": 1600,
+        "cooldown": 2500,
+        "shape": "CIRCLE",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "flash": {
+        "title": "闪光弹",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "cooldown": {
+        "title": "周期反制蓄势",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "cooldown",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_kongkongyi": {
+      "water": {
+        "title": "水柱／波浪",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "spin": {
+        "title": "旋转攻击",
+        "duration": 1600,
+        "cooldown": 2500,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "fall_bomb": {
+        "title": "俯地炮击反应",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "fall_bomb",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "fall_heal": {
+        "title": "俯地恢复",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "fall_heal",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "cute": {
+        "title": "卖萌姿态",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "cute",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_masaccio": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "teleport": {
+        "title": "瞬移姿态",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "teleport",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_bodir": {
+      "punch": {
+        "title": "体术连拳",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.425,
+          0.675
+        ]
+      },
+      "teleport": {
+        "title": "瞬移姿态",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "teleport",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "spin": {
+        "title": "旋转攻击",
+        "duration": 1600,
+        "cooldown": 2500,
+        "shape": "CIRCLE",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "fire": {
+        "title": "火焰施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      },
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_toothpick_bird": {
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_jellyfish": {
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "sea_train_crocodile_totem": {
+      "core": {
+        "title": "核心暴露／打断",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "core",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "explode": {
+        "title": "自爆准备",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_arsonist": {
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_jungle_warrior": {
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_minotaur_guard": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_utara": {
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "breath": {
+        "title": "吐息",
+        "duration": 2200,
+        "cooldown": 3100,
+        "shape": "RECT",
+        "range": 13.0,
+        "width": 4.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      }
+    },
+    "time_rift_blood_ghoul": {
+      "poison": {
+        "title": "毒弹／药瓶",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 3,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "claw": {
+        "title": "爪击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "explode": {
+        "title": "自爆准备",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_infected": {
+      "punch": {
+        "title": "体术连拳",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.425,
+          0.675
+        ]
+      }
+    },
+    "time_rift_plague_melter": {
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "poison": {
+        "title": "毒弹／药瓶",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 3,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "explode": {
+        "title": "自爆准备",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_skeleton_knight": {
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "thunder": {
+        "title": "落雷施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 0,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "guard": {
+        "title": "防御姿态",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "guard",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_axe_outlaw": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_goblin_gunner": {
+      "shoot": {
+        "title": "枪械射击",
+        "duration": 1050,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      }
+    },
+    "time_rift_human_hunter": {
+      "poison": {
+        "title": "毒弹／药瓶",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 3,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_young_belait": {
+      "shoot": {
+        "title": "枪械射击",
+        "duration": 1050,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.55,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.365,
+          0.535,
+          0.705
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "spin": {
+        "title": "旋转攻击",
+        "duration": 1600,
+        "cooldown": 2500,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "teleport": {
+        "title": "瞬移姿态",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "teleport",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_scissor_imp": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_pincer_imp": {
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_chaos_spirit": {
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "aura",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_nilvas": {
+      "mine": {
+        "title": "布设地雷",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.7,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "claw": {
+        "title": "爪击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "spin": {
+        "title": "旋转攻击",
+        "duration": 1600,
+        "cooldown": 2500,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_imperial_soldier": {
+      "stab": {
+        "title": "突刺",
+        "duration": 900,
+        "cooldown": 2000,
+        "shape": "RECT",
+        "range": 3.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "guard": {
+        "title": "防御姿态",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "guard",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_imperial_researcher": {
+      "poison": {
+        "title": "毒弹／药瓶",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 3,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_ghost_cat": {
+      "claw": {
+        "title": "爪击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "bite": {
+        "title": "咬击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_cerberus": {
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "bite": {
+        "title": "咬击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_mist_soldier": {
+      "punch": {
+        "title": "体术连拳",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.425,
+          0.675
+        ]
+      },
+      "guard": {
+        "title": "防御姿态",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "guard",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_mist_spellcaster": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_grief_firebee": {
+      "touch": {
+        "title": "近身触击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 1.9,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "explode": {
+        "title": "自爆准备",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_kane": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "teleport": {
+        "title": "瞬移姿态",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "teleport",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "aura",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_young_skasa": {
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.2,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "breath": {
+        "title": "吐息",
+        "duration": 2200,
+        "cooldown": 3100,
+        "shape": "RECT",
+        "range": 13.0,
+        "width": 4.0,
+        "coefficient": 1.2,
+        "magic": true,
+        "element": 2,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      },
+      "takeoff": {
+        "title": "起飞与空中转向",
+        "duration": 2200,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "takeoff",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.2,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_disease_source": {
+      "core": {
+        "title": "核心暴露／打断",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "core",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "time_rift_research_cage": {
+      "core": {
+        "title": "核心暴露／打断",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "core",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_space_soldier": {
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "aura",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_time_soldier": {
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "aura",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_axe_puppet": {
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_whip_puppet": {
+      "whip": {
+        "title": "鞭击",
+        "duration": 1250,
+        "cooldown": 2150,
+        "shape": "RECT",
+        "range": 6.0,
+        "width": 1.3,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_sword_puppet": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "spin": {
+        "title": "旋转攻击",
+        "duration": 1600,
+        "cooldown": 2500,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_fighter_puppet": {
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "kick": {
+        "title": "踢击",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_gramophone": {
+      "music_bite": {
+        "title": "留声机咬击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.3,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "mouth",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_ice_soul": {
+      "ice": {
+        "title": "寒冰施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 2,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "aura",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_fire_soul": {
+      "teleport": {
+        "title": "瞬移姿态",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "teleport",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "fire": {
+        "title": "火焰施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      },
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "aura",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_daru": {
+      "claw": {
+        "title": "爪击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "possession": {
+        "title": "凭依",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": 3,
+        "effect": "possession",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "inhale": {
+        "title": "吸附吸血",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 8.0,
+        "width": 1.0,
+        "coefficient": 0.8,
+        "magic": true,
+        "element": 3,
+        "effect": "inhale",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_mirror_demon": {
+      "mirror": {
+        "title": "映照外形",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "aura",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "draw_slash": {
+        "title": "拔刀斩",
+        "duration": 1300,
+        "cooldown": 2200,
+        "shape": "FAN",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "raging_dragon": {
+        "title": "猛龙断空斩",
+        "duration": 1600,
+        "cooldown": 3400,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "phantom_dance": {
+        "title": "幻影剑舞",
+        "duration": 2600,
+        "cooldown": 3500,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.35,
+          0.45,
+          0.55,
+          0.65,
+          0.75
+        ]
+      }
+    },
+    "mysterious_awareness_iris": {
+      "music": {
+        "title": "元素乐章",
+        "duration": 2600,
+        "cooldown": 3500,
+        "shape": "CIRCLE",
+        "range": 7.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "music",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      },
+      "puppet": {
+        "title": "支配人偶",
+        "duration": 2000,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "puppet",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "ice": {
+        "title": "寒冰施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 2,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "fire": {
+        "title": "火焰施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.42,
+          0.54,
+          0.66
+        ]
+      },
+      "thunder": {
+        "title": "落雷施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 0,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "instrument": {
+        "title": "乐器升空追踪",
+        "duration": 2100,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "instrument",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "instrument_swing": {
+        "title": "近身挥琴",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "mysterious_awareness_marilete": {
+      "instrument": {
+        "title": "乐器升空追踪",
+        "duration": 2100,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "instrument",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_assault_granite": {
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "claw": {
+        "title": "爪击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_flying_granite": {
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "takeoff": {
+        "title": "起飞与空中转向",
+        "duration": 2200,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "takeoff",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_magma_slime": {
+      "burrow": {
+        "title": "钻地",
+        "duration": 1650,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "burrow",
+        "stunTicks": 0,
+        "contacts": [
+          0.8
+        ]
+      }
+    },
+    "grandi_lava_spider": {
+      "charge": {
+        "title": "冲锋",
+        "duration": 1300,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_magma_octopus": {
+      "tentacle": {
+        "title": "触须抽击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 6.0,
+        "width": 1.4,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_potura": {
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.2,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "powered_guard": {
+        "title": "供能保护姿态",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "powered_guard",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_furman": {
+      "inhale": {
+        "title": "吸附吸血",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 8.0,
+        "width": 1.0,
+        "coefficient": 0.8,
+        "magic": true,
+        "element": 3,
+        "effect": "inhale",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "slam": {
+        "title": "蓄力砸地",
+        "duration": 1550,
+        "cooldown": 3350,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.2,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "burrow": {
+        "title": "钻地",
+        "duration": 1650,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "burrow",
+        "stunTicks": 0,
+        "contacts": [
+          0.8
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "quake": {
+        "title": "粉碎时空",
+        "duration": 2500,
+        "cooldown": 9000,
+        "shape": "WAVE",
+        "range": 8.0,
+        "width": 1.2,
+        "coefficient": 1.2,
+        "magic": false,
+        "element": -1,
+        "effect": "quake",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "ore_burst": {
+        "title": "脚下矿石爆炸",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 2.5,
+        "width": 1.2,
+        "coefficient": 1.2,
+        "magic": true,
+        "element": 1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_furman_phantom": {
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_generator": {
+      "aura": {
+        "title": "气场展开",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "core": {
+        "title": "核心暴露／打断",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "core",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "grandi_void_core": {
+      "core": {
+        "title": "核心暴露／打断",
+        "duration": 1450,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "core",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_giza_guard": {
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_luka_guard": {
+      "approach_hop": {
+        "title": "接近跃步",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "claw": {
+        "title": "爪击",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_chamcham": {
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "DART",
+        "range": 16.0,
+        "width": 0.4,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_lalof_yellow": {
+      "swallow": {
+        "title": "吞食",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 3.8,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_lalof_blue": {
+      "poison": {
+        "title": "毒弹／药瓶",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 3,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_lalof_purple": {
+      "swallow": {
+        "title": "吞食",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 3.8,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "poison": {
+        "title": "毒弹／药瓶",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 3,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_periya": {
+      "whip": {
+        "title": "鞭击",
+        "duration": 1250,
+        "cooldown": 2150,
+        "shape": "RECT",
+        "range": 6.0,
+        "width": 1.3,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_rotting_woodcutter": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_hill_guard": {
+      "slash": {
+        "title": "挥斩",
+        "duration": 1050,
+        "cooldown": 2000,
+        "shape": "FAN",
+        "range": 3.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_nature_guardian": {
+      "double_slam": {
+        "title": "双拳砸地",
+        "duration": 1600,
+        "cooldown": 3400,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "root_ring": {
+        "title": "根须环",
+        "duration": 1800,
+        "cooldown": 9000,
+        "shape": "WAVE",
+        "range": 6.0,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_sunishal": {
+      "whip_combo": {
+        "title": "连鞭",
+        "duration": 1900,
+        "cooldown": 2800,
+        "shape": "RECT",
+        "range": 6.0,
+        "width": 1.3,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.4,
+          0.66
+        ]
+      },
+      "thorn_line": {
+        "title": "直线荆棘",
+        "duration": 1450,
+        "cooldown": 9000,
+        "shape": "RECT",
+        "range": 10.0,
+        "width": 1.8,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_hunting_grass": {
+      "swallow": {
+        "title": "吞食",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 3.8,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "poison": {
+        "title": "毒弹／药瓶",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 3,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_glaide_ikos": {
+      "tree_cage": {
+        "title": "树木围困",
+        "duration": 1450,
+        "cooldown": 9000,
+        "shape": "NONE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": true,
+        "element": -1,
+        "effect": "tree_cage",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "triple_slam": {
+        "title": "三连砸地",
+        "duration": 2500,
+        "cooldown": 9000,
+        "shape": "WAVE",
+        "range": 5.5,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.209,
+          0.489,
+          0.769
+        ]
+      }
+    },
+    "central_park_scarecrow": {
+      "pole_sweep": {
+        "title": "长柄横扫",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "FAN",
+        "range": 4.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "wood_spikes": {
+        "title": "四向木刺",
+        "duration": 1700,
+        "cooldown": 9000,
+        "shape": "RECT",
+        "range": 10.0,
+        "width": 1.8,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_blue_witch": {
+      "roots": {
+        "title": "根须召唤",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "throw": {
+        "title": "投掷",
+        "duration": 1200,
+        "cooldown": 3200,
+        "shape": "BOMB",
+        "range": 2.5,
+        "width": 0.65,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "teleport": {
+        "title": "瞬移姿态",
+        "duration": 1450,
+        "cooldown": 8000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "teleport",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "summon": {
+        "title": "召唤",
+        "duration": 1800,
+        "cooldown": 10000,
+        "shape": "NONE",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 0.0,
+        "magic": false,
+        "element": -1,
+        "effect": "summon",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "thunder": {
+        "title": "落雷施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 0,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      },
+      "ice": {
+        "title": "寒冰施法",
+        "duration": 1450,
+        "cooldown": 2350,
+        "shape": "CIRCLE",
+        "range": 6.0,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": true,
+        "element": 2,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_crazy_lion": {
+      "short_charge": {
+        "title": "短距冲撞",
+        "duration": 1450,
+        "cooldown": 3250,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "double_claw": {
+        "title": "双爪横扫",
+        "duration": 1300,
+        "cooldown": 2200,
+        "shape": "FAN",
+        "range": 2.6,
+        "width": 1.0,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 0,
+        "contacts": [
+          0.425,
+          0.675
+        ]
+      }
+    },
+    "central_park_crazy_lion_cat": {
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_totto": {
+      "transform_pounce": {
+        "title": "变身扑咬",
+        "duration": 1850,
+        "cooldown": 3650,
+        "shape": "DASH",
+        "range": 10.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      },
+      "landing_wave": {
+        "title": "落地冲击波",
+        "duration": 1750,
+        "cooldown": 9000,
+        "shape": "WAVE",
+        "range": 8.0,
+        "width": 1.2,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "",
+        "stunTicks": 12,
+        "contacts": [
+          0.46
+        ]
+      }
+    },
+    "central_park_totto_puppy": {
+      "jump": {
+        "title": "跃起／扑击",
+        "duration": 1400,
+        "cooldown": 3200,
+        "shape": "DASH",
+        "range": 7.0,
+        "width": 1.6,
+        "coefficient": 1.0,
+        "magic": false,
+        "element": -1,
+        "effect": "dash",
+        "stunTicks": 0,
+        "contacts": [
+          0.46
+        ]
+      }
+    }
+  }
+}

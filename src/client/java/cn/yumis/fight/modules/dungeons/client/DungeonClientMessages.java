@@ -30,6 +30,18 @@ public final class DungeonClientMessages {
         router.register("dungeons","ritualClearDebt",(context,j)->RitualFightClient.clearDebt());
         router.register("dungeons","sealBossEvent",(context,j)->ElainaBossClient.onEvent(j));
         router.register("dungeons","sealBossHazard",(context,j)->ElainaBossClient.onHazard(j));
+        router.register("dungeons","theaterBossEvent",(context,j)->LiangyueBossClient.onEvent(j));
+        router.register("dungeons","theaterBossHazard",(context,j)->LiangyueBossClient.onHazard(j));
+        router.register("dungeons","frostBossEvent",(context,j)->FrostnovaBossClient.onEvent(j));
+        router.register("dungeons","frostBossHazard",(context,j)->FrostnovaBossClient.onHazard(j));
+        router.register("dungeons","orreryBossEvent",(context,j)->GilgameshBossClient.onEvent(j));
+        router.register("dungeons","orreryBossHazard",(context,j)->GilgameshBossClient.onHazard(j));
+        router.register("dungeons","forgeBossEvent",(context,j)->SwordMastersBossClient.onEvent(j));
+        router.register("dungeons","forgeBossHazard",(context,j)->SwordMastersBossClient.onHazard(j));
+        router.register("dungeons","sluiceBossEvent",(context,j)->RoxyBossClient.onEvent(j));
+        router.register("dungeons","sluiceBossHazard",(context,j)->RoxyBossClient.onHazard(j));
+        router.register("dungeons","lucasBossEvent",(context,j)->LucasBossClient.onEvent(j));
+        router.register("dungeons","lucasBossHazard",(context,j)->LucasBossClient.onHazard(j));
     }
     private DungeonClientMessages(){}
 }

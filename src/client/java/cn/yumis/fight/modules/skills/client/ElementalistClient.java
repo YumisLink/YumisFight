@@ -1,8 +1,14 @@
 package cn.yumis.fight.modules.skills.client;
 
+import cn.yumis.fight.modules.attributes.api.Stat;
+import cn.yumis.fight.modules.attributes.api.Stats;
+import cn.yumis.fight.modules.character.api.JobCatalog;
 import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.combat.api.ActionStatus;
 import cn.yumis.fight.modules.combat.api.CombatContentTypes;
+import cn.yumis.fight.modules.combat.api.ElementAccumulation;
+import cn.yumis.fight.modules.combat.api.ProjectileSpawn;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import cn.yumis.fight.modules.dungeons.api.client.SealBossState;
 import cn.yumis.fight.modules.equipment.api.EquipmentItems;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
@@ -21,7 +27,7 @@ import java.util.*;
 
 /**
  * Owning-client runtime for all 9 Elementalist active skills, morphMode = 0/1/2 branches,
- * local multi-charge pools, second-press manual detonate, Ice Wall DR/projectile block,
+ * local multi-charge pools, second-press manual detonate, Ice Wall shield/overflow discard,
  * Lightning Strike channel aim, and Astral Storm levitation/meteors/chaotic core.
  */
 public final class ElementalistClient {
@@ -31,20 +37,43 @@ public final class ElementalistClient {
     public static final class IceWallState {
         public SkillCast cast;
         public Vec3 center;
-        public double radius, blastRadius, slowRatio, damageReduction;
+        public double radius, blastRadius, wallHeight, slowRatio, shieldMax, shieldRemaining;
         public long start, endAt, burstAt, nextPulseAt;
-        public boolean burstDone, hasPulse;
-        public int blockRemaining, blockMax, sequence;
+        public boolean burstDone, hasPulse, followPlayer;
+        public int sequence;
         public double pulseDot;
     }
 
     private static final class IceWaveState {
         SkillCast cast;
+        String visualId;
         Vec3 origin, dir;
         double range, width, travelled;
-        long start, lastTick;
-        int sequence;
+        long start, startAt, lastTick, travelMs;
+        int sequence, waveIndex;
+        boolean started;
         final Set<UUID> struck = new HashSet<>();
+    }
+
+    private static final class JackFlight {
+        SkillCast cast;
+        String visualId;
+        UUID visualUuid;
+        Vec3 origin, pos, vel;
+        double speed, maxDist, travelled, radius, coeff, splitRatio;
+        int splitCount, sequence;
+        boolean homing, isMini;
+        long start, lastTick, visualDurMs;
+        final Set<UUID> struck = new HashSet<>();
+    }
+
+    private static final class FlameVolcanoState {
+        SkillCast cast;
+        String visualId;
+        Vec3 center;
+        double radius, pullRadius, pullStrength, bombCoeff;
+        long start, endAt, intervalMs, nextBombAt;
+        int tickIndex, sequence;
     }
 
     private static final class VortexState {
@@ -97,7 +126,7 @@ public final class ElementalistClient {
         public double radius, blastRadius, pullRadius, pullStrength, earlyKeepRatio, volcanoDot;
         public boolean manualDetonate;
         public long start, endAt, intervalMs, nextTickAt, subHoleEndAt, nextVolcanoAt;
-        public int totalTicks, delivered, mode, sequence, volcanoTick;
+        public int totalTicks, delivered, mode, sequence, volcanoTick, resonanceCount;
         public boolean detonated;
     }
 
@@ -136,9 +165,12 @@ public final class ElementalistClient {
 
     private static IceWallState activeIceWall;
     private static final List<IceWaveState> iceWaves = new ArrayList<>();
+    private static final List<JackFlight> jackFlights = new ArrayList<>();
+    private static final Map<UUID, Vec3> liveJackPositions = new HashMap<>();
     private static final List<VortexState> vortices = new ArrayList<>();
     private static final List<VoidSphereState> voidSpheres = new ArrayList<>();
     private static final List<FlamePillarState> flamePillars = new ArrayList<>();
+    private static final List<FlameVolcanoState> flameVolcanoes = new ArrayList<>();
     private static final List<BusterMeteor> busterMeteors = new ArrayList<>();
     private static final List<ArcticState> arctics = new ArrayList<>();
     private static final List<BlackHoleState> blackHoles = new ArrayList<>();
@@ -147,6 +179,7 @@ public final class ElementalistClient {
     private static AstralStormState astralStorm;
     private static final List<AstralStormState> detachedStorms = new ArrayList<>();
 
+    private static final Map<UUID, long[]> resistShredUntil = new HashMap<>();
     private static final Map<String, ChargePool> chargePools = new HashMap<>();
     private static final Map<UUID, Vec3> pendingMotions = new LinkedHashMap<>();
     private static long lastMotionSendAt = 0L;
@@ -161,6 +194,138 @@ public final class ElementalistClient {
         SkillCastHooks.onRequest(SkillCastHooks.Stage.BEFORE_REQUEST, req -> {
             if (!beforeRequest(req.skill)) req.rejected = true;
         });
+        SkillCastHooks.onHit(hit -> {
+            if (hit.target() == null || hit.source() == null || hit.direct() || !(hit.actual() > 0)) return;
+            var stats = hit.stats();
+            if (!TowerBattleCard.ELEM_BURN_FOCUS.held(stats)) return;
+            if (!state().ready() || !state().progress().hasJob(JobCatalog.ELEMENTALIST)) return;
+            long until = ClientUi.now() + TowerBattleCard.ELEM_BURN_FOCUS.millis("duration");
+            long[] timers = resistShredUntil.computeIfAbsent(hit.target().getUUID(), k -> new long[4]);
+            if (ElementalistRules.isPrismActive(stats)) {
+                for (int e = 0; e < 4; e++) timers[e] = Math.max(timers[e], until);
+                return;
+            }
+            var src = hit.source();
+            if (src.elementsOverride != null && src.elementsOverride.length > 0) {
+                for (int e : src.elementsOverride) {
+                    if (e >= 0 && e < 4) timers[e] = Math.max(timers[e], until);
+                }
+                return;
+            }
+            int elem = src.elementOverride >= 0 ? src.elementOverride
+                : ElementalistRules.effectiveElement(src.parameters, stats, ElementalistSkills.innateElement(src.skill.id));
+            if (elem >= 0 && elem < 4) {
+                timers[elem] = Math.max(timers[elem], until);
+            }
+        });
+    }
+
+    /** Elemental resistance shred from 元素集中 (per element 0=Light, 1=Fire, 2=Ice, 3=Dark). */
+    public static double resistShred(LivingEntity entity, int element, long now) {
+        if (entity == null || element < 0 || element > 3) return 0.0;
+        long[] timers = resistShredUntil.get(entity.getUUID());
+        if (timers != null && timers[element] > now) {
+            return TowerBattleCard.ELEM_BURN_FOCUS.value("shred");
+        }
+        return 0.0;
+    }
+
+    /** Live local position for custom homing/splitting Jack Bomb projectiles. */
+    public static Vec3 liveJackPosition(UUID visualId) {
+        return visualId == null ? null : liveJackPositions.get(visualId);
+    }
+
+    /** Triggered when Elementalist releases any active skill (handles 奇点共振). */
+    public static void onSkillReleased(SkillCast releasedCast) {
+        if (releasedCast == null || releasedCast.skill == null || releasedCast.skill.passive()) return;
+        if (ElementalistSkills.BLACK_HOLE.equals(releasedCast.skill.id) || blackHoles.isEmpty()) return;
+        long now = ClientUi.now();
+        for (var bh : new ArrayList<>(blackHoles)) {
+            if (!MageClient.INSTANCE.valid(bh.cast)) continue;
+            if (bh.detonated && now >= bh.subHoleEndAt) continue;
+            if (!TowerBattleCard.ELEM_BH_RESONANCE.held(bh.cast.stats)) continue;
+            double fin = bh.cast.parameters.get("finisher", 0.0);
+            double resCoeff = fin * TowerBattleCard.ELEM_BH_RESONANCE.ratio("damage");
+            if (resCoeff <= 0) continue;
+            int elem = effectiveElem(bh.cast);
+            int idx = bh.resonanceCount++;
+            for (var target : targetsInSphere(bh.center, bh.blastRadius)) {
+                issueSkill(bh.cast, target, resCoeff, elem, 0.0, "", "bh_resonance/" + idx);
+            }
+            var motion = elemMotion(bh.cast, elem, bh.mode);
+            motion.addProperty("blastRadius", bh.blastRadius);
+            motion.addProperty("resonance", true);
+            long dur = Math.max((bh.endAt - bh.start) + 900L, (now - bh.start) + 750L);
+            MageClient.INSTANCE.visual(bh.cast, bh.cast.id, "HIT", bh.center, Vec3.ZERO, dur, ++bh.sequence, motion);
+        }
+    }
+
+    /** Handles Elementalist Jack Bomb overrides (分裂南瓜 / 三叉追踪南瓜 / 圣灵万象). */
+    public static boolean tryStartJackBomb(SkillCast c) {
+        if (c == null || !state().ready() || !state().progress().hasJob(JobCatalog.ELEMENTALIST)) return false;
+        boolean triple = TowerBattleCard.ELEM_JACK_TRIPLE.held(c.stats);
+        boolean split = TowerBattleCard.ELEM_JACK_SPLIT.held(c.stats);
+        boolean prism = ElementalistRules.isPrismActive(c.stats);
+        if (!triple && !split && !prism) return false;
+        var p = player();
+        if (p == null) return false;
+        long now = ClientUi.now();
+        Vec3 from = p.getEyePosition();
+        Vec3 baseDir = p.getLookAngle().normalize();
+        double range = c.parameters.get("range", ProjectileSpawn.extendedRange(12));
+        double speed = Math.max(1.0, c.parameters.get("projectileSpeed", c.skill.projectile.speed()));
+        double radius = Math.max(1.0, c.parameters.get("radius", 3.0));
+        double baseCoeff = c.parameters.get("damage", 1.0);
+        int volley = triple ? Math.max(1, TowerBattleCard.ELEM_JACK_TRIPLE.count("count")) : 1;
+        double coeff = triple ? baseCoeff * TowerBattleCard.ELEM_JACK_TRIPLE.ratio("damage") : baseCoeff;
+        int splitCount = split ? Math.max(1, TowerBattleCard.ELEM_JACK_SPLIT.count("count")) : 0;
+        double splitRatio = split ? TowerBattleCard.ELEM_JACK_SPLIT.ratio("damage") : 0.0;
+        double[] yawDeg = volley == 3 ? new double[]{-18.0, 0.0, 18.0} : new double[volley];
+        if (volley != 3) {
+            for (int i = 0; i < volley; i++) yawDeg[i] = (i - (volley - 1) * 0.5) * 18.0;
+        }
+        long holdUntil = now + Math.round((range / speed) * 1000.0) + (split ? 1500L : 800L);
+        TrainingCombat.hold(c.id, "elementalist", holdUntil);
+        for (int i = 0; i < volley; i++) {
+            Vec3 dir = rotateYaw(baseDir, Math.toRadians(yawDeg[i]));
+            var spawn = ProjectileSpawn.inWorld(p, from, dir, range, 0.15, SkillController::canTarget);
+            String vid = i == 0 ? c.id : subVisualId(c.id, "jack/" + i);
+            launchJackFlight(c, vid, spawn.position(), dir.scale(speed), speed, range, radius, coeff, triple, false, splitCount, splitRatio, now);
+        }
+        return true;
+    }
+
+    private static void launchJackFlight(SkillCast c, String visualId, Vec3 origin, Vec3 vel, double speed,
+                                         double maxDist, double radius, double coeff, boolean homing, boolean isMini,
+                                         int splitCount, double splitRatio, long now) {
+        var f = new JackFlight();
+        f.cast = c;
+        f.visualId = visualId;
+        f.visualUuid = UUID.fromString(visualId);
+        f.origin = f.pos = origin;
+        f.vel = vel;
+        f.speed = Math.max(1.0, speed);
+        f.maxDist = Math.max(1.0, maxDist);
+        f.radius = radius;
+        f.coeff = coeff;
+        f.homing = homing;
+        f.isMini = isMini;
+        f.splitCount = splitCount;
+        f.splitRatio = splitRatio;
+        f.start = f.lastTick = now;
+        f.visualDurMs = Math.max(150L, Math.round(maxDist / f.speed * 1000.0)) + 600L;
+        jackFlights.add(f);
+        liveJackPositions.put(f.visualUuid, origin);
+        Vec3 dir = vel.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : vel.normalize();
+        var motion = elemMotion(c, effectiveElem(c), 0);
+        motion.addProperty("range", maxDist);
+        motion.addProperty("millis", Math.max(100L, Math.round(maxDist / f.speed * 1000.0)));
+        motion.addProperty("velocity", f.speed);
+        motion.addProperty("arcHeight", isMini ? 0.8 : 0.0);
+        motion.addProperty("radius", radius);
+        motion.addProperty("mini", isMini);
+        motion.addProperty("homing", homing);
+        MageClient.INSTANCE.visualAt(c, visualId, "START", origin, dir, now, f.visualDurMs, 0, motion);
     }
 
     public static void install() {
@@ -177,19 +342,25 @@ public final class ElementalistClient {
 
     static boolean prepareCast(SkillCast cast, int slot, Progress progress, Runnable release) {
         if (!ElementalistRules.usesCastTime(cast.skill, progress)) return false;
-        Runnable chant = () -> {
-            long duration = Math.round(ElementalistRules.effectiveCastSeconds(cast.skill, cast.speed) * 1000.0);
-            ChantClient.begin(cast, duration, ElementalistRules.movingCastLearned(cast.stats, progress), () -> {
-                cast.origin = player().position();
-                cast.center = cast.origin;
-                release.run();
-            });
-        };
-        if (ElementalistRules.isChargeable(cast.skill, progress, cast.parameters)) {
-            ElementalistChargeClient.begin(cast, slot, chant);
-        } else {
-            chant.run();
-        }
+        long duration = Math.round(ElementalistRules.effectiveCastSeconds(cast.skill, cast.speed) * 1000.0);
+        boolean canMove = ElementalistRules.movingCastLearned(cast.stats, progress);
+        boolean instantFull = ElementalistRules.isInstantFullCharge(cast.skill, cast.stats);
+        boolean chargeable = !instantFull && ElementalistRules.isChargeable(cast.skill, progress, cast.parameters);
+        ChantClient.begin(cast, duration, canMove, slot, keyReleased -> {
+            if (instantFull) {
+                ElementalistChargeClient.releaseFull(cast, release);
+                return;
+            }
+            switch (ElementalistRules.postChantAction(chargeable, keyReleased)) {
+                case RELEASE_DIRECT -> {
+                    cast.origin = player().position();
+                    cast.center = cast.origin;
+                    release.run();
+                }
+                case RELEASE_UNCHARGED -> ElementalistChargeClient.releaseUncharged(cast, release);
+                case BEGIN_CHARGE -> ElementalistChargeClient.begin(cast, slot, release);
+            }
+        });
         return true;
     }
 
@@ -230,36 +401,50 @@ public final class ElementalistClient {
             double prot = Math.clamp(lightningChannel.channelProtection, 0.0, 0.95);
             taken = Math.min(taken, 1.0 - prot);
         }
-        if (activeIceWall != null && player() != null) {
-            double distSq = player().position().subtract(activeIceWall.center).horizontalDistanceSqr();
-            if (distSq <= activeIceWall.radius * activeIceWall.radius) {
-                double wallDr = Math.clamp(activeIceWall.damageReduction, 0.0, 0.9);
-                taken *= (1.0 - wallDr);
-            }
-        }
         return taken;
     }
 
-    /** Intercepts ordinary incoming enemy projectiles while standing inside Ice Wall. */
-    public static boolean tryBlockProjectile(JsonObject incoming) {
-        if (activeIceWall == null || activeIceWall.blockRemaining <= 0) return false;
+    /**
+     * Absorbs incoming damage while standing inside own Ice Wall.
+     * Any single hit that meets or exceeds the remaining shield shatters the wall immediately
+     * and discards all overflow damage so the caster takes 0 damage from that hit.
+     */
+    public static boolean tryAbsorbIceWall(double damage) {
+        var wall = activeIceWall;
+        if (wall == null || !(damage > 0.0) || !Double.isFinite(damage)) return false;
         var p = player();
         if (p == null) return false;
-        if (incoming.has("bypassInvulnerability") && incoming.get("bypassInvulnerability").getAsBoolean()) return false;
-        boolean projectile = (incoming.has("projectile") && incoming.get("projectile").getAsBoolean())
-            || (incoming.has("source") && Set.of("arrow", "mobProjectile", "trident", "fireball", "unattributedFireball", "witherSkull").contains(incoming.get("source").getAsString()));
-        if (!projectile) return false;
-        if (p.position().subtract(activeIceWall.center).horizontalDistanceSqr() > activeIceWall.radius * activeIceWall.radius) {
+        long now = ClientUi.now();
+        if (!MageClient.INSTANCE.valid(wall.cast)) {
+            activeIceWall = null;
             return false;
         }
-        activeIceWall.blockRemaining--;
-        var motion = new JsonObject();
-        motion.addProperty("radius", activeIceWall.radius);
-        motion.addProperty("wallBlockRemaining", activeIceWall.blockRemaining);
-        motion.addProperty("mode", 0);
-        MageClient.INSTANCE.visual(activeIceWall.cast, activeIceWall.cast.id, "HIT",
-            activeIceWall.center, Vec3.ZERO, Math.max(200L, activeIceWall.endAt - ClientUi.now()),
-            ++activeIceWall.sequence, motion);
+        if (now >= wall.endAt) {
+            shatterIceWall(wall, now);
+            return false;
+        }
+        if (!ElementalistRules.insideIceWall(
+                p.getX(), p.getY(), p.getZ(),
+                wall.center.x, wall.center.y, wall.center.z,
+                wall.radius, wall.wallHeight)) {
+            return false;
+        }
+        var result = ElementalistRules.absorbIceWallDamage(wall.shieldRemaining, damage);
+        if (!result.absorbed()) return false;
+        wall.shieldRemaining = result.remainingShield();
+        if (result.shattered()) {
+            shatterIceWall(wall, now);
+        } else {
+            int elem = effectiveElem(wall.cast);
+            int mode = ElementalistRules.effectiveMorphMode(wall.cast.skill.id, wall.cast.parameters, wall.cast.stats);
+            var motion = elemMotion(wall.cast, elem, mode);
+            motion.addProperty("radius", wall.radius);
+            motion.addProperty("follow", wall.followPlayer);
+            motion.addProperty("wallShieldRatio", wall.shieldMax > 0.0 ? Math.clamp(wall.shieldRemaining / wall.shieldMax, 0.0, 1.0) : 0.0);
+            MageClient.INSTANCE.visual(wall.cast, wall.cast.id, "HIT",
+                wall.center, Vec3.ZERO, Math.max((wall.endAt - wall.start) + 650L, (now - wall.start) + 650L),
+                ++wall.sequence, motion);
+        }
         return true;
     }
 
@@ -279,7 +464,7 @@ public final class ElementalistClient {
         lightningChannel = null;
         PlayerPoseChannel.cancel(ch.cast);
         if (player() != null) {
-            MageClient.INSTANCE.visual(ch.cast, ch.cast.id, "CANCEL", ch.reticle, Vec3.ZERO, 300L, ++ch.sequence, null);
+            MageClient.INSTANCE.visual(ch.cast, ch.cast.id, "CANCEL", ch.reticle, Vec3.ZERO, Math.max(300L, (ClientUi.now() - ch.start) + 300L), ++ch.sequence, null);
         }
         CareerClient.INSTANCE.ended(ch.cast);
         CareerClient.INSTANCE.publish();
@@ -385,42 +570,64 @@ public final class ElementalistClient {
 
     private static void startIceWall(SkillCast c) {
         var p = player();
-        int mode = ElementalistRules.morphMode(c.parameters);
+        if (TowerBattleCard.ELEM_ICE_WALL_MOBILE.held(c.stats)) {
+            withElementBuildup(c, ElementAccumulation.Kind.FREEZE, TowerBattleCard.ELEM_ICE_WALL_MOBILE.ratio("buildup"));
+        }
+        int mode = ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats);
         long now = ClientUi.now();
         int elem = effectiveElem(c);
         if (mode == 1) {
-            // 极寒推进: forward arc ice wave pushing enemies along 10 blocks
-            var w = new IceWaveState();
-            w.cast = c;
-            w.origin = p.position();
-            w.dir = horizontal(p.getLookAngle());
-            w.range = Math.max(2.0, c.parameters.get("range", 10.0));
-            w.width = Math.max(1.5, c.parameters.get("radius", 4.5));
-            w.start = w.lastTick = now;
-            iceWaves.add(w);
-            TrainingCombat.hold(c.id, "elementalist", now + 2000L);
-            var motion = elemMotion(elem, mode);
-            motion.addProperty("range", w.range);
-            motion.addProperty("width", w.width);
-            MageClient.INSTANCE.visual(c, c.id, "START", w.origin, w.dir, 900L, 0, motion);
+            // 极寒推进: forward arc ice wave pushing enemies; with 随身冰壁 fires 2 sequential waves
+            int waves = TowerBattleCard.ELEM_ICE_WALL_MOBILE.held(c.stats)
+                ? Math.max(1, TowerBattleCard.ELEM_ICE_WALL_MOBILE.count("waves")) : 1;
+            double range = Math.max(2.0, c.parameters.get("range", 10.0));
+            double width = Math.max(1.5, c.parameters.get("radius", 4.5));
+            long travelMs = Math.max(200L, Math.round(range / 16.0 * 1000.0));
+            long gapMs = 260L;
+            TrainingCombat.hold(c.id, "elementalist", now + (waves - 1) * gapMs + travelMs + 1200L);
+            for (int i = 0; i < waves; i++) {
+                var w = new IceWaveState();
+                w.cast = c;
+                w.visualId = i == 0 ? c.id : subVisualId(c.id, "wave/" + i);
+                w.waveIndex = i;
+                w.origin = p.position();
+                w.dir = horizontal(p.getLookAngle());
+                w.range = range;
+                w.width = width;
+                w.travelMs = travelMs;
+                w.start = w.lastTick = now + i * gapMs;
+                w.startAt = w.start;
+                iceWaves.add(w);
+                if (i == 0) {
+                    w.started = true;
+                    var motion = elemMotion(c, elem, mode);
+                    motion.addProperty("range", w.range);
+                    motion.addProperty("width", w.width);
+                    motion.addProperty("travelMs", travelMs);
+                    MageClient.INSTANCE.visual(c, w.visualId, "START", w.origin, w.dir, travelMs + 400L, 0, motion);
+                }
+            }
             return;
         }
 
         // Mode 0 (冰墙) or Mode 2 (极光雷冰壁): replace previous wall without double shatter
         if (activeIceWall != null) {
             MageClient.INSTANCE.visual(activeIceWall.cast, activeIceWall.cast.id, "CANCEL",
-                activeIceWall.center, Vec3.ZERO, 200L, ++activeIceWall.sequence, null);
+                activeIceWall.center, Vec3.ZERO, Math.max(200L, (now - activeIceWall.start) + 200L), ++activeIceWall.sequence, null);
             CareerClient.INSTANCE.ended(activeIceWall.cast);
             activeIceWall = null;
         }
         var wall = new IceWallState();
         wall.cast = c;
         wall.center = p.position();
+        wall.followPlayer = TowerBattleCard.ELEM_ICE_WALL_MOBILE.held(c.stats);
         wall.radius = Math.max(1.5, c.parameters.get("radius", 3.5));
         wall.blastRadius = Math.max(wall.radius, c.parameters.get("blastRadius", 4.0));
+        wall.wallHeight = Math.max(0.5, c.parameters.get("wallHeight", 2.2));
         wall.slowRatio = Math.clamp(c.parameters.get("slowRatio", 0.30), 0.0, 0.8);
-        wall.damageReduction = Math.clamp(c.parameters.get("wallDamageReduction", 0.25), 0.0, 0.9);
-        wall.blockMax = wall.blockRemaining = Math.max(0, (int) Math.round(c.parameters.get("wallBlockQuota", 6.0)));
+        double shieldMult = Math.max(0.0, c.parameters.get("wallShieldMultiplier", 2.0));
+        double maxHp = Math.max(0.0, c.stats.get(Stat.HEALTH));
+        wall.shieldMax = wall.shieldRemaining = maxHp * shieldMult;
         wall.pulseDot = c.parameters.get("pulseDot", 0.0);
         wall.hasPulse = wall.pulseDot > 0.0;
         long durationMs = Math.max(500L, Math.round(c.parameters.get("duration", 6.0) * 1000.0));
@@ -431,16 +638,21 @@ public final class ElementalistClient {
         wall.nextPulseAt = now + pulseGap;
         activeIceWall = wall;
         TrainingCombat.hold(c.id, "elementalist", wall.endAt + 500L);
-        var motion = elemMotion(elem, mode);
+        var motion = elemMotion(c, elem, mode);
         motion.addProperty("radius", wall.radius);
-        motion.addProperty("wallHeight", c.parameters.get("wallHeight", 2.2));
+        motion.addProperty("wallHeight", wall.wallHeight);
         motion.addProperty("wallSegments", c.parameters.get("wallSegments", 12.0));
-        MageClient.INSTANCE.visual(c, c.id, "START", wall.center, Vec3.ZERO, durationMs + 500L, 0, motion);
+        motion.addProperty("wallShieldRatio", 1.0);
+        motion.addProperty("follow", wall.followPlayer);
+        MageClient.INSTANCE.visual(c, c.id, "START", wall.center, Vec3.ZERO, durationMs + 650L, 0, motion);
     }
 
     private static void startVortex(SkillCast c) {
         var p = player();
-        int mode = ElementalistRules.morphMode(c.parameters);
+        if (TowerBattleCard.ELEM_VORTEX_CHAIN.held(c.stats)) {
+            withElementBuildup(c, ElementAccumulation.Kind.SHOCK, TowerBattleCard.ELEM_VORTEX_CHAIN.ratio("buildup"));
+        }
+        int mode = ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats);
         long now = ClientUi.now();
         int elem = effectiveElem(c);
         if (mode == 1) {
@@ -454,12 +666,15 @@ public final class ElementalistClient {
             double beamWidth = 1.6;
             double coeff = c.parameters.get("damage", 1.0) * Math.max(1.0, c.parameters.get("slashes", 3.0));
             var struck = new HashSet<UUID>();
+            int hitIdx = 0;
             for (var target : SkillController.INSTANCE.targets(new AABB(from, end).inflate(beamWidth + 0.5))) {
                 var box = target.getBoundingBox().inflate(beamWidth * 0.5);
                 if ((box.clip(from, end).isPresent() || box.contains(from))
                     && SkillController.INSTANCE.sight(from, target.getBoundingBox().getCenter())) {
                     struck.add(target.getUUID());
-                    MageClient.INSTANCE.issue(c, target, coeff, elem, "", "railgun");
+                    if (issueSkill(c, target, coeff, elem, 0.0, "", "railgun")) {
+                        triggerVortexChain(c, target, coeff, elem, hitIdx++, 700L);
+                    }
                 }
             }
             double blastR = Math.max(1.5, c.parameters.get("radius", 4.0) * 0.65);
@@ -467,10 +682,12 @@ public final class ElementalistClient {
                 if (struck.contains(target.getUUID())) continue;
                 if (target.getBoundingBox().getCenter().distanceToSqr(end) <= blastR * blastR
                     && SkillController.INSTANCE.sight(end.add(0, 0.2, 0), target.getBoundingBox().getCenter())) {
-                    MageClient.INSTANCE.issue(c, target, coeff, elem, "", "railgun_end");
+                    if (issueSkill(c, target, coeff, elem, 0.0, "", "railgun_end")) {
+                        triggerVortexChain(c, target, coeff, elem, hitIdx++, 700L);
+                    }
                 }
             }
-            var motion = elemMotion(elem, mode);
+            var motion = elemMotion(c, elem, mode);
             motion.addProperty("range", from.distanceTo(end));
             motion.addProperty("radius", blastR);
             MageClient.INSTANCE.visual(c, c.id, "START", from, dir, 700L, 0, motion);
@@ -491,18 +708,45 @@ public final class ElementalistClient {
         v.start = now;
         v.nextHitAt = now;
         vortices.add(v);
-        long durMs = Math.max(500L, v.totalHits * v.intervalMs + 250L);
+        long durMs = Math.max(500L, v.totalHits * v.intervalMs + 350L);
         TrainingCombat.hold(c.id, "elementalist", now + durMs + 300L);
-        var motion = elemMotion(elem, mode);
+        var motion = elemMotion(c, elem, mode);
         motion.addProperty("radius", v.radius);
         motion.addProperty("orbCount", c.parameters.get("orbCount", 4.0));
         motion.addProperty("follow", v.followPlayer);
         MageClient.INSTANCE.visual(c, c.id, "START", v.center, horizontal(p.getLookAngle()), durMs, 0, motion);
     }
 
+    private static void triggerVortexChain(SkillCast c, LivingEntity sourceTarget, double primaryCoeff, int elem, int hitIndex, long visualDur) {
+        if (!TowerBattleCard.ELEM_VORTEX_CHAIN.held(c.stats) || sourceTarget == null) return;
+        double arcRange = TowerBattleCard.ELEM_VORTEX_CHAIN.value("range");
+        int maxTargets = Math.max(1, TowerBattleCard.ELEM_VORTEX_CHAIN.count("targets"));
+        double arcCoeff = primaryCoeff * TowerBattleCard.ELEM_VORTEX_CHAIN.ratio("damage");
+        Vec3 from = sourceTarget.getBoundingBox().getCenter();
+        var candidates = SkillController.INSTANCE.targets(new AABB(from, from).inflate(arcRange + 0.5)).stream()
+            .filter(e -> !e.getUUID().equals(sourceTarget.getUUID())
+                && e.getBoundingBox().getCenter().distanceToSqr(from) <= arcRange * arcRange
+                && SkillController.INSTANCE.sight(from, e.getBoundingBox().getCenter()))
+            .sorted(Comparator.comparingDouble(e -> e.getBoundingBox().getCenter().distanceToSqr(from)))
+            .limit(maxTargets)
+            .toList();
+        int arcIdx = 0;
+        for (var next : candidates) {
+            issueSkill(c, next, arcCoeff, elem, 0.0, "", "vortex_arc/" + hitIndex + "/" + arcIdx);
+            Vec3 to = next.getBoundingBox().getCenter();
+            var motion = elemMotion(c, elem, ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats));
+            motion.addProperty("chainArc", true);
+            motion.addProperty("tx", to.x);
+            motion.addProperty("ty", to.y);
+            motion.addProperty("tz", to.z);
+            MageClient.INSTANCE.visual(c, c.id, "HIT", from, to.subtract(from).normalize(), Math.max(500L, visualDur), 100 + hitIndex * 10 + arcIdx, motion);
+            arcIdx++;
+        }
+    }
+
     private static void startVoidSphere(SkillCast c) {
         var p = player();
-        int mode = ElementalistRules.morphMode(c.parameters);
+        int mode = ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats);
         long now = ClientUi.now();
         int elem = effectiveElem(c);
         var vs = new VoidSphereState();
@@ -515,7 +759,7 @@ public final class ElementalistClient {
         vs.blastRadius = Math.max(vs.radius, c.parameters.get("blastRadius", 3.8 * sizeFraction));
         vs.speed = Math.max(0.0, c.parameters.get("projectileSpeed", 3.0));
         vs.pushStrength = Math.max(0.0, c.parameters.get("pushStrength", 0.35));
-        vs.manualDetonate = c.parameters.get("manualDetonate", 0.0) >= 1.0;
+        vs.manualDetonate = !TowerBattleCard.ELEM_VOID_CRYSTAL.held(c.stats) && c.parameters.get("manualDetonate", 0.0) >= 1.0;
         vs.earlyKeepRatio = Math.clamp(c.parameters.get("earlyDetonateKeepRatio", 0.0), 0.0, 2.0);
         vs.stationary = mode == 1 || vs.speed <= 0.05;
         double startOffset = vs.stationary ? 2.5 : 1.2;
@@ -528,17 +772,17 @@ public final class ElementalistClient {
         vs.nextTickAt = now + 80L;
         voidSpheres.add(vs);
         TrainingCombat.hold(c.id, "elementalist", vs.endAt + 400L);
-        var motion = elemMotion(elem, mode);
+        var motion = elemMotion(c, elem, mode);
         motion.addProperty("radius", vs.radius);
-        motion.addProperty("blastRadius", 2.2 * sizeFraction);
+        motion.addProperty("blastRadius", vs.blastRadius);
         motion.addProperty("speed", vs.speed);
         motion.addProperty("stationary", vs.stationary);
-        MageClient.INSTANCE.visual(c, c.id, "START", vs.position, vs.dir, durMs + 300L, 0, motion);
+        MageClient.INSTANCE.visual(c, c.id, "START", vs.position, vs.dir, durMs + 650L, 0, motion);
     }
 
     private static void startFlamePillar(SkillCast c) {
         var p = player();
-        int mode = ElementalistRules.morphMode(c.parameters);
+        int mode = ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats);
         long now = ClientUi.now();
         int elem = effectiveElem(c);
         double range = Math.max(2.0, c.parameters.get("range", 14.0));
@@ -555,21 +799,24 @@ public final class ElementalistClient {
 
         int count = Math.max(1, (int) Math.round(c.parameters.get("pillarCount", 1.0)));
         double spread = Math.max(0.5, c.parameters.get("pillarSpread", 2.8));
+        boolean chainCard = TowerBattleCard.ELEM_FLAME_CHAIN.held(c.stats);
         for (int i = 0; i < count; i++) {
-            double shift = (i - (count - 1) * 0.5) * spread;
+            double shift = chainCard ? i * spread : (i - (count - 1) * 0.5) * spread;
             Vec3 pt = snapGround(p, baseCenter.add(forward.scale(shift)));
             fp.centers.add(pt);
         }
         if (mode == 1 && fp.controlSeconds > 0) {
             // 霜火枷锁: immediate frost bind before main eruption
             for (var target : targetsInCylinder(fp.centers.getFirst(), fp.radius, 3.5)) {
-                MageClient.INSTANCE.issueElementalist(c, target, 0.01, 2, fp.controlSeconds, "", "frost_bind");
+                issueSkill(c, target, 0.01, 2, fp.controlSeconds, "", "frost_bind");
             }
         }
         flamePillars.add(fp);
+        long volcanoHold = TowerBattleCard.ELEM_FLAME_VOLCANO.held(c.stats)
+            ? TowerBattleCard.ELEM_FLAME_VOLCANO.millis("duration") + 600L : 0L;
         fp.visualDuration = fp.impactDelayMs + (count - 1) * 180L + ElementalistVisuals.FLAME_ERUPTION_MS;
-        TrainingCombat.hold(c.id, "elementalist", now + fp.visualDuration);
-        var motion = elemMotion(elem, mode);
+        TrainingCombat.hold(c.id, "elementalist", now + Math.max(fp.visualDuration, fp.impactDelayMs + volcanoHold));
+        var motion = elemMotion(c, elem, mode);
         motion.addProperty("radius", fp.radius);
         motion.addProperty("pillarCount", count);
         motion.addProperty("impactDelayMs", fp.impactDelayMs);
@@ -578,7 +825,7 @@ public final class ElementalistClient {
 
     private static void startHalloweenBuster(SkillCast c) {
         var p = player();
-        int mode = ElementalistRules.morphMode(c.parameters);
+        int mode = ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats);
         long now = ClientUi.now();
         int elem = effectiveElem(c);
         double range = Math.max(2.0, c.parameters.get("range", 16.0));
@@ -591,14 +838,25 @@ public final class ElementalistClient {
         double radius = Math.max(1.5, c.parameters.get("radius", 4.5));
         double shockR = Math.max(radius, c.parameters.get("shockwaveRadius", 7.0));
         double emberDot = Math.max(0.0, c.parameters.get("emberDot", 0.0));
+        if (TowerBattleCard.ELEM_BUSTER_TRIPLE.held(c.stats) && emberDurMs > 0) {
+            emberDot = Math.max(emberDot, c.parameters.get("damage", 0.0) * 0.08);
+        }
         Vec3 forward = horizontal(p.getLookAngle());
+        Vec3 right = new Vec3(-forward.z, 0, forward.x);
 
         for (int i = 0; i < count; i++) {
             var m = new BusterMeteor();
             m.cast = c;
             m.mode = mode;
             m.meteorIndex = i;
-            Vec3 offset = count > 1 ? forward.scale(i == 0 ? -1.4 : 1.4) : Vec3.ZERO;
+            Vec3 offset;
+            if (count == 1) offset = Vec3.ZERO;
+            else if (count == 2) offset = forward.scale(i == 0 ? -1.4 : 1.4);
+            else offset = switch (i % 3) {
+                case 0 -> Vec3.ZERO;
+                case 1 -> forward.scale(1.4).add(right.scale(1.2));
+                default -> forward.scale(-1.2).add(right.scale(-1.2));
+            };
             m.center = snapGround(p, center.add(offset));
             m.radius = radius;
             m.shockwaveRadius = shockR;
@@ -612,12 +870,12 @@ public final class ElementalistClient {
             busterMeteors.add(m);
             if (i == 0) {
                 m.spawned = true;
-                var motion = elemMotion(elem, mode);
+                var motion = elemMotion(c, elem, mode);
                 motion.addProperty("radius", radius);
                 motion.addProperty("shockwaveRadius", shockR);
                 motion.addProperty("fallMs", fallMs);
                 motion.addProperty("emberMs", emberDurMs);
-                MageClient.INSTANCE.visual(c, c.id, "START", m.center, forward, fallMs + emberDurMs + 700L, 0, motion);
+                MageClient.INSTANCE.visual(c, c.id, "START", m.center, forward, fallMs + Math.max(850L, emberDurMs + 400L) + 150L, 0, motion);
             }
         }
         TrainingCombat.hold(c.id, "elementalist", now + (count - 1) * gapMs + fallMs + emberDurMs + 900L);
@@ -625,7 +883,10 @@ public final class ElementalistClient {
 
     private static void startArcticFeast(SkillCast c) {
         var p = player();
-        int mode = ElementalistRules.morphMode(c.parameters);
+        if (TowerBattleCard.ELEM_ARCTIC_VORTEX.held(c.stats)) {
+            withElementBuildup(c, ElementAccumulation.Kind.FREEZE, TowerBattleCard.ELEM_ARCTIC_VORTEX.ratio("buildup"));
+        }
+        int mode = ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats);
         long now = ClientUi.now();
         int elem = effectiveElem(c);
         double offset = Math.max(0.0, c.parameters.get("centerOffset", 4.5));
@@ -650,8 +911,13 @@ public final class ElementalistClient {
         a.nextWaveAt = now + (mode == 1 ? 200L : 120L);
         a.finisherAt = now + durMs;
         arctics.add(a);
+        if (mode == 1 && a.pullRadius > 0 && a.pullStrength > 0) {
+            // 冰封王座 + 极寒暴风眼: immediate burst vacuum pull at cast start
+            pullToward(a.center, a.pullRadius, Math.min(a.pullRadius * 0.75, 4.5));
+            flushMotions(now + MOTION_SYNC_INTERVAL_MS);
+        }
         TrainingCombat.hold(c.id, "elementalist", a.finisherAt + 500L);
-        var motion = elemMotion(elem, mode);
+        var motion = elemMotion(c, elem, mode);
         motion.addProperty("radius", a.radius);
         motion.addProperty("pullRadius", a.pullRadius);
         motion.addProperty("firstWaveMs", a.nextWaveAt - a.start);
@@ -662,7 +928,7 @@ public final class ElementalistClient {
 
     private static void startBlackHole(SkillCast c) {
         var p = player();
-        int mode = ElementalistRules.morphMode(c.parameters);
+        int mode = ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats);
         long now = ClientUi.now();
         int elem = effectiveElem(c);
         double range = Math.max(2.0, c.parameters.get("range", 16.0));
@@ -689,17 +955,18 @@ public final class ElementalistClient {
         bh.nextVolcanoAt = now + bh.intervalMs;
         blackHoles.add(bh);
         TrainingCombat.hold(c.id, "elementalist", bh.endAt + subMs + 600L);
-        var motion = elemMotion(elem, mode);
+        var motion = elemMotion(c, elem, mode);
         motion.addProperty("radius", bh.radius);
         motion.addProperty("pullRadius", bh.pullRadius);
         motion.addProperty("blastRadius", bh.blastRadius);
+        motion.addProperty("subHoleMs", subMs);
         motion.addProperty("volcano", bh.volcanoDot > 0);
-        MageClient.INSTANCE.visual(c, c.id, "START", bh.center, Vec3.ZERO, durMs + subMs + 500L, 0, motion);
+        MageClient.INSTANCE.visual(c, c.id, "START", bh.center, Vec3.ZERO, durMs + Math.max(800L, subMs + 400L), 0, motion);
     }
 
     private static void startLightningStrike(SkillCast c) {
         var p = player();
-        int mode = ElementalistRules.morphMode(c.parameters);
+        int mode = ElementalistRules.effectiveMorphMode(c.skill.id, c.parameters, c.stats);
         long now = ClientUi.now();
         int elem = effectiveElem(c);
         double range = Math.max(4.0, c.parameters.get("range", 18.0));
@@ -711,7 +978,10 @@ public final class ElementalistClient {
         if (!channeling && mode == 1) {
             // 天雷湮灭: single colossal thunderbolt
             double mergedCoeff = c.parameters.get("damage", 0.20) * Math.max(1.0, c.parameters.get("slashes", 5.0));
-            dropThunderBolt(c, ground, radius, mergedCoeff, elem, pullOnHit, 0, mode);
+            var startMotion = elemMotion(c, elem, mode);
+            startMotion.addProperty("radius", radius);
+            MageClient.INSTANCE.visual(c, c.id, "START", ground, Vec3.ZERO, 650L, 0, startMotion);
+            dropThunderBolt(c, ground, radius, mergedCoeff, elem, pullOnHit, 0, mode, 1, 650L);
             PlayerPoseChannel.release(c);
             MageClient.INSTANCE.finished(c);
             return;
@@ -731,10 +1001,10 @@ public final class ElementalistClient {
             cloud.nextBoltAt = now + 150L;
             stormClouds.add(cloud);
             TrainingCombat.hold(c.id, "elementalist", cloud.endAt + 500L);
-            var motion = elemMotion(elem, mode);
+            var motion = elemMotion(c, elem, mode);
             motion.addProperty("radius", radius);
             motion.addProperty("cloud", true);
-            MageClient.INSTANCE.visual(c, c.id, "START", cloud.pos.add(0, 5.5, 0), Vec3.ZERO, durMs + 500L, 0, motion);
+            MageClient.INSTANCE.visual(c, c.id, "START", cloud.pos.add(0, 5.5, 0), Vec3.ZERO, durMs + 650L, 0, motion);
             PlayerPoseChannel.release(c);
             return;
         }
@@ -758,10 +1028,10 @@ public final class ElementalistClient {
         lightningChannel = ch;
         TrainingCombat.hold(c.id, "elementalist", ch.endAt + 400L);
         PlayerPoseChannel.loop(c, ElementalistSkills.LIGHTNING_STRIKE, durMs, p.getLookAngle(), true);
-        var motion = elemMotion(elem, mode);
+        var motion = elemMotion(c, elem, mode);
         motion.addProperty("radius", radius);
         motion.addProperty("reticle", true);
-        MageClient.INSTANCE.visual(c, c.id, "START", ch.reticle, Vec3.ZERO, durMs + 500L, 0, motion);
+        MageClient.INSTANCE.visual(c, c.id, "START", ch.reticle, Vec3.ZERO, durMs + 650L, 0, motion);
         CareerClient.INSTANCE.publish();
     }
 
@@ -814,7 +1084,7 @@ public final class ElementalistClient {
         }
 
         TrainingCombat.hold(c.id, "elementalist", st.endAt + 900L);
-        var motion = elemMotion(effectiveElem(c), mode);
+        var motion = elemMotion(c, effectiveElem(c), mode);
         motion.addProperty("fieldRadius", st.fieldRadius);
         motion.addProperty("meteorRadius", st.meteorRadius);
         motion.addProperty("finisherRadius", st.finisherRadius);
@@ -837,11 +1107,14 @@ public final class ElementalistClient {
             return;
         }
         long now = ClientUi.now();
+        resistShredUntil.values().removeIf(arr -> arr[0] <= now && arr[1] <= now && arr[2] <= now && arr[3] <= now);
+        tickJackFlights(now);
         tickIceWall(now);
         tickIceWaves(now);
         tickVortices(now);
         tickVoidSpheres(now);
         tickFlamePillars(now);
+        tickFlameVolcanoes(now);
         tickBusterMeteors(now);
         tickArctics(now);
         tickBlackHoles(now);
@@ -851,6 +1124,115 @@ public final class ElementalistClient {
         flushMotions(now);
     }
 
+    private static void tickJackFlights(long now) {
+        var mc = Minecraft.getInstance();
+        var p = mc.player;
+        if (p == null || mc.level == null) return;
+        var spawnedMinis = new ArrayList<JackFlight>();
+        for (var it = jackFlights.iterator(); it.hasNext(); ) {
+            var f = it.next();
+            if (!MageClient.INSTANCE.valid(f.cast)) {
+                liveJackPositions.remove(f.visualUuid);
+                it.remove();
+                continue;
+            }
+            TrainingCombat.touch(f.cast.id);
+            double dt = Math.clamp((now - f.lastTick) / 1000.0, 0.0, 0.12);
+            f.lastTick = now;
+            if (f.homing && dt > 0) {
+                var target = findNearestEnemy3D(f.pos, 10.0);
+                if (target != null) {
+                    Vec3 desired = target.getBoundingBox().getCenter().subtract(f.pos);
+                    if (desired.lengthSqr() > 1e-4) {
+                        Vec3 curDir = f.vel.lengthSqr() < 1e-6 ? desired.normalize() : f.vel.normalize();
+                        double turn = Math.min(1.0, 6.5 * dt);
+                        Vec3 blended = curDir.lerp(desired.normalize(), turn);
+                        if (blended.lengthSqr() > 1e-6) f.vel = blended.normalize().scale(f.speed);
+                    }
+                }
+            } else if (f.isMini && dt > 0) {
+                f.vel = f.vel.add(0, -20.0 * dt, 0);
+            }
+            Vec3 from = f.pos;
+            Vec3 step = f.vel.scale(dt);
+            Vec3 next = from.add(step);
+            var wall = mc.level.clip(new ClipContext(from, next, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+            Vec3 end = wall.getType() == HitResult.Type.MISS ? next : wall.getLocation();
+            var hitEnemy = SkillController.INSTANCE.targets(new AABB(from, end).inflate(0.35)).stream()
+                .filter(e -> !f.struck.contains(e.getUUID()) && SkillGeometry.intersects(e.getBoundingBox().inflate(0.25), from, end))
+                .min(Comparator.comparingDouble(e -> e.distanceToSqr(from)))
+                .orElse(null);
+            boolean explode = false;
+            if (hitEnemy != null) {
+                f.pos = hitEnemy.getBoundingBox().inflate(0.25).clip(from, end).orElse(end);
+                explode = true;
+            } else {
+                f.pos = end;
+                f.travelled += from.distanceTo(end);
+                if (wall.getType() != HitResult.Type.MISS || f.travelled >= f.maxDist) explode = true;
+            }
+            if (!explode) {
+                liveJackPositions.put(f.visualUuid, f.pos);
+                continue;
+            }
+            liveJackPositions.remove(f.visualUuid);
+            int elem = effectiveElem(f.cast);
+            String grp = f.isMini ? "jack_split/" + f.visualId : "jack/" + f.visualId;
+            for (var target : SkillController.INSTANCE.targets(new AABB(f.pos, f.pos).inflate(f.radius + 0.5))) {
+                Vec3 contact = nearestOnBox(target, f.pos);
+                if (contact.distanceToSqr(f.pos) <= f.radius * f.radius && SkillController.INSTANCE.sight(f.pos.add(0, 0.1, 0), contact)) {
+                    issueSkill(f.cast, target, f.coeff, elem, 0.0, "", grp);
+                }
+            }
+            Vec3 dir = f.vel.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : f.vel.normalize();
+            var finMotion = elemMotion(f.cast, elem, 0);
+            finMotion.addProperty("radius", f.radius);
+            finMotion.addProperty("mini", f.isMini);
+            MageClient.INSTANCE.visualAt(f.cast, f.visualId, "FINISH", f.pos, dir, f.start,
+                (now - f.start) + 560L, ++f.sequence, finMotion);
+            if (!f.isMini && f.splitCount > 0 && f.splitRatio > 0) {
+                double baseYaw = Math.atan2(dir.z, dir.x);
+                double miniSpeed = 8.8;
+                double miniRadius = Math.max(1.2, f.radius * 0.65);
+                double miniCoeff = f.coeff * f.splitRatio;
+                for (int i = 0; i < f.splitCount; i++) {
+                    double ang = baseYaw + (i + 0.5) * (Math.TAU / f.splitCount);
+                    Vec3 mVel = new Vec3(Math.cos(ang) * miniSpeed, 3.8, Math.sin(ang) * miniSpeed);
+                    String mid = subVisualId(f.visualId, "s/" + i);
+                    var mf = new JackFlight();
+                    mf.cast = f.cast;
+                    mf.visualId = mid;
+                    mf.visualUuid = UUID.fromString(mid);
+                    mf.origin = mf.pos = f.pos.add(0, 0.25, 0);
+                    mf.vel = mVel;
+                    mf.speed = miniSpeed;
+                    mf.maxDist = 4.2;
+                    mf.radius = miniRadius;
+                    mf.coeff = miniCoeff;
+                    mf.isMini = true;
+                    mf.start = mf.lastTick = now;
+                    mf.visualDurMs = 1100L;
+                    spawnedMinis.add(mf);
+                    liveJackPositions.put(mf.visualUuid, mf.pos);
+                    var mMotion = elemMotion(f.cast, elem, 0);
+                    mMotion.addProperty("radius", miniRadius);
+                    mMotion.addProperty("mini", true);
+                    mMotion.addProperty("velocity", miniSpeed);
+                    mMotion.addProperty("range", mf.maxDist);
+                    mMotion.addProperty("millis", 480L);
+                    mMotion.addProperty("arcHeight", 0.75);
+                    MageClient.INSTANCE.visualAt(f.cast, mid, "START", mf.pos, mVel.normalize(), now, mf.visualDurMs, 0, mMotion);
+                }
+            }
+            String castId = f.cast.id;
+            it.remove();
+            boolean anyRemaining = spawnedMinis.stream().anyMatch(m -> m.cast.id.equals(castId))
+                || jackFlights.stream().anyMatch(o -> o.cast.id.equals(castId));
+            if (!anyRemaining) CareerClient.INSTANCE.ended(f.cast);
+        }
+        jackFlights.addAll(spawnedMinis);
+    }
+
     private static void tickIceWall(long now) {
         var wall = activeIceWall;
         if (wall == null) return;
@@ -858,8 +1240,11 @@ public final class ElementalistClient {
             activeIceWall = null;
             return;
         }
+        var p = player();
+        if (wall.followPlayer && p != null) {
+            wall.center = p.position();
+        }
         int elem = effectiveElem(wall.cast);
-        int mode = ElementalistRules.morphMode(wall.cast.parameters);
         TrainingCombat.touch(wall.cast.id);
 
         if (!wall.burstDone && now >= wall.burstAt) {
@@ -867,7 +1252,7 @@ public final class ElementalistClient {
             double coeff = wall.cast.parameters.get("damage", 0.70);
             double kb = wall.cast.parameters.get("knockbackDistance", 2.5);
             for (var target : targetsInCylinder(wall.center, wall.radius, 3.0)) {
-                MageClient.INSTANCE.issue(wall.cast, target, coeff, elem, "", "burst");
+                issueSkill(wall.cast, target, coeff, elem, 0.0, "", "burst");
                 if (kb > 0 && canDisplace(target)) {
                     Vec3 out = horizontal(target.position().subtract(wall.center));
                     Vec3 dest = target.position().add(out.scale(kb));
@@ -880,37 +1265,58 @@ public final class ElementalistClient {
             wall.nextPulseAt += gap;
             int pulseElem = wall.cast.parameters.get("dyeEnabled", 0.0) >= 1.0 ? elem : 0;
             for (var target : targetsInCylinder(wall.center, wall.radius + 0.5, 3.0)) {
-                MageClient.INSTANCE.issue(wall.cast, target, wall.pulseDot, pulseElem, "pulse", "wall_pulse");
+                issueSkill(wall.cast, target, wall.pulseDot, pulseElem, 0.0, "pulse", "wall_pulse");
             }
         }
-        // Soft slow on enemies inside wall via subtle positional damping (or vanilla visual feel)
         if (now >= wall.endAt) {
-            double fin = wall.cast.parameters.get("finisher", 0.30);
-            if (fin > 0) {
-                for (var target : targetsInCylinder(wall.center, wall.blastRadius, 3.5)) {
-                    MageClient.INSTANCE.issue(wall.cast, target, fin, elem, "", "shatter");
-                }
-            }
-            var motion = elemMotion(elem, mode);
-            motion.addProperty("radius", wall.blastRadius);
-            MageClient.INSTANCE.visual(wall.cast, wall.cast.id, "FINISH", wall.center, Vec3.ZERO, 600L, ++wall.sequence, motion);
-            CareerClient.INSTANCE.ended(wall.cast);
-            activeIceWall = null;
+            shatterIceWall(wall, now);
         }
     }
 
+    private static void shatterIceWall(IceWallState wall, long now) {
+        if (activeIceWall == wall) activeIceWall = null;
+        int elem = effectiveElem(wall.cast);
+        int mode = ElementalistRules.effectiveMorphMode(wall.cast.skill.id, wall.cast.parameters, wall.cast.stats);
+        double fin = wall.cast.parameters.get("finisher", 0.30);
+        if (fin > 0) {
+            for (var target : targetsInCylinder(wall.center, wall.blastRadius, 3.5)) {
+                issueSkill(wall.cast, target, fin, elem, 0.0, "", "shatter");
+            }
+        }
+        var motion = elemMotion(wall.cast, elem, mode);
+        motion.addProperty("radius", wall.blastRadius);
+        motion.addProperty("follow", wall.followPlayer);
+        MageClient.INSTANCE.visual(wall.cast, wall.cast.id, "FINISH", wall.center, Vec3.ZERO, (now - wall.start) + 650L, ++wall.sequence, motion);
+        CareerClient.INSTANCE.ended(wall.cast);
+    }
+
     private static void tickIceWaves(long now) {
+        var p = player();
         for (var it = iceWaves.iterator(); it.hasNext(); ) {
             var w = it.next();
             if (!MageClient.INSTANCE.valid(w.cast)) { it.remove(); continue; }
             TrainingCombat.touch(w.cast.id);
+            if (now < w.startAt) continue;
+            int elem = effectiveElem(w.cast);
+            if (!w.started) {
+                w.started = true;
+                if (p != null) {
+                    w.origin = p.position();
+                    w.dir = horizontal(p.getLookAngle());
+                }
+                w.start = w.lastTick = now;
+                var motion = elemMotion(w.cast, elem, 1);
+                motion.addProperty("range", w.range);
+                motion.addProperty("width", w.width);
+                motion.addProperty("travelMs", w.travelMs);
+                MageClient.INSTANCE.visualAt(w.cast, w.visualId, "START", w.origin, w.dir, now, w.travelMs + 400L, 0, motion);
+            }
             double dt = Math.clamp((now - w.lastTick) / 1000.0, 0.0, 0.2);
             w.lastTick = now;
             double prev = w.travelled;
             w.travelled = Math.min(w.range, w.travelled + 16.0 * dt);
             Vec3 from = w.origin.add(w.dir.scale(prev));
             Vec3 to = w.origin.add(w.dir.scale(w.travelled));
-            int elem = effectiveElem(w.cast);
             double coeff = w.cast.parameters.get("damage", 1.0);
             for (var target : SkillController.INSTANCE.targets(new AABB(from, to).inflate(w.width * 0.5, 2.0, w.width * 0.5))) {
                 Vec3 delta = target.position().subtract(w.origin);
@@ -918,7 +1324,7 @@ public final class ElementalistClient {
                 double side = Math.abs(delta.x * w.dir.z - delta.z * w.dir.x);
                 if (fwd >= prev - 1.0 && fwd <= w.travelled + 1.0 && side <= w.width * 0.5 + target.getBbWidth() * 0.5) {
                     if (w.struck.add(target.getUUID()) && SkillController.INSTANCE.sight(to.add(0, 1.0, 0), target.getBoundingBox().getCenter())) {
-                        MageClient.INSTANCE.issue(w.cast, target, coeff, elem, "", "ice_wave");
+                        issueSkill(w.cast, target, coeff, elem, 0.0, "", "ice_wave/" + w.waveIndex);
                     }
                     if (canDisplace(target)) {
                         queueMotion(target, target.position().add(w.dir.scale(1.6)));
@@ -926,9 +1332,11 @@ public final class ElementalistClient {
                 }
             }
             if (w.travelled >= w.range - 0.01) {
-                MageClient.INSTANCE.visual(w.cast, w.cast.id, "FINISH", to, w.dir, 400L, ++w.sequence, elemMotion(elem, 1));
-                CareerClient.INSTANCE.ended(w.cast);
+                MageClient.INSTANCE.visualAt(w.cast, w.visualId, "FINISH", to, w.dir, w.start, (now - w.start) + 400L, ++w.sequence, elemMotion(w.cast, elem, 1));
+                String castId = w.cast.id;
                 it.remove();
+                boolean anyRemaining = iceWaves.stream().anyMatch(o -> o.cast.id.equals(castId));
+                if (!anyRemaining) CareerClient.INSTANCE.ended(w.cast);
             }
         }
     }
@@ -943,8 +1351,11 @@ public final class ElementalistClient {
             int elem = effectiveElem(v.cast);
             while (v.delivered < v.totalHits && now >= v.nextHitAt) {
                 double coeff = v.cast.parameters.get("damage", 1.0);
+                int hitIdx = v.delivered;
                 for (var target : targetsInCylinder(v.center, v.radius, 3.2)) {
-                    MageClient.INSTANCE.issue(v.cast, target, coeff, elem, "", "vortex/" + v.delivered);
+                    if (issueSkill(v.cast, target, coeff, elem, 0.0, "", "vortex/" + hitIdx)) {
+                        triggerVortexChain(v.cast, target, coeff, elem, hitIdx, (v.totalHits * v.intervalMs) + 450L);
+                    }
                 }
                 v.delivered++;
                 v.nextHitAt += v.intervalMs;
@@ -956,7 +1367,7 @@ public final class ElementalistClient {
                 }
             }
             if (v.delivered >= v.totalHits) {
-                MageClient.INSTANCE.visual(v.cast, v.cast.id, "FINISH", v.center, Vec3.ZERO, 300L, ++v.sequence, elemMotion(elem, v.mode));
+                MageClient.INSTANCE.visual(v.cast, v.cast.id, "FINISH", v.center, Vec3.ZERO, (now - v.start) + 350L, ++v.sequence, elemMotion(v.cast, elem, v.mode));
                 CareerClient.INSTANCE.ended(v.cast);
                 it.remove();
             }
@@ -985,7 +1396,7 @@ public final class ElementalistClient {
                 for (var target : SkillController.INSTANCE.targets(new AABB(vs.position, vs.position).inflate(vs.radius, vs.radius + 1.0, vs.radius))) {
                     if (target.getBoundingBox().getCenter().distanceToSqr(vs.position) <= Math.pow(vs.radius + target.getBbWidth() * 0.5, 2)
                         && SkillController.INSTANCE.sight(vs.position, target.getBoundingBox().getCenter())) {
-                        MageClient.INSTANCE.issue(vs.cast, target, coeff, elem, "", "void/" + vs.delivered);
+                        issueSkill(vs.cast, target, coeff, elem, 0.0, "", "void/" + vs.delivered);
                         if (!vs.stationary && !vs.stopped && vs.pushStrength > 0 && canDisplace(target)) {
                             queueMotion(target, target.position().add(vs.dir.scale(vs.pushStrength)));
                         }
@@ -998,7 +1409,7 @@ public final class ElementalistClient {
                 if (vs.mode == 1) {
                     detonateVoidSphere(vs, now);
                 } else {
-                    MageClient.INSTANCE.visual(vs.cast, vs.cast.id, "FINISH", vs.position, vs.dir, 300L, ++vs.sequence, elemMotion(elem, vs.mode));
+                    MageClient.INSTANCE.visual(vs.cast, vs.cast.id, "FINISH", vs.position, vs.dir, (now - vs.start) + 650L, ++vs.sequence, elemMotion(vs.cast, elem, vs.mode));
                     CareerClient.INSTANCE.ended(vs.cast);
                 }
                 it.remove();
@@ -1010,18 +1421,19 @@ public final class ElementalistClient {
         int elem = effectiveElem(vs.cast);
         int remaining = Math.max(0, vs.totalTicks - vs.delivered);
         double foldIn = remaining * vs.cast.parameters.get("damage", 0.0) * vs.earlyKeepRatio;
-        double fin = vs.cast.parameters.get("finisher", 0.0) + foldIn;
+        double crystalFin = ElementalistRules.voidCrystalFinisher(vs.cast.parameters, vs.cast.stats);
+        double fin = vs.cast.parameters.get("finisher", 0.0) + foldIn + crystalFin;
         if (fin > 0) {
             for (var target : SkillController.INSTANCE.targets(new AABB(vs.position, vs.position).inflate(vs.blastRadius))) {
                 if (target.getBoundingBox().getCenter().distanceToSqr(vs.position) <= vs.blastRadius * vs.blastRadius
                     && SkillController.INSTANCE.sight(vs.position, target.getBoundingBox().getCenter())) {
-                    MageClient.INSTANCE.issue(vs.cast, target, fin, elem, "", "void_collapse");
+                    issueSkill(vs.cast, target, fin, elem, 0.0, "", "void_collapse");
                 }
             }
         }
-        var motion = elemMotion(elem, vs.mode);
+        var motion = elemMotion(vs.cast, elem, vs.mode);
         motion.addProperty("radius", vs.blastRadius);
-        MageClient.INSTANCE.visual(vs.cast, vs.cast.id, "FINISH", vs.position, vs.dir, 600L, ++vs.sequence, motion);
+        MageClient.INSTANCE.visual(vs.cast, vs.cast.id, "FINISH", vs.position, vs.dir, (now - vs.start) + 650L, ++vs.sequence, motion);
         CareerClient.INSTANCE.ended(vs.cast);
     }
 
@@ -1038,17 +1450,72 @@ public final class ElementalistClient {
                 double coeff = fp.cast.parameters.get("damage", 0.80);
                 double ctrl = fp.mode == 1 ? 0.0 : fp.controlSeconds;
                 for (var target : targetsInCylinder(c, fp.radius, 4.0)) {
-                    MageClient.INSTANCE.issueElementalist(fp.cast, target, coeff, elem, ctrl, "", "pillar/" + fp.nextPillar);
+                    issueSkill(fp.cast, target, coeff, elem, ctrl, "", "pillar/" + fp.nextPillar);
                 }
-                var motion = elemMotion(elem, fp.mode);
+                var motion = elemMotion(fp.cast, elem, fp.mode);
                 motion.addProperty("radius", fp.radius);
                 motion.addProperty("pillarIndex", fp.nextPillar);
                 MageClient.INSTANCE.visual(fp.cast, fp.cast.id, "HIT", c, Vec3.ZERO, fp.visualDuration, ++fp.sequence, motion);
+                if (fp.nextPillar == 0 && TowerBattleCard.ELEM_FLAME_VOLCANO.held(fp.cast.stats)) {
+                    spawnFlameVolcano(fp.cast, c, fp.radius, coeff, now);
+                }
                 fp.nextPillar++;
             }
             if (fp.nextPillar >= fp.centers.size()) {
-                CareerClient.INSTANCE.ended(fp.cast);
+                boolean hasVolcano = flameVolcanoes.stream().anyMatch(v -> v.cast.id.equals(fp.cast.id));
+                if (!hasVolcano) CareerClient.INSTANCE.ended(fp.cast);
                 it.remove();
+            }
+        }
+    }
+
+    private static void spawnFlameVolcano(SkillCast cast, Vec3 center, double pillarRadius, double pillarCoeff, long now) {
+        long durMs = TowerBattleCard.ELEM_FLAME_VOLCANO.millis("duration");
+        long intMs = Math.max(100L, TowerBattleCard.ELEM_FLAME_VOLCANO.millis("interval"));
+        var v = new FlameVolcanoState();
+        v.cast = cast;
+        v.visualId = subVisualId(cast.id, "volcano");
+        v.center = center;
+        v.radius = Math.max(3.5, pillarRadius * 1.15);
+        v.pullRadius = Math.max(5.5, pillarRadius * 1.65);
+        v.pullStrength = 2.2;
+        v.bombCoeff = pillarCoeff * TowerBattleCard.ELEM_FLAME_VOLCANO.ratio("damage");
+        v.start = now;
+        v.endAt = now + durMs;
+        v.intervalMs = intMs;
+        v.nextBombAt = now + intMs;
+        flameVolcanoes.add(v);
+        var motion = elemMotion(cast, effectiveElem(cast), 0);
+        motion.addProperty("radius", v.radius);
+        motion.addProperty("volcano", true);
+        motion.addProperty("volcanoMs", durMs);
+        MageClient.INSTANCE.visualAt(cast, v.visualId, "START", v.center, Vec3.ZERO, now, durMs + 600L, 0, motion);
+    }
+
+    private static void tickFlameVolcanoes(long now) {
+        for (var it = flameVolcanoes.iterator(); it.hasNext(); ) {
+            var v = it.next();
+            if (!MageClient.INSTANCE.valid(v.cast)) { it.remove(); continue; }
+            TrainingCombat.touch(v.cast.id);
+            pullToward(v.center, v.pullRadius, v.pullStrength * 0.05);
+            int[] elems = ElementalistRules.isPrismActive(v.cast.stats) ? ElementalistRules.ALL_FOUR_ELEMENTS : new int[]{1, 3};
+            while (now >= v.nextBombAt && v.nextBombAt <= v.endAt + 20L) {
+                for (var target : targetsInCylinder(v.center, v.radius, 4.0)) {
+                    MageClient.INSTANCE.issueMulti(v.cast, target, v.bombCoeff, elems, 0.0, "volcano", "flame_volcano/" + v.tickIndex);
+                }
+                v.tickIndex++;
+                v.nextBombAt += v.intervalMs;
+            }
+            if (now >= v.endAt) {
+                var finMotion = elemMotion(v.cast, effectiveElem(v.cast), 0);
+                finMotion.addProperty("radius", v.radius);
+                finMotion.addProperty("volcano", true);
+                MageClient.INSTANCE.visualAt(v.cast, v.visualId, "FINISH", v.center, Vec3.ZERO, v.start, (now - v.start) + 500L, ++v.sequence, finMotion);
+                String castId = v.cast.id;
+                it.remove();
+                boolean stillRunning = flamePillars.stream().anyMatch(f -> f.cast.id.equals(castId))
+                    || flameVolcanoes.stream().anyMatch(o -> o.cast.id.equals(castId));
+                if (!stillRunning) CareerClient.INSTANCE.ended(v.cast);
             }
         }
     }
@@ -1061,39 +1528,43 @@ public final class ElementalistClient {
             int elem = effectiveElem(m.cast);
             if (!m.spawned && now >= m.spawnAt) {
                 m.spawned = true;
-                var motion = elemMotion(elem, m.mode);
+                var motion = elemMotion(m.cast, elem, m.mode);
                 motion.addProperty("radius", m.radius);
                 motion.addProperty("shockwaveRadius", m.shockwaveRadius);
                 motion.addProperty("fallMs", Math.max(100L, m.impactAt - m.spawnAt));
+                motion.addProperty("emberMs", Math.max(0L, m.emberEndAt - m.impactAt));
                 motion.addProperty("meteorIndex", m.meteorIndex);
-                MageClient.INSTANCE.visual(m.cast, subVisualId(m.cast.id, "m/" + m.meteorIndex), "START", m.center, Vec3.ZERO,
-                    (m.impactAt - m.spawnAt) + Math.max(0L, m.emberEndAt - m.impactAt) + 700L, 0, motion);
+                long emberMs = Math.max(0L, m.emberEndAt - m.impactAt);
+                MageClient.INSTANCE.visualAt(m.cast, subVisualId(m.cast.id, "m/" + m.meteorIndex), "START", m.center, Vec3.ZERO,
+                    m.spawnAt, (m.impactAt - m.spawnAt) + Math.max(850L, emberMs + 400L) + 150L, 0, motion);
             }
             if (!m.impacted && now >= m.impactAt) {
                 m.impacted = true;
                 double coeff = m.cast.parameters.get("damage", 0.70);
                 for (var target : targetsInCylinder(m.center, m.radius, 4.5)) {
-                    MageClient.INSTANCE.issue(m.cast, target, coeff, elem, "", "buster_core/" + m.meteorIndex);
+                    issueSkill(m.cast, target, coeff, elem, 0.0, "", "buster_core/" + m.meteorIndex);
                 }
-                var motion = elemMotion(elem, m.mode);
+                var motion = elemMotion(m.cast, elem, m.mode);
                 motion.addProperty("radius", m.radius);
                 motion.addProperty("shockwaveRadius", m.shockwaveRadius);
-                MageClient.INSTANCE.visual(m.cast, m.meteorIndex == 0 ? m.cast.id : subVisualId(m.cast.id, "m/" + m.meteorIndex),
-                    "HIT", m.center, Vec3.ZERO, Math.max(700L, m.emberEndAt - now + 400L), ++m.sequence, motion);
+                long originStart = m.meteorIndex == 0 ? m.cast.start : m.spawnAt;
+                long linger = Math.max(850L, Math.max(0L, m.emberEndAt - now) + 400L) + 150L;
+                MageClient.INSTANCE.visualAt(m.cast, m.meteorIndex == 0 ? m.cast.id : subVisualId(m.cast.id, "m/" + m.meteorIndex),
+                    "HIT", m.center, Vec3.ZERO, originStart, (now - originStart) + linger, ++m.sequence, motion);
             }
             if (m.impacted && !m.shockwaved && now >= m.shockwaveAt) {
                 m.shockwaved = true;
                 double fin = m.cast.parameters.get("finisher", 0.30);
                 if (fin > 0) {
                     for (var target : targetsInCylinder(m.center, m.shockwaveRadius, 4.0)) {
-                        MageClient.INSTANCE.issue(m.cast, target, fin, elem, "", "buster_wave/" + m.meteorIndex);
+                        issueSkill(m.cast, target, fin, elem, 0.0, "", "buster_wave/" + m.meteorIndex);
                     }
                 }
             }
             if (m.impacted && m.emberEndAt > 0 && m.emberDot > 0) {
                 while (now >= m.nextEmberAt && m.nextEmberAt <= m.emberEndAt + 20L) {
                     for (var target : targetsInCylinder(m.center, m.radius, 2.5)) {
-                        MageClient.INSTANCE.issue(m.cast, target, m.emberDot, elem, "ember", "buster_ember/" + m.emberTick);
+                        issueSkill(m.cast, target, m.emberDot, elem, 0.0, "ember", "buster_ember/" + m.meteorIndex + "/" + m.emberTick);
                     }
                     m.emberTick++;
                     m.nextEmberAt += m.emberIntervalMs;
@@ -1115,34 +1586,44 @@ public final class ElementalistClient {
             TrainingCombat.touch(a.cast.id);
             int elem = effectiveElem(a.cast);
             long visualDuration = a.finisherAt - a.start + ElementalistVisuals.ARCTIC_FINISH_MS;
+            if (a.pullRadius > 0 && a.pullStrength > 0) {
+                pullToward(a.center, a.pullRadius, a.pullStrength * (a.mode == 1 ? 0.14 : 0.05));
+            }
             if (a.mode == 1) {
                 // 冰封王座·瞬碎: giant spire pierce at 0.20s + shatter at 0.45s
+                double totalMergedDamage = a.cast.parameters.get("damage", 0.09375);
+                boolean cardThrone = TowerBattleCard.ELEM_ARCTIC_THRONE.held(a.cast.stats) || a.totalWaves <= 1;
+                double pierceCoeff = cardThrone ? totalMergedDamage * 0.50 : totalMergedDamage * 4.0;
                 if (!a.pierced && now >= a.nextWaveAt) {
                     a.pierced = true;
-                    double pierceCoeff = a.cast.parameters.get("damage", 0.09375) * 4.0;
                     for (var target : targetsInCylinder(a.center, a.radius, 5.0)) {
-                        MageClient.INSTANCE.issue(a.cast, target, pierceCoeff, elem, "", "arctic_spire");
+                        issueSkill(a.cast, target, pierceCoeff, elem, 0.0, "", "arctic_spire");
                     }
-                    MageClient.INSTANCE.visual(a.cast, a.cast.id, "HIT", a.center, Vec3.ZERO, visualDuration, ++a.sequence, elemMotion(elem, 1));
+                    MageClient.INSTANCE.visual(a.cast, a.cast.id, "HIT", a.center, Vec3.ZERO, visualDuration, ++a.sequence, elemMotion(a.cast, elem, 1));
                 }
                 if (now >= a.finisherAt) {
-                    double finCoeff = a.cast.parameters.get("finisher", 0.25) + a.cast.parameters.get("damage", 0.09375) * 4.0;
+                    double finCoeff = a.cast.parameters.get("finisher", 0.25) + pierceCoeff;
+                    boolean vortexBreak = TowerBattleCard.ELEM_ARCTIC_VORTEX.held(a.cast.stats);
+                    double breakScale = vortexBreak ? TowerBattleCard.ELEM_ARCTIC_VORTEX.ratio("shatter") : 0.0;
+                    long serverNow = state().serverNow();
                     for (var target : targetsInCylinder(a.center, a.radius, 5.0)) {
-                        MageClient.INSTANCE.issueElementalist(a.cast, target, finCoeff, elem, a.freezeSeconds, "", "arctic_shatter");
+                        var ctx = state().context(target);
+                        boolean frozen = vortexBreak && ctx != null && ctx.life.elemental.active(ElementAccumulation.Kind.FREEZE, ctx.life, serverNow);
+                        issueSkill(a.cast, target, finCoeff, elem, a.freezeSeconds, "", "arctic_shatter");
+                        if (frozen && breakScale > 0) {
+                            issueSkill(a.cast, target, finCoeff * breakScale, elem, 0.0, "", "arctic_icebreak");
+                        }
                     }
-                    MageClient.INSTANCE.visual(a.cast, a.cast.id, "FINISH", a.center, Vec3.ZERO, visualDuration, ++a.sequence, elemMotion(elem, 1));
+                    MageClient.INSTANCE.visual(a.cast, a.cast.id, "FINISH", a.center, Vec3.ZERO, visualDuration, ++a.sequence, elemMotion(a.cast, elem, 1));
                     CareerClient.INSTANCE.ended(a.cast);
                     it.remove();
                 }
                 continue;
             }
-            if (a.pullRadius > 0 && a.pullStrength > 0) {
-                pullToward(a.center, a.pullRadius, a.pullStrength * 0.05);
-            }
             while (a.delivered < a.totalWaves && now >= a.nextWaveAt) {
                 double coeff = a.cast.parameters.get("damage", 0.09375);
                 for (var target : targetsInCylinder(a.center, a.radius, 4.5)) {
-                    MageClient.INSTANCE.issue(a.cast, target, coeff, elem, "", "arctic/" + a.delivered);
+                    issueSkill(a.cast, target, coeff, elem, 0.0, "", "arctic/" + a.delivered);
                 }
                 a.delivered++;
                 a.nextWaveAt += a.intervalMs;
@@ -1150,11 +1631,19 @@ public final class ElementalistClient {
             if (now >= a.finisherAt) {
                 double fin = a.cast.parameters.get("finisher", 0.25);
                 if (fin > 0) {
+                    boolean vortexBreak = TowerBattleCard.ELEM_ARCTIC_VORTEX.held(a.cast.stats);
+                    double breakScale = vortexBreak ? TowerBattleCard.ELEM_ARCTIC_VORTEX.ratio("shatter") : 0.0;
+                    long serverNow = state().serverNow();
                     for (var target : targetsInCylinder(a.center, a.radius, 4.5)) {
-                        MageClient.INSTANCE.issueElementalist(a.cast, target, fin, elem, a.freezeSeconds, "", "arctic_finisher");
+                        var ctx = state().context(target);
+                        boolean frozen = vortexBreak && ctx != null && ctx.life.elemental.active(ElementAccumulation.Kind.FREEZE, ctx.life, serverNow);
+                        issueSkill(a.cast, target, fin, elem, a.freezeSeconds, "", "arctic_finisher");
+                        if (frozen && breakScale > 0) {
+                            issueSkill(a.cast, target, fin * breakScale, elem, 0.0, "", "arctic_icebreak");
+                        }
                     }
                 }
-                var motion = elemMotion(elem, a.mode);
+                var motion = elemMotion(a.cast, elem, a.mode);
                 motion.addProperty("radius", a.radius);
                 MageClient.INSTANCE.visual(a.cast, a.cast.id, "FINISH", a.center, Vec3.ZERO, visualDuration, ++a.sequence, motion);
                 CareerClient.INSTANCE.ended(a.cast);
@@ -1169,9 +1658,9 @@ public final class ElementalistClient {
             if (!MageClient.INSTANCE.valid(bh.cast)) { it.remove(); continue; }
             TrainingCombat.touch(bh.cast.id);
             if (bh.detonated) {
-                // Lingering gravity sub-hole (Morph A)
+                // Lingering gravity sub-hole (Morph A / 中央宇宙)
                 if (now < bh.subHoleEndAt) {
-                    pullToward(bh.center, bh.pullRadius * 0.75, bh.pullStrength * 0.04);
+                    pullToward(bh.center, bh.pullRadius * 0.90, bh.pullStrength * 0.05);
                 } else {
                     CareerClient.INSTANCE.ended(bh.cast);
                     it.remove();
@@ -1183,7 +1672,7 @@ public final class ElementalistClient {
             while (bh.delivered < bh.totalTicks && now >= bh.nextTickAt && now <= bh.endAt + 30L) {
                 double coeff = bh.cast.parameters.get("damage", 0.06);
                 for (var target : targetsInSphere(bh.center, bh.radius)) {
-                    MageClient.INSTANCE.issue(bh.cast, target, coeff, elem, "", "bh/" + bh.delivered);
+                    issueSkill(bh.cast, target, coeff, elem, 0.0, "", "bh/" + bh.delivered);
                 }
                 bh.delivered++;
                 bh.nextTickAt += bh.intervalMs;
@@ -1191,7 +1680,7 @@ public final class ElementalistClient {
             if (bh.volcanoDot > 0 && now >= bh.nextVolcanoAt && now <= bh.endAt + 30L) {
                 int fireElem = bh.cast.parameters.get("dyeEnabled", 0.0) >= 1.0 ? elem : 1;
                 for (var target : targetsInSphere(bh.center, bh.radius + 1.0)) {
-                    MageClient.INSTANCE.issue(bh.cast, target, bh.volcanoDot, fireElem, "volcano", "bh_volcano/" + bh.volcanoTick);
+                    issueSkill(bh.cast, target, bh.volcanoDot, fireElem, 0.0, "volcano", "bh_volcano/" + bh.volcanoTick);
                 }
                 bh.volcanoTick++;
                 bh.nextVolcanoAt += bh.intervalMs;
@@ -1215,15 +1704,15 @@ public final class ElementalistClient {
         double fin = bh.cast.parameters.get("finisher", 0.40) + foldIn;
         if (fin > 0) {
             for (var target : targetsInSphere(bh.center, bh.blastRadius)) {
-                MageClient.INSTANCE.issue(bh.cast, target, fin, elem, "", "bh_collapse");
+                issueSkill(bh.cast, target, fin, elem, 0.0, "", "bh_collapse");
             }
         }
         long subMs = Math.max(0L, Math.round(bh.cast.parameters.get("subHoleDuration", 0.0) * 1000.0));
         bh.subHoleEndAt = subMs > 0 ? now + subMs : 0L;
-        var motion = elemMotion(elem, bh.mode);
+        var motion = elemMotion(bh.cast, elem, bh.mode);
         motion.addProperty("blastRadius", bh.blastRadius);
         motion.addProperty("subHoleMs", subMs);
-        MageClient.INSTANCE.visual(bh.cast, bh.cast.id, "FINISH", bh.center, Vec3.ZERO, Math.max(700L, subMs + 400L), ++bh.sequence, motion);
+        MageClient.INSTANCE.visual(bh.cast, bh.cast.id, "FINISH", bh.center, Vec3.ZERO, (now - bh.start) + Math.max(800L, subMs + 400L), ++bh.sequence, motion);
         if (manual && subMs <= 0) {
             blackHoles.remove(bh);
             CareerClient.INSTANCE.ended(bh.cast);
@@ -1259,7 +1748,8 @@ public final class ElementalistClient {
         int elem = effectiveElem(ch.cast);
         while (ch.delivered < ch.totalBolts && now >= ch.nextBoltAt) {
             double coeff = ch.cast.parameters.get("damage", 0.20);
-            dropThunderBolt(ch.cast, ch.reticle, ch.radius, coeff, elem, ch.pullOnHit, ch.delivered, 0);
+            long visualDur = Math.max((ch.endAt - ch.start) + 650L, (now - ch.start) + 650L);
+            dropThunderBolt(ch.cast, ch.reticle, ch.radius, coeff, elem, ch.pullOnHit, ch.delivered, 0, ++ch.sequence, visualDur);
             ch.delivered++;
             ch.nextBoltAt += ch.intervalMs;
         }
@@ -1276,21 +1766,22 @@ public final class ElementalistClient {
             var cloud = it.next();
             if (!MageClient.INSTANCE.valid(cloud.cast)) { it.remove(); continue; }
             TrainingCombat.touch(cloud.cast.id);
-            var target = findNearestEnemy(cloud.pos, 10.0);
+            var target = findNearestEnemy(cloud.pos, 14.0);
             if (target != null) {
                 Vec3 delta = target.position().subtract(cloud.pos);
-                double step = 0.45;
+                double step = 0.65;
                 cloud.pos = delta.length() > step ? cloud.pos.add(delta.normalize().scale(step)) : target.position();
             }
             int elem = effectiveElem(cloud.cast);
             while (cloud.delivered < cloud.totalBolts && now >= cloud.nextBoltAt && now <= cloud.endAt + 50L) {
                 double coeff = cloud.cast.parameters.get("damage", 0.20);
-                dropThunderBolt(cloud.cast, cloud.pos, cloud.radius, coeff, elem, cloud.pullOnHit, cloud.delivered, 2);
+                long visualDur = Math.max((cloud.endAt - cloud.start) + 650L, (now - cloud.start) + 650L);
+                dropThunderBolt(cloud.cast, cloud.pos, cloud.radius, coeff, elem, cloud.pullOnHit, cloud.delivered, 2, ++cloud.sequence, visualDur);
                 cloud.delivered++;
                 cloud.nextBoltAt += cloud.intervalMs;
             }
             if (cloud.delivered >= cloud.totalBolts || now >= cloud.endAt) {
-                MageClient.INSTANCE.visual(cloud.cast, cloud.cast.id, "FINISH", cloud.pos.add(0, 5.5, 0), Vec3.ZERO, 400L, ++cloud.sequence, elemMotion(elem, 2));
+                MageClient.INSTANCE.visual(cloud.cast, cloud.cast.id, "FINISH", cloud.pos.add(0, 5.5, 0), Vec3.ZERO, Math.max((cloud.endAt - cloud.start) + 650L, (now - cloud.start) + 650L), ++cloud.sequence, elemMotion(cloud.cast, elem, 2));
                 CareerClient.INSTANCE.ended(cloud.cast);
                 it.remove();
             }
@@ -1298,9 +1789,9 @@ public final class ElementalistClient {
     }
 
     private static void dropThunderBolt(SkillCast c, Vec3 point, double radius, double coeff,
-                                        int elem, double pullOnHit, int index, int mode) {
+                                        int elem, double pullOnHit, int index, int mode, int sequence, long visualDuration) {
         for (var target : targetsInCylinder(point, radius, 6.0)) {
-            MageClient.INSTANCE.issue(c, target, coeff, elem, "", "thunder/" + index);
+            issueSkill(c, target, coeff, elem, 0.0, "", "thunder/" + index);
             if (pullOnHit > 0 && canDisplace(target)) {
                 Vec3 toCenter = point.subtract(target.position());
                 double horiz = Math.hypot(toCenter.x, toCenter.z);
@@ -1311,10 +1802,10 @@ public final class ElementalistClient {
                 }
             }
         }
-        var motion = elemMotion(elem, mode);
+        var motion = elemMotion(c, elem, mode);
         motion.addProperty("radius", radius);
         motion.addProperty("boltIndex", index);
-        MageClient.INSTANCE.visual(c, subVisualId(c.id, "bolt/" + index), "HIT", point, Vec3.ZERO, 650L, 0, motion);
+        MageClient.INSTANCE.visual(c, c.id, "HIT", point, Vec3.ZERO, visualDuration, sequence, motion);
     }
 
     private static void tickAstralStorms(long now) {
@@ -1358,7 +1849,7 @@ public final class ElementalistClient {
             Vec3 dropPoint = pickMeteorPoint(st);
             int idx = st.delivered;
             st.meteors.add(new PendingMeteor(dropPoint, elem, now + ASTRAL_METEOR_FALL_MS, idx));
-            MageClient.INSTANCE.visual(st.cast, st.cast.id, "HIT", dropPoint, Vec3.ZERO, visualDuration, ++st.sequence, elemMotion(elem, st.mode));
+            MageClient.INSTANCE.visual(st.cast, st.cast.id, "HIT", dropPoint, Vec3.ZERO, visualDuration, ++st.sequence, elemMotion(st.cast, elem, st.mode));
             st.delivered++;
             st.nextMeteorAt += st.intervalMs;
         }
@@ -1368,7 +1859,7 @@ public final class ElementalistClient {
             if (now >= m.impactAt()) {
                 double coeff = st.cast.parameters.get("damage", 0.040625);
                 for (var target : targetsInCylinder(m.point(), st.meteorRadius, 5.0)) {
-                    MageClient.INSTANCE.issue(st.cast, target, coeff, m.element(), "", "meteor/" + m.index());
+                    issueSkill(st.cast, target, coeff, m.element(), 0.0, "", "meteor/" + m.index());
                 }
                 mit.remove();
             }
@@ -1377,12 +1868,13 @@ public final class ElementalistClient {
         if (now >= st.endAt) {
             double fin = st.cast.parameters.get("finisher", 0.35);
             if (fin > 0) {
-                int[] finElems = dyed >= 0 ? new int[]{dyed} : new int[]{0, 1, 2, 3};
+                int[] finElems = ElementalistRules.isPrismActive(st.cast.stats) ? ElementalistRules.ALL_FOUR_ELEMENTS
+                    : dyed >= 0 ? new int[]{dyed} : new int[]{0, 1, 2, 3};
                 for (var target : targetsInCylinder(st.center, st.finisherRadius, 6.0)) {
                     MageClient.INSTANCE.issueMulti(st.cast, target, fin, finElems, 0.0, "", "astral_core");
                 }
             }
-            var motion = elemMotion(dyed >= 0 ? dyed : -1, st.mode);
+            var motion = elemMotion(st.cast, dyed >= 0 ? dyed : -1, st.mode);
             motion.addProperty("finisherRadius", st.finisherRadius);
             MageClient.INSTANCE.visual(st.cast, st.cast.id, "FINISH", st.center, Vec3.ZERO, visualDuration, ++st.sequence, motion);
             st.finished = true;
@@ -1429,11 +1921,52 @@ public final class ElementalistClient {
         return ElementalistRules.effectiveElement(c.parameters, c.stats, ElementalistSkills.innateElement(c.skill.id));
     }
 
-    private static JsonObject elemMotion(int element, int morphMode) {
+    private static void withElementBuildup(SkillCast c, ElementAccumulation.Kind kind, double ratio) {
+        if (c == null || c.stats == null || !(ratio > 0.0)) return;
+        Stats copy = c.stats.copy();
+        for (int e = 0; e < 4; e++) ElementAccumulation.addConversion(copy, e, kind, ratio);
+        c.stats = copy;
+    }
+
+    private static boolean issueSkill(SkillCast c, LivingEntity target, double coeff, int elem,
+                                      double controlSeconds, String phase, String group) {
+        if (ElementalistRules.isPrismActive(c.stats)) {
+            return MageClient.INSTANCE.issueMulti(c, target, coeff, ElementalistRules.ALL_FOUR_ELEMENTS, controlSeconds, phase, group);
+        }
+        return MageClient.INSTANCE.issueElementalist(c, target, coeff, elem, controlSeconds, phase, group);
+    }
+
+    private static Vec3 rotateYaw(Vec3 v, double rad) {
+        double cos = Math.cos(rad), sin = Math.sin(rad);
+        Vec3 r = new Vec3(v.x * cos - v.z * sin, v.y, v.x * sin + v.z * cos);
+        return r.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : r.normalize();
+    }
+
+    private static Vec3 nearestOnBox(LivingEntity e, Vec3 p) {
+        var b = e.getBoundingBox();
+        return new Vec3(Math.clamp(p.x, b.minX, b.maxX), Math.clamp(p.y, b.minY, b.maxY), Math.clamp(p.z, b.minZ, b.maxZ));
+    }
+
+    private static LivingEntity findNearestEnemy3D(Vec3 center, double radius) {
+        LivingEntity best = null;
+        double bestSq = radius * radius;
+        for (var e : SkillController.INSTANCE.targets(new AABB(center, center).inflate(radius))) {
+            double sq = e.getBoundingBox().getCenter().distanceToSqr(center);
+            if (sq <= bestSq && SkillController.INSTANCE.sight(center, e.getBoundingBox().getCenter())) {
+                bestSq = sq;
+                best = e;
+            }
+        }
+        return best;
+    }
+
+    private static JsonObject elemMotion(SkillCast c, int element, int morphMode) {
         var motion = new JsonObject();
+        boolean prism = c != null && ElementalistRules.isPrismActive(c.stats);
         motion.addProperty("element", element);
-        motion.addProperty("color", ElementalistRules.elementColor(element));
+        motion.addProperty("color", prism ? ElementalistRules.COLOR_PRISM : ElementalistRules.elementColor(element));
         motion.addProperty("morphMode", morphMode);
+        if (prism) motion.addProperty("prism", true);
         return motion;
     }
 
@@ -1551,9 +2084,17 @@ public final class ElementalistClient {
     public static void cancel(String id) {
         if (activeIceWall != null && activeIceWall.cast.id.equals(id)) activeIceWall = null;
         iceWaves.removeIf(w -> w.cast.id.equals(id));
+        jackFlights.removeIf(f -> {
+            if (f.cast.id.equals(id)) {
+                liveJackPositions.remove(f.visualUuid);
+                return true;
+            }
+            return false;
+        });
         vortices.removeIf(v -> v.cast.id.equals(id));
         voidSpheres.removeIf(v -> v.cast.id.equals(id));
         flamePillars.removeIf(f -> f.cast.id.equals(id));
+        flameVolcanoes.removeIf(v -> v.cast.id.equals(id));
         busterMeteors.removeIf(m -> m.cast.id.equals(id));
         arctics.removeIf(a -> a.cast.id.equals(id));
         blackHoles.removeIf(b -> b.cast.id.equals(id));
@@ -1571,14 +2112,18 @@ public final class ElementalistClient {
         }
         activeIceWall = null;
         iceWaves.clear();
+        jackFlights.clear();
+        liveJackPositions.clear();
         vortices.clear();
         voidSpheres.clear();
         flamePillars.clear();
+        flameVolcanoes.clear();
         busterMeteors.clear();
         arctics.clear();
         blackHoles.clear();
         stormClouds.clear();
         detachedStorms.clear();
+        resistShredUntil.clear();
         chargePools.clear();
         pendingMotions.clear();
     }

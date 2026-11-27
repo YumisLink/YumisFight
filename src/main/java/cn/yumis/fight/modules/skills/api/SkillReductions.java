@@ -21,6 +21,7 @@ public final class SkillReductions {
         for(String id:SunMoonSkills.ALL)register(id,s->s.sunMoon=new SunMoonState(),r->{});
         for(String id:ElementalistSkills.ALL)register(id,s->s.elementalist=new ElementalistState(),r->{});
         for(String id:BattleMageSkills.ALL)register(id,s->s.battleMage=new BattleMageState(),r->{});
+        for(String id:WitchSkills.ALL)register(id,s->s.witch=new WitchState(),r->{});
     }
     private SkillReductions(){}
     public static void apply(String id,CareerState state,Runtime resources){var handler=HANDLERS.get(id);if(handler!=null){handler.state.accept(state);handler.resources.accept(resources);}}

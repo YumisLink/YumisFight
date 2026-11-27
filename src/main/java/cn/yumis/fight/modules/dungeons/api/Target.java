@@ -123,11 +123,12 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     public WaystoneRun.MonsterModifiers waystone;
     public double defense(int level,boolean magic){
         if(training())return 0;
+        var g=EnemyBalanceRules.current().global;
         double content=magic?magicalDefenseBase:physicalDefenseBase;
-        double base=content>=0?content:magic?20+5*(level-1):30+8*(level-1);
+        double base=content>=0?content:magic?g.magicalDefenseBase()+g.magicalDefensePerLevel()*(level-1):g.physicalDefenseBase()+g.physicalDefensePerLevel()*(level-1);
         double waystoneIncrease=waystone==null?0:waystone.effect("monster_defense");
         double multiplier=waystone==null?1:waystone.multiplier();
-        return base*(1+(elitePower.equals("armor")?.5:0)+encounterDefenseIncrease+waystoneIncrease)*multiplier*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);
+        return base*(1+(elitePower.equals("armor")?g.elitePowerArmorDefenseAdd():0)+encounterDefenseIncrease+waystoneIncrease)*multiplier*cn.yumis.fight.modules.combat.api.ElementAccumulation.defense(life.elemental,life);
     }
     /** Single boss/elite action-time entry. Cooldowns deliberately stay outside this object. */
     public ActionTiming actionTiming(long now){
@@ -142,7 +143,8 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
     }
     public double[] resistances(){
         double[] copy=elementalResists.clone();
-        double increase=(waystone==null?0:waystone.effect("monster_resistance"))+(elitePower.equals("elemental")?30:0);
+        var g=EnemyBalanceRules.current().global;
+        double increase=(waystone==null?0:waystone.effect("monster_resistance"))+(elitePower.equals("elemental")?g.elitePowerElementalResistAdd():0);
         for(int i=0;i<4;i++)copy[i]+=increase;
         return copy;
     }
@@ -162,24 +164,36 @@ public class Target implements cn.yumis.fight.modules.combat.api.CombatTarget {
         return fixedLevel?originalLevel:training()?playerLevel:sync?Math.max(originalLevel,playerLevel):originalLevel;
     }
     public double health(int level){
-        if(training())return 10000;
+        var g=EnemyBalanceRules.current().global;
+        if(training())return g.baseTrainingHealth();
         double base=switch(kind){
-            case "BOSS","yumis_dungeon_and_fight:dragon"->2000;
-            case "WITHER"->1500;
-            default->50;
-        }
-        ;
+            case "BOSS","yumis_dungeon_and_fight:dragon"->g.baseBossHealth();
+            case "WITHER"->g.baseWitherHealth();
+            default->g.baseNormalHealth();
+        };
         double growth=growth(level);
         double multiplier=waystone==null?1:waystone.multiplier()*(1+waystone.effect("monster_health"));
         double field=tower==null?1:TowerClimbRules.enemyHealthFactor(tower);
-        return base*growth*difficulty.health*partyMultiplier(partySize)*(elite?3:1)*speciesHealth*(elitePower.equals("strong")?1.5:1)*multiplier*field;
+        double globalRole=boss()?g.bossHealthMultiplier():elite?g.eliteHealthMultiplier():g.normalHealthMultiplier();
+        return base*growth*difficulty.effectiveHealth()*partyMultiplier(partySize)*(elite?g.eliteBaseHealthFactor():1)*speciesHealth*(elitePower.equals("strong")?g.elitePowerStrongHealth():1)*multiplier*field*globalRole;
     }
     public double attack(int level){
-        // The added pressure grows from x3 at level 1 to x12 at level 80, then stays at x12.
-        double attackScale=3+9*(Math.clamp(level,1,80)-1)/79d;
+        var g=EnemyBalanceRules.current().global;
+        int maxLvl=g.attackScaleMaxLevel();
+        double attackScale=g.attackScaleMin()+(g.attackScaleMax()-g.attackScaleMin())*(Math.clamp(level,1,maxLvl)-1)/(double)(maxLvl-1);
         double multiplier=waystone==null?1:waystone.multiplier()*(1+waystone.effect("monster_attack"));
         double field=tower==null?1:TowerClimbRules.enemyAttackFactor(tower);
-        return (kind.equals("yumis_dungeon_and_fight:dragon")?15+3*(level-1):kind.equals("WITHER")?12.5+2.5*(level-1):kind.equals("BOSS")?10+2*(level-1):5+(level-1))*difficulty.attack*(elite?1.5:1)*speciesAttack*(elitePower.equals("rage")?1.3:1)*multiplier*attackScale*field;
+        double base=kind.equals("yumis_dungeon_and_fight:dragon")?g.dragonAttackBase()+g.dragonAttackPerLevel()*(level-1)
+            :kind.equals("WITHER")?g.witherAttackBase()+g.witherAttackPerLevel()*(level-1)
+            :kind.equals("BOSS")?g.bossAttackBase()+g.bossAttackPerLevel()*(level-1)
+            :g.normalAttackBase()+g.normalAttackPerLevel()*(level-1);
+        double globalRole=boss()?g.bossAttackMultiplier():elite?g.eliteAttackMultiplier():g.normalAttackMultiplier();
+        return base*difficulty.effectiveAttack()*(elite?g.eliteBaseAttackFactor():1)*speciesAttack*(elitePower.equals("rage")?g.elitePowerRageAttack():1)*multiplier*attackScale*field*globalRole;
     }
-    private static double growth(int level){if(level<1)throw new IllegalArgumentException("敌人等级无效");return level<=HEALTH_GROWTH.length?HEALTH_GROWTH[level-1]:HEALTH_GROWTH[HEALTH_GROWTH.length-1]*Math.pow(1.08,level-HEALTH_GROWTH.length);}
+    private static double growth(int level){
+        if(level<1)throw new IllegalArgumentException("敌人等级无效");
+        double base=EnemyBalanceRules.current().global.healthGrowthBase();
+        if(base==1.08&&level<=HEALTH_GROWTH.length)return HEALTH_GROWTH[level-1];
+        return Math.pow(base,level-1);
+    }
 }

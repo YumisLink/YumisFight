@@ -18,6 +18,9 @@ import java.util.*;
 /** All tracks are disposable presentation of committed world-unit facts. */
 public final class ArkVisuals {
     private static final float ENEMY_HEALTH_SCALE=.75f;
+    private static final int HEALTH_BAR_HEIGHT = 7;
+    private static final int RAGE_BAR_Y = 8;
+    private static final int RAGE_BAR_HEIGHT = 5;
     private static final int HEAL_COLOR=0x6FF390;
     private record Unit(UUID id,int entity,boolean enemy,double maximum,double health,String mode,double skill,double rate,long at,long skillEnd,double rage){
         Unit health(double value){return new Unit(id,entity,enemy,maximum,value,mode,skill,rate,at,skillEnd,rage);}
@@ -181,11 +184,17 @@ public final class ArkVisuals {
         if(unit.enemy()){
             float scale=ENEMY_HEALTH_SCALE;
             if(ClientSettings.enemyHealthPerspective)scale*=Math.clamp(12f/(float)relative.length(),.25f,2f);
+            if(actor instanceof ArkEnemyEntity enemy && enemy.boss()){
+                float bossScale = (float) ClientSettings.bossHealthScale();
+                int height = unit.rage()>0 ? RAGE_BAR_Y + RAGE_BAR_HEIGHT : HEALTH_BAR_HEIGHT;
+                y -= Math.round(height * scale * (bossScale - 1));
+                scale *= bossScale;
+            }
             graphics.pose().pushMatrix();
             graphics.pose().translate(centerX-width*scale*.5f,y);
             graphics.pose().scale(scale,scale);
             healthBar(graphics,0,0,width,unit.health(),unit.maximum(),false);
-            if(unit.rage()>0)bar(graphics,0,8,width,5,Math.clamp(unit.rage()/10,0,1),unit.rage()>=10&&(ClientUi.current().serverNow()/150&1)==0?0xFFF7DA7A:0xFFDFB545);
+            if(unit.rage()>0)bar(graphics,0,RAGE_BAR_Y,width,RAGE_BAR_HEIGHT,Math.clamp(unit.rage()/10,0,1),unit.rage()>=10&&(ClientUi.current().serverNow()/150&1)==0?0xFFF7DA7A:0xFFDFB545);
             graphics.pose().popMatrix();
             return;
         }
@@ -207,7 +216,7 @@ public final class ArkVisuals {
     }
     private static void healthBar(GuiGraphicsExtractor graphics,int x,int y,int width,double value,double maximum,boolean precise){
         double health=Math.clamp(value,0,maximum);
-        bar(graphics,x,y,width,7,health/Math.max(1,maximum),0xFFBC4859);
+        bar(graphics,x,y,width,HEALTH_BAR_HEIGHT,health/Math.max(1,maximum),0xFFBC4859);
         String text=healthText(health,maximum,precise);var font=UiFonts.font();
         float scale=Math.min(.65f,(width-4f)/Math.max(1,font.width(text)));
         graphics.pose().pushMatrix();graphics.pose().translate(x+(width-font.width(text)*scale)/2,y+.5f);graphics.pose().scale(scale,scale);

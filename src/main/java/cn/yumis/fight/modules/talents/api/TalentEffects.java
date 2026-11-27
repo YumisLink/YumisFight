@@ -43,19 +43,20 @@ public final class TalentEffects {
     private static boolean matches(TalentCatalog.Condition condition,String kind){return condition!=null&&(kind==null||condition.kind().equals(kind));}
     private static void apply(Stats s,TalentCatalog.Effect effect,int lines,int capstones,TalentConditions.View view){
         if(effect.condition()!=null&&(view==null||!view.satisfies(effect.condition())))return;
+        double value=effect.value()*TalentBalanceRules.current().valueMultiplier();
         switch(effect.channel()){
-            case "mut"->s.mut(stat(effect),effect.value());
-            case "add"->s.add(stat(effect),effect.value());
-            case "total"->s.attribute(stat(effect)).alls*=1+effect.value();
-            case "final"->s.modifiers.merge("final",effect.value(),Double::sum);
-            case "crit"->s.modifiers.merge("crit",effect.value(),Double::sum);
-            case "taken"->s.modifiers.merge("taken",effect.value(),Double::sum);
-            case "param"->s.modifiers.merge(effect.key(),effect.value(),Double::sum);
-            case "count"->s.modifiers.merge("final",effect.value()*(effect.key().equals("capstone")?capstones:lines),Double::sum);
-            case "killHeal"->s.modifiers.merge(effect.key().isEmpty()?"talentKillHeal":"talentKillHealSummon",effect.value(),Double::sum);
+            case "mut"->s.mut(stat(effect),value);
+            case "add"->s.add(stat(effect),value);
+            case "total"->s.attribute(stat(effect)).alls*=1+value;
+            case "final"->s.modifiers.merge("final",value,Double::sum);
+            case "crit"->s.modifiers.merge("crit",value,Double::sum);
+            case "taken"->s.modifiers.merge("taken",value,Double::sum);
+            case "param"->s.modifiers.merge(effect.key(),value,Double::sum);
+            case "count"->s.modifiers.merge("final",value*(effect.key().equals("capstone")?capstones:lines),Double::sum);
+            case "killHeal"->s.modifiers.merge(effect.key().isEmpty()?"talentKillHeal":"talentKillHealSummon",value,Double::sum);
             case "conversion"->{
                 int split=effect.key().indexOf(':');
-                for(int element:elements(effect.key().substring(0,split)))ElementAccumulation.addConversion(s,element,ElementAccumulation.kind(effect.key().substring(split+1)),effect.value());
+                for(int element:elements(effect.key().substring(0,split)))ElementAccumulation.addConversion(s,element,ElementAccumulation.kind(effect.key().substring(split+1)),value);
             }
             default->throw new IllegalArgumentException("未知效果通道："+effect.channel());
         }

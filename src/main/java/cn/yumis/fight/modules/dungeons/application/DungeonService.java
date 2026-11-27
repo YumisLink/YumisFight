@@ -48,13 +48,19 @@ public class DungeonService {
     private final PracticeEncounterService practiceRooms;
     final AbyssEncounterService abyss;
     private final GoblinCampEncounterService goblinCamp;
-    private final DragonTowerEncounterService dragonTower;
+    final DragonTowerEncounterService dragonTower;
+    public final LucasEncounterService lucas;
     public final GblEncounterService gbl;
     public final PalaceEncounterService palace;
     public final ForbiddenEncounterService forbidden;
     public final SkasaEncounterService skasa;
     public final DarkCityEncounterService darkCity;
     public final ElainaEncounterService elaina;
+    public final LiangyueEncounterService liangyue;
+    public final FrostnovaEncounterService frostnova;
+    public final GilgameshEncounterService gilgamesh;
+    public final SwordMastersEncounterService swordMasters;
+    public final RoxyEncounterService roxy;
     public final EnemyActionRuntime actions;
     private final List<ClassicEncounterService> classic;
     @FunctionalInterface private interface EnemyBrain {void tick(Dungeon d,DungeonEnemy e,List<ServerPlayer> players,long now)throws Exception;}
@@ -121,12 +127,18 @@ public class DungeonService {
         this.abyss=new AbyssEncounterService(this,journal,players,targets);
         this.goblinCamp=new GoblinCampEncounterService(this,journal);
         this.dragonTower=new DragonTowerEncounterService(this,journal,players);
+        this.lucas=new LucasEncounterService(this,players,targets);
         this.gbl=new GblEncounterService(this,journal,players,targets);
         this.palace=new PalaceEncounterService(this,journal,players,targets);
         this.forbidden=new ForbiddenEncounterService(this,journal,players,targets);
         this.skasa=new SkasaEncounterService(this,journal,players,targets);
         this.darkCity=new DarkCityEncounterService(this,journal,players,targets);
         this.elaina=new ElainaEncounterService(this,journal,server,players,targets);
+        this.liangyue=new LiangyueEncounterService(this,server,players,targets);
+        this.frostnova=new FrostnovaEncounterService(this,journal,server,players,targets);
+        this.gilgamesh=new GilgameshEncounterService(this,journal,server,players,targets);
+        this.swordMasters=new SwordMastersEncounterService(this,journal,server,players,targets);
+        this.roxy=new RoxyEncounterService(this,journal,server,players,targets);
         this.actions=new EnemyActionRuntime(this,journal,targets);
         this.classic=List.of(new TavernEncounterService(this,journal,players,targets),new HamelinEncounterService(this,journal,players,targets),
             new PursuitEncounterService(this,journal,players,targets),new SeaTrainEncounterService(this,journal,players,targets),
@@ -141,15 +153,26 @@ public class DungeonService {
         waves.put(GblChurch.ID,gbl::initialize);
         waves.put("behemoth_forbidden",forbidden::spawn);
         waves.put("skasa",skasa::spawn);
-        waves.put("dark_city",darkCity::spawn);
         for(var encounter:classic){
             waves.put(encounter.dungeon,encounter::spawn);
             for(var kind:cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.values())if(kind.dungeon.equals(encounter.dungeon))enemyBrains.put(kind.id,encounter::brain);
         }
         enemyBrains.put("goblin_shaman",goblinCamp::kenoBrain);
+        enemyBrains.put(DragonTowerLucas.ID,lucas::brain);
+        enemyBrains.put(DragonTowerLucas.CLONE_ID,lucas::cloneBrain);
         enemyBrains.put(SealTowerElaina.ID,elaina::brain);
+        enemyBrains.put(TheaterTowerLiangyue.ID,liangyue::brain);
+        enemyBrains.put(FrostTowerFrostnova.ID,frostnova::brain);
+        enemyBrains.put(OrreryTowerGilgamesh.ID,gilgamesh::brain);
+        for(var m:ForgeTowerSwordMasters.Member.values())enemyBrains.put(m.id,swordMasters::brain);
+        enemyBrains.put(SluiceTowerRoxy.ID,roxy::brain);
     }
     public void tickElaina(){elaina.tickAll(System.currentTimeMillis());}
+    public void tickLiangyue(){liangyue.tickAll(System.currentTimeMillis());}
+    public void tickFrostnova(){frostnova.tickAll(System.currentTimeMillis());}
+    public void tickGilgamesh(){gilgamesh.tickAll(System.currentTimeMillis());}
+    public void tickSwordMasters(){swordMasters.tickAll(System.currentTimeMillis());}
+    public void tickRoxy(){roxy.tickAll(System.currentTimeMillis());}
     public Dungeon byId(String id){
         if(id==null||id.isEmpty())return null;
         return journal.get("instance/"+id,Dungeon.class,null);
@@ -389,7 +412,7 @@ public class DungeonService {
         }
         journal.put("instance/"+d.id,d);
         if(d.practice==null)meter.leave(d,p);
-        if(d.tower!=null)elaina.playerLeft(p,d);
+        if(d.tower!=null){elaina.playerLeft(p,d);liangyue.playerLeft(p,d);frostnova.playerLeft(p,d);gilgamesh.playerLeft(p,d);swordMasters.playerLeft(p,d);roxy.playerLeft(p,d);}
         if(point!=null){
             rewards.move(p,d.id.toString(),point);
             if(teleport)back(p,point);
@@ -517,10 +540,12 @@ public class DungeonService {
         var bounds=layouts.require(d.dungeon).activeBounds();
         boolean skySea=CastlePalace.handles(d);
         boolean writhing=WrithingCastle.handles(d);
+        boolean darkCityArea=DarkCityEncounterService.handles(d);
         for(int x=Math.floorDiv(ox+bounds.minX(),16);x<=Math.floorDiv(ox+bounds.maxX(),16);x++)
         for(int z=Math.floorDiv(bounds.minZ(),16);z<=Math.floorDiv(bounds.maxZ(),16);z++){
             if(skySea&&!CastlePalace.keepsChunk(x-Math.floorDiv(ox,16),z))continue;
             if(writhing&&!WrithingCastleLayout.keepsChunk(x-Math.floorDiv(ox,16),z))continue;
+            if(darkCityArea&&!DarkCityEntrance.keepsChunk(x-Math.floorDiv(ox,16),z))continue;
             level().setChunkForced(x,z,forced);if(forced)level().getChunk(x,z);
         }
         if(skySea&&!forced&&previousPalace(d)){
@@ -548,14 +573,17 @@ public class DungeonService {
         boolean nextTower=AwakeningTowerLayout.recorded(layout);
         boolean previousWrithing=WrithingCastleLayout.recorded(previousLayout);
         boolean nextWrithing=WrithingCastleLayout.recorded(layout);
+        boolean previousDarkCity=DarkCityEntrance.recorded(previousLayout);
+        boolean nextDarkCity=DarkCityEntrance.recorded(layout);
         String previousFootprint=previousSkySea&&!layout.equals(palaceLayoutKey())?"|"+palaceLayoutKey():"";
         if(previousWhale&&!whaleLayout(layout))previousFootprint+="|"+gblLayoutKey();
         if(previousTower&&!nextTower)previousFootprint+="|"+AwakeningTowerLayout.VERSION;
         if(previousWrithing&&!nextWrithing)previousFootprint+="|"+WrithingCastleLayout.VERSION;
+        if(previousDarkCity&&!nextDarkCity)previousFootprint+="|"+DarkCityEntrance.layoutKey();
         journal.put(key,"BUILDING/"+layout+previousFootprint);
         ServerLevel world=level();BlockPos origin=new BlockPos(cell*512,80,0);
-        var loadBounds=layouts.reuseBounds(previousSkySea,previousWhale||whaleLayout(layout),previousTower||nextTower,previousWrithing||nextWrithing);
-        var clearBounds=layouts.reuseBounds(previousSkySea,previousWhale||whaleLayout(layout),previousTower||nextTower,false);
+        var loadBounds=layouts.reuseBounds(previousSkySea,previousWhale||whaleLayout(layout),previousTower||nextTower,previousWrithing||nextWrithing,previousDarkCity||nextDarkCity);
+        var clearBounds=layouts.reuseBounds(previousSkySea,previousWhale||whaleLayout(layout),previousTower||nextTower,false,previousDarkCity||nextDarkCity);
         var temporary=new ArrayList<ChunkPos>();
         try{
             // Load the old footprint too: treasure's small footprint must not leave forest entities behind.
@@ -591,6 +619,10 @@ public class DungeonService {
         forbidden.close(dungeon);
         skasa.close(dungeon);
         elaina.close(dungeon);
+        liangyue.close(dungeon);
+        frostnova.close(dungeon);
+        gilgamesh.close(dungeon);
+        swordMasters.close(dungeon);
         for(var encounter:classic)encounter.close(dungeon);
         clearCell(dungeon.cell);
     }
@@ -626,7 +658,7 @@ public class DungeonService {
         var darkCityKind=cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.find(type);
         var classicKind=cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type);
         e.setCustomName(cn.yumis.fight.modules.presentation.api.ModText.of(classicKind!=null?classicKind.title:darkCityKind!=null?darkCityKind.title:skasaKind!=null?skasaKind.title:forbiddenKind!=null?forbiddenKind.title:palaceKind!=null?palaceKind.title:gblKind!=null?gblKind.title:switch(type){
-            case SealTowerElaina.ID->SealTowerElaina.DISPLAY_NAME;case "golden_king"->"黄金之王";case "goblin_shaman"->"落雷凯诺";case "lucas"->"鲁卡斯";case "goblin_captain"->"哥布林队长";case "goblin_thrower"->"投石哥布林";case "blue_wyvern"->"蓝翼龙";case "blue_dragonman"->"蓝龙人";case "dragonman"->"龙人";case "wyvern"->"翼龙";default->"哥布林";
+            case SealTowerElaina.ID->SealTowerElaina.DISPLAY_NAME;case TheaterTowerLiangyue.ID->TheaterTowerLiangyue.DISPLAY_NAME;case FrostTowerFrostnova.ID->FrostTowerFrostnova.DISPLAY_NAME;case OrreryTowerGilgamesh.ID->OrreryTowerGilgamesh.DISPLAY_NAME;case SluiceTowerRoxy.ID->SluiceTowerRoxy.DISPLAY_NAME;case "forge_tower_bwanga"->"布万加";case "forge_tower_baan"->"巴恩·巴休特";case "forge_tower_aganzo"->"阿甘左";case "forge_tower_siran"->"西岚";case "golden_king"->"黄金之王";case "goblin_shaman"->"落雷凯诺";case DragonTowerLucas.ID->DragonTowerLucas.DISPLAY_NAME;case DragonTowerLucas.CLONE_ID->DragonTowerLucas.CLONE_DISPLAY_NAME;case "goblin_captain"->"哥布林队长";case "goblin_thrower"->"投石哥布林";case "blue_wyvern"->"蓝翼龙";case "blue_dragonman"->"蓝龙人";case "dragonman"->"龙人";case "wyvern"->"翼龙";default->"哥布林";
         }
         ));
         if(d.practice!=null){
@@ -641,7 +673,7 @@ public class DungeonService {
         if(skasaKind==cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.ICE_DRAGON){e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);e.setYRot(180);e.yBodyRot=180;e.setYHeadRot(180);}
         if(forbiddenKind==cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.MARCELLUS||forbiddenKind==cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.BARRIER_CORE)e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
         if(gblKind==cn.yumis.fight.modules.dungeons.api.GblEnemyKind.DRAGON_CANNON)e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
-        if(SealTowerElaina.ID.equals(type))e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
+        if(SealTowerElaina.ID.equals(type)||TheaterTowerLiangyue.ID.equals(type)||FrostTowerFrostnova.ID.equals(type)||OrreryTowerGilgamesh.ID.equals(type)||SluiceTowerRoxy.ID.equals(type)||ForgeTowerSwordMasters.isMemberId(type))e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
         if(type.contains("wyvern")){
             e.setNoGravity(true);
             e.getPersistentData().putDouble("ydnf_flightFloor",y);
@@ -660,7 +692,7 @@ public class DungeonService {
     }
     void spawnWave(Dungeon d)throws Exception{
         if(d.practice!=null){practiceRooms.spawn(d);return;}
-        if(WrithingCastle.handles(d))return;
+        if(WrithingCastle.handles(d)||DarkCityEncounterService.handles(d))return;
         if(d.wave>lastWave(d))return;
         var spawn=waves.get(d.dungeon);if(spawn==null)throw new IllegalArgumentException("该副本尚未配置遭遇："+d.dungeon);
         spawn.accept(d);journal.put("instance/"+d.id,d);refresh.run();
@@ -709,6 +741,7 @@ public class DungeonService {
                 boolean openCamp=GoblinCampEncounterService.handles(d),openTower=DragonTowerEncounterService.handles(d);
                 boolean openPalace=CastlePalace.handles(d),openGbl=GblEncounterService.handles(d);
                 boolean openWrithing=WrithingCastle.handles(d);
+                boolean openDarkCity=DarkCityEncounterService.handles(d);
                 if(!d.status.equals("RUNNING")&&!((openCamp||openTower||openPalace||openGbl||openWrithing)&&d.status.equals("COMPLETED")))continue;
                 List<ServerPlayer> players=playersIn(d);
                 if(players.isEmpty()){
@@ -742,6 +775,10 @@ public class DungeonService {
                 else if(openCamp)goblinCamp.tick(d,players,now);
                 else if(openTower)dragonTower.tick(d,players,now);
                 else if(openWrithing){}
+                else if(openDarkCity){
+                    if(darkCity.spawnArrivals(d,players))refresh.run();
+                    if(darkCity.finishIfDefeated(d,players))continue;
+                }
                 else{
                 d.enemies.removeIf(this::defeated);
                 if(d.enemies.isEmpty()){
@@ -770,7 +807,6 @@ public class DungeonService {
                     if((d.wave+1)%layout.wavesPerGate()==0)openDoor(d,d.wave/layout.wavesPerGate());
                     if(d.dungeon.equals("behemoth_forbidden")&&forbidden.waitsAtGate(d,players))continue;
                     if(d.dungeon.equals("skasa")&&skasa.waitsAtGate(d,players))continue;
-                    if(d.dungeon.equals("dark_city")&&darkCity.waitsAtGate(d,players))continue;
                     if(classic.stream().anyMatch(encounter->encounter.dungeon.equals(d.dungeon)&&encounter.waitsAtGate(d,players)))continue;
                     d.wave++;
                     spawnWave(d);
@@ -781,7 +817,7 @@ public class DungeonService {
                     if(entity instanceof DungeonEnemy enemy&&enemy.isAlive())brain(d,enemy,players,now);
                 }
             }
-            gbl.tick(server.getPlayerList().getPlayers(),now);palace.tick(server.getPlayerList().getPlayers(),now);forbidden.tick(server.getPlayerList().getPlayers(),now);skasa.tick(server.getPlayerList().getPlayers(),now);darkCity.tick(server.getPlayerList().getPlayers(),now);
+            gbl.tick(server.getPlayerList().getPlayers(),now);palace.tick(server.getPlayerList().getPlayers(),now);forbidden.tick(server.getPlayerList().getPlayers(),now);skasa.tick(server.getPlayerList().getPlayers(),now);darkCity.tick(server.getPlayerList().getPlayers(),now);lucas.tickAll(now);
             for(var encounter:classic)encounter.tick(server.getPlayerList().getPlayers(),now);
             for(Cast cast:new ArrayList<>(casts.values())){
                 Entity raw=level().getEntity(cast.boss);
@@ -889,20 +925,10 @@ public class DungeonService {
         }
         if(cn.yumis.fight.modules.combat.api.CombatContentTypes.controlled(e)||casts.containsKey(e.getUUID()))return;
         Target target=targets.target(e);
-        if(!d.summoned&&target.life.q<(type.equals("lucas")?.30:.5)){
+        if(!d.summoned&&target.life.q<.5){
             d.summoned=true;
-            if(type.equals("lucas")){
-                DungeonEnemy clone=spawn(d,"lucas",false,true,e.getX()+3,e.getY(),e.getZ(),cloneTarget->{
-                    cloneTarget.speciesHealth=.15;
-                    cloneTarget.speciesAttack=.5;
-                    cloneTarget.noRewards=true;
-                });
-                clone.getPersistentData().putString("ydnf_parent",e.getStringUUID());
-            }
-            else{
-                spawn(d,"goblin",false,false,e.getX()-2,e.getY(),e.getZ());
-                spawn(d,"goblin",false,false,e.getX()+2,e.getY(),e.getZ());
-            }
+            spawn(d,"goblin",false,false,e.getX()-2,e.getY(),e.getZ());
+            spawn(d,"goblin",false,false,e.getX()+2,e.getY(),e.getZ());
             journal.put("instance/"+d.id,d);
             refresh.run();
         }
@@ -1004,6 +1030,7 @@ public class DungeonService {
         broadcast(cage.instance,"cancelBossAction",Map.of("id",cage.id));
     }
     public void cageHit(ServerPlayer p,JsonObject j){
+        if(lucas.cageHit(p,j))return;
         Cage cage=cages.get(j.get("cage").getAsString());
         if(cage==null||!participant(p,cage.instance))return;
         String op=p.getUUID()+"/"+playerAccess.session(p).id+"/"+j.get("operation").getAsString();
@@ -1030,6 +1057,12 @@ public class DungeonService {
         skasa.died(boss);
         darkCity.died(boss);
         elaina.died(boss);
+        liangyue.died(boss);
+        frostnova.died(boss);
+        gilgamesh.died(boss);
+        swordMasters.died(boss);
+        roxy.died(boss);
+        lucas.died(boss);
         for(var encounter:classic)encounter.died(boss);
         cancelBoss(boss);
         for(Entity e:level().getAllEntities())if(e instanceof DungeonEnemy mob&&mob.getPersistentData().getStringOr("ydnf_parent","").equals(boss.toString())){
@@ -1086,7 +1119,7 @@ public class DungeonService {
         actions.cancelEnemy(boss);
         stones.remove(boss);
         cooldowns.keySet().removeIf(key->key.startsWith(boss+"/"));
-        gbl.cancel(boss);palace.cancel(boss);forbidden.cancel(boss);skasa.cancel(boss);darkCity.cancel(boss);elaina.cancel(boss);
+        gbl.cancel(boss);palace.cancel(boss);forbidden.cancel(boss);skasa.cancel(boss);darkCity.cancel(boss);elaina.cancel(boss);liangyue.cancel(boss);frostnova.cancel(boss);gilgamesh.cancel(boss);swordMasters.cancel(boss);roxy.cancel(boss);lucas.cancel(boss);
         for(var encounter:classic)encounter.cancel(boss);
         Cast cast=casts.remove(boss);
         if(cast!=null){
@@ -1107,7 +1140,7 @@ public class DungeonService {
         if(d.waystone!=null&&waystones!=null&&!stopping)waystones.fail(d,disconnected);
         abyss.close(d);
         actions.closeInstance(d.id.toString());
-        gbl.close(d);palace.close(d);forbidden.close(d);skasa.close(d);darkCity.close(d);elaina.close(d);
+        gbl.close(d);palace.close(d);forbidden.close(d);skasa.close(d);darkCity.close(d);elaina.close(d);liangyue.close(d);frostnova.close(d);gilgamesh.close(d);swordMasters.close(d);roxy.close(d);lucas.close(d);
         for(var encounter:classic)encounter.close(d);
         d.status="CLOSED";
         journal.put("instance/"+d.id,d);

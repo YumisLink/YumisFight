@@ -115,11 +115,11 @@ public final class ForbiddenEncounterService {
     }
     private boolean eligible(ServerPlayer p,String instance){var life=players.session(p).life;return p.level()==owner.level()&&owner.participant(p,instance)&&p.isAlive()&&!life.dead&&!life.dungeonDefeated&&!p.isSpectator()&&!p.getAbilities().invulnerable;}
     private void play(DungeonEnemy e,Brain b,ForbiddenMoves move,long now){
-        long duration=targets.target(e).actionTiming(now).duration(move.duration());e.getNavigation().stop();e.setAggressive(true);e.play(move.animation,duration);b.busy=now+duration;b.ready.put(move,now+move.cooldown);
+        long duration=targets.target(e).actionTiming(now).duration(move.duration());e.getNavigation().stop();e.setAggressive(true);e.play(move.animation,duration);b.busy=now+duration;b.ready.put(move,now+move.cooldownMs());
     }
     private GblAttack attack(DungeonEnemy e,ForbiddenMoves move,String shape,long now){
         var timing=targets.target(e).actionTiming(now);
-        GblAttack a=new GblAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=move.name();a.shape=shape;a.started=now;a.windup=timing.windup(move.windup);a.active=timing.active(move.active);a.radius=move.range;a.coefficient=move.coefficient;a.magic=move.magic;a.element=move.element;a.origin(e.position());destination(a,e.position());return a;
+        GblAttack a=new GblAttack();a.source=e.getUUID();a.instance=e.instance();a.kind=move.name();a.shape=shape;a.started=now;a.windup=timing.windup(move.windupMs());a.active=timing.active(move.activeMs());a.radius=move.rangeVal();a.coefficient=move.coefficientVal();a.magic=move.magicVal();a.element=move.elementVal();a.origin(e.position());destination(a,e.position());return a;
     }
     private static void destination(GblAttack a,Vec3 p){a.ex=p.x;a.ey=p.y;a.ez=p.z;}
     private void add(GblAttack a){attacks.put(a.id,new Pending(a));owner.broadcast(a.instance,"forbiddenAttack",packet(a,false));}
@@ -127,19 +127,20 @@ public final class ForbiddenEncounterService {
     private void wave(DungeonEnemy e,ForbiddenMoves move,long now){var a=attack(e,move,"WAVE",now);a.width=1.15;add(a);}
     private void projectiles(DungeonEnemy e,ServerPlayer p,ForbiddenMoves move,int count,long now){
         Vec3 origin=e.position().add(0,e.getBbHeight()*.65,0),direction=p.position().add(0,.8,0).subtract(origin).normalize();
-        double travel=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(move.range);
+        double range=move.rangeVal();
+        double travel=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(range);
         for(int i=0;i<count;i++){
-            var a=attack(e,move,"LINE",now);a.origin(origin);a.width=.25;a.active=Math.round(a.active*travel/move.range);
+            var a=attack(e,move,"LINE",now);a.origin(origin);a.width=.25;a.active=Math.round(a.active*travel/range);
             destination(a,origin.add(direction.yRot((float)((i-(count-1)*.5)*.09)).scale(travel)));add(a);
         }
     }
     private long summoned(String instance){
         long count=0;for(Entity raw:owner.level().getAllEntities())if(raw instanceof DungeonEnemy e&&e.instance().equals(instance)&&e.isAlive()&&e.getPersistentData().getBooleanOr(REINFORCEMENT,false)&&!e.getPersistentData().getBooleanOr(SPENT,false)&&!targets.target(e).life.dead)count++;return count;
     }
-    private boolean canSummon(DungeonEnemy e,Brain b,ForbiddenMoves move,long now){return !e.getPersistentData().getBooleanOr(REINFORCEMENT,false)&&b.ready(move,now)&&summoned(e.instance())<SUMMON_LIMIT;}
+    private boolean canSummon(DungeonEnemy e,Brain b,ForbiddenMoves move,long now){return !e.getPersistentData().getBooleanOr(REINFORCEMENT,false)&&b.ready(move,now)&&summoned(e.instance())<summonLimitVal();}
     private void ritual(Dungeon d,DungeonEnemy e,Brain b,ForbiddenMoves move,long now){
-        play(e,b,move,now);rituals.put(e.getUUID(),new Ritual(e.getUUID(),e.instance(),b.area,move,now+targets.target(e).actionTiming(now).windup(move.windup)));
-        var visual=attack(e,move,move==BARRIER?"BARRIER":"SUMMON",now);visual.radius=move==BARRIER?1.6:2.5;visual.active=move.recovery;add(visual);
+        play(e,b,move,now);rituals.put(e.getUUID(),new Ritual(e.getUUID(),e.instance(),b.area,move,now+targets.target(e).actionTiming(now).windup(move.windupMs())));
+        var visual=attack(e,move,move==BARRIER?"BARRIER":"SUMMON",now);visual.radius=move==BARRIER?1.6:2.5;visual.active=move.recoveryMs();add(visual);
     }
     private static boolean contains(Dungeon d,int area,Vec3 point){
         return d.tower==null?BehemothForbidden.contains(d.cell,area,point):AwakeningTowerLayout.containsBattle(d.cell,point);
@@ -156,13 +157,13 @@ public final class ForbiddenEncounterService {
         DungeonEnemy e=owner.spawn(d,kind.id,false,false,position.x,position.y,position.z);
         e.getPersistentData().putString("ydnf_parent",source.getStringUUID());e.getPersistentData().putBoolean(REINFORCEMENT,reinforcement);
         Target t=targets.target(e);t.noRewards=true;
-        if(kind==BARRIER_CORE){t.speciesHealth=CORE_HEALTH;e.noPhysics=true;e.setNoGravity(true);e.getNavigation().stop();e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);}
+        if(kind==BARRIER_CORE){t.speciesHealth=coreHealthVal();e.noPhysics=true;e.setNoGravity(true);e.getNavigation().stop();e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);}
         t.life.revision++;saveTarget(e,t);return e;
     }
     private void release(Ritual r,DungeonEnemy source,Dungeon d,long now)throws Exception{
         if(r.move==BARRIER){
             DungeonEnemy core=auxiliary(d,source,BARRIER_CORE,source.position(),false);
-            barriers.put(source.getUUID(),new Barrier(source.getUUID(),core.getUUID(),source.instance(),now+BARRIER_LIFETIME));
+            barriers.put(source.getUUID(),new Barrier(source.getUUID(),core.getUUID(),source.instance(),now+barrierLifetimeMs()));
             immune(source,true);
         }else{
             ForbiddenEnemyKind[] kinds=r.move==PRIEST_SUMMON?new ForbiddenEnemyKind[]{CULTIST,CULTIST}:r.move==BISHOP_SUMMON?new ForbiddenEnemyKind[]{CULTIST,CULTIST,FEMALE_CULTIST}:new ForbiddenEnemyKind[]{CULTIST,CULTIST,FEMALE_CULTIST,FEMALE_CULTIST};

@@ -15,12 +15,13 @@ import static cn.yumis.fight.modules.dungeons.client.EnemyEffectGeometry.*;
 /** 落雷凯诺 bossAction 的命中演出：只画 source=goblin_shaman 的六种攻击，预警归 EnemyTelegraphs、命中判定仍归本人客户端。 */
 public final class KenoVisuals {
     record Action(String id,String instance,String kind,boolean magic,Vec3 center,Vec3 aim,double radius,double halfAngle,long release,long active){}
-    private record Frame(List<Quad> quads,boolean fade){}
+    private record Frame(List<Quad> quads,List<EffectSprites.SpriteQuad> sprites,boolean fade){}
     private static final ContextKey<Frame> FRAME=new ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight","keno_effects"));
     private static final Set<String> KINDS=Set.of("LIGHTNING","ULTIMATE","RING","FAN","BASIC","CLAW");
     private static final long CHARGE=450,FLICKER=80;
     private static final Map<String,Action> actions=new LinkedHashMap<>();
     private static final Map<String,Long> cancelled=new HashMap<>();
+    private static final Set<String> shook=new HashSet<>();
     private static Supplier<String> instance=()->"";
     private static Object world;
 
@@ -34,9 +35,10 @@ public final class KenoVisuals {
         if(cancelled.containsKey(id))return;
         actions.put(id,parse(j));
         while(actions.size()>256)actions.remove(actions.keySet().iterator().next());
+        if(shook.size()>256)shook.clear();
     }
     public static void cancel(String id){world();actions.remove(id);cancelled.put(id,ClientUi.current().serverNow()+10000);}
-    private static void world(){if(world!=Minecraft.getInstance().level){world=Minecraft.getInstance().level;actions.clear();cancelled.clear();}}
+    private static void world(){if(world!=Minecraft.getInstance().level){world=Minecraft.getInstance().level;actions.clear();cancelled.clear();shook.clear();}}
     static Action parse(JsonObject j){
         return new Action(j.get("id").getAsString(),j.getAsJsonObject("boss").get("instance").getAsString(),j.get("kind").getAsString(),j.get("magic").getAsBoolean(),
             new Vec3(j.get("x").getAsDouble(),j.get("y").getAsDouble(),j.get("z").getAsDouble()),
@@ -46,32 +48,37 @@ public final class KenoVisuals {
     }
 
     private static void extract(ExtractLevelRenderStateEvent event){
-        world();List<Quad> q=new ArrayList<>();
+        world();List<Quad> q=new ArrayList<>();List<EffectSprites.SpriteQuad> s=new ArrayList<>();
+        Vec3 cam=event.getCamera().position();
         if(Minecraft.getInstance().player!=null&&ClientUi.current().ready()){
             long now=ClientUi.current().serverNow();String here=instance.get();
             cancelled.values().removeIf(until->until<now);
             actions.values().removeIf(a->!a.instance().equals(here)||expired(a,now));
-            for(Action a:actions.values())draw(q,a,now);
+            for(Action a:actions.values())draw(q,s,cam,a,now);
         }else actions.clear();
-        event.getRenderState().setRenderData(FRAME,new Frame(List.copyOf(q),NearEffectRendering.enabled(event.getCamera())));
+        event.getRenderState().setRenderData(FRAME,new Frame(List.copyOf(q),List.copyOf(s),NearEffectRendering.enabled(event.getCamera())));
     }
-    private static void submit(SubmitCustomGeometryEvent event){Frame f=event.getLevelRenderState().getRenderData(FRAME);if(f!=null)WorldQuads.submit(event,f.quads(),f.fade());}
+    private static void submit(SubmitCustomGeometryEvent event){Frame f=event.getLevelRenderState().getRenderData(FRAME);if(f!=null){WorldQuads.submit(event,f.quads(),f.fade());EffectSprites.submit(event,f.sprites(),f.fade());}}
 
     /** 一次攻击的绘制入口：前摇末段蓄能、release 后命中演出；帧内确定性随机保证同帧不闪跳。 */
     static void draw(List<Quad> q,Action a,long now){
-        if(now>=a.release()){strikePhase(q,a,now);return;}
-        if(a.release()-now<=CHARGE)chargePhase(q,a,now);
+        draw(q,new ArrayList<>(),a.center().add(0,4,4),a,now);
+    }
+    static void draw(List<Quad> q,List<EffectSprites.SpriteQuad> s,Vec3 cam,Action a,long now){
+        if(now>=a.release()){strikePhase(q,s,cam,a,now);return;}
+        if(a.release()-now<=CHARGE)chargePhase(q,s,cam,a,now);
     }
     /** 各招演出余晖窗口（毫秒），到期由 extract 清除。 */
     static long linger(Action a){return switch(a.kind()){case "ULTIMATE"->480L;case "RING"->520L;case "LIGHTNING"->420L;case "BASIC"->200L;default->280L;};}
     static boolean expired(Action a,long now){return now>a.release()+linger(a);}
 
-    private static void chargePhase(List<Quad> q,Action a,long now){
+    private static void chargePhase(List<Quad> q,List<EffectSprites.SpriteQuad> s,Vec3 cam,Action a,long now){
         double cp=1-(a.release()-now)/(double)CHARGE;
         int gold=a.magic?0xffd75e:0xffcf6b;
         Vec3 ground=a.center().add(0,.05,0);
         switch(a.kind()){
             case "RING"->{
+                EffectSprites.sigil(s,ground,a.radius*.55+a.radius*.3*cp,now*0.0025,gold,(int)(100+95*cp),false);
                 for(int i=0;i<4;i++){
                     double angle=(now/FLICKER)*.61+i*Math.PI/2;
                     Vec3 p=ground.add(Math.cos(angle)*(1+a.radius()*.12*cp),0,Math.sin(angle)*(1+a.radius()*.12*cp));
@@ -82,25 +89,27 @@ public final class KenoVisuals {
             default->{
                 line(q,ground,ground.add(0,a.kind().equals("ULTIMATE")?16:13,0),.05,gold,(int)(26+74*cp));
                 ring(q,ground,.22+.5*cp,.07,gold,(int)(40+50*cp));
+                EffectSprites.warningCircle(s,ground.add(0,.01,0),a.radius(),cp,gold,(int)(130+70*cp));
+                EffectSprites.glow(s,ground.add(0,.35,0),cam,.5+.7*cp,0xfff6cf,(int)(120+100*cp));
             }
         }
     }
 
-    private static void strikePhase(List<Quad> q,Action a,long now){
+    private static void strikePhase(List<Quad> q,List<EffectSprites.SpriteQuad> s,Vec3 cam,Action a,long now){
         long dt=now-a.release(),span=linger(a);
         if(dt>=span)return;
         double p=dt/(double)span;
         Vec3 ground=a.center().add(0,.05,0);
         switch(a.kind()){
-            case "LIGHTNING"->lightningImpact(q,a,ground,p,now/FLICKER,false);
-            case "ULTIMATE"->lightningImpact(q,a,ground,p,now/FLICKER,true);
-            case "RING"->ringImpact(q,a,ground,p,now/FLICKER);
-            default->slashImpact(q,a,ground,p);
+            case "LIGHTNING"->lightningImpact(q,s,cam,a,ground,p,now/FLICKER,false);
+            case "ULTIMATE"->lightningImpact(q,s,cam,a,ground,p,now/FLICKER,true);
+            case "RING"->ringImpact(q,s,cam,a,ground,p,now/FLICKER);
+            default->slashImpact(q,s,cam,a,ground,p);
         }
     }
 
     /** 落雷命中：锯齿主雷柱＋分支闪电＋闪光盘＋冲击环＋残留光柱；grand 为大招的双环与侧雷。 */
-    private static void lightningImpact(List<Quad> q,Action a,Vec3 ground,double p,long step,boolean grand){
+    private static void lightningImpact(List<Quad> q,List<EffectSprites.SpriteQuad> s,Vec3 cam,Action a,Vec3 ground,double p,long step,boolean grand){
         int fade=(int)(255*(1-p));
         int gold=0xffd75e,white=0xfff6cf;
         double ease=1-Math.pow(1-p,3);
@@ -109,10 +118,20 @@ public final class KenoVisuals {
         if(grand)ring(q,ground,a.radius()*(.15+.7*Math.max(0,(p-.15)/.85)),.2,white,(int)(fade*.6));
         WorldQuads.beam(q,ground,ground.add(0,grand?2:1.2,0),white,.1,(int)(fade*.5),gold,.28,(int)(fade*.25));
         bolt(q,a.id(),ground,step,grand?16:13,grand?.16:.1,fade,grand?11:9,grand?1.6:1.1);
-        if(grand)for(int side=0;side<2;side++){
-            double angle=step*1.7+side*2.094;
-            bolt(q,a.id()+"#"+side,ground.add(Math.cos(angle)*a.radius()*.5,0,Math.sin(angle)*a.radius()*.5),step,10,.07,(int)(fade*.6),7,1);
+        LightningBolt.bolt(s,ground.add(0,grand?16:13,0),ground,cam,a.id().hashCode()*1129L+step*613L,grand?11:9,grand?1.4:1.0,grand?.18:.12,gold,fade,true);
+        EffectSprites.impactBurst(s,ground.add(0,.04,0),cam,a.radius()*(grand?1.15:.9),p,gold,240,true);
+        EffectSprites.shockwave(s,ground.add(0,.03,0),a.radius()*(.3+.95*ease),p*1.1,gold,(int)(fade*.9));
+        EffectSprites.glow(s,ground.add(0,.45,0),cam,a.radius()*(grand?.75:.55)*(1-p*.6),white,fade);
+        if(grand){
+            if(p>0.15)EffectSprites.shockwave(s,ground.add(0,.06,0),a.radius()*(.2+.8*(p-.15)/.85),-p*1.3,white,(int)(fade*.75));
+            for(int side=0;side<2;side++){
+                double angle=step*1.7+side*2.094;
+                Vec3 sp=ground.add(Math.cos(angle)*a.radius()*.5,0,Math.sin(angle)*a.radius()*.5);
+                bolt(q,a.id()+"#"+side,sp,step,10,.07,(int)(fade*.6),7,1);
+                LightningBolt.bolt(s,sp.add(0,10,0),sp,cam,(a.id()+"#"+side).hashCode()*1129L+step*613L,7,.9,.09,gold,(int)(fade*.75),true);
+            }
         }
+        if(shook.add(a.id()))CameraShake.impulse(ground,grand?26:16,grand?0.40f:0.22f,90,200);
     }
 
     /** 锯齿雷柱：每 FLICKER 毫秒换一次确定性抖动；白芯＋金晕双层与两条分支。 */
@@ -139,32 +158,45 @@ public final class KenoVisuals {
     }
 
     /** 雷环命中：金色主环扩散＋80ms 错峰白色副环＋中心闪光＋环缘竖电刺。 */
-    private static void ringImpact(List<Quad> q,Action a,Vec3 ground,double p,long step){
+    private static void ringImpact(List<Quad> q,List<EffectSprites.SpriteQuad> s,Vec3 cam,Action a,Vec3 ground,double p,long step){
         int gold=0xffd75e,white=0xfff6cf;
         double ease=1-Math.pow(1-p,3);
         double radius=.8+(a.radius()-.8)*ease;
         ring(q,ground,radius,Math.max(.07,.34*(1-p)+.06),gold,(int)(235*(1-p)));
+        EffectSprites.shockwave(s,ground.add(0,.03,0),radius,p*1.2,gold,(int)(235*(1-p)));
         double p2=Math.max(0,(p-.18)/.82);
-        if(p2>0)ring(q,ground,.8+(a.radius()-.8)*(1-Math.pow(1-p2,3)),Math.max(.05,.18*(1-p2)),white,(int)(180*(1-p2)));
+        if(p2>0){
+            double r2=.8+(a.radius()-.8)*(1-Math.pow(1-p2,3));
+            ring(q,ground,r2,Math.max(.05,.18*(1-p2)),white,(int)(180*(1-p2)));
+            EffectSprites.shockwave(s,ground.add(0,.06,0),r2,-p2*1.4,white,(int)(195*(1-p2)));
+        }
         disc(q,ground,1.6*(1-.4*p),white,(int)(170*(1-p)));
+        EffectSprites.glow(s,ground.add(0,.4,0),cam,1.5*(1-.4*p),white,(int)(210*(1-p)));
         for(int i=0;i<6;i++){
             double angle=i*Math.PI/3+step*.37;
             Vec3 base=ground.add(Math.cos(angle)*radius,0,Math.sin(angle)*radius);
             int alpha=(int)(210*Math.max(0,1-p*2.2));
-            if(alpha>0)line(q,base.add(0,.1,0),base.add(Math.cos(angle)*.45,1,Math.sin(angle)*.45),.05,gold,alpha);
+            if(alpha>0){
+                line(q,base.add(0,.1,0),base.add(Math.cos(angle)*.45,1,Math.sin(angle)*.45),.05,gold,alpha);
+                LightningBolt.bolt(s,base.add(0,.1,0),base.add(Math.cos(angle)*.55,1.45,Math.sin(angle)*.55),cam,a.id().hashCode()*31L+step*17L+i,4,.22,.05,gold,alpha,false);
+            }
         }
+        if(shook.add(a.id()))CameraShake.impulse(ground,20,0.28f,90,190);
     }
 
     /** 扇击／普攻／雷爪命中：扇面高亮闪＋外缘弧线扫掠；id 哈希决定扫掠方向与雷爪三连的爪位差。 */
-    private static void slashImpact(List<Quad> q,Action a,Vec3 ground,double p){
+    private static void slashImpact(List<Quad> q,List<EffectSprites.SpriteQuad> s,Vec3 cam,Action a,Vec3 ground,double p){
         boolean basic=a.kind().equals("BASIC"),claw=a.kind().equals("CLAW");
         int color=a.magic?0xffd75e:0xffcf6b;
         double fade=1-p;
-        double heading=heading(a.aim())+sweep(a.id(),p)*(claw?.35:basic?.12:.2)+(claw?(Math.floorMod(a.id().hashCode(),3)-1)*.18:0);
+        int clawIdx=claw?(Math.floorMod(a.id().hashCode(),3)-1):0;
+        double heading=heading(a.aim())+sweep(a.id(),p)*(claw?.35:basic?.12:.2)+clawIdx*.18;
         Vec3 dir=new Vec3(Math.cos(heading),0,Math.sin(heading));
         fan(q,ground,dir,a.radius()*(.92+.08*p),a.halfAngle(),color,(int)((basic?120:160)*fade));
         arcLine(q,ground,heading,a.radius()*(.96+.04*p),a.halfAngle(),.07,color,(int)(205*fade));
         if(!basic)arcLine(q,ground,heading,a.radius()*.68,a.halfAngle(),.05,0xfff6cf,(int)(190*fade));
+        EffectSprites.slashArc(s,ground.add(0,.9,0),dir,claw?clawIdx*22:((a.id().hashCode()&1)==0?12:-12),a.radius(),p,color,basic?195:235);
+        if(!basic)EffectSprites.impactBurst(s,ground.add(dir.scale(a.radius()*.65)).add(0,.5,0),cam,a.radius()*.45,p,0xfff6cf,200,false);
     }
 
     /** 24 段弧线；用于挥击外缘与蓄能时的外沿微亮。 */

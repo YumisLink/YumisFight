@@ -8,6 +8,7 @@ import cn.yumis.fight.modules.dungeons.api.AwakeningTower;
 import cn.yumis.fight.modules.dungeons.api.Dungeon;
 import cn.yumis.fight.modules.dungeons.api.TowerCard;
 import cn.yumis.fight.modules.dungeons.api.TowerCardDraft;
+import cn.yumis.fight.modules.dungeons.api.TowerCareerDeck;
 import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import cn.yumis.fight.modules.dungeons.api.TowerBattleState;
 import cn.yumis.fight.modules.dungeons.api.TowerClimbRules;
@@ -20,6 +21,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import java.util.List;
 import java.util.Random;
@@ -31,12 +33,15 @@ public final class TowerClient {
     private static final Gson JSON = new Gson();
     private static Dungeon dungeon;
     private static TowerCardDraft draft;
+    private static TowerCareerDeck.DeckSnapshot retainedDeck;
+    private static TowerCareerDeck.Session careerSession;
     private static TowerBattleState battle;
     private static String deckId = "";
+    private static String syncedJob = "";
     private static int battleSaved;
     private static long battleSent;
-    private static JsonObject pending;
-    private static long sentAt, recoverAt, nextFire;
+    private static JsonObject pending, pendingStele, pendingCareer;
+    private static long sentAt, careerSentAt, recoverAt, nextFire;
     private static int lastFloorStart;
     private static double frostPoints;
     private static long frostGeneration;
@@ -54,22 +59,45 @@ public final class TowerClient {
         combatUntil = resources == null ? 0 : resources.combatUntil;
         if (next != null && next.tower == null) next = null;
         var deck = saved != null && saved.isJsonObject() ? saved.getAsJsonObject() : null;
-        boolean hasCards = deck != null && !deck.getAsJsonArray("chosen").isEmpty();
+        var parsedDeck = deck != null && deck.has("id") ? JSON.fromJson(deck, TowerCareerDeck.DeckSnapshot.class) : null;
+        boolean hasCards = parsedDeck != null && parsedDeck.hasCards();
         String incoming = next == null ? "" : next.id.toString();
-        if (hasCards) incoming = deck.get("id").getAsString();
+        if (hasCards) incoming = parsedDeck.id();
+        String job = progress == null ? "" : progress.jobId();
         boolean newDeck = !deckId.equals(incoming);
-        if (!hasCards || newDeck && !deckId.isEmpty()) TowerBattleState.clearShields(resources);
+        boolean jobChanged = !syncedJob.equals(job);
         boolean newScene = dungeon == null ? next != null : next == null || !dungeon.id.equals(next.id);
+        if (!hasCards || newDeck && !deckId.isEmpty()) TowerBattleState.clearShields(resources);
         if (newDeck || newScene) {
             clearScene();
             if (next != null) lastFloorStart = next.tower.floorStarts;
             draft = incoming.isEmpty() ? null : new TowerCardDraft(new Random());
-            if (hasCards) draft.restoreChosen(List.of(JSON.fromJson(deck.get("chosen"), TowerCard.Reference[].class)));
+        }
+        if (newDeck || jobChanged) {
+            clearCareerStele();
+            pendingCareer = null;
+            careerSentAt = 0;
         }
         if (newDeck) {
             deckId = incoming;
             battle = incoming.isEmpty() ? null : new TowerBattleState();
             battleSent = battleSaved = 0;
+        }
+        syncedJob = job;
+        retainedDeck = hasCards ? mergeLocalCareerState(parsedDeck, job) : null;
+        if (careerSession != null && retainedDeck != null) careerSession.syncFrom(retainedDeck);
+        if (pendingCareer != null) {
+            String sentDeck = pendingCareer.get("deck").getAsString();
+            String sentJob = pendingCareer.get("job").getAsString();
+            int sentRev = pendingCareer.getAsJsonObject("offer").get("revision").getAsInt();
+            if (!sentDeck.equals(deckId) || !sentJob.equals(syncedJob)
+                || parsedDeck != null && parsedDeck.offerFor(sentJob).revision() >= sentRev) {
+                pendingCareer = null;
+            }
+        }
+        boolean hasInRunDraft = deck != null && deck.has("draft") && deck.get("draft").isJsonObject();
+        if (draft != null && retainedDeck != null && !hasInRunDraft) {
+            draft.restoreChosen(retainedDeck.activeCards(job));
         }
         if (next == null || dungeon == null || dungeon.tower.stage != next.tower.stage) nextFire = 0;
         dungeon = next;
@@ -80,18 +108,38 @@ public final class TowerClient {
             battle.restore(checkpoint);
             battleSaved = Math.max(battleSaved, checkpoint.revision());
         }
-        if (deck == null || !deck.has("draft") || !deck.get("draft").isJsonObject()) return;
+        if (!hasInRunDraft) return;
         var state = JSON.fromJson(deck.get("draft"), TowerCardDraft.Snapshot.class);
         if (state.revision() > draft.revision()) draft.restore(state, TowerCard.pool(progress.jobId(), skills.get()));
         if (pending != null && state.revision() >= pending.getAsJsonObject("draft").get("revision").getAsInt()) pending = null;
+    }
+
+    private static TowerCareerDeck.DeckSnapshot mergeLocalCareerState(TowerCareerDeck.DeckSnapshot incoming, String job) {
+        if (incoming == null || job.isEmpty()) return incoming;
+        if (careerSession != null && incoming.id().equals(careerSession.deckId()) && job.equals(careerSession.jobId())
+            && careerSession.revision() > incoming.offerFor(job).revision()) {
+            return incoming.withCareer(job, careerSession.savedCards(), careerSession.savedOffer());
+        }
+        if (retainedDeck != null && incoming.id().equals(retainedDeck.id())
+            && retainedDeck.offerFor(job).revision() > incoming.offerFor(job).revision()) {
+            return incoming.withCareer(job, retainedDeck.cardsFor(job), retainedDeck.offerFor(job));
+        }
+        return incoming;
     }
 
     public static void tick(Progress progress, Life life, Runnable restore, Runnable fireDamage, DoubleConsumer frostDamage,
                             Supplier<List<TowerBattleCard.SkillChoice>> skills) {
         long now = ClientUi.now();
         if (battle != null && battle.revision() > battleSaved && now >= battleSent + 1000) saveBattle();
-        if (dungeon == null || !dungeon.id.toString().equals(life.instance)) return;
+        if (pendingCareer != null && now >= careerSentAt + 1000) transmitCareer();
         var mc = Minecraft.getInstance();
+        if (mc.gui.screen() instanceof TowerCardScreen screen && screen.steleMode()) {
+            if (dungeon != null || life.dead || mc.player == null || DungeonActions.inDungeonDimension()
+                || careerSession == null || careerSession.complete() || !nearPendingStele(mc)) {
+                closeCareerStele();
+            }
+        }
+        if (dungeon == null || !dungeon.id.toString().equals(life.instance)) return;
         if (mc.player == null || !DungeonActions.inDungeonDimension()) return;
         var run = dungeon.tower;
         boolean canRecover = run.canRecover(mc.player.getUUID());
@@ -123,7 +171,7 @@ public final class TowerClient {
                     mc.gui.setScreen(new TowerCardScreen());
             } else if (mc.gui.screen() instanceof TowerCardScreen) mc.gui.setScreen(null);
         }
-        if (!life.dead && awake() && tower() == AwakeningTower.FORGE) {
+        if (!life.dead && awake() && TowerClimbRules.fireDamageActive(tower(), run.floor)) {
             if (nextFire == 0) nextFire = now + 1000;
             if (now >= nextFire) { nextFire = now + 1000; fireDamage.run(); }
         } else nextFire = 0;
@@ -196,12 +244,108 @@ public final class TowerClient {
         watching = null;
     }
 
+    public static int pendingCareerPicks() {
+        return retainedDeck == null ? 0 : retainedDeck.pendingCount(syncedJob);
+    }
+
+    static boolean tryOpenCareerStele(JsonObject stele) {
+        if (inRun() || DungeonActions.inDungeonDimension()) return false;
+        if (retainedDeck == null || !retainedDeck.hasCards()) return false;
+        if (retainedDeck.pendingCount(syncedJob) <= 0) return false;
+        var mc = Minecraft.getInstance();
+        if (mc.player == null) return false;
+        if (careerSession == null || !careerSession.deckId().equals(retainedDeck.id()) || !careerSession.jobId().equals(syncedJob)) {
+            careerSession = new TowerCareerDeck.Session(retainedDeck, syncedJob, new Random());
+        }
+        pendingStele = stele.deepCopy();
+        if (careerSession.ensureOpen()) {
+            applyLocalCareerUpdate();
+            saveCareerStele();
+        }
+        if (careerSession.slots().isEmpty()) {
+            clearCareerStele();
+            return false;
+        }
+        mc.gui.setScreen(new TowerCardScreen(true));
+        return true;
+    }
+
+    static int steleRemaining() { return careerSession == null ? 0 : careerSession.pending(); }
+    static List<TowerCardDraft.Slot> steleSlots() { return careerSession == null ? List.of() : careerSession.slots(); }
+    static int steleRevision() { return careerSession == null ? 0 : careerSession.revision(); }
+    static boolean canRefreshCareer(int slot) { return careerSession != null && careerSession.canRefresh(slot); }
+
+    static void refreshCareer(int slot, int version) {
+        if (careerSession == null || !careerSession.refresh(slot, version)) return;
+        applyLocalCareerUpdate();
+        saveCareerStele();
+    }
+
+    static void chooseCareer(int slot, int version) {
+        if (careerSession == null || careerSession.choose(slot, version).isEmpty()) return;
+        applyLocalCareerUpdate();
+        saveCareerStele();
+        if (careerSession.complete()) {
+            clearCareerStele();
+            ClientUi.current().message("职业神话卡已补选完成，当前职业牌组已生效。");
+        }
+    }
+
+    static void closeCareerStele() {
+        pendingStele = null;
+        var mc = Minecraft.getInstance();
+        if (mc.gui.screen() instanceof TowerCardScreen screen && screen.steleMode()) mc.gui.setScreen(null);
+    }
+
+    static void enterTowerFromCareerStele() {
+        var stele = pendingStele;
+        closeCareerStele();
+        if (stele != null) DungeonActions.joinTower(stele);
+    }
+
+    private static void applyLocalCareerUpdate() {
+        if (retainedDeck == null || careerSession == null) return;
+        retainedDeck = retainedDeck.withCareer(careerSession.jobId(), careerSession.savedCards(), careerSession.savedOffer());
+        if (draft != null && !inRun()) draft.restoreChosen(retainedDeck.activeCards(syncedJob));
+    }
+
+    private static void saveCareerStele() {
+        if (careerSession == null || pendingStele == null || !pendingStele.has("pos")) return;
+        pendingCareer = ClientUi.current().operation("towerCareerDeck");
+        pendingCareer.addProperty("deck", careerSession.deckId());
+        pendingCareer.addProperty("job", careerSession.jobId());
+        pendingCareer.addProperty("stele", pendingStele.get("pos").getAsLong());
+        pendingCareer.add("cards", JSON.toJsonTree(careerSession.savedCards()));
+        pendingCareer.add("offer", JSON.toJsonTree(careerSession.savedOffer()));
+        transmitCareer();
+    }
+
+    private static void transmitCareer() {
+        ClientUi.current().send("towerClimb", pendingCareer);
+        careerSentAt = ClientUi.now();
+    }
+
+    private static boolean nearPendingStele(Minecraft mc) {
+        if (pendingStele == null || !pendingStele.has("pos") || mc.player == null) return false;
+        BlockPos pos = BlockPos.of(pendingStele.get("pos").getAsLong());
+        return mc.player.distanceToSqr(pos.getX() + .5, pos.getY() + .5, pos.getZ() + .5) <= 64;
+    }
+
+    private static void clearCareerStele() {
+        careerSession = null;
+        pendingStele = null;
+        var mc = Minecraft.getInstance();
+        if (mc.gui.screen() instanceof TowerCardScreen screen && screen.steleMode()) mc.gui.setScreen(null);
+    }
+
     static int floor() { return dungeon.tower.floor; }
     static int offer() { return draft.offer(); }
     static int revision() { return draft.revision(); }
     static List<TowerCardDraft.Slot> slots() { return draft.slots(); }
     static List<TowerCard> chosenCards() { return draft == null ? List.of() : draft.chosen(); }
     static boolean finalOffer() { return draft.offer() == TowerClimbRules.FLOOR_COUNT / 5; }
+    static boolean careerOffer() { return draft != null && draft.careerOffer(); }
+    static boolean canRefresh(int slot) { return draft != null && draft.canRefresh(slot); }
 
     static void refresh(int slot, int version) {
         if (draft != null && draft.refresh(draft.offer(), slot, version)) save();
@@ -263,7 +407,12 @@ public final class TowerClient {
 
     public static void clear() {
         clearScene();
+        clearCareerStele();
         deckId = "";
+        syncedJob = "";
+        retainedDeck = null;
+        pendingCareer = null;
+        careerSentAt = 0;
         draft = null;
         battle = null;
         battleSaved = 0;

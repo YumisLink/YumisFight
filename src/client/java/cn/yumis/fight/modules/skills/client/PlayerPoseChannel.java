@@ -111,10 +111,14 @@ public final class PlayerPoseChannel {
             length/(double)Math.max(1,duration-transition),true,cast.direction));
     }
     public static void greatCharge(Vec3 direction){
+        greatCharge(direction,800L);
+    }
+    public static void greatCharge(Vec3 direction,long millis){
         String id=length("draw")>0?"draw":length("ghost")>0?"ghost":"attack";
         long length=length(id);
         if(length<=0)return;
-        show(null,id,800,Math.max(.25,length/1600d),direction,true);
+        long dur=Math.max(100L,millis);
+        show(null,id,dur,Math.max(.25,length/(dur*2d)),direction,true);
     }
     public static void release(SkillCast cast){
         if(cast!=null)cast.canBreak=true;

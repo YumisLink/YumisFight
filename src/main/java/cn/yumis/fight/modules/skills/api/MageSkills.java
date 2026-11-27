@@ -10,7 +10,7 @@ public final class MageSkills {
     public static final String STAR=NS+"magic_star",FANG=NS+"dragon_fang",JACK=NS+"jack_bomb",HERDER=NS+"herder";
     private static final Map<String,Map<String,Double>> CAREER_SCALES=new LinkedHashMap<>();
     private MageSkills(){}
-    public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id)||SummonerSkills.contains(id)||SunMoonSkills.contains(id)||ElementalistSkills.contains(id)||BattleMageSkills.contains(id);}
+    public static boolean contains(String id){return Set.of(STAR,FANG,JACK,HERDER).contains(id)||SummonerSkills.contains(id)||SunMoonSkills.contains(id)||ElementalistSkills.contains(id)||BattleMageSkills.contains(id)||WitchSkills.contains(id);}
     public static SkillDefinition skill(String id){return SkillCatalog.require(id);}
     static void careerScales(String job,double ordinary,double herder){
         if(CAREER_SCALES.putIfAbsent(job,Map.of(STAR,ordinary,FANG,ordinary,JACK,ordinary,HERDER,herder))!=null)throw new IllegalArgumentException("Duplicate mage career scale: "+job);
@@ -57,10 +57,7 @@ public final class MageSkills {
         }
         return result;
     }
-    static void balance(){
-        // Keep the original reference period so the shorter cooldown does not reduce damage per shot.
-        for(String id:List.of(STAR,FANG,JACK))SkillBalance.register(skill(id),new SkillBalanceProfile(1,id.equals(STAR)?3:0,false,false,0,(s,r,c)->List.of(new SkillBalanceProfile.Hit(200,s.parameters(r).get("damage"),false))));
-        SkillBalance.register(skill(HERDER),new SkillBalanceProfile(1,120,false,false,0,(s,r,c)->SummonMoves.cues(SummonKind.HERDER,new SkillParameters.Snapshot(s,r,s.parameters(r)),120000,1).stream().map(a->new SkillBalanceProfile.Hit(a.at(),s.parameters(r).get(a.stone()?"stoneDamage":"damage")*a.share(),false)).toList()));
-        for(String id:List.of(STAR,FANG,JACK,HERDER))SkillBalance.registerVariant(skill(id),(input,progress,stats)->careerDamage(input,progress));
+    static void variants(){
+        for(String id:List.of(STAR,FANG,JACK,HERDER))SkillParameters.registerVariant(skill(id),(input,progress,stats)->careerDamage(input,progress));
     }
 }

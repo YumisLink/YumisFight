@@ -84,7 +84,18 @@ public final class EconomyService {
         var before=j.getAsJsonObject("beforeBalances");var after=j.getAsJsonObject("balances");if(before==null||!before.keySet().equals(after.keySet()))throw new IllegalArgumentException("账户快照不完整");
         for(var entry:after.entrySet()){String key=account(entry.getKey())+"/"+p.getUUID();if(journal.get(key,Long.class,0L)!=before.get(entry.getKey()).getAsLong())throw new IllegalArgumentException("账户余额已更新，请重试");changes.put(key,new JsonPrimitive(entry.getValue().getAsLong()));}return changes;
     }
-    public void purchase(ServerPlayer p,JsonObject j){if(replay(p,j))return;session(p,j);var changes=new LinkedHashMap<>(receiveBalances(p,j));if(j.has("contractUntil"))changes.putAll(entitlements.storeContract(p.getUUID(),j.get("beforeContract").getAsLong(),j.get("contractUntil").getAsLong()));inventory.transact(p,j.get("operation").getAsString(),j,()->InventoryEdits.apply(p,inventory,j),changes);profile.accept(p);}
+    public void purchase(ServerPlayer p,JsonObject j){
+        if(replay(p,j))return;
+        session(p,j);
+        var changes=new LinkedHashMap<>(receiveBalances(p,j));
+        if(j.has("contractUntil"))changes.putAll(entitlements.storeContract(p.getUUID(),j.get("beforeContract").getAsLong(),j.get("contractUntil").getAsLong()));
+        var storage=CategoryBags.Kind.product(j.get("product").getAsString());
+        inventory.transact(p,j.get("operation").getAsString(),j,()->{
+            if(storage!=null)MenuHooks.extra(p).categories.unlock(storage);
+            InventoryEdits.apply(p,inventory,j);
+        },changes);
+        profile.accept(p);
+    }
     private static boolean automatic(JsonObject request){return request.has("automatic")&&request.get("automatic").getAsBoolean();}
     public String saleOpen(ServerPlayer p,JsonObject j){
         session(p,j);

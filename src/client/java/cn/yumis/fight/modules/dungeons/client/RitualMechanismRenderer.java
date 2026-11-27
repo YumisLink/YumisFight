@@ -40,6 +40,9 @@ public final class RitualMechanismRenderer extends EntityRenderer<RitualMechanis
             case "ritual_stele" -> Items.CHISELED_DEEPSLATE;
             case "ritual_confessional" -> Items.DARK_OAK_DOOR;
             case "ritual_shard" -> Items.AMETHYST_CLUSTER;
+            case "gilgamesh_wedge" -> Items.GOLDEN_SWORD;
+            case "gilgamesh_enkidu" -> Items.GOLD_BLOCK;
+            case "roxy_hydro_core" -> Items.HEART_OF_THE_SEA;
             default -> Items.AMETHYST_SHARD;
         };
     }

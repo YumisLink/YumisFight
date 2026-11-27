@@ -4,6 +4,8 @@ import cn.yumis.fight.architecture.CommandRouter;
 import cn.yumis.fight.modules.economy.api.*;
 import cn.yumis.fight.modules.equipment.api.*;
 import cn.yumis.fight.modules.inventory.api.InventoryEdits;
+import cn.yumis.fight.modules.inventory.api.CategoryBags;
+import cn.yumis.fight.modules.inventory.api.MenuHooks;
 import cn.yumis.fight.modules.presentation.api.client.ClientUi;
 import cn.yumis.fight.modules.character.api.Progress;
 import cn.yumis.fight.modules.attributes.api.Stats;
@@ -34,17 +36,25 @@ public final class EconomyActions {
     private static long balance(String id){return profile.get().get(id).getAsLong();}
     private static void balances(JsonObject j,Map<String,Long> values){var before=new JsonObject();var after=new JsonObject();for(var entry:values.entrySet()){before.addProperty(entry.getKey(),balance(entry.getKey()));after.addProperty(entry.getKey(),entry.getValue());}if(values.containsKey("gold")){before.addProperty("goldRevision",balance("goldRevision"));after.addProperty("goldRevision",Math.incrementExact(balance("goldRevision")));}j.add("beforeBalances",before);j.add("balances",after);}
     private static void purchase(JsonObject j){
-        String product=j.get("product").getAsString();long price=CurrencyRules.ticketPrice(product);var outputs=new JsonArray();
+        String product=j.get("product").getAsString();long price=CurrencyRules.ticketPrice(product);var storage=CategoryBags.Kind.product(product);var outputs=new JsonArray();
         if(price>=0){if(balance("points")<price)throw new IllegalArgumentException("点券不足，需要"+price+"点券");balances(j,Map.of("points",balance("points")-price));outputs.add(InventoryEdits.encode(Minecraft.getInstance().player,ItemRegistry.item(product,1)));}
         else if(product.equals("overlord_contract")){if(balance("gold")<CurrencyRules.CONTRACT_PRICE)throw new IllegalArgumentException("金币不足，需要100000金币");balances(j,Map.of("gold",balance("gold")-CurrencyRules.CONTRACT_PRICE));j.addProperty("beforeContract",balance("contractUntil"));j.addProperty("contractUntil",Math.addExact(Math.max(ClientUi.current().serverNow(),balance("contractUntil")),CurrencyRules.CONTRACT_DURATION));}
+        else if(storage!=null){
+            if(MenuHooks.extra(Minecraft.getInstance().player).categories.unlocked(storage))throw new IllegalArgumentException("该背包已开通");
+            long gold=balance("gold");
+            if(gold<CurrencyRules.STORAGE_UNLOCK_PRICE)throw new IllegalArgumentException("金币不足，需要"+CurrencyRules.STORAGE_UNLOCK_PRICE+"金币");
+            balances(j,Map.of("gold",gold-CurrencyRules.STORAGE_UNLOCK_PRICE));
+        }
         else throw new IllegalArgumentException("商品未上架");j.add("outputs",outputs);
     }
     static void decorate(JsonObject state){
         var player=Minecraft.getInstance().player;
         for(var raw:state.getAsJsonArray("rows")){var row=raw.getAsJsonObject();var stack=row.has("source")?InventoryEdits.decode(player,row.get("source")):ItemStack.EMPTY;var gear=EquipmentItems.gear(stack);if(gear!=null&&(gear.rarity==null||gear.instance==null||gear.level<1||gear.level>85))gear=null;boolean hand=!row.get("bag").getAsBoolean()&&row.get("slot").getAsInt()==player.getInventory().getSelectedSlot();boolean dismantleAllowed=gear!=null&&gear.rarity!=Rarity.PRIMORDIAL&&!gear.creativeTemplate&&stack.getCount()==1&&ItemData.own(stack)&&!hand;
-            row.addProperty("allowed",!stack.isEmpty());row.addProperty("reason",stack.isEmpty()?"空槽":"");
+            var price=CurrencyRules.saleQuote(stack);
+            row.addProperty("allowed",price.isPresent());
+            row.addProperty("reason",price.isPresent()?"":stack.isEmpty()?"空槽":"装备暂无出售定价");
             row.addProperty("dismantleAllowed",dismantleAllowed);row.addProperty("dismantleReason",dismantleAllowed?"":stack.isEmpty()?"空槽":hand?"当前主手不可分解":gear!=null&&gear.rarity==Rarity.PRIMORDIAL?"太初装备不可分解":gear!=null&&gear.creativeTemplate?"装备正在初始化":"不是可分解的装备");
-            if(!stack.isEmpty())row.addProperty("price",CurrencyRules.salePrice(stack));
+            price.ifPresent(value->row.addProperty("price",value));
             if(gear==null)continue;row.addProperty("equipment",gear.instance.toString());row.addProperty("revision",gear.revision);row.addProperty("rarity",gear.rarity.name());row.addProperty("gems",gear.gems.size());row.addProperty("dismantle",gear.rarity==Rarity.PRIMORDIAL?"太初装备不可分解":(gear.rarity==Rarity.EPIC||gear.rarity==Rarity.MYTHIC?"1个":"1～3个同种随机")+String.join("／",CurrencyRules.dismantlePool(gear.rarity).stream().map(id->ItemRegistry.item(id,1).getHoverName().getString()).toList()));var lines=new JsonArray();for(var affix:gear.affixes){var line=new JsonObject();line.addProperty("id",cn.yumis.fight.modules.affixes.api.AffixResolver.definitionId(affix));line.addProperty("text",cn.yumis.fight.modules.affixes.api.AffixText.affix(affix));lines.add(line);}row.add("lines",lines);
         }
     }
@@ -60,8 +70,9 @@ public final class EconomyActions {
             String area=row.get("bag").getAsBoolean()?"bag":"inventory";int slot=row.get("slot").getAsInt();var source=InventoryEdits.decode(player,row.get("source"));
             if(area.equals("inventory")&&!row.get("source").equals(InventoryEdits.encode(player,InventoryEdits.source(player,area,slot))))throw new IllegalArgumentException("物品已变化，请刷新后重试");
             if(dismantle&&area.equals("inventory")&&slot==player.getInventory().getSelectedSlot())throw new IllegalArgumentException("当前主手不可分解");
-            total=Math.addExact(total,CurrencyRules.salePrice(source));var edit=InventoryEdits.change(player,area,slot,source,ItemStack.EMPTY);edit.add("before",row.get("source").deepCopy());edits.add(edit);
+            var edit=InventoryEdits.change(player,area,slot,source,ItemStack.EMPTY);edit.add("before",row.get("source").deepCopy());edits.add(edit);
             if(dismantle){var result=CurrencyRules.dismantle(EquipmentItems.gear(source).rarity,RANDOM);drops.add(InventoryEdits.encode(player,ItemRegistry.item(result.item(),result.count())));}
+            else total=Math.addExact(total,CurrencyRules.salePrice(source));
         }
         if(edits.isEmpty()){
             if(automatic){j.addProperty("localOnly",true);return;}

@@ -19,7 +19,15 @@ public final class ElementAccumulation {
         public final long duration,strongDuration;
         public final int color;
         Kind(String id,String title,long duration,long strongDuration,int color){this.id=id;this.title=title;this.duration=duration;this.strongDuration=strongDuration;this.color=color;}
-        public long duration(boolean strong){return strong?strongDuration:duration;}
+        public long duration(boolean strong){
+            var e=CombatBalanceRules.current().combat.elemental();
+            return switch(this){
+                case SHOCK->strong?e.shockStrongDurationMs():e.shockDurationMs();
+                case IGNITE->strong?e.igniteStrongDurationMs():e.igniteDurationMs();
+                case FREEZE->strong?e.freezeStrongDurationMs():e.freezeDurationMs();
+                case EROSION->strong?e.erosionStrongDurationMs():e.erosionDurationMs();
+            };
+        }
         public boolean damaging(){return this==IGNITE||this==EROSION;}
         public int ticks(){return this==IGNITE?1:this==EROSION?5:0;}
     }
@@ -46,8 +54,9 @@ public final class ElementAccumulation {
         public void endEarly(Kind kind,long now){
             int index=kind.ordinal();
             if(until[index]<=now)return;
-            if(resistanceUntil[index]-until[index]==RESISTANCE_MILLIS)
-                resistanceUntil[index]=Math.addExact(now,RESISTANCE_MILLIS);
+            long window=CombatBalanceRules.current().combat.elemental().resistanceWindowMs();
+            if(resistanceUntil[index]-until[index]==window)
+                resistanceUntil[index]=Math.addExact(now,window);
             until[index]=now;
         }
     }
@@ -55,12 +64,15 @@ public final class ElementAccumulation {
     private ElementAccumulation(){}
     public static Kind kind(String id){for(var kind:Kind.values())if(kind.id.equals(id))return kind;return null;}
     public static double defense(State state,Life life){return state.generation==life.generation?state.defenseMultiplier:1;}
-    public static double magicTaken(State state,Life life,boolean strong,long now){return state.active(Kind.IGNITE,life,now)?strong?1.10:1.20:1;}
+    public static double magicTaken(State state,Life life,boolean strong,long now){
+        var e=CombatBalanceRules.current().combat.elemental();
+        return state.active(Kind.IGNITE,life,now)?(strong?e.igniteStrongMagicTaken():e.igniteMagicTaken()):1;
+    }
     /** Hard freeze only applies to ordinary targets; boss/elite freeze is a cast-speed slow. */
     public static boolean controls(Life life,long now){return life.elemental.active(Kind.FREEZE,life,now)&&!life.elemental.strong[Kind.FREEZE.ordinal()];}
     public static boolean chilled(Life life,long now){return life.elemental.active(Kind.FREEZE,life,now)&&life.elemental.strong[Kind.FREEZE.ordinal()];}
     /** Boss/elite freeze halves cast speed, so action and windup times take twice as long. Cooldowns are unchanged. */
-    public static double castTimeScale(Life life,long now){return chilled(life,now)?2:1;}
+    public static double castTimeScale(Life life,long now){return chilled(life,now)?CombatBalanceRules.current().combat.elemental().chillCastTimeScale():1;}
     /** A content source may additionally feed another buildup without converting or duplicating damage. */
     public static void addConversion(Stats stats,int damageElement,Kind buildup,double ratio){
         if(damageElement< -1||damageElement>3)throw new IllegalArgumentException("积累来源元素无效");
@@ -80,6 +92,10 @@ public final class ElementAccumulation {
         State next=previous.matches(life)?previous.copy():new State();
         next.generation=life.generation;
         var triggered=new ArrayList<Kind>();
+        var e=CombatBalanceRules.current().combat.elemental();
+        double threshold=e.threshold();
+        long resistanceWindow=e.resistanceWindowMs();
+        double resistanceBuildup=e.resistanceBuildupMultiplier();
         for(Kind kind:Kind.values()){
             int index=kind.ordinal();if(next.until[index]>now)continue;
             double amount=components[index+1];
@@ -87,22 +103,27 @@ public final class ElementAccumulation {
                 double ratio=source.modifiers.getOrDefault(conversion(element,kind),0d);finite(ratio);
                 if(ratio<0)throw new IllegalArgumentException("积累比例不可为负");amount+=components[element+1]*ratio;
             }
-            if(enemy&&now<next.resistanceUntil[index])amount*=RESISTANCE_BUILDUP;
+            if(enemy&&now<next.resistanceUntil[index])amount*=resistanceBuildup;
             next.buildup[index]+=amount*acceptedScale;finite(next.buildup[index]);
-            if(next.buildup[index]+Math.ulp(THRESHOLD)*8<THRESHOLD)continue;
+            if(next.buildup[index]+Math.ulp(threshold)*8<threshold)continue;
             next.buildup[index]=0;next.until[index]=Math.addExact(now,kind.duration(strong));next.strong[index]=strong;
-            if(enemy)next.resistanceUntil[index]=Math.addExact(next.until[index],RESISTANCE_MILLIS);
-            if(kind==Kind.EROSION)next.defenseMultiplier*=strong?.95:.90;
+            if(enemy)next.resistanceUntil[index]=Math.addExact(next.until[index],resistanceWindow);
+            if(kind==Kind.EROSION)next.defenseMultiplier*=strong?e.erosionStrongDefenseFactor():e.erosionDefenseFactor();
             triggered.add(kind);
         }
         return new Change(next,triggered);
     }
     /** Fixed-health fire magic uses magical defense and the normal elemental strength/resistance term. */
     public static double igniteFraction(boolean strong,double defense,double fireStrength,double fireResist,double magicTaken){
-        return (strong?.10:.30)*1000/(1000+Math.max(0,defense))*Math.max(0,1+(fireStrength-fireResist)/120)*magicTaken;
+        var c=CombatBalanceRules.current().combat;var e=c.elemental();
+        return (strong?e.igniteStrongFraction():e.igniteFraction())*c.defenseDivisor()/(c.defenseDivisor()+Math.max(0,defense))*Math.max(0,1+(fireStrength-fireResist)/c.elementalDivisor())*magicTaken;
     }
-    public static double erosionFraction(boolean strong){return strong?.01:.05;}
+    public static double erosionFraction(boolean strong){
+        var e=CombatBalanceRules.current().combat.elemental();
+        return strong?e.erosionStrongFraction():e.erosionFraction();
+    }
     public static double shockDamage(double damage,double defense,double lightStrength,double lightResist){
-        return damage*.20*1000/(1000+Math.max(0,defense))*Math.max(0,1+(lightStrength-lightResist)/120);
+        var c=CombatBalanceRules.current().combat;var e=c.elemental();
+        return damage*e.shockDamageRatio()*c.defenseDivisor()/(c.defenseDivisor()+Math.max(0,defense))*Math.max(0,1+(lightStrength-lightResist)/c.elementalDivisor());
     }
 }

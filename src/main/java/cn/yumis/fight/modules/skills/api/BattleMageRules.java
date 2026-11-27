@@ -4,6 +4,7 @@ import cn.yumis.fight.modules.attributes.api.Stat;
 import cn.yumis.fight.modules.attributes.api.Stats;
 import cn.yumis.fight.modules.character.api.JobCatalog;
 import cn.yumis.fight.modules.character.api.Progress;
+import cn.yumis.fight.modules.dungeons.api.TowerBattleCard;
 import java.util.*;
 
 /**
@@ -110,11 +111,6 @@ public final class BattleMageRules {
         return mode == 1 || mode == 2 ? mode : 0;
     }
 
-    public static int masteryRank(Stats stats, Progress progress) {
-        if (progress == null || !progress.hasJob(JobCatalog.BATTLE_MAGE)) return 0;
-        return SkillLearning.effective(stats, progress, SkillCatalog.require(BattleMageSkills.WEAPON_MASTERY));
-    }
-
     public static int grooveRank(Stats stats, Progress progress) {
         if (progress == null || !progress.hasJob(JobCatalog.BATTLE_MAGE)) return 0;
         return SkillLearning.effective(stats, progress, SkillCatalog.require(BattleMageSkills.BATTLE_GROOVE));
@@ -123,11 +119,6 @@ public final class BattleMageRules {
     public static int launcherRank(Stats stats, Progress progress) {
         if (progress == null || !progress.hasJob(JobCatalog.BATTLE_MAGE)) return 0;
         return SkillLearning.effective(stats, progress, SkillCatalog.require(BattleMageSkills.CHASER_LAUNCHER));
-    }
-
-    public static SkillParameters.Snapshot masteryParams(Stats stats, Progress progress) {
-        int rank = Math.max(1, masteryRank(stats, progress));
-        return SkillParameters.resolve(SkillCatalog.require(BattleMageSkills.WEAPON_MASTERY), rank, stats.parameters);
     }
 
     public static SkillParameters.Snapshot grooveParams(Stats stats, Progress progress) {
@@ -140,37 +131,25 @@ public final class BattleMageRules {
         return SkillParameters.resolve(SkillCatalog.require(BattleMageSkills.CHASER_LAUNCHER), rank, stats.parameters);
     }
 
-    // --- Weapon Mastery formulas ---
+    // --- Unified Battle Groove + Weapon Mastery formulas (trimmed to remove duplicate crit/stacking) ---
 
     public static double spearPhysMut(int rank, double bonusScale) {
-        if (rank <= 0) return 0.0;
-        return (0.06 + 0.015 * (rank - 1)) * Math.max(0.0, bonusScale);
-    }
-
-    public static double spearCrit(int rank) {
-        return rank <= 0 ? 0.0 : 0.04 + 0.008 * (rank - 1);
-    }
-
-    public static double clubDualMut(int rank, double bonusScale) {
         if (rank <= 0) return 0.0;
         return (0.04 + 0.010 * (rank - 1)) * Math.max(0.0, bonusScale);
     }
 
-    public static double clubCrit(int rank) {
-        return rank <= 0 ? 0.0 : 0.03 + 0.006 * (rank - 1);
+    public static double clubDualMut(int rank, double bonusScale) {
+        if (rank <= 0) return 0.0;
+        return (0.03 + 0.0075 * (rank - 1)) * Math.max(0.0, bonusScale);
     }
 
     public static double clubCdRecovery(int rank) {
-        return rank <= 0 ? 0.0 : 0.08 + 0.01 * (rank - 1);
+        return rank <= 0 ? 0.0 : 0.06 + 0.0075 * (rank - 1);
     }
 
     public static double staffMagicMut(int rank, double bonusScale) {
         if (rank <= 0) return 0.0;
-        return (0.06 + 0.014 * (rank - 1)) * Math.max(0.0, bonusScale);
-    }
-
-    public static double staffCrit(int rank) {
-        return rank <= 0 ? 0.0 : 0.04 + 0.008 * (rank - 1);
+        return (0.04 + 0.010 * (rank - 1)) * Math.max(0.0, bonusScale);
     }
 
     // --- Battle Groove (斗神意志) combo stages ---
@@ -198,7 +177,7 @@ public final class BattleMageRules {
 
     public static double groovePerStageMut(int rank, double bonusScale) {
         if (rank <= 0) return 0.0;
-        return (0.015 + 0.0025 * (rank - 1)) * Math.max(0.0, bonusScale);
+        return (0.012 + 0.0018 * (rank - 1)) * Math.max(0.0, bonusScale);
     }
 
     public static double autoChaserIntervalSeconds(int rank, SkillParameters.Snapshot grooveParams, Stats stats) {
@@ -261,28 +240,67 @@ public final class BattleMageRules {
         return 4;
     }
 
+    public static double chaserBuffScale(Stats stats) {
+        return TowerBattleCard.BM_CHASER_OVERFLOW.held(stats)
+            ? 1.0 + TowerBattleCard.BM_CHASER_OVERFLOW.ratio("buff")
+            : 1.0;
+    }
+
+    public static boolean allFourElementsActive(Stats stats, boolean teana) {
+        return teana || (stats != null && stats.modifiers.getOrDefault("bmFusionOverload", 0.0) > 0);
+    }
+
     public static double neutralMoveSpeed(int rank, SkillParameters.Snapshot p) {
-        return Math.max(0.0, p.get("neutralMoveSpeed", 0.15) + 0.01 * Math.max(0, rank - 1));
+        return neutralMoveSpeed(rank, p, null);
+    }
+
+    public static double neutralMoveSpeed(int rank, SkillParameters.Snapshot p, Stats stats) {
+        return Math.max(0.0, p.get("neutralMoveSpeed", 0.15) + 0.01 * Math.max(0, rank - 1)) * chaserBuffScale(stats);
     }
 
     public static double lightAttackSpeed(int rank, SkillParameters.Snapshot p) {
-        return Math.max(0.0, p.get("lightAttackSpeed", 0.12) + 0.01 * Math.max(0, rank - 1));
+        return lightAttackSpeed(rank, p, null);
+    }
+
+    public static double lightAttackSpeed(int rank, SkillParameters.Snapshot p, Stats stats) {
+        return Math.max(0.0, p.get("lightAttackSpeed", 0.12) + 0.01 * Math.max(0, rank - 1)) * chaserBuffScale(stats);
     }
 
     public static double fireDamageMut(int rank, SkillParameters.Snapshot p) {
-        return Math.max(0.0, p.get("fireDamageMut", 0.05) + 0.0075 * Math.max(0, rank - 1));
+        return fireDamageMut(rank, p, null);
+    }
+
+    public static double fireDamageMut(int rank, SkillParameters.Snapshot p, Stats stats) {
+        return Math.max(0.0, p.get("fireDamageMut", 0.05) + 0.0075 * Math.max(0, rank - 1)) * chaserBuffScale(stats);
     }
 
     public static double iceDamageReduction(int rank, SkillParameters.Snapshot p) {
-        return Math.clamp(p.get("iceDamageReduction", 0.08) + 0.005 * Math.max(0, rank - 1), 0.0, 0.25);
+        return iceDamageReduction(rank, p, null);
+    }
+
+    public static double iceDamageReduction(int rank, SkillParameters.Snapshot p, Stats stats) {
+        double scale = chaserBuffScale(stats);
+        double raw = (p.get("iceDamageReduction", 0.08) + 0.005 * Math.max(0, rank - 1)) * scale;
+        return Math.clamp(raw, 0.0, Math.min(0.50, 0.25 * scale));
     }
 
     public static double darkCritBonus(int rank, SkillParameters.Snapshot p) {
-        return Math.max(0.0, p.get("darkCritBonus", 0.08) + 0.01 * Math.max(0, rank - 1));
+        return darkCritBonus(rank, p, null);
+    }
+
+    public static double darkCritBonus(int rank, SkillParameters.Snapshot p, Stats stats) {
+        return Math.max(0.0, p.get("darkCritBonus", 0.08) + 0.01 * Math.max(0, rank - 1)) * chaserBuffScale(stats);
     }
 
     public static double fusionAttackBonus(int rank, SkillParameters.Snapshot p) {
-        return Math.max(0.0, p.get("fusionAttackBonus", 0.08) + 0.01 * Math.max(0, rank - 1));
+        return fusionAttackBonus(rank, p, null);
+    }
+
+    public static double fusionAttackBonus(int rank, SkillParameters.Snapshot p, Stats stats) {
+        double scale = TowerBattleCard.BM_FUSION_OVERLOAD.held(stats)
+            ? 1.0 + TowerBattleCard.BM_FUSION_OVERLOAD.ratio("bonus")
+            : 1.0;
+        return Math.max(0.0, p.get("fusionAttackBonus", 0.08) + 0.01 * Math.max(0, rank - 1)) * scale;
     }
 
     // --- Charge arithmetic (落花掌 & 强袭流星打) ---
@@ -334,42 +352,36 @@ public final class BattleMageRules {
         if (progress == null || !progress.hasJob(JobCatalog.BATTLE_MAGE)) return source;
         var result = source.copy();
 
-        // 1. Weapon Mastery (strictly separates physical Spear vs dual Club vs magic Staff/Wand)
-        int mRank = masteryRank(source, progress);
-        if (mRank > 0) {
-            var mp = masteryParams(source, progress);
+        // 1. Unified Battle Groove + Weapon Mastery (Spear / Club / Staff & Wand + combo stages)
+        int gRank = grooveRank(source, progress);
+        if (gRank > 0) {
+            var gp = grooveParams(source, progress);
             String w = source.weaponType == null ? "" : source.weaponType;
+            boolean niu = TowerBattleCard.BM_NIU_MASTERY.held(source);
             if ("SPEAR".equals(w)) {
-                result.mut(Stat.PHYSICAL_ATTACK, spearPhysMut(mRank, mp.get("spearBonusScale", 1.0)));
-                result.modifiers.merge("crit", spearCrit(mRank), Double::sum);
-                result.extra(Stat.ATTACK_SPEED, 10.0);
-                result.modifiers.put("bmMeleeRangeScale", mp.get("spearRangeScale", 1.15));
-                result.modifiers.put("bmChargeScale", mp.get("spearChargeScale", 0.85));
+                result.mut(Stat.PHYSICAL_ATTACK, spearPhysMut(gRank, gp.get("spearBonusScale", 1.0)));
+                result.extra(Stat.ATTACK_SPEED, 10.0 + (niu ? TowerBattleCard.BM_NIU_MASTERY.value("spearspeed") : 0.0));
+                result.modifiers.put("bmMeleeRangeScale", gp.get("spearRangeScale", 1.15));
+                result.modifiers.put("bmChargeScale", gp.get("spearChargeScale", 0.85));
             } else if ("CLUB".equals(w)) {
-                double dual = clubDualMut(mRank, mp.get("clubBonusScale", 1.0));
+                double dual = clubDualMut(gRank, gp.get("clubBonusScale", 1.0));
                 result.mut(Stat.PHYSICAL_ATTACK, dual);
                 result.mut(Stat.MAGICAL_ATTACK, dual);
-                result.modifiers.merge("crit", clubCrit(mRank), Double::sum);
                 result.extra(Stat.ATTACK_SPEED, 8.0);
-                result.modifiers.merge("cooldownRecovery", clubCdRecovery(mRank), Double::sum);
-                result.modifiers.put("bmAutoChaserScale", mp.get("clubAutoChaserScale", 0.80));
-                result.modifiers.put("bmChaserRadiusScale", mp.get("clubChaserRadiusScale", 1.15));
+                result.mut(Stat.COOLDOWN_RECOVERY, clubCdRecovery(gRank) * (niu ? 2.0 : 1.0));
+                result.modifiers.put("bmAutoChaserScale", gp.get("clubAutoChaserScale", 0.80));
+                result.modifiers.put("bmChaserRadiusScale", gp.get("clubChaserRadiusScale", 1.15));
             } else if ("STAFF".equals(w) || "WAND".equals(w)) {
-                result.mut(Stat.MAGICAL_ATTACK, staffMagicMut(mRank, mp.get("staffBonusScale", 1.0)));
-                result.modifiers.merge("crit", staffCrit(mRank), Double::sum);
-                result.modifiers.put("bmChaserCdScale", mp.get("staffChaserCdScale", 0.85));
+                result.mut(Stat.MAGICAL_ATTACK, staffMagicMut(gRank, gp.get("staffBonusScale", 1.0)));
+                result.modifiers.put("bmChaserCdScale", gp.get("staffChaserCdScale", 0.85));
             }
-        }
-
-        // 2. Battle Groove (斗神意志) combo stage scaling
-        int gRank = grooveRank(source, progress);
-        if (gRank > 0 && state != null && state.grooveStage > 0) {
-            var gp = grooveParams(source, progress);
-            int stage = Math.min(state.grooveStage, (int) Math.max(1, gp.get("comboStageCap", 6.0)));
-            double stageMut = stage * groovePerStageMut(gRank, gp.get("grooveBonusScale", 1.0));
-            double stageCrit = stage * gp.get("perStageCrit", 0.015);
-            result.modifier("final").mut += stageMut;
-            result.modifiers.merge("crit", stageCrit, Double::sum);
+            if (state != null && state.grooveStage > 0) {
+                int stage = Math.min(state.grooveStage, (int) Math.max(1, gp.get("comboStageCap", 6.0)));
+                double stageMut = stage * groovePerStageMut(gRank, gp.get("grooveBonusScale", 1.0));
+                double stageCrit = stage * gp.get("perStageCrit", 0.015);
+                result.modifier("final").mut += stageMut;
+                result.modifiers.merge("crit", stageCrit, Double::sum);
+            }
         }
 
         // 3. Independent 5-Color Chaser Buffs
@@ -377,19 +389,19 @@ public final class BattleMageRules {
             int lRank = Math.max(1, launcherRank(source, progress));
             var lp = launcherParams(source, progress);
             if (state.buffUntil[BattleMageState.NEUTRAL] > now) {
-                result.mut(Stat.MOVEMENT_SPEED, neutralMoveSpeed(lRank, lp));
+                result.mut(Stat.MOVEMENT_SPEED, neutralMoveSpeed(lRank, lp, source));
             }
             if (state.buffUntil[BattleMageState.LIGHT] > now) {
-                result.extra(Stat.ATTACK_SPEED, lightAttackSpeed(lRank, lp) * 100.0);
+                result.extra(Stat.ATTACK_SPEED, lightAttackSpeed(lRank, lp, source) * 100.0);
             }
             if (state.buffUntil[BattleMageState.FIRE] > now) {
-                result.modifier("final").mut += fireDamageMut(lRank, lp);
+                result.modifier("final").mut += fireDamageMut(lRank, lp, source);
             }
             if (state.buffUntil[BattleMageState.ICE] > now) {
-                result.modifiers.put("bmIceDr", iceDamageReduction(lRank, lp));
+                result.modifiers.put("bmIceDr", iceDamageReduction(lRank, lp, source));
             }
             if (state.buffUntil[BattleMageState.DARK] > now) {
-                result.modifiers.merge("crit", darkCritBonus(lRank, lp), Double::sum);
+                result.modifiers.merge("crit", darkCritBonus(lRank, lp, source), Double::sum);
             }
         }
 
@@ -401,6 +413,9 @@ public final class BattleMageRules {
             }
             if (state.fusionCritBonus > 0) {
                 result.modifiers.merge("crit", state.fusionCritBonus, Double::sum);
+            }
+            if (TowerBattleCard.BM_FUSION_OVERLOAD.held(source)) {
+                result.modifiers.put("bmFusionOverload", 1.0);
             }
         }
 
@@ -428,7 +443,8 @@ public final class BattleMageRules {
         int cap = (int) Math.max(1, gp.get("comboStageCap", 6.0));
         double scale = gp.get("comboThresholdScale", 1.0);
         long holdMs = Math.max(1000L, Math.round(gp.get("comboHoldSeconds", 8.0) * 1000.0));
-        state.comboCount = Math.min(999, state.comboCount + hits);
+        int totalHits = hits + (TowerBattleCard.BM_GROOVE_UNBOUND.held(stats) ? TowerBattleCard.BM_GROOVE_UNBOUND.count("hits") : 0);
+        state.comboCount = Math.min(999, state.comboCount + totalHits);
         state.grooveStage = stageForCombo(state.comboCount, cap, scale);
         state.comboHoldUntil = now + holdMs;
         state.nextComboDecayAt = state.comboHoldUntil;
@@ -437,16 +453,39 @@ public final class BattleMageRules {
 
     /** Generates random 5-color Chasers (honoring forcedChaserEnabled/forcedChaserType and Teana state). */
     public static void generateChasers(BattleMageState state, int count, Stats stats, Progress progress, long now, Random rng) {
-        if (state == null || count <= 0 || progress == null || !progress.hasJob(JobCatalog.BATTLE_MAGE)) return;
+        generateChasersWithOverflow(state, count, stats, progress, now, rng);
+    }
+
+    /**
+     * Generates random 5-color Chasers; when {@link TowerBattleCard#BM_CHASER_OVERFLOW} is held and the
+     * queue is already at cap, newly generated overflow Chasers are returned for instant zero-cost auto-fire
+     * instead of evicting existing queued Chasers.
+     */
+    public static List<BattleMageState.Chaser> generateChasersWithOverflow(
+        BattleMageState state, int count, Stats stats, Progress progress, long now, Random rng
+    ) {
+        if (state == null || count <= 0 || progress == null || !progress.hasJob(JobCatalog.BATTLE_MAGE)) return List.of();
         var gp = grooveParams(stats, progress);
         var lp = launcherParams(stats, progress);
         int maxCap = (int) Math.max(1, lp.get("maxChasers", 7.0));
         long chaserMs = Math.max(1000L, Math.round(lp.get("chaserDuration", 25.0) * 1000.0));
         boolean teana = state.transformed(now);
+        boolean overflowFire = TowerBattleCard.BM_CHASER_OVERFLOW.held(stats);
+        if (state.chasers == null) state.chasers = new ArrayList<>();
+        state.chasers.removeIf(c -> c == null || c.expiresAt <= now);
+        List<BattleMageState.Chaser> overflow = null;
         for (int i = 0; i < count; i++) {
             int color = rollChaserColor(gp, state, rng);
-            state.pushChaser(color, now + chaserMs, teana, maxCap);
+            if (overflowFire && state.chasers.size() >= maxCap) {
+                if (overflow == null) overflow = new ArrayList<>();
+                overflow.add(new BattleMageState.Chaser(color, now + chaserMs, teana));
+                state.secondLastColor = state.lastColor;
+                state.lastColor = color;
+            } else {
+                state.pushChaser(color, now + chaserMs, teana, maxCap);
+            }
         }
+        return overflow == null ? List.of() : overflow;
     }
 
     /** Triggers/refreshes the personal Buff for a fired Chaser color. */

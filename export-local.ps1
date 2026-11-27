@@ -1,13 +1,14 @@
 param()
 $ErrorActionPreference='Stop'
 Set-Location -LiteralPath $PSScriptRoot
-# Quick local export: offline test+jar, rename to metadata version, deploy to desktop mods.
+# Quick local export: offline jar, rename to metadata version, deploy to desktop mods.
 # Formal export rule: bump version in src/main/resources/META-INF/neoforge.mods.toml BEFORE running this.
+# 2026-11-26 user decision: exports no longer run :test (src/test only holds helpers, Gradle 9 fails on no discovered tests).
 $libs=Join-Path $PSScriptRoot 'temp\build\libs'
 if(Test-Path -LiteralPath $libs){
   Get-ChildItem -LiteralPath $libs -Filter 'YumisDungeonAndFight-*' | Remove-Item -Force
 }
-& .\build.ps1 -Tasks test,jar -Offline -NoExport
+& .\build.ps1 -Tasks jar -Offline -NoExport
 if($LASTEXITCODE -ne 0){ exit $LASTEXITCODE }
 $jar=Get-ChildItem -LiteralPath $libs -Filter 'YumisDungeonAndFight-*.jar' |
   Where-Object { $_.Name -notmatch '-sources' } | Select-Object -First 1

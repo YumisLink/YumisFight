@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "group": "sun_moon",
+  "skills": {
+    "yumis_dungeon_and_fight:sun_moon_cycle": {
+      "title": "日月流转",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "duration": 0.0,
+        "range": 16.0,
+        "slashes": 1.0,
+        "radius": 0.0,
+        "interval": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:moon_flow": {
+      "title": "月流",
+      "unlock": 20,
+      "sp": 30,
+      "mpRatio": 0.054645,
+      "cooldown": 0.0,
+      "damaging": true,
+      "damage": {
+        "damage": 2.57966
+      },
+      "parameters": {
+        "duration": 1.0,
+        "range": 16.0,
+        "slashes": 1.0,
+        "radius": 3.0,
+        "interval": 0.0,
+        "heartGrantBonus": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:sunfire": {
+      "title": "日炎",
+      "unlock": 25,
+      "sp": 40,
+      "mpRatio": 0.036697,
+      "cooldown": 0.0,
+      "damaging": true,
+      "damage": {
+        "damage": 4.299432
+      },
+      "parameters": {
+        "duration": 1.8,
+        "range": 16.0,
+        "slashes": 1.0,
+        "radius": 3.0,
+        "interval": 0.0,
+        "heartGrantBonus": 0.0,
+        "impactDelay": 0.35
+      }
+    },
+    "yumis_dungeon_and_fight:moon_reflux": {
+      "title": "月辰回流",
+      "unlock": 30,
+      "sp": 50,
+      "mpRatio": 0.0,
+      "cooldown": 30.0,
+      "damaging": false,
+      "damage": {
+        "damage": 0.0
+      },
+      "parameters": {
+        "duration": 0.0,
+        "range": 16.0,
+        "slashes": 1.0,
+        "radius": 0.0,
+        "interval": 0.0,
+        "harmonyGrantBonus": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:solar_flare": {
+      "title": "烈日爆炎",
+      "unlock": 35,
+      "sp": 50,
+      "mpRatio": 0.060764,
+      "cooldown": 0.0,
+      "damaging": true,
+      "damage": {
+        "damage": 8.831267
+      },
+      "parameters": {
+        "duration": 2.5,
+        "range": 16.0,
+        "slashes": 1.0,
+        "radius": 4.0,
+        "interval": 0.0,
+        "heartGrantBonus": 0.0
+      }
+    },
+    "yumis_dungeon_and_fight:corona": {
+      "title": "日冕",
+      "unlock": 40,
+      "sp": 60,
+      "mpRatio": 0.01517,
+      "cooldown": 0.0,
+      "damaging": true,
+      "damage": {
+        "damage": 13.665223
+      },
+      "parameters": {
+        "duration": 1.8,
+        "range": 16.0,
+        "slashes": 1.0,
+        "radius": 4.0,
+        "interval": 0.0,
+        "impactDelay": 0.8,
+        "liftHeight": 2.0
+      }
+    },
+    "yumis_dungeon_and_fight:moon_starfall": {
+      "title": "月见星辉",
+      "unlock": 45,
+      "sp": 80,
+      "mpRatio": 0.055866,
+      "cooldown": 0.0,
+      "damaging": true,
+      "damage": {
+        "damage": 5.675251
+      },
+      "parameters": {
+        "duration": 2.5,
+        "range": 16.0,
+        "slashes": 8.0,
+        "radius": 4.0,
+        "interval": 0.25,
+        "harmonyGrantBonus": 0.0,
+        "impactDelay": 0.25
+      }
+    },
+    "yumis_dungeon_and_fight:paradox": {
+      "title": "悖论",
+      "unlock": 50,
+      "sp": 100,
+      "mpRatio": 0.0,
+      "cooldown": 0.0,
+      "damaging": true,
+      "damage": {
+        "damage": 44.621137
+      },
+      "parameters": {
+        "duration": 0.0,
+        "range": 16.0,
+        "slashes": 2.0,
+        "radius": 2.5,
+        "interval": 0.0,
+        "impactDelay": 0.6,
+        "elementSplit": 0.5
+      }
+    }
+  }
+}

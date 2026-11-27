@@ -1,0 +1,935 @@
+{
+  "version": 1,
+  "enemies": {
+    "dark_city_headless_graverobber": {
+      "title": "无头盗尸者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "dark_city_headless_skeleton": {
+      "title": "无头骷髅",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "dark_city_guard": {
+      "title": "暗精灵护卫",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "dark_city_goliath": {
+      "title": "残缺的歌利亚",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "dark_city_tingo": {
+      "title": "谨慎的仃高",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "dark_city_humphrey": {
+      "title": "沉默的亨普利",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "dark_city_headless_knight": {
+      "title": "无头骑士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "forbidden_cultist": {
+      "title": "复活的GBL信徒",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "forbidden_female_cultist": {
+      "title": "复活的GBL女信徒",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "forbidden_deacon": {
+      "title": "复活的GBL神官",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "forbidden_priest": {
+      "title": "复活的GBL祭司",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "forbidden_bishop": {
+      "title": "复活的GBL主教",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "forbidden_marcellus": {
+      "title": "审判者马塞尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "forbidden_barrier_core": {
+      "title": "马塞尔的防御罩",
+      "healthMultiplier": 4.0,
+      "attackMultiplier": 1.0
+    },
+    "gbl_cultist": {
+      "title": "GBL教信徒",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "gbl_female_cultist": {
+      "title": "GBL教女信徒",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "gbl_dragon_cannon": {
+      "title": "龙头炮",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "gbl_yasha": {
+      "title": "夜叉",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "gbl_fallen_priest": {
+      "title": "堕落的祭司",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "gbl_asor": {
+      "title": "堕落的阿索尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "palace_expeller": {
+      "title": "驱逐者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "palace_axe_expeller": {
+      "title": "斧之驱逐者",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "palace_golem_commander": {
+      "title": "石巨人操控师",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "palace_scholar_golem": {
+      "title": "浮游石巨人",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "palace_axion": {
+      "title": "骑士队长阿克雷",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "palace_general_iae": {
+      "title": "大将伊埃",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "palace_sieghart": {
+      "title": "光之城主赛格哈特",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "skasa_male_warrior": {
+      "title": "图卢斯族男战士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "skasa_female_warrior": {
+      "title": "图卢斯族女战士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "skasa_nasra": {
+      "title": "北极风纳斯拉",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "skasa_ice_spider": {
+      "title": "寒冰蜘蛛",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "skasa_hatchling": {
+      "title": "斯卡萨幼龙",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "skasa_ice_dragon": {
+      "title": "冰龙斯卡萨",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "castle_knight": {
+      "title": "维多利亚骑士",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    },
+    "castle_karl": {
+      "title": "卡尔",
+      "healthMultiplier": 1.0,
+      "attackMultiplier": 1.0
+    }
+  },
+  "darkCityGuardDefenseIncrease": 0.5,
+  "darkCityMoves": {
+    "CLAW": {
+      "animation": "claw",
+      "shape": "FAN",
+      "windup": 350,
+      "active": 150,
+      "recovery": 450,
+      "cooldown": 1600,
+      "range": 2.4,
+      "coefficient": 0.8,
+      "magic": false,
+      "element": 3
+    },
+    "SKULL": {
+      "animation": "throw",
+      "shape": "LINE",
+      "windup": 500,
+      "active": 800,
+      "recovery": 400,
+      "cooldown": 2600,
+      "range": 14.0,
+      "coefficient": 0.8,
+      "magic": false,
+      "element": 3
+    },
+    "ARROW": {
+      "animation": "shoot",
+      "shape": "LINE",
+      "windup": 500,
+      "active": 800,
+      "recovery": 400,
+      "cooldown": 2400,
+      "range": 16.0,
+      "coefficient": 0.7,
+      "magic": false,
+      "element": -1
+    },
+    "SMASH": {
+      "animation": "smash",
+      "shape": "FAN",
+      "windup": 650,
+      "active": 200,
+      "recovery": 650,
+      "cooldown": 2800,
+      "range": 3.2,
+      "coefficient": 1.2,
+      "magic": false,
+      "element": -1
+    },
+    "TINGO_SLASH": {
+      "animation": "slash",
+      "shape": "FAN",
+      "windup": 450,
+      "active": 200,
+      "recovery": 550,
+      "cooldown": 2000,
+      "range": 3.0,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "SHIELD_BASH": {
+      "animation": "shield_bash",
+      "shape": "FAN",
+      "windup": 600,
+      "active": 150,
+      "recovery": 650,
+      "cooldown": 4000,
+      "range": 2.6,
+      "coefficient": 1.1,
+      "magic": false,
+      "element": -1
+    },
+    "GUARD": {
+      "animation": "guard",
+      "shape": "GUARD",
+      "windup": 500,
+      "active": 1500,
+      "recovery": 600,
+      "cooldown": 8000,
+      "range": 0.0,
+      "coefficient": 0.0,
+      "magic": false,
+      "element": -1
+    },
+    "HAMMER": {
+      "animation": "hammer",
+      "shape": "FAN",
+      "windup": 750,
+      "active": 200,
+      "recovery": 750,
+      "cooldown": 3000,
+      "range": 3.5,
+      "coefficient": 1.2,
+      "magic": false,
+      "element": -1
+    },
+    "QUAKE": {
+      "animation": "quake",
+      "shape": "WAVE",
+      "windup": 1000,
+      "active": 700,
+      "recovery": 900,
+      "cooldown": 6500,
+      "range": 9.0,
+      "coefficient": 1.1,
+      "magic": false,
+      "element": -1
+    },
+    "SLASH": {
+      "animation": "slash",
+      "shape": "FAN",
+      "windup": 650,
+      "active": 200,
+      "recovery": 650,
+      "cooldown": 2500,
+      "range": 4.5,
+      "coefficient": 1.1,
+      "magic": false,
+      "element": -1
+    },
+    "KICK": {
+      "animation": "kick",
+      "shape": "FAN",
+      "windup": 450,
+      "active": 150,
+      "recovery": 600,
+      "cooldown": 4000,
+      "range": 2.8,
+      "coefficient": 0.7,
+      "magic": false,
+      "element": -1
+    },
+    "SPIN": {
+      "animation": "spin",
+      "shape": "CIRCLE",
+      "windup": 800,
+      "active": 250,
+      "recovery": 900,
+      "cooldown": 6000,
+      "range": 4.0,
+      "coefficient": 1.2,
+      "magic": false,
+      "element": -1
+    },
+    "CHARGE": {
+      "animation": "charge",
+      "shape": "CHARGE",
+      "windup": 1000,
+      "active": 900,
+      "recovery": 1100,
+      "cooldown": 8000,
+      "range": 18.0,
+      "coefficient": 1.35,
+      "magic": false,
+      "element": -1
+    },
+    "NIGHTMARE": {
+      "animation": "nightmare",
+      "shape": "LINE",
+      "windup": 1200,
+      "active": 1000,
+      "recovery": 1100,
+      "cooldown": 10000,
+      "range": 18.0,
+      "coefficient": 1.1,
+      "magic": true,
+      "element": 3
+    }
+  },
+  "forbiddenBarrierLifetimeMs": 6000,
+  "forbiddenCoreHealth": 4.0,
+  "forbiddenSummonLimit": 6,
+  "forbiddenMoves": {
+    "EXPLOSION": {
+      "animation": "explode",
+      "windup": 0,
+      "active": 180,
+      "recovery": 0,
+      "cooldown": 0,
+      "range": 2.2,
+      "coefficient": 0.9,
+      "magic": true,
+      "element": 1
+    },
+    "KNIFE": {
+      "animation": "throw",
+      "windup": 450,
+      "active": 700,
+      "recovery": 250,
+      "cooldown": 1850,
+      "range": 13.0,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "STAB": {
+      "animation": "stab",
+      "windup": 350,
+      "active": 200,
+      "recovery": 700,
+      "cooldown": 1700,
+      "range": 2.5,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "PRIEST_WAVE": {
+      "animation": "shockwave",
+      "windup": 800,
+      "active": 800,
+      "recovery": 700,
+      "cooldown": 6000,
+      "range": 4.0,
+      "coefficient": 1.1,
+      "magic": true,
+      "element": 3
+    },
+    "DARK_KNIVES": {
+      "animation": "dark_knives",
+      "windup": 600,
+      "active": 650,
+      "recovery": 750,
+      "cooldown": 3000,
+      "range": 13.0,
+      "coefficient": 0.4,
+      "magic": true,
+      "element": 3
+    },
+    "BOSS_KNIVES": {
+      "animation": "knife_burst",
+      "windup": 600,
+      "active": 650,
+      "recovery": 950,
+      "cooldown": 3000,
+      "range": 15.0,
+      "coefficient": 0.45,
+      "magic": false,
+      "element": -1
+    },
+    "BOSS_STAB": {
+      "animation": "stab",
+      "windup": 450,
+      "active": 200,
+      "recovery": 600,
+      "cooldown": 2500,
+      "range": 3.0,
+      "coefficient": 1.1,
+      "magic": false,
+      "element": -1
+    },
+    "BOSS_WAVE": {
+      "animation": "shockwave",
+      "windup": 850,
+      "active": 800,
+      "recovery": 650,
+      "cooldown": 8000,
+      "range": 6.0,
+      "coefficient": 1.4,
+      "magic": true,
+      "element": 3
+    },
+    "PRIEST_SUMMON": {
+      "animation": "summon",
+      "windup": 900,
+      "active": 0,
+      "recovery": 700,
+      "cooldown": 12000,
+      "range": 0.0,
+      "coefficient": 0.0,
+      "magic": true,
+      "element": 3
+    },
+    "BISHOP_SUMMON": {
+      "animation": "summon",
+      "windup": 1000,
+      "active": 0,
+      "recovery": 700,
+      "cooldown": 14000,
+      "range": 0.0,
+      "coefficient": 0.0,
+      "magic": true,
+      "element": 3
+    },
+    "BOSS_SUMMON": {
+      "animation": "summon",
+      "windup": 1000,
+      "active": 0,
+      "recovery": 700,
+      "cooldown": 14000,
+      "range": 0.0,
+      "coefficient": 0.0,
+      "magic": true,
+      "element": 3
+    },
+    "BARRIER": {
+      "animation": "barrier",
+      "windup": 900,
+      "active": 0,
+      "recovery": 600,
+      "cooldown": 20000,
+      "range": 0.0,
+      "coefficient": 0.0,
+      "magic": true,
+      "element": 3
+    }
+  },
+  "skasaMoves": {
+    "PUNCH": {
+      "animation": "punch",
+      "windup": 450,
+      "active": 200,
+      "recovery": 600,
+      "cooldown": 1700,
+      "range": 2.5,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1,
+      "hits": 1,
+      "interval": 0
+    },
+    "KICK": {
+      "animation": "kick",
+      "windup": 550,
+      "active": 200,
+      "recovery": 550,
+      "cooldown": 1800,
+      "range": 2.9,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1,
+      "hits": 1,
+      "interval": 0
+    },
+    "NASRA_KICK": {
+      "animation": "rush_kick",
+      "windup": 700,
+      "active": 400,
+      "recovery": 700,
+      "cooldown": 4500,
+      "range": 6.0,
+      "coefficient": 0.9,
+      "magic": false,
+      "element": -1,
+      "hits": 1,
+      "interval": 0
+    },
+    "NASRA_CYCLONE": {
+      "animation": "ice_spin",
+      "windup": 900,
+      "active": 1200,
+      "recovery": 800,
+      "cooldown": 8000,
+      "range": 3.5,
+      "coefficient": 0.3,
+      "magic": true,
+      "element": 2,
+      "hits": 3,
+      "interval": 400
+    },
+    "SPIDER_BITE": {
+      "animation": "bite",
+      "windup": 450,
+      "active": 200,
+      "recovery": 600,
+      "cooldown": 1800,
+      "range": 2.5,
+      "coefficient": 0.8,
+      "magic": false,
+      "element": -1,
+      "hits": 1,
+      "interval": 0
+    },
+    "ICE_LINE": {
+      "animation": "ice_line",
+      "windup": 700,
+      "active": 650,
+      "recovery": 600,
+      "cooldown": 3000,
+      "range": 12.0,
+      "coefficient": 0.8,
+      "magic": true,
+      "element": 2,
+      "hits": 1,
+      "interval": 0
+    },
+    "HATCHLING_CHARGE": {
+      "animation": "charge",
+      "windup": 650,
+      "active": 450,
+      "recovery": 700,
+      "cooldown": 3000,
+      "range": 8.0,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1,
+      "hits": 1,
+      "interval": 0
+    },
+    "CLAW": {
+      "animation": "claw",
+      "windup": 650,
+      "active": 200,
+      "recovery": 800,
+      "cooldown": 3500,
+      "range": 6.0,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1,
+      "hits": 1,
+      "interval": 0
+    },
+    "SLAM": {
+      "animation": "slam",
+      "windup": 1000,
+      "active": 300,
+      "recovery": 1000,
+      "cooldown": 9000,
+      "range": 30.0,
+      "coefficient": 1.4,
+      "magic": false,
+      "element": -1,
+      "hits": 1,
+      "interval": 0
+    },
+    "TRIPLE": {
+      "animation": "triple",
+      "windup": 1200,
+      "active": 2600,
+      "recovery": 1100,
+      "cooldown": 14000,
+      "range": 30.0,
+      "coefficient": 0.45,
+      "magic": false,
+      "element": -1,
+      "hits": 3,
+      "interval": 1200
+    },
+    "ROAR": {
+      "animation": "roar",
+      "windup": 1000,
+      "active": 1000,
+      "recovery": 900,
+      "cooldown": 12000,
+      "range": 8.0,
+      "coefficient": 0.3,
+      "magic": true,
+      "element": -1,
+      "hits": 3,
+      "interval": 400
+    },
+    "VORTEX": {
+      "animation": "vortex",
+      "windup": 1200,
+      "active": 2400,
+      "recovery": 1000,
+      "cooldown": 16000,
+      "range": 3.0,
+      "coefficient": 0.25,
+      "magic": true,
+      "element": 2,
+      "hits": 4,
+      "interval": 600
+    },
+    "BREATH": {
+      "animation": "breath",
+      "windup": 1800,
+      "active": 2400,
+      "recovery": 1200,
+      "cooldown": 18000,
+      "range": 30.0,
+      "coefficient": 0.35,
+      "magic": true,
+      "element": 2,
+      "hits": 4,
+      "interval": 600
+    },
+    "ROUTE_BREATH": {
+      "animation": "breath",
+      "windup": 1400,
+      "active": 1200,
+      "recovery": 400,
+      "cooldown": 0,
+      "range": 30.0,
+      "coefficient": 0.15,
+      "magic": true,
+      "element": 2,
+      "hits": 3,
+      "interval": 400
+    }
+  },
+  "gblMoves": {
+    "CULTIST_STAB": {
+      "windup": 350,
+      "active": 200,
+      "duration": 1250,
+      "cooldown": 0,
+      "range": 2.5,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "FEMALE_KNIFE": {
+      "windup": 450,
+      "active": 700,
+      "duration": 1400,
+      "cooldown": 0,
+      "range": 13.0,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "CANNON_LOB": {
+      "windup": 700,
+      "active": 1100,
+      "duration": 2200,
+      "cooldown": 1800,
+      "range": 1.9,
+      "coefficient": 1.3,
+      "magic": false,
+      "element": -1
+    },
+    "CANNONBALL": {
+      "windup": 600,
+      "active": 800,
+      "duration": 1800,
+      "cooldown": 1800,
+      "range": 15.0,
+      "coefficient": 1.2,
+      "magic": false,
+      "element": -1
+    },
+    "YASHA_POUNCE": {
+      "windup": 1150,
+      "active": 180,
+      "duration": 1700,
+      "cooldown": 0,
+      "range": 2.0,
+      "coefficient": 1.35,
+      "magic": false,
+      "element": -1
+    },
+    "YASHA_CLAW": {
+      "windup": 440,
+      "active": 150,
+      "duration": 1450,
+      "cooldown": 0,
+      "range": 2.8,
+      "coefficient": 0.6,
+      "magic": false,
+      "element": -1
+    },
+    "PRIEST_SLAM": {
+      "windup": 1300,
+      "active": 200,
+      "duration": 2000,
+      "cooldown": 7000,
+      "range": 3.5,
+      "coefficient": 1.2,
+      "magic": true,
+      "element": -1
+    },
+    "PRIEST_NEEDLE": {
+      "windup": 480,
+      "active": 650,
+      "duration": 2000,
+      "cooldown": 0,
+      "range": 13.0,
+      "coefficient": 0.5,
+      "magic": false,
+      "element": -1
+    },
+    "ASOR_NEEDLE": {
+      "windup": 530,
+      "active": 650,
+      "duration": 2200,
+      "cooldown": 700,
+      "range": 15.0,
+      "coefficient": 0.4,
+      "magic": false,
+      "element": -1
+    },
+    "ASOR_WAVE": {
+      "windup": 1500,
+      "active": 800,
+      "duration": 2300,
+      "cooldown": 700,
+      "range": 8.0,
+      "coefficient": 1.6,
+      "magic": true,
+      "element": -1
+    },
+    "GODDESS_SPEAR": {
+      "windup": 1150,
+      "active": 180,
+      "duration": 3000,
+      "cooldown": 700,
+      "range": 1.4,
+      "coefficient": 0.85,
+      "magic": true,
+      "element": 0
+    }
+  },
+  "palaceMoves": {
+    "THRUST": {
+      "windup": 650,
+      "active": 450,
+      "duration": 1700,
+      "cooldown": 6000,
+      "range": 6.0,
+      "coefficient": 1.5,
+      "magic": false,
+      "element": -1
+    },
+    "SWORD": {
+      "windup": 450,
+      "active": 180,
+      "duration": 1200,
+      "cooldown": 0,
+      "range": 3.3,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "AXE_CLEAVE": {
+      "windup": 950,
+      "active": 200,
+      "duration": 2100,
+      "cooldown": 6000,
+      "range": 5.0,
+      "coefficient": 1.5,
+      "magic": false,
+      "element": -1
+    },
+    "AXE_SWEEP": {
+      "windup": 650,
+      "active": 200,
+      "duration": 1500,
+      "cooldown": 0,
+      "range": 3.7,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "CLAMP": {
+      "windup": 450,
+      "active": 180,
+      "duration": 1250,
+      "cooldown": 0,
+      "range": 3.0,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "STONE_PILLAR": {
+      "windup": 950,
+      "active": 200,
+      "duration": 1900,
+      "cooldown": 3500,
+      "range": 1.7,
+      "coefficient": 1.5,
+      "magic": true,
+      "element": -1
+    },
+    "GOLEM_SLAM": {
+      "windup": 1200,
+      "active": 200,
+      "duration": 2100,
+      "cooldown": 6000,
+      "range": 2.8,
+      "coefficient": 1.5,
+      "magic": false,
+      "element": -1
+    },
+    "STONE_FIST": {
+      "windup": 550,
+      "active": 180,
+      "duration": 1400,
+      "cooldown": 0,
+      "range": 3.4,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "IAE_DART": {
+      "windup": 650,
+      "active": 950,
+      "duration": 1800,
+      "cooldown": 900,
+      "range": 14.0,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": -1
+    },
+    "IAE_BOMB": {
+      "windup": 750,
+      "active": 1000,
+      "duration": 2300,
+      "cooldown": 900,
+      "range": 2.5,
+      "coefficient": 1.5,
+      "magic": true,
+      "element": 1
+    },
+    "LIGHT_SWORD": {
+      "windup": 500,
+      "active": 200,
+      "duration": 1400,
+      "cooldown": 600,
+      "range": 4.0,
+      "coefficient": 1.0,
+      "magic": false,
+      "element": 0
+    },
+    "LIGHT_NOVA": {
+      "windup": 900,
+      "active": 650,
+      "duration": 2100,
+      "cooldown": 600,
+      "range": 5.5,
+      "coefficient": 1.5,
+      "magic": true,
+      "element": 0
+    },
+    "LIGHT_BEAM": {
+      "windup": 1000,
+      "active": 130,
+      "duration": 2300,
+      "cooldown": 600,
+      "range": 20.0,
+      "coefficient": 0.75,
+      "magic": true,
+      "element": 0
+    },
+    "LIGHTNING": {
+      "windup": 600,
+      "active": 180,
+      "duration": 4000,
+      "cooldown": 15000,
+      "range": 1.6,
+      "coefficient": 0.25,
+      "magic": true,
+      "element": 0
+    }
+  },
+  "castle": {
+    "knightLevel": 10,
+    "karlLevel": 15,
+    "phantomSwordWindupTicks": 24,
+    "phantomSwordCooldownTicks": 100,
+    "phantomSwordCastRange": 12.0,
+    "phantomSwordFlightTicks": 18,
+    "phantomSwordSpeed": 0.8
+  }
+}

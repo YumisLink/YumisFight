@@ -35,7 +35,8 @@ public final class DungeonLayouts {
             withFloorLighting(CastlePalace.ID,CastlePalace.BOUNDS,CastlePalace::build),(world,origin,gate,open)->{})),
         Map.entry("behemoth_forbidden",new Layout("FORBIDDEN_LAYOUT_1",new Bounds(-23,-2,-6,23,49,BehemothForbidden.MAX_Z),3,2,BehemothForbidden::build,BehemothForbidden::gate)),
         Map.entry("skasa",new Layout("SKASA_LAYOUT_1",new Bounds(-23,-2,-6,23,49,SkasaLair.MAX_Z),3,2,SkasaLair::build,SkasaLair::gate)),
-        Map.entry("dark_city",new Layout("DARK_CITY_LAYOUT_1",new Bounds(-23,-2,-6,23,49,DarkCityEntrance.MAX_Z),3,2,DarkCityEntrance::build,DarkCityEntrance::gate)),
+        Map.entry(DarkCityEntrance.ID,new Layout(DarkCityEntrance.VERSION,DarkCityEntrance.BOUNDS,0,2,
+            DarkCityEntrance::build,(world,origin,gate,open)->{},DarkCityEntrance.ACTIVE_BOUNDS)),
         Map.entry(MoonlightTavern.ID,classic("TAVERN_LAYOUT_1",MoonlightTavern::build)),
         Map.entry(Hamelin.ID,classic("HAMELIN_LAYOUT_1",Hamelin::build)),
         Map.entry(PursuitAnnihilation.ID,classic("PURSUIT_LAYOUT_1",PursuitAnnihilation::build)),
@@ -65,7 +66,7 @@ public final class DungeonLayouts {
         };
     }
     public Layout require(String id){Layout value=all.get(id);if(value==null)throw new IllegalArgumentException("该副本尚未配置场地："+id);return value;}
-    public Bounds reuseBounds(boolean previousSkySea,boolean includesWhale,boolean includesAwakeningTower,boolean includesWrithingCastle){
+    public Bounds reuseBounds(boolean previousSkySea,boolean includesWhale,boolean includesAwakeningTower,boolean includesWrithingCastle,boolean includesDarkCity){
         // The shared footprint includes the treasure arena and the former flat palace.
         Bounds result=new Bounds(-44,-2,-44,44,49,258);
         for(var entry:all.entrySet()){
@@ -73,6 +74,7 @@ public final class DungeonLayouts {
             if(!includesWhale&&entry.getKey().equals(GblChurch.ID))continue;
             if(!includesAwakeningTower&&AwakeningTower.find(entry.getKey())!=null)continue;
             if(!includesWrithingCastle&&entry.getKey().equals(WrithingCastle.ID))continue;
+            if(!includesDarkCity&&entry.getKey().equals(DarkCityEntrance.ID))continue;
             Bounds b=entry.getValue().bounds;
             result=new Bounds(Math.min(result.minX,b.minX),Math.min(result.minY,b.minY),Math.min(result.minZ,b.minZ),
                 Math.max(result.maxX,b.maxX),Math.max(result.maxY,b.maxY),Math.max(result.maxZ,b.maxZ));

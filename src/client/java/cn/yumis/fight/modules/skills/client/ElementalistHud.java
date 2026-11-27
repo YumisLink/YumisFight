@@ -91,8 +91,8 @@ final class ElementalistHud {
         if (wall != null && wall.endAt > now) {
             long total = Math.max(1L, wall.endAt - wall.start);
             CareerHud.timer(g, SkillCatalog.require(ElementalistSkills.ICE_WALL), x, y, wall.endAt - now, total, LAMP_COLORS[2]);
-            if (wall.blockMax > 0) {
-                String blk = "格挡 " + wall.blockRemaining + "/" + wall.blockMax;
+            if (wall.shieldMax > 0.0) {
+                String blk = "抵伤 " + NumberText.damage(wall.shieldRemaining) + "/" + NumberText.damage(wall.shieldMax);
                 g.text(font, blk, x - font.width(blk) / 2, y + 54, UiTheme.HUD_MUTED, true);
                 y += 12;
             }

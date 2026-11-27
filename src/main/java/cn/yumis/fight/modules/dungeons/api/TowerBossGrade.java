@@ -16,6 +16,6 @@ public enum TowerBossGrade {
     }
 
     public double multiplier() {
-        return multiplier;
+        return EnemyBalanceRules.current().towerClimb.gradeMultiplier(name(), multiplier);
     }
 }

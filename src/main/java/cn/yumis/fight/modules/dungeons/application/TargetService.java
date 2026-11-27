@@ -8,7 +8,12 @@ import cn.yumis.fight.modules.dungeons.api.Difficulty;
 import cn.yumis.fight.foundation.Journal;
 
 import cn.yumis.fight.modules.dungeons.api.Target;
+import cn.yumis.fight.modules.dungeons.content.ForgeTowerSwordMasters;
+import cn.yumis.fight.modules.dungeons.content.FrostTowerFrostnova;
+import cn.yumis.fight.modules.dungeons.content.OrreryTowerGilgamesh;
 import cn.yumis.fight.modules.dungeons.content.SealTowerElaina;
+import cn.yumis.fight.modules.dungeons.content.SluiceTowerRoxy;
+import cn.yumis.fight.modules.dungeons.content.TheaterTowerLiangyue;
 
 
 import static cn.yumis.fight.modules.combat.api.LifeRules.*;
@@ -104,6 +109,24 @@ public final class TargetService implements WorldTargets {
                 t.life.instance=t.instance;
                 t.kind=mob.boss()?"BOSS":"NORMAL";
                 t.elite=mob.elite();
+                var enemyPanel=EnemyBalanceRules.current().panel(mob.appearance());
+                if(enemyPanel!=null){
+                    t.speciesHealth=enemyPanel.healthMultiplier();
+                    t.speciesAttack=enemyPanel.attackMultiplier();
+                    if(enemyPanel.physicalDefenseBase()>=0)t.physicalDefenseBase=enemyPanel.physicalDefenseBase();
+                    if(enemyPanel.magicalDefenseBase()>=0)t.magicalDefenseBase=enemyPanel.magicalDefenseBase();
+                    if(enemyPanel.resists()!=null)t.elementalResists=enemyPanel.resists();
+                }
+                String bossRuleId=cn.yumis.fight.modules.dungeons.content.DragonTowerLucas.ID.equals(mob.appearance())
+                    ?cn.yumis.fight.modules.dungeons.content.DragonTowerLucas.BALANCE_ID:mob.appearance();
+                var dungeonBoss=BossBalanceRules.current().dungeonBoss(bossRuleId);
+                if(dungeonBoss!=null){
+                    t.speciesHealth=dungeonBoss.healthMultiplier();
+                    t.speciesAttack=dungeonBoss.attackMultiplier();
+                    if(dungeonBoss.physicalDefenseBase()>=0)t.physicalDefenseBase=dungeonBoss.physicalDefenseBase();
+                    if(dungeonBoss.magicalDefenseBase()>=0)t.magicalDefenseBase=dungeonBoss.magicalDefenseBase();
+                    if(dungeonBoss.resists()!=null)t.elementalResists=dungeonBoss.resists();
+                }
                 var d=dungeons.apply(t.instance);
                 if(d!=null){
                     t.partySize=d.practice!=null?1:d.treasure==null?d.roster.size():d.treasure.partySize;
@@ -113,23 +136,64 @@ public final class TargetService implements WorldTargets {
                     if(d.waystone!=null)t.waystone=d.waystone.monsterModifiers();
                     t.abyss=cn.yumis.fight.modules.dungeons.api.AbyssParty.Enemy.find(mob.appearance());
                     if(t.abyss!=null){
+                        var abyssRules=EnemyBalanceRules.current().abyss;
                         t.kind="BOSS";
                         t.partySize=mob.getPersistentData().getIntOr("ydnf_abyss_party_size",1);
-                        t.speciesHealth=t.abyss.healthMultiplier;
+                        t.speciesHealth=abyssRules.healthMultiplier(t.abyss.id,t.abyss.healthMultiplier);
                         t.noRewards=t.abyss!=cn.yumis.fight.modules.dungeons.api.AbyssParty.Enemy.PILLAR;
                         if(!t.noRewards){
                             t.abyssRewardLevel=DungeonCatalog.current().dungeon(d.dungeon).level();
-                            t.healthFloor=cn.yumis.fight.modules.dungeons.api.AbyssParty.FIRST_FLOOR;
+                            t.healthFloor=abyssRules.firstFloor();
                         }
                     }
                     if(d.practice!=null&&d.practice.kind()==PracticeRoom.Kind.MOB){
-                        t.speciesHealth=PracticeRoom.MOB_HEALTH_MULTIPLIER;
+                        t.speciesHealth=EnemyBalanceRules.current().practice.mobHealthMultiplier();
                         t.originDungeon=e.getPersistentData().getStringOr("ydnf_origin","");
                     }
                     if(SealTowerElaina.ID.equals(mob.appearance())){
-                        t.speciesHealth=SealTowerElaina.HEALTH_MULTIPLIER;
-                        t.speciesAttack=SealTowerElaina.ATTACK_GRADE.multiplier();
-                        t.healthFloor=SealTowerElaina.FLOOR_P1;
+                        var tb=BossBalanceRules.current().towerBoss(SealTowerElaina.ID);
+                        t.speciesHealth=tb!=null?tb.healthMultiplier():SealTowerElaina.HEALTH_MULTIPLIER;
+                        t.speciesAttack=tb!=null?tb.attackMultiplier():SealTowerElaina.ATTACK_GRADE.multiplier();
+                        t.healthFloor=tb!=null?tb.num("FLOOR_P1",SealTowerElaina.FLOOR_P1):SealTowerElaina.FLOOR_P1;
+                    }
+                    if(TheaterTowerLiangyue.ID.equals(mob.appearance())){
+                        var tb=BossBalanceRules.current().towerBoss(TheaterTowerLiangyue.ID);
+                        t.speciesHealth=tb!=null?tb.healthMultiplier():TheaterTowerLiangyue.HEALTH_GRADE.multiplier();
+                        t.speciesAttack=tb!=null?tb.attackMultiplier():TheaterTowerLiangyue.ATTACK_GRADE.multiplier();
+                    }
+                    if(FrostTowerFrostnova.ID.equals(mob.appearance())){
+                        var tb=BossBalanceRules.current().towerBoss(FrostTowerFrostnova.ID);
+                        t.speciesHealth=tb!=null?tb.healthMultiplier():FrostTowerFrostnova.HEALTH_GRADE.multiplier();
+                        t.speciesAttack=tb!=null?tb.attackMultiplier():FrostTowerFrostnova.ATTACK_GRADE.multiplier();
+                        t.elementalResists=tb!=null&&tb.resists()!=null?tb.resists():FrostTowerFrostnova.initialResists();
+                        t.magicalDefenseBase=tb!=null&&tb.magicalDefenseBase()>=0?tb.magicalDefenseBase():FrostTowerFrostnova.MAGICAL_DEFENSE_BASE;
+                        t.encounterLives=tb!=null?tb.integer("ENCOUNTER_LIVES",FrostTowerFrostnova.ENCOUNTER_LIVES):FrostTowerFrostnova.ENCOUNTER_LIVES;
+                        t.encounterReviveMillis=tb!=null?tb.ms("REVIVE_TOTAL_MS",FrostTowerFrostnova.REVIVE_TOTAL_MS):FrostTowerFrostnova.REVIVE_TOTAL_MS;
+                    }
+                    if(OrreryTowerGilgamesh.ID.equals(mob.appearance())){
+                        var tb=BossBalanceRules.current().towerBoss(OrreryTowerGilgamesh.ID);
+                        t.speciesHealth=tb!=null?tb.healthMultiplier():OrreryTowerGilgamesh.HEALTH_GRADE.multiplier();
+                        t.speciesAttack=tb!=null?tb.attackMultiplier():OrreryTowerGilgamesh.ATTACK_GRADE.multiplier();
+                        t.elementalResists=tb!=null&&tb.resists()!=null?tb.resists():OrreryTowerGilgamesh.initialResists();
+                        t.damageTakenMultiplier=tb!=null?tb.num("GOLDEN_ARMOR_DAMAGE_TAKEN",OrreryTowerGilgamesh.GOLDEN_ARMOR_DAMAGE_TAKEN):OrreryTowerGilgamesh.GOLDEN_ARMOR_DAMAGE_TAKEN;
+                        t.healthFloor=tb!=null?tb.num("FLOOR_P1",OrreryTowerGilgamesh.FLOOR_P1):OrreryTowerGilgamesh.FLOOR_P1;
+                    }
+                    var swordMaster=ForgeTowerSwordMasters.Member.find(mob.appearance());
+                    if(swordMaster!=null){
+                        var tb=BossBalanceRules.current().towerBoss("forge_tower_sword_masters");
+                        var member=tb==null?null:tb.member(swordMaster.id);
+                        t.speciesHealth=member!=null?member.healthMultiplier():swordMaster.healthMultiplier;
+                        t.speciesAttack=member!=null?member.attackMultiplier():swordMaster.attackGrade.multiplier();
+                        t.elementalResists=tb!=null&&tb.resists()!=null?tb.resists():ForgeTowerSwordMasters.initialResists();
+                        t.healthFloor=tb!=null?tb.num("RETREAT_HEALTH_FLOOR",ForgeTowerSwordMasters.RETREAT_HEALTH_FLOOR):ForgeTowerSwordMasters.RETREAT_HEALTH_FLOOR;
+                    }
+                    if(SluiceTowerRoxy.ID.equals(mob.appearance())){
+                        var tb=BossBalanceRules.current().towerBoss(SluiceTowerRoxy.ID);
+                        t.speciesHealth=tb!=null?tb.healthMultiplier():SluiceTowerRoxy.HEALTH_GRADE.multiplier();
+                        t.speciesAttack=tb!=null?tb.attackMultiplier():SluiceTowerRoxy.ATTACK_GRADE.multiplier();
+                        t.elementalResists=tb!=null&&tb.resists()!=null?tb.resists():SluiceTowerRoxy.initialResists();
+                        t.encounterLives=tb!=null?tb.integer("ENCOUNTER_LIVES",SluiceTowerRoxy.ENCOUNTER_LIVES):SluiceTowerRoxy.ENCOUNTER_LIVES;
+                        t.encounterReviveMillis=tb!=null?tb.ms("TRANSITION_TOTAL_MS",SluiceTowerRoxy.TRANSITION_TOTAL_MS):SluiceTowerRoxy.TRANSITION_TOTAL_MS;
                     }
                 }
             }

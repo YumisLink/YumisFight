@@ -8,6 +8,7 @@
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower": "%s第%s层",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.root": "最终移动速度降低 %s",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.forge": "战斗中每秒承受最大生命值 %s 的原始火焰伤害",
+  "hud.yumis_dungeon_and_fight.dungeon_entry.tower.forge_summit": "塔顶炽焰消散 · 阿拉德四剑圣白刃试炼",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.sluice": "施法速度与攻击速度各降低 %s",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.sand_market": "魔力回复速度降低 %s",
   "hud.yumis_dungeon_and_fight.dungeon_entry.tower.frost": "造成伤害的 %s 转为自身霜冻积累",
@@ -883,5 +884,16 @@
   "item.yumis_dungeon_and_fight.aura_transform_box": "气息变换箱",
   "item.yumis_dungeon_and_fight.elaina_token": "伊蕾娜的信物",
   "item.yumis_dungeon_and_fight.elaina_token.hint": "在主世界对方块右键，将伊蕾娜召唤至目标位置（不消耗）",
-  "entity.yumis_dungeon_and_fight.seal_tower_elaina": "伊蕾娜"
+  "entity.yumis_dungeon_and_fight.seal_tower_elaina": "伊蕾娜",
+  "entity.yumis_dungeon_and_fight.theater_tower_liangyue": "神剑-梁月的幻影",
+  "entity.yumis_dungeon_and_fight.frost_tower_frostnova": "霜星",
+  "entity.yumis_dungeon_and_fight.orrery_tower_gilgamesh": "吉尔伽美什",
+  "entity.yumis_dungeon_and_fight.gilgamesh_wedge": "宝具楔子",
+  "entity.yumis_dungeon_and_fight.gilgamesh_enkidu": "天之锁",
+  "entity.yumis_dungeon_and_fight.forge_tower_bwanga": "布万加",
+  "entity.yumis_dungeon_and_fight.forge_tower_baan": "巴恩·巴休特",
+  "entity.yumis_dungeon_and_fight.forge_tower_aganzo": "阿甘左",
+  "entity.yumis_dungeon_and_fight.forge_tower_siran": "西岚",
+  "entity.yumis_dungeon_and_fight.sluice_tower_roxy": "洛琪希",
+  "entity.yumis_dungeon_and_fight.roxy_hydro_core": "水魔导核心"
 }
