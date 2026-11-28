@@ -158,32 +158,33 @@ public final class PalaceEncounterService {
     }
     public void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> here,long now){
         PalaceEnemyKind kind=PalaceEnemyKind.of(e);
-        int room=e.getPersistentData().getIntOr(ROOM_TAG,-1);
-        if(kind==null||room<0||room>=CastlePalace.ROOM_COUNT)return;
+        boolean treasure=d.treasure!=null;
+        int room=treasure?-1:e.getPersistentData().getIntOr(ROOM_TAG,-1);
+        if(kind==null||!treasure&&(room<0||room>=CastlePalace.ROOM_COUNT))return;
         Brain b=brains.computeIfAbsent(e.getUUID(),id->new Brain(e,room));
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
         if(now<b.busy){e.getNavigation().stop();return;}
-        if(!CastlePalace.contains(d.cell,b.room,e.position())){
+        if(!contains(d,b.room,e.position())){
             cancel(e.getUUID());
             motions.remove(e.getUUID());
             e.getNavigation().stop();
             e.setPos(b.home);
             return;
         }
-        ServerPlayer p=here.stream().filter(q->q.level()==e.level()&&canFight(q)&&CastlePalace.contains(d.cell,b.room,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
+        ServerPlayer p=here.stream().filter(q->q.level()==e.level()&&canFight(q)&&contains(d,b.room,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
         if(p==null){if(e.position().distanceToSqr(b.home)>4)move(d,e,b,kind,b.home,now);else e.getNavigation().stop();return;}
         Vec3 direction=p.position().subtract(e.position()).multiply(1,0,1).normalize();if(direction.lengthSqr()<.001)direction=new Vec3(0,0,1);
         float yaw=(float)Math.toDegrees(Math.atan2(-direction.x,direction.z));e.setYRot(yaw);e.yBodyRot=yaw;e.getLookControl().setLookAt(p);
         double distance=e.distanceTo(p);boolean ranged=kind==PalaceEnemyKind.COMMANDER||kind==PalaceEnemyKind.IAE;
-        if(ranged&&distance<4)move(d,e,b,kind,CastlePalace.inside(d.cell,b.room,e.position().subtract(direction.scale(3))),now);
-        else if(distance>(ranged?8:2.6))move(d,e,b,kind,CastlePalace.inside(d.cell,b.room,p.position()),now);
+        if(ranged&&distance<4)move(d,e,b,kind,inside(d,b.room,e.position().subtract(direction.scale(3))),now);
+        else if(distance>(ranged?8:2.6))move(d,e,b,kind,inside(d,b.room,p.position()),now);
         else e.getNavigation().stop();
         if(now<b.next||distance>22)return;
         var rules=EnemyBalanceRules.current();
         switch(kind){
             case EXPELLER, AXION -> {
                 var thrust=rules.palaceMove("THRUST");var sword=rules.palaceMove("SWORD");
-                if(distance>3&&distance<9&&now>=b.heavy){play(e,b,"thrust",thrust.duration(),now);Vec3 to=clipMove(e,CastlePalace.inside(d.cell,b.room,e.position().add(direction.scale(Math.min(thrust.range(),distance)))));motion(e,to,thrust.windup(),thrust.active(),0,"DASH",now);var hit=attack(e,"THRUST","DASH",thrust.windup(),thrust.active(),1,thrust.coefficient(),thrust.magic(),thrust.element(),now);hit.destination(to);hit.width=1.5;add(hit);b.heavy=now+thrust.cooldown();}
+                if(distance>3&&distance<9&&now>=b.heavy){play(e,b,"thrust",thrust.duration(),now);Vec3 to=clipMove(e,inside(d,b.room,e.position().add(direction.scale(Math.min(thrust.range(),distance)))));motion(e,to,thrust.windup(),thrust.active(),0,"DASH",now);var hit=attack(e,"THRUST","DASH",thrust.windup(),thrust.active(),1,thrust.coefficient(),thrust.magic(),thrust.element(),now);hit.destination(to);hit.width=1.5;add(hit);b.heavy=now+thrust.cooldown();}
                 else if(distance<3.4){play(e,b,"slash",sword.duration(),now);fan(e,p,"SWORD",sword.windup(),sword.active(),sword.range(),Math.PI/3,sword.coefficient(),sword.magic(),sword.element(),now);}
             }
             case AXE_EXPELLER -> {
@@ -194,11 +195,11 @@ public final class PalaceEncounterService {
             case COMMANDER -> {
                 var clamp=rules.palaceMove("CLAMP");var pillar=rules.palaceMove("STONE_PILLAR");
                 if(distance<clamp.range()){play(e,b,"clamp",clamp.duration(),now);fan(e,p,"CLAMP",clamp.windup(),clamp.active(),clamp.range(),Math.PI/2,clamp.coefficient(),clamp.magic(),clamp.element(),now);}
-                else if(distance<13){play(e,b,"pillar",pillar.duration(),now);var hit=attack(e,"STONE_PILLAR","CIRCLE",pillar.windup(),pillar.active(),pillar.range(),pillar.coefficient(),pillar.magic(),pillar.element(),now);hit.origin(CastlePalace.inside(d.cell,b.room,p.position()));hit.destination(hit.origin());add(hit);b.next=now+pillar.cooldown();}
+                else if(distance<13){play(e,b,"pillar",pillar.duration(),now);var hit=attack(e,"STONE_PILLAR","CIRCLE",pillar.windup(),pillar.active(),pillar.range(),pillar.coefficient(),pillar.magic(),pillar.element(),now);hit.origin(inside(d,b.room,p.position()));hit.destination(hit.origin());add(hit);b.next=now+pillar.cooldown();}
             }
             case GOLEM -> {
                 var slam=rules.palaceMove("GOLEM_SLAM");var fist=rules.palaceMove("STONE_FIST");
-                if(distance<8&&now>=b.heavy){play(e,b,"slam",slam.duration(),now);Vec3 delta=p.position().subtract(e.position()).multiply(1,0,1);if(delta.length()>4)delta=delta.normalize().scale(4);Vec3 to=clipMove(e,CastlePalace.inside(d.cell,b.room,e.position().add(delta))).add(0,.45,0);motion(e,to,500,700,2.3,"LEAP",now);var hit=attack(e,"GOLEM_SLAM","CIRCLE",slam.windup(),slam.active(),slam.range(),slam.coefficient(),slam.magic(),slam.element(),now);hit.origin(to);hit.destination(to);add(hit);b.heavy=now+slam.cooldown();}
+                if(distance<8&&now>=b.heavy){play(e,b,"slam",slam.duration(),now);Vec3 delta=p.position().subtract(e.position()).multiply(1,0,1);if(delta.length()>4)delta=delta.normalize().scale(4);Vec3 to=clipMove(e,inside(d,b.room,e.position().add(delta))).add(0,.45,0);motion(e,to,500,700,2.3,"LEAP",now);var hit=attack(e,"GOLEM_SLAM","CIRCLE",slam.windup(),slam.active(),slam.range(),slam.coefficient(),slam.magic(),slam.element(),now);hit.origin(to);hit.destination(to);add(hit);b.heavy=now+slam.cooldown();}
                 else if(distance<3.5){play(e,b,"punch",fist.duration(),now);fan(e,p,"STONE_FIST",fist.windup(),fist.active(),fist.range(),Math.PI/3,fist.coefficient(),fist.magic(),fist.element(),now);}
             }
             case IAE -> {
@@ -207,7 +208,7 @@ public final class PalaceEncounterService {
                     double range=cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(dart.range());
                     for(int i=0;i<4;i++){var hit=attack(e,"IAE_DART","DART",dart.windup(),Math.round(dart.active()*range/dart.range()),.15,dart.coefficient(),dart.magic(),dart.element(),now);hit.group=group;hit.origin(from);hit.destination(from.add(direction.yRot((float)(i*Math.PI/2)).scale(range)));hit.width=.16;add(hit);}
                     b.next=b.busy+dart.cooldown();}
-                else{play(e,b,"bomb",bomb.duration(),now);var hit=attack(e,"IAE_BOMB","BOMB",bomb.windup(),bomb.active(),bomb.range(),bomb.coefficient(),bomb.magic(),bomb.element(),now);hit.origin(e.position().add(0,1,0));hit.destination(CastlePalace.inside(d.cell,b.room,p.position()).add(0,.2,0));add(hit);b.next=b.busy+bomb.cooldown();}
+                else{play(e,b,"bomb",bomb.duration(),now);var hit=attack(e,"IAE_BOMB","BOMB",bomb.windup(),bomb.active(),bomb.range(),bomb.coefficient(),bomb.magic(),bomb.element(),now);hit.origin(e.position().add(0,1,0));hit.destination(inside(d,b.room,p.position()).add(0,.2,0));add(hit);b.next=b.busy+bomb.cooldown();}
             }
             case SIEGHART -> {
                 if(now>=b.storm){storm(d,e,b,here,now);return;}
@@ -218,14 +219,20 @@ public final class PalaceEncounterService {
             }
         }
     }
+    private static boolean contains(Dungeon d,int room,Vec3 pos){
+        return d.treasure!=null?cn.yumis.fight.modules.dungeons.content.TreasureArena.containsFor(d,pos):CastlePalace.contains(d.cell,room,pos);
+    }
+    private static Vec3 inside(Dungeon d,int room,Vec3 pos){
+        return d.treasure!=null?cn.yumis.fight.modules.dungeons.content.TreasureArena.insideFor(d,pos):CastlePalace.inside(d.cell,room,pos);
+    }
     private void storm(Dungeon d,DungeonEnemy e,Brain b,List<ServerPlayer> here,long now){
         var m=EnemyBalanceRules.current().palaceMove("LIGHTNING");
         play(e,b,"rise",m.duration(),now);e.play("rise",500);b.storm=now+m.cooldown();b.next=now+m.duration()+700;
         motion(e,e.position(),0,m.duration(),6,"FLIGHT",now);
-        List<ServerPlayer> candidates=here.stream().filter(p->canFight(p)&&CastlePalace.contains(d.cell,b.room,p.position())).toList();
+        List<ServerPlayer> candidates=here.stream().filter(p->canFight(p)&&contains(d,b.room,p.position())).toList();
         for(int i=0;i<6;i++){
             Vec3 anchor=candidates.isEmpty()?b.home:candidates.get(i%candidates.size()).position();double angle=i*Math.PI/3;
-            Vec3 point=CastlePalace.inside(d.cell,b.room,anchor.add(Math.cos(angle)*(i%2==0?0:3),0,Math.sin(angle)*(i%2==0?0:3)));
+            Vec3 point=inside(d,b.room,anchor.add(Math.cos(angle)*(i%2==0?0:3),0,Math.sin(angle)*(i%2==0?0:3)));
             var hit=attack(e,"LIGHTNING","CIRCLE",m.windup(),m.active(),m.range(),m.coefficient(),m.magic(),m.element(),now+400+i*400);hit.origin(point);hit.destination(point);add(hit);
         }
     }
@@ -237,9 +244,9 @@ public final class PalaceEncounterService {
     private void fan(DungeonEnemy e,ServerPlayer p,String kind,long windup,long active,double radius,double halfAngle,double coefficient,boolean magic,int element,long now){var hit=attack(e,kind,"FAN",windup,active,radius,coefficient,magic,element,now);hit.halfAngle=halfAngle;hit.destination(p.position());add(hit);}
     private void add(PalaceAttack attack){if(attack.group.isEmpty())attack.group=attack.id;attacks.put(attack.id,new Pending(attack));owner.broadcast(attack.instance,"palaceAttack",packet(attack));}
     private void motion(DungeonEnemy e,Vec3 to,long delay,long duration,double arc,String kind,long now){motions.put(e.getUUID(),new Motion(e.getUUID(),e.position(),to,now+delay,now+delay+duration,arc,kind));}
-    private Vec3 clipMove(DungeonEnemy e,Vec3 to){Vec3 from=e.position().add(0,.8,0);var hit=owner.level().clip(new ClipContext(from,to.add(0,.8,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));if(hit.getType()==HitResult.Type.MISS)return to;Vec3 direction=to.subtract(e.position()).multiply(1,0,1).normalize();return hit.getLocation().subtract(0,.8,0).subtract(direction.scale(e.getBbWidth()*.6));}
+    private Vec3 clipMove(DungeonEnemy e,Vec3 to){Vec3 from=e.position().add(0,.8,0);var hit=e.level().clip(new ClipContext(from,to.add(0,.8,0),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));if(hit.getType()==HitResult.Type.MISS)return to;Vec3 direction=to.subtract(e.position()).multiply(1,0,1).normalize();return hit.getLocation().subtract(0,.8,0).subtract(direction.scale(e.getBbWidth()*.6));}
     private void move(Dungeon d,DungeonEnemy e,Brain brain,PalaceEnemyKind kind,Vec3 to,long now){
-        if (CastlePalace.submerged(brain.room)) {
+        if (brain.room>=0&&CastlePalace.submerged(brain.room)) {
             e.getNavigation().stop();
             e.setNoGravity(true);
             e.setDeltaMovement(Vec3.ZERO);
@@ -254,7 +261,7 @@ public final class PalaceEncounterService {
     }
     public void tick(List<ServerPlayer> online,long now){
         for(Motion m:new ArrayList<>(motions.values())){
-            Entity raw=owner.level().getEntity(m.source);if(!(raw instanceof DungeonEnemy e)||!e.isAlive()){motions.remove(m.source);continue;}
+            Entity raw=owner.encounterEntity(m.source);if(!(raw instanceof DungeonEnemy e)||!e.isAlive()){motions.remove(m.source);continue;}
             if(now<m.start)continue;
             double t=Math.clamp((now-m.start)/(double)Math.max(1,m.end-m.start),0,1);
             double height=m.kind.equals("FLIGHT")?6*Math.min(1,Math.min((now-m.start)/500d,(m.end-now)/500d)):m.arc*Math.sin(Math.PI*t);
@@ -265,7 +272,7 @@ public final class PalaceEncounterService {
             if(now>=m.end){motions.remove(m.source);e.setNoGravity(floatWithoutMotion(e,brains.get(m.source)));}
         }
         for(Pending pending:new ArrayList<>(attacks.values())){
-            PalaceAttack a=pending.attack;Entity raw=owner.level().getEntity(a.source);Dungeon d=owner.byId(a.instance);
+            PalaceAttack a=pending.attack;Entity raw=owner.encounterEntity(a.source);Dungeon d=owner.byId(a.instance);
             if(!(raw instanceof DungeonEnemy e)||!e.isAlive()||d==null||!d.status.equals("RUNNING")||CombatContentTypes.controlled(e)){remove(a,true);continue;}
             if(now<a.release())continue;
             Brain b=brains.get(e.getUUID());if(b==null){remove(a,true);continue;}
@@ -273,12 +280,12 @@ public final class PalaceEncounterService {
             if(a.shape.equals("DART")||a.shape.equals("BOMB")){
                 // Subdivide the curved flight too, so a delayed tick cannot tunnel through a column.
                 long start=Math.min(a.end(),Math.max(a.release(),pending.previous)),end=Math.min(a.end(),now);
-                for(long time=start;time<end;){long next=Math.min(end,time+25);Vec3 p=a.position(time),q=a.position(next);var wall=owner.level().clip(new ClipContext(p,q,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));if(wall.getType()!=HitResult.Type.MISS){to=wall.getLocation();blocked=true;break;}time=next;}
+                for(long time=start;time<end;){long next=Math.min(end,time+25);Vec3 p=a.position(time),q=a.position(next);var wall=e.level().clip(new ClipContext(p,q,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));if(wall.getType()!=HitResult.Type.MISS){to=wall.getLocation();blocked=true;break;}time=next;}
             }
             if(blocked&&a.shape.equals("BOMB")){a.destination(to);a.active=Math.max(1,now-a.release());owner.broadcast(a.instance,"palaceAttack",packet(a));}
             pending.previous=now;if(blocked||now>=a.end())remove(a,false);
         }
-        for(var entry:new ArrayList<>(brains.entrySet())){Entity raw=owner.level().getEntity(entry.getKey());if(!(raw instanceof DungeonEnemy e)||!e.isAlive()){brains.remove(entry.getKey());continue;}if(now>=entry.getValue().busy&&e.isAggressive())e.setAggressive(false);}
+        for(var entry:new ArrayList<>(brains.entrySet())){Entity raw=owner.encounterEntity(entry.getKey());if(!(raw instanceof DungeonEnemy e)||!e.isAlive()){brains.remove(entry.getKey());continue;}if(now>=entry.getValue().busy&&e.isAggressive())e.setAggressive(false);}
     }
     private JsonObject packet(PalaceAttack a){
         var frame=JSON.toJsonTree(a).getAsJsonObject();
@@ -287,7 +294,7 @@ public final class PalaceEncounterService {
         if(dungeon!=null)frame.addProperty("cell",dungeon.cell);
         if(brain!=null)frame.addProperty("area",brain.room);
         frame.addProperty("contactUntil",System.currentTimeMillis());
-        var raw=owner.level().getEntity(a.source);
+        var raw=owner.encounterEntity(a.source);
         if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));
         return frame;
     }
@@ -295,12 +302,12 @@ public final class PalaceEncounterService {
     public void track(ServerPlayer p){for(Pending pending:attacks.values())if(owner.participant(p,pending.attack.instance))Network.send(p,"palaceAttack",packet(pending.attack));}
     public void cancel(UUID source){
         for(Pending pending:new ArrayList<>(attacks.values()))if(pending.attack.source.equals(source))remove(pending.attack,true);
-        Entity raw=owner.level().getEntity(source);Motion old=motions.get(source);
+        Entity raw=owner.encounterEntity(source);Motion old=motions.get(source);
         Brain b=brains.get(source);
         if(raw instanceof DungeonEnemy e&&PalaceEnemyKind.of(e)!=null){
             if(old!=null&&!old.kind.equals("SETTLE")){
                 motions.remove(source);
-                if(e.isAlive()&&b!=null&&!CastlePalace.submerged(b.room)&&e.getY()>b.home.y+.6)
+                if(e.isAlive()&&b!=null&&(b.room<0||!CastlePalace.submerged(b.room))&&e.getY()>b.home.y+.6)
                     motion(e,new Vec3(e.getX(),b.home.y,e.getZ()),0,400,0,"SETTLE",System.currentTimeMillis());
             }
             e.setNoGravity(floatWithoutMotion(e,b)||motions.containsKey(source));e.setAggressive(false);e.setDeltaMovement(Vec3.ZERO);e.fallDistance=0;
@@ -309,10 +316,10 @@ public final class PalaceEncounterService {
         if(b!=null){b.phase=ActionPhase.ABANDONED;b.leases.clear();b.busy=0;b.next=Math.max(b.next,System.currentTimeMillis()+400);}
     }
     private static boolean floatWithoutMotion(DungeonEnemy enemy,Brain brain){
-        return PalaceEnemyKind.of(enemy)==GOLEM || brain!=null&&CastlePalace.submerged(brain.room);
+        return PalaceEnemyKind.of(enemy)==GOLEM || brain!=null&&brain.room>=0&&CastlePalace.submerged(brain.room);
     }
     public void close(Dungeon d){
-        for(UUID id:new ArrayList<>(brains.keySet())){Entity raw=owner.level().getEntity(id);if(raw instanceof DungeonEnemy e&&e.instance().equals(d.id.toString())){cancel(id);brains.remove(id);motions.remove(id);}}
+        for(UUID id:new ArrayList<>(brains.keySet())){Entity raw=owner.encounterEntity(id);if(raw instanceof DungeonEnemy e&&e.instance().equals(d.id.toString())){cancel(id);brains.remove(id);motions.remove(id);}}
         for(Pending pending:new ArrayList<>(attacks.values()))if(pending.attack.instance.equals(d.id.toString()))remove(pending.attack,true);
     }
 }

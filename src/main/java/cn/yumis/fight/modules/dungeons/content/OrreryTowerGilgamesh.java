@@ -255,18 +255,25 @@ public final class OrreryTowerGilgamesh {
 
     /** 计算星仪塔外圈第 index 根星柱内侧的时空护幕安全区中心（固定避开正南入口方向）。 */
     public static Vec3 starPillarShelter(int cell, int pillarIndex) {
-        Vec3 center = AwakeningTowerLayout.guard(cell);
+        return starPillarShelter(AwakeningTowerLayout.guard(cell), ORRERY_SHELTER_RING_RADIUS, pillarIndex);
+    }
+
+    public static Vec3 starPillarShelter(Vec3 center, double ringRadius, int pillarIndex) {
         int idx = Math.floorMod(pillarIndex, ORRERY_PILLAR_COUNT);
         double theta = Math.PI * 2.0 * (idx + 0.5) / ORRERY_PILLAR_COUNT;
         return new Vec3(
-            center.x + Math.cos(theta) * ORRERY_SHELTER_RING_RADIUS,
+            center.x + Math.cos(theta) * ringRadius,
             center.y,
-            center.z + Math.sin(theta) * ORRERY_SHELTER_RING_RADIUS
+            center.z + Math.sin(theta) * ringRadius
         );
     }
 
     /** 随机挑选 count 个不相邻的外圈星柱护幕（跳过正南门通道附近的 2、3 号柱）。 */
     public static List<Vec3> pickStarShelters(int cell, int count, Random rng) {
+        return pickStarShelters(AwakeningTowerLayout.guard(cell), ORRERY_SHELTER_RING_RADIUS, count, rng);
+    }
+
+    public static List<Vec3> pickStarShelters(Vec3 center, double ringRadius, int count, Random rng) {
         List<Integer> candidates = new ArrayList<>();
         for (int i = 0; i < ORRERY_PILLAR_COUNT; i++) {
             double theta = Math.PI * 2.0 * (i + 0.5) / ORRERY_PILLAR_COUNT;
@@ -283,22 +290,25 @@ public final class OrreryTowerGilgamesh {
         }
         List<Vec3> result = new ArrayList<>(chosen.size());
         for (int idx : chosen) {
-            result.add(starPillarShelter(cell, idx));
+            result.add(starPillarShelter(center, ringRadius, idx));
         }
         return result;
     }
 
     /** 65% 转场维摩那绕场巡航轨迹位置。 */
     public static Vec3 vimanaOrbitPosition(int cell, double startAngleRad, long elapsedMs) {
-        Vec3 center = AwakeningTowerLayout.guard(cell);
+        return vimanaOrbitPosition(AwakeningTowerLayout.guard(cell), VIMANA_ORBIT_RADIUS, startAngleRad, elapsedMs);
+    }
+
+    public static Vec3 vimanaOrbitPosition(Vec3 center, double orbitRadius, double startAngleRad, long elapsedMs) {
         double total = Math.max(1.0, (double) TRANSITION_65_DURATION_MS);
         double progress = Math.clamp(elapsedMs / total, 0.0, 1.0);
         if (progress < 0.12) {
             double t = smooth(progress / 0.12);
             Vec3 orbitStart = center.add(
-                Math.cos(startAngleRad) * VIMANA_ORBIT_RADIUS,
+                Math.cos(startAngleRad) * orbitRadius,
                 VIMANA_HOVER_HEIGHT,
-                Math.sin(startAngleRad) * VIMANA_ORBIT_RADIUS
+                Math.sin(startAngleRad) * orbitRadius
             );
             return center.lerp(orbitStart, t);
         }
@@ -306,9 +316,9 @@ public final class OrreryTowerGilgamesh {
             double t = smooth((progress - 0.88) / 0.12);
             double endAngle = startAngleRad + Math.PI * 2.0;
             Vec3 orbitEnd = center.add(
-                Math.cos(endAngle) * VIMANA_ORBIT_RADIUS,
+                Math.cos(endAngle) * orbitRadius,
                 VIMANA_HOVER_HEIGHT,
-                Math.sin(endAngle) * VIMANA_ORBIT_RADIUS
+                Math.sin(endAngle) * orbitRadius
             );
             return orbitEnd.lerp(center, t);
         }
@@ -316,9 +326,9 @@ public final class OrreryTowerGilgamesh {
         double angle = startAngleRad + orbitProgress * Math.PI * 2.0;
         double bob = Math.sin(orbitProgress * Math.PI * 6.0) * 0.45;
         return new Vec3(
-            center.x + Math.cos(angle) * VIMANA_ORBIT_RADIUS,
+            center.x + Math.cos(angle) * orbitRadius,
             center.y + VIMANA_HOVER_HEIGHT + bob,
-            center.z + Math.sin(angle) * VIMANA_ORBIT_RADIUS
+            center.z + Math.sin(angle) * orbitRadius
         );
     }
 

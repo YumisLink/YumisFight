@@ -128,11 +128,17 @@ public final class RewardRules {
     private static void appendBossDrops(Context context,List<Drop> drops,Random random){
         var encounter=context.encounter();
         String ordinary=context.worldBossType(),rare=ordinary;
+        var definitions=ChestDefinitions.current();
         if(!context.instance().isEmpty()&&encounter!=null){
             ordinary=encounter.treasure==null?encounter.dungeon:"treasure_"+encounter.treasure.theme;
-            rare=encounter.treasure==null?encounter.dungeon:null;
+            rare=encounter.treasure==null?encounter.dungeon:(encounter.treasure.region>=3&&encounter.treasure.region<=4?encounter.dungeon:null);
+            if(encounter.treasure==null&&encounter.tower==null&&encounter.practice==null&&context.target().boss()){
+                double mapChance=definitions.treasureMapChance(encounter.dungeon,encounter.difficulty);
+                if(mapChance>0&&random.nextDouble()<mapChance){
+                    drops.add(new Drop(ItemRegistry.item("goblin_treasure_map",1),true));
+                }
+            }
         }
-        var definitions=ChestDefinitions.current();
         if(ordinary!=null)appendBossDrop(drops,definitions.bossPools.get(ordinary),random,context.id());
         if(rare!=null&&context.target().boss())appendBossDrop(drops,definitions.bossRarePools.get(rare),random,context.id());
     }

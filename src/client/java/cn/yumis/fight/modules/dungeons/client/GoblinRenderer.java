@@ -14,7 +14,7 @@ public final class GoblinRenderer extends MobRenderer<DungeonEnemy,GoblinRendere
         super(context,new Model(Model.layer().bakeRoot()),.4f);
     }
     private static int role(DungeonEnemy entity){
-        return java.util.List.of("goblin","goblin_thrower","goblin_captain").indexOf(entity.appearance());
+        return java.util.List.of("goblin","goblin_thrower","goblin_captain","treasure_golden_goblin").indexOf(entity.appearance());
     }
     public static final class State extends LivingEntityRenderState {
         int role;
@@ -30,12 +30,12 @@ public final class GoblinRenderer extends MobRenderer<DungeonEnemy,GoblinRendere
     }
     @Override public Identifier getTextureLocation(State state){
         return net.minecraft.resources.Identifier.fromNamespaceAndPath(cn.yumis.fight.platform.ItemData.NS,"textures/entity/"+new String[]{
-            "goblin","goblin_thrower","goblin_captain"
+            "goblin","goblin_thrower","goblin_captain","goblin_captain"
         }
         [Math.max(0,state.role)]+".png");
     }
     @Override protected void scale(State state,PoseStack pose){
-        float scale=state.role==2?1.1f:1;
+        float scale=state.role==2?1.1f:state.role==3?0.95f:1;
         pose.scale(scale,scale,scale);
     }
     static final class Model extends EntityModel<State> {
@@ -75,7 +75,7 @@ public final class GoblinRenderer extends MobRenderer<DungeonEnemy,GoblinRendere
             leftArm.xRot=swing*.7f;
             club.visible=state.role==0||state.role==2;
             stone.visible=state.role==1;
-            helmet.visible=state.role==2;
+            helmet.visible=state.role==2||state.role==3;
             if(state.casting){
                 rightArm.xRot=-2.2f;
                 leftArm.xRot=-1.3f;

@@ -259,7 +259,7 @@ public final class ClientSession implements cn.yumis.fight.modules.equipment.api
         personalQueue.clear();personalSequence=personalSentAt=0;personalSent=null;personalAcknowledged=personalReceived=false;personalRetries=personalTimeouts=0;
         lastUpload=lastUploadCheck=lastStatsCheck=0;uploadDeferred=false;
         sentStats="";EquipmentActions.clear();cn.yumis.fight.modules.character.client.CharacterClient.clear();cn.yumis.fight.modules.professions.client.ProfessionClient.clear();cn.yumis.fight.modules.economy.client.EconomyActions.clear();cn.yumis.fight.modules.dungeons.client.DungeonActions.clear();
-        cn.yumis.fight.modules.economy.client.JarClient.clear();ShopClient.clear();AutoSellClient.clear();cn.yumis.fight.modules.npc.client.NpcClient.clear();
+        cn.yumis.fight.modules.economy.client.JarClient.clear();ShopClient.clear();AutoSellClient.clear();cn.yumis.fight.modules.npc.client.NpcClient.clear();cn.yumis.fight.modules.presentation.api.client.WorldInteractionMenu.clear();cn.yumis.fight.modules.dungeons.client.TreasureMapClient.clear();cn.yumis.fight.modules.dungeons.client.TreasureHuntVisuals.clear();
         cn.yumis.fight.modules.quests.client.TutorialClient.clear();
         cn.yumis.fight.modules.dungeons.client.WaystoneClient.clear();
         cn.yumis.fight.modules.character.api.client.CareerProfilesClient.clear();

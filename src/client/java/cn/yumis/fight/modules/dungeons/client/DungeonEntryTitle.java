@@ -57,6 +57,10 @@ public final class DungeonEntryTitle {
         entry("practice_currency", new Palette(0xcdfff7, 0x6ccfbd)),
         entry("treasure_forest", new Palette(0xe6ffc9, 0x8ec467)),
         entry("treasure_tower", new Palette(0xffeac8, 0xb488e6)),
+        entry("treasure_palace_sky", new Palette(0xd5f9ff, 0x5ca7d9)),
+        entry("treasure_gbl", new Palette(0xf1e4ff, 0xad8bd7)),
+        entry("treasure_forbidden", new Palette(0xfcd6e1, 0xbf6f8a)),
+        entry("treasure_dark_city", new Palette(0xe4deff, 0x745bc8)),
         entry("treasure_palace", new Palette(0xfff7d9, 0xf5bd5e))
     );
 

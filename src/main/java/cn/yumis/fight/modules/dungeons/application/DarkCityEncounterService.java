@@ -51,7 +51,7 @@ public final class DarkCityEncounterService {
         final StatusLeases leases=new StatusLeases();
         ActionPhase phase=ActionPhase.IDLE;
         long busy,resistantUntil;
-        Brain(DungeonEnemy e,Dungeon d,int area){this.area=area;home=DarkCityEntrance.inside(d.cell,area,e.position());knockback=DarkCityEnemyKind.of(e)==GOLIATH?0:e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).getBaseValue();}
+        Brain(DungeonEnemy e,Dungeon d,int area){this.area=area;home=d.treasure!=null?e.position():DarkCityEntrance.inside(d.cell,area,e.position());knockback=DarkCityEnemyKind.of(e)==GOLIATH?0:e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).getBaseValue();}
         boolean ready(DarkCityMoves move,long now){return now>=ready.getOrDefault(move,0L);}
     }
     private static final class Pending {
@@ -66,7 +66,10 @@ public final class DarkCityEncounterService {
 
     DarkCityEncounterService(DungeonService owner,Journal journal,DungeonPorts.Players players,DungeonPorts.Targets targets){this.owner=owner;this.journal=journal;this.players=players;this.targets=targets;}
     static boolean handles(Dungeon d) {
-        return d != null && DarkCityEntrance.ID.equals(d.dungeon) && d.practice == null;
+        return d != null && DarkCityEntrance.ID.equals(d.dungeon) && d.practice == null && d.treasure == null;
+    }
+    private static boolean activeEncounter(Dungeon d) {
+        return handles(d) || d != null && d.treasure != null && DarkCityEntrance.ID.equals(d.dungeon);
     }
 
     boolean spawnArrivals(Dungeon d, List<ServerPlayer> here) throws Exception {
@@ -137,20 +140,21 @@ public final class DarkCityEncounterService {
     }
     public void brain(Dungeon d,DungeonEnemy e,List<ServerPlayer> here,long now){
         DarkCityEnemyKind kind=DarkCityEnemyKind.of(e);
-        int assignedArea=e.getPersistentData().getIntOr(AREA_TAG,-1);
-        if(kind==null||assignedArea<0)return;
+        boolean treasure=d.treasure!=null;
+        int assignedArea=treasure?-1:e.getPersistentData().getIntOr(AREA_TAG,-1);
+        if(kind==null||!treasure&&assignedArea<0)return;
         Brain b=brains.get(e.getUUID());
         if(b==null){b=new Brain(e,d,assignedArea);brains.put(e.getUUID(),b);if(kind==TINGO)defense(e,false);if(kind==GOLIATH)e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(b.knockback);}
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
-        if(!DarkCityEntrance.contains(d.cell,b.area,e.position())){cancel(e.getUUID());e.getNavigation().moveTo(b.home.x,b.home.y,b.home.z,1);return;}
+        if(!contains(d,b.area,e.position())){cancel(e.getUUID());e.getNavigation().moveTo(b.home.x,b.home.y,b.home.z,1);return;}
         final int area=b.area;
-        ServerPlayer p=here.stream().filter(q->eligible(q,d.id.toString())&&DarkCityEntrance.contains(d.cell,area,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
+        ServerPlayer p=here.stream().filter(q->eligible(q,d)&&contains(d,area,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
         if(p==null){cancel(e.getUUID());return;}
         if(now<b.busy){e.getNavigation().stop();return;}
         Vec3 direction=p.position().subtract(e.position()).multiply(1,0,1).normalize();if(direction.lengthSqr()<.001)direction=new Vec3(0,0,1);
         float yaw=(float)Math.toDegrees(Math.atan2(-direction.x,direction.z));e.setYRot(yaw);e.yBodyRot=yaw;e.setYHeadRot(yaw);e.getLookControl().setLookAt(p);
         double distance=e.distanceTo(p);boolean ranged=kind==HEADLESS_SKELETON||kind==ARCHER;
-        if(kind==ARCHER&&distance<4){Vec3 to=DarkCityEntrance.inside(d.cell,b.area,e.position().subtract(direction.scale(3)));e.getNavigation().moveTo(to.x,to.y,to.z,1);}
+        if(kind==ARCHER&&distance<4){Vec3 to=inside(d,b.area,e.position().subtract(direction.scale(3)));e.getNavigation().moveTo(to.x,to.y,to.z,1);}
         else if(distance>(ranged?8:kind==HEADLESS_KNIGHT?4:2.3))e.getNavigation().moveTo(p,1);
         else e.getNavigation().stop();
         DarkCityMoves move=switch(kind){
@@ -164,7 +168,15 @@ public final class DarkCityEncounterService {
         };
         if(move!=null)play(d,e,b,move,direction,now);
     }
-    private boolean eligible(ServerPlayer p,String instance){var life=players.session(p).life;return p.level()==owner.level()&&owner.participant(p,instance)&&p.isAlive()&&!life.dead&&!life.dungeonDefeated&&!p.isSpectator();}
+    private static boolean contains(Dungeon d,int area,Vec3 pos){
+        return d.treasure!=null?cn.yumis.fight.modules.dungeons.content.TreasureArena.containsFor(d,pos):DarkCityEntrance.contains(d.cell,area,pos);
+    }
+    private static Vec3 inside(Dungeon d,int area,Vec3 pos){
+        return d.treasure!=null?cn.yumis.fight.modules.dungeons.content.TreasureArena.insideFor(d,pos):DarkCityEntrance.inside(d.cell,area,pos);
+    }
+    private boolean eligible(ServerPlayer p,Dungeon d){return eligible(p,d.id.toString(),owner.encounterWorld(d));}
+    private boolean eligible(ServerPlayer p,String instance){return eligible(p,instance,owner.level());}
+    private boolean eligible(ServerPlayer p,String instance,net.minecraft.server.level.ServerLevel expectedWorld){var life=players.session(p).life;return p.level()==expectedWorld&&owner.participant(p,instance)&&p.isAlive()&&!life.dead&&!life.dungeonDefeated&&!p.isSpectator();}
     private boolean available(Dungeon d,Brain b,DarkCityMoves move,double distance,long now){
         return distance<=move.rangeVal()&&b.ready(move,now)&&(!move.ranged()||attacks.values().stream().filter(a->a.attack.instance.equals(d.id.toString())&&a.area==b.area&&now<a.attack.end()&&DarkCityMoves.valueOf(a.attack.kind).ranged()).map(a->a.group).distinct().count()<RANGED_GROUP_LIMIT);
     }
@@ -184,46 +196,46 @@ public final class DarkCityEncounterService {
             double travel=move.shape.equals("LINE")?cn.yumis.fight.modules.combat.api.ProjectileSpawn.extendedRange(range):range;
             if(travel>range)a.active=Math.round(a.active*travel/range);
             Vec3 end=a.origin().add(heading.scale(travel));
-            if(move==CHARGE)end=DarkCityEntrance.inside(d.cell,b.area,end);
+            if(move==CHARGE)end=inside(d,b.area,end);
             a.ex=end.x;a.ey=end.y;a.ez=end.z;
             Pending pending=new Pending(a,group,b.area);attacks.put(a.id,pending);owner.broadcast(a.instance,"darkCityAttack",packet(pending));
         }
     }
     private JsonObject packet(Pending pending){
         JsonObject j=JSON.toJsonTree(pending.attack).getAsJsonObject();j.addProperty("group",pending.group);
-        Entity raw=owner.level().getEntity(pending.attack.source);if(raw instanceof DungeonEnemy e)j.add("boss",JSON.toJsonTree(targets.target(e)));
+        Entity raw=owner.encounterEntity(pending.attack.source);if(raw instanceof DungeonEnemy e)j.add("boss",JSON.toJsonTree(targets.target(e)));
         return j;
     }
     public void tick(List<ServerPlayer> online,long now){
         Set<UUID> present=new HashSet<>();
-        for(var p:online)if(p.level()==owner.level()){
+        for(var p:online){
             var s=players.session(p);Dungeon d=owner.byId(s.life.instance);
-            if(handles(d)&&d.status.equals("RUNNING")&&owner.participant(p,d.id.toString())){
+            if(activeEncounter(d)&&p.level()==owner.encounterWorld(d)&&d.status.equals("RUNNING")&&owner.participant(p,d.id.toString())){
                 present.add(p.getUUID());String key=d.id+"/"+s.id+"/"+s.life.generation;
                 if(!key.equals(tracked.get(p.getUUID())))track(p);
             }
         }
         tracked.keySet().retainAll(present);
         for(var pending:new ArrayList<>(attacks.values())){
-            GblAttack a=pending.attack;Dungeon d=owner.byId(a.instance);Entity raw=owner.level().getEntity(a.source);
+            GblAttack a=pending.attack;Dungeon d=owner.byId(a.instance);Entity raw=owner.encounterEntity(a.source);
             if(!(raw instanceof DungeonEnemy e)||!alive(e)||d==null||!d.status.equals("RUNNING")||CombatContentTypes.controlled(e)){cancel(a.source);continue;}
             if(now<a.release())continue;
             long at=Math.min(now,a.end());Vec3 from=a.position(Math.max(a.release(),pending.previous)),to=a.position(at);
             if(a.shape.equals("CHARGE")){
                 e.move(MoverType.SELF,to.subtract(e.position()));e.setDeltaMovement(Vec3.ZERO);
                 if(e.position().subtract(to).lengthSqr()>.09){remove(pending);continue;}
-            }else if(a.shape.equals("LINE")&&owner.level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e)).getType()!=HitResult.Type.MISS){remove(pending);continue;}
+            }else if(a.shape.equals("LINE")&&e.level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e)).getType()!=HitResult.Type.MISS){remove(pending);continue;}
             pending.previous=at;
             // Natural expiry is already in the shared timeline. Only interruption needs a cancellation message.
             if(now>=a.end())attacks.remove(a.id,pending);
         }
         for(var entry:new ArrayList<>(guards.entrySet())){
-            Entity raw=owner.level().getEntity(entry.getKey());Guard g=entry.getValue();
+            Entity raw=owner.encounterEntity(entry.getKey());Guard g=entry.getValue();
             if(!(raw instanceof DungeonEnemy e)||!alive(e)||CombatContentTypes.controlled(e)||now>=g.until){if(raw instanceof DungeonEnemy e)defense(e,false);guards.remove(entry.getKey());continue;}
             defense(e,now>=g.from);
         }
         for(var entry:new ArrayList<>(brains.entrySet())){
-            Entity raw=owner.level().getEntity(entry.getKey());
+            Entity raw=owner.encounterEntity(entry.getKey());
             if(!(raw instanceof DungeonEnemy e)||!alive(e)){cancel(entry.getKey());brains.remove(entry.getKey());continue;}
             Brain b=entry.getValue();if(now>=b.busy)e.setAggressive(false);
             if(DarkCityEnemyKind.of(e)==GOLIATH&&now>=b.resistantUntil)e.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(b.knockback);
@@ -236,14 +248,14 @@ public final class DarkCityEncounterService {
             t.encounterDefenseIncrease=value;
             try{journal.put("target/"+e.getUUID(),t);}catch(Exception failure){throw new IllegalStateException("仃高守势保存失败",failure);}
             e.setData(CombatContentTypes.TARGET,JSON.toJson(t));
-            for(var p:owner.level().players())if(owner.participant(p,e.instance()))targets.context(p,e);
+            if(e.level() instanceof net.minecraft.server.level.ServerLevel sl)for(var p:sl.players())if(owner.participant(p,e.instance()))targets.context(p,e);
         }
         e.guarded(active);
     }
     private void remove(Pending pending){if(attacks.remove(pending.attack.id,pending)){pending.attack.remove=true;owner.broadcast(pending.attack.instance,"darkCityAttack",packet(pending));}}
     public void cancel(UUID id){
         for(var pending:new ArrayList<>(attacks.values()))if(pending.attack.source.equals(id))remove(pending);
-        guards.remove(id);Entity raw=owner.level().getEntity(id);Brain b=brains.get(id);
+        guards.remove(id);Entity raw=owner.encounterEntity(id);Brain b=brains.get(id);
         if(raw instanceof DungeonEnemy e&&DarkCityEnemyKind.of(e)!=null){
             if(DarkCityEnemyKind.of(e)==TINGO)defense(e,false);
             e.getNavigation().stop();e.setDeltaMovement(new Vec3(0,e.getDeltaMovement().y,0));e.setAggressive(false);e.play("",0);
@@ -254,7 +266,7 @@ public final class DarkCityEncounterService {
     public void died(UUID id){cancel(id);brains.remove(id);}
     public void track(ServerPlayer p){
         var s=players.session(p);Dungeon d=owner.byId(s.life.instance);
-        if(!handles(d)||!d.status.equals("RUNNING")||!owner.participant(p,d.id.toString()))return;
+        if(!activeEncounter(d)||!d.status.equals("RUNNING")||!owner.participant(p,d.id.toString()))return;
         long now=System.currentTimeMillis();
         for(var pending:attacks.values())if(pending.attack.instance.equals(d.id.toString())&&now<pending.attack.end())Network.send(p,"darkCityAttack",packet(pending));
         tracked.put(p.getUUID(),d.id+"/"+s.id+"/"+s.life.generation);
@@ -262,7 +274,7 @@ public final class DarkCityEncounterService {
     public void close(Dungeon d){
         String instance=d.id.toString();
         for(var pending:new ArrayList<>(attacks.values()))if(pending.attack.instance.equals(instance))remove(pending);
-        for(var entry:new ArrayList<>(brains.entrySet())){Entity raw=owner.level().getEntity(entry.getKey());if(raw instanceof DungeonEnemy e&&e.instance().equals(instance)){cancel(entry.getKey());brains.remove(entry.getKey());}}
+        for(var entry:new ArrayList<>(brains.entrySet())){Entity raw=owner.encounterEntity(entry.getKey());if(raw instanceof DungeonEnemy e&&e.instance().equals(instance)){cancel(entry.getKey());brains.remove(entry.getKey());}}
         tracked.values().removeIf(key->key.startsWith(instance+"/"));
     }
 }

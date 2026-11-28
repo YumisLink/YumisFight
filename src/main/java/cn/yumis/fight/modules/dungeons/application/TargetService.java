@@ -134,6 +134,11 @@ public final class TargetService implements WorldTargets {
                     t.tower=d.tower==null?null:AwakeningTower.find(d.dungeon);
                     t.noRewards=d.tower==null&&AwakeningTower.find(d.dungeon)!=null;
                     if(d.waystone!=null)t.waystone=d.waystone.monsterModifiers();
+                    else if(d.treasure!=null)t.waystone=cn.yumis.fight.modules.dungeons.content.TreasureThemes.hellPlusModifiers(d.treasure.region);
+                    if("treasure_golden_goblin".equals(mob.appearance())){
+                        t.noRewards=true;
+                        t.speciesHealth=1.65;
+                    }
                     t.abyss=cn.yumis.fight.modules.dungeons.api.AbyssParty.Enemy.find(mob.appearance());
                     if(t.abyss!=null){
                         var abyssRules=EnemyBalanceRules.current().abyss;

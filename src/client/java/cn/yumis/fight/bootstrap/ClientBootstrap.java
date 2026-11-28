@@ -83,7 +83,9 @@ public final class ClientBootstrap {
         cn.yumis.fight.modules.economy.client.EconomyActions.install(local.preparations,()->local.profile,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->!local.own.dead&&local.dungeon==null&&local.own.instance.isEmpty()&&ClientSession.now()>=local.resources.combatUntil);
         cn.yumis.fight.modules.dungeons.client.DungeonActions.install(local.preparations,()->local.progress,()->SkillController.INSTANCE.snapshot(),()->!local.own.dead,cn.yumis.fight.modules.economy.api.ChestRewards::waystoneChest,luck->cn.yumis.fight.modules.economy.api.LootOdds.rarity(cn.yumis.fight.modules.dungeons.api.Difficulty.HELL,true,false,luck,new java.util.Random()),()->!local.own.dead&&local.dungeon==null&&local.own.instance.isEmpty());
         cn.yumis.fight.modules.economy.client.ShopClient.install(local.preparations,()->local.profile,()->local.ready&&!local.own.dead,(entity,shop)->{var definition=cn.yumis.fight.modules.npc.api.NpcInteractionComponent.query(entity);return definition!=null&&definition.actions().stream().anyMatch(action->action.type().equals("shop")&&action.value().equals(shop));});
-        cn.yumis.fight.modules.npc.client.NpcClient.blocked(()->local.own.dead||JarClient.blocking()||Effects.VFX.blocksHotbar());
+        cn.yumis.fight.modules.presentation.api.client.WorldInteractionMenu.blocked(()->local.own.dead||JarClient.blocking()||Effects.VFX.blocksHotbar());
+        cn.yumis.fight.modules.npc.client.NpcClient.registerWorldMenu();
+        cn.yumis.fight.modules.dungeons.client.TreasureDiceClient.registerWorldMenu();
         cn.yumis.fight.modules.quests.client.TutorialClient.install(local.preparations,()->local.progress,()->local.profile,()->local.ready&&!local.own.dead);
         local.preparations.seal();
         cn.yumis.fight.modules.dungeons.api.TrainingActions.client(cn.yumis.fight.modules.dungeons.client.TrainingInput::use);
@@ -119,6 +121,7 @@ public final class ClientBootstrap {
                 : Math.clamp(target.life.q, 0, 1);
         });
         cn.yumis.fight.modules.dungeons.client.TreasureWeaponVisuals.register();
+        cn.yumis.fight.modules.dungeons.client.TreasureHuntVisuals.register();
         cn.yumis.fight.modules.dungeons.client.GblVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.PalaceVisuals.register(()->ClientSession.INSTANCE.own.instance);
         cn.yumis.fight.modules.dungeons.client.ForbiddenVisuals.register(()->ClientSession.INSTANCE.own.instance);
@@ -244,7 +247,7 @@ public final class ClientBootstrap {
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.FLUID_PIPE_BE.get(),cn.yumis.fight.modules.industry.client.FluidPipeRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.industry.platform.IndustrialContent.INFINITE_SOURCE_BE.get(),cn.yumis.fight.modules.industry.client.InfiniteSourceRenderer::new);
             e.registerBlockEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.WAYSTONE_PEDESTAL_ENTITY.get(),cn.yumis.fight.modules.dungeons.client.WaystonePedestalRenderer::new);
-            e.registerEntityRenderer(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.CAGE.get(),CageRenderer::new);for(var type:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.entrySet()){
+            e.registerEntityRenderer(cn.yumis.fight.modules.economy.api.RewardContentTypes.PRIVATE_LOOT.get(),LootRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.CAGE.get(),CageRenderer::new);e.registerEntityRenderer(cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.TREASURE_DICE.get(),cn.yumis.fight.modules.dungeons.client.TreasureDiceRenderer::new);for(var type:cn.yumis.fight.modules.dungeons.api.DungeonContentTypes.ENEMIES.entrySet()){
                 if(type.getKey().equals("golden_king"))e.registerEntityRenderer(type.getValue().get(),cn.yumis.fight.modules.dungeons.client.GoldenKingRenderer::new);
                 else if(type.getKey().equals(cn.yumis.fight.modules.dungeons.content.SealTowerElaina.ID))e.registerEntityRenderer(type.getValue().get(),cn.yumis.fight.modules.dungeons.client.ElainaBossRenderer::new);
                 else if(type.getKey().equals(cn.yumis.fight.modules.dungeons.content.TheaterTowerLiangyue.ID))e.registerEntityRenderer(type.getValue().get(),cn.yumis.fight.modules.dungeons.client.LiangyueBossRenderer::new);
@@ -279,16 +282,16 @@ public final class ClientBootstrap {
             (graphics,delta)->cn.yumis.fight.modules.dungeons.client.DungeonEntryTitle.render(graphics)));
         // Jade renders in RenderGuiEvent.Post at NORMAL; draw the target panel afterward.
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,Hud::renderTarget);
-        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->{cn.yumis.fight.modules.npc.client.NpcClient.render(event.getGuiGraphics());cn.yumis.fight.modules.quests.client.TutorialOverlay.render(event.getGuiGraphics());});
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->{cn.yumis.fight.modules.npc.client.NpcClient.render(event.getGuiGraphics());cn.yumis.fight.modules.presentation.api.client.WorldInteractionMenu.render(event.getGuiGraphics());cn.yumis.fight.modules.quests.client.TutorialOverlay.render(event.getGuiGraphics());});
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST,(RenderGuiEvent.Post event)->cn.yumis.fight.modules.arkguard.client.ArkGuardClient.render(event.getGuiGraphics()));
         cn.yumis.fight.modules.arkguard.client.ArkVisuals.register();
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST,cn.yumis.fight.modules.arkguard.client.ArkGuardClient::scroll);
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST,cn.yumis.fight.modules.arkguard.client.ArkGuardClient::interact);
-        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::scroll);
-        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.npc.client.NpcClient::interact);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.presentation.api.client.WorldInteractionMenu::scroll);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGH,cn.yumis.fight.modules.presentation.api.client.WorldInteractionMenu::interact);
         NeoForge.EVENT_BUS.addListener(ClientBootstrap::movementFov);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post e)->{
-            cn.yumis.fight.modules.npc.client.NpcClient.tick();cn.yumis.fight.modules.quests.client.TutorialOverlay.tick();IndustrialVisuals.tick();
+            cn.yumis.fight.modules.npc.client.NpcClient.tick();cn.yumis.fight.modules.presentation.api.client.WorldInteractionMenu.tick();cn.yumis.fight.modules.dungeons.client.TreasureMapClient.tick();cn.yumis.fight.modules.quests.client.TutorialOverlay.tick();IndustrialVisuals.tick();
             ClientSession.INSTANCE.tick();cn.yumis.fight.modules.arkguard.client.ArkGuardClient.tick();cn.yumis.fight.modules.quests.client.TutorialClient.tick();JarClient.tick();cn.yumis.fight.modules.economy.client.AutoSellClient.tick();if(JarClient.blocking())cn.yumis.fight.modules.skills.client.CareerClient.INSTANCE.stopRenewing();SkillController.INSTANCE.tick();CloudMovement.tick();VerificationDriver.tick();
             cn.yumis.fight.modules.dungeons.client.DungeonDefeatScreen.update(ClientSession.INSTANCE.ready,ClientSession.INSTANCE.own);
             var mc=Minecraft.getInstance();

@@ -18,6 +18,7 @@ public final class DungeonContentTypes {
     public static final DeferredHolder<EntityType<?>,EntityType<TrainingSandbag>> TRAINING_SANDBAG=ENTITIES.register("training_sandbag",()->EntityType.Builder.<TrainingSandbag>of(TrainingSandbag::new,MobCategory.MISC).sized(.8f,2).eyeHeight(1.5f).fireImmune().clientTrackingRange(10).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,"training_sandbag"))));
     public static final DeferredItem<net.minecraft.world.item.Item> TRAINING_SANDBAG_ITEM=cn.yumis.fight.platform.ItemRegistry.ITEMS.registerItem("training_sandbag",p->new TrainingSandbagItem(p.stacksTo(16)));
     public static final DeferredHolder<EntityType<?>,EntityType<CageEntity>> CAGE=ENTITIES.register("lightning_cage",()->EntityType.Builder.<CageEntity>of(CageEntity::new,MobCategory.MISC).sized(3,2.5f).noSave().clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,"lightning_cage"))));
+    public static final DeferredHolder<EntityType<?>,EntityType<TreasureDiceEntity>> TREASURE_DICE=ENTITIES.register("treasure_dice",()->EntityType.Builder.<TreasureDiceEntity>of(TreasureDiceEntity::new,MobCategory.MISC).sized(1.15f,1.35f).fireImmune().noSave().clientTrackingRange(12).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,"treasure_dice"))));
     public static final DeferredHolder<EntityType<?>, EntityType<CastleEnemy>> CASTLE_KNIGHT = castleEnemy("victoria_knight", false);
     public static final DeferredHolder<EntityType<?>, EntityType<Marker>> CASTLE_KNIGHT_RESPAWN = ENTITIES.register("victoria_knight_respawn",
         () -> EntityType.Builder.<Marker>of(CastleKnightRespawn::new, MobCategory.MISC)
@@ -49,9 +50,9 @@ public final class DungeonContentTypes {
     public static final DeferredItem<net.minecraft.world.item.Item> KARL_TOKEN = cn.yumis.fight.platform.ItemRegistry.ITEMS.registerItem("karl_token",
         p -> new net.minecraft.world.item.Item(p.rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
     static {
-        for(String name:List.of("goblin","goblin_thrower","goblin_captain","goblin_shaman","dragonman","wyvern","blue_dragonman","blue_wyvern","lucas","lucas_clone","golden_king"))ENEMIES.put(name,ENTITIES.register(name,()->{
+        for(String name:List.of("goblin","goblin_thrower","goblin_captain","goblin_shaman","treasure_golden_goblin","dragonman","wyvern","blue_dragonman","blue_wyvern","lucas","lucas_clone","golden_king"))ENEMIES.put(name,ENTITIES.register(name,()->{
             float width=name.contains("wyvern")||name.equals("lucas")||name.equals("lucas_clone")?1.15f:name.equals("goblin_captain")?1:name.equals("goblin_shaman")?1.3f:.9f;
-            float height=name.contains("wyvern")?1.2f:name.equals("lucas")||name.equals("lucas_clone")?2.45f:name.equals("goblin_shaman")?2.6f:name.equals("goblin_captain")?1.5f:name.startsWith("goblin")?1.25f:1.95f;
+            float height=name.contains("wyvern")?1.2f:name.equals("lucas")||name.equals("lucas_clone")?2.45f:name.equals("goblin_shaman")?2.6f:name.equals("goblin_captain")?1.5f:name.startsWith("goblin")||name.equals("treasure_golden_goblin")?1.25f:1.95f;
             return EntityType.Builder.<DungeonEnemy>of(DungeonEnemy::new,MobCategory.MONSTER).sized(width,height).eyeHeight(height*.8f).clientTrackingRange(14).build(ResourceKey.create(Registries.ENTITY_TYPE,Identifier.fromNamespaceAndPath(ID,name)));
         }
         ));

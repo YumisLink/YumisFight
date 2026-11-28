@@ -16,6 +16,8 @@ import java.util.function.Function;
 public final class ProfessionRewards {
     public record Result(Map<String,Profession> professions,List<ItemStack> drops){}
     private ProfessionRewards(){}
+    public static final double FISHING_TREASURE_MAP_CHANCE=0.0035;
+    public static final double MINING_TREASURE_MAP_CHANCE=0.0020;
     private static final Set<String> COOKED=Set.of("cooked_beef","cooked_porkchop","cooked_chicken","cooked_mutton","cooked_rabbit","cooked_cod","cooked_salmon","baked_potato","dried_kelp","dish_grilled_fish","dish_herb_soup");
     private static final Set<String> LEATHER=Set.of("leather","rabbit_hide","leather_helmet","leather_chestplate","leather_leggings","leather_boots","hide_tanned","hide_reinforced");
     private static final Set<String> HERBS=Set.of("herb_sunleaf","herb_moonroot");
@@ -216,10 +218,12 @@ public final class ProfessionRewards {
                             var first=InventoryEdits.decode(player,row.get("drop"));
                             if(!first.isEmpty())addMergedDrop(drops,new ItemStack(first.getItem(),1));
                         }
+                        if("miner".equals(p)&&random.nextDouble()<MINING_TREASURE_MAP_CHANCE)drops.add(ItemRegistry.item("goblin_treasure_map",1));
                     }
                 }else{
                     var state=BlockState.CODEC.parse(JsonOps.INSTANCE,event.get("state")).getOrThrow();
                     profession=mature(state)?"farmer":ore(state)?"miner":null;
+                    if("miner".equals(profession)&&random.nextDouble()<MINING_TREASURE_MAP_CHANCE)drops.add(ItemRegistry.item("goblin_treasure_map",1));
                 }
             }
             case "craft"->profession=craftProfession(event.get("item").getAsString());
@@ -234,11 +238,12 @@ public final class ProfessionRewards {
                     if(tier==FishTier.EPIC&&!context.epicAvailable())tier=FishTier.LEGENDARY;award.accept("fisherman",FishingRules.experience(tier));
                     var treasure=treasureRod(hands)?treasure(random,obsidianRod(hands),blazeRod(hands),netherStarRod(hands)):ItemStack.EMPTY;
                     drops.add(treasure.isEmpty()?ItemRegistry.item(FishSpecies.itemFor(tier,random.nextDouble(),context),1):treasure);
+                    if(random.nextDouble()<FISHING_TREASURE_MAP_CHANCE)drops.add(ItemRegistry.item("goblin_treasure_map",1));
                 }
                     // The crystal lens used by the ritual altar needs a pearl from an ordinary water catch.
                     if(kind.equals("fishing")&&random.nextDouble()<ProfessionBonuses.fishingLuck(level)*.20)
                         drops.add(ItemRegistry.item("catch_pearl",1));
-                }else{award.accept("fisherman",ProfessionCatalog.require("fisherman").operationExperience());if(random.nextDouble()<ProfessionBonuses.fishingLuck(level))drops.add(ItemRegistry.item(random.nextDouble()<.2?"catch_pearl":"catch_riverfish",1));}
+                }else{award.accept("fisherman",ProfessionCatalog.require("fisherman").operationExperience());if(random.nextDouble()<ProfessionBonuses.fishingLuck(level))drops.add(ItemRegistry.item(random.nextDouble()<.2?"catch_pearl":"catch_riverfish",1));if(random.nextDouble()<FISHING_TREASURE_MAP_CHANCE)drops.add(ItemRegistry.item("goblin_treasure_map",1));}
             }
             default->throw new IllegalArgumentException("未知生活事件");
         }

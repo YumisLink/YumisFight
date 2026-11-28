@@ -1,5 +1,5 @@
 {
-  "_说明": "稳定ID注册宝箱；箱阶1至10。装备数=equipmentBase+箱阶*equipmentPerTier，通货抽取次数同理，每抽1个，允许重复。固定奖励fixed全部给予；special按权重抽specialRolls次。重载命令/reload。未设计装备池保持空，不得擅自投放。",
+  "_说明": "稳定ID注册宝箱；箱阶1至10。装备数=equipmentBase+箱阶*equipmentPerTier，通货抽取次数同理，每抽1个，允许重复。固定奖励fixed全部给予；special按权重抽specialRolls次。treasureMapDrops为10~35级六副本Boss按难度独立判定的整图掉落。重载命令/reload。未设计装备池保持空，不得擅自投放。",
   "chests": {
     "treasure": {"name":"藏宝图之%s宝箱","enabled":true,"equipmentBase":3,"equipmentPerTier":2,"currencyBase":3,"currencyPerTier":1,"fixed":[],"special":[],"specialRolls":0},
     "goblin_kingdom": {"name":"哥布林王国的宝箱","enabled":true,"equipmentBase":0,"equipmentPerTier":0,"currencyBase":0,"currencyPerTier":0,"fixed":[{"item":"colorless_crystal","count":10,"weight":1}],"special":[],"specialRolls":0}
@@ -7,17 +7,34 @@
   "waystoneDefault": {"name": "引路石%s阶宝箱", "currencyMinimum": 2, "currencyMaximum": 4, "inheritDropRate": true, "fixed": [], "special": [], "specialRolls": 0},
   "waystoneByTier": {},
   "abyssPools": {},
+  "treasureMapDrops": {
+    "dungeons": ["goblin_camp", "dragon_tower", "castle_palace", "gbl_church", "behemoth_forbidden", "dark_city"],
+    "chanceByDifficulty": {
+      "NORMAL": 0.02,
+      "ADVANCED": 0.03,
+      "WARRIOR": 0.04,
+      "KING": 0.06,
+      "HELL": 0.08
+    }
+  },
   "bossRarePools": {
     "gbl_church":{"chance":0.05,"entries":[{"item":"essence_alaska_wisdom","count":1,"weight":1}]},
     "castle_palace":{"chance":0.05,"entries":[{"item":"essence_pinocchio","count":1,"weight":1},{"item":"essence_sieghart","count":1,"weight":1},{"item":"essence_delezie","count":1,"weight":1},{"item":"essence_skasa","count":1,"weight":1}]},
     "yumis_dungeon_and_fight:karl":{"chance":0.05,"entries":[{"template":"named/karl_phantom_sword","count":1,"weight":1}]}
   },
   "bossPools": {
-    "goblin_camp":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
-    "dragon_tower":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
-    "castle_palace":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "goblin_camp":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10}]},
+    "dragon_tower":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10}]},
+    "castle_palace":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10}]},
+    "gbl_church":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10}]},
+    "behemoth_forbidden":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10}]},
+    "dark_city":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10}]},
     "treasure_forest":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
     "treasure_tower":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "treasure_palace_sky":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "treasure_gbl":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "treasure_forbidden":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
+    "treasure_dark_city":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
     "treasure_palace":{"chance":0.1,"entries":[{"item":"abyss_invitation","count":1,"weight":10},{"item":"goblin_treasure_map","count":1,"weight":1}]},
     "yumis_dungeon_and_fight:karl":{"chance":1,"entries":[{"item":"yumis_dungeon_and_fight:karl_token","count":1,"weight":1}]}
   },

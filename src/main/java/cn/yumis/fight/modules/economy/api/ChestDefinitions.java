@@ -15,6 +15,17 @@ public final class ChestDefinitions {
     public record Definition(String name,boolean enabled,int equipmentBase,int equipmentPerTier,int currencyBase,int currencyPerTier,List<Entry> fixed,List<Entry> special,int specialRolls){}
     public record SpecialPool(double chance,List<Entry> entries){}
     public record AbyssPool(List<Entry> epic,List<Entry> mythic){}
+    public record TreasureMapDrops(List<String> dungeons,Map<String,Double> chanceByDifficulty){
+        public static TreasureMapDrops defaults(){
+            var map=new LinkedHashMap<String,Double>();
+            map.put("NORMAL",0.02);map.put("ADVANCED",0.03);map.put("WARRIOR",0.04);map.put("KING",0.06);map.put("HELL",0.08);
+            return new TreasureMapDrops(List.of("goblin_camp","dragon_tower","castle_palace","gbl_church","behemoth_forbidden","dark_city"),Map.copyOf(map));
+        }
+        public double chance(String dungeon,cn.yumis.fight.modules.dungeons.api.Difficulty difficulty){
+            if(dungeon==null||difficulty==null||dungeons==null||chanceByDifficulty==null||!dungeons.contains(dungeon))return 0;
+            return chanceByDifficulty.getOrDefault(difficulty.name(),0d);
+        }
+    }
     public record WaystoneChest(String name,int currencyMinimum,int currencyMaximum,boolean inheritDropRate,List<Entry> fixed,List<Entry> special,int specialRolls){}
     public WaystoneChest waystoneDefault=new WaystoneChest("引路石%s阶宝箱",2,4,true,List.of(),List.of(),0);
     public Map<Integer,WaystoneChest> waystoneByTier=new LinkedHashMap<>();
@@ -22,6 +33,7 @@ public final class ChestDefinitions {
     public Map<String,SpecialPool> bossPools=new LinkedHashMap<>();
     public Map<String,SpecialPool> bossRarePools=new LinkedHashMap<>();
     public Map<String,AbyssPool> abyssPools=new LinkedHashMap<>();
+    public TreasureMapDrops treasureMapDrops=TreasureMapDrops.defaults();
     public List<String> todo=new ArrayList<>();
     private static Supplier<ChestDefinitions> source=ChestDefinitions::defaults;
     public static void source(Supplier<ChestDefinitions> value){source=Objects.requireNonNull(value);}
@@ -30,8 +42,11 @@ public final class ChestDefinitions {
         var d=new ChestDefinitions();
         d.chests.put("treasure",new Definition("藏宝图之%s宝箱",true,3,2,3,1,List.of(),List.of(),0));
         d.chests.put("goblin_kingdom",new Definition("哥布林王国的宝箱",true,0,0,0,0,List.of(new Entry("colorless_crystal",10,1)),List.of(),0));
-        var pool=new SpecialPool(.1,List.of(new Entry(AbyssParty.INVITATION,1,10),new Entry("goblin_treasure_map",1,1)));
-        for(String id:List.of("goblin_camp","dragon_tower","castle_palace","treasure_forest","treasure_tower","treasure_palace"))d.bossPools.put(id,pool);
+        var dungeonPool=new SpecialPool(.1,List.of(new Entry(AbyssParty.INVITATION,1,10)));
+        for(String id:List.of("goblin_camp","dragon_tower","castle_palace","gbl_church","behemoth_forbidden","dark_city"))d.bossPools.put(id,dungeonPool);
+        var treasurePool=new SpecialPool(.1,List.of(new Entry(AbyssParty.INVITATION,1,10),new Entry("goblin_treasure_map",1,1)));
+        for(String id:List.of("treasure_forest","treasure_tower","treasure_palace_sky","treasure_gbl","treasure_forbidden","treasure_dark_city","treasure_palace"))d.bossPools.put(id,treasurePool);
+        d.treasureMapDrops=TreasureMapDrops.defaults();
         d.bossRarePools.put("gbl_church",new SpecialPool(.05,List.of(new Entry("essence_alaska_wisdom",1,1))));
         d.bossRarePools.put("castle_palace",new SpecialPool(.05,List.of(new Entry("essence_pinocchio",1,1),new Entry("essence_sieghart",1,1),new Entry("essence_delezie",1,1),new Entry("essence_skasa",1,1))));
         d.bossPools.put("yumis_dungeon_and_fight:karl",new SpecialPool(1,List.of(new Entry("yumis_dungeon_and_fight:karl_token",1,1))));
@@ -58,7 +73,20 @@ public final class ChestDefinitions {
         }
         for(String required:List.of("treasure","goblin_kingdom"))if(!d.chests.containsKey(required))throw new IllegalArgumentException("缺少宝箱："+required);
         validateWaystone(d.waystoneDefault);if(d.waystoneByTier==null)throw new IllegalArgumentException("缺少引路石分阶宝箱配置");for(var entry:d.waystoneByTier.entrySet()){if(entry.getKey()<1)throw new IllegalArgumentException("引路石箱阶无效");validateWaystone(entry.getValue());}
+        if(d.treasureMapDrops==null)d.treasureMapDrops=TreasureMapDrops.defaults();
+        validateTreasureMapDrops(d.treasureMapDrops);
         return d;
+    }
+    private static void validateTreasureMapDrops(TreasureMapDrops drops){
+        if(drops.dungeons()==null||drops.chanceByDifficulty()==null)throw new IllegalArgumentException("藏宝图掉落规则无效");
+        for(var entry:drops.chanceByDifficulty().entrySet()){
+            cn.yumis.fight.modules.dungeons.api.Difficulty.valueOf(entry.getKey());
+            Double chance=entry.getValue();
+            if(chance==null||!Double.isFinite(chance)||chance<0||chance>1)throw new IllegalArgumentException("藏宝图掉落概率无效："+entry.getKey());
+        }
+    }
+    public double treasureMapChance(String dungeon,cn.yumis.fight.modules.dungeons.api.Difficulty difficulty){
+        return treasureMapDrops==null?0:treasureMapDrops.chance(dungeon,difficulty);
     }
     private static void validate(List<Entry> entries){
         for(var e:entries){

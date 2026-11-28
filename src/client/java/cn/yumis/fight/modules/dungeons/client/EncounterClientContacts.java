@@ -112,7 +112,8 @@ public final class EncounterClientContacts {
     }
     private static boolean palace(Contact c,Entity source,long at){
         var mc=Minecraft.getInstance();var p=mc.player;var a=c.palace;boolean classic=c.family==Family.CLASSIC;
-        boolean inRoom=c.source.tower!=null?cn.yumis.fight.modules.dungeons.content.AwakeningTowerLayout.containsBattle(c.cell,p.position())
+        boolean inRoom=c.area<0?true
+            :c.source.tower!=null?cn.yumis.fight.modules.dungeons.content.AwakeningTowerLayout.containsBattle(c.cell,p.position())
             :classic?cn.yumis.fight.modules.dungeons.content.ClassicDungeonRooms.contains(c.cell,c.area,p.position())
             :cn.yumis.fight.modules.dungeons.content.CastlePalace.contains(c.cell,c.area,p.position());
         if(!inRoom){c.previous=at;return false;}

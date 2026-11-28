@@ -200,15 +200,15 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
         if (activeAt(level, altar) != null) throw new IllegalArgumentException("此祭坛已有一场进行中的召唤");
         var arena = preflight(level, altar, player, boss);
         Vec3 origin = new Vec3(altar.getX() + .5, altar.getY(), altar.getZ() + .5);
-        for (Run run : runs.values())
-            if (run.dimension.equals(level.dimension().identifier().toString()) && !run.terminal())
-                if (run.origin.distanceTo(origin) < run.radius + boss.arena().radius() + 4)
-                    throw new IllegalArgumentException("附近已有活动战圈，请先结束那一场");
+        ensureNoOverlap(level, origin, boss.arena().radius(), false);
 
+        String altarKey = power.identity(level, altar);
+        if (altarKey == null || altarKey.isEmpty())
+            throw new IllegalArgumentException("魔王祭坛不在此处");
         Run run = new Run();
         run.runId = runId; run.bossId = bossId;
         run.dimension = level.dimension().identifier().toString();
-        run.altar = altar; run.altarKey = power.identity(level, altar);
+        run.altar = altar; run.altarKey = altarKey;
         run.origin = origin; run.spawn = arena.spawn(); run.floor = arena.floor(); run.radius = boss.arena().radius();
         run.definition = boss;
         run.summonMana = boss.summonMana();
@@ -230,17 +230,131 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
         broadcastArena(run, "ritualRun", runState(run));
     }
 
+    /** Admin fast-summon: starts a full ritual boss encounter directly without a demon altar block, unlock, mana or countdown. */
+    public Run quickSummon(ServerLevel level, BlockPos at, boolean resolveGround, ServerPlayer summoner, String bossId) {
+        var boss = RitualBossCatalog.current().find(bossId);
+        if (boss == null) {
+            String available = RitualBossCatalog.current().ordered().stream()
+                .map(entry -> entry.id() + "(" + entry.name() + ")")
+                .collect(java.util.stream.Collectors.joining("、"));
+            throw new IllegalArgumentException("未知魔王祭坛首领：" + bossId + "，可用：" + available);
+        }
+        if (level.dimension().equals(DungeonService.DIMENSION))
+            throw new IllegalArgumentException("不能在副本维度内召唤魔王祭坛首领");
+        if (!level.getWorldBorder().isWithinBounds(at))
+            throw new IllegalArgumentException("坐标超出世界边界，请换一个位置");
+        if (!level.hasChunkAt(at))
+            throw new IllegalArgumentException("目标区块尚未加载，请先前往该区域");
+        BlockPos centerPos = resolveGround ? resolveGround(level, at) : at;
+        if (activeAt(level, centerPos) != null)
+            throw new IllegalArgumentException("此处已有一场进行中的召唤");
+        ServerPlayer localSummoner = summoner != null && summoner.level() == level ? summoner : null;
+        Vec3 center = Vec3.atBottomCenterOf(centerPos);
+        Vec3 preferred;
+        if (localSummoner == null) preferred = new Vec3(1, 0, 0);
+        else if (resolveGround || localSummoner.position().subtract(center).horizontalDistanceSqr() < 1)
+            preferred = localSummoner.getLookAngle();
+        else preferred = localSummoner.position().subtract(center);
+        var arena = preflight(level, centerPos, centerPos, preferred, boss, false);
+        Vec3 origin = new Vec3(centerPos.getX() + .5, centerPos.getY(), centerPos.getZ() + .5);
+        ensureNoOverlap(level, origin, boss.arena().radius(), true);
+
+        Run run = new Run();
+        run.runId = UUID.randomUUID().toString();
+        run.bossId = boss.id();
+        run.dimension = level.dimension().identifier().toString();
+        run.altar = centerPos;
+        run.altarKey = "";
+        run.origin = origin;
+        run.spawn = arena.spawn();
+        run.floor = arena.floor();
+        run.radius = boss.arena().radius();
+        run.definition = boss;
+        run.summonMana = 0;
+        long now = System.currentTimeMillis();
+        run.committedAt = now;
+        run.countdownUntil = now;
+        if (server != null && server.getPlayerList() != null) {
+            for (var candidate : server.getPlayerList().getPlayers())
+                if (!candidate.hasDisconnected() && !candidate.isDeadOrDying() && inCircle(run, candidate))
+                    run.joined.add(candidate.getStringUUID());
+        }
+        if (localSummoner != null) run.joined.add(localSummoner.getStringUUID());
+        run.content = RitualBossContent.create(boss.id(), this);
+
+        runs.put(run.runId, run);
+        try {
+            publish(level, run);
+        } catch (RuntimeException failure) {
+            try { end(run, "FAILED", "spawn_failure"); }
+            catch (RuntimeException cleanupFailure) { cleanup(run); failure.addSuppressed(cleanupFailure); }
+            throw failure;
+        }
+        return run;
+    }
+
+    /** Ends an active ritual run for admin testing: prefers the actor's active/nearby run, otherwise the nearest in the dimension. */
+    public Run cancelAdmin(ServerLevel level, ServerPlayer actor) {
+        ServerPlayer localActor = actor != null && actor.level() == level ? actor : null;
+        String dimension = level.dimension().identifier().toString();
+        Run chosen = null;
+        double bestDistance = Double.MAX_VALUE;
+        boolean bestOwned = false;
+        Vec3 reference = localActor == null ? null : localActor.position();
+        for (Run run : runs.values()) {
+            if (run.terminal() || !run.dimension.equals(dimension)) continue;
+            boolean owned = localActor != null && (inCircle(run, localActor)
+                || run.joined.contains(localActor.getStringUUID())
+                || run.damaged.contains(localActor.getStringUUID())
+                || (run.content != null && run.content.handled(localActor.getStringUUID())));
+            double distance = reference == null ? 0 : run.origin.distanceToSqr(reference);
+            if (localActor != null && !owned && distance > 64 * 64) continue;
+            if (chosen == null || (owned && !bestOwned) || (owned == bestOwned && distance < bestDistance)) {
+                chosen = run;
+                bestOwned = owned;
+                bestDistance = distance;
+            }
+        }
+        if (chosen == null) throw new IllegalArgumentException("当前附近没有进行中的魔王祭坛场次");
+        end(chosen, "FAILED", "admin_cancel");
+        return chosen;
+    }
+
+    private void ensureNoOverlap(ServerLevel level, Vec3 origin, int radius, boolean adminHint) {
+        String dimension = level.dimension().identifier().toString();
+        for (Run run : runs.values())
+            if (run.dimension.equals(dimension) && !run.terminal())
+                if (run.origin.distanceTo(origin) < run.radius + radius + 4)
+                    throw new IllegalArgumentException(adminHint
+                        ? "附近已有活动战圈，请先结束那一场（可用 /ydnf altar cancel）"
+                        : "附近已有活动战圈，请先结束那一场");
+    }
+
+    private static BlockPos resolveGround(ServerLevel level, BlockPos at) {
+        for (int dy : new int[]{0, -1, 1, -2, -3, -4, -5, -6, -7, -8}) {
+            BlockPos candidate = at.above(dy);
+            if (walkable(level, candidate)) return candidate;
+        }
+        return at;
+    }
+
     private record ArenaPlan(Vec3 spawn, Set<BlockPos> floor) {}
 
     /** Solid footing, clear spawn volume and routes to the positions used for ground mechanisms. */
     private ArenaPlan preflight(ServerLevel level, BlockPos altar, ServerPlayer summoner, RitualBossCatalog.Boss boss) {
         Vec3 center = Vec3.atBottomCenterOf(altar);
+        return preflight(level, altar, BlockPos.containing(summoner.position()), summoner.position().subtract(center), boss, true);
+    }
+
+    private ArenaPlan preflight(ServerLevel level, BlockPos centerPos, BlockPos entrance, Vec3 offset, RitualBossCatalog.Boss boss, boolean fromAltar) {
+        Vec3 center = Vec3.atBottomCenterOf(centerPos);
         var arena = boss.arena();
-        var floor = reachableFloor(level, altar, BlockPos.containing(summoner.position()), arena.radius());
+        var floor = reachableFloor(level, centerPos, entrance, arena.radius());
         int outerRadius = arena.radius() - 3;
         if (floor.stream().noneMatch(point -> Vec3.atBottomCenterOf(point).subtract(center).horizontalDistanceSqr() >= outerRadius * outerRadius))
-            throw new IllegalArgumentException("战圈不能通行：请从祭坛 " + altar.toShortString() + " 附近留一条通往场边的路");
-        Vec3 offset = summoner.position().subtract(center);
+            throw new IllegalArgumentException(fromAltar
+                ? "战圈不能通行：请从祭坛 " + centerPos.toShortString() + " 附近留一条通往场边的路"
+                : "战圈不能通行：请从 " + centerPos.toShortString() + " 附近留一条通往场边的路");
         Vec3 preferred = offset.horizontalDistanceSqr() < .01 ? new Vec3(1, 0, 0) : new Vec3(offset.x, 0, offset.z).normalize();
         var clearance = arena.clearance();
         BlockPos first = BlockPos.containing(center.add(preferred.scale(arena.spawnAhead())));
@@ -254,7 +368,8 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
             }
         }
         throw new IllegalArgumentException("首领出生点受阻：请清理 " + first.toShortString() + " 附近的 " + (int) clearance.length() + "×"
-                + (int) clearance.width() + "×" + (int) clearance.height() + " 格净空，或从祭坛另一侧召唤");
+                + (int) clearance.width() + "×" + (int) clearance.height()
+                + (fromAltar ? " 格净空，或从祭坛另一侧召唤" : " 格净空，或换一处开阔地召唤"));
     }
 
     static Vec3 rotateY(Vec3 vector, double angle) {
@@ -390,7 +505,8 @@ public final class RitualEncounterService implements CombatPorts.SkillEffects {
                 if(now>=run.limitUntil)cleanup(run);
                 continue;
             }
-            if (level == null || !run.altarKey.equals(power.identity(level,run.altar))) {
+            boolean altarBound = run.altarKey != null && !run.altarKey.isEmpty();
+            if (level == null || (altarBound && !run.altarKey.equals(power.identity(level,run.altar)))) {
                 end(run,"FAILED","altar_lost");continue;
             }
             if (run.status.equals("PENDING")) {

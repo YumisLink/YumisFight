@@ -185,8 +185,28 @@ public final class ServerApplication {
         nativeHits=cn.yumis.fight.bootstrap.RuntimeAssembly.nativeHits(this);
         dungeons=cn.yumis.fight.bootstrap.RuntimeAssembly.dungeonService(this);
         dungeons.installTreasure(inventory,new cn.yumis.fight.modules.dungeons.api.TreasurePorts(){
-            public void chest(ServerPlayer p,String definition,int tier,int level,net.minecraft.world.phys.Vec3 position,String instance)throws Exception{loot.privateDrop(p,cn.yumis.fight.modules.economy.application.ChestService.chest(definition,tier,level),position,instance);}
-            public void publish(){loot.publish();}public void abort(){loot.abort();}
+            private final List<Runnable> pendingGoldNotices=new ArrayList<>();
+            public void chest(ServerPlayer p,String definition,int tier,int level,int multiplier,String themeDungeon,net.minecraft.world.phys.Vec3 position,String instance)throws Exception{
+                loot.privateDrop(p,cn.yumis.fight.modules.economy.application.ChestService.chest(definition,tier,level,multiplier,themeDungeon),position,instance);
+            }
+            public void goblinLoot(ServerPlayer p,int level,net.minecraft.world.phys.Vec3 position,String instance)throws Exception{
+                int safeLevel=Math.clamp(level,1,80);
+                int count=3+random.nextInt(3);
+                for(int i=0;i<count;i++){
+                    var c=cn.yumis.fight.modules.economy.api.CurrencyRules.rollGuaranteed(400d,random);
+                    loot.privateDrop(p,cn.yumis.fight.platform.ItemRegistry.item(c.id(),1),position,instance);
+                }
+                long bonusGold=cn.yumis.fight.modules.economy.api.CurrencyRules.killGold(safeLevel,false,true,Difficulty.HELL,2.5);
+                if(bonusGold>0){
+                    String gKey="gold/"+p.getUUID(),rKey="goldRevision/"+p.getUUID();
+                    long nextGold=Math.addExact(journal.get(gKey,Long.class,0L),bonusGold);
+                    long nextRev=Math.incrementExact(journal.get(rKey,Long.class,0L));
+                    journal.put(gKey,nextGold);journal.put(rKey,nextRev);
+                    pendingGoldNotices.add(()->{economyService.goldGain(p,bonusGold,nextGold,nextRev);profile(p);});
+                }
+            }
+            public void publish(){loot.publish();var notices=List.copyOf(pendingGoldNotices);pendingGoldNotices.clear();for(var r:notices)r.run();}
+            public void abort(){loot.abort();pendingGoldNotices.clear();}
         },random);
         dungeons.installWaystones(inventory,RuntimeAssembly.waystonePorts(this),random);
         chests=new cn.yumis.fight.modules.economy.application.ChestService(journal,inventory,RuntimeAssembly.rewardPlayers(this),loot,economyDrafts);
@@ -798,6 +818,7 @@ public final class ServerApplication {
         commissions.register(commands);
         commands.register("dungeons","ritualSummon",rituals::summonCommand);
         commands.register("dungeons","ritualJoin",rituals::joinCommand);
+        commands.register("dungeons","treasureDice",(p,j)->dungeons.treasure.diceAction(p,j));
         commands.register("equipment","playerStats",(p,j)->{
             Session s=session(p);
             if(!s.id.toString().equals(j.get("session").getAsString()))return;

@@ -231,6 +231,13 @@ public class DungeonService {
         if(l==null)throw new IllegalArgumentException("地下城维度尚未加载");
         return l;
     }
+    ServerLevel encounterWorld(Dungeon d){
+        return d!=null&&d.treasure!=null&&treasure!=null?treasure.world(d):level();
+    }
+    Entity encounterEntity(UUID id){
+        Entity e=level().getEntity(id);
+        return e!=null?e:server.overworld().getEntity(id);
+    }
     public void interactTowerStele(ServerPlayer player,BlockPos pos){
         var tower=AwakeningTowerStele.at(player,pos);
         if(tower!=null)cn.yumis.fight.network.Network.send(player,"towerStele",Map.of("pos",pos.asLong(),"dungeon",tower.dungeon().id()));
@@ -658,7 +665,7 @@ public class DungeonService {
         var darkCityKind=cn.yumis.fight.modules.dungeons.api.DarkCityEnemyKind.find(type);
         var classicKind=cn.yumis.fight.modules.dungeons.api.ClassicEnemyKind.find(type);
         e.setCustomName(cn.yumis.fight.modules.presentation.api.ModText.of(classicKind!=null?classicKind.title:darkCityKind!=null?darkCityKind.title:skasaKind!=null?skasaKind.title:forbiddenKind!=null?forbiddenKind.title:palaceKind!=null?palaceKind.title:gblKind!=null?gblKind.title:switch(type){
-            case SealTowerElaina.ID->SealTowerElaina.DISPLAY_NAME;case TheaterTowerLiangyue.ID->TheaterTowerLiangyue.DISPLAY_NAME;case FrostTowerFrostnova.ID->FrostTowerFrostnova.DISPLAY_NAME;case OrreryTowerGilgamesh.ID->OrreryTowerGilgamesh.DISPLAY_NAME;case SluiceTowerRoxy.ID->SluiceTowerRoxy.DISPLAY_NAME;case "forge_tower_bwanga"->"布万加";case "forge_tower_baan"->"巴恩·巴休特";case "forge_tower_aganzo"->"阿甘左";case "forge_tower_siran"->"西岚";case "golden_king"->"黄金之王";case "goblin_shaman"->"落雷凯诺";case DragonTowerLucas.ID->DragonTowerLucas.DISPLAY_NAME;case DragonTowerLucas.CLONE_ID->DragonTowerLucas.CLONE_DISPLAY_NAME;case "goblin_captain"->"哥布林队长";case "goblin_thrower"->"投石哥布林";case "blue_wyvern"->"蓝翼龙";case "blue_dragonman"->"蓝龙人";case "dragonman"->"龙人";case "wyvern"->"翼龙";default->"哥布林";
+            case SealTowerElaina.ID->SealTowerElaina.DISPLAY_NAME;case TheaterTowerLiangyue.ID->TheaterTowerLiangyue.DISPLAY_NAME;case FrostTowerFrostnova.ID->FrostTowerFrostnova.DISPLAY_NAME;case OrreryTowerGilgamesh.ID->OrreryTowerGilgamesh.DISPLAY_NAME;case SluiceTowerRoxy.ID->SluiceTowerRoxy.DISPLAY_NAME;case "forge_tower_bwanga"->"布万加";case "forge_tower_baan"->"巴恩·巴休特";case "forge_tower_aganzo"->"阿甘左";case "forge_tower_siran"->"西岚";case "golden_king"->"黄金之王";case "treasure_golden_goblin"->"逃跑的黄金哥布林";case "goblin_shaman"->"落雷凯诺";case DragonTowerLucas.ID->DragonTowerLucas.DISPLAY_NAME;case DragonTowerLucas.CLONE_ID->DragonTowerLucas.CLONE_DISPLAY_NAME;case "goblin_captain"->"哥布林队长";case "goblin_thrower"->"投石哥布林";case "blue_wyvern"->"蓝翼龙";case "blue_dragonman"->"蓝龙人";case "dragonman"->"龙人";case "wyvern"->"翼龙";default->"哥布林";
         }
         ));
         if(d.practice!=null){
@@ -669,7 +676,8 @@ public class DungeonService {
                 case MOB->{}
             }
             e.practice();
-        }else if(boss||gblKind!=null||palaceKind!=null||forbiddenKind!=null||skasaKind!=null||darkCityKind!=null||classicKind!=null||type.equals("goblin_thrower")||type.contains("wyvern"))e.scripted();
+        }else if(boss||gblKind!=null||palaceKind!=null||forbiddenKind!=null||skasaKind!=null||darkCityKind!=null||classicKind!=null||type.equals("goblin_thrower")||type.contains("wyvern")||type.equals("treasure_golden_goblin"))e.scripted();
+        if(type.equals("treasure_golden_goblin")){var speed=e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED);if(speed!=null)speed.setBaseValue(0.42);}
         if(skasaKind==cn.yumis.fight.modules.dungeons.api.SkasaEnemyKind.ICE_DRAGON){e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);e.setYRot(180);e.yBodyRot=180;e.setYHeadRot(180);}
         if(forbiddenKind==cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.MARCELLUS||forbiddenKind==cn.yumis.fight.modules.dungeons.api.ForbiddenEnemyKind.BARRIER_CORE)e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
         if(gblKind==cn.yumis.fight.modules.dungeons.api.GblEnemyKind.DRAGON_CANNON)e.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1);
@@ -753,7 +761,6 @@ public class DungeonService {
                     continue;
                 }
                 abyss.tick(d,players,now);
-                actions.tick(now);
                 if(openPalace){
                     if(previousPalace(d)){
                         for(ServerPlayer player:players)leave(player,true);
@@ -817,6 +824,7 @@ public class DungeonService {
                     if(entity instanceof DungeonEnemy enemy&&enemy.isAlive())brain(d,enemy,players,now);
                 }
             }
+            actions.tick(now);
             gbl.tick(server.getPlayerList().getPlayers(),now);palace.tick(server.getPlayerList().getPlayers(),now);forbidden.tick(server.getPlayerList().getPlayers(),now);skasa.tick(server.getPlayerList().getPlayers(),now);darkCity.tick(server.getPlayerList().getPlayers(),now);lucas.tickAll(now);
             for(var encounter:classic)encounter.tick(server.getPlayerList().getPlayers(),now);
             for(Cast cast:new ArrayList<>(casts.values())){
@@ -1052,7 +1060,7 @@ public class DungeonService {
             catch(Exception failure){com.mojang.logging.LogUtils.getLogger().warn("练功房 {} 补波失败，将在下一次更新重试",room.id,failure);}
             return;
         }
-        if(treasure!=null)treasure.died(boss);
+        if(treasure!=null){treasure.died(boss);treasure.onEnemyDied(room,boss);}
         try{forbidden.died(boss);}catch(Exception failure){throw new IllegalStateException("禁地死亡清理失败",failure);}
         skasa.died(boss);
         darkCity.died(boss);

@@ -31,6 +31,8 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,20 +40,21 @@ import java.util.List;
 import static cn.yumis.fight.modules.dungeons.client.EnemyEffectGeometry.*;
 
 /**
- * 星仪塔第 20 层专属首领「吉尔伽美什（英雄王）」世界空间特效渲染器：
- * - 王之财宝金色空间涟漪门 + 复用全套 3D 武器实体模型高速投射；
- * - 宝具楔阵坠落光柱与 5s 收缩引爆圈、近身斥退金环、天穹剑雨；
- * - 65% 转场黄金光辉之舟「维摩那」与星仪塔同心圆环带轰炸；
+ * 首领「吉尔伽美什（英雄王）」世界空间特效渲染器：
+ * - 王之财宝金色空间涟漪门 + 复用全套 3D 武器实体模型高速投射（武器尖端严格朝向飞行/坠落方向）；
+ * - 宝具楔阵坠落武器与 5s 收缩引爆圈、近身斥退金环、天穹剑雨；
+ * - 65% 转场黄金光辉之舟「维摩那」与同心圆环带轰炸；
  * - 「天之锁」螺旋黄金锁链与苍穹神枪处决光柱；
  * - 25% 赤金星裂穹顶异象、乖离剑空间撕裂斩与「天地乖离开辟之星」龙卷+星柱蓝色时空护幕；
  * - 1% 濒死终焉赤红能量球与裂空余波。
  */
 public final class GilgameshBossVisuals {
     private static final Vec3 UP = new Vec3(0, 1, 0);
+    private static final Vec3 DOWN = new Vec3(0, -1, 0);
     private static final ContextKey<Frame> FRAME =
         new ContextKey<>(Identifier.fromNamespaceAndPath("yumis_dungeon_and_fight", "gilgamesh_boss"));
 
-    private record FlyingWeapon(ItemStackRenderState model, Vec3 pos, float yawDeg, float pitchDeg, float scale) {}
+    private record FlyingWeapon(ItemStackRenderState model, Vec3 pos, Vec3 dir, float scale) {}
     private record Frame(List<Quad> quads, List<SpriteQuad> sprites, List<FlyingWeapon> weapons, boolean fade) {}
     private static final java.util.Set<String> shaken = new java.util.HashSet<>();
 
@@ -66,9 +69,27 @@ public final class GilgameshBossVisuals {
         events.addListener(GilgameshBossVisuals::submit);
     }
 
+    /** 将本地 +Y 尖端朝向的 3D 武器模型旋转到目标世界方向 dir（无 X 轴镜像偏差）。 */
+    static Quaternionf tipRotation(Vec3 dir) {
+        if (dir == null || dir.lengthSqr() < 1e-8) {
+            return new Quaternionf();
+        }
+        Vec3 n = dir.normalize();
+        if (n.y < -0.9999) {
+            return Axis.XP.rotationDegrees(180.0f);
+        }
+        if (n.y > 0.9999) {
+            return new Quaternionf();
+        }
+        return new Quaternionf().rotationTo(new Vector3f(0f, 1f, 0f), new Vector3f((float) n.x, (float) n.y, (float) n.z));
+    }
+
     private static void ensureWeapons() {
         if (weaponCatalog != null) return;
-        var list = EquipmentVisualItems.weaponModels();
+        // 排除弯月双刃战刃（横向展开无单轴尖端），仅保留尖端严格沿 +Y 的 3D 武器模型
+        var list = EquipmentVisualItems.weaponModels().stream()
+            .filter(m -> !"warglaive".equals(m.item()))
+            .toList();
         weaponCatalog = new ItemStack[list.size()];
         weaponStates = new ItemStackRenderState[list.size()];
         for (int i = 0; i < list.size(); i++) {
@@ -124,7 +145,7 @@ public final class GilgameshBossVisuals {
             }
             for (AreaHazard a : GilgameshBossClient.areas.values()) {
                 if (now < a.startAt || now > a.endAt + 350L) continue;
-                drawArea(quads, sprites, camera, a, now);
+                drawArea(quads, sprites, weapons, camera, a, now);
             }
             for (GateProjectile p : GilgameshBossClient.projectiles.values()) {
                 if (p.consumed || now < p.startAt || now > p.endAt) continue;
@@ -147,11 +168,12 @@ public final class GilgameshBossVisuals {
         double alphaFactor = launched ? Math.clamp((p.endAt - now) / 300.0, 0.0, 1.0) : 1.0;
         if (alphaFactor <= 0.05) return;
 
-        float yawDeg = (float) Math.toDegrees(Math.atan2(-p.dir.x, p.dir.z));
-        float pitchDeg = (float) Math.toDegrees(Math.asin(Math.clamp(p.dir.y, -1.0, 1.0)));
         double emerge = launched ? 1.0 : Math.clamp((now - p.startAt) / (double) Math.max(1L, p.launchAt - p.startAt), 0.25, 1.0);
-        Vec3 drawPos = launched ? p.pos : p.gatePos.add(p.dir.scale(0.35 * emerge));
-        weapons.add(new FlyingWeapon(weaponState(p.weaponIndex), drawPos, yawDeg, pitchDeg, launched ? 1.15f : (float) (0.75 + 0.4 * emerge)));
+        // 武器模型尖端沿本地 +Y（距握柄约 +1.7 格）；蓄力时尖端先探出金色涟漪门，飞行时尖端直指弹道方向
+        Vec3 drawPos = launched
+            ? p.pos.subtract(p.dir.scale(0.55))
+            : p.gatePos.add(p.dir.scale(-0.65 + 0.85 * emerge));
+        weapons.add(new FlyingWeapon(weaponState(p.weaponIndex), drawPos, p.dir, launched ? 1.15f : (float) (0.78 + 0.37 * emerge)));
 
         if (!launched && !p.backAttached) {
             Vec3 aimEnd = p.gatePos.add(p.dir.scale(14.5));
@@ -176,7 +198,7 @@ public final class GilgameshBossVisuals {
         EffectSprites.emitPlane(sp, EffectSprites.MAGIC_SIGIL, EffectSprites.Blend.ADDITIVE, center, ru, rv, 0f, 0f, 1f, 1f, 0xffd858, alpha);
     }
 
-    private static void drawArea(List<Quad> q, List<SpriteQuad> sp, Vec3 camera, AreaHazard a, long now) {
+    private static void drawArea(List<Quad> q, List<SpriteQuad> sp, List<FlyingWeapon> weapons, Vec3 camera, AreaHazard a, long now) {
         boolean active = now >= a.warnUntil;
         double warnProg = a.warnUntil <= a.startAt ? 1.0
             : Math.clamp((now - a.startAt) / (double) (a.warnUntil - a.startAt), 0.0, 1.0);
@@ -189,9 +211,13 @@ public final class GilgameshBossVisuals {
             case "WEDGE_DROP", "SKY_RAIN" -> {
                 if (!active) {
                     EffectSprites.warningCircle(sp, g, a.radius, warnProg, a.color, 215);
-                    drawBabylonPortal(q, sp, g.add(0, 12.5, 0), new Vec3(0, -1, 0), 1.45, now, (int) (200 * warnProg));
+                    drawBabylonPortal(q, sp, g.add(0, 12.5, 0), DOWN, 1.45, now, (int) (200 * warnProg));
                     double fallY = 12.5 * (1.0 - warnProg * warnProg * warnProg);
-                    EffectSprites.texturedBeam(sp, g.add(0, Math.max(0.1, fallY), 0), g.add(0, Math.max(0.1, fallY) + 3.0, 0), camera, 0.24, now, false, 0xffe478, 235);
+                    double tipY = Math.max(0.05, fallY);
+                    // 3D 坠落宝具：尖端严格朝下 (0, -1, 0)，从高空金色涟漪门笔直贯落至落点
+                    float fallScale = "WEDGE_DROP".equals(a.type) ? 1.38f : 1.24f;
+                    weapons.add(new FlyingWeapon(weaponState(a.id.hashCode()), g.add(0, tipY + 2.05, 0), DOWN, fallScale));
+                    EffectSprites.texturedBeam(sp, g.add(0, tipY, 0), g.add(0, tipY + 3.2, 0), camera, 0.20, now, false, 0xffe478, 200);
                 } else {
                     if (shaken.add(a.id)) CameraShake.impulse(g, 24, 0.24f, 60, 140);
                     double fade = Math.clamp(1.0 - activeProg, 0.0, 1.0);
@@ -421,8 +447,7 @@ public final class GilgameshBossVisuals {
             Vec3 p = w.pos();
             pose.pushPose();
             pose.translate(p.x - camera.x, p.y - camera.y, p.z - camera.z);
-            pose.mulPose(Axis.YP.rotationDegrees(w.yawDeg()));
-            pose.mulPose(Axis.XP.rotationDegrees(90.0f - w.pitchDeg()));
+            pose.mulPose(tipRotation(w.dir()));
             pose.scale(w.scale(), w.scale(), w.scale());
             EffectModels.submit(w.model(), pose, event.getSubmitNodeCollector(), 0xF000F0, OverlayTexture.NO_OVERLAY, frame.fade());
             pose.popPose();

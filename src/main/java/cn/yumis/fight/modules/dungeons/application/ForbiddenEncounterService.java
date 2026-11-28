@@ -78,15 +78,15 @@ public final class ForbiddenEncounterService {
         if(kind==null||kind==BARRIER_CORE||e.getPersistentData().getBooleanOr(SPENT,false))return;
         Brain b=brains.computeIfAbsent(e.getUUID(),id->new Brain(e,d));
         if(CombatContentTypes.controlled(e)){cancel(e.getUUID());return;}
-        if(!contains(d,b.area,e.position())){cancel(e.getUUID());if(d.tower!=null&&e.getY()<76)e.setPos(b.home);else e.getNavigation().moveTo(b.home.x,b.home.y,b.home.z,1);return;}
-        ServerPlayer p=here.stream().filter(q->eligible(q,d.id.toString())&&contains(d,b.area,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
+        if(!contains(d,b.area,e.position())){cancel(e.getUUID());if((d.tower!=null||d.treasure!=null&&d.treasure.region>0)&&e.getY()<76)e.setPos(b.home);else e.getNavigation().moveTo(b.home.x,b.home.y,b.home.z,1);return;}
+        ServerPlayer p=here.stream().filter(q->eligible(q,d)&&contains(d,b.area,q.position())).min(Comparator.comparingDouble(e::distanceToSqr)).orElse(null);
         if(p==null){e.getNavigation().stop();return;}
-        if(kind==CULTIST&&here.stream().anyMatch(q->eligible(q,d.id.toString())&&e.getBoundingBox().inflate(.05).intersects(q.getBoundingBox()))){explode(d,e,here,now);return;}
+        if(kind==CULTIST&&here.stream().anyMatch(q->eligible(q,d)&&e.getBoundingBox().inflate(.05).intersects(q.getBoundingBox()))){explode(d,e,here,now);return;}
         if(now<b.busy){e.getNavigation().stop();return;}
         Vec3 direction=p.position().subtract(e.position()).multiply(1,0,1).normalize();if(direction.lengthSqr()<.001)direction=new Vec3(0,0,1);
         float yaw=(float)Math.toDegrees(Math.atan2(-direction.x,direction.z));e.setYRot(yaw);e.yBodyRot=yaw;e.getLookControl().setLookAt(p);
         double distance=e.distanceTo(p);boolean ranged=kind==FEMALE_CULTIST||kind==BISHOP;
-        if(ranged&&distance<4){Vec3 goal=e.position().subtract(direction.scale(3));Vec3 to=d.tower==null?BehemothForbidden.inside(d.cell,b.area,goal):AwakeningTowerLayout.insideBattle(d.cell,goal);e.getNavigation().moveTo(to.x,to.y,to.z,1);}
+        if(ranged&&distance<4){Vec3 goal=e.position().subtract(direction.scale(3));Vec3 to=inside(d,b.area,goal);e.getNavigation().moveTo(to.x,to.y,to.z,1);}
         else if(distance>(ranged?8:kind==MARCELLUS?5:kind==PRIEST?3:1.9))e.getNavigation().moveTo(p,1);
         else e.getNavigation().stop();
         if(distance>18)return;
@@ -113,7 +113,7 @@ public final class ForbiddenEncounterService {
             case BARRIER_CORE -> { }
         }
     }
-    private boolean eligible(ServerPlayer p,String instance){var life=players.session(p).life;return p.level()==owner.level()&&owner.participant(p,instance)&&p.isAlive()&&!life.dead&&!life.dungeonDefeated&&!p.isSpectator()&&!p.getAbilities().invulnerable;}
+    private boolean eligible(ServerPlayer p,Dungeon d){var life=players.session(p).life;return p.level()==owner.encounterWorld(d)&&owner.participant(p,d.id.toString())&&p.isAlive()&&!life.dead&&!life.dungeonDefeated&&!p.isSpectator()&&!p.getAbilities().invulnerable;}
     private void play(DungeonEnemy e,Brain b,ForbiddenMoves move,long now){
         long duration=targets.target(e).actionTiming(now).duration(move.duration());e.getNavigation().stop();e.setAggressive(true);e.play(move.animation,duration);b.busy=now+duration;b.ready.put(move,now+move.cooldownMs());
     }
@@ -135,7 +135,8 @@ public final class ForbiddenEncounterService {
         }
     }
     private long summoned(String instance){
-        long count=0;for(Entity raw:owner.level().getAllEntities())if(raw instanceof DungeonEnemy e&&e.instance().equals(instance)&&e.isAlive()&&e.getPersistentData().getBooleanOr(REINFORCEMENT,false)&&!e.getPersistentData().getBooleanOr(SPENT,false)&&!targets.target(e).life.dead)count++;return count;
+        Dungeon d=owner.byId(instance);
+        long count=0;for(Entity raw:owner.encounterWorld(d).getAllEntities())if(raw instanceof DungeonEnemy e&&e.instance().equals(instance)&&e.isAlive()&&e.getPersistentData().getBooleanOr(REINFORCEMENT,false)&&!e.getPersistentData().getBooleanOr(SPENT,false)&&!targets.target(e).life.dead)count++;return count;
     }
     private boolean canSummon(DungeonEnemy e,Brain b,ForbiddenMoves move,long now){return !e.getPersistentData().getBooleanOr(REINFORCEMENT,false)&&b.ready(move,now)&&summoned(e.instance())<summonLimitVal();}
     private void ritual(Dungeon d,DungeonEnemy e,Brain b,ForbiddenMoves move,long now){
@@ -143,12 +144,17 @@ public final class ForbiddenEncounterService {
         var visual=attack(e,move,move==BARRIER?"BARRIER":"SUMMON",now);visual.radius=move==BARRIER?1.6:2.5;visual.active=move.recoveryMs();add(visual);
     }
     private static boolean contains(Dungeon d,int area,Vec3 point){
+        if(d.treasure!=null)return cn.yumis.fight.modules.dungeons.content.TreasureArena.containsFor(d,point);
         return d.tower==null?BehemothForbidden.contains(d.cell,area,point):AwakeningTowerLayout.containsBattle(d.cell,point);
+    }
+    private static Vec3 inside(Dungeon d,int area,Vec3 point){
+        if(d.treasure!=null)return cn.yumis.fight.modules.dungeons.content.TreasureArena.insideFor(d,point);
+        return d.tower==null?BehemothForbidden.inside(d.cell,area,point):AwakeningTowerLayout.insideBattle(d.cell,point);
     }
     private void saveTarget(DungeonEnemy e,Target target)throws Exception{
         journal.begin();try{journal.put("target/"+e.getUUID(),target);journal.put("life/"+e.getUUID(),target.life);journal.finish();}catch(Exception failure){journal.abort();throw failure;}
         e.setData(CombatContentTypes.TARGET,JSON.toJson(target));
-        for(var p:owner.level().players())if(owner.participant(p,e.instance()))targets.context(p,e);
+        if(e.level() instanceof net.minecraft.server.level.ServerLevel sl)for(var p:sl.players())if(owner.participant(p,e.instance()))targets.context(p,e);
     }
     private void immune(DungeonEnemy boss,boolean value)throws Exception{
         Target t=targets.target(boss);if(t.damageImmune==value)return;t.damageImmune=value;t.life.revision++;saveTarget(boss,t);
@@ -169,8 +175,8 @@ public final class ForbiddenEncounterService {
             ForbiddenEnemyKind[] kinds=r.move==PRIEST_SUMMON?new ForbiddenEnemyKind[]{CULTIST,CULTIST}:r.move==BISHOP_SUMMON?new ForbiddenEnemyKind[]{CULTIST,CULTIST,FEMALE_CULTIST}:new ForbiddenEnemyKind[]{CULTIST,CULTIST,FEMALE_CULTIST,FEMALE_CULTIST};
             int slots=(int)Math.max(0,SUMMON_LIMIT-summoned(source.instance()));
             for(int i=0;i<Math.min(slots,kinds.length);i++){
-                double angle=2*Math.PI*i/kinds.length;Vec3 to=BehemothForbidden.inside(d.cell,r.area,source.position().add(Math.cos(angle)*3,0,Math.sin(angle)*3));
-                if(!owner.level().noCollision(source,source.getBoundingBox().move(to.subtract(source.position()))))continue;
+                double angle=2*Math.PI*i/kinds.length;Vec3 to=inside(d,r.area,source.position().add(Math.cos(angle)*3,0,Math.sin(angle)*3));
+                if(!source.level().noCollision(source,source.getBoundingBox().move(to.subtract(source.position()))))continue;
                 auxiliary(d,source,kinds[i],to,true);
             }
         }
@@ -190,46 +196,46 @@ public final class ForbiddenEncounterService {
     public void tick(List<ServerPlayer> online,long now)throws Exception{
         // Covers Hell+ enrollment as well as the ordinary join hook.
         Set<UUID> present=new HashSet<>();
-        for(var p:online)if(p.level()==owner.level()){
+        for(var p:online){
             var session=players.session(p);Dungeon d=owner.byId(session.life.instance);
-            if(d!=null&&(d.dungeon.equals("behemoth_forbidden")||d.tower!=null&&d.tower.fighting())&&d.status.equals("RUNNING")&&owner.participant(p,d.id.toString())){
+            if(d!=null&&p.level()==owner.encounterWorld(d)&&(d.dungeon.equals("behemoth_forbidden")||d.tower!=null&&d.tower.fighting())&&d.status.equals("RUNNING")&&owner.participant(p,d.id.toString())){
                 present.add(p.getUUID());String key=d.id+"/"+session.id+"/"+session.life.generation;
                 if(!key.equals(tracked.get(p.getUUID())))track(p);
             }
         }
         tracked.keySet().retainAll(present);
         // Keep spent world sources for the existing bounded contact delivery window.
-        for(var entry:new ArrayList<>(retired.entrySet()))if(now>=entry.getValue().expires){Entity e=owner.level().getEntity(entry.getKey());if(e!=null)e.discard();retired.remove(entry.getKey());}
+        for(var entry:new ArrayList<>(retired.entrySet()))if(now>=entry.getValue().expires){Entity e=owner.encounterEntity(entry.getKey());if(e!=null)e.discard();retired.remove(entry.getKey());}
         for(var r:new ArrayList<>(rituals.values())){
-            Entity raw=owner.level().getEntity(r.source);Dungeon d=owner.byId(r.instance);
+            Entity raw=owner.encounterEntity(r.source);Dungeon d=owner.byId(r.instance);
             if(!(raw instanceof DungeonEnemy e)||!alive(e)||d==null||!d.status.equals("RUNNING")||CombatContentTypes.controlled(e)){cancel(r.source);continue;}
             if(now>=r.release){release(r,e,d,now);rituals.remove(r.source,r);}
         }
         for(var barrier:new ArrayList<>(barriers.values())){
-            Entity raw=owner.level().getEntity(barrier.source),coreRaw=owner.level().getEntity(barrier.core);Dungeon d=owner.byId(barrier.instance);
+            Entity raw=owner.encounterEntity(barrier.source),coreRaw=owner.encounterEntity(barrier.core);Dungeon d=owner.byId(barrier.instance);
             if(!(raw instanceof DungeonEnemy boss)||!alive(boss)||!(coreRaw instanceof DungeonEnemy core)||!alive(core)||now>=barrier.until||d==null||!d.status.equals("RUNNING")){clearBarrier(barrier);continue;}
             core.noPhysics=true;core.setNoGravity(true);core.setDeltaMovement(Vec3.ZERO);core.setPos(boss.getX(),boss.getY(),boss.getZ());core.setYRot(boss.getYRot());core.yBodyRot=boss.yBodyRot;
         }
         for(var pending:new ArrayList<>(attacks.values())){
-            GblAttack a=pending.attack;Entity raw=owner.level().getEntity(a.source);Dungeon d=owner.byId(a.instance);
+            GblAttack a=pending.attack;Entity raw=owner.encounterEntity(a.source);Dungeon d=owner.byId(a.instance);
             if(!(raw instanceof DungeonEnemy e)||!alive(e)||d==null||!d.status.equals("RUNNING")||CombatContentTypes.controlled(e)){remove(a);continue;}
             if(now<a.release())continue;
             Vec3 from=a.position(Math.max(a.release(),pending.previous)),to=a.position(now);boolean blocked=false;
-            if(a.shape.equals("LINE")){var hit=owner.level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));blocked=hit.getType()!=HitResult.Type.MISS;if(blocked)to=hit.getLocation();}
+            if(a.shape.equals("LINE")){var hit=e.level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,e));blocked=hit.getType()!=HitResult.Type.MISS;if(blocked)to=hit.getLocation();}
             pending.previous=now;if(blocked||now>=a.end())remove(a,false);
         }
         for(var entry:new ArrayList<>(brains.entrySet())){
-            Entity raw=owner.level().getEntity(entry.getKey());if(!(raw instanceof DungeonEnemy e)||!alive(e)){brains.remove(entry.getKey());continue;}
+            Entity raw=owner.encounterEntity(entry.getKey());if(!(raw instanceof DungeonEnemy e)||!alive(e)){brains.remove(entry.getKey());continue;}
             if(now>=entry.getValue().busy)e.setAggressive(false);
         }
     }
     private boolean alive(DungeonEnemy e){return e.isAlive()&&!targets.target(e).life.dead;}
-    private JsonObject packet(GblAttack a,boolean cancelled){var frame=JSON.toJsonTree(a).getAsJsonObject();frame.addProperty("cancelled",cancelled);frame.addProperty("contactUntil",System.currentTimeMillis());frame.addProperty("retired",a.kind.equals(EXPLOSION.name()));var raw=owner.level().getEntity(a.source);if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));return frame;}
+    private JsonObject packet(GblAttack a,boolean cancelled){var frame=JSON.toJsonTree(a).getAsJsonObject();frame.addProperty("cancelled",cancelled);frame.addProperty("contactUntil",System.currentTimeMillis());frame.addProperty("retired",a.kind.equals(EXPLOSION.name()));var raw=owner.encounterEntity(a.source);if(raw instanceof LivingEntity source)frame.add("boss",JSON.toJsonTree(targets.target(source)));return frame;}
     private void remove(GblAttack a){remove(a,true);}
     private void remove(GblAttack a,boolean cancelled){if(attacks.remove(a.id)!=null){a.remove=true;owner.broadcast(a.instance,"forbiddenAttack",packet(a,cancelled));}}
     private void clearBarrier(Barrier b)throws Exception{
-        Entity raw=owner.level().getEntity(b.source);if(raw instanceof DungeonEnemy boss)immune(boss,false);
-        Entity core=owner.level().getEntity(b.core);
+        Entity raw=owner.encounterEntity(b.source);if(raw instanceof DungeonEnemy boss)immune(boss,false);
+        Entity core=owner.encounterEntity(b.core);
         if(core instanceof DungeonEnemy e){Target t=targets.target(e);if(!t.life.dead){t.life.dead=true;t.life.q=0;t.life.revision++;saveTarget(e,t);}e.discard();}
         barriers.remove(b.source,b);
     }
@@ -240,7 +246,7 @@ public final class ForbiddenEncounterService {
     boolean retainsSource(UUID id){return retired.containsKey(id);}
     public void cancel(UUID id){
         rituals.remove(id);for(var pending:new ArrayList<>(attacks.values()))if(pending.attack.source.equals(id))remove(pending.attack);
-        Entity raw=owner.level().getEntity(id);if(raw instanceof DungeonEnemy e&&ForbiddenEnemyKind.of(e)!=null&&!e.getPersistentData().getBooleanOr(SPENT,false)){e.getNavigation().stop();e.setAggressive(false);e.play("",0);}
+        Entity raw=owner.encounterEntity(id);if(raw instanceof DungeonEnemy e&&ForbiddenEnemyKind.of(e)!=null&&!e.getPersistentData().getBooleanOr(SPENT,false)){e.getNavigation().stop();e.setAggressive(false);e.play("",0);}
         Brain b=brains.get(id);if(b!=null){b.phase=ActionPhase.ABANDONED;b.leases.clear();b.busy=0;}
     }
     public void track(ServerPlayer p){
@@ -254,8 +260,8 @@ public final class ForbiddenEncounterService {
         for(var b:new ArrayList<>(barriers.values()))if(b.instance.equals(instance))clearBarrier(b);
         for(var r:new ArrayList<>(rituals.values()))if(r.instance.equals(instance))cancel(r.source);
         for(var p:new ArrayList<>(attacks.values()))if(p.attack.instance.equals(instance))remove(p.attack);
-        for(var entry:new ArrayList<>(brains.entrySet())){Entity e=owner.level().getEntity(entry.getKey());if(e instanceof DungeonEnemy mob&&mob.instance().equals(instance)){cancel(entry.getKey());brains.remove(entry.getKey());}}
-        for(var entry:new ArrayList<>(retired.entrySet()))if(entry.getValue().instance.equals(instance)){Entity e=owner.level().getEntity(entry.getKey());if(e!=null)e.discard();retired.remove(entry.getKey());}
+        for(var entry:new ArrayList<>(brains.entrySet())){Entity e=owner.encounterEntity(entry.getKey());if(e instanceof DungeonEnemy mob&&mob.instance().equals(instance)){cancel(entry.getKey());brains.remove(entry.getKey());}}
+        for(var entry:new ArrayList<>(retired.entrySet()))if(entry.getValue().instance.equals(instance)){Entity e=owner.encounterEntity(entry.getKey());if(e!=null)e.discard();retired.remove(entry.getKey());}
         announced.remove(d.id);
         tracked.values().removeIf(key->key.startsWith(instance+"/"));
     }

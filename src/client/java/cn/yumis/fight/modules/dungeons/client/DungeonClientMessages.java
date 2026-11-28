@@ -13,6 +13,8 @@ public final class DungeonClientMessages {
         router.register("dungeons","towerLobby",(context,j)->TowerClient.receiveLobby(j));
         router.register("dungeons","towerBattle",(context,j)->TowerClient.receiveBattle(j));
         router.register("dungeons","treasureMapClue",(context,j)->TreasureMapClient.receiveClue(j));
+        router.register("dungeons","treasurePortals",(context,j)->TreasureHuntVisuals.receivePortals(j));
+        router.register("dungeons","treasurePortalFx",(context,j)->TreasureHuntVisuals.receivePortalFx(j));
         router.register("dungeons","bossAction",(context,j)->{j.remove("clientContact");EnemyTelegraphs.receive(j);KenoVisuals.receive(j);hit.accept(j);});
         router.register("dungeons","cancelBossAction",(context,j)->{String id=j.get("id").getAsString();EnemyTelegraphs.cancel(id);KenoVisuals.cancel(id);cancel.accept(id);});
         router.register("dungeons","palaceAttack",(context,j)->{PalaceVisuals.receive(j);EncounterClientContacts.receive(EncounterClientContacts.Family.PALACE,j,hit);});

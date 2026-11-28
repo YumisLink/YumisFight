@@ -237,7 +237,7 @@ public final class ServerEvents {
         cn.yumis.fight.modules.economy.application.JarService.commands(root,()->ServerApplication.get().jars);
         cn.yumis.fight.modules.npc.application.NpcService.commands(root,()->ServerApplication.get().npcs);
         cn.yumis.fight.modules.quests.application.CommissionService.commands(root,()->ServerApplication.get().commissions);
-        cn.yumis.fight.modules.dungeons.application.DungeonCommands.commands(root,()->ServerApplication.get().dungeons);
+        cn.yumis.fight.modules.dungeons.application.DungeonCommands.commands(root,()->ServerApplication.get().dungeons,()->ServerApplication.get().rituals);
         cn.yumis.fight.modules.equipment.application.EquipmentCommands.commands(root,()->new cn.yumis.fight.modules.equipment.application.EquipmentCommands.Admin(ServerApplication.get().inventory,ServerApplication.get()::profile,p->ServerApplication.get().session(p).progress));
         e.getDispatcher().register(root);
     }

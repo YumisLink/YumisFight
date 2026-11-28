@@ -168,6 +168,26 @@ public final class GilgameshEncounterService {
         this.targets = targets;
     }
 
+    private static boolean activeEncounter(Dungeon d) {
+        if (d == null || d.status.equals("CLOSED")) return false;
+        if (d.tower != null) return d.tower.fighting();
+        return d.treasure != null && d.treasure.region > 0 && !d.treasure.cleared;
+    }
+
+    private static Vec3 arenaCenter(Dungeon d) {
+        return d != null && d.treasure != null
+            ? cn.yumis.fight.modules.dungeons.content.TreasureArena.center(d.cell)
+            : AwakeningTowerLayout.guard(d.cell);
+    }
+
+    private static double vimanaOrbitRadius(Dungeon d) {
+        return d != null && d.treasure != null ? 18.0 : OrreryTowerGilgamesh.VIMANA_ORBIT_RADIUS;
+    }
+
+    private static double shelterRingRadius(Dungeon d) {
+        return d != null && d.treasure != null ? 24.5 : OrreryTowerGilgamesh.ORRERY_SHELTER_RING_RADIUS;
+    }
+
     /** 20 Hz 高频推进：由 ServerApplication.tick 驱动。 */
     void tickAll(long now) {
         if (states.isEmpty()) return;
@@ -175,7 +195,7 @@ public final class GilgameshEncounterService {
             State s = states.get(instanceId);
             if (s == null) continue;
             Dungeon d = owner.byId(instanceId);
-            if (d == null || d.status.equals("CLOSED") || d.tower == null || !d.tower.fighting()) {
+            if (!activeEncounter(d)) {
                 continue;
             }
             Entity raw = owner.level().getEntity(s.bossId);
@@ -186,7 +206,7 @@ public final class GilgameshEncounterService {
             try {
                 brain(d, boss, fighters, now);
             } catch (Exception failure) {
-                server.sendSystemMessage(ModText.of("星仪塔吉尔伽美什首领更新失败：" + failure.getMessage()));
+                server.sendSystemMessage(ModText.of("吉尔伽美什首领更新失败：" + failure.getMessage()));
             }
         }
     }
@@ -195,7 +215,8 @@ public final class GilgameshEncounterService {
         var list = new ArrayList<ServerPlayer>();
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             if (p.level().dimension() == DungeonService.DIMENSION && owner.participant(p, d.id.toString())
-                && !players.session(p).life.dead && d.tower != null && d.tower.hasSelected(p.getUUID())) {
+                && !players.session(p).life.dead
+                && (d.treasure != null || d.tower != null && d.tower.hasSelected(p.getUUID()))) {
                 list.add(p);
             }
         }
@@ -418,7 +439,7 @@ public final class GilgameshEncounterService {
             e.setNoGravity(true);
             e.play("vimana_cruise", OrreryTowerGilgamesh.TRANSITION_65_DURATION_MS);
 
-            Vec3 center = AwakeningTowerLayout.guard(d.cell);
+            Vec3 center = arenaCenter(d);
             broadcastEvent(instanceId, Map.of(
                 "kind", "VIMANA_TRANSITION",
                 "instance", instanceId,
@@ -445,7 +466,7 @@ public final class GilgameshEncounterService {
             t.damageTakenMultiplier = OrreryTowerGilgamesh.GOLDEN_ARMOR_DAMAGE_TAKEN;
             commitTarget(d, e, t);
 
-            Vec3 center = AwakeningTowerLayout.guard(d.cell);
+            Vec3 center = arenaCenter(d);
             e.getNavigation().stop();
             e.setNoGravity(true);
             e.setPos(center.x, center.y, center.z);
@@ -479,8 +500,8 @@ public final class GilgameshEncounterService {
             clearAllMechanisms(instanceId, s);
             broadcastEvent(instanceId, Map.of("kind", "CLEAR_HAZARDS", "instance", instanceId));
 
-            Vec3 center = AwakeningTowerLayout.guard(d.cell);
-            landToGround(e, d.cell, center);
+            Vec3 center = arenaCenter(d);
+            landToGround(d, e, center);
             e.getNavigation().stop();
             e.play("finale_enuma", OrreryTowerGilgamesh.FINALE_DPS_RACE_MS);
 
@@ -518,12 +539,12 @@ public final class GilgameshEncounterService {
                                       List<ServerPlayer> fighters, long now) throws Exception {
         String instanceId = d.id.toString();
         long elapsed = now - s.phaseStartAt;
-        Vec3 pos = OrreryTowerGilgamesh.vimanaOrbitPosition(d.cell, s.vimanaStartAngle, elapsed);
+        Vec3 center = arenaCenter(d);
+        Vec3 pos = OrreryTowerGilgamesh.vimanaOrbitPosition(center, vimanaOrbitRadius(d), s.vimanaStartAngle, elapsed);
         e.setNoGravity(true);
         e.setPos(pos.x, pos.y, pos.z);
         e.setDeltaMovement(Vec3.ZERO);
         e.resetFallDistance();
-        Vec3 center = AwakeningTowerLayout.guard(d.cell);
         facePosition(e, center);
 
         // 遵守服务器 <= 4Hz 同步红线：仅每 >= 250ms 广播一次维摩那位置校对
@@ -538,12 +559,13 @@ public final class GilgameshEncounterService {
             ));
         }
 
-        // 交替轰炸星仪塔同心环带：内环(0~12) / 中环(12~24) / 外环(24~38)
+        // 交替轰炸同心环带：星仪塔(0~12 / 12~24 / 24~38)，藏宝秘境圆场(0~10 / 10~21 / 21~32)
         if (now >= s.nextVimanaRingAt && now + OrreryTowerGilgamesh.VIMANA_RING_WARNING_MS <= s.phaseUntil + 400L) {
             s.nextVimanaRingAt = now + OrreryTowerGilgamesh.VIMANA_RING_INTERVAL_MS;
             int band = s.vimanaRingIndex++ % 3;
-            double innerR = band == 0 ? 0.0 : band == 1 ? 12.0 : 24.0;
-            double outerR = band == 0 ? 12.0 : band == 1 ? 24.0 : 38.0;
+            boolean treasure = d.treasure != null;
+            double innerR = band == 0 ? 0.0 : band == 1 ? (treasure ? 10.0 : 12.0) : (treasure ? 21.0 : 24.0);
+            double outerR = band == 0 ? (treasure ? 10.0 : 12.0) : band == 1 ? (treasure ? 21.0 : 24.0) : (treasure ? 32.0 : 38.0);
             String hid = instanceId + "/vimana_ring/" + (++s.sequence);
             owner.broadcast(instanceId, "orreryBossHazard", hazardPacket(
                 instanceId, hid, "VIMANA_RING", t, e.getId(),
@@ -560,7 +582,7 @@ public final class GilgameshEncounterService {
         if (!fighters.isEmpty() && now >= s.nextVimanaOrbAt && now + OrreryTowerGilgamesh.VIMANA_ORB_WARNING_MS <= s.phaseUntil + 200L) {
             s.nextVimanaOrbAt = now + OrreryTowerGilgamesh.VIMANA_ORB_INTERVAL_MS;
             ServerPlayer chosen = fighters.get(random.nextInt(fighters.size()));
-            Vec3 targetGround = safeGround(owner.level(), d.cell, chosen.position(), center);
+            Vec3 targetGround = safeGround(owner.level(), d, chosen.position(), center);
             String hid = instanceId + "/vimana_orb/" + (++s.sequence);
             owner.broadcast(instanceId, "orreryBossHazard", hazardPacket(
                 instanceId, hid, "VIMANA_ORB", t, e.getId(),
@@ -575,7 +597,7 @@ public final class GilgameshEncounterService {
 
         if (now < s.phaseUntil) return;
 
-        landToGround(e, d.cell, center);
+        landToGround(d, e, center);
         t.damageImmune = false;
         t.healthFloor = OrreryTowerGilgamesh.FLOOR_P2;
         t.damageTakenMultiplier = OrreryTowerGilgamesh.GOLDEN_ARMOR_DAMAGE_TAKEN;
@@ -598,7 +620,7 @@ public final class GilgameshEncounterService {
     private void tickEaDrawTransition(Dungeon d, DungeonEnemy e, Target t, State s, long now) throws Exception {
         String instanceId = d.id.toString();
         long elapsed = now - s.phaseStartAt;
-        Vec3 center = AwakeningTowerLayout.guard(d.cell);
+        Vec3 center = arenaCenter(d);
         double liftProg = Math.clamp(elapsed / 1_400.0, 0.0, 1.0);
         double height;
         if (elapsed < 3_000L) {
@@ -627,7 +649,7 @@ public final class GilgameshEncounterService {
 
         if (now < s.phaseUntil) return;
 
-        landToGround(e, d.cell, center);
+        landToGround(d, e, center);
         t.damageImmune = false;
         t.healthFloor = 0.0;
         t.lethalFloorOne = true;
@@ -644,7 +666,7 @@ public final class GilgameshEncounterService {
     private void tickFinaleDpsCheck(Dungeon d, DungeonEnemy e, Target t, State s,
                                     List<ServerPlayer> fighters, long now) {
         String instanceId = d.id.toString();
-        Vec3 center = AwakeningTowerLayout.guard(d.cell);
+        Vec3 center = arenaCenter(d);
         e.getNavigation().stop();
         ServerPlayer nearest = nearestFighter(e, fighters);
         if (nearest != null) facePosition(e, nearest.position());
@@ -666,7 +688,7 @@ public final class GilgameshEncounterService {
             for (int i = 0; i < OrreryTowerGilgamesh.FINALE_RIFT_COUNT; i++) {
                 double ang = random.nextDouble() * Math.PI * 2.0;
                 double dist = 4.5 + random.nextDouble() * 14.0;
-                Vec3 pt = safeGround(owner.level(), d.cell, center.add(Math.cos(ang) * dist, 0, Math.sin(ang) * dist), center);
+                Vec3 pt = safeGround(owner.level(), d, center.add(Math.cos(ang) * dist, 0, Math.sin(ang) * dist), center);
                 String hid = instanceId + "/finale_rift/" + (++s.sequence);
                 owner.broadcast(instanceId, "orreryBossHazard", hazardPacket(
                     instanceId, hid, "FINALE_RIFT", t, e.getId(),
@@ -730,7 +752,7 @@ public final class GilgameshEncounterService {
                 facePosition(e, targetPlayer.position());
                 e.play("babylon_wedge", castMs + 250L);
 
-                List<Vec3> spots = pickSpreadSpots(owner.level(), d.cell, e.position(), fighters, count, 6.0, random);
+                List<Vec3> spots = pickSpreadSpots(owner.level(), d, e.position(), fighters, count, 6.0, random);
                 long dropAt = now + warnMs;
                 for (Vec3 pt : spots) {
                     String hid = instanceId + "/wedge/" + (++s.sequence);
@@ -748,7 +770,7 @@ public final class GilgameshEncounterService {
             case ROYAL_REPULSE -> {
                 long windupMs = timing.windup(OrreryTowerGilgamesh.SKILL3_WINDUP_MS);
                 long activeMs = timing.active(OrreryTowerGilgamesh.SKILL3_ACTIVE_MS);
-                Vec3 center = safeGround(owner.level(), d.cell, e.position(), e.position());
+                Vec3 center = safeGround(owner.level(), d, e.position(), e.position());
 
                 ActiveCast cast = new ActiveCast(skill);
                 cast.startAt = now;
@@ -773,7 +795,7 @@ public final class GilgameshEncounterService {
                 int count = OrreryTowerGilgamesh.surroundCount(tier);
                 long windupMs = timing.windup(OrreryTowerGilgamesh.babylonWindup(OrreryTowerGilgamesh.SKILL4_WINDUP_MS, tier));
                 long activeMs = timing.active(OrreryTowerGilgamesh.SKILL4_ACTIVE_MS);
-                Vec3 ringCenter = safeGround(owner.level(), d.cell, targetPlayer.position(), e.position());
+                Vec3 ringCenter = safeGround(owner.level(), d, targetPlayer.position(), e.position());
                 double gapAngle = random.nextDouble() * Math.PI * 2.0;
 
                 ActiveCast cast = new ActiveCast(skill);
@@ -840,7 +862,7 @@ public final class GilgameshEncounterService {
                 long windupMs = timing.windup(OrreryTowerGilgamesh.SKILL7_WINDUP_MS);
                 long travelMs = timing.active(OrreryTowerGilgamesh.SKILL7_SLASH_TRAVEL_MS);
                 long collapseMs = timing.duration(OrreryTowerGilgamesh.SKILL7_COLLAPSE_DELAY_MS);
-                Vec3 origin = safeGround(owner.level(), d.cell, e.position(), e.position());
+                Vec3 origin = safeGround(owner.level(), d, e.position(), e.position());
 
                 ActiveCast cast = new ActiveCast(skill);
                 cast.startAt = now;
@@ -869,8 +891,8 @@ public final class GilgameshEncounterService {
                 long moveMs = timing.duration(OrreryTowerGilgamesh.SKILL8_MOVE_MS);
                 long chargeMs = timing.windup(OrreryTowerGilgamesh.SKILL8_CHARGE_MS);
                 long sweepMs = timing.active(OrreryTowerGilgamesh.SKILL8_SWEEP_MS);
-                Vec3 center = AwakeningTowerLayout.guard(d.cell);
-                List<Vec3> shelters = OrreryTowerGilgamesh.pickStarShelters(d.cell, OrreryTowerGilgamesh.SKILL8_SHELTER_COUNT, random);
+                Vec3 center = arenaCenter(d);
+                List<Vec3> shelters = OrreryTowerGilgamesh.pickStarShelters(center, shelterRingRadius(d), OrreryTowerGilgamesh.SKILL8_SHELTER_COUNT, random);
 
                 ActiveCast cast = new ActiveCast(skill);
                 cast.startAt = now;
@@ -955,7 +977,7 @@ public final class GilgameshEncounterService {
                     if (focus == null) focus = nearestFighter(e, fighters);
                     if (focus != null) {
                         facePosition(e, focus.position());
-                        Vec3 pt = safeGround(owner.level(), d.cell, focus.position(), e.position());
+                        Vec3 pt = safeGround(owner.level(), d, focus.position(), e.position());
                         long warnMs = timing.windup(OrreryTowerGilgamesh.SKILL6_WARNING_MS);
                         String hid = instanceId + "/enkidu_warn/" + (++s.sequence);
                         s.pendingEnkidu.add(new PendingEnkiduStrike(hid, pt, now + warnMs));
@@ -1005,7 +1027,7 @@ public final class GilgameshEncounterService {
                     owner.broadcast(instanceId, "orreryBossEvent", impact);
                 }
                 if (now >= cast.endAt) {
-                    landToGround(e, d.cell, cast.anchor);
+                    landToGround(d, e, cast.anchor);
                     s.activeCast = null;
                     s.busyUntil = now + timing.recovery(OrreryTowerGilgamesh.SKILL8_RECOVERY_MS);
                 }
@@ -1016,22 +1038,24 @@ public final class GilgameshEncounterService {
     private void spawnSkyRainWave(Dungeon d, DungeonEnemy e, Target t, State s, List<ServerPlayer> fighters,
                                   int waveIndex, Target.ActionTiming timing, long now) {
         String instanceId = d.id.toString();
-        Vec3 center = AwakeningTowerLayout.guard(d.cell);
+        Vec3 center = arenaCenter(d);
         long warnMs = timing.windup(OrreryTowerGilgamesh.SKILL5_DROP_WARNING_MS);
         List<Vec3> drops = new ArrayList<>();
         if (waveIndex == 0) {
-            drops.addAll(pickSpreadSpots(owner.level(), d.cell, e.position(), fighters,
+            drops.addAll(pickSpreadSpots(owner.level(), d, e.position(), fighters,
                 OrreryTowerGilgamesh.SKILL5_DROPS_PER_WAVE, 4.2, random));
         } else {
-            double ringR = waveIndex == 1 ? 16.0 : 25.0;
+            double ringR = d.treasure != null
+                ? (waveIndex == 1 ? 12.0 : 21.0)
+                : (waveIndex == 1 ? 16.0 : 25.0);
             double offset = random.nextDouble() * Math.PI * 2.0;
             for (int i = 0; i < OrreryTowerGilgamesh.SKILL5_DROPS_PER_WAVE; i++) {
                 double ang = offset + i * (Math.PI * 2.0 / OrreryTowerGilgamesh.SKILL5_DROPS_PER_WAVE);
                 Vec3 raw = center.add(Math.cos(ang) * ringR, 0, Math.sin(ang) * ringR);
-                drops.add(safeGround(owner.level(), d.cell, raw, center));
+                drops.add(safeGround(owner.level(), d, raw, center));
             }
             if (!fighters.isEmpty()) {
-                drops.add(safeGround(owner.level(), d.cell, fighters.get(random.nextInt(fighters.size())).position(), center));
+                drops.add(safeGround(owner.level(), d, fighters.get(random.nextInt(fighters.size())).position(), center));
             }
         }
         for (int i = 0; i < drops.size(); i++) {
@@ -1125,7 +1149,7 @@ public final class GilgameshEncounterService {
 
                 // 紧贴被锁玩家身侧放置可击破的天之锁锚点，近战远程均可顺手击碎
                 Vec3 toBoss = horizontalDirection(p.position(), boss.position());
-                Vec3 anchorPos = safeGround(level, d.cell, p.position().add(toBoss.scale(0.85)), p.position());
+                Vec3 anchorPos = safeGround(level, d, p.position().add(toBoss.scale(0.85)), p.position());
                 RitualMechanismEntity anchor = spawnMechanism(
                     level, d, OrreryTowerGilgamesh.ENKIDU_MECHANISM_ID, "天之锁",
                     anchorPos, OrreryTowerGilgamesh.ENKIDU_SPECIES_HEALTH, 1
@@ -1228,8 +1252,14 @@ public final class GilgameshEncounterService {
         target.instance = d.id.toString();
         target.life.instance = d.id.toString();
         target.kind = "NORMAL";
-        target.originalLevel = AwakeningTower.LEVEL;
-        target.tower = AwakeningTower.ORRERY;
+        if (d.treasure != null) {
+            target.originalLevel = d.treasure.baseLevel + Math.max(0, d.treasure.region - 1) * 2;
+            target.tower = null;
+            target.waystone = cn.yumis.fight.modules.dungeons.content.TreasureThemes.hellPlusModifiers(d.treasure.region);
+        } else {
+            target.originalLevel = AwakeningTower.LEVEL;
+            target.tower = AwakeningTower.ORRERY;
+        }
         target.difficulty = d.difficulty;
         target.partySize = Math.max(1, partySize);
         target.noRewards = true;
@@ -1358,22 +1388,22 @@ public final class GilgameshEncounterService {
         }
     }
 
-    private void landToGround(DungeonEnemy e, int cell, Vec3 around) {
+    private void landToGround(Dungeon d, DungeonEnemy e, Vec3 around) {
         e.setNoGravity(false);
-        Vec3 ground = AwakeningTowerLayout.ground(owner.level(), cell, around, AwakeningTowerLayout.guard(cell));
+        Vec3 ground = safeGround(owner.level(), d, around, arenaCenter(d));
         e.setPos(ground.x, ground.y, ground.z);
         e.setDeltaMovement(Vec3.ZERO);
         e.resetFallDistance();
     }
 
-    private static List<Vec3> pickSpreadSpots(ServerLevel world, int cell, Vec3 bossPos,
+    private static List<Vec3> pickSpreadSpots(ServerLevel world, Dungeon d, Vec3 bossPos,
                                               List<ServerPlayer> fighters, int count, double minSpacing, Random rng) {
         List<Vec3> result = new ArrayList<>(count);
         Vec3 anchor = fighters != null && !fighters.isEmpty() ? fighters.get(0).position() : bossPos;
         if (fighters != null) {
             for (ServerPlayer p : fighters) {
                 if (result.size() >= count) break;
-                result.add(safeGround(world, cell, p.position(), bossPos));
+                result.add(safeGround(world, d, p.position(), bossPos));
             }
         }
         double minSq = minSpacing * minSpacing;
@@ -1382,7 +1412,7 @@ public final class GilgameshEncounterService {
             attempts++;
             double angle = rng.nextDouble() * Math.PI * 2.0;
             double dist = 4.0 + rng.nextDouble() * 16.0;
-            Vec3 cand = safeGround(world, cell, anchor.add(Math.cos(angle) * dist, 0, Math.sin(angle) * dist), anchor);
+            Vec3 cand = safeGround(world, d, anchor.add(Math.cos(angle) * dist, 0, Math.sin(angle) * dist), anchor);
             boolean tooClose = false;
             for (Vec3 ex : result) {
                 if (ex.subtract(cand).horizontalDistanceSqr() < minSq) {
@@ -1409,7 +1439,12 @@ public final class GilgameshEncounterService {
         return arr;
     }
 
-    private static Vec3 safeGround(ServerLevel world, int cell, Vec3 point, Vec3 fallback) {
+    private static Vec3 safeGround(ServerLevel world, Dungeon d, Vec3 point, Vec3 fallback) {
+        if (d != null && d.treasure != null) {
+            Vec3 inside = cn.yumis.fight.modules.dungeons.content.TreasureArena.inside(d.cell, point);
+            return new Vec3(inside.x, 80.0, inside.z);
+        }
+        int cell = d == null ? 0 : d.cell;
         Vec3 inside = AwakeningTowerLayout.insideBattle(cell, point);
         return world == null ? inside : AwakeningTowerLayout.ground(world, cell, inside, fallback);
     }
